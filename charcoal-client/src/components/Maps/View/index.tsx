@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react'
+import React, { FunctionComponent, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
     Box,
@@ -10,6 +10,8 @@ import {
 
 import { useActiveCharacter } from '../../ActiveCharacter';
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
+import { addItem, setIntent } from '../../../slices/activeCharacters'
+import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
@@ -18,12 +20,18 @@ type MapViewProps = {
 }
 
 export const MapView: FunctionComponent<MapViewProps> = () => {
+    const dispatch = useDispatch()
     const { maps, CharacterId, info: { Name = '???' } = {} } = useActiveCharacter()
     useAutoPin({
         href: `/Character/${CharacterId}/Map/`,
         label: `Map: ${Name}`,
         iconName: 'Map'
     })
+    useEffect(() => {
+        dispatch(addItem({ key: CharacterId }))
+        dispatch(setIntent({ key: CharacterId, intent: ['MAPSUBSCRIBED'] }))
+        dispatch(heartbeat)
+    }, [dispatch, CharacterId])
     const [MapId, setMapId] = useState<string>(Object.keys(maps || {})[0] || '')
 
     return <Box sx={{ height: "100%", width: "100%" }}>

@@ -6,7 +6,8 @@ import {
     fetchAction,
     registerAction,
     syncAction,
-    backoffAction
+    backoffAction,
+    mapSubscribeAction
 } from './index.api'
 import receiveMapEphemera from './receiveMapEphemera'
 import { publicSelectors, PublicSelectors } from './selectors'
@@ -75,6 +76,16 @@ export const {
             },
             CONNECTED: {
                 stateType: 'CHOICE',
+                choices: ['INITIAL', 'MAPSUBSCRIBE']
+            },
+            MAPSUBSCRIBE: {
+                stateType: 'ATTEMPT',
+                action: mapSubscribeAction,
+                resolve: 'MAPSUBSCRIBED',
+                reject: 'ERROR'
+            },
+            MAPSUBSCRIBED: {
+                stateType: 'CHOICE',
                 choices: ['INITIAL']
             },
             ERROR: {
@@ -85,7 +96,7 @@ export const {
     }
 })
 
-export const { addItem } = activeCharactersSlice.actions
+export const { addItem, setIntent } = activeCharactersSlice.actions
 // export const { } = publicActions
 export const {
     getActiveCharacterMaps

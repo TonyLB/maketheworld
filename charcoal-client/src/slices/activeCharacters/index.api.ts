@@ -86,3 +86,8 @@ export const backoffAction: ActiveCharacterAction = ({ internalData: { increment
     await delayPromise(incrementalBackoff * 1000)
     return { internalData: { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) } }
 }
+
+export const mapSubscribeAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
+    await dispatch(socketDispatchPromise({ message: 'subscribeToMaps', CharacterId: id ? `CHARACTER#${id}` : '' }))
+    return {}
+}

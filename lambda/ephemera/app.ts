@@ -13,7 +13,8 @@ import {
     isSyncAPIMessage,
     isActionAPIMessage,
     isLinkAPIMessage,
-    isCommandAPIMessage
+    isCommandAPIMessage,
+    isMapSubscribeAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -24,6 +25,7 @@ import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
+import { isEphemeraCharacterId } from './cacheAsset/baseClasses.js'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -199,36 +201,48 @@ export const handler = async (event: any, context: any) => {
             limit: request.limit
         })
     }
+    if (isMapSubscribeAPIMessage(request)) {
+        const characterId = request.CharacterId
+        if (isEphemeraCharacterId(characterId)) {
+            messageBus.send({
+                type: 'SubscribeToMaps',
+                characterId
+            })
+        }
+    }
     if (isActionAPIMessage(request)) {
         await executeAction(request)
     }
     if (isLinkAPIMessage(request)) {
-        switch(splitType(request.to)[0]) {
-            case 'ACTION':
-                //
-                // TODO: Extend WML to assign legal Actions to Rooms, and then use that to check the legal
-                // actions to which the character has access, and confirm access before executing
-                //
-                messageBus.send({
-                    type: 'ExecuteAction',
-                    actionId: request.to,
-                    characterId: request.CharacterId
-                })
-                break
-            case 'FEATURE':
-                messageBus.send({
-                    type: 'Perception',
-                    characterId: request.CharacterId,
-                    ephemeraId: request.to as `FEATURE#${string}`
-                })
-                break
-            case 'CHARACTER':
-                messageBus.send({
-                    type: 'Perception',
-                    characterId: request.CharacterId,
-                    ephemeraId: `CHARACTER#${splitType(request.to)[1]}`
-                })
-                break
+        const CharacterId = request.CharacterId
+        if (isEphemeraCharacterId(CharacterId)) {
+            switch(splitType(request.to)[0]) {
+                case 'ACTION':
+                    //
+                    // TODO: Extend WML to assign legal Actions to Rooms, and then use that to check the legal
+                    // actions to which the character has access, and confirm access before executing
+                    //
+                    messageBus.send({
+                        type: 'ExecuteAction',
+                        actionId: request.to,
+                        characterId: CharacterId
+                    })
+                    break
+                case 'FEATURE':
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: CharacterId,
+                        ephemeraId: request.to as `FEATURE#${string}`
+                    })
+                    break
+                case 'CHARACTER':
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: CharacterId,
+                        ephemeraId: `CHARACTER#${splitType(request.to)[1]}`
+                    })
+                    break
+            }
         }
     }
     if (isCommandAPIMessage(request)) {

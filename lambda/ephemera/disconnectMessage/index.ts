@@ -71,13 +71,13 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 Update: {
                     TableName: 'Connections',
                     Key: marshall({
-                        EphemeraId: 'Map',
+                        ConnectionId: 'Map',
                         DataCategory: 'Subscriptions'
                     }),
                     UpdateExpression: 'SET connections = :newConnections',
                     ExpressionAttributeValues: marshall({
-                        ':newCharacters': mapSubscriptions?.filter(({ connectionId: check }) => (check !== connectionId)),
-                        ':oldCharacters': mapSubscriptions
+                        ':newConnections': (mapSubscriptions || []).filter(({ connectionId: check }) => (check !== connectionId)),
+                        ':oldConnections': mapSubscriptions
                     }),
                     ConditionExpression: 'connections = :oldConnections'
                 }
