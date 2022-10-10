@@ -22,7 +22,8 @@ import {
     isDescentUpdateMessage,
     isAncestryUpdateMessage,
     isDependencyCascadeMessage,
-    isExecuteActionMessage
+    isExecuteActionMessage,
+    isMapSubscription
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -43,6 +44,7 @@ import roomUpdateMessage from '../roomUpdate'
 import dependentUpdateMessage from '../dependentMessages/dependentUpdate'
 import dependencyCascadeMessage from '../dependentMessages/dependencyCascade'
 import executeActionMessage from '../executeAction'
+import mapSubscriptionMessage from '../mapSubscription'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -98,6 +100,12 @@ messageBus.subscribe({
     priority: 2,
     filter: isFetchPlayerEphemera,
     callback: fetchPlayerEphemera
+})
+messageBus.subscribe({
+    tag: 'MapSubscription',
+    priority: 2,
+    filter: isMapSubscription,
+    callback: mapSubscriptionMessage
 })
 messageBus.subscribe({
     tag: 'ImportDefaults',

@@ -16,9 +16,10 @@ type RoomCharacterActive = {
 
 const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => {
     return exponentialBackoffWrapper(async () => {
-        const [currentConnections, characterFetch] = await Promise.all([
+        const [currentConnections, characterFetch, mapSubscriptions] = await Promise.all([
             internalCache.CharacterConnections.get(characterId),
-            internalCache.CharacterMeta.get(characterId)
+            internalCache.CharacterMeta.get(characterId),
+            internalCache.Global.get("mapSubscriptions")
         ])
         if (!(currentConnections && currentConnections.length)) {
             return
@@ -65,6 +66,23 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                     }),
                 }
             }]
+        const adjustMapSubscriptions = (mapSubscriptions || []).find(({ connectionId: check }) => (check === connectionId))
+            ? [{
+                Update: {
+                    TableName: 'Connections',
+                    Key: marshall({
+                        EphemeraId: 'Map',
+                        DataCategory: 'Subscriptions'
+                    }),
+                    UpdateExpression: 'SET connections = :newConnections',
+                    ExpressionAttributeValues: marshall({
+                        ':newCharacters': mapSubscriptions?.filter(({ connectionId: check }) => (check !== connectionId)),
+                        ':oldCharacters': mapSubscriptions
+                    }),
+                    ConditionExpression: 'connections = :oldConnections'
+                }
+            }]
+            : []
         await multiTableTransactWrite([{
             Delete: {
                 TableName: 'Connections',
@@ -74,6 +92,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 })
             }
         },
+        ...adjustMapSubscriptions,
         ...adjustMeta,
         {
             Update: {
