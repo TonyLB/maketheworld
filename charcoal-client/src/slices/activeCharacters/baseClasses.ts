@@ -45,5 +45,7 @@ export interface ActiveCharacterNodes {
     SYNCHRONIZE: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     SYNCHRONIZEBACKOFF: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     CONNECTED: ISSMChoiceNode;
+    MAPSUBSCRIBE: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
+    MAPSUBSCRIBED: ISSMChoiceNode;
     ERROR: ISSMChoiceNode;
 }

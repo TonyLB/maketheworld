@@ -8,6 +8,7 @@ import { EphemeraCharacterId } from "../cacheAsset/baseClasses"
 export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payloads: MapSubscriptionMessage[], messageBus: MessageBus }): Promise<void> => {
 
     const connectionId = await internalCache.Global.get('ConnectionId')
+    const RequestId = await internalCache.Global.get('RequestId')
 
     if (connectionId) {
 
@@ -37,7 +38,10 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
 
         messageBus.send({
             type: 'ReturnValue',
-            body: { statusCode: 200 }
+            body: {
+                messageType: 'SubscribeToMaps',
+                RequestId
+            }
         })
 
     }
@@ -45,8 +49,9 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
         messageBus.send({
             type: 'ReturnValue',
             body: {
-                statusCode: 500,
-                message: 'Internal Server Error'
+                messageType: 'Error',
+                message: 'Internal Server Error',
+                RequestId
             }
         })
     }

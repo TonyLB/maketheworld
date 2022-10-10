@@ -25,6 +25,11 @@ export type SyncAPIMessage = {
     limit?: number;
 }
 
+export type MapSubscribeAPIMessage = {
+    message: 'subscribeToMaps';
+    CharacterId: string;
+}
+
 type ActionAPILookMessage = {
     actionType: 'look';
     payload: {
@@ -97,6 +102,7 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     FetchImportDefaultsAPIMessage |
     WhoAmIAPIMessage |
     SyncAPIMessage |
+    MapSubscribeAPIMessage |
     ActionAPIMessage |
     LinkAPIMessage |
     CommandAPIMessage
@@ -107,6 +113,7 @@ export const isFetchEphemeraAPIMessage = (message: EphemeraAPIMessage): message 
 export const isFetchImportDefaultsAPIMessage = (message: EphemeraAPIMessage): message is FetchImportDefaultsAPIMessage => (message.message === 'fetchImportDefaults')
 export const isWhoAmIAPIMessage = (message: EphemeraAPIMessage): message is WhoAmIAPIMessage => (message.message === 'whoAmI')
 export const isSyncAPIMessage = (message: EphemeraAPIMessage): message is SyncAPIMessage => (message.message === 'sync')
+export const isMapSubscribeAPIMessage = (message: EphemeraAPIMessage): message is MapSubscribeAPIMessage => (message.message === 'subscribeToMaps')
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
 export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')
