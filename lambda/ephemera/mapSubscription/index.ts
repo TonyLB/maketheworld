@@ -4,6 +4,7 @@ import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache, { MapSubscriptionConnection } from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { EphemeraCharacterId } from "../cacheAsset/baseClasses"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payloads: MapSubscriptionMessage[], messageBus: MessageBus }): Promise<void> => {
 
@@ -12,30 +13,52 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
 
     if (connectionId) {
 
-        await connectionDB.optimisticUpdate({
-            key: {
-                ConnectionId: 'Map',
-                DataCategory: 'Subscriptions'
-            },
-            updateKeys: ['connections'],
-            updateReducer: (draft: { connections?: MapSubscriptionConnection[] }) => {
-                payloads.forEach((payload) => {
-                    if (typeof draft.connections === 'undefined') {
-                        draft.connections = []
-                    }
-                    if (payload.characterId) {
-                        const findConnection = draft.connections.find(({ connectionId: check }) => (check === connectionId))
-                        if (findConnection) {
-                            findConnection.characterIds = unique(findConnection.characterIds, [payload.characterId]) as EphemeraCharacterId[]
+        const [possibleMaps] = await Promise.all([
+            Promise.all(
+                payloads.map((payload) => (internalCache.CharacterPossibleMaps.get(payload.characterId)))
+            ),
+            connectionDB.optimisticUpdate({
+                key: {
+                    ConnectionId: 'Map',
+                    DataCategory: 'Subscriptions'
+                },
+                updateKeys: ['connections'],
+                updateReducer: (draft: { connections?: MapSubscriptionConnection[] }) => {
+                    payloads.forEach((payload) => {
+                        if (typeof draft.connections === 'undefined') {
+                            draft.connections = []
                         }
-                        else {
-                            draft.connections = [{ connectionId, characterIds: [payload.characterId] }]
+                        if (payload.characterId) {
+                            const findConnection = draft.connections.find(({ connectionId: check }) => (check === connectionId))
+                            if (findConnection) {
+                                findConnection.characterIds = unique(findConnection.characterIds, [payload.characterId]) as EphemeraCharacterId[]
+                            }
+                            else {
+                                draft.connections = [{ connectionId, characterIds: [payload.characterId] }]
+                            }
                         }
-                    }
-                })
-            }
-        })
+                    })
+                }
+            })
+        ])
 
+        console.log(`Possible Maps: ${JSON.stringify(possibleMaps, null, 4)}`)
+        await Promise.all(
+            possibleMaps.map(({ EphemeraId, mapsPossible }) => (
+                Promise.all(
+                    mapsPossible.map(async (MapId) => {
+                        const { RoomId } = await internalCache.CharacterMeta.get(splitType(EphemeraId)[1])
+                        console.log(`Render: ${MapId} if it includes ${RoomId}`)
+                        messageBus.send({
+                            type: 'Perception',
+                            characterId: EphemeraId,
+                            ephemeraId: MapId,
+                            mustIncludeRoomId: `ROOM#${RoomId}`
+                        })
+                    })
+                )
+            ))
+        )
         messageBus.send({
             type: 'ReturnValue',
             body: {

@@ -6,6 +6,9 @@ import { DeferredCache } from './deferredCache';
 
 export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
     const [upperTag] = splitType(EphemeraId)
+    if (!upperTag) {
+        throw new Error(`No dependency tag: '${EphemeraId}'`)
+    }
     const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
     if (isLegalDependencyTag(tag)) {
         return tag
@@ -243,7 +246,16 @@ export class DependencyGraphData {
     }
 
     getPartial(EphemeraId: string): DependencyNode[] {
-        return extractTree(Object.values(this._Store), EphemeraId)
+        if (EphemeraId in this._Store) {
+            return extractTree(Object.values(this._Store), EphemeraId)
+        }
+        else {
+            return [{
+                EphemeraId,
+                completeness: 'Partial',
+                connections: []
+            }]
+        }
     }
 
     put(tree: DependencyNode[], nonRecursive?: boolean) {

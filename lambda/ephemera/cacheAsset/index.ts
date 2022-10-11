@@ -15,7 +15,8 @@ import {
     isNormalFeature,
     isNormalMap,
     isNormalVariable,
-    isNormalComputed
+    isNormalComputed,
+    isNormalImage
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { EphemeraActionId, EphemeraCharacter, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraItem, EphemeraMapId, EphemeraPushArgs, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from './baseClasses'
@@ -106,16 +107,20 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             key: item.key,
             EphemeraId,
             appearances: item.appearances
-                .map((appearance) => ({
-                    conditions: conditionsTransform(appearance.contextStack),
-                    name: appearance.name || '',
-                    fileURL: appearance.images.length > 0 ? appearance.images.slice(-1)[0] : '',
-                    rooms: objectEntryMap(appearance.rooms, ([key, { x, y }]) => ({
-                        EphemeraId: namespaceMap[key] || '',
-                        x,
-                        y
-                    }))
-                }))
+                .map((appearance) => {
+                    const image = appearance.images.length > 0 && normal[appearance.images.slice(-1)[0]]
+                    const fileURL = (image && isNormalImage(image) && image.fileURL) || ''
+                    return {
+                        conditions: conditionsTransform(appearance.contextStack),
+                        name: appearance.name || '',
+                        fileURL,
+                        rooms: objectEntryMap(appearance.rooms, (key, { x, y }) => ({
+                            EphemeraId: namespaceMap[key] || '',
+                            x,
+                            y
+                        }))
+                    }
+                })
         }
     }
     if (isEphemeraCharacterId(EphemeraId) && isNormalCharacter(item)) {

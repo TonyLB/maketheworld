@@ -128,7 +128,7 @@ export class ComponentRenderData {
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | MapDescribeData }> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
             internalCache.Global.get('assets'),
-            internalCache.CharacterMeta.get(CharacterId)
+            internalCache.CharacterMeta.get(splitType(CharacterId)[1])
         ])
         const appearancesByAsset = await internalCache.ComponentMeta.getAcrossAssets(EphemeraId, unique(globalAssets || [], characterAssets) as string[])
         const aggregateDependencies = unique(...(Object.values(appearancesByAsset) as (ComponentMetaMapItem | ComponentMetaRoomItem | ComponentMetaFeatureItem)[])
@@ -310,11 +310,9 @@ export class ComponentRenderData {
     }
 
     invalidateByEphemeraId(EphemeraId: StateItemId) {
-        console.log(`Dependencies: ${JSON.stringify(this._Dependencies, null, 4)}`)
         const cacheKeysToInvalidate = Object.entries(this._Dependencies)
             .filter(([key, dependencies]) => (dependencies.includes(EphemeraId)))
             .map(([key]) => (key))
-        console.log(`cacheKeysToInvalidate: ${JSON.stringify(cacheKeysToInvalidate, null, 4)}`)
         cacheKeysToInvalidate.forEach((key) => {
             this._Cache.invalidate(key)
             delete this._Store[key]
