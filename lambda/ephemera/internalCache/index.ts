@@ -11,6 +11,7 @@ import DependencyGraph from './dependencyGraph';
 import ComponentMeta from './componentMeta';
 import ComponentRender from './componentRender';
 import { EphemeraCharacterId } from '../cacheAsset/baseClasses';
+import CacheCharacterPossibleMaps from './characterPossibleMaps';
 
 type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
 
@@ -115,6 +116,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = ComponentRender(ComponentMeta(AssetState(DependencyGraph(CacheCharacterConnections(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))))
+const InternalCache = CacheCharacterPossibleMaps(ComponentRender(ComponentMeta(AssetState(DependencyGraph(CacheCharacterConnections(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase)))))))))
 export const internalCache = new InternalCache()
 export default internalCache
