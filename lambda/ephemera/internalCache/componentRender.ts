@@ -128,7 +128,7 @@ export class ComponentRenderData {
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | MapDescribeData }> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
             internalCache.Global.get('assets'),
-            internalCache.CharacterMeta.get(CharacterId)
+            internalCache.CharacterMeta.get(splitType(CharacterId)[1])
         ])
         const appearancesByAsset = await internalCache.ComponentMeta.getAcrossAssets(EphemeraId, unique(globalAssets || [], characterAssets) as string[])
         const aggregateDependencies = unique(...(Object.values(appearancesByAsset) as (ComponentMetaMapItem | ComponentMetaRoomItem | ComponentMetaFeatureItem)[])
@@ -176,10 +176,13 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraMapId(EphemeraId)) {
+            console.log(`Assets: ${JSON.stringify([...(globalAssets || []), ...characterAssets], null, 4)}`)
             const possibleMapAppearances = [...(globalAssets || []), ...characterAssets]
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraMapAppearance[]))
                 .reduce<EphemeraMapAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
+            console.log(`Possible Map Appearances: ${JSON.stringify(possibleMapAppearances, null, 4)}`)
             const renderMapAppearances = await filterAppearances(possibleMapAppearances)
+            console.log(`Render Map Appearances: ${JSON.stringify(renderMapAppearances, null, 4)}`)
             const allRooms = (unique(...renderMapAppearances.map(({ rooms }) => (Object.values(rooms).map(({ EphemeraId }) => (EphemeraId))))) as string[])
                 .filter(isEphemeraRoomId)
             const roomPositions = renderMapAppearances
@@ -233,6 +236,7 @@ export class ComponentRenderData {
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<MapDescribeData>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem> {
+        console.log(`Getting ${EphemeraId} for ${CharacterId}`)
         const cacheKey = generateCacheKey(CharacterId, EphemeraId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -272,10 +276,12 @@ export class ComponentRenderData {
                 })
             }
             if (isEphemeraMapId(EphemeraId)) {
+                console.log(`Map get: ${EphemeraId}`)
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
+                        console.log(`Map Fetch: ${JSON.stringify(fetch, null, 4)}`)
                         if (typeof fetch === 'undefined') {
                             return {}
                         }

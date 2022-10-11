@@ -1,3 +1,4 @@
+import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { EphemeraCharacterId, EphemeraMapId, isEphemeraMapId } from '../cacheAsset/baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
 import { DeferredCache } from './deferredCache';
@@ -28,11 +29,17 @@ export class CacheCharacterPossibleMapsData {
     async get(characterId: EphemeraCharacterId): Promise<CharacterPossibleMapsItem> {
         this._Cache.add({
             promiseFactory: async () => {
-                const { RoomId } = await this._CharacterMeta.get(characterId)
-                const descent = await this._Descent.get(RoomId)
+                const { RoomId } = await this._CharacterMeta.get(splitType(characterId)[1])
+                console.log(`Checking descent on '${RoomId}' for '${characterId}'`)
+                const descent = await this._Descent.get(`ROOM#${RoomId}`)
+                console.log(`Descent: ${JSON.stringify(descent, null, 4)}`)
+                const descentRoomNode = descent.find(({ EphemeraId }) => (EphemeraId = `ROOM#${RoomId}`))
                 return {
                     EphemeraId: characterId,
-                    mapsPossible: Object.keys(descent).filter(isEphemeraMapId)
+                    //
+                    // TODO: Limit possible maps by assets available to the character (global and personal ... later story)
+                    //
+                    mapsPossible: (descentRoomNode?.connections || []).map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraMapId)
                 }
             },
             requiredKeys: [characterId],

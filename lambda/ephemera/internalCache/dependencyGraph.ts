@@ -6,6 +6,9 @@ import { DeferredCache } from './deferredCache';
 
 export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
     const [upperTag] = splitType(EphemeraId)
+    if (!upperTag) {
+        throw new Error(`No dependency tag: '${EphemeraId}'`)
+    }
     const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
     if (isLegalDependencyTag(tag)) {
         return tag
@@ -165,11 +168,13 @@ export class DependencyGraphData {
 
     async get(EphemeraId: string): Promise<DependencyNode[]> {
         const tag = tagFromEphemeraId(EphemeraId)
+        console.log(`Descent get on tag: ${tag}`)
         if (this.isComplete(EphemeraId)) {
             return this.getPartial(EphemeraId)
         }
         const knownTree = this.getPartial(EphemeraId).map(({ EphemeraId }) => (EphemeraId))
         if (!this._Cache.isCached(EphemeraId)) {
+            console.log(`Adding to cache`)
             this._Cache.add({
                 promiseFactory: () => (ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
                     EphemeraId,
@@ -178,6 +183,8 @@ export class DependencyGraphData {
                 })),
                 requiredKeys: knownTree,
                 transform: (fetch) => {
+                    console.log(`Dependency Fetch:`)
+                    console.log(JSON.stringify(fetch, null, 4))
                     const tree = fetch?.[this.dependencyTag] || []
                     return tree.reduce<Record<string, DependencyNode>>((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {})
                 }
@@ -243,7 +250,16 @@ export class DependencyGraphData {
     }
 
     getPartial(EphemeraId: string): DependencyNode[] {
-        return extractTree(Object.values(this._Store), EphemeraId)
+        if (EphemeraId in this._Store) {
+            return extractTree(Object.values(this._Store), EphemeraId)
+        }
+        else {
+            return [{
+                EphemeraId,
+                completeness: 'Partial',
+                connections: []
+            }]
+        }
     }
 
     put(tree: DependencyNode[], nonRecursive?: boolean) {

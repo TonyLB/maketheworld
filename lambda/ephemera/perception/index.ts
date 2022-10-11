@@ -1,4 +1,4 @@
-import { PerceptionMessage, MessageBus } from "../messageBus/baseClasses"
+import { PerceptionMessage, MessageBus, isPerceptionMapMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { EphemeraCharacter, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "../cacheAsset/baseClasses"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
@@ -9,7 +9,8 @@ type EphemeraCharacterDescription = {
 }
 
 export const perceptionMessage = async ({ payloads, messageBus }: { payloads: PerceptionMessage[], messageBus: MessageBus }): Promise<void> => {
-    await Promise.all(payloads.map(async ({ characterId, ephemeraId }) => {
+    await Promise.all(payloads.map(async (payload) => {
+        const { characterId, ephemeraId } = payload
         if (isEphemeraCharacterId(ephemeraId)) {
             const CharacterId = splitType(ephemeraId)[1]
             const characterDescription = (await ephemeraDB.getItem<EphemeraCharacterDescription>({
@@ -33,6 +34,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             })
         }
         else {
+            console.log(`Perception Payload: ${JSON.stringify(payload, null, 4)}`)
             if (isEphemeraRoomId(ephemeraId)) {
                 const roomDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
                 const RoomId = splitType(ephemeraId)[1]
@@ -55,19 +57,22 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     FeatureId
                 })
             }
-            if (isEphemeraMapId(ephemeraId)) {
-                const mapDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
+            if (isPerceptionMapMessage(payload)) {
+                const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
+                console.log(`MapDescribe: ${JSON.stringify(mapDescribe, null, 4)}`)
                 const MapId = splitType(ephemeraId)[1]
-                messageBus.send({
-                    type: `EphemeraUpdate`,
-                    global: false,
-                    updates: [{
-                        type: 'MapUpdate',
-                        targets: [{ characterId }],
-                        ...mapDescribe,
-                        MapId
-                    }]
-                })
+                if ((!payload.mustIncludeRoomId) || mapDescribe.rooms.find(({ roomId }) => (payload.mustIncludeRoomId === `ROOM#${roomId}`))) {
+                    messageBus.send({
+                        type: `EphemeraUpdate`,
+                        global: false,
+                        updates: [{
+                            type: 'MapUpdate',
+                            targets: [{ characterId }],
+                            ...mapDescribe,
+                            MapId
+                        }]
+                    })
+                }
             }
         }
     }))

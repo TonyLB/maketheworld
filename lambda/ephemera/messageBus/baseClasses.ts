@@ -4,7 +4,7 @@ import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { TaggedMessageContent, LegalCharacterColor, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
 import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
-import { EphemeraCharacterId, EphemeraExit, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId } from "../cacheAsset/baseClasses"
+import { EphemeraCharacterId, EphemeraExit, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from "../cacheAsset/baseClasses"
 
 export type PublishTargetRoom = {
     roomId: string;
@@ -175,11 +175,22 @@ export type FetchImportDefaultsMessage = {
     assetId: string;
 }
 
-export type PerceptionMessage = {
+export type PerceptionNonMapMessage = {
     type: 'Perception';
     characterId: EphemeraCharacterId;
-    ephemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraCharacterId | EphemeraMapId;
+    ephemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraCharacterId;
 }
+
+export type PerceptionMapMessage = {
+    type: 'Perception';
+    characterId: EphemeraCharacterId;
+    ephemeraId: EphemeraMapId;
+    mustIncludeRoomId?: EphemeraRoomId;
+}
+
+export type PerceptionMessage = PerceptionNonMapMessage | PerceptionMapMessage
+
+export const isPerceptionMapMessage = (message: PerceptionMessage): message is PerceptionMapMessage => (isEphemeraMapId(message.ephemeraId))
 
 export type MoveCharacterMessage = {
     type: 'MoveCharacter';
