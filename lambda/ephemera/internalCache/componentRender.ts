@@ -176,13 +176,10 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraMapId(EphemeraId)) {
-            console.log(`Assets: ${JSON.stringify([...(globalAssets || []), ...characterAssets], null, 4)}`)
             const possibleMapAppearances = [...(globalAssets || []), ...characterAssets]
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraMapAppearance[]))
                 .reduce<EphemeraMapAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
-            console.log(`Possible Map Appearances: ${JSON.stringify(possibleMapAppearances, null, 4)}`)
             const renderMapAppearances = await filterAppearances(possibleMapAppearances)
-            console.log(`Render Map Appearances: ${JSON.stringify(renderMapAppearances, null, 4)}`)
             const allRooms = (unique(...renderMapAppearances.map(({ rooms }) => (Object.values(rooms).map(({ EphemeraId }) => (EphemeraId))))) as string[])
                 .filter(isEphemeraRoomId)
             const roomPositions = renderMapAppearances
@@ -236,7 +233,6 @@ export class ComponentRenderData {
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<MapDescribeData>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem> {
-        console.log(`Getting ${EphemeraId} for ${CharacterId}`)
         const cacheKey = generateCacheKey(CharacterId, EphemeraId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -276,12 +272,10 @@ export class ComponentRenderData {
                 })
             }
             if (isEphemeraMapId(EphemeraId)) {
-                console.log(`Map get: ${EphemeraId}`)
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
-                        console.log(`Map Fetch: ${JSON.stringify(fetch, null, 4)}`)
                         if (typeof fetch === 'undefined') {
                             return {}
                         }
@@ -316,11 +310,9 @@ export class ComponentRenderData {
     }
 
     invalidateByEphemeraId(EphemeraId: StateItemId) {
-        console.log(`Dependencies: ${JSON.stringify(this._Dependencies, null, 4)}`)
         const cacheKeysToInvalidate = Object.entries(this._Dependencies)
             .filter(([key, dependencies]) => (dependencies.includes(EphemeraId)))
             .map(([key]) => (key))
-        console.log(`cacheKeysToInvalidate: ${JSON.stringify(cacheKeysToInvalidate, null, 4)}`)
         cacheKeysToInvalidate.forEach((key) => {
             this._Cache.invalidate(key)
             delete this._Store[key]

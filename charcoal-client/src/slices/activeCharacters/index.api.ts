@@ -9,6 +9,7 @@ import { getMyCharacterById } from '../player'
 import { receiveMessages } from '../messages'
 import { push as pushFeedback } from '../../slices/UI/feedback'
 import delayPromise from '../../lib/delayPromise'
+import { isEphemeraMapUpdate } from '../lifeLine/ephemera'
 
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {
     const state = getState()
@@ -42,8 +43,9 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
         if (payload.messageType === 'Ephemera') {
             const { updates } = payload
             updates
-                .filter(({ CharacterId }) => (CharacterId === id))
-                .forEach(({ CharacterId, ...rest }) => {
+                .filter(isEphemeraMapUpdate)
+                .filter(({ targets }) => (targets.map((key) => (id && key.characterId.split('#')[1])).includes(id)))
+                .forEach(({ type, targets, ...rest }) => {
                     dispatch(receiveMapEphemera(rest))
                 })
         }

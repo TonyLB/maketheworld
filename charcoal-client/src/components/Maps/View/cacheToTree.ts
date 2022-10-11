@@ -1,18 +1,23 @@
 import { MapTree } from '../Edit/maps'
 import { ActiveCharacterMap } from '../../../slices/activeCharacters/baseClasses'
+import { ActiveCharacterMapRoom } from '../../../slices/lifeLine/ephemera'
 
-export const cacheToTree = ({ rooms = {} }: ActiveCharacterMap): MapTree => {
-    const tree: MapTree = Object.entries(rooms || {})
-        .reduce<MapTree>((previous, [key, { EphemeraId, name = [], x = 0, y = 0, exits }], index) => ([
+export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): MapTree => {
+    //
+    // TODO: Rewrite cacheToTree to deal with new incoming map format
+    //
+    const roomsById = rooms.reduce<Record<string, ActiveCharacterMapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
+    const tree: MapTree = rooms
+        .reduce<MapTree>((previous, { roomId, name, x = 0, y = 0, exits }, index) => ([
             ...previous,
             {
-                key,
+                key: roomId,
                 item: {
                     type: 'ROOM',
-                    name: name.join(''),
+                    name: name || '',
                     x,
                     y,
-                    roomId: EphemeraId,
+                    roomId,
                     visible: true
                 },
                 children: []
@@ -24,8 +29,8 @@ export const cacheToTree = ({ rooms = {} }: ActiveCharacterMap): MapTree => {
                     item: {
                         type: 'EXIT',
                         name: name || '',
-                        fromRoomId: EphemeraId,
-                        toRoomId: rooms[to].EphemeraId,
+                        fromRoomId: roomId,
+                        toRoomId: to.split('#')[1],
                         visible: true
                     },
                     children: []

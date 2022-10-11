@@ -15,6 +15,7 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
+import { ActiveCharacterMap } from '../../../slices/activeCharacters/baseClasses';
 
 type MapViewProps = {
 }
@@ -34,6 +35,8 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     }, [dispatch, CharacterId])
     const [MapId, setMapId] = useState<string>(Object.keys(maps || {})[0] || '')
 
+    console.log(`Maps: ${JSON.stringify(maps, null, 4)}`)
+    console.log(`MapId: ${MapId}`)
     return <Box sx={{ height: "100%", width: "100%" }}>
         <Box sx={{ width: "100%", margin: ".5rem", display: "flex", justifyContent: "center" }}>
             <Box>
@@ -49,7 +52,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                         {
                             Object.entries(maps || {})
                                 .map(([key, { Name }]) => (
-                                    <MenuItem key={key} value={key}>{Name || key}</MenuItem>
+                                    <MenuItem key={key} value={key}>{Name || 'Unnamed map'}</MenuItem>
                                 ))
                         }
                     </Select>
