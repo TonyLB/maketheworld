@@ -1,14 +1,25 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types';
+import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { ComponentMeta } from './componentMeta'
 import { DeferredCache } from './deferredCache'
-import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraRoomId, EphemeraFeatureId, isEphemeraFeatureId, isEphemeraRoomId, EphemeraMapId, EphemeraMapAppearance, isEphemeraMapId, EphemeraCharacterId, EphemeraCondition, isEphemeraCharacterId, EphemeraExit, isEphemeraComputedId, isEphemeraVariableId, EphemeraVariable, EphemeraVariableId, EphemeraComputedId, EphemeraItemDependency } from '../cacheAsset/baseClasses'
+import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
-import { tagFromEphemeraId } from './dependencyGraph';
 import internalCache from '.';
 import { componentAppearanceReduce } from '../perception/components';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import AssetState, { StateItemId } from './assetState';
+import {
+    EphemeraCharacterId,
+    EphemeraComputedId,
+    EphemeraFeatureId,
+    EphemeraMapId,
+    EphemeraRoomId,
+    EphemeraVariableId,
+    isEphemeraComputedId,
+    isEphemeraFeatureId,
+    isEphemeraMapId,
+    isEphemeraRoomId,
+    isEphemeraVariableId
+} from '@tonylb/mtw-interfaces/dist/ephemera';
 
 export type ComponentMetaRoomItem = {
     EphemeraId: EphemeraRoomId;

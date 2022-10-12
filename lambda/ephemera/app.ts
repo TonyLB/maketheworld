@@ -14,7 +14,8 @@ import {
     isActionAPIMessage,
     isLinkAPIMessage,
     isCommandAPIMessage,
-    isMapSubscribeAPIMessage
+    isMapSubscribeAPIMessage,
+    isEphemeraCharacterId
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -25,7 +26,6 @@ import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
-import { isEphemeraCharacterId } from './cacheAsset/baseClasses.js'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect

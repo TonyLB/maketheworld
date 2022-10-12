@@ -19,13 +19,18 @@ import {
     isNormalImage
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { EphemeraActionId, EphemeraCharacter, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraItem, EphemeraMapId, EphemeraPushArgs, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from './baseClasses'
+import {
+    EphemeraCharacter,
+    EphemeraItem,
+    EphemeraPushArgs
+} from './baseClasses'
 import { objectEntryMap } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
+import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/ephemera.js'
 
 //
 // TODO:

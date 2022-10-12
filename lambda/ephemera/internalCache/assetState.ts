@@ -1,7 +1,12 @@
+import {
+    EphemeraComputedId,
+    EphemeraVariableId,
+    isEphemeraComputedId,
+    isEphemeraVariableId
+} from '@tonylb/mtw-interfaces/dist/ephemera';
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
-import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from '../cacheAsset/baseClasses';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import DependencyGraph, { DependencyGraphData, tagFromEphemeraId } from './dependencyGraph';
 

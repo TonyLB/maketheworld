@@ -3,8 +3,15 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { TaggedMessageContent, LegalCharacterColor, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
-import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
-import { EphemeraCharacterId, EphemeraExit, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from "../cacheAsset/baseClasses"
+import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
+import { EphemeraExit } from "../cacheAsset/baseClasses"
+import {
+    EphemeraCharacterId,
+    EphemeraFeatureId,
+    EphemeraMapId,
+    EphemeraRoomId,
+    isEphemeraMapId
+} from "@tonylb/mtw-interfaces/dist/ephemera"
 
 export type PublishTargetRoom = {
     roomId: string;

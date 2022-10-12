@@ -1,5 +1,5 @@
+import { EphemeraCharacterId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/ephemera';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
-import { EphemeraCharacterId, EphemeraMapId, isEphemeraMapId } from '../cacheAsset/baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
 import { DeferredCache } from './deferredCache';
 import DependencyGraph, { DependencyGraphData } from './dependencyGraph';

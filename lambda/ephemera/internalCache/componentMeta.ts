@@ -2,7 +2,15 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types';
 import { CacheConstructor } from './baseClasses'
 import { DeferredCache } from './deferredCache'
-import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraRoomId, EphemeraFeatureId, isEphemeraFeatureId, isEphemeraRoomId, EphemeraMapId, EphemeraMapAppearance, isEphemeraMapId } from '../cacheAsset/baseClasses'
+import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance } from '../cacheAsset/baseClasses'
+import {
+    EphemeraFeatureId,
+    EphemeraMapId,
+    EphemeraRoomId,
+    isEphemeraFeatureId,
+    isEphemeraMapId,
+    isEphemeraRoomId
+} from '@tonylb/mtw-interfaces/dist/ephemera';
 
 export type ComponentMetaRoomItem = {
     EphemeraId: EphemeraRoomId;

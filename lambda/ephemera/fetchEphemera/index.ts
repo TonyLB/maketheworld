@@ -3,7 +3,7 @@ import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
-import { EphemeraMapId } from '../cacheAsset/baseClasses'
+import { EphemeraMapId } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 type EphemeraQueryResult = {
     EphemeraId: string;

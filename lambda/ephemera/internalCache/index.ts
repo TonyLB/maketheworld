@@ -10,8 +10,8 @@ import AssetState from './assetState';
 import DependencyGraph from './dependencyGraph';
 import ComponentMeta from './componentMeta';
 import ComponentRender from './componentRender';
-import { EphemeraCharacterId } from '../cacheAsset/baseClasses';
 import CacheCharacterPossibleMaps from './characterPossibleMaps';
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera';
 
 type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
 
