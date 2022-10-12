@@ -18,9 +18,8 @@ import { PubSub } from '../../lib/pubSub'
 import delayPromise from '../../lib/delayPromise'
 
 import { cacheMessages } from '../messages'
-import { getMyCharacterById  } from '../player'
 
-import { EphemeraAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { EphemeraAPIMessage, EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { AssetAPIMessage } from '@tonylb/mtw-interfaces/dist/asset'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
@@ -222,11 +221,11 @@ export const apiDispatchPromise = (url: string, RequestId: string) => (payload: 
     })
 }
 
-export const moveCharacter = (CharacterId: string) => ({ ExitName, RoomId }: { ExitName: string; RoomId: string }): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch) => {
+export const moveCharacter = (CharacterId: EphemeraCharacterId) => ({ ExitName, RoomId }: { ExitName: string; RoomId: EphemeraRoomId }): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch) => {
     dispatch(socketDispatch({ message: 'action', actionType: 'move', payload: { CharacterId, ExitName, RoomId } }))
 }
 
-export const parseCommand = (CharacterId: string) => ({ mode, entry }: ParseCommandProps): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
+export const parseCommand = (CharacterId: EphemeraCharacterId) => ({ mode, entry }: ParseCommandProps): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
     if (mode === 'Command') {
         dispatch(socketDispatch({ message: 'command', CharacterId, command: entry }))
         //

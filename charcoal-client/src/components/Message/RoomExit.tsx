@@ -8,6 +8,7 @@ import HiddenIcon from '@mui/icons-material/VisibilityOff'
 import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { RoomExit as RoomExitType } from '@tonylb/mtw-interfaces/dist/messages'
+import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 interface RoomExitProps {
     exit: RoomExitType;
@@ -24,7 +25,9 @@ export const RoomExit = ({ exit: { Name, Visibility, RoomId } }: RoomExitProps) 
     //
     const clickable = true
     const clickHandler = clickable ? () => {
-        dispatch(moveCharacter(CharacterId)({ RoomId, ExitName: Name }))
+        if (isEphemeraCharacterId(CharacterId) && isEphemeraRoomId(RoomId)) {
+            dispatch(moveCharacter(CharacterId)({ RoomId, ExitName: Name }))
+        }
     } : () => {}
 
     return <Chip
