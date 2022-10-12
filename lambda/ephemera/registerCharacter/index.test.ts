@@ -43,7 +43,7 @@ describe("registerCharacter", () => {
             }])
         internalCacheMock.CharacterConnections.get.mockResolvedValue([])
         await registerCharacter({
-            payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }],
+            payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }],
             messageBus
         })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
@@ -52,7 +52,7 @@ describe("registerCharacter", () => {
             type: 'ReturnValue',
             body: {
                 messageType: "Registration",
-                CharacterId: 'ABC',
+                CharacterId: 'CHARACTER#ABC',
                 RequestId: 'Request123'
             }
         })
@@ -61,7 +61,7 @@ describe("registerCharacter", () => {
             global: true,
             updates: [{
                 type: 'CharacterInPlay',
-                CharacterId: 'ABC',
+                CharacterId: 'CHARACTER#ABC',
                 Connected: true,
                 Name: 'Tess',
                 RoomId: 'TestABC',
@@ -71,7 +71,7 @@ describe("registerCharacter", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
-            targets: [{ roomId: 'TestABC' }, { excludeCharacterId: 'ABC' }],
+            targets: [{ roomId: 'TestABC' }, { excludeCharacterId: 'CHARACTER#ABC' }],
             displayProtocol: 'WorldMessage',
             message: [{
                 tag: 'String',
@@ -116,7 +116,7 @@ describe("registerCharacter", () => {
                 ConnectionIds: ['previous']
             }])
         internalCacheMock.CharacterConnections.get.mockResolvedValue(['previous'])
-        await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }], messageBus })
+        await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }], messageBus })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
         expect(messageBusMock.send).toHaveBeenCalledTimes(1)
@@ -124,7 +124,7 @@ describe("registerCharacter", () => {
             type: 'ReturnValue',
             body: {
                 messageType: "Registration",
-                CharacterId: 'ABC',
+                CharacterId: 'CHARACTER#ABC',
                 RequestId: 'Request123'
             }
         })

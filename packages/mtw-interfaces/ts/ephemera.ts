@@ -66,14 +66,14 @@ export type MapSubscribeAPIMessage = {
 type ActionAPILookMessage = {
     actionType: 'look';
     payload: {
-        CharacterId: string;
-        EphemeraId: string;
+        CharacterId: EphemeraCharacterId;
+        EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId;
     }
 }
 
 type ActionAPICommunicationMetaMessage = {
     payload: {
-        CharacterId: string;
+        CharacterId: EphemeraCharacterId;
         Message: string;
     }
 }
@@ -93,8 +93,8 @@ type ActionAPIOOCMessage = {
 type ActionAPIMoveMessage = {
     actionType: 'move';
     payload: {
-        CharacterId: string;
-        RoomId: string;
+        CharacterId: EphemeraCharacterId;
+        RoomId: EphemeraRoomId;
         ExitName?: string;
     }
 }
@@ -102,7 +102,7 @@ type ActionAPIMoveMessage = {
 type ActionAPIHomeMessage = {
     actionType: 'home';
     payload: {
-        CharacterId: string;
+        CharacterId: EphemeraCharacterId;
     }
 }
 
@@ -125,7 +125,7 @@ export type LinkAPIMessage = {
 
 export type CommandAPIMessage = {
     message: 'command';
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     command: string;
 }
 

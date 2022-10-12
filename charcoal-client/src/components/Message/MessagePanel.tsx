@@ -4,7 +4,6 @@ import { Box } from '@mui/material'
 
 import VirtualMessageList from './VirtualMessageList'
 import { parseCommand } from '../../slices/lifeLine'
-import { ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import LineEntry from '../LineEntry'
 import { useActiveCharacter } from '../ActiveCharacter'
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
@@ -20,7 +19,7 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
     const handleInput = useCallback(({ entry, mode }) => {
-        dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
+        dispatch(parseCommand(`CHARACTER#${CharacterId}`)({ entry, mode, raiseError: () => {} }))
         return true
     }, [dispatch, CharacterId])
     return <Box sx={{

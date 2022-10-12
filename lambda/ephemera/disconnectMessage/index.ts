@@ -18,7 +18,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
     return exponentialBackoffWrapper(async () => {
         const [currentConnections, characterFetch, mapSubscriptions] = await Promise.all([
             internalCache.CharacterConnections.get(characterId),
-            internalCache.CharacterMeta.get(characterId),
+            internalCache.CharacterMeta.get(`CHARACTER#${characterId}`),
             internalCache.Global.get("mapSubscriptions")
         ])
         if (!(currentConnections && currentConnections.length)) {

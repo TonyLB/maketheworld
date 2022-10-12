@@ -18,12 +18,12 @@ describe('fetchPlayerEphemera', () => {
         jest.resetAllMocks()
     })
 
-    it('should serialize fetched CharacterInPlay records', async () => {
+    it('should serialize fetched Character records', async () => {
         connectionDBMock.query.mockResolvedValue([{
             ConnectionId: `CHARACTER#ABC`
         }])
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
-            EphemeraId: 'CHARACTERINPLAY#ABC',
+            EphemeraId: 'CHARACTER#ABC',
             RoomId: 'ROOM#XYZ',
             Name: 'Testy',
             fileURL: 'test.png',

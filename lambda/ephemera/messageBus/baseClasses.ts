@@ -125,7 +125,7 @@ export type SyncResponse = {
 
 export type RegisterCharacterMessage = {
     type: 'RegisterCharacter';
-    characterId: string;
+    characterId: EphemeraCharacterId;
 }
 
 export type EphemeraUpdateCharacterEntry = {
@@ -201,7 +201,7 @@ export const isPerceptionMapMessage = (message: PerceptionMessage): message is P
 
 export type MoveCharacterMessage = {
     type: 'MoveCharacter';
-    characterId: string;
+    characterId: EphemeraCharacterId;
     roomId: string;
     leaveMessage?: string;
 }
@@ -254,7 +254,7 @@ export type DependencyCascadeMessage = {
 export type ExecuteActionMessage = {
     type: 'ExecuteAction';
     actionId: string;
-    characterId: string;
+    characterId: EphemeraCharacterId;
 }
 
 export type MessageType = PublishMessage |

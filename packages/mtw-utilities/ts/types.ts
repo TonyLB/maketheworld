@@ -8,6 +8,6 @@ export const splitType = (value: string) => {
     return ['', '']
 }
 
-export const AssetKey = (assetId: string) => (`ASSET#${assetId}`)
-export const CharacterKey = (characterId: string) => (`CHARACTER#${characterId}`)
-export const RoomKey = (roomId: string) => (`ROOM#${roomId}`)
+export const AssetKey = (assetId: string): `ASSET#${string}` => (`ASSET#${assetId}`)
+export const CharacterKey = (characterId: string): `CHARACTER#${string}` => (`CHARACTER#${characterId}`)
+export const RoomKey = (roomId: string): `ROOM#${string}` => (`ROOM#${roomId}`)

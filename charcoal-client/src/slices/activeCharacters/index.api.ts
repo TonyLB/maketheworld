@@ -51,7 +51,7 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
         }
     })
     await dispatch(socketDispatchPromise({ message: 'fetchEphemera', CharacterId: id }))
-    await dispatch(socketDispatchPromise({ message: 'registercharacter', CharacterId: id || '' }))
+    await dispatch(socketDispatchPromise({ message: 'registercharacter', CharacterId: id ? `CHARACTER#${id}` : '' }))
     return { internalData: { subscription: lifeLineSubscription } }
 }
 

@@ -152,11 +152,17 @@ export const handler = async (event: any, context: any) => {
         await disconnect(connectionId)
     }
     if (isRegisterCharacterAPIMessage(request)) {
-        if (request.CharacterId) {
+        if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
             messageBus.send({
                 type: 'RegisterCharacter',
                 characterId: request.CharacterId
             })
+        }
+        else {
+            //
+            // TODO: Error messages back to client
+            //
+            console.log(`TEMPORARY WARNING: '${request.CharacterId}' is not a legitimate CharacterId`)
         }
     }
     if (isFetchEphemeraAPIMessage(request)) {
@@ -246,9 +252,18 @@ export const handler = async (event: any, context: any) => {
         }
     }
     if (isCommandAPIMessage(request)) {
-        const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
-        if (actionPayload?.actionType) {
-            await executeAction(actionPayload)
+        const CharacterId = request.CharacterId
+        if (isEphemeraCharacterId(CharacterId)) {
+            const actionPayload = await parseCommand({ CharacterId, command: request.command })
+            if (actionPayload?.actionType) {
+                await executeAction(actionPayload)
+            }
+        }
+        else {
+            //
+            // TODO: Error messages back to the front-end
+            //
+            console.log(`TEMPORARY WARNING: Non-typed string sent for CharacterId`)
         }
     }
     await messageBus.flush()
