@@ -1,11 +1,11 @@
 import { castDraft, Draft } from 'immer'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { ssmMeta, InferredDataTypeAggregateFromNodes, InferredPublicDataTypeAggregateFromNodes, PartialDataTypeAggregateFromNodes, TemplateFromNodes } from './baseClasses'
+import { ssmMeta, InferredDataTypeAggregateFromNodes, InferredPublicDataTypeAggregateFromNodes, PartialDataTypeAggregateFromNodes, TemplateFromNodes, ISSMData } from './baseClasses'
 import { iterateOneSSM } from './index'
 import { Entries } from '../../lib/objects'
 import { Selector } from '../../store'
 
-type singleSSMSlice<Nodes> = InferredDataTypeAggregateFromNodes<Nodes> & {
+type singleSSMSlice<Nodes extends ISSMData> = InferredDataTypeAggregateFromNodes<Nodes> & {
     meta: ssmMeta<keyof Nodes>
 }
 

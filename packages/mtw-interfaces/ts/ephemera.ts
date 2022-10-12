@@ -1,3 +1,10 @@
+class EphemeraError extends Error {
+    constructor(message: string) {
+        super(message)
+        this.name = 'EphemeraException'
+    }
+}
+
 const splitType = (value: string) => {
     if (value) {
         const sections = value.split('#')
@@ -10,26 +17,37 @@ const splitType = (value: string) => {
 
 type EphemeraWrappedId<T extends string> = `${T}#${string}`
 
+const isEphemeraTaggedId = <G extends string>(tag: G) => (value: string): value is EphemeraWrappedId<G> => {
+    const sections = value.split('#')
+    if (sections.length > 2) {
+        throw new EphemeraError(`Illegal nested EphemeraId: '${value}'`)
+    }
+    if (sections.length < 2) {
+        return false
+    }
+    return Boolean(sections[0] === tag)
+}
+
 export type EphemeraFeatureId = EphemeraWrappedId<'FEATURE'>
-export const isEphemeraFeatureId = (key: string): key is EphemeraFeatureId => (splitType(key)[0] === 'FEATURE')
+export const isEphemeraFeatureId = isEphemeraTaggedId<'FEATURE'>('FEATURE')
 
 export type EphemeraRoomId = EphemeraWrappedId<'ROOM'>
-export const isEphemeraRoomId = (key: string): key is EphemeraRoomId => (splitType(key)[0] === 'ROOM')
+export const isEphemeraRoomId = isEphemeraTaggedId<'ROOM'>('ROOM')
 
 export type EphemeraMapId = EphemeraWrappedId<'MAP'>
-export const isEphemeraMapId = (key: string): key is EphemeraMapId => (splitType(key)[0] === 'MAP')
+export const isEphemeraMapId = isEphemeraTaggedId<'MAP'>('MAP')
 
 export type EphemeraCharacterId = EphemeraWrappedId<'CHARACTER'>
-export const isEphemeraCharacterId = (key: string): key is EphemeraCharacterId => (splitType(key)[0] === 'CHARACTER')
+export const isEphemeraCharacterId = isEphemeraTaggedId<'CHARACTER'>('CHARACTER')
 
 export type EphemeraActionId = EphemeraWrappedId<'ACTION'>
-export const isEphemeraActionId = (key: string): key is EphemeraActionId => (splitType(key)[0] === 'ACTION')
+export const isEphemeraActionId = isEphemeraTaggedId<'ACTION'>('ACTION')
 
 export type EphemeraVariableId = EphemeraWrappedId<'VARIABLE'>
-export const isEphemeraVariableId = (key: string): key is EphemeraVariableId => (splitType(key)[0] === 'VARIABLE')
+export const isEphemeraVariableId = isEphemeraTaggedId<'VARIABLE'>('VARIABLE')
 
 export type EphemeraComputedId = EphemeraWrappedId<'COMPUTED'>
-export const isEphemeraComputedId = (key: string): key is EphemeraComputedId => (splitType(key)[0] === 'COMPUTED')
+export const isEphemeraComputedId = isEphemeraTaggedId<'COMPUTED'>('COMPUTED')
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
