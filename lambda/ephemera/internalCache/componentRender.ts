@@ -154,12 +154,11 @@ export class ComponentRenderData {
             ))) as StateItemId[]
 
         if (isEphemeraRoomId(EphemeraId)) {
-            const RoomId = splitType(EphemeraId)[1]
             const possibleRoomAppearances = [...(globalAssets || []), ...characterAssets]
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[]))
                 .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const [roomCharacterList, renderRoomAppearances] = (await Promise.all([
-                internalCache.RoomCharacterList.get(RoomId),
+                internalCache.RoomCharacterList.get(EphemeraId),
                 filterAppearances(possibleRoomAppearances)
             ]))
             const renderRoom = componentAppearanceReduce(...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters'>

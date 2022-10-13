@@ -30,7 +30,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 }
                 const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
                 const RoomEphemeraId: EphemeraRoomId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
-                const activeCharacters = await internalCache.RoomCharacterList.get(splitType(RoomEphemeraId)[1])
+                const activeCharacters = await internalCache.RoomCharacterList.get(RoomEphemeraId)
                 const newConnections = unique(currentConnections || [], [connectionId]) as string[]
                 const metaCharacterUpdate = (typeof currentConnections !== 'undefined')
                     ? {
@@ -143,7 +143,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         roomId: RoomId
                     })
                 }
-                internalCache.RoomCharacterList.set({ key: RoomId, value: newActiveCharacters })
+                internalCache.RoomCharacterList.set({ key: RoomEphemeraId, value: newActiveCharacters })
 
             }, { retryErrors: ['TransactionCanceledException']})
     

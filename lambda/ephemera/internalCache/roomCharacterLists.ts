@@ -1,18 +1,19 @@
+import { EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor, RoomCharacterListItem } from './baseClasses'
 
 export class CacheRoomCharacterListsData {
-    CharacterListByRoom: Record<string, RoomCharacterListItem[]> = {};
+    CharacterListByRoom: Record<EphemeraRoomId, RoomCharacterListItem[]> = {};
     clear() {
         this.CharacterListByRoom = {}
     }
 
-    async get(roomId: string): Promise<RoomCharacterListItem[]> {
+    async get(roomId: EphemeraRoomId): Promise<RoomCharacterListItem[]> {
         if (!this.CharacterListByRoom[roomId]) {
             const { activeCharacters = [] } = await ephemeraDB.getItem<{
                     activeCharacters: RoomCharacterListItem[]
                 }>({
-                    EphemeraId: `ROOM#${roomId}`,
+                    EphemeraId: roomId,
                     DataCategory: 'Meta::Room',
                     ProjectionFields: ['activeCharacters']
                 }) || { activeCharacters: [] }
@@ -21,11 +22,11 @@ export class CacheRoomCharacterListsData {
         return this.CharacterListByRoom[roomId] || []
     }
 
-    set(props: { key: string; value: RoomCharacterListItem[] }) {
+    set(props: { key: EphemeraRoomId; value: RoomCharacterListItem[] }) {
         this.CharacterListByRoom[props.key] = props.value
     }
 
-    invalidate(key: string) {
+    invalidate(key: EphemeraRoomId) {
         delete this.CharacterListByRoom[key]
     }
 }

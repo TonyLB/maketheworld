@@ -84,7 +84,7 @@ describe("registerCharacter", () => {
             roomId: 'TestABC'
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'TestABC',
+            key: 'ROOM#TestABC',
             value: [
                 {
                     EphemeraId: 'CHARACTER#BCD',
@@ -130,7 +130,7 @@ describe("registerCharacter", () => {
             }
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'TestABC',
+            key: 'ROOM#TestABC',
             value: [{
                 EphemeraId: 'CHARACTER#ABC',
                 Name: 'Tess',

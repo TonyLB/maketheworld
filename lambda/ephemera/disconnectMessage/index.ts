@@ -28,7 +28,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
         const { RoomId, Name } = characterFetch || {}
         const { Pronouns, assets, ...rest } = characterFetch || {}
 
-        const currentActiveCharacters = await internalCache.RoomCharacterList.get(RoomId)
+        const currentActiveCharacters = await internalCache.RoomCharacterList.get(`ROOM#${RoomId}`)
 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 
@@ -136,7 +136,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
             })
         }
         internalCache.RoomCharacterList.set({
-            key: RoomId,
+            key: `ROOM#${RoomId}`,
             value: remainingCharacters
         })
 

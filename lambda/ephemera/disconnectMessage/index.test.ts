@@ -79,7 +79,7 @@ describe("disconnectMessage", () => {
             roomId: 'TestABC'
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'TestABC',
+            key: 'ROOM#TestABC',
             value: [
                 {
                     EphemeraId: 'CHARACTER#BCD',
@@ -121,7 +121,7 @@ describe("disconnectMessage", () => {
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
         expect(messageBusMock.send).not.toHaveBeenCalled()
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'TestABC',
+            key: 'ROOM#TestABC',
             value: [
                 {
                     EphemeraId: 'CHARACTER#BCD',

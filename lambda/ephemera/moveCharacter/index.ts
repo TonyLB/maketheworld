@@ -17,11 +17,11 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             internalCache.RoomCharacterList.invalidate(payload.roomId)
             const [characterMeta, arrivingCharacters, connections] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
-                internalCache.RoomCharacterList.get(splitType(payload.roomId)[1]),
+                internalCache.RoomCharacterList.get(payload.roomId),
                 internalCache.CharacterConnections.get(payload.characterId)
             ])
-            internalCache.RoomCharacterList.invalidate(characterMeta.RoomId)
-            const departingCharacters = await internalCache.RoomCharacterList.get(characterMeta.RoomId)
+            internalCache.RoomCharacterList.invalidate(`ROOM#${characterMeta.RoomId}`)
+            const departingCharacters = await internalCache.RoomCharacterList.get(`ROOM#${characterMeta.RoomId}`)
             const newDepartingCharacters = departingCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId))
             const newArrivingCharacters: RoomCharacterListItem[] = [
                 ...arrivingCharacters
@@ -78,7 +78,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 }
             }])
 
-            internalCache.RoomCharacterList.set({ key: characterMeta.RoomId, value: newDepartingCharacters })
+            internalCache.RoomCharacterList.set({ key: `ROOM#${characterMeta.RoomId}`, value: newDepartingCharacters })
             internalCache.RoomCharacterList.set({ key: payload.roomId, value: newArrivingCharacters })
 
             messageBus.send({
