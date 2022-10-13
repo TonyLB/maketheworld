@@ -200,12 +200,17 @@ export const handler = async (event: any, context: any) => {
         })
     }
     if (isSyncAPIMessage(request)) {
-        messageBus.send({
-            type: 'Sync',
-            targetId: request.CharacterId,
-            startingAt: request.startingAt,
-            limit: request.limit
-        })
+        if (isEphemeraCharacterId(request.CharacterId)) {
+            messageBus.send({
+                type: 'Sync',
+                targetId: request.CharacterId,
+                startingAt: request.startingAt,
+                limit: request.limit
+            })
+        }
+        else {
+            console.log(`Invalid CharacterId on SyncAPI`)
+        }
     }
     if (isMapSubscribeAPIMessage(request)) {
         const characterId = request.CharacterId

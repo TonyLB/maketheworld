@@ -3,6 +3,7 @@ import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransact
 import internalCache from "../internalCache"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async (payload) => {
@@ -16,7 +17,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             internalCache.RoomCharacterList.invalidate(payload.roomId)
             const [characterMeta, arrivingCharacters, connections] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
-                internalCache.RoomCharacterList.get(payload.roomId),
+                internalCache.RoomCharacterList.get(splitType(payload.roomId)[1]),
                 internalCache.CharacterConnections.get(payload.characterId)
             ])
             internalCache.RoomCharacterList.invalidate(characterMeta.RoomId)
@@ -42,7 +43,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                     }),
                     UpdateExpression: 'SET RoomId = :newRoomId',
                     ExpressionAttributeValues: marshall({
-                        ':newRoomId': payload.roomId
+                        ':newRoomId': splitType(payload.roomId)[1]
                     }, { removeUndefinedValues: true})
                 }
             },
@@ -65,7 +66,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 Update: {
                     TableName: 'Ephemera',
                     Key: marshall({
-                        EphemeraId: `ROOM#${payload.roomId}`,
+                        EphemeraId: payload.roomId,
                         DataCategory: 'Meta::Room'
                     }),
                     UpdateExpression: 'SET activeCharacters = :newActiveCharacters',
@@ -91,18 +92,18 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             })
             messageBus.send({
                 type: 'RoomUpdate',
-                roomId: payload.roomId
+                roomId: characterMeta.RoomId
             })
 
             messageBus.send({
                 type: 'Perception',
-                characterId: `CHARACTER#payload.characterId`,
-                ephemeraId: `ROOM#${payload.roomId}`
+                characterId: payload.characterId,
+                ephemeraId: payload.roomId
             })
 
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: `ROOM#${payload.roomId}` }, { characterId: payload.characterId }],
+                targets: [{ roomId: payload.roomId }, { characterId: payload.characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
@@ -111,7 +112,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             })
             messageBus.send({
                 type: 'RoomUpdate',
-                roomId: payload.roomId
+                roomId: splitType(payload.roomId)[1]
             })
 
         }, { retryErrors: ['TransactionCanceledException']})

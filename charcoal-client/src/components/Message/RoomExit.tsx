@@ -17,7 +17,8 @@ interface RoomExitProps {
 
 export const RoomExit = ({ exit: { Name, Visibility, RoomId } }: RoomExitProps) => {
 
-    const { CharacterId } = useActiveCharacter()
+    const { CharacterId: rawCharacterId } = useActiveCharacter()
+    const CharacterId = `CHARACTER#${rawCharacterId}`
     const dispatch = useDispatch()
     //
     // TODO: Create locking mechanism, and embed something akin to "clickable" into

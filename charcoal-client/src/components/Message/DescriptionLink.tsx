@@ -104,7 +104,7 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
                 message: 'link',
                 to: link.to,
                 // RoomId: link.RoomId,
-                CharacterId
+                CharacterId: `CHARACTER#${CharacterId}`
             }))
         }}
     />

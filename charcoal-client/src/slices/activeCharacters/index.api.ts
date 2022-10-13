@@ -30,7 +30,7 @@ export const getLastMessageSync = (CharacterId: string) => (
 export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
 
     const LastMessageSync = await getLastMessageSync(id || '')
-    const messages = await cacheDB.messages.where("Target").equals(id || '').toArray()
+    const messages = await cacheDB.messages.where("Target").equals(`CHARACTER#${id}` || '').toArray()
 
     dispatch(receiveMessages(messages))
     return { internalData: { LastMessageSync } }

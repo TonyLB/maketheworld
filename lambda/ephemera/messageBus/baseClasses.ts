@@ -202,7 +202,7 @@ export const isPerceptionMapMessage = (message: PerceptionMessage): message is P
 export type MoveCharacterMessage = {
     type: 'MoveCharacter';
     characterId: EphemeraCharacterId;
-    roomId: string;
+    roomId: EphemeraRoomId;
     leaveMessage?: string;
 }
 
