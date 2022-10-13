@@ -8,7 +8,7 @@ export const syncRequest = async ({ payloads, messageBus }: { payloads: SyncRequ
     const handleOneRequest = async ({ payload, messageBus }: { payload: SyncRequest, messageBus: MessageBus }): Promise<void> => {
         const epochTime = Date.now()
         const { Items, LastEvaluatedKey} = await messageDeltaQuery({
-            Target: `CHARACTER#${payload.targetId}`,
+            Target: payload.targetId,
             StartingAt: payload.startingAt,
             Limit: payload.limit || 50,
             ExclusiveStartKey: payload.LastEvaluatedKey

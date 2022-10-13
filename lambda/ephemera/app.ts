@@ -14,7 +14,8 @@ import {
     isActionAPIMessage,
     isLinkAPIMessage,
     isCommandAPIMessage,
-    isMapSubscribeAPIMessage
+    isMapSubscribeAPIMessage,
+    isEphemeraCharacterId
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -25,7 +26,6 @@ import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
-import { isEphemeraCharacterId } from './cacheAsset/baseClasses.js'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -152,11 +152,17 @@ export const handler = async (event: any, context: any) => {
         await disconnect(connectionId)
     }
     if (isRegisterCharacterAPIMessage(request)) {
-        if (request.CharacterId) {
+        if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
             messageBus.send({
                 type: 'RegisterCharacter',
                 characterId: request.CharacterId
             })
+        }
+        else {
+            //
+            // TODO: Error messages back to client
+            //
+            console.log(`TEMPORARY WARNING: '${request.CharacterId}' is not a legitimate CharacterId`)
         }
     }
     if (isFetchEphemeraAPIMessage(request)) {
@@ -194,12 +200,17 @@ export const handler = async (event: any, context: any) => {
         })
     }
     if (isSyncAPIMessage(request)) {
-        messageBus.send({
-            type: 'Sync',
-            targetId: request.CharacterId,
-            startingAt: request.startingAt,
-            limit: request.limit
-        })
+        if (isEphemeraCharacterId(request.CharacterId)) {
+            messageBus.send({
+                type: 'Sync',
+                targetId: request.CharacterId,
+                startingAt: request.startingAt,
+                limit: request.limit
+            })
+        }
+        else {
+            console.log(`Invalid CharacterId on SyncAPI`)
+        }
     }
     if (isMapSubscribeAPIMessage(request)) {
         const characterId = request.CharacterId
@@ -246,9 +257,18 @@ export const handler = async (event: any, context: any) => {
         }
     }
     if (isCommandAPIMessage(request)) {
-        const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
-        if (actionPayload?.actionType) {
-            await executeAction(actionPayload)
+        const CharacterId = request.CharacterId
+        if (isEphemeraCharacterId(CharacterId)) {
+            const actionPayload = await parseCommand({ CharacterId, command: request.command })
+            if (actionPayload?.actionType) {
+                await executeAction(actionPayload)
+            }
+        }
+        else {
+            //
+            // TODO: Error messages back to the front-end
+            //
+            console.log(`TEMPORARY WARNING: Non-typed string sent for CharacterId`)
         }
     }
     await messageBus.flush()

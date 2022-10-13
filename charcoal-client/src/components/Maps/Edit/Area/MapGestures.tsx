@@ -20,7 +20,7 @@ type RoomGestureProps = PropsWithChildren<{
 //
 export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLevel, x, y, scale, localDispatch, children }) => {
     const toolSelected = useContext<ToolSelected>(ToolSelectContext)
-    const bind = useGesture({
+    const bind = (useGesture as any)({
         onDrag: ({ offset: [ x, y ] }: { offset: [number, number] }) => {
             const destX = Math.max(-((MAP_WIDTH / 2) - 35), Math.min((MAP_WIDTH / 2) - 35, (x / scale) - (MAP_WIDTH / 2)))
             const destY = Math.max(-((MAP_HEIGHT / 2) - 35), Math.min((MAP_HEIGHT / 2) - 35, (y / scale) - (MAP_HEIGHT / 2)))

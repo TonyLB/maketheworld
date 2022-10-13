@@ -7,6 +7,7 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
+import { EphemeraRoomId, isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/ephemera"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
@@ -16,7 +17,9 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
         const RequestId = await internalCache.Global.get('RequestId')
         const handleOneRegistry = async (payload: RegisterCharacterMessage): Promise<void> => {
             const { characterId: CharacterId } = payload
-            const EphemeraId = `CHARACTER#${CharacterId}`
+            if (!(isEphemeraCharacterId(CharacterId))) {
+                return
+            }
             await exponentialBackoffWrapper(async () => {
                 const [characterFetch, currentConnections] = await Promise.all([
                     internalCache.CharacterMeta.get(CharacterId),
@@ -26,14 +29,14 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     return
                 }
                 const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
-                const RoomEphemeraId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
+                const RoomEphemeraId: EphemeraRoomId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
                 const activeCharacters = await internalCache.RoomCharacterList.get(splitType(RoomEphemeraId)[1])
                 const newConnections = unique(currentConnections || [], [connectionId]) as string[]
                 const metaCharacterUpdate = (typeof currentConnections !== 'undefined')
                     ? {
                         TableName: 'Connections',
                         Key: marshall({
-                            ConnectionId: EphemeraId,
+                            ConnectionId: CharacterId,
                             DataCategory: 'Meta::Character'
                         }),
                         ExpressionAttributeValues: marshall({
@@ -46,7 +49,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     : {
                         TableName: 'Connections',
                         Key: marshall({
-                            ConnectionId: EphemeraId,
+                            ConnectionId: CharacterId,
                             DataCategory: 'Meta::Character'
                         }),
                         ExpressionAttributeValues: marshall({
@@ -61,7 +64,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         Update: {
                             TableName: 'Ephemera',
                             Key: marshall({
-                                EphemeraId,
+                                EphemeraId: CharacterId,
                                 DataCategory: 'Meta::Character',
                             }),
                             UpdateExpression: 'SET RoomId = :roomId',
@@ -72,9 +75,9 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         }
                     }]
                 const newActiveCharacters: RoomCharacterListItem[] = [
-                    ...(activeCharacters || []).filter((character) => (character.EphemeraId !== EphemeraId)),
+                    ...(activeCharacters || []).filter((character) => (character.EphemeraId !== CharacterId)),
                     {
-                        EphemeraId,
+                        EphemeraId: CharacterId,
                         Name,
                         fileURL,
                         Color,
@@ -104,7 +107,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         TableName: 'Connections',
                         Item: marshall({
                             ConnectionId: `CONNECTION#${connectionId}`,
-                            DataCategory: EphemeraId
+                            DataCategory: CharacterId
                         })
                     }
                 },
@@ -127,7 +130,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     })
                     messageBus.send({
                         type: 'PublishMessage',
-                        targets: [{ roomId: RoomId }, { excludeCharacterId: CharacterId }],
+                        targets: [{ roomId: RoomEphemeraId }, { excludeCharacterId: CharacterId }],
                         displayProtocol: 'WorldMessage',
                         message: [{
                             tag: 'String',

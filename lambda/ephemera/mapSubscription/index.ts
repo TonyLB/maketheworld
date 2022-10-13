@@ -3,8 +3,8 @@ import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache, { MapSubscriptionConnection } from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
-import { EphemeraCharacterId } from "../cacheAsset/baseClasses"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/ephemera"
 
 export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payloads: MapSubscriptionMessage[], messageBus: MessageBus }): Promise<void> => {
 
@@ -42,12 +42,11 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
             })
         ])
 
-        console.log(`Possible Maps: ${JSON.stringify(possibleMaps, null, 4)}`)
         await Promise.all(
             possibleMaps.map(({ EphemeraId, mapsPossible }) => (
                 Promise.all(
                     mapsPossible.map(async (MapId) => {
-                        const { RoomId } = await internalCache.CharacterMeta.get(splitType(EphemeraId)[1])
+                        const { RoomId } = await internalCache.CharacterMeta.get(EphemeraId)
                         console.log(`Render: ${MapId} if it includes ${RoomId}`)
                         messageBus.send({
                             type: 'Perception',

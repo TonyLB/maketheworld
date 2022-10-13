@@ -5,6 +5,7 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/ephemera"
 
 type RoomCharacterActive = {
     EphemeraId: string;
@@ -14,7 +15,7 @@ type RoomCharacterActive = {
     Name: string;
 }
 
-const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => {
+const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
         const [currentConnections, characterFetch, mapSubscriptions] = await Promise.all([
             internalCache.CharacterConnections.get(characterId),
@@ -32,7 +33,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 
         const remainingCharacters = [
-            ...(currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`)),
+            ...(currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== characterId)),
             ...((remainingConnections.length > 0)
                 ? [{
                     ...rest,
@@ -46,7 +47,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 Update: {
                     TableName: 'Connections',
                     Key: marshall({
-                        ConnectionId: `CHARACTER#${characterId}`,
+                        ConnectionId: characterId,
                         DataCategory: 'Meta::Character'
                     }),
                     UpdateExpression: 'SET connections = :newConnections',
@@ -61,7 +62,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 Delete: {
                     TableName: 'Connections',
                     Key: marshall({
-                        ConnectionId: `CHARACTER#${characterId}`,
+                        ConnectionId: characterId,
                         DataCategory: 'Meta::Character'
                     }),
                 }
@@ -88,7 +89,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 TableName: 'Connections',
                 Key: marshall({
                     ConnectionId: `CONNECTION#${connectionId}`,
-                    DataCategory: `CHARACTER#${characterId}`
+                    DataCategory: characterId
                 })
             }
         },
@@ -125,7 +126,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
             })
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: RoomId }, { excludeCharacterId: characterId }],
+                targets: [{ roomId: `ROOM#${RoomId}` }, { excludeCharacterId: characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
@@ -152,7 +153,7 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
 
     await Promise.all(payloads.map(async (payload) => {
         const ConnectionId = `CONNECTION#${payload.connectionId}`
-        const characterQuery = await connectionDB.query({
+        const characterQuery = await connectionDB.query<{ DataCategory: EphemeraCharacterId }[]>({
             ConnectionId,
             ExpressionAttributeValues: {
                 ':dcPrefix': 'CHARACTER#'
@@ -161,7 +162,7 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
             ProjectionFields: ['DataCategory']
         })
         await Promise.all([
-            ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, splitType(DataCategory)[1]))),
+            ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, DataCategory))),
             connectionDB.deleteItem({
                 ConnectionId,
                 DataCategory: 'Meta::Connection'

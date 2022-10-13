@@ -1,8 +1,15 @@
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist"
+import {
+    EphemeraActionId,
+    EphemeraCharacterId,
+    EphemeraComputedId,
+    EphemeraFeatureId,
+    EphemeraMapId,
+    EphemeraRoomId,
+    EphemeraVariableId
+} from "@tonylb/mtw-interfaces/dist/ephemera";
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
 import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-
-type EphemeraWrappedId<T extends string> = `${T}#${string}`
 
 export type EphemeraItemDependency = {
     key: string;
@@ -13,9 +20,6 @@ export type EphemeraCondition = {
     dependencies: EphemeraItemDependency[];
     if: string;
 }
-
-export type EphemeraFeatureId = EphemeraWrappedId<'FEATURE'>
-export const isEphemeraFeatureId = (key: string): key is EphemeraFeatureId => (splitType(key)[0] === 'FEATURE')
 
 export type EphemeraFeatureAppearance = {
     conditions: EphemeraCondition[];
@@ -41,17 +45,11 @@ export type EphemeraRoomAppearance = {
     exits: EphemeraExit[];
 }
 
-export type EphemeraRoomId = EphemeraWrappedId<'ROOM'>
-export const isEphemeraRoomId = (key: string): key is EphemeraRoomId => (splitType(key)[0] === 'ROOM')
-
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
     key: string;
     appearances: EphemeraRoomAppearance[];
 }
-
-export type EphemeraMapId = EphemeraWrappedId<'MAP'>
-export const isEphemeraMapId = (key: string): key is EphemeraMapId => (splitType(key)[0] === 'MAP')
 
 export type EphemeraMapRoom = {
     EphemeraId: string;
@@ -72,9 +70,6 @@ export type EphemeraMap = {
     appearances: EphemeraMapAppearance[];
 }
 
-export type EphemeraCharacterId = EphemeraWrappedId<'CHARACTER'>
-export const isEphemeraCharacterId = (key: string): key is EphemeraCharacterId => (splitType(key)[0] === 'CHARACTER')
-
 export type EphemeraCharacter = {
     EphemeraId: EphemeraCharacterId;
     key: string;
@@ -91,26 +86,17 @@ export type EphemeraCharacter = {
     RoomId: string;
 }
 
-export type EphemeraActionId = EphemeraWrappedId<'ACTION'>
-export const isEphemeraActionId = (key: string): key is EphemeraActionId => (splitType(key)[0] === 'ACTION')
-
 export type EphemeraAction = {
     EphemeraId: EphemeraActionId;
     key: string;
     src: string;
 }
 
-export type EphemeraVariableId = EphemeraWrappedId<'VARIABLE'>
-export const isEphemeraVariableId = (key: string): key is EphemeraVariableId => (splitType(key)[0] === 'VARIABLE')
-
 export type EphemeraVariable = {
     EphemeraId: EphemeraVariableId;
     key: string;
     default: string;
 }
-
-export type EphemeraComputedId = EphemeraWrappedId<'COMPUTED'>
-export const isEphemeraComputedId = (key: string): key is EphemeraComputedId => (splitType(key)[0] === 'COMPUTED')
 
 export type EphemeraComputed = {
     EphemeraId: EphemeraComputedId;

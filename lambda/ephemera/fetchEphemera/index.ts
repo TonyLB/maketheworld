@@ -3,7 +3,7 @@ import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
-import { EphemeraMapId } from '../cacheAsset/baseClasses'
+import { EphemeraMapId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 type EphemeraQueryResult = {
     EphemeraId: string;
@@ -37,7 +37,8 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
         })
         const Items = await Promise.all(
             connectedCharacters
-                .map(({ ConnectionId }) => (splitType(ConnectionId)[1]))
+                .map(({ ConnectionId }) => (ConnectionId))
+                .filter(isEphemeraCharacterId)
                 .map((value) => (internalCache.CharacterMeta.get(value)))
         )
         const returnItems = Items
@@ -61,7 +62,7 @@ export const fetchEphemeraForCharacter = async ({
         { assets: characterAssets = [] } = {},
         globalAssets = []
     ] = await Promise.all([
-        internalCache.CharacterMeta.get(CharacterId),
+        internalCache.CharacterMeta.get(`CHARACTER#${CharacterId}`),
         internalCache.Global.get('assets')
     ])
 

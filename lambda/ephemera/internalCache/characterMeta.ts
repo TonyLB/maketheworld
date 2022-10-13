@@ -1,9 +1,10 @@
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
 
 export type CharacterMetaItem = {
-    EphemeraId: string;
+    EphemeraId: EphemeraCharacterId;
     Name: string;
     RoomId: string;
     Color?: string;
@@ -14,23 +15,26 @@ export type CharacterMetaItem = {
 }
 
 export class CacheCharacterMetaData {
-    CharacterMetaById: Record<string, CharacterMetaItem> = {};
+    CharacterMetaById: Record<EphemeraCharacterId, CharacterMetaItem> = {};
     clear() {
         this.CharacterMetaById = {}
     }
-    async get(characterId: string): Promise<CharacterMetaItem> {
+    async get(characterId: EphemeraCharacterId): Promise<CharacterMetaItem> {
         if (!(this.CharacterMetaById[characterId])) {
-            const characterData = await ephemeraDB.getItem<CharacterMetaItem>({
-                    EphemeraId: `CHARACTER#${characterId}`,
+            const characterData = await ephemeraDB.getItem<Omit<CharacterMetaItem, 'EphemeraId'>>({
+                    EphemeraId: characterId,
                     DataCategory: 'Meta::Character',
-                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns'],
+                    ProjectionFields: ['#name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
-                }) || { EphemeraId: '', Name: '', RoomId: '', Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
-            this.CharacterMetaById[characterId] = characterData
+                }) || { Name: '', RoomId: '', Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
+            this.CharacterMetaById[characterId] = {
+                ...characterData,
+                EphemeraId: characterId
+            }
         }
-        return this.CharacterMetaById[characterId] || []
+        return this.CharacterMetaById[characterId]
     }
 }
 

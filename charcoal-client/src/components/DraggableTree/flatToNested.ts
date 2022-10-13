@@ -1,11 +1,11 @@
 import { FlatTree, FlatTreeRow, NestedTree, NestedTreeEntry } from './interfaces'
 
-type FlattenInProgress<T> = {
+type FlattenInProgress<T extends {}> = {
     levelsInProgress: NestedTree<T>;
     rootOutput: NestedTree<T>;
 }
 
-export const consolidateToLevel = <T>({ inProgress, newLevel }: { inProgress: FlattenInProgress<T>, newLevel: number }): FlattenInProgress<T> => {
+export const consolidateToLevel = <T extends {}>({ inProgress, newLevel }: { inProgress: FlattenInProgress<T>, newLevel: number }): FlattenInProgress<T> => {
     const { levelsInProgress, rootOutput } = inProgress
     const currentLevels = levelsInProgress.length - 1
     if (newLevel >= currentLevels) {
@@ -15,7 +15,7 @@ export const consolidateToLevel = <T>({ inProgress, newLevel }: { inProgress: Fl
         return { rootOutput, levelsInProgress }
     }
     else {
-        type FlattenWorker<T> = {
+        type FlattenWorker<T extends {}> = {
             output: NestedTree<T>;
             accumulate?: NestedTreeEntry<T>
         }
@@ -67,7 +67,7 @@ export const consolidateToLevel = <T>({ inProgress, newLevel }: { inProgress: Fl
     
 }
 
-export const convertFlatToNested = <T>(flatTree: FlatTree<T>): NestedTree<T> => {
+export const convertFlatToNested = <T extends {}>(flatTree: FlatTree<T>): NestedTree<T> => {
     const output = consolidateToLevel<T>({
         inProgress: flatTree.reduce<FlattenInProgress<T>>((previous, { level, ...rest }: FlatTreeRow<T>) => {
                 const { rootOutput, levelsInProgress } = consolidateToLevel<T>({ inProgress: previous, newLevel: level - 1 })

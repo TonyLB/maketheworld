@@ -14,7 +14,7 @@ import TreeContent from './TreeStructure/TreeContent'
 import produce from 'immer'
 import useDraggableTreeStyles from './useTreeStyles'
 
-type DraggableTreeProps<T> = {
+type DraggableTreeProps<T extends {}> = {
     tree: NestedTree<T>,
     renderComponent: FunctionComponent<T & { key?: string }>,
     renderHandle: (arg: T) => React.ReactNode,
@@ -126,7 +126,7 @@ type DraggingTarget = {
     position: number
 } | null
 
-type DraggingEntry<T> = FlatTreeRow<T> | null
+type DraggingEntry<T extends {}> = FlatTreeRow<T> | null
 
 export const DraggableTree = <T extends object>({
         tree,
@@ -181,7 +181,8 @@ export const DraggableTree = <T extends object>({
 
     const [draggingStyles, draggingApi] = useSpring(() => ({ opacity: 0, zIndex: -10, y: 0, x: 0, immediate: true }))
 
-    const bind = useDrag(({ args: [entry, startY, startX], active, last, first, movement: [x, y] }) => {
+    const bind = (useDrag as any)((props: any) => {
+        const { args: [entry, startY, startX], active, last, first, movement: [x, y] } = props
         if (first) {
             setDraggingEntry({ ...entry })
             draggingApi({ opacity: 1 })

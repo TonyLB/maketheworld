@@ -9,6 +9,7 @@ import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
 import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
 import { defaultColorFromCharacterId } from "../lib/characterColor"
+import { EphemeraRoomId } from "@tonylb/mtw-interfaces/dist/ephemera"
 
 export const executeActionMessage = async ({ payloads, messageBus }: { payloads: ExecuteActionMessage[]; messageBus: MessageBus }): Promise<void> => {
     //
@@ -29,7 +30,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
         return
     }
     const [roomFetch, characterMeta, assetMap] = await Promise.all([
-        ephemeraDB.query<{ EphemeraId: string; key: string; }[]>({
+        ephemeraDB.query<{ EphemeraId: EphemeraRoomId; key: string; }[]>({
             IndexName: 'DataCategoryIndex',
             DataCategory: AssetKey(rootAsset),
             KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
@@ -59,7 +60,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                             if (EphemeraId) {
                                 executeMessageQueue.push({
                                     type: 'PublishMessage',
-                                    targets: [{ roomId: splitType(EphemeraId)[1] }],
+                                    targets: [{ roomId: EphemeraId }],
                                     displayProtocol: 'WorldMessage',
                                     message: [{ tag: 'String', value: message }]
                                 })
@@ -72,7 +73,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                         if (characterMeta.RoomId) {
                             executeMessageQueue.push({
                                 type: 'PublishMessage',
-                                targets: [{ roomId: characterMeta.RoomId }],
+                                targets: [{ roomId: `ROOM#${characterMeta.RoomId}` }],
                                 displayProtocol: 'WorldMessage',
                                 message: [{ tag: 'String', value: message }]
                             })
@@ -85,7 +86,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                         if (characterMeta.RoomId) {
                             executeMessageQueue.push({
                                 type: 'PublishMessage',
-                                targets: [{ roomId: characterMeta.RoomId }],
+                                targets: [{ roomId: `ROOM#${characterMeta.RoomId}` }],
                                 displayProtocol: 'NarrateMessage',
                                 message: [{ tag: 'String', value: message }],
                                 characterId: payload.characterId,

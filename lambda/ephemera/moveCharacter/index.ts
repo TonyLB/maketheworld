@@ -2,6 +2,8 @@ import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { marshall } from "@aws-sdk/util-dynamodb"
+import { RoomCharacterListItem } from "../internalCache/baseClasses"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async (payload) => {
@@ -13,27 +15,23 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
         await exponentialBackoffWrapper(async () => {
 
             internalCache.RoomCharacterList.invalidate(payload.roomId)
-            const [characterMeta, arrivingCharacters, characterConnections] = await Promise.all([
+            const [characterMeta, arrivingCharacters, connections] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
-                internalCache.RoomCharacterList.get(payload.roomId),
-                connectionDB.getItem<{ connections: string[] }>({
-                    ConnectionId: `CHARACTER#${payload.characterId}`,
-                    DataCategory: 'Meta::Character',
-                    ProjectionFields: ['connections']
-                }),
+                internalCache.RoomCharacterList.get(splitType(payload.roomId)[1]),
+                internalCache.CharacterConnections.get(payload.characterId)
             ])
-            const { connections = [] } = characterConnections || {}
             internalCache.RoomCharacterList.invalidate(characterMeta.RoomId)
             const departingCharacters = await internalCache.RoomCharacterList.get(characterMeta.RoomId)
             const newDepartingCharacters = departingCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId))
-            const newArrivingCharacters = [
-                ...arrivingCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId)),
+            const newArrivingCharacters: RoomCharacterListItem[] = [
+                ...arrivingCharacters
+                    .filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId)),
                 {
                     EphemeraId: characterMeta.EphemeraId,
                     Name: characterMeta.Name,
                     fileURL: characterMeta.fileURL,
                     Color: characterMeta.Color,
-                    ConnectionIds: connections
+                    ConnectionIds: connections || []
                 }
             ]
             await multiTableTransactWrite([{
@@ -45,7 +43,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                     }),
                     UpdateExpression: 'SET RoomId = :newRoomId',
                     ExpressionAttributeValues: marshall({
-                        ':newRoomId': payload.roomId
+                        ':newRoomId': splitType(payload.roomId)[1]
                     }, { removeUndefinedValues: true})
                 }
             },
@@ -68,7 +66,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 Update: {
                     TableName: 'Ephemera',
                     Key: marshall({
-                        EphemeraId: `ROOM#${payload.roomId}`,
+                        EphemeraId: payload.roomId,
                         DataCategory: 'Meta::Room'
                     }),
                     UpdateExpression: 'SET activeCharacters = :newActiveCharacters',
@@ -85,7 +83,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: characterMeta.RoomId }, { characterId: payload.characterId }],
+                targets: [{ roomId: `ROOM#${characterMeta.RoomId}` }, { characterId: payload.characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
@@ -94,13 +92,13 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             })
             messageBus.send({
                 type: 'RoomUpdate',
-                roomId: payload.roomId
+                roomId: characterMeta.RoomId
             })
 
             messageBus.send({
                 type: 'Perception',
-                characterId: `CHARACTER#payload.characterId`,
-                ephemeraId: `ROOM#${payload.roomId}`
+                characterId: payload.characterId,
+                ephemeraId: payload.roomId
             })
 
             messageBus.send({
@@ -114,7 +112,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             })
             messageBus.send({
                 type: 'RoomUpdate',
-                roomId: payload.roomId
+                roomId: splitType(payload.roomId)[1]
             })
 
         }, { retryErrors: ['TransactionCanceledException']})

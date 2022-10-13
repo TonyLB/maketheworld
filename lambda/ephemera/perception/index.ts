@@ -1,8 +1,11 @@
 import { PerceptionMessage, MessageBus, isPerceptionMapMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import { EphemeraCharacter, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "../cacheAsset/baseClasses"
+import { EphemeraCharacter } from "../cacheAsset/baseClasses"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import {
+    isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId
+} from "@tonylb/mtw-interfaces/dist/ephemera"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit' | 'fileURL' | 'Color']: EphemeraCharacter[K];

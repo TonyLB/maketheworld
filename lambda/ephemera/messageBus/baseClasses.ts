@@ -3,19 +3,26 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { TaggedMessageContent, LegalCharacterColor, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
-import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
-import { EphemeraCharacterId, EphemeraExit, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from "../cacheAsset/baseClasses"
+import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
+import { EphemeraExit } from "../cacheAsset/baseClasses"
+import {
+    EphemeraCharacterId,
+    EphemeraFeatureId,
+    EphemeraMapId,
+    EphemeraRoomId,
+    isEphemeraMapId
+} from "@tonylb/mtw-interfaces/dist/ephemera"
 
 export type PublishTargetRoom = {
-    roomId: string;
+    roomId: EphemeraRoomId;
 }
 
 export type PublishTargetCharacter = {
-    characterId: string;
+    characterId: EphemeraCharacterId;
 }
 
 export type PublishTargetExcludeCharacter = {
-    excludeCharacterId: string;
+    excludeCharacterId: EphemeraCharacterId;
 }
 
 export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter
@@ -103,7 +110,7 @@ export type WhoAmIMessage = {
 
 export type SyncRequest = {
     type: 'Sync';
-    targetId: string;
+    targetId: EphemeraCharacterId;
     LastEvaluatedKey?: Record<string, AttributeValue>;
     startingAt?: number;
     limit?: number;
@@ -118,7 +125,7 @@ export type SyncResponse = {
 
 export type RegisterCharacterMessage = {
     type: 'RegisterCharacter';
-    characterId: string;
+    characterId: EphemeraCharacterId;
 }
 
 export type EphemeraUpdateCharacterEntry = {
@@ -194,8 +201,8 @@ export const isPerceptionMapMessage = (message: PerceptionMessage): message is P
 
 export type MoveCharacterMessage = {
     type: 'MoveCharacter';
-    characterId: string;
-    roomId: string;
+    characterId: EphemeraCharacterId;
+    roomId: EphemeraRoomId;
     leaveMessage?: string;
 }
 
@@ -247,7 +254,7 @@ export type DependencyCascadeMessage = {
 export type ExecuteActionMessage = {
     type: 'ExecuteAction';
     actionId: string;
-    characterId: string;
+    characterId: EphemeraCharacterId;
 }
 
 export type MessageType = PublishMessage |

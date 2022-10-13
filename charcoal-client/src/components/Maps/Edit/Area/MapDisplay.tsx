@@ -81,8 +81,8 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             })
         }
     }, [cacheWindowDetails.current.width, cacheWindowDetails.current.height])
-    const bind = useGesture({
-        onWheel: ({ movement: [, y] }) => {
+    const bind = (useGesture as any)({
+        onWheel: ({ movement: [, y] }: any) => {
             const oldScale = scale
             const newScale = Math.max(windowDetails.minScale, Math.min(windowDetails.maxScale, scale * Math.pow(2, -y / 1000)))
             setScale(newScale)
