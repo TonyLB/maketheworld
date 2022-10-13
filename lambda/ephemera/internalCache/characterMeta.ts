@@ -1,4 +1,4 @@
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera';
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'

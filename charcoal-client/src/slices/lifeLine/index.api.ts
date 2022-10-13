@@ -19,8 +19,9 @@ import delayPromise from '../../lib/delayPromise'
 
 import { cacheMessages } from '../messages'
 
-import { EphemeraAPIMessage, EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { EphemeraAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { AssetAPIMessage } from '@tonylb/mtw-interfaces/dist/asset'
+import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 

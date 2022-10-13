@@ -14,9 +14,9 @@ import {
     isActionAPIMessage,
     isLinkAPIMessage,
     isCommandAPIMessage,
-    isMapSubscribeAPIMessage,
-    isEphemeraCharacterId
+    isMapSubscribeAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 

@@ -9,7 +9,7 @@ import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
 import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
 import { defaultColorFromCharacterId } from "../lib/characterColor"
-import { EphemeraRoomId } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { EphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 export const executeActionMessage = async ({ payloads, messageBus }: { payloads: ExecuteActionMessage[]; messageBus: MessageBus }): Promise<void> => {
     //

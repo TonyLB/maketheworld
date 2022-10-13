@@ -5,7 +5,7 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
-import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 type RoomCharacterActive = {
     EphemeraId: string;

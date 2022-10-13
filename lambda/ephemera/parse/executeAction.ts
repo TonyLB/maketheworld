@@ -1,7 +1,8 @@
 import messageBus from '../messageBus'
 import internalCache from '../internalCache'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
-import { ActionAPIMessage, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { PublishMessage } from '../messageBus/baseClasses'
 import { LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/messages'
 
@@ -11,7 +12,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { C
         if (RoomId) {
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: RoomId }],
+                targets: [{ roomId: `ROOM#${RoomId}` }],
                 displayProtocol: DisplayProtocol as any,
                 message: [{ tag: 'String', value: Message }],
                 characterId: CharacterId,
@@ -54,7 +55,7 @@ export const executeAction = async (request: ActionAPIMessage) => {
             messageBus.send({
                 type: 'MoveCharacter',
                 characterId: request.payload.CharacterId,
-                roomId: HomeId,
+                roomId: `ROOM#${HomeId}`,
                 leaveMessage: ' left to return home.'
             })
             break

@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/ephemera';
+import { EphemeraCharacterId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
 import { DeferredCache } from './deferredCache';

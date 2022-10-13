@@ -11,7 +11,7 @@ import {
     EphemeraMapId,
     EphemeraRoomId,
     isEphemeraMapId
-} from "@tonylb/mtw-interfaces/dist/ephemera"
+} from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 export type PublishTargetRoom = {
     roomId: EphemeraRoomId;
