@@ -2,6 +2,7 @@ import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { marshall } from "@aws-sdk/util-dynamodb"
+import { RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async (payload) => {
@@ -13,27 +14,23 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
         await exponentialBackoffWrapper(async () => {
 
             internalCache.RoomCharacterList.invalidate(payload.roomId)
-            const [characterMeta, arrivingCharacters, characterConnections] = await Promise.all([
+            const [characterMeta, arrivingCharacters, connections] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
                 internalCache.RoomCharacterList.get(payload.roomId),
-                connectionDB.getItem<{ connections: string[] }>({
-                    ConnectionId: `CHARACTER#${payload.characterId}`,
-                    DataCategory: 'Meta::Character',
-                    ProjectionFields: ['connections']
-                }),
+                internalCache.CharacterConnections.get(payload.characterId)
             ])
-            const { connections = [] } = characterConnections || {}
             internalCache.RoomCharacterList.invalidate(characterMeta.RoomId)
             const departingCharacters = await internalCache.RoomCharacterList.get(characterMeta.RoomId)
             const newDepartingCharacters = departingCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId))
-            const newArrivingCharacters = [
-                ...arrivingCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId)),
+            const newArrivingCharacters: RoomCharacterListItem[] = [
+                ...arrivingCharacters
+                    .filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId)),
                 {
                     EphemeraId: characterMeta.EphemeraId,
                     Name: characterMeta.Name,
                     fileURL: characterMeta.fileURL,
                     Color: characterMeta.Color,
-                    ConnectionIds: connections
+                    ConnectionIds: connections || []
                 }
             ]
             await multiTableTransactWrite([{
@@ -85,7 +82,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: characterMeta.RoomId }, { characterId: payload.characterId }],
+                targets: [{ roomId: `ROOM#${characterMeta.RoomId}` }, { characterId: payload.characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
@@ -105,7 +102,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: payload.roomId }, { characterId: payload.characterId }],
+                targets: [{ roomId: `ROOM#${payload.roomId}` }, { characterId: payload.characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',

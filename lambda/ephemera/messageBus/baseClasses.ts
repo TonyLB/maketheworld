@@ -14,15 +14,15 @@ import {
 } from "@tonylb/mtw-interfaces/dist/ephemera"
 
 export type PublishTargetRoom = {
-    roomId: string;
+    roomId: EphemeraRoomId;
 }
 
 export type PublishTargetCharacter = {
-    characterId: string;
+    characterId: EphemeraCharacterId;
 }
 
 export type PublishTargetExcludeCharacter = {
-    excludeCharacterId: string;
+    excludeCharacterId: EphemeraCharacterId;
 }
 
 export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter

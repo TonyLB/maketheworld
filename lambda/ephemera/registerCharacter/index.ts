@@ -7,7 +7,7 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
-import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { EphemeraRoomId, isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/ephemera"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
@@ -29,7 +29,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     return
                 }
                 const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
-                const RoomEphemeraId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
+                const RoomEphemeraId: EphemeraRoomId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
                 const activeCharacters = await internalCache.RoomCharacterList.get(splitType(RoomEphemeraId)[1])
                 const newConnections = unique(currentConnections || [], [connectionId]) as string[]
                 const metaCharacterUpdate = (typeof currentConnections !== 'undefined')
@@ -130,7 +130,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     })
                     messageBus.send({
                         type: 'PublishMessage',
-                        targets: [{ roomId: RoomId }, { excludeCharacterId: CharacterId }],
+                        targets: [{ roomId: RoomEphemeraId }, { excludeCharacterId: CharacterId }],
                         displayProtocol: 'WorldMessage',
                         message: [{
                             tag: 'String',

@@ -71,7 +71,7 @@ describe("registerCharacter", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
-            targets: [{ roomId: 'TestABC' }, { excludeCharacterId: 'CHARACTER#ABC' }],
+            targets: [{ roomId: 'ROOM#TestABC' }, { excludeCharacterId: 'CHARACTER#ABC' }],
             displayProtocol: 'WorldMessage',
             message: [{
                 tag: 'String',

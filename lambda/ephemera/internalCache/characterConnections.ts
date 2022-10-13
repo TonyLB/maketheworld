@@ -1,15 +1,16 @@
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
 export class CacheCharacterConnectionsData {
-    CharacterConnectionsById: Record<string, Promise<string[] | undefined>> = {};
+    CharacterConnectionsById: Record<EphemeraCharacterId, Promise<string[] | undefined>> = {};
     clear() {
         this.CharacterConnectionsById = {}
     }
-    async get(characterId: string): Promise<string[] | undefined> {
+    async get(characterId: EphemeraCharacterId): Promise<string[] | undefined> {
         if (!(this.CharacterConnectionsById[characterId])) {
             this.CharacterConnectionsById[characterId] = connectionDB.getItem<{ connections: string[] }>({
-                    ConnectionId: `CHARACTER#${characterId}`,
+                    ConnectionId: characterId,
                     DataCategory: 'Meta::Character',
                     ProjectionFields: ['connections'],
                 }).then((value) => (value?.connections))

@@ -60,7 +60,7 @@ describe("disconnectMessage", () => {
             global: true,
             updates: [{
                 type: 'CharacterInPlay',
-                CharacterId: 'ABC',
+                CharacterId: 'CHARACTER#ABC',
                 Connected: false,
                 Name: 'Tess',
                 RoomId: 'TestABC',
@@ -70,7 +70,7 @@ describe("disconnectMessage", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
-            targets: [{ roomId: 'TestABC' }, { excludeCharacterId: 'ABC' }],
+            targets: [{ roomId: 'ROOM#TestABC' }, { excludeCharacterId: 'CHARACTER#ABC' }],
             displayProtocol: 'WorldMessage',
             message: [{
                 tag: 'String',

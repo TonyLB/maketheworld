@@ -6,6 +6,7 @@ import internalCache from '../internalCache'
 import { messageDB, messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { RoomCharacterListItem } from '../internalCache/baseClasses'
 import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
+import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 const batchMessages = (messages: any[] = [])  => {
     //
@@ -41,12 +42,12 @@ const publishMessageDynamoDB = async <T extends { MessageId: string; CreatedTime
             MessageId,
             DataCategory: 'Meta::Message',
             CreatedTime,
-            Targets: Targets.map((target) => (`CHARACTER#${target}`)),
+            Targets,
             ...rest
         }),
         ...(Targets
             .map(async (target) => (messageDeltaDB.putItem({
-                Target: `CHARACTER#${target}`,
+                Target: target,
                 DeltaId: `${CreatedTime}::${MessageId}`,
                 RowId: MessageId,
                 CreatedTime,
@@ -57,20 +58,20 @@ const publishMessageDynamoDB = async <T extends { MessageId: string; CreatedTime
 }
 
 class PublishMessageTargetMapper {
-    activeCharactersByRoomId: Record<string, RoomCharacterListItem[]> = {}
-    connectionsByCharacterId: Record<string, string[]> = {}
+    activeCharactersByRoomId: Record<EphemeraRoomId, RoomCharacterListItem[]> = {}
+    connectionsByCharacterId: Record<EphemeraCharacterId, string[]> = {}
 
     async initialize(payloads: PublishMessage[]) {
-        const allRoomTargets = payloads.reduce<string[]>((previous, { targets }) => (
+        const allRoomTargets = payloads.reduce<EphemeraRoomId[]>((previous, { targets }) => (
             targets
                 .filter(isPublishTargetRoom)
-                .reduce<string[]>((accumulator, target) => (unique(accumulator, [target.roomId]) as string[]), previous)
-        ), [] as string[])
-        const allCharacterTargets = payloads.reduce<string[]>((previous, { targets }) => (
+                .reduce<EphemeraRoomId[]>((accumulator, target) => (unique(accumulator, [target.roomId]) as EphemeraRoomId[]), previous)
+        ), [] as EphemeraRoomId[])
+        const allCharacterTargets = payloads.reduce<EphemeraCharacterId[]>((previous, { targets }) => (
             targets
                 .filter(isPublishTargetCharacter)
-                .reduce<string[]>((accumulator, target) => (unique(accumulator, [target.characterId]) as string[]), previous)
-        ), [] as string[])
+                .reduce<EphemeraCharacterId[]>((accumulator, target) => (unique(accumulator, [target.characterId]) as EphemeraCharacterId[]), previous)
+        ), [] as EphemeraCharacterId[])
     
         this.activeCharactersByRoomId = Object.assign({} as Record<string, RoomCharacterListItem[]>,
             ...(await Promise.all(allRoomTargets.map((roomId) => (internalCache.RoomCharacterList.get(roomId).then((activeCharacters) => ({ [roomId]: activeCharacters }))))))
@@ -79,7 +80,7 @@ class PublishMessageTargetMapper {
         this.connectionsByCharacterId = {}
         Object.values(this.activeCharactersByRoomId).forEach((characterList) => {
             characterList.forEach(({ EphemeraId, ConnectionIds }) => {
-                const characterId = splitType(EphemeraId)[1]
+                const characterId = EphemeraId
                 if (characterId) {
                     if (characterId in this.connectionsByCharacterId) {
                         this.connectionsByCharacterId[characterId] = unique(this.connectionsByCharacterId[characterId], ConnectionIds) as string[]
@@ -102,17 +103,17 @@ class PublishMessageTargetMapper {
         )
     }
 
-    remap(targets: PublishTarget[]): string[] {
+    remap(targets: PublishTarget[]): EphemeraCharacterId[] {
         const roomTargets = targets.filter(isPublishTargetRoom).map(({ roomId }) => (roomId))
         const nonRoomTargets = targets.filter(isPublishTargetCharacter).map(({ characterId }) => (characterId))
         const excludeTargets = targets.filter(isPublishTargetExcludeCharacter).map(({ excludeCharacterId }) => (excludeCharacterId))
         const mappedRoomTargetGroups = roomTargets
-                .map((target) => ((this.activeCharactersByRoomId[target] || []).map(({ EphemeraId }) => (splitType(EphemeraId)[1]))))
-        return (unique(nonRoomTargets, ...mappedRoomTargetGroups) as string[])
+                .map((target) => ((this.activeCharactersByRoomId[target] || []).map(({ EphemeraId }) => (EphemeraId))))
+        return (unique(nonRoomTargets, ...mappedRoomTargetGroups) as EphemeraCharacterId[])
             .filter((characterId) => (!excludeTargets.includes(characterId)))
     }
 
-    characterConnections(characterId: string): string[] {
+    characterConnections(characterId: EphemeraCharacterId): string[] {
         return this.connectionsByCharacterId[characterId] || []
     }
 }
