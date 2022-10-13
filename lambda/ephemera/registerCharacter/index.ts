@@ -125,7 +125,8 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             Connected: true,
                             RoomId,
                             fileURL: fileURL || '',
-                            Color: Color || 'grey'
+                            Color: Color || 'grey',
+                            targets: []
                         }]        
                     })
                     messageBus.send({

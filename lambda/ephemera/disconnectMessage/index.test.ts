@@ -62,10 +62,7 @@ describe("disconnectMessage", () => {
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#ABC',
                 Connected: false,
-                Name: 'Tess',
-                RoomId: 'TestABC',
-                fileURL: '',
-                Color: 'purple'
+                targets: []
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({

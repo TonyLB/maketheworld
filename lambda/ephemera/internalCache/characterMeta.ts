@@ -1,4 +1,4 @@
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
@@ -7,7 +7,7 @@ export type CharacterMetaItem = {
     EphemeraId: EphemeraCharacterId;
     Name: string;
     RoomId: string;
-    Color?: string;
+    Color?: LegalCharacterColor;
     fileURL?: string;
     HomeId: string;
     assets: string[];

@@ -66,7 +66,8 @@ describe("registerCharacter", () => {
                 Name: 'Tess',
                 RoomId: 'TestABC',
                 fileURL: '',
-                Color: 'purple'
+                Color: 'purple',
+                targets: []
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({

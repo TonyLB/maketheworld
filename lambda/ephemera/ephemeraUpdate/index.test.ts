@@ -29,13 +29,14 @@ describe('EphemeraUpdateMessage', () => {
                     RoomId: 'VORTEX',
                     Name: 'Tess',
                     fileURL: 'TestURL',
-                    Color: 'purple'
+                    Color: 'purple',
+                    targets: []
                 }]
             }]
         })
         expect(apiClientMock.send).toHaveBeenCalledWith({
             ConnectionId: 'TestConnection',
-            Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\"}]}'
+            Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\",\"targets\":[]}]}'
         })
     })
 
@@ -61,11 +62,12 @@ describe('EphemeraUpdateMessage', () => {
                     RoomId: 'VORTEX',
                     Name: 'Tess',
                     fileURL: 'TestURL',
-                    Color: 'purple'
+                    Color: 'purple',
+                    targets: []
                 }]
             }]
         })
-        const expectedData = '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\"}]}'
+        const expectedData = '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\",\"targets\":[]}]}'
         expect(apiClientMock.send).toHaveBeenCalledWith({
             ConnectionId: 'Connection1',
             Data: expectedData
