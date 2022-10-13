@@ -29,7 +29,7 @@ describe('syncRequest', () => {
         })
         await syncRequest({ payloads: [{
             type: 'Sync',
-            targetId: 'ABCD'
+            targetId: 'CHARACTER#ABCD'
         } ], messageBus })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'SyncResponse',

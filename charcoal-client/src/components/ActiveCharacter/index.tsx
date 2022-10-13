@@ -70,7 +70,7 @@ export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ Chara
 
     const characterState = useSelector(getActiveCharacters)[CharacterId]
     const maps = useSelector(getActiveCharacterMaps(CharacterId))
-    const messageBreakdown = useSelector(getMessagesByRoom(CharacterId))
+    const messageBreakdown = useSelector(getMessagesByRoom(`CHARACTER#${CharacterId}`))
     const info = useSelector(getCharactersInPlay)[CharacterId]
     return (
         <ActiveCharacterContext.Provider value={{

@@ -73,7 +73,8 @@ export const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, 
 }
 export const NarrateMessage = ({ message, variant }: NarrateMessageProps) => {
     const { CharacterId: activeId } = useActiveCharacter()
-    const { CharacterId, Color } = message
+    const { CharacterId: wrappedCharacterId, Color } = message
+    const CharacterId = wrappedCharacterId.split('#')[1]
     return <CharacterColorWrapper color={CharacterId === activeId ? 'blue' : Color}>
         <MessageComponent
             leftIcon={

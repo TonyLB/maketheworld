@@ -23,11 +23,11 @@ export const Message = ({ message, ...rest }: MessageProps) => {
     const { DisplayProtocol } = message
     switch(DisplayProtocol) {
         case 'SayMessage':
-            return <SayMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
+            return <SayMessage message={message} variant={message.CharacterId === `CHARACTER#${CharacterId}` ? 'right' : 'left'} />
         case 'NarrateMessage':
-            return <NarrateMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
+            return <NarrateMessage message={message} variant={message.CharacterId === `CHARACTER#${CharacterId}` ? 'right' : 'left'} />
         case 'OOCMessage':
-            return <OOCMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
+            return <OOCMessage message={message} variant={message.CharacterId === `CHARACTER#${CharacterId}` ? 'right' : 'left'} />
         case 'WorldMessage':
             return <WorldMessage message={message} {...rest} />
         case 'RoomDescription':

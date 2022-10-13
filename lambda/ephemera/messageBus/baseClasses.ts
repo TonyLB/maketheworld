@@ -110,7 +110,7 @@ export type WhoAmIMessage = {
 
 export type SyncRequest = {
     type: 'Sync';
-    targetId: string;
+    targetId: EphemeraCharacterId;
     LastEvaluatedKey?: Record<string, AttributeValue>;
     startingAt?: number;
     limit?: number;
