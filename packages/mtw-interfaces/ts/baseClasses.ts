@@ -39,3 +39,4 @@ export const isEphemeraVariableId = isEphemeraTaggedId<'VARIABLE'>('VARIABLE')
 export type EphemeraComputedId = EphemeraWrappedId<'COMPUTED'>
 export const isEphemeraComputedId = isEphemeraTaggedId<'COMPUTED'>('COMPUTED')
 
+export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'

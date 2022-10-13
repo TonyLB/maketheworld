@@ -25,7 +25,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
         if (!(currentConnections && currentConnections.length)) {
             return
         }
-        const { RoomId, Name, fileURL, Color, EphemeraId } = characterFetch || {}
+        const { RoomId, Name } = characterFetch || {}
         const { Pronouns, assets, ...rest } = characterFetch || {}
 
         const currentActiveCharacters = await internalCache.RoomCharacterList.get(RoomId)
@@ -117,11 +117,8 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
                 updates: [{
                     type: 'CharacterInPlay',
                     CharacterId: characterId,
-                    Name: Name || '',
                     Connected: false,
-                    RoomId: RoomId || '',
-                    fileURL: fileURL || '',
-                    Color: Color || 'grey'
+                    targets: []
                 }]
             })
             messageBus.send({

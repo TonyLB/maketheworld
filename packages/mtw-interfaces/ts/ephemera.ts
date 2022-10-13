@@ -1,4 +1,6 @@
-import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId } from "./baseClasses";
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId } from "./baseClasses"
+import { LegalCharacterColor } from './baseClasses'
+import { Message } from "./messages"
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
@@ -129,19 +131,34 @@ export type EphemeraClientMessageEphemeraExit = {
     to: string;
 }
 
-export type EphemeraClientMessageEphemeraUpdateCharacterInPlayItem = {
+export type EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive = {
     type: 'CharacterInPlay';
     CharacterId: string;
-    Connected: boolean;
+    Connected: false;
+}
+
+export type EphemeraClientMessageEphemeraUpdateCharacterInPlayActive = {
+    type: 'CharacterInPlay';
+    CharacterId: string;
+    Connected: true;
     RoomId: string;
     Name: string;
     fileURL?: string;
-    Color: 'blue' | 'purple' | 'green' | 'pink';
+    Color: LegalCharacterColor;
 }
 
-export type EphemeraClientMessageEphemeraUpdateMapItem = {
+export type EphemeraClientMessageEphemeraUpdateCharacterInPlay = EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive | EphemeraClientMessageEphemeraUpdateCharacterInPlayActive
+
+export type EphemeraClientMessageEphemeraUpdateMapItemInactive = {
     type: 'MapUpdate';
     MapId: string;
+    active: false;
+}
+
+export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
+    type: 'MapUpdate';
+    MapId: string;
+    active: true;
     Name: string;
     fileURL?: string;
     rooms: {
@@ -153,12 +170,19 @@ export type EphemeraClientMessageEphemeraUpdateMapItem = {
     }[]
 }
 
-export type EphemeraClientMessageEphemeraUpdateItem = EphemeraClientMessageEphemeraUpdateCharacterInPlayItem | EphemeraClientMessageEphemeraUpdateMapItem
+export type EphemeraClientMessageEphemeraUpdateMapItem = EphemeraClientMessageEphemeraUpdateMapItemInactive | EphemeraClientMessageEphemeraUpdateMapItemActive
+
+export type EphemeraClientMessageEphemeraUpdateItem = EphemeraClientMessageEphemeraUpdateCharacterInPlay | EphemeraClientMessageEphemeraUpdateMapItem
 
 export type EphemeraClientMessageEphemeraUpdate = {
     messageType: 'Ephemera';
     RequestId?: string;
-    updates: EphemeraClientMessageEphemeraUpdate[];
+    updates: EphemeraClientMessageEphemeraUpdateItem[];
+}
+
+export type EphemeraClientMessagePublishMessages = {
+    messageType: 'Messages';
+    messages: Message[];
 }
 
 export type EphemeraClientMessageReturnValue = {
@@ -167,4 +191,5 @@ export type EphemeraClientMessageReturnValue = {
 }
 
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
-    EphemeraClientMessageReturnValue
+    EphemeraClientMessageReturnValue |
+    EphemeraClientMessagePublishMessages

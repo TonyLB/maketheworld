@@ -4,7 +4,7 @@ import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "
 import { AssetKey, RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
 import { ExecuteActionMessage, MessageBus, PublishMessage } from "../messageBus/baseClasses"
-import { LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/messages"
+import { LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
 import { tagFromEphemeraId } from "../internalCache/dependencyGraph"

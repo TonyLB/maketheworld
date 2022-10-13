@@ -1,3 +1,5 @@
+import { LegalCharacterColor } from "./baseClasses";
+
 export type MessageAddressing = {
     MessageId: string;
     CreatedTime: number;
@@ -112,8 +114,6 @@ export type RoomHeader = {
 export type RoomUpdate = {
     DisplayProtocol: 'RoomUpdate';
 } & MessageAddressing & Partial<RoomDescribeData>
-
-export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'
 
 type MessageCharacterInfo = {
     CharacterId: string;
