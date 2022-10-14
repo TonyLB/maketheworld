@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId } from "./baseClasses"
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
 import { Message } from "./messages"
 
@@ -121,6 +121,99 @@ export const isMapSubscribeAPIMessage = (message: EphemeraAPIMessage): message i
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
 export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')
+
+export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessage => {
+    if (typeof message !== 'object') {
+        return false
+    }
+    if (!('message' in message)) {
+        return false
+    }
+    switch(message.message) {
+        case 'registercharacter':
+        case 'fetchEphemera':
+        case 'subscribeToMaps':
+            return Boolean(
+                'CharacterId' in message
+                && typeof message.CharacterId === 'string'
+                /* && isEphemeraCharacterId(message.CharacterId)*/
+            )
+        case 'fetchImportDefaults':
+        case 'whoAmI':
+            return true
+        case 'sync':
+            return Boolean(
+                'CharacterId' in message
+                && typeof message.CharacterId === 'string'
+                /* && isEphemeraCharacterId(message.CharacterId)*/
+                && (typeof (message.startingAt ?? 0) === 'number')
+                && (typeof (message.limit ?? 0) === 'number')
+            )
+        case 'link':
+            return Boolean(
+                'CharacterId' in message
+                && typeof message.CharacterId === 'string'
+                /* && isEphemeraCharacterId(message.CharacterId)*/
+                && 'to' in message
+                && typeof message.to === 'string'
+            )
+        case 'command':
+            return Boolean(
+                'CharacterId' in message
+                && typeof message.CharacterId === 'string'
+                /* && isEphemeraCharacterId(message.CharacterId)*/
+                && 'command' in message
+                && typeof message.command === 'string'
+            )
+        case 'action':
+            if (!('actionType' in message && 'payload' in message && typeof message.payload === 'object')) {
+                return false
+            }
+            switch(message.actionType) {
+                case 'look':
+                    return Boolean(
+                        'CharacterId' in message.payload
+                        && typeof message.payload.CharacterId === 'string'
+                        && isEphemeraCharacterId(message.payload.CharacterId)
+                        && 'EphemeraId' in message.payload
+                        && typeof message.payload.EphemeraId === 'string'
+                        && (
+                            isEphemeraRoomId(message.payload.EphemeraId)
+                            || isEphemeraFeatureId(message.payload.EphemeraId)
+                            || isEphemeraMapId(message.payload.EphemeraId)
+                        )
+                    )
+                case 'SayMessage':
+                case 'NarrateMessage':
+                case 'OOCMessage':
+                    return Boolean(
+                        'CharacterId' in message.payload
+                        && typeof message.payload.CharacterId === 'string'
+                        && isEphemeraCharacterId(message.payload.CharacterId)
+                        && 'Message' in message.payload
+                        && typeof message.payload.Message === 'string'
+                    )
+                case 'move':
+                    return Boolean(
+                        'CharacterId' in message.payload
+                        && typeof message.payload.CharacterId === 'string'
+                        && isEphemeraCharacterId(message.payload.CharacterId)
+                        && 'RoomId' in message.payload
+                        && typeof message.payload.RoomId === 'string'
+                        && isEphemeraRoomId(message.payload.RoomId)
+                        && (typeof (message.payload.ExitName || 'default') === 'string')
+                    )
+                case 'home':
+                    return Boolean(
+                        'CharacterId' in message.payload
+                        && typeof message.payload.CharacterId === 'string'
+                        && isEphemeraCharacterId(message.payload.CharacterId)
+                    )
+                default: return false
+            }
+        default: return false
+    }
+}
 
 //
 // TODO: Create EphemeraClientMessage types
