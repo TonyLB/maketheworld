@@ -1,3 +1,5 @@
+import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses";
+
 export class Deferred <T>{
     invalidationCounter: number;
     promise: Promise<T>;
@@ -43,8 +45,8 @@ export class Deferred <T>{
 }
 
 export type RoomCharacterListItem = {
-    EphemeraId: string;
-    Color?: string;
+    EphemeraId: EphemeraCharacterId;
+    Color?: LegalCharacterColor;
     ConnectionIds: string[];
     fileURL?: string;
     Name: string;

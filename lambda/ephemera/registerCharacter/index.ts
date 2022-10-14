@@ -7,7 +7,7 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
-import { EphemeraRoomId, isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { EphemeraRoomId, isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
@@ -28,9 +28,8 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 if (!characterFetch) {
                     return
                 }
-                const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
-                const RoomEphemeraId: EphemeraRoomId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
-                const activeCharacters = await internalCache.RoomCharacterList.get(splitType(RoomEphemeraId)[1])
+                const { Name = '', HomeId, RoomId, fileURL, Color } = characterFetch
+                const activeCharacters = await internalCache.RoomCharacterList.get(RoomId)
                 const newConnections = unique(currentConnections || [], [connectionId]) as string[]
                 const metaCharacterUpdate = (typeof currentConnections !== 'undefined')
                     ? {
@@ -69,7 +68,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             }),
                             UpdateExpression: 'SET RoomId = :roomId',
                             ExpressionAttributeValues: marshall({
-                                ':roomId': HomeId || 'VORTEX',
+                                ':roomId': HomeId,
                             }),
                             ConditionExpression: 'attribute_not_exists(RoomId)'
                         }
@@ -88,7 +87,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     Update: {
                         TableName: 'Ephemera',
                         Key: marshall({
-                            EphemeraId: RoomEphemeraId,
+                            EphemeraId: RoomId,
                             DataCategory: 'Meta::Room'
                         }),
                         UpdateExpression: 'SET activeCharacters = :newActiveCharacters',
@@ -99,6 +98,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         ConditionExpression: 'activeCharacters = :oldActiveCharacters'
                     }
                 }
+                console.log(`Register: activeCharactersUpdate: ${JSON.stringify(activeCharactersUpdate, null, 4)}`)
                 await multiTableTransactWrite([{
                     Update: metaCharacterUpdate
                 },
@@ -125,12 +125,13 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             Connected: true,
                             RoomId,
                             fileURL: fileURL || '',
-                            Color: Color || 'grey'
+                            Color: Color || 'grey',
+                            targets: []
                         }]        
                     })
                     messageBus.send({
                         type: 'PublishMessage',
-                        targets: [{ roomId: RoomEphemeraId }, { excludeCharacterId: CharacterId }],
+                        targets: [{ roomId: RoomId }, { excludeCharacterId: CharacterId }],
                         displayProtocol: 'WorldMessage',
                         message: [{
                             tag: 'String',

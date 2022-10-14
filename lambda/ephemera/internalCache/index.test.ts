@@ -54,14 +54,14 @@ describe('InternalCache', () => {
         ephemeraMock.getItem.mockResolvedValue({
             activeCharacters: testActiveCharacters
         })
-        expect(await internalCache.RoomCharacterList.get('1234')).toEqual(expectedOutput)
+        expect(await internalCache.RoomCharacterList.get('ROOM#1234')).toEqual(expectedOutput)
         expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
         expect(ephemeraMock.getItem).toHaveBeenCalledWith({
             DataCategory: 'Meta::Room',
             EphemeraId: 'ROOM#1234',
             ProjectionFields: ['activeCharacters']
         })
-        expect(await internalCache.RoomCharacterList.get('1234')).toEqual(expectedOutput)
+        expect(await internalCache.RoomCharacterList.get('ROOM#1234')).toEqual(expectedOutput)
         expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
         
     })

@@ -2,7 +2,8 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { TaggedMessageContent, LegalCharacterColor, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
+import { TaggedMessageContent, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
+import { LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
 import { EphemeraExit } from "../cacheAsset/baseClasses"
 import {
@@ -11,7 +12,8 @@ import {
     EphemeraMapId,
     EphemeraRoomId,
     isEphemeraMapId
-} from "@tonylb/mtw-interfaces/dist/ephemera"
+} from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraClientMessageEphemeraUpdateCharacterInPlay, EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/dist/ephemera"
 
 export type PublishTargetRoom = {
     roomId: EphemeraRoomId;
@@ -158,7 +160,7 @@ export type EphemeraUpdateEntry = EphemeraUpdateCharacterEntry | EphemeraUpdateM
 export type EphemeraUpdateMessage = {
     type: 'EphemeraUpdate';
     global: boolean;
-    updates: EphemeraUpdateEntry[];
+    updates: (EphemeraClientMessageEphemeraUpdateItem & { targets: PublishTarget[] })[];
 }
 
 export type FetchPlayerEphemeraMessage = {

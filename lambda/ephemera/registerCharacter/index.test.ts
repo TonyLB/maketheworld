@@ -30,9 +30,9 @@ describe("registerCharacter", () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
-            RoomId: 'TestABC',
+            RoomId: 'ROOM#TestABC',
             Color: 'purple',
-            HomeId: 'VORTEX',
+            HomeId: 'ROOM#VORTEX',
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
@@ -64,9 +64,10 @@ describe("registerCharacter", () => {
                 CharacterId: 'CHARACTER#ABC',
                 Connected: true,
                 Name: 'Tess',
-                RoomId: 'TestABC',
+                RoomId: 'ROOM#TestABC',
                 fileURL: '',
-                Color: 'purple'
+                Color: 'purple',
+                targets: []
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -80,10 +81,10 @@ describe("registerCharacter", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'RoomUpdate',
-            roomId: 'TestABC'
+            roomId: 'ROOM#TestABC'
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'TestABC',
+            key: 'ROOM#TestABC',
             value: [
                 {
                     EphemeraId: 'CHARACTER#BCD',
@@ -104,9 +105,9 @@ describe("registerCharacter", () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
-            RoomId: 'TestABC',
+            RoomId: 'ROOM#TestABC',
             Color: 'purple',
-            HomeId: 'VORTEX',
+            HomeId: 'ROOM#VORTEX',
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
@@ -129,7 +130,7 @@ describe("registerCharacter", () => {
             }
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'TestABC',
+            key: 'ROOM#TestABC',
             value: [{
                 EphemeraId: 'CHARACTER#ABC',
                 Name: 'Tess',

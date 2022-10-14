@@ -1,9 +1,9 @@
 import messageBus from '../messageBus'
 import internalCache from '../internalCache'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
-import { ActionAPIMessage, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { PublishMessage } from '../messageBus/baseClasses'
-import { LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/messages'
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { CharacterId?: EphemeraCharacterId; Message?: string; DisplayProtocol?: PublishMessage["displayProtocol"]; } = {}) => {
     if (CharacterId && Message && DisplayProtocol) {
@@ -49,8 +49,7 @@ export const executeAction = async (request: ActionAPIMessage) => {
             })
             break
         case 'home':
-            const props = await internalCache.CharacterMeta.get(request.payload.CharacterId)
-            const { HomeId = '' } = props || {}
+            const { HomeId } = await internalCache.CharacterMeta.get(request.payload.CharacterId)
             messageBus.send({
                 type: 'MoveCharacter',
                 characterId: request.payload.CharacterId,

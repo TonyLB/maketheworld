@@ -23,8 +23,8 @@ describe('Perception message', () => {
             EphemeraId: 'CHARACTER#Test',
             Name: 'Tess',
             assets: ['Personal'],
-            RoomId: 'VORTEX',
-            HomeId: 'VORTEX',
+            RoomId: 'ROOM#VORTEX',
+            HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
         ephemeraDBMock.getItem.mockResolvedValue({

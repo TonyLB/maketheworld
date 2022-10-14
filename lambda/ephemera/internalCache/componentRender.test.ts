@@ -23,8 +23,8 @@ describe('ComponentRender cache handler', () => {
             EphemeraId: 'CHARACTER#Test',
             Name: 'Tess',
             assets: ['Personal'],
-            RoomId: 'VORTEX',
-            HomeId: 'VORTEX',
+            RoomId: 'ROOM#VORTEX',
+            HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
@@ -88,8 +88,8 @@ describe('ComponentRender cache handler', () => {
             EphemeraId: 'CHARACTER#Test',
             Name: 'Tess',
             assets: ['Personal'],
-            RoomId: 'VORTEX',
-            HomeId: 'VORTEX',
+            RoomId: 'ROOM#VORTEX',
+            HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
@@ -147,8 +147,8 @@ describe('ComponentRender cache handler', () => {
             EphemeraId: 'CHARACTER#Test',
             Name: 'Tess',
             assets: ['Personal'],
-            RoomId: 'VORTEX',
-            HomeId: 'VORTEX',
+            RoomId: 'ROOM#VORTEX',
+            HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValueOnce({
@@ -259,8 +259,8 @@ describe('ComponentRender cache handler', () => {
             EphemeraId: 'CHARACTER#Test',
             Name: 'Tess',
             assets: [],
-            RoomId: 'VORTEX',
-            HomeId: 'VORTEX',
+            RoomId: 'ROOM#VORTEX',
+            HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
         jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({

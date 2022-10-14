@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/ephemera';
+import { EphemeraCharacterId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
 import { DeferredCache } from './deferredCache';
@@ -30,8 +30,8 @@ export class CacheCharacterPossibleMapsData {
         this._Cache.add({
             promiseFactory: async () => {
                 const { RoomId } = await this._CharacterMeta.get(characterId)
-                const descent = await this._Descent.get(`ROOM#${RoomId}`)
-                const descentRoomNode = descent.find(({ EphemeraId }) => (EphemeraId = `ROOM#${RoomId}`))
+                const descent = await this._Descent.get(RoomId)
+                const descentRoomNode = descent.find(({ EphemeraId }) => (EphemeraId = RoomId))
                 return {
                     EphemeraId: characterId,
                     //

@@ -5,7 +5,7 @@ import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import {
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId
-} from "@tonylb/mtw-interfaces/dist/ephemera"
+} from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit' | 'fileURL' | 'Color']: EphemeraCharacter[K];
@@ -70,6 +70,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         global: false,
                         updates: [{
                             type: 'MapUpdate',
+                            active: true,
                             targets: [{ characterId }],
                             ...mapDescribe,
                             MapId

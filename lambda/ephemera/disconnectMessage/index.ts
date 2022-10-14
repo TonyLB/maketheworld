@@ -5,15 +5,7 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
-import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/ephemera"
-
-type RoomCharacterActive = {
-    EphemeraId: string;
-    Color?: string;
-    ConnectionIds: string[];
-    fileURL?: string;
-    Name: string;
-}
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
@@ -25,7 +17,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
         if (!(currentConnections && currentConnections.length)) {
             return
         }
-        const { RoomId, Name, fileURL, Color, EphemeraId } = characterFetch || {}
+        const { RoomId, Name } = characterFetch || {}
         const { Pronouns, assets, ...rest } = characterFetch || {}
 
         const currentActiveCharacters = await internalCache.RoomCharacterList.get(RoomId)
@@ -99,7 +91,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
             Update: {
                 TableName: 'Ephemera',
                 Key: marshall({
-                    EphemeraId: `ROOM#${RoomId}`,
+                    EphemeraId: RoomId,
                     DataCategory: 'Meta::Room'
                 }),
                 UpdateExpression: 'SET activeCharacters = :newCharacters',
@@ -117,16 +109,13 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
                 updates: [{
                     type: 'CharacterInPlay',
                     CharacterId: characterId,
-                    Name: Name || '',
                     Connected: false,
-                    RoomId: RoomId || '',
-                    fileURL: fileURL || '',
-                    Color: Color || 'grey'
+                    targets: []
                 }]
             })
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: `ROOM#${RoomId}` }, { excludeCharacterId: characterId }],
+                targets: [{ roomId: RoomId }, { excludeCharacterId: characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',

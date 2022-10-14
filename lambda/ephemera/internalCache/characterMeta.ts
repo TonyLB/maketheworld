@@ -1,4 +1,4 @@
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera';
+import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
@@ -6,10 +6,10 @@ import { CacheConstructor } from './baseClasses'
 export type CharacterMetaItem = {
     EphemeraId: EphemeraCharacterId;
     Name: string;
-    RoomId: string;
-    Color?: string;
+    RoomId: EphemeraRoomId;
+    Color?: LegalCharacterColor;
     fileURL?: string;
-    HomeId: string;
+    HomeId: EphemeraRoomId;
     assets: string[];
     Pronouns: NormalCharacterPronouns;
 }
@@ -21,16 +21,18 @@ export class CacheCharacterMetaData {
     }
     async get(characterId: EphemeraCharacterId): Promise<CharacterMetaItem> {
         if (!(this.CharacterMetaById[characterId])) {
-            const characterData = await ephemeraDB.getItem<Omit<CharacterMetaItem, 'EphemeraId'>>({
+            const characterData = await ephemeraDB.getItem<Omit<CharacterMetaItem, 'EphemeraId' | 'RoomId' | 'HomeId' > & { RoomId?: string; HomeId?: string; }>({
                     EphemeraId: characterId,
                     DataCategory: 'Meta::Character',
                     ProjectionFields: ['#name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
-                }) || { Name: '', RoomId: '', Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
+                }) || { Name: '', RoomId: 'VORTEX', Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
             this.CharacterMetaById[characterId] = {
                 ...characterData,
+                RoomId: `ROOM#${characterData.RoomId || characterData.HomeId || 'VORTEX'}`,
+                HomeId: `ROOM#${characterData.HomeId || 'VORTEX'}`,
                 EphemeraId: characterId
             }
         }

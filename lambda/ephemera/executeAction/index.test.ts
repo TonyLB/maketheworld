@@ -22,8 +22,8 @@ describe('ExecuteActionMessage', () => {
         Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' },
         Color: 'purple',
         EphemeraId: 'CHARACTER#Somebody',
-        RoomId: 'VORTEX',
-        HomeId: 'VORTEX',
+        RoomId: 'ROOM#VORTEX',
+        HomeId: 'ROOM#VORTEX',
         assets: []
     }
     beforeEach(() => {

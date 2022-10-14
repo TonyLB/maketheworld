@@ -192,13 +192,13 @@ Array [
                   "S": "CHARACTER#ABC",
                 },
                 "HomeId": Object {
-                  "S": "VORTEX",
+                  "S": "ROOM#VORTEX",
                 },
                 "Name": Object {
                   "S": "Tess",
                 },
                 "RoomId": Object {
-                  "S": "TestABC",
+                  "S": "ROOM#TestABC",
                 },
               },
             },

@@ -11,7 +11,7 @@ import DependencyGraph from './dependencyGraph';
 import ComponentMeta from './componentMeta';
 import ComponentRender from './componentRender';
 import CacheCharacterPossibleMaps from './characterPossibleMaps';
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera';
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 
 type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
 

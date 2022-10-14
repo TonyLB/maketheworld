@@ -5,8 +5,8 @@ import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
 import { messageDB, messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { RoomCharacterListItem } from '../internalCache/baseClasses'
-import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
-import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { apiClient } from '../apiClient'
+import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 const batchMessages = (messages: any[] = [])  => {
     //
@@ -227,13 +227,13 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                     .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
                 return Promise.all(sortedMessages.length
                     ? batchMessages(sortedMessages).map((messageBatch) => (
-                        apiClient.send({
+                        apiClient.send(
                             ConnectionId,
-                            Data: JSON.stringify({
+                            {
                                 messageType: 'Messages',
                                 messages: messageBatch
-                            })
-                        })
+                            }
+                        )
                     ))
                     : []
                 )

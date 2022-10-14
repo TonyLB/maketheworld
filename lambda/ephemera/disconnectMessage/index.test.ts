@@ -28,10 +28,10 @@ describe("disconnectMessage", () => {
     it("should update correctly on last connection", async () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
-            RoomId: 'TestABC',
+            RoomId: 'ROOM#TestABC',
             Name: 'Tess',
             Color: 'purple',
-            HomeId: 'VORTEX',
+            HomeId: 'ROOM#VORTEX',
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
@@ -62,10 +62,7 @@ describe("disconnectMessage", () => {
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#ABC',
                 Connected: false,
-                Name: 'Tess',
-                RoomId: 'TestABC',
-                fileURL: '',
-                Color: 'purple'
+                targets: []
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -79,10 +76,10 @@ describe("disconnectMessage", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'RoomUpdate',
-            roomId: 'TestABC'
+            roomId: 'ROOM#TestABC'
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'TestABC',
+            key: 'ROOM#TestABC',
             value: [
                 {
                     EphemeraId: 'CHARACTER#BCD',
@@ -97,8 +94,8 @@ describe("disconnectMessage", () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
-            RoomId: 'TestABC',
-            HomeId: 'VORTEX',
+            RoomId: 'ROOM#TestABC',
+            HomeId: 'ROOM#VORTEX',
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
@@ -124,7 +121,7 @@ describe("disconnectMessage", () => {
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
         expect(messageBusMock.send).not.toHaveBeenCalled()
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'TestABC',
+            key: 'ROOM#TestABC',
             value: [
                 {
                     EphemeraId: 'CHARACTER#BCD',
@@ -135,8 +132,8 @@ describe("disconnectMessage", () => {
                     EphemeraId: 'CHARACTER#ABC',
                     Name: 'Tess',
                     ConnectionIds: ['QRS'],
-                    HomeId: 'VORTEX',
-                    RoomId: 'TestABC'
+                    HomeId: 'ROOM#VORTEX',
+                    RoomId: 'ROOM#TestABC'
                 }
             ]
         })

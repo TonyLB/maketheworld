@@ -7,7 +7,7 @@ import {
     EphemeraMapId,
     EphemeraRoomId,
     EphemeraVariableId
-} from "@tonylb/mtw-interfaces/dist/ephemera";
+} from "@tonylb/mtw-interfaces/dist/baseClasses";
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
 import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 

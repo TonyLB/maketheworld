@@ -17,7 +17,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             internalCache.RoomCharacterList.invalidate(payload.roomId)
             const [characterMeta, arrivingCharacters, connections] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
-                internalCache.RoomCharacterList.get(splitType(payload.roomId)[1]),
+                internalCache.RoomCharacterList.get(payload.roomId),
                 internalCache.CharacterConnections.get(payload.characterId)
             ])
             internalCache.RoomCharacterList.invalidate(characterMeta.RoomId)
@@ -51,7 +51,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 Update: {
                     TableName: 'Ephemera',
                     Key: marshall({
-                        EphemeraId: `ROOM#${characterMeta.RoomId}`,
+                        EphemeraId: characterMeta.RoomId,
                         DataCategory: 'Meta::Room'
                     }),
                     UpdateExpression: 'SET activeCharacters = :newActiveCharacters',
@@ -83,7 +83,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: `ROOM#${characterMeta.RoomId}` }, { characterId: payload.characterId }],
+                targets: [{ roomId: characterMeta.RoomId }, { characterId: payload.characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
@@ -92,7 +92,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             })
             messageBus.send({
                 type: 'RoomUpdate',
-                roomId: characterMeta.RoomId
+                roomId: splitType(characterMeta.RoomId)[1]
             })
 
             messageBus.send({

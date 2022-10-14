@@ -1,4 +1,4 @@
-import { isEphemeraRoomId } from './ephemera'
+import { isEphemeraRoomId } from './baseClasses'
 
 describe('EphemeraId functions', () => {
     it('should correctly flag a key', () => {

@@ -1,53 +1,6 @@
-class EphemeraError extends Error {
-    constructor(message: string) {
-        super(message)
-        this.name = 'EphemeraException'
-    }
-}
-
-const splitType = (value: string) => {
-    if (value) {
-        const sections = value.split('#')
-        if (sections.length) {
-            return [sections[0], sections.slice(1).join('#')]
-        }
-    }
-    return ['', '']
-}
-
-type EphemeraWrappedId<T extends string> = `${T}#${string}`
-
-const isEphemeraTaggedId = <G extends string>(tag: G) => (value: string): value is EphemeraWrappedId<G> => {
-    const sections = value.split('#')
-    if (sections.length > 2) {
-        throw new EphemeraError(`Illegal nested EphemeraId: '${value}'`)
-    }
-    if (sections.length < 2) {
-        return false
-    }
-    return Boolean(sections[0] === tag)
-}
-
-export type EphemeraFeatureId = EphemeraWrappedId<'FEATURE'>
-export const isEphemeraFeatureId = isEphemeraTaggedId<'FEATURE'>('FEATURE')
-
-export type EphemeraRoomId = EphemeraWrappedId<'ROOM'>
-export const isEphemeraRoomId = isEphemeraTaggedId<'ROOM'>('ROOM')
-
-export type EphemeraMapId = EphemeraWrappedId<'MAP'>
-export const isEphemeraMapId = isEphemeraTaggedId<'MAP'>('MAP')
-
-export type EphemeraCharacterId = EphemeraWrappedId<'CHARACTER'>
-export const isEphemeraCharacterId = isEphemeraTaggedId<'CHARACTER'>('CHARACTER')
-
-export type EphemeraActionId = EphemeraWrappedId<'ACTION'>
-export const isEphemeraActionId = isEphemeraTaggedId<'ACTION'>('ACTION')
-
-export type EphemeraVariableId = EphemeraWrappedId<'VARIABLE'>
-export const isEphemeraVariableId = isEphemeraTaggedId<'VARIABLE'>('VARIABLE')
-
-export type EphemeraComputedId = EphemeraWrappedId<'COMPUTED'>
-export const isEphemeraComputedId = isEphemeraTaggedId<'COMPUTED'>('COMPUTED')
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId } from "./baseClasses"
+import { LegalCharacterColor } from './baseClasses'
+import { Message } from "./messages"
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
@@ -168,3 +121,75 @@ export const isMapSubscribeAPIMessage = (message: EphemeraAPIMessage): message i
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
 export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')
+
+//
+// TODO: Create EphemeraClientMessage types
+//
+
+export type EphemeraClientMessageEphemeraExit = {
+    name: string;
+    to: string;
+}
+
+export type EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive = {
+    type: 'CharacterInPlay';
+    CharacterId: string;
+    Connected: false;
+}
+
+export type EphemeraClientMessageEphemeraUpdateCharacterInPlayActive = {
+    type: 'CharacterInPlay';
+    CharacterId: string;
+    Connected: true;
+    RoomId: string;
+    Name: string;
+    fileURL?: string;
+    Color: LegalCharacterColor;
+}
+
+export type EphemeraClientMessageEphemeraUpdateCharacterInPlay = EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive | EphemeraClientMessageEphemeraUpdateCharacterInPlayActive
+
+export type EphemeraClientMessageEphemeraUpdateMapItemInactive = {
+    type: 'MapUpdate';
+    MapId: string;
+    active: false;
+}
+
+export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
+    type: 'MapUpdate';
+    MapId: string;
+    active: true;
+    Name: string;
+    fileURL?: string;
+    rooms: {
+        roomId: string;
+        name: string;
+        x: number;
+        y: number;
+        exits: EphemeraClientMessageEphemeraExit[];
+    }[]
+}
+
+export type EphemeraClientMessageEphemeraUpdateMapItem = EphemeraClientMessageEphemeraUpdateMapItemInactive | EphemeraClientMessageEphemeraUpdateMapItemActive
+
+export type EphemeraClientMessageEphemeraUpdateItem = EphemeraClientMessageEphemeraUpdateCharacterInPlay | EphemeraClientMessageEphemeraUpdateMapItem
+
+export type EphemeraClientMessageEphemeraUpdate = {
+    messageType: 'Ephemera';
+    RequestId?: string;
+    updates: EphemeraClientMessageEphemeraUpdateItem[];
+}
+
+export type EphemeraClientMessagePublishMessages = {
+    messageType: 'Messages';
+    messages: Message[];
+}
+
+export type EphemeraClientMessageReturnValue = {
+    statusCode: 200;
+    body: string;
+}
+
+export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
+    EphemeraClientMessageReturnValue |
+    EphemeraClientMessagePublishMessages

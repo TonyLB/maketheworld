@@ -3,7 +3,7 @@ import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
-import { EphemeraMapId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { EphemeraMapId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type EphemeraQueryResult = {
     EphemeraId: string;
@@ -47,7 +47,7 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
         messageBus.send({
             type: 'EphemeraUpdate',
             global: false,
-            updates: returnItems
+            updates: returnItems.map((item) => ({ ...item, Connected: true })) as any
         })
     }
 }

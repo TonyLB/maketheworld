@@ -8,7 +8,7 @@ import HiddenIcon from '@mui/icons-material/VisibilityOff'
 import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { RoomExit as RoomExitType } from '@tonylb/mtw-interfaces/dist/messages'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 interface RoomExitProps {
     exit: RoomExitType;
