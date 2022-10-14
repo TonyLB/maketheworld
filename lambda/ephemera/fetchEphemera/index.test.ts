@@ -28,7 +28,7 @@ describe('fetchPlayerEphemera', () => {
             Name: 'Testy',
             fileURL: 'test.png',
             Color: 'purple',
-            HomeId: 'VORTEX',
+            HomeId: 'ROOM#VORTEX',
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })

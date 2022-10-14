@@ -20,8 +20,8 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 internalCache.RoomCharacterList.get(payload.roomId),
                 internalCache.CharacterConnections.get(payload.characterId)
             ])
-            internalCache.RoomCharacterList.invalidate(`ROOM#${characterMeta.RoomId}`)
-            const departingCharacters = await internalCache.RoomCharacterList.get(`ROOM#${characterMeta.RoomId}`)
+            internalCache.RoomCharacterList.invalidate(characterMeta.RoomId)
+            const departingCharacters = await internalCache.RoomCharacterList.get(characterMeta.RoomId)
             const newDepartingCharacters = departingCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId))
             const newArrivingCharacters: RoomCharacterListItem[] = [
                 ...arrivingCharacters
@@ -51,7 +51,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 Update: {
                     TableName: 'Ephemera',
                     Key: marshall({
-                        EphemeraId: `ROOM#${characterMeta.RoomId}`,
+                        EphemeraId: characterMeta.RoomId,
                         DataCategory: 'Meta::Room'
                     }),
                     UpdateExpression: 'SET activeCharacters = :newActiveCharacters',
@@ -78,12 +78,12 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 }
             }])
 
-            internalCache.RoomCharacterList.set({ key: `ROOM#${characterMeta.RoomId}`, value: newDepartingCharacters })
+            internalCache.RoomCharacterList.set({ key: characterMeta.RoomId, value: newDepartingCharacters })
             internalCache.RoomCharacterList.set({ key: payload.roomId, value: newArrivingCharacters })
 
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: `ROOM#${characterMeta.RoomId}` }, { characterId: payload.characterId }],
+                targets: [{ roomId: characterMeta.RoomId }, { characterId: payload.characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
@@ -92,7 +92,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             })
             messageBus.send({
                 type: 'RoomUpdate',
-                roomId: characterMeta.RoomId
+                roomId: splitType(characterMeta.RoomId)[1]
             })
 
             messageBus.send({

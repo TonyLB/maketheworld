@@ -1,16 +1,11 @@
-import { RoomKey } from '@tonylb/mtw-utilities/dist/types.js'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 import internalCache from '../internalCache'
 import { EphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 const getCurrentRoom = async (CharacterId: EphemeraCharacterId) => {
     const { RoomId } = await internalCache.CharacterMeta.get(CharacterId) || {}
-    //
-    // TODO: Abstract perception render to a ComponentRender internalCache, and use
-    // it here as well.
-    //
     if (RoomId) {
-        const { Exits: exits, Characters: characters } = await internalCache.ComponentRender.get(`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`)
+        const { Exits: exits, Characters: characters } = await internalCache.ComponentRender.get(CharacterId, RoomId)
 
         return { roomId: RoomId, exits, characters, features: [] }
     }
@@ -25,7 +20,7 @@ export const parseCommand = async ({
 }: { CharacterId: EphemeraCharacterId; command: string; }): Promise<ActionAPIMessage | undefined> => {
     const { roomId, exits, characters, features } = await getCurrentRoom(CharacterId)
     if (command.match(/^\s*(?:look|l)\s*$/gi) && roomId) {
-        return { message: 'action', actionType: 'look', payload: { CharacterId, EphemeraId: RoomKey(roomId) } }
+        return { message: 'action', actionType: 'look', payload: { CharacterId, EphemeraId: roomId } }
     }
     if (command.match(/^\s*home\s*$/gi)) {
         return { message: 'action', actionType: 'home', payload: { CharacterId } }

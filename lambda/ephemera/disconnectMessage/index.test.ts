@@ -28,10 +28,10 @@ describe("disconnectMessage", () => {
     it("should update correctly on last connection", async () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
-            RoomId: 'TestABC',
+            RoomId: 'ROOM#TestABC',
             Name: 'Tess',
             Color: 'purple',
-            HomeId: 'VORTEX',
+            HomeId: 'ROOM#VORTEX',
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
@@ -76,7 +76,7 @@ describe("disconnectMessage", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'RoomUpdate',
-            roomId: 'TestABC'
+            roomId: 'ROOM#TestABC'
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
             key: 'ROOM#TestABC',
@@ -94,8 +94,8 @@ describe("disconnectMessage", () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
-            RoomId: 'TestABC',
-            HomeId: 'VORTEX',
+            RoomId: 'ROOM#TestABC',
+            HomeId: 'ROOM#VORTEX',
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
@@ -132,8 +132,8 @@ describe("disconnectMessage", () => {
                     EphemeraId: 'CHARACTER#ABC',
                     Name: 'Tess',
                     ConnectionIds: ['QRS'],
-                    HomeId: 'VORTEX',
-                    RoomId: 'TestABC'
+                    HomeId: 'ROOM#VORTEX',
+                    RoomId: 'ROOM#TestABC'
                 }
             ]
         })

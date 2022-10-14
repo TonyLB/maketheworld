@@ -30,8 +30,8 @@ export class CacheCharacterPossibleMapsData {
         this._Cache.add({
             promiseFactory: async () => {
                 const { RoomId } = await this._CharacterMeta.get(characterId)
-                const descent = await this._Descent.get(`ROOM#${RoomId}`)
-                const descentRoomNode = descent.find(({ EphemeraId }) => (EphemeraId = `ROOM#${RoomId}`))
+                const descent = await this._Descent.get(RoomId)
+                const descentRoomNode = descent.find(({ EphemeraId }) => (EphemeraId = RoomId))
                 return {
                     EphemeraId: characterId,
                     //

@@ -73,7 +73,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                         if (characterMeta.RoomId) {
                             executeMessageQueue.push({
                                 type: 'PublishMessage',
-                                targets: [{ roomId: `ROOM#${characterMeta.RoomId}` }],
+                                targets: [{ roomId: characterMeta.RoomId }],
                                 displayProtocol: 'WorldMessage',
                                 message: [{ tag: 'String', value: message }]
                             })
@@ -86,7 +86,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                         if (characterMeta.RoomId) {
                             executeMessageQueue.push({
                                 type: 'PublishMessage',
-                                targets: [{ roomId: `ROOM#${characterMeta.RoomId}` }],
+                                targets: [{ roomId: characterMeta.RoomId }],
                                 displayProtocol: 'NarrateMessage',
                                 message: [{ tag: 'String', value: message }],
                                 characterId: payload.characterId,

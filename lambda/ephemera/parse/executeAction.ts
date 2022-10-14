@@ -11,7 +11,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { C
         if (RoomId) {
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: `ROOM#${RoomId}` }],
+                targets: [{ roomId: RoomId }],
                 displayProtocol: DisplayProtocol as any,
                 message: [{ tag: 'String', value: Message }],
                 characterId: CharacterId,
@@ -49,12 +49,11 @@ export const executeAction = async (request: ActionAPIMessage) => {
             })
             break
         case 'home':
-            const props = await internalCache.CharacterMeta.get(request.payload.CharacterId)
-            const { HomeId = '' } = props || {}
+            const { HomeId } = await internalCache.CharacterMeta.get(request.payload.CharacterId)
             messageBus.send({
                 type: 'MoveCharacter',
                 characterId: request.payload.CharacterId,
-                roomId: `ROOM#${HomeId}`,
+                roomId: HomeId,
                 leaveMessage: ' left to return home.'
             })
             break

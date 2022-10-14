@@ -7,14 +7,6 @@ import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
-type RoomCharacterActive = {
-    EphemeraId: string;
-    Color?: string;
-    ConnectionIds: string[];
-    fileURL?: string;
-    Name: string;
-}
-
 const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
         const [currentConnections, characterFetch, mapSubscriptions] = await Promise.all([
@@ -28,7 +20,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
         const { RoomId, Name } = characterFetch || {}
         const { Pronouns, assets, ...rest } = characterFetch || {}
 
-        const currentActiveCharacters = await internalCache.RoomCharacterList.get(`ROOM#${RoomId}`)
+        const currentActiveCharacters = await internalCache.RoomCharacterList.get(RoomId)
 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 
@@ -99,7 +91,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
             Update: {
                 TableName: 'Ephemera',
                 Key: marshall({
-                    EphemeraId: `ROOM#${RoomId}`,
+                    EphemeraId: RoomId,
                     DataCategory: 'Meta::Room'
                 }),
                 UpdateExpression: 'SET activeCharacters = :newCharacters',
@@ -123,7 +115,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
             })
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ roomId: `ROOM#${RoomId}` }, { excludeCharacterId: characterId }],
+                targets: [{ roomId: RoomId }, { excludeCharacterId: characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
@@ -136,7 +128,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
             })
         }
         internalCache.RoomCharacterList.set({
-            key: `ROOM#${RoomId}`,
+            key: RoomId,
             value: remainingCharacters
         })
 
