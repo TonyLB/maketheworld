@@ -63,8 +63,12 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
 // state.
 //
 export const syncAction: ActiveCharacterAction = ({ internalData: { id, LastMessageSync, incrementalBackoff = 0.5 } }) => async (dispatch) => {
+    if (!id) {
+        dispatch(pushFeedback('Failed to synchronize messages, retrying...'))
+        throw new Error()
+    }
     if (LastMessageSync) {
-        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: id || '', startingAt: LastMessageSync - 30000 }))
+        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: `CHARACTER#${id}`, startingAt: LastMessageSync - 30000 }))
             .then(() => ({ incrementalBackoff: 0.5 }))
             .catch(async (e: any) => {
                 dispatch(pushFeedback('Failed to synchronize messages, retrying...'))
@@ -72,7 +76,7 @@ export const syncAction: ActiveCharacterAction = ({ internalData: { id, LastMess
             })
     }
     else {
-        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: id || '' }))
+        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: `CHARACTER#${id}` }))
             .then(() => ({ incrementalBackoff: 0.5 }))
             .catch(async (e: any) => {
                 dispatch(pushFeedback('Failed to synchronize messages, retrying...'))

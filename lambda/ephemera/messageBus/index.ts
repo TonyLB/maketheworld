@@ -23,7 +23,8 @@ import {
     isAncestryUpdateMessage,
     isDependencyCascadeMessage,
     isExecuteActionMessage,
-    isMapSubscription
+    isMapSubscription,
+    isMapUpdateMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -45,6 +46,7 @@ import dependentUpdateMessage from '../dependentMessages/dependentUpdate'
 import dependencyCascadeMessage from '../dependentMessages/dependencyCascade'
 import executeActionMessage from '../executeAction'
 import mapSubscriptionMessage from '../mapSubscription'
+import mapUpdateMessage from '../mapUpdate'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -154,6 +156,12 @@ messageBus.subscribe({
     priority: 6,
     filter: isRoomUpdateMessage,
     callback: roomUpdateMessage
+})
+messageBus.subscribe({
+    tag: 'MapUpdate',
+    priority: 6,
+    filter: isMapUpdateMessage,
+    callback: mapUpdateMessage
 })
 messageBus.subscribe({
     tag: 'AncestryUpdate',

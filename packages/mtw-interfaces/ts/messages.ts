@@ -1,4 +1,4 @@
-import { LegalCharacterColor } from "./baseClasses";
+import { EphemeraMapId, isEphemeraMapId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -118,7 +118,7 @@ export type MapDescribeRoom = {
 }
 
 export type MapDescribeData = {
-    MapId: string;
+    MapId: EphemeraMapId;
     Name: string;
     fileURL?: string;
     rooms: MapDescribeRoom[];
@@ -146,6 +146,7 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
     return checkAll(
         checkTypes(message, { MapId: 'string', Name: 'string' }),
         !(message.fileURL && typeof message.fileURL !== 'string'),
+        isEphemeraMapId(message.MapId),
         validateMapRoomList(message.rooms)
     )
 }

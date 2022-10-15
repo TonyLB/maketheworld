@@ -52,7 +52,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                             type: 'Perception',
                             characterId: EphemeraId,
                             ephemeraId: MapId,
-                            mustIncludeRoomId: `ROOM#${RoomId}`
+                            mustIncludeRoomId: RoomId
                         })
                     })
                 )
