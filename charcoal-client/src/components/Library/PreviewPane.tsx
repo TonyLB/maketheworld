@@ -17,17 +17,17 @@ import {
 } from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit';
 
-import { PlayerAsset, PlayerCharacter } from '../../slices/player/baseClasses'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 
 import AssetIcon from '@mui/icons-material/Landscape'
+import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 
 export type PreviewPaneContents = ({
     type: 'Asset'
-} & PlayerAsset) | ({
+} & AssetClientPlayerAsset) | ({
     type: 'Character'
-} & PlayerCharacter)
+} & AssetClientPlayerCharacter)
 
 type PreviewPaneMeta = {
     clearPreview: () => void;
@@ -36,7 +36,7 @@ type PreviewPaneMeta = {
 
 type PreviewPaneProps = PreviewPaneMeta & PreviewPaneContents
 
-const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ personal, clearPreview, AssetId }) => {
+const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> = ({ personal, clearPreview, AssetId }) => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
     const theme = useTheme()
@@ -90,7 +90,7 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
     </Card>
 }
 
-const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => {
+const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
     const theme = useTheme()
@@ -183,9 +183,9 @@ export const PreviewPane: FunctionComponent<PreviewPaneProps> = (props) => {
     const { type, personal, clearPreview, ...rest } = props
     switch(type) {
         case 'Character':
-            return <PreviewCharacter clearPreview={clearPreview} personal={personal} {...rest as PlayerCharacter} />
+            return <PreviewCharacter clearPreview={clearPreview} personal={personal} {...rest as AssetClientPlayerCharacter} />
         case 'Asset':
-            return <PreviewAsset clearPreview={clearPreview} personal={personal} {...rest as PlayerAsset} />
+            return <PreviewAsset clearPreview={clearPreview} personal={personal} {...rest as AssetClientPlayerAsset} />
         default:
             return <div>
                 Preview Pane

@@ -74,3 +74,38 @@ export const isParseWMLAPIMessage = (message: AssetAPIMessage): message is Parse
 export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
 export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
 export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is AssetSubscribeAPIMessage => (message.message === 'subscribe')
+
+export type AssetClientPlayerAsset = {
+    AssetId: string;
+    Story?: boolean;
+    instance?: boolean;
+}
+
+export type AssetClientPlayerCharacter = {
+    CharacterId: string;
+    Name: string;
+    scopedId: string;
+    fileName: string;
+    fileURL?: string;
+    FirstImpression?: string;
+    Pronouns?: {
+        subject: string;
+        object: string;
+        reflexive: string;
+        possessive: string;
+        adjective: string;
+    };
+    OneCoolThing?: string;
+    Outfit?: string;
+}
+
+export interface AssetClientPlayerMessage {
+    messageType: 'Player';
+    RequestId?: string;
+    PlayerName: string;
+    CodeOfConductConsent: boolean;
+    Assets: AssetClientPlayerAsset[];
+    Characters: AssetClientPlayerCharacter[];
+}
+
+export type AssetClientMessage = {}

@@ -17,18 +17,18 @@ import {
 import AssetIcon from '@mui/icons-material/Landscape'
 
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
-import { PlayerAsset, PlayerCharacter } from '../../slices/player/baseClasses'
 import { getMyCharacters, getMyAssets } from '../../slices/player'
 import { getLibrary, setIntent } from '../../slices/library'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
+import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 
 
 interface TableOfContentsProps {
-    Characters: PlayerCharacter[];
-    Assets: PlayerAsset[];
+    Characters: AssetClientPlayerCharacter[];
+    Assets: AssetClientPlayerAsset[];
     selectItem: (index: number) => void;
     selectedIndex?: number;
     setPreviewItem: (item: undefined | PreviewPaneContents) => void;

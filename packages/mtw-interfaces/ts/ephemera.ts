@@ -305,17 +305,26 @@ export type EphemeraClientMessageEphemeraUpdate = {
 
 export type EphemeraClientMessagePublishMessages = {
     messageType: 'Messages';
+    RequestId?: string;
     messages: Message[];
+}
+
+export type EphemeraClientMessageRegisterMessage = {
+    messageType: 'Registered';
+    RequestId?: string;
+    CharacterId: string;
 }
 
 export type EphemeraClientMessageReturnValue = {
     statusCode: 200;
+    RequestId?: string;
     body: string;
 }
 
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessageReturnValue |
-    EphemeraClientMessagePublishMessages
+    EphemeraClientMessagePublishMessages |
+    EphemeraClientMessageRegisterMessage
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
     if ('statusCode' in message && message.statusCode === 200 && 'body' in message && typeof message.body === 'string') {
@@ -325,6 +334,8 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
         return false
     }
     switch(message.messageType) {
+        case 'Registered':
+            return ('CharacterId' in message && typeof message.CharacterId === 'string')
         case 'Ephemera':
             if (!('updates' in message)) {
                 return false
