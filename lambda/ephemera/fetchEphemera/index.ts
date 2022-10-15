@@ -93,7 +93,8 @@ export const fetchEphemeraForCharacter = async ({
             RequestId,
             updates: renderOutput.map((mapDescribe) => ({
                 type: 'MapUpdate',
-                targets: [{ characterId: `CHARACTER#${CharacterId}` }],
+                targets: [`CHARACTER#${CharacterId}`],
+                active: true,
                 ...mapDescribe,
                 MapId: splitType(mapDescribe.MapId)[1]
             }))
