@@ -131,7 +131,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     })
                     messageBus.send({
                         type: 'PublishMessage',
-                        targets: [{ roomId: RoomId }, { excludeCharacterId: CharacterId }],
+                        targets: [RoomId, `!${CharacterId}`],
                         displayProtocol: 'WorldMessage',
                         message: [{
                             tag: 'String',

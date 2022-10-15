@@ -7,7 +7,7 @@ export class EphemeraError extends Error {
 
 type EphemeraWrappedId<T extends string> = `${T}#${string}`
 
-const isEphemeraTaggedId = <G extends string>(tag: G) => (value: string): value is EphemeraWrappedId<G> => {
+export const isEphemeraTaggedId = <G extends string>(tag: G) => (value: string): value is EphemeraWrappedId<G> => {
     const sections = value.split('#')
     if (sections.length > 2) {
         throw new EphemeraError(`Illegal nested EphemeraId: '${value}'`)

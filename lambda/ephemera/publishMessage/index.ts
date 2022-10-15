@@ -65,12 +65,12 @@ class PublishMessageTargetMapper {
         const allRoomTargets = payloads.reduce<EphemeraRoomId[]>((previous, { targets }) => (
             targets
                 .filter(isPublishTargetRoom)
-                .reduce<EphemeraRoomId[]>((accumulator, target) => (unique(accumulator, [target.roomId]) as EphemeraRoomId[]), previous)
+                .reduce<EphemeraRoomId[]>((accumulator, target) => (unique(accumulator, [target]) as EphemeraRoomId[]), previous)
         ), [] as EphemeraRoomId[])
         const allCharacterTargets = payloads.reduce<EphemeraCharacterId[]>((previous, { targets }) => (
             targets
                 .filter(isPublishTargetCharacter)
-                .reduce<EphemeraCharacterId[]>((accumulator, target) => (unique(accumulator, [target.characterId]) as EphemeraCharacterId[]), previous)
+                .reduce<EphemeraCharacterId[]>((accumulator, target) => (unique(accumulator, [target]) as EphemeraCharacterId[]), previous)
         ), [] as EphemeraCharacterId[])
     
         this.activeCharactersByRoomId = Object.assign({} as Record<string, RoomCharacterListItem[]>,
@@ -104,9 +104,9 @@ class PublishMessageTargetMapper {
     }
 
     remap(targets: PublishTarget[]): EphemeraCharacterId[] {
-        const roomTargets = targets.filter(isPublishTargetRoom).map(({ roomId }) => (roomId))
-        const nonRoomTargets = targets.filter(isPublishTargetCharacter).map(({ characterId }) => (characterId))
-        const excludeTargets = targets.filter(isPublishTargetExcludeCharacter).map(({ excludeCharacterId }) => (excludeCharacterId))
+        const roomTargets = targets.filter(isPublishTargetRoom)
+        const nonRoomTargets = targets.filter(isPublishTargetCharacter)
+        const excludeTargets = targets.filter(isPublishTargetExcludeCharacter).map((excludeCharacter) => (excludeCharacter.slice(1) as `CHARACTER#${string}`))
         const mappedRoomTargetGroups = roomTargets
                 .map((target) => ((this.activeCharactersByRoomId[target] || []).map(({ EphemeraId }) => (EphemeraId))))
         return (unique(nonRoomTargets, ...mappedRoomTargetGroups) as EphemeraCharacterId[])

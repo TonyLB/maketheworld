@@ -30,7 +30,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             }
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [{ characterId }],
+                targets: [characterId],
                 displayProtocol: 'CharacterDescription',
                 CharacterId,
                 ...characterDescription
@@ -43,7 +43,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 const RoomId = splitType(ephemeraId)[1]
                 messageBus.send({
                     type: 'PublishMessage',
-                    targets: [{ characterId }],
+                    targets: [characterId],
                     displayProtocol: 'RoomDescription',
                     ...roomDescribe,
                     RoomId
@@ -54,7 +54,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 const FeatureId = splitType(ephemeraId)[1]
                 messageBus.send({
                     type: 'PublishMessage',
-                    targets: [{ characterId }],
+                    targets: [characterId],
                     displayProtocol: 'FeatureDescription',
                     ...featureDescribe,
                     FeatureId

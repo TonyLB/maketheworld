@@ -51,7 +51,7 @@ describe('Perception message', () => {
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
             displayProtocol: 'CharacterDescription',
-            targets: [{ characterId: 'CHARACTER#TESS' }],
+            targets: ['CHARACTER#TESS'],
             CharacterId: 'TESS',
             Name: 'Tess', 
             FirstImpression: 'Testy',

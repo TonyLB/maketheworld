@@ -3,7 +3,7 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { TaggedMessageContent, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
-import { LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { LegalCharacterColor, isEphemeraTaggedId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
 import { EphemeraExit } from "../cacheAsset/baseClasses"
 import {
@@ -15,23 +15,17 @@ import {
 } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlay, EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/dist/ephemera"
 
-export type PublishTargetRoom = {
-    roomId: EphemeraRoomId;
-}
+export type PublishTargetRoom = `ROOM#${string}`
 
-export type PublishTargetCharacter = {
-    characterId: EphemeraCharacterId;
-}
+export type PublishTargetCharacter = `CHARACTER#${string}`
 
-export type PublishTargetExcludeCharacter = {
-    excludeCharacterId: EphemeraCharacterId;
-}
+export type PublishTargetExcludeCharacter = `!CHARACTER#${string}`
 
 export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter
 
-export const isPublishTargetRoom = (prop: PublishTarget): prop is PublishTargetRoom => (('roomId' in prop) && Boolean(prop.roomId))
-export const isPublishTargetCharacter = (prop: PublishTarget): prop is PublishTargetCharacter => (('characterId' in prop) && Boolean(prop.characterId))
-export const isPublishTargetExcludeCharacter = (prop: PublishTarget): prop is PublishTargetExcludeCharacter => (('excludeCharacterId' in prop) && Boolean(prop.excludeCharacterId))
+export const isPublishTargetRoom = isEphemeraTaggedId<'ROOM'>('ROOM')
+export const isPublishTargetCharacter = isEphemeraTaggedId<'CHARACTER'>('CHARACTER')
+export const isPublishTargetExcludeCharacter = isEphemeraTaggedId<'!CHARACTER'>('!CHARACTER')
 
 export type PublishMessageBase = {
     type: 'PublishMessage';
