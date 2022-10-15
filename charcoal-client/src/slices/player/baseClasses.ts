@@ -1,3 +1,4 @@
+import { AssetClientPlayerMessage } from '@tonylb/mtw-interfaces/dist/asset';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
 export interface PlayerInternal {
@@ -5,36 +6,7 @@ export interface PlayerInternal {
     incrementalBackoff: number;
 }
 
-export type PlayerAsset = {
-    AssetId: string;
-    Story?: boolean;
-    instance?: boolean;
-}
-
-export type PlayerCharacter = {
-    CharacterId: string;
-    Name: string;
-    scopedId: string;
-    fileName: string;
-    fileURL?: string;
-    FirstImpression?: string;
-    Pronouns?: {
-        subject: string;
-        object: string;
-        reflexive: string;
-        possessive: string;
-        adjective: string;
-    };
-    OneCoolThing?: string;
-    Outfit?: string;
-}
-
-export interface PlayerPublic {
-    PlayerName: string;
-    CodeOfConductConsent: boolean;
-    Assets: PlayerAsset[];
-    Characters: PlayerCharacter[];
-}
+export type PlayerPublic = Omit<AssetClientPlayerMessage, 'messageType' | 'RequestId'>
 
 export type PlayerRecord = ISSMDataLayout<PlayerInternal, PlayerPublic>
 export type PlayerReturn = ISSMDataReturn<PlayerInternal, PlayerPublic>

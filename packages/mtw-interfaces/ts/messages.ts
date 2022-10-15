@@ -1,4 +1,5 @@
 import { LegalCharacterColor } from "./baseClasses";
+import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
     MessageId: string;
@@ -27,30 +28,17 @@ export type TaggedLink = {
 
 export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak;
 
-const checkAll = (...items: boolean[]): boolean => (
-    items.reduce<boolean>((previous, item) => (previous && item), true)
-)
-
-const checkRequiredTypes = (item: any, typeList: Record<string, string>): boolean => {
-    if (typeof item !== 'object') {
-        return false
-    }
-    return Object.entries(typeList).reduce<boolean>((previous, [key, typeString]) => (
-        previous && (key in item && typeof(item[key]) === typeString)
-    ), true)
-}
-
 export const isTaggedMessageContent = (message: any): message is TaggedMessageContent => {
     if (typeof message !== 'object') {
         return false
     }
     switch(message.tag) {
         case 'String':
-            return checkRequiredTypes(message, { value: 'string' })
+            return checkTypes(message, { value: 'string' })
         case 'LineBreak':
             return true
         case 'Link':
-            return checkRequiredTypes(message, { text: 'string', to: 'string' })
+            return checkTypes(message, { text: 'string', to: 'string' })
         default: return false
     }
 }
@@ -76,7 +64,7 @@ const validateRoomExitList = (items: any) => {
     }
     return items.reduce<boolean>((previous, roomItem) => (
         previous
-            && checkRequiredTypes(roomItem, { Name: 'string', RoomId: 'string' })
+            && checkTypes(roomItem, { Name: 'string', RoomId: 'string' })
             && ['Public', 'Private'].includes(roomItem.Visibility)
     ), true)
 }
@@ -92,7 +80,7 @@ const validateRoomCharacterList = (items: any) => {
     }
     return items.reduce<boolean>((previous, roomItem) => (
         previous
-            && checkRequiredTypes(roomItem, { Name: 'string', CharacterId: 'string' })
+            && checkTypes(roomItem, { Name: 'string', CharacterId: 'string' })
     ), true)
 }
 
@@ -141,7 +129,7 @@ const validateMapRoomList = (items: any) => {
         return false
     }
     return items.reduce<boolean>((previous, roomItem) => {
-        if (!previous && checkRequiredTypes(roomItem, { roomId: 'string', name: 'string', x: 'number', y: 'number' })) {
+        if (!previous && checkTypes(roomItem, { roomId: 'string', name: 'string', x: 'number', y: 'number' })) {
             return false
         }
         const exits = roomItem.exits
@@ -149,14 +137,14 @@ const validateMapRoomList = (items: any) => {
             return false
         }
         return exits.reduce<boolean>((previous, exit) => (
-            previous && checkRequiredTypes(exit, { name: 'string', to: 'string' })
+            previous && checkTypes(exit, { name: 'string', to: 'string' })
         ), true)
     }, true)
 }
 
 export const isMapDescribeData = (message: any): message is MapDescribeData => {
     return checkAll(
-        checkRequiredTypes(message, { MapId: 'string', Name: 'string' }),
+        checkTypes(message, { MapId: 'string', Name: 'string' }),
         !(message.fileURL && typeof message.fileURL !== 'string'),
         validateMapRoomList(message.rooms)
     )
@@ -214,9 +202,7 @@ export type OutOfCharacterMessage = {
 export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
 
 export const isMessage = (message: any): message is Message => {
-    console.log(`Validating: ${JSON.stringify(message, null, 4)}`)
     const validateMessageList = (messages: any): boolean => {
-        console.log(`Messages: ${JSON.stringify(messages, null, 4)}`)
         if (!Array.isArray(messages)) {
             return false
         }
@@ -225,7 +211,7 @@ export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
         return false
     }
-    if (!checkRequiredTypes(message, { MessageId: 'string', CreatedTime: 'number', Target: 'string' })) {
+    if (!checkTypes(message, { MessageId: 'string', CreatedTime: 'number', Target: 'string' })) {
         return false
     }
     switch(message.DisplayProtocol) {
@@ -235,45 +221,45 @@ export const isMessage = (message: any): message is Message => {
         case 'NarrateMessage':
         case 'OOCMessage':
             return checkAll(
-                'CharacterId' in message && typeof message.CharacterId === 'string',
-                'Name' in message && typeof message.Name === 'string',
+                checkTypes(message, { CharacterId: 'string', Name: 'string' }),
                 ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color),
                 validateMessageList(message.Message)
             )
         case 'RoomDescription':
         case 'RoomHeader':
             return checkAll(
-                'Name' in message && typeof message.Name === 'string',
-                'RoomId' in message && typeof message.RoomId === 'string',
+                checkTypes(message, { Name: 'string', RoomId: 'string' }),
                 validateRoomExitList(message.Exits),
                 validateRoomCharacterList(message.Characters),
                 validateMessageList(message.Description)
             )
         case 'RoomUpdate':
             return checkAll(
-                !('Name' in message) || typeof message.Name === 'string',
-                !('RoomId' in message) || typeof message.RoomId === 'string',
+                checkTypes(message, {}, { Name: 'string', RoomId: 'string' }),
                 validateRoomExitList(message.Exits ?? []),
                 validateRoomCharacterList(message.Characters ?? []),
                 validateMessageList(message.Description ?? [])
             )
         case 'FeatureDescription':
             return checkAll(
-                'Name' in message && typeof message.Name === 'string',
-                'FeatureId' in message && typeof message.FeatureId === 'string',
+                checkTypes(message, { Name: 'string', FeatureId: 'string' }),
                 validateMessageList(message.Description)
             )
         case 'CharacterDescription':
             return checkAll(
-                checkRequiredTypes(message, {
-                    CharacterId: 'string',
-                    Name: 'string'
-                }),
-                !message.fileURL || typeof message.fileURL === 'string',
-                !message.FirstImpression || typeof message.FirstImpression === 'string',
-                !message.OneCoolThing || typeof message.OneCoolThing === 'string',
-                !message.Outfit || typeof message.Outfit === 'string',
-                !message.Pronouns || checkRequiredTypes(message.Pronouns, {
+                checkTypes(message, 
+                    {
+                        CharacterId: 'string',
+                        Name: 'string'
+                    },
+                    {
+                        fileUrl: 'string',
+                        FirstImpression: 'string',
+                        OneCoolThing: 'string',
+                        Outfit: 'string'
+                    }
+                ),
+                !message.Pronouns || checkTypes(message.Pronouns, {
                     subject: 'string',
                     object: 'string',
                     possessive: 'string',

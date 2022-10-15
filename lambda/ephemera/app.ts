@@ -268,7 +268,13 @@ export const handler = async (event: any, context: any) => {
             }
         }
         else {
-
+            return {
+                statusCode: 400,
+                body: JSON.stringify({
+                    error: 'Invalid message',
+                    request
+                }, null, 4)
+            }
         }
     }
 

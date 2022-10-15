@@ -1,12 +1,12 @@
 import { MapTree } from '../Edit/maps'
 import { ActiveCharacterMap } from '../../../slices/activeCharacters/baseClasses'
-import { ActiveCharacterMapRoom } from '../../../slices/lifeLine/ephemera'
+import { MapDescribeRoom } from '@tonylb/mtw-interfaces/dist/messages'
 
 export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): MapTree => {
     //
     // TODO: Rewrite cacheToTree to deal with new incoming map format
     //
-    const roomsById = rooms.reduce<Record<string, ActiveCharacterMapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
+    const roomsById = rooms.reduce<Record<string, MapDescribeRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     const tree: MapTree = rooms
         .reduce<MapTree>((previous, { roomId, name, x = 0, y = 0, exits }, index) => ([
             ...previous,

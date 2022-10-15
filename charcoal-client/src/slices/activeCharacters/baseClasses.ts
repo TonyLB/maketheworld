@@ -1,4 +1,4 @@
-import { EphemeraMapUpdate } from '../lifeLine/ephemera';
+import { EphemeraClientMessageEphemeraUpdateMapItemActive } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
 export interface ActiveCharacterInternal {
@@ -8,29 +8,7 @@ export interface ActiveCharacterInternal {
     incrementalBackoff: number;
 }
 
-// type ActiveCharacterMapExit = {
-//     name?: string;
-//     to: string;
-//     toEphemeraId: string;
-//     key: string;
-// }
-
-// type ActiveCharacterMapRoom = {
-//     EphemeraId: string;
-//     exits?: ActiveCharacterMapExit[];
-//     name?: string[];
-//     x?: number;
-//     y?: number;
-// }
-
-// export type ActiveCharacterMap = {
-//     MapId: string;
-//     Name: string;
-//     fileURL?: string;
-//     rooms: Record<string, ActiveCharacterMapRoom>
-// }
-
-export type ActiveCharacterMap = Omit<EphemeraMapUpdate, 'type' | 'targets'>
+export type ActiveCharacterMap = Omit<EphemeraClientMessageEphemeraUpdateMapItemActive, 'type' | 'targets' | 'active'>
 
 export interface ActiveCharacterPublic {
     maps: Record<string, ActiveCharacterMap>;

@@ -1,3 +1,5 @@
+import { EphemeraClientMessage } from "@tonylb/mtw-interfaces/dist/ephemera";
+
 type EphemeraCharacterInPlay = {
     type: 'CharacterInPlay',
     CharacterId: string;
@@ -32,4 +34,4 @@ export type EphemeraMapUpdate = {
 
 export type EphemeraFormat = EphemeraCharacterInPlay | EphemeraMapUpdate
 
-export const isEphemeraMapUpdate = (message: EphemeraFormat): message is EphemeraMapUpdate => (message.type === 'MapUpdate')
+// export const isEphemeraMapUpdate = (message: EphemeraClientMessage): message is EphemeraMapUpdate => (message.type === 'MapUpdate')

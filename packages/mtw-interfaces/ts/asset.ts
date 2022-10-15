@@ -1,3 +1,6 @@
+import { LibraryAsset, LibraryCharacter } from "./library";
+import { checkAll, checkTypes } from "./utils";
+
 export type FetchLibraryAPIMessage = {
     message: 'fetchLibrary';
 }
@@ -74,3 +77,151 @@ export const isParseWMLAPIMessage = (message: AssetAPIMessage): message is Parse
 export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
 export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
 export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is AssetSubscribeAPIMessage => (message.message === 'subscribe')
+
+export type AssetClientPlayerAsset = {
+    AssetId: string;
+    Story?: boolean;
+    instance?: boolean;
+}
+
+export type AssetClientPlayerCharacter = {
+    CharacterId: string;
+    Name: string;
+    scopedId?: string;
+    fileName?: string;
+    fileURL?: string;
+    FirstImpression?: string;
+    Pronouns?: {
+        subject: string;
+        object: string;
+        reflexive: string;
+        possessive: string;
+        adjective: string;
+    };
+    OneCoolThing?: string;
+    Outfit?: string;
+}
+
+export type AssetClientPlayerMessage = {
+    messageType: 'Player';
+    RequestId?: string;
+    PlayerName: string;
+    CodeOfConductConsent: boolean;
+    Assets: AssetClientPlayerAsset[];
+    Characters: AssetClientPlayerCharacter[];
+}
+
+export type AssetClientLibraryMessage = {
+    messageType: 'Library';
+    RequestId?: string;
+    Assets: LibraryAsset[];
+    Characters: LibraryCharacter[];
+}
+
+export type AssetClientMessage = AssetClientPlayerMessage |
+    AssetClientLibraryMessage
+
+export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
+    if (!('messageType' in message && typeof message.messageType === 'string')) {
+        return false
+    }
+    switch(message.messageType) {
+        case 'Player':
+            return checkAll(
+                checkTypes(message, {
+                    PlayerName: 'string'
+                },
+                {
+                    RequestId: 'string'
+                }),
+                ...message.Assets.map((assetItem) => (
+                    checkTypes(
+                        assetItem,
+                        {
+                            AssetId: 'string'
+                        },
+                        {
+                            Story: 'boolean',
+                            instance: 'boolean'
+                        }
+                    )
+                )),
+                ...message.Characters.map((characterItem) => (
+                    checkAll(
+                        checkTypes(
+                            characterItem,
+                            {
+                                CharacterId: 'string',
+                                Name: 'string',
+                            },
+                            {
+                                scopedId: 'string',
+                                fileName: 'string',
+                                fileURL: 'string',
+                                FirstImpression: 'string',
+                                OneCoolThing: 'string',
+                                Outfit: 'string'
+                            }
+                        ),
+                        !message.Pronouns || checkTypes(message.Pronouns, {
+                            subject: 'string',
+                            object: 'string',
+                            possessive: 'string',
+                            adjective: 'string',
+                            reflexive: 'string'
+                        })
+                    )
+                ))
+            )
+        case 'Library':
+            return checkAll(
+                checkTypes(
+                    message,
+                    {},
+                    {
+                        RequestId: 'string'
+                    }
+                ),
+                ...message.Assets.map((assetItem) => (
+                    checkTypes(
+                        assetItem,
+                        {
+                            AssetId: 'string'
+                        },
+                        {
+                            Story: 'boolean',
+                            instance: 'boolean'
+                        }
+                    )
+                )),
+                ...message.Characters.map((characterItem) => (
+                    checkAll(
+                        checkTypes(
+                            characterItem,
+                            {
+                                CharacterId: 'string',
+                                Name: 'string',
+                            },
+                            {
+                                scopedId: 'string',
+                                fileName: 'string',
+                                fileURL: 'string',
+                                FirstImpression: 'string',
+                                OneCoolThing: 'string',
+                                Outfit: 'string'
+                            }
+                        ),
+                        !message.Pronouns || checkTypes(message.Pronouns, {
+                            subject: 'string',
+                            object: 'string',
+                            possessive: 'string',
+                            adjective: 'string',
+                            reflexive: 'string'
+                        })
+                    )
+                ))
+            )
+        default: return false
+    }
+
+}

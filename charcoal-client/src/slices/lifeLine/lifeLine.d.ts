@@ -1,50 +1,10 @@
-import { Message } from '../messages'
-import { EphemeraFormat } from './ephemera'
-import { PlayerPublic } from '../player/baseClasses'
-import { LibraryPublic } from '../library/baseClasses'
+import { AssetClientMessage } from '@tonylb/mtw-interfaces/dist/asset'
+import { EphemeraClientMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { CoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
 
-type LifeLineRegisterMessage = {
-    messageType: 'Registered';
-    RequestId?: string;
-    CharacterId: string;
-}
-
-type LifeLineReceiveMessage = {
-    messageType: 'Messages',
-    RequestId?: string;
-    messages: Message[]
-}
-
-type LifeLineReceiveEphemera = {
-    messageType: 'Ephemera',
-    RequestId?: string;
-    updates: EphemeraFormat[]
-}
-
-type LifeLineReceivePlayer = {
-    messageType: 'Player',
-    RequestId?: string;
-} & PlayerPublic
-
-type LifeLineReceiveLibrary = {
-    messageType: 'Library',
-    RequestId?: string;
-} & LibraryPublic
-
-type LifeLineError = {
-    messageType: 'Error',
-    RequestId?: string;
-    //
-    // TODO:  More sophisticated error handling that returns an error message
-    //
-}
-
-export type LifeLinePubSubData = LifeLineRegisterMessage
-    | LifeLineReceiveMessage
-    | LifeLineReceiveEphemera
-    | LifeLineReceivePlayer
-    | LifeLineReceiveLibrary
-    | LifeLineError
+export type LifeLinePubSubData = EphemeraClientMessage
+    | AssetClientMessage
+    | CoordinationClientMessage
 
 interface LifeLineSubscribeAction {
     (next: (incoming: { payload: LifeLinePubSubData, unsubscribe: () => void }) => void): {

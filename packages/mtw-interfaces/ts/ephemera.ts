@@ -259,6 +259,7 @@ const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: any): mes
 
 export type EphemeraClientMessageEphemeraUpdateMapItemInactive = {
     type: 'MapUpdate';
+    targets: string[];
     MapId: string;
     active: false;
 }
@@ -271,12 +272,13 @@ export type EphemeraClientMessageEphemeraExit = {
 export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
     type: 'MapUpdate';
     MapId: string;
+    targets: string[];
     active: true;
 } & MapDescribeData
 
 export type EphemeraClientMessageEphemeraUpdateMapItem = EphemeraClientMessageEphemeraUpdateMapItemInactive | EphemeraClientMessageEphemeraUpdateMapItemActive
 
-const isEphemeraClientMessageEphemeraUpdateMapItem = (message: any): message is EphemeraClientMessageEphemeraUpdateMapItem => {
+export const isEphemeraClientMessageEphemeraUpdateMapItem = (message: any): message is EphemeraClientMessageEphemeraUpdateMapItem => {
     if (
         typeof message === 'object' &&
         'type' in message &&
@@ -305,26 +307,27 @@ export type EphemeraClientMessageEphemeraUpdate = {
 
 export type EphemeraClientMessagePublishMessages = {
     messageType: 'Messages';
+    RequestId?: string;
     messages: Message[];
 }
 
-export type EphemeraClientMessageReturnValue = {
-    statusCode: 200;
-    body: string;
+export type EphemeraClientMessageRegisterMessage = {
+    messageType: 'Registered';
+    RequestId?: string;
+    CharacterId: string;
 }
 
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
-    EphemeraClientMessageReturnValue |
-    EphemeraClientMessagePublishMessages
+    EphemeraClientMessagePublishMessages |
+    EphemeraClientMessageRegisterMessage
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
-    if ('statusCode' in message && message.statusCode === 200 && 'body' in message && typeof message.body === 'string') {
-        return true
-    }
     if (!('messageType' in message && typeof message.messageType === 'string')) {
         return false
     }
     switch(message.messageType) {
+        case 'Registered':
+            return ('CharacterId' in message && typeof message.CharacterId === 'string')
         case 'Ephemera':
             if (!('updates' in message)) {
                 return false
@@ -352,5 +355,4 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             ), true)
         default: return false
     }
-    return false
 }
