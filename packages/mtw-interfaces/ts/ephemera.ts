@@ -1,6 +1,6 @@
 import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
-import { Message } from "./messages"
+import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
@@ -215,15 +215,6 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
     }
 }
 
-//
-// TODO: Create EphemeraClientMessage types
-//
-
-export type EphemeraClientMessageEphemeraExit = {
-    name: string;
-    to: string;
-}
-
 export type EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive = {
     type: 'CharacterInPlay';
     CharacterId: string;
@@ -242,28 +233,67 @@ export type EphemeraClientMessageEphemeraUpdateCharacterInPlayActive = {
 
 export type EphemeraClientMessageEphemeraUpdateCharacterInPlay = EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive | EphemeraClientMessageEphemeraUpdateCharacterInPlayActive
 
+const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: any): message is EphemeraClientMessageEphemeraUpdateCharacterInPlay => {
+    if (typeof message === 'object' && 'type' in message && message.type === 'CharacterInPlay') {
+        if ('Connected' in message && typeof message.Connected === 'boolean') {
+            if (!message.Connected) {
+                return true
+            }
+            if (!('CharacterId' in message && typeof message.CharacterId === 'string')) {
+                return false
+            }
+            if (!('RoomId' in message && typeof message.RoomId === 'string')) {
+                return false
+            }
+            if (!('Name' in message && typeof message.Name === 'string')) {
+                return false
+            }
+            if ('fileURL' in message && !(typeof message.CharacterId === 'string')) {
+                return false
+            }
+            return ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color)
+        }
+    }
+    return false
+}
+
 export type EphemeraClientMessageEphemeraUpdateMapItemInactive = {
     type: 'MapUpdate';
     MapId: string;
     active: false;
 }
 
+export type EphemeraClientMessageEphemeraExit = {
+    name: string;
+    to: string;
+}
+
 export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
     type: 'MapUpdate';
     MapId: string;
     active: true;
-    Name: string;
-    fileURL?: string;
-    rooms: {
-        roomId: string;
-        name: string;
-        x: number;
-        y: number;
-        exits: EphemeraClientMessageEphemeraExit[];
-    }[]
-}
+} & MapDescribeData
 
 export type EphemeraClientMessageEphemeraUpdateMapItem = EphemeraClientMessageEphemeraUpdateMapItemInactive | EphemeraClientMessageEphemeraUpdateMapItemActive
+
+const isEphemeraClientMessageEphemeraUpdateMapItem = (message: any): message is EphemeraClientMessageEphemeraUpdateMapItem => {
+    if (
+        typeof message === 'object' &&
+        'type' in message &&
+        message.type === 'MapUpdate' &&
+        'active' in message &&
+        typeof message.active === 'boolean'
+    ) {
+        if (!message.active) {
+            return true
+        }
+        if (!('MapId' in message && typeof message.MapId === 'string')) {
+            return false
+        }
+        return isMapDescribeData(message)
+    }
+    return false
+}
 
 export type EphemeraClientMessageEphemeraUpdateItem = EphemeraClientMessageEphemeraUpdateCharacterInPlay | EphemeraClientMessageEphemeraUpdateMapItem
 
@@ -286,3 +316,41 @@ export type EphemeraClientMessageReturnValue = {
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessageReturnValue |
     EphemeraClientMessagePublishMessages
+
+export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
+    if ('statusCode' in message && message.statusCode === 200 && 'body' in message && typeof message.body === 'string') {
+        return true
+    }
+    if (!('messageType' in message && typeof message.messageType === 'string')) {
+        return false
+    }
+    switch(message.messageType) {
+        case 'Ephemera':
+            if (!('updates' in message)) {
+                return false
+            }
+            const updates = message.updates
+            if (!Array.isArray(updates)) {
+                return false
+            }
+            return updates.reduce<boolean>((previous, update) => {
+                return previous && (
+                    isEphemeraClientMessageEphemeraUpdateCharacterInPlay(update) 
+                    || isEphemeraClientMessageEphemeraUpdateMapItem(update)
+                )
+            }, true)
+        case 'Messages':
+            if (!('messages' in message)) {
+                return false
+            }
+            const messages = message.messages
+            if (!Array.isArray(messages)) {
+                return false
+            }            
+            return messages.reduce<boolean>((previous, subMessage) => (
+                previous && isMessage(subMessage)
+            ), true)
+        default: return false
+    }
+    return false
+}
