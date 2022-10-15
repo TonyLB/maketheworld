@@ -18,14 +18,18 @@ import { EphemeraClientMessageEphemeraUpdateCharacterInPlay, EphemeraClientMessa
 export type PublishTargetRoom = `ROOM#${string}`
 
 export type PublishTargetCharacter = `CHARACTER#${string}`
-
 export type PublishTargetExcludeCharacter = `!CHARACTER#${string}`
+
+export type PublishTargetConnection = `CONNECTION#${string}`
+export type PublishTargetExcludeConnection = `!CONNECTION#${string}`
 
 export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter
 
 export const isPublishTargetRoom = isEphemeraTaggedId<'ROOM'>('ROOM')
 export const isPublishTargetCharacter = isEphemeraTaggedId<'CHARACTER'>('CHARACTER')
 export const isPublishTargetExcludeCharacter = isEphemeraTaggedId<'!CHARACTER'>('!CHARACTER')
+export const isPublishTargetConnection = isEphemeraTaggedId<'CONNECTION'>('CONNECTION')
+export const isPublishTargetExcludeConnection = isEphemeraTaggedId<'!CONNECTION'>('!CONNECTION')
 
 export type PublishMessageBase = {
     type: 'PublishMessage';
