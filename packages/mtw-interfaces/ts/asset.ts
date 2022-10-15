@@ -87,8 +87,8 @@ export type AssetClientPlayerAsset = {
 export type AssetClientPlayerCharacter = {
     CharacterId: string;
     Name: string;
-    scopedId: string;
-    fileName: string;
+    scopedId?: string;
+    fileName?: string;
     fileURL?: string;
     FirstImpression?: string;
     Pronouns?: {
@@ -129,7 +129,6 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
         case 'Player':
             return checkAll(
                 checkTypes(message, {
-                    CharacterId: 'string',
                     PlayerName: 'string'
                 },
                 {
@@ -154,10 +153,10 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                             {
                                 CharacterId: 'string',
                                 Name: 'string',
-                                scopedId: 'string',
-                                fileName: 'string'
                             },
                             {
+                                scopedId: 'string',
+                                fileName: 'string',
                                 fileURL: 'string',
                                 FirstImpression: 'string',
                                 OneCoolThing: 'string',
@@ -202,10 +201,10 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                             {
                                 CharacterId: 'string',
                                 Name: 'string',
-                                scopedId: 'string',
-                                fileName: 'string'
                             },
                             {
+                                scopedId: 'string',
+                                fileName: 'string',
                                 fileURL: 'string',
                                 FirstImpression: 'string',
                                 OneCoolThing: 'string',

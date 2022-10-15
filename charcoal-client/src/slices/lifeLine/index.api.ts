@@ -19,9 +19,10 @@ import delayPromise from '../../lib/delayPromise'
 
 import { cacheMessages } from '../messages'
 
-import { EphemeraAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { AssetAPIMessage } from '@tonylb/mtw-interfaces/dist/asset'
+import { EphemeraAPIMessage, isEphemeraClientMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/dist/asset'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -130,8 +131,13 @@ export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, 
                 })
             }
             setupSocket.onmessage = (event) => {
-                const payload = JSON.parse(event.data || {}) as LifeLinePubSubData
-                LifeLinePubSub.publish(payload)
+                const payload = JSON.parse(event.data || {})
+                if (isEphemeraClientMessage(payload) || isAssetClientMessage(payload) || isCoordinationClientMessage(payload)) {
+                    LifeLinePubSub.publish(payload)
+                }
+                else {
+                    console.log(`INVALID MESSAGE: ${JSON.stringify(payload, null, 4)}`)
+                }
             }
             setupSocket.onerror = (event) => {
                 reject({})

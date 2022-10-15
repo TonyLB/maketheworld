@@ -317,21 +317,11 @@ export type EphemeraClientMessageRegisterMessage = {
     CharacterId: string;
 }
 
-export type EphemeraClientMessageReturnValue = {
-    statusCode: 200;
-    RequestId?: string;
-    body: string;
-}
-
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
-    EphemeraClientMessageReturnValue |
     EphemeraClientMessagePublishMessages |
     EphemeraClientMessageRegisterMessage
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
-    if ('statusCode' in message && message.statusCode === 200 && 'body' in message && typeof message.body === 'string') {
-        return true
-    }
     if (!('messageType' in message && typeof message.messageType === 'string')) {
         return false
     }
