@@ -1,21 +1,13 @@
-import { LibraryPublic } from '../library/baseClasses'
 import { AssetClientPlayerMessage, AssetClientLibraryMessage } from '@tonylb/mtw-interfaces/dist/asset'
 import { EphemeraClientMessageEphemeraUpdate, EphemeraClientMessagePublishMessages, EphemeraClientMessageRegisterMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
-
-type LifeLineError = {
-    messageType: 'Error',
-    RequestId?: string;
-    //
-    // TODO:  More sophisticated error handling that returns an error message
-    //
-}
+import { CoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
 
 export type LifeLinePubSubData = EphemeraClientMessageRegisterMessage
     | EphemeraClientMessagePublishMessages
     | EphemeraClientMessageEphemeraUpdate
     | AssetClientPlayerMessage
     | AssetClientLibraryMessage
-    | LifeLineError
+    | CoordinationClientMessage
 
 interface LifeLineSubscribeAction {
     (next: (incoming: { payload: LifeLinePubSubData, unsubscribe: () => void }) => void): {

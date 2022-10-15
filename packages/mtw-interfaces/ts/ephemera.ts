@@ -259,6 +259,7 @@ const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: any): mes
 
 export type EphemeraClientMessageEphemeraUpdateMapItemInactive = {
     type: 'MapUpdate';
+    targets: string[];
     MapId: string;
     active: false;
 }
@@ -271,12 +272,13 @@ export type EphemeraClientMessageEphemeraExit = {
 export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
     type: 'MapUpdate';
     MapId: string;
+    targets: string[];
     active: true;
 } & MapDescribeData
 
 export type EphemeraClientMessageEphemeraUpdateMapItem = EphemeraClientMessageEphemeraUpdateMapItemInactive | EphemeraClientMessageEphemeraUpdateMapItemActive
 
-const isEphemeraClientMessageEphemeraUpdateMapItem = (message: any): message is EphemeraClientMessageEphemeraUpdateMapItem => {
+export const isEphemeraClientMessageEphemeraUpdateMapItem = (message: any): message is EphemeraClientMessageEphemeraUpdateMapItem => {
     if (
         typeof message === 'object' &&
         'type' in message &&

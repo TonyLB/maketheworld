@@ -101,7 +101,7 @@ export type AssetClientPlayerCharacter = {
     Outfit?: string;
 }
 
-export interface AssetClientPlayerMessage {
+export type AssetClientPlayerMessage = {
     messageType: 'Player';
     RequestId?: string;
     PlayerName: string;
@@ -119,3 +119,7 @@ export type AssetClientLibraryMessage = {
 
 export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientLibraryMessage
+
+export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
+    return false
+}
