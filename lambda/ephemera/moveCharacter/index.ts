@@ -114,7 +114,13 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 type: 'RoomUpdate',
                 roomId: splitType(payload.roomId)[1]
             })
-
+            messageBus.send({
+                type: 'MapUpdate',
+                characterId: payload.characterId,
+                previousRoomId: characterMeta.RoomId,
+                roomId: payload.roomId
+            })
+    
         }, { retryErrors: ['TransactionCanceledException']})
     }))
 }

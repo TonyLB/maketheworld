@@ -1,8 +1,10 @@
-import { EphemeraCharacterId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
 import { DeferredCache } from './deferredCache';
 import DependencyGraph, { DependencyGraphData } from './dependencyGraph';
+
+const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId) => (`${CharacterId}::${EphemeraId}`)
 
 export type CharacterPossibleMapsItem = {
     EphemeraId: EphemeraCharacterId;
@@ -23,13 +25,18 @@ export class CacheCharacterPossibleMapsData {
     }
 
     invalidate(EphemeraId: EphemeraCharacterId) {
-        this._Cache.invalidate(EphemeraId)
+        Object.keys(this._Cache._cache)
+            .filter((cacheKey) => (cacheKey.split('::')[0] === EphemeraId))
+            .forEach((cacheKey) => {
+                this._Cache.invalidate(cacheKey)
+            })
     }
 
-    async get(characterId: EphemeraCharacterId): Promise<CharacterPossibleMapsItem> {
+    async get(characterId: EphemeraCharacterId, roomId?: EphemeraRoomId): Promise<CharacterPossibleMapsItem> {
+        const RoomId = roomId ? roomId : (await this._CharacterMeta.get(characterId)).RoomId
+        const cacheKey = generateCacheKey(characterId, RoomId)
         this._Cache.add({
             promiseFactory: async () => {
-                const { RoomId } = await this._CharacterMeta.get(characterId)
                 const descent = await this._Descent.get(RoomId)
                 const descentRoomNode = descent.find(({ EphemeraId }) => (EphemeraId = RoomId))
                 return {
@@ -40,10 +47,10 @@ export class CacheCharacterPossibleMapsData {
                     mapsPossible: (descentRoomNode?.connections || []).map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraMapId)
                 }
             },
-            requiredKeys: [characterId],
-            transform: (output) => ({ [characterId]: output })
+            requiredKeys: [cacheKey],
+            transform: (output) => ({ [cacheKey]: output })
         })
-        return await this._Cache.get(characterId)
+        return await this._Cache.get(cacheKey)
     }
 }
 

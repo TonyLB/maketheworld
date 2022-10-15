@@ -1,7 +1,7 @@
 import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
-import { checkTypes } from "./utils";
+import { checkAll, checkTypes } from "./utils";
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
@@ -269,10 +269,14 @@ export type EphemeraClientMessageEphemeraExit = {
 
 export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
     type: 'MapUpdate';
-    MapId: string;
     targets: string[];
     active: true;
 } & MapDescribeData
+
+export type EphemeraClientMessageEphemeraUpdateMapClear = {
+    type: 'MapClear';
+    targets: EphemeraCharacterId[];
+}
 
 export type EphemeraClientMessageEphemeraUpdateMapItem = EphemeraClientMessageEphemeraUpdateMapItemInactive | EphemeraClientMessageEphemeraUpdateMapItemActive
 
@@ -295,7 +299,21 @@ export const isEphemeraClientMessageEphemeraUpdateMapItem = (message: any): mess
     return false
 }
 
-export type EphemeraClientMessageEphemeraUpdateItem = EphemeraClientMessageEphemeraUpdateCharacterInPlay | EphemeraClientMessageEphemeraUpdateMapItem
+export const isEphemeraClientMessageephemeraUpdateMapClear = (message: any): message is EphemeraClientMessageEphemeraUpdateMapItem => {
+    if (
+        typeof message === 'object' &&
+        'type' in message &&
+        message.type === 'MapClear'
+    ) {
+        if (!Array.isArray(message.targets)) {
+            return false
+        }
+        return checkAll(...(message.targets.map((target) => (typeof target === 'string' && isEphemeraCharacterId(target)))))
+    }
+    return false
+}
+
+export type EphemeraClientMessageEphemeraUpdateItem = EphemeraClientMessageEphemeraUpdateCharacterInPlay | EphemeraClientMessageEphemeraUpdateMapItem  | EphemeraClientMessageEphemeraUpdateMapClear
 
 export type EphemeraClientMessageEphemeraUpdate = {
     messageType: 'Ephemera';
@@ -338,6 +356,7 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
                 return previous && (
                     isEphemeraClientMessageEphemeraUpdateCharacterInPlay(update) 
                     || isEphemeraClientMessageEphemeraUpdateMapItem(update)
+                    || isEphemeraClientMessageephemeraUpdateMapClear(update)
                 )
             }, true)
         case 'Messages':
