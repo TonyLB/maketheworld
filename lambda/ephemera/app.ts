@@ -14,7 +14,8 @@ import {
     isActionAPIMessage,
     isLinkAPIMessage,
     isCommandAPIMessage,
-    isMapSubscribeAPIMessage
+    isMapSubscribeAPIMessage,
+    isEphemeraAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
@@ -148,129 +149,129 @@ export const handler = async (event: any, context: any) => {
         const { Authorization = '' } = event.queryStringParameters || {}
         await connect(Authorization)
     }
-    if (routeKey === '$disconnect') {
+    else if (routeKey === '$disconnect') {
         await disconnect(connectionId)
     }
-    if (isRegisterCharacterAPIMessage(request)) {
-        if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
-            messageBus.send({
-                type: 'RegisterCharacter',
-                characterId: request.CharacterId
-            })
-        }
-        else {
-            //
-            // TODO: Error messages back to client
-            //
-            console.log(`TEMPORARY WARNING: '${request.CharacterId}' is not a legitimate CharacterId`)
-        }
-    }
-    if (isFetchEphemeraAPIMessage(request)) {
-        //
-        // TODO: Create PublishEphemeraUpdate message to aggregate all Ephemera messages
-        // pushed during a cycle
-        //
-        if (request.CharacterId) {
-            const ephemera = await fetchEphemeraForCharacter({
-                CharacterId: request.CharacterId
-            })
-            messageBus.send({
-                type: 'ReturnValue',
-                body: ephemera
-            })
-        }
-        else {
-            messageBus.send({
-                type: 'FetchPlayerEphemera'
-            })
-        }
-    }
-    if (isFetchImportDefaultsAPIMessage(request)) {
-        if (request.importsByAssetId && request.assetId) {
-            messageBus.send({
-                type: 'FetchImportDefaults',
-                importsByAssetId: request.importsByAssetId,
-                assetId: request.assetId
-            })
-        }
-    }
-    if (isWhoAmIAPIMessage(request)) {
-        messageBus.send({
-            type: 'WhoAmI'
-        })
-    }
-    if (isSyncAPIMessage(request)) {
-        if (isEphemeraCharacterId(request.CharacterId)) {
-            messageBus.send({
-                type: 'Sync',
-                targetId: request.CharacterId,
-                startingAt: request.startingAt,
-                limit: request.limit
-            })
-        }
-        else {
-            console.log(`Invalid CharacterId on SyncAPI`)
-        }
-    }
-    if (isMapSubscribeAPIMessage(request)) {
-        const characterId = request.CharacterId
-        if (isEphemeraCharacterId(characterId)) {
-            messageBus.send({
-                type: 'SubscribeToMaps',
-                characterId
-            })
-        }
-    }
-    if (isActionAPIMessage(request)) {
-        await executeAction(request)
-    }
-    if (isLinkAPIMessage(request)) {
-        const CharacterId = request.CharacterId
-        if (isEphemeraCharacterId(CharacterId)) {
-            switch(splitType(request.to)[0]) {
-                case 'ACTION':
+    else {
+        if (isEphemeraAPIMessage(request)) {
+            if (isRegisterCharacterAPIMessage(request)) {
+                if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
+                    messageBus.send({
+                        type: 'RegisterCharacter',
+                        characterId: request.CharacterId
+                    })
+                }
+                else {
                     //
-                    // TODO: Extend WML to assign legal Actions to Rooms, and then use that to check the legal
-                    // actions to which the character has access, and confirm access before executing
+                    // TODO: Error messages back to client
                     //
-                    messageBus.send({
-                        type: 'ExecuteAction',
-                        actionId: request.to,
-                        characterId: CharacterId
+                    console.log(`TEMPORARY WARNING: '${request.CharacterId}' is not a legitimate CharacterId`)
+                }
+            }
+            if (isFetchEphemeraAPIMessage(request)) {
+                //
+                // TODO: Create PublishEphemeraUpdate message to aggregate all Ephemera messages
+                // pushed during a cycle
+                //
+                if (request.CharacterId) {
+                    const ephemera = await fetchEphemeraForCharacter({
+                        CharacterId: request.CharacterId
                     })
-                    break
-                case 'FEATURE':
                     messageBus.send({
-                        type: 'Perception',
-                        characterId: CharacterId,
-                        ephemeraId: request.to as `FEATURE#${string}`
+                        type: 'ReturnValue',
+                        body: ephemera
                     })
-                    break
-                case 'CHARACTER':
+                }
+                else {
                     messageBus.send({
-                        type: 'Perception',
-                        characterId: CharacterId,
-                        ephemeraId: `CHARACTER#${splitType(request.to)[1]}`
+                        type: 'FetchPlayerEphemera'
                     })
-                    break
+                }
+            }
+            if (isFetchImportDefaultsAPIMessage(request)) {
+                if (request.importsByAssetId && request.assetId) {
+                    messageBus.send({
+                        type: 'FetchImportDefaults',
+                        importsByAssetId: request.importsByAssetId,
+                        assetId: request.assetId
+                    })
+                }
+            }
+            if (isWhoAmIAPIMessage(request)) {
+                messageBus.send({
+                    type: 'WhoAmI'
+                })
+            }
+            if (isSyncAPIMessage(request)) {
+                if (isEphemeraCharacterId(request.CharacterId)) {
+                    messageBus.send({
+                        type: 'Sync',
+                        targetId: request.CharacterId,
+                        startingAt: request.startingAt,
+                        limit: request.limit
+                    })
+                }
+                else {
+                    console.log(`Invalid CharacterId on SyncAPI`)
+                }
+            }
+            if (isMapSubscribeAPIMessage(request)) {
+                const characterId = request.CharacterId
+                if (isEphemeraCharacterId(characterId)) {
+                    messageBus.send({
+                        type: 'SubscribeToMaps',
+                        characterId
+                    })
+                }
+            }
+            if (isActionAPIMessage(request)) {
+                await executeAction(request)
+            }
+            if (isLinkAPIMessage(request)) {
+                const CharacterId = request.CharacterId
+                if (isEphemeraCharacterId(CharacterId)) {
+                    switch(splitType(request.to)[0]) {
+                        case 'ACTION':
+                            //
+                            // TODO: Extend WML to assign legal Actions to Rooms, and then use that to check the legal
+                            // actions to which the character has access, and confirm access before executing
+                            //
+                            messageBus.send({
+                                type: 'ExecuteAction',
+                                actionId: request.to,
+                                characterId: CharacterId
+                            })
+                            break
+                        case 'FEATURE':
+                            messageBus.send({
+                                type: 'Perception',
+                                characterId: CharacterId,
+                                ephemeraId: request.to as `FEATURE#${string}`
+                            })
+                            break
+                        case 'CHARACTER':
+                            messageBus.send({
+                                type: 'Perception',
+                                characterId: CharacterId,
+                                ephemeraId: `CHARACTER#${splitType(request.to)[1]}`
+                            })
+                            break
+                    }
+                }
+            }
+            if (isCommandAPIMessage(request)) {
+                const CharacterId = request.CharacterId
+                const actionPayload = await parseCommand({ CharacterId, command: request.command })
+                if (actionPayload?.actionType) {
+                    await executeAction(actionPayload)
+                }
             }
         }
-    }
-    if (isCommandAPIMessage(request)) {
-        const CharacterId = request.CharacterId
-        if (isEphemeraCharacterId(CharacterId)) {
-            const actionPayload = await parseCommand({ CharacterId, command: request.command })
-            if (actionPayload?.actionType) {
-                await executeAction(actionPayload)
-            }
-        }
         else {
-            //
-            // TODO: Error messages back to the front-end
-            //
-            console.log(`TEMPORARY WARNING: Non-typed string sent for CharacterId`)
+
         }
     }
+
     await messageBus.flush()
     return extractReturnValue(messageBus)
 
