@@ -365,5 +365,4 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             ), true)
         default: return false
     }
-    return false
 }

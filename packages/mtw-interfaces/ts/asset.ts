@@ -1,4 +1,5 @@
 import { LibraryAsset, LibraryCharacter } from "./library";
+import { checkAll, checkTypes } from "./utils";
 
 export type FetchLibraryAPIMessage = {
     message: 'fetchLibrary';
@@ -121,5 +122,107 @@ export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientLibraryMessage
 
 export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
-    return false
+    if (!('messageType' in message && typeof message.messageType === 'string')) {
+        return false
+    }
+    switch(message.messageType) {
+        case 'Player':
+            return checkAll(
+                checkTypes(message, {
+                    CharacterId: 'string',
+                    PlayerName: 'string'
+                },
+                {
+                    RequestId: 'string'
+                }),
+                ...message.Assets.map((assetItem) => (
+                    checkTypes(
+                        assetItem,
+                        {
+                            AssetId: 'string'
+                        },
+                        {
+                            Story: 'boolean',
+                            instance: 'boolean'
+                        }
+                    )
+                )),
+                ...message.Characters.map((characterItem) => (
+                    checkAll(
+                        checkTypes(
+                            characterItem,
+                            {
+                                CharacterId: 'string',
+                                Name: 'string',
+                                scopedId: 'string',
+                                fileName: 'string'
+                            },
+                            {
+                                fileURL: 'string',
+                                FirstImpression: 'string',
+                                OneCoolThing: 'string',
+                                Outfit: 'string'
+                            }
+                        ),
+                        !message.Pronouns || checkTypes(message.Pronouns, {
+                            subject: 'string',
+                            object: 'string',
+                            possessive: 'string',
+                            adjective: 'string',
+                            reflexive: 'string'
+                        })
+                    )
+                ))
+            )
+        case 'Library':
+            return checkAll(
+                checkTypes(
+                    message,
+                    {},
+                    {
+                        RequestId: 'string'
+                    }
+                ),
+                ...message.Assets.map((assetItem) => (
+                    checkTypes(
+                        assetItem,
+                        {
+                            AssetId: 'string'
+                        },
+                        {
+                            Story: 'boolean',
+                            instance: 'boolean'
+                        }
+                    )
+                )),
+                ...message.Characters.map((characterItem) => (
+                    checkAll(
+                        checkTypes(
+                            characterItem,
+                            {
+                                CharacterId: 'string',
+                                Name: 'string',
+                                scopedId: 'string',
+                                fileName: 'string'
+                            },
+                            {
+                                fileURL: 'string',
+                                FirstImpression: 'string',
+                                OneCoolThing: 'string',
+                                Outfit: 'string'
+                            }
+                        ),
+                        !message.Pronouns || checkTypes(message.Pronouns, {
+                            subject: 'string',
+                            object: 'string',
+                            possessive: 'string',
+                            adjective: 'string',
+                            reflexive: 'string'
+                        })
+                    )
+                ))
+            )
+        default: return false
+    }
+
 }
