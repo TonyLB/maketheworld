@@ -23,6 +23,8 @@ export type PublishTargetExcludeCharacter = `!CHARACTER#${string}`
 export type PublishTargetConnection = `CONNECTION#${string}`
 export type PublishTargetExcludeConnection = `!CONNECTION#${string}`
 
+export type PublishTargetGlobal = `GLOBAL`
+
 export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter
 
 export const isPublishTargetRoom = isEphemeraTaggedId<'ROOM'>('ROOM')
@@ -30,6 +32,7 @@ export const isPublishTargetCharacter = isEphemeraTaggedId<'CHARACTER'>('CHARACT
 export const isPublishTargetExcludeCharacter = isEphemeraTaggedId<'!CHARACTER'>('!CHARACTER')
 export const isPublishTargetConnection = isEphemeraTaggedId<'CONNECTION'>('CONNECTION')
 export const isPublishTargetExcludeConnection = isEphemeraTaggedId<'!CONNECTION'>('!CONNECTION')
+export const isPublishTargetGlobal = (key: string): key is PublishTargetGlobal => (key === 'GLOBAL')
 
 export type PublishMessageBase = {
     type: 'PublishMessage';
