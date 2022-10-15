@@ -118,8 +118,28 @@ export type AssetClientLibraryMessage = {
     Characters: LibraryCharacter[];
 }
 
+export type AssetClientFetchURL = {
+    messageType: 'FetchURL';
+    RequestId?: string;
+    url: string;
+}
+
+export type AssetClientUploadURL = {
+    messageType: 'UploadURL';
+    RequestId?: string;
+    url: string;
+    s3Object: string;
+}
+
+export type AssetClientImportDefaults = {
+    messageType: 'ImportDefaults';
+    components: Record<string, any>;
+    aggregateExits: any[];
+}
+
 export type AssetClientMessage = AssetClientPlayerMessage |
-    AssetClientLibraryMessage
+    AssetClientLibraryMessage |
+    AssetClientFetchURL
 
 export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {
@@ -221,6 +241,12 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                     )
                 ))
             )
+        case 'FetchURL':
+            return checkTypes(message, { url: 'string' }, { RequestId: 'string' })
+        case 'UploadURL':
+            return checkTypes(message, { url: 'string', s3Object: 'string' }, { RequestId: 'string' })
+        case 'ImportDefaults':
+            return true
         default: return false
     }
 
