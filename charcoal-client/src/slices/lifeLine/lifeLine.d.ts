@@ -1,35 +1,6 @@
-import { Message } from '../messages'
-import { EphemeraFormat } from './ephemera'
-import { PlayerPublic } from '../player/baseClasses'
 import { LibraryPublic } from '../library/baseClasses'
-
-type LifeLineRegisterMessage = {
-    messageType: 'Registered';
-    RequestId?: string;
-    CharacterId: string;
-}
-
-type LifeLineReceiveMessage = {
-    messageType: 'Messages',
-    RequestId?: string;
-    messages: Message[]
-}
-
-type LifeLineReceiveEphemera = {
-    messageType: 'Ephemera',
-    RequestId?: string;
-    updates: EphemeraFormat[]
-}
-
-type LifeLineReceivePlayer = {
-    messageType: 'Player',
-    RequestId?: string;
-} & PlayerPublic
-
-type LifeLineReceiveLibrary = {
-    messageType: 'Library',
-    RequestId?: string;
-} & LibraryPublic
+import { AssetClientPlayerMessage, AssetClientLibraryMessage } from '@tonylb/mtw-interfaces/dist/asset'
+import { EphemeraClientMessageEphemeraUpdate, EphemeraClientMessagePublishMessages, EphemeraClientMessageRegisterMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 type LifeLineError = {
     messageType: 'Error',
@@ -39,11 +10,11 @@ type LifeLineError = {
     //
 }
 
-export type LifeLinePubSubData = LifeLineRegisterMessage
-    | LifeLineReceiveMessage
-    | LifeLineReceiveEphemera
-    | LifeLineReceivePlayer
-    | LifeLineReceiveLibrary
+export type LifeLinePubSubData = EphemeraClientMessageRegisterMessage
+    | EphemeraClientMessagePublishMessages
+    | EphemeraClientMessageEphemeraUpdate
+    | AssetClientPlayerMessage
+    | AssetClientLibraryMessage
     | LifeLineError
 
 interface LifeLineSubscribeAction {

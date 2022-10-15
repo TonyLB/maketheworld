@@ -1,3 +1,5 @@
+import { LibraryAsset, LibraryCharacter } from "./library";
+
 export type FetchLibraryAPIMessage = {
     message: 'fetchLibrary';
 }
@@ -108,4 +110,12 @@ export interface AssetClientPlayerMessage {
     Characters: AssetClientPlayerCharacter[];
 }
 
-export type AssetClientMessage = {}
+export type AssetClientLibraryMessage = {
+    messageType: 'Library';
+    RequestId?: string;
+    Assets: LibraryAsset[];
+    Characters: LibraryCharacter[];
+}
+
+export type AssetClientMessage = AssetClientPlayerMessage |
+    AssetClientLibraryMessage

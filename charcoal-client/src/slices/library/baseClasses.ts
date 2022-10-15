@@ -1,15 +1,12 @@
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
-import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library'
+import { AssetClientLibraryMessage } from '@tonylb/mtw-interfaces/dist/asset';
 
 export interface LibraryInternal {
     subscription?: any;
     incrementalBackoff: number;
 }
 
-export interface LibraryPublic {
-    Assets: LibraryAsset[];
-    Characters: LibraryCharacter[];
-}
+export type LibraryPublic = Omit<AssetClientLibraryMessage, 'messageType' | 'RequestId'>
 
 export type LibraryRecord = ISSMDataLayout<LibraryInternal, LibraryPublic>
 export type LibraryReturn = ISSMDataReturn<LibraryInternal, LibraryPublic>
