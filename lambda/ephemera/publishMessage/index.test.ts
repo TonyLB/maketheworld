@@ -37,7 +37,7 @@ describe('PublishMessage', () => {
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
-                targets: [{ characterId: 'CHARACTER#123' }],
+                targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]
@@ -100,7 +100,7 @@ describe('PublishMessage', () => {
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
-                targets: [{ roomId: 'ROOM#ABC' }],
+                targets: ['ROOM#ABC'],
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]
@@ -171,7 +171,7 @@ describe('PublishMessage', () => {
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
-                targets: [{ roomId: 'ROOM#ABC' }, { excludeCharacterId: 'CHARACTER#123' }],
+                targets: ['ROOM#ABC', '!CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]

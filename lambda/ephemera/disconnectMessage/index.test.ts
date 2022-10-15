@@ -67,7 +67,7 @@ describe("disconnectMessage", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
-            targets: [{ roomId: 'ROOM#TestABC' }, { excludeCharacterId: 'CHARACTER#ABC' }],
+            targets: ['ROOM#TestABC', '!CHARACTER#ABC'],
             displayProtocol: 'WorldMessage',
             message: [{
                 tag: 'String',
