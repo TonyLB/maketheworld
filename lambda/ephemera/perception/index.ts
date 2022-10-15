@@ -71,7 +71,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         updates: [{
                             type: 'MapUpdate',
                             active: true,
-                            targets: [{ characterId }],
+                            targets: [characterId],
                             ...mapDescribe,
                             MapId
                         }]

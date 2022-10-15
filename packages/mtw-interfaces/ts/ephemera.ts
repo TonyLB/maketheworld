@@ -1,6 +1,7 @@
 import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
+import { checkTypes } from "./utils";
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
@@ -131,13 +132,10 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
     }
     switch(message.message) {
         case 'registercharacter':
-        case 'fetchEphemera':
         case 'subscribeToMaps':
-            return Boolean(
-                'CharacterId' in message
-                && typeof message.CharacterId === 'string'
-                /* && isEphemeraCharacterId(message.CharacterId)*/
-            )
+            return checkTypes(message, { CharacterId: 'string' })
+        case 'fetchEphemera':
+            return checkTypes(message, {}, { CharacterId: 'string' })
         case 'fetchImportDefaults':
         case 'whoAmI':
             return true
@@ -312,7 +310,7 @@ export type EphemeraClientMessagePublishMessages = {
 }
 
 export type EphemeraClientMessageRegisterMessage = {
-    messageType: 'Registered';
+    messageType: 'Registration';
     RequestId?: string;
     CharacterId: string;
 }
@@ -326,8 +324,8 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
         return false
     }
     switch(message.messageType) {
-        case 'Registered':
-            return ('CharacterId' in message && typeof message.CharacterId === 'string')
+        case 'Registration':
+            return checkTypes(message, { CharacterId: 'string' }, { RequestId: 'string' })
         case 'Ephemera':
             if (!('updates' in message)) {
                 return false

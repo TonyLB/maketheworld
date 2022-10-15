@@ -142,7 +142,7 @@ export type EphemeraUpdateCharacterEntry = {
 
 export type EphemeraUpdateMapEntry = {
     type: 'MapUpdate';
-    targets: PublishTarget[];
+    targets: string[];
     MapId: string;
     Name: string;
     fileURL?: string;
@@ -160,7 +160,7 @@ export type EphemeraUpdateEntry = EphemeraUpdateCharacterEntry | EphemeraUpdateM
 export type EphemeraUpdateMessage = {
     type: 'EphemeraUpdate';
     global: boolean;
-    updates: (EphemeraClientMessageEphemeraUpdateItem & { targets: PublishTarget[] })[];
+    updates: (EphemeraClientMessageEphemeraUpdateItem & { targets: string[] })[];
 }
 
 export type FetchPlayerEphemeraMessage = {
