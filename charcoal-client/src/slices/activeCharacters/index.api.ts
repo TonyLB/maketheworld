@@ -44,7 +44,7 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
             const { updates } = payload
             updates
                 .filter(isEphemeraClientMessageEphemeraUpdateMapItem)
-                .filter(({ targets }) => (targets.map((key) => (id && key.split('#')[1])).includes(id)))
+                .filter(({ targets }) => (id && targets.map((key) => (key.split('#')[1])).includes(id)))
                 .forEach(({ type, targets, ...rest }) => {
                     dispatch(receiveMapEphemera(rest))
                 })
