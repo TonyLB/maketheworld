@@ -26,7 +26,7 @@ export const receiveMapEphemera = (state: any, action: PayloadAction<ActiveChara
         }    
     }
     else {
-        delete state.maps[action.payload.MapId.split('#')[1]]
+        delete state.maps[action.payload.MapId]
     }
 }
 

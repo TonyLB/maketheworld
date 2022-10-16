@@ -1,4 +1,4 @@
-import { EphemeraMapId, isEphemeraMapId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraMapId, EphemeraRoomId, isEphemeraMapId, isEphemeraRoomId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -107,13 +107,13 @@ export type FeatureDescription = {
 } & FeatureDescribeData & MessageAddressing
 
 export type MapDescribeRoom = {
-    roomId: string;
+    roomId: EphemeraRoomId;
     name: string;
     x: number;
     y: number;
     exits: {
         name: string;
-        to: string;
+        to: EphemeraRoomId;
     }[];
 }
 
@@ -129,7 +129,11 @@ const validateMapRoomList = (items: any) => {
         return false
     }
     return items.reduce<boolean>((previous, roomItem) => {
-        if (!previous && checkTypes(roomItem, { roomId: 'string', name: 'string', x: 'number', y: 'number' })) {
+        if (!(
+            previous &&
+            checkTypes(roomItem, { roomId: 'string', name: 'string', x: 'number', y: 'number' })
+            && isEphemeraRoomId(roomItem.roomId)
+        )) {
             return false
         }
         const exits = roomItem.exits
@@ -137,7 +141,7 @@ const validateMapRoomList = (items: any) => {
             return false
         }
         return exits.reduce<boolean>((previous, exit) => (
-            previous && checkTypes(exit, { name: 'string', to: 'string' })
+            previous && checkTypes(exit, { name: 'string', to: 'string' }) && isEphemeraRoomId(exit.to)
         ), true)
     }, true)
 }

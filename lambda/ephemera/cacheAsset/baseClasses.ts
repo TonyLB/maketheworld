@@ -35,7 +35,7 @@ export type EphemeraFeature = {
 
 export type EphemeraExit = {
     name: string;
-    to: string;
+    to: EphemeraRoomId;
 }
 
 export type EphemeraRoomAppearance = {

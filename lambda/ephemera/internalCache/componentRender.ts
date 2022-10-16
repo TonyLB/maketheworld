@@ -206,7 +206,7 @@ export class ComponentRenderData {
                     .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
                 const renderRoomMapAppearances = await filterAppearances(possibleRoomAppearances)
                 const aggregateRoomDescription = {
-                    roomId: splitType(ephemeraId)[1],
+                    roomId: ephemeraId,
                     name: renderRoomMapAppearances.map(({ name }) => (name)).join(''),
                     x: roomPositions[ephemeraId].x,
                     y: roomPositions[ephemeraId].y,
