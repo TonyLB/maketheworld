@@ -133,7 +133,7 @@ export type RegisterCharacterMessage = {
 
 export type EphemeraUpdateCharacterEntry = {
     type: 'CharacterInPlay';
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Connected: boolean;
     RoomId: string;
     Name: string;

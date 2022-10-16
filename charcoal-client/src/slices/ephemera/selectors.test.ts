@@ -1,11 +1,12 @@
+import { EphemeraPublic } from './baseClasses'
 import {
     getCharactersInPlay
 } from './selectors'
 
-const testState = {
+const testState: EphemeraPublic = {
     charactersInPlay: {
-        TESS: {
-            CharacterId: 'TESS',
+        'CHARACTER#TESS': {
+            CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
             Connected: true,
             RoomId: 'ABC',
@@ -18,8 +19,8 @@ const testState = {
                 direct: 'test'
             }
         },
-        MARCO: {
-            CharacterId: 'MARCO',
+        'CHARACTER#MARCO': {
+            CharacterId: 'CHARACTER#MARCO',
             Name: 'Marco',
             Connected: false,
             color: {
@@ -31,8 +32,8 @@ const testState = {
                 direct: 'test'
             }
         },
-        ASAHINA: {
-            CharacterId: 'ASAHINA',
+        'CHARACTER#ASAHINA': {
+            CharacterId: 'CHARACTER#ASAHINA',
             Name: 'Asahina',
             Connected: false,
             RoomId: 'ABC',
@@ -52,7 +53,7 @@ Object.preventExtensions(testState)
 describe('charactersInPlay selectors', () => {
 
     it('should correctly return when characterInPlay data is present', () => {
-        expect(getCharactersInPlay(testState).TESS).toEqual({
+        expect(getCharactersInPlay(testState)['CHARACTER#TESS']).toEqual({
             CharacterId: 'TESS',
             Name: 'Tess',
             Connected: true,

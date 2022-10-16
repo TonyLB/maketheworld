@@ -1,4 +1,3 @@
-import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
@@ -16,10 +15,9 @@ const serialize = ({
     fileURL,
     Color
 }: CharacterMetaItem): EphemeraUpdateEntry => {
-    const [type, payload] = splitType(EphemeraId)
     return {
         type: 'CharacterInPlay',
-        CharacterId: payload,
+        CharacterId: EphemeraId,
         Connected: true,
         RoomId,
         Name,

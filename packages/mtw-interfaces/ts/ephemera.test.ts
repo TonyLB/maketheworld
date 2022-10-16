@@ -125,10 +125,24 @@ describe('EphemeraClientMessage typeguard', () => {
                 messageType: 'Ephemera',
                 updates: [{
                     type: 'CharacterInPlay',
-                    CharacterId: 'TestABC',
+                    CharacterId: 'CHARACTER#TestABC',
                     Connected: true,
                     RoomId: 'VORTEX',
                     Name: 123,
+                    Color: 'green'
+                }]
+            })).toBe(false)
+        })
+
+        it('should reject illegal CharacterId', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'Ephemera',
+                updates: [{
+                    type: 'CharacterInPlay',
+                    CharacterId: 'TestABC',
+                    Connected: true,
+                    RoomId: 'VORTEX',
+                    Name: 'Tess',
                     Color: 'green'
                 }]
             })).toBe(false)
@@ -139,7 +153,7 @@ describe('EphemeraClientMessage typeguard', () => {
                 messageType: 'Ephemera',
                 updates: [{
                     type: 'CharacterInPlay',
-                    CharacterId: 'TestABC',
+                    CharacterId: 'CHARACTER#TestABC',
                     Connected: true,
                     RoomId: 'VORTEX',
                     Name: 'Tess',
@@ -153,7 +167,7 @@ describe('EphemeraClientMessage typeguard', () => {
                 messageType: 'Ephemera',
                 updates: [{
                     type: 'CharacterInPlay',
-                    CharacterId: 'TestABC',
+                    CharacterId: 'CHARACTER#TestABC',
                     Connected: true,
                     RoomId: 'VORTEX',
                     Name: 'Tess',
