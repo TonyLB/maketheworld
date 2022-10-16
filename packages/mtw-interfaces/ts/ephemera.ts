@@ -260,7 +260,7 @@ const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: any): mes
 
 export type EphemeraClientMessageEphemeraUpdateMapItemInactive = {
     type: 'MapUpdate';
-    targets: string[];
+    targets: EphemeraCharacterId[];
     MapId: EphemeraMapId;
     active: false;
 }
@@ -272,7 +272,7 @@ export type EphemeraClientMessageEphemeraExit = {
 
 export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
     type: 'MapUpdate';
-    targets: string[];
+    targets: EphemeraCharacterId[];
     active: true;
 } & MapDescribeData
 
