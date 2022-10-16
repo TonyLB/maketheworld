@@ -15,7 +15,6 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
-import { ActiveCharacterMap } from '../../../slices/activeCharacters/baseClasses';
 
 type MapViewProps = {
 }
