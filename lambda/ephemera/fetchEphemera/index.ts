@@ -95,8 +95,7 @@ export const fetchEphemeraForCharacter = async ({
                 type: 'MapUpdate',
                 targets: [`CHARACTER#${CharacterId}`],
                 active: true,
-                ...mapDescribe,
-                MapId: splitType(mapDescribe.MapId)[1]
+                ...mapDescribe
             }))
         }    
     }

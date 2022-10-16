@@ -34,6 +34,13 @@ describe('EphemeraAPIMessage typeguard', () => {
             })).toBe(false)
         })
 
+        it('should reject when wrong format CharacterId', () => {
+            expect(isEphemeraAPIMessage({
+                message: 'registercharacter',
+                CharacterId: 'Test1234'
+            })).toBe(false)
+        })
+
         it('should accept correct entry', () => {
             expect(isEphemeraAPIMessage({
                 message: 'registercharacter',
@@ -109,13 +116,6 @@ describe('EphemeraClientMessage typeguard', () => {
             massageType: 'Ephemera',
             updates: []
         })).toBe(false)
-    })
-
-    it('should accept a returnType message', () => {
-        expect(isEphemeraClientMessage({
-            statusCode: 200,
-            body: '{\"message\":\"Success\"}'
-        })).toBe(true)
     })
 
     describe('EphemeraUpdate', () => {

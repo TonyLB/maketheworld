@@ -92,7 +92,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             })
             messageBus.send({
                 type: 'RoomUpdate',
-                roomId: splitType(characterMeta.RoomId)[1]
+                roomId: characterMeta.RoomId
             })
 
             messageBus.send({
@@ -112,7 +112,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             })
             messageBus.send({
                 type: 'RoomUpdate',
-                roomId: splitType(payload.roomId)[1]
+                roomId: payload.roomId
             })
             messageBus.send({
                 type: 'MapUpdate',
