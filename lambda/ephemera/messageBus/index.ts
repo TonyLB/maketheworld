@@ -159,7 +159,7 @@ messageBus.subscribe({
 })
 messageBus.subscribe({
     tag: 'MapUpdate',
-    priority: 6,
+    priority: 15,
     filter: isMapUpdateMessage,
     callback: mapUpdateMessage
 })

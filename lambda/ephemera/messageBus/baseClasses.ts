@@ -262,10 +262,11 @@ export type ExecuteActionMessage = {
 
 export type MapUpdateMessage = {
     type: 'MapUpdate';
-    characterId: EphemeraCharacterId;
+    characterId?: EphemeraCharacterId;
     connectionId?: string;
     roomId?: EphemeraRoomId;
     previousRoomId?: EphemeraRoomId;
+    mapId?: EphemeraMapId;
 }
 
 export type MessageType = PublishMessage |
