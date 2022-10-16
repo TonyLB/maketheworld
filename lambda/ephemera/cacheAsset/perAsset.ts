@@ -2,6 +2,7 @@
 // This file has utilities for merging a new list of EphemeraItems into the current database, updating
 // both the per-Asset entries and (if necessary) the Meta::<Component> aggregate entries
 //
+import { isEphemeraActionId, isEphemeraComputedId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox"
 import { connectionDB, ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
@@ -124,20 +125,21 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                         if (fetchedArgs?.activeCharacters) {
                             draft.activeCharacters = fetchedArgs.activeCharacters
                         }
-                        if (['Action', 'Computed'].includes(item.tag) && item.src) {
+                        const ephemeraId = item.EphemeraId
+                        if ((isEphemeraComputedId(ephemeraId) || isEphemeraActionId(ephemeraId)) && item.src) {
                             draft.src = item.src
                             draft.rootAsset = assetId
-                            if (item.tag === 'Computed') {
+                            if (isEphemeraComputedId(ephemeraId)) {
                                 messageBus.send({
                                     type: 'DependencyCascade',
-                                    targetId: item.EphemeraId
+                                    targetId: ephemeraId
                                 })
                             }
                         }
-                        if (item.tag === 'Variable' && item.default) {
+                        if (isEphemeraVariableId(ephemeraId) && item.default) {
                             if ((typeof draft.value === 'undefined') && item.default) {
                                 draft.value = evaluateCode(`return (${item.default})`)({})
-                                internalCache.AssetState.set(item.EphemeraId, draft.value)
+                                internalCache.AssetState.set(ephemeraId, draft.value)
                             }
                         }
                     }
