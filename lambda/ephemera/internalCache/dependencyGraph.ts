@@ -144,7 +144,14 @@ export class DependencyGraphData {
     constructor(dependencyTag: 'Descent' | 'Ancestry') {
         this.dependencyTag = dependencyTag
         this._Cache = new DeferredCache({
-            callback: (key, value) => { this._setStore(key, value) },
+            callback: (key, value) => {
+                if (value.completeness === 'Complete' || !this._Store[key]) {
+                    this._setStore(key, value)
+                }
+                else {
+                    this._setStore(key, { ...this._Store[key], completeness: 'Complete' })
+                }
+            },
             defaultValue: (EphemeraId) => ({
                 EphemeraId,
                 completeness: 'Partial',
@@ -174,7 +181,7 @@ export class DependencyGraphData {
         const knownTree = this.getPartial(EphemeraId).map(({ EphemeraId }) => (EphemeraId))
         if (!this._Cache.isCached(EphemeraId)) {
             this._Cache.add({
-                promiseFactory: () => (ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
+                promiseFactory: () => (ephemeraDB.getItem<{ Ancestry?: Omit<DependencyNode, 'completeness'>[]; Descent?: Omit<DependencyNode, 'completeness'>[] }>({
                     EphemeraId,
                     DataCategory: `Meta::${tag}`,
                     ProjectionFields: [this.dependencyTag]
@@ -182,7 +189,7 @@ export class DependencyGraphData {
                 requiredKeys: knownTree,
                 transform: (fetch) => {
                     const tree = fetch?.[this.dependencyTag] || []
-                    return tree.reduce<Record<string, DependencyNode>>((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {})
+                    return tree.reduce<Record<string, DependencyNode>>((previous, node) => ({ ...previous, [node.EphemeraId]: { completeness: 'Complete', ...node } }), {})
                 }
             })
         }
@@ -222,7 +229,7 @@ export class DependencyGraphData {
         // promises as needed, all in batch, rather than do individual gets
         //
         this._Cache.add({
-            promiseFactory: () => (ephemeraDB.batchGetItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
+            promiseFactory: () => (ephemeraDB.batchGetItem<{ Ancestry?: Omit<DependencyNode, 'completeness'>[]; Descent?: Omit<DependencyNode, 'completeness'>[] }>({
                 Items: minimumFetchSet.map((EphemeraId) => ({
                     EphemeraId,
                     DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}`
@@ -233,7 +240,7 @@ export class DependencyGraphData {
             transform: (fetchList) => {
                 return fetchList.reduce<Record<string, DependencyNode>>((previous, fetch) => {
                     const tree = fetch?.[this.dependencyTag] || []
-                    return tree.reduce<Record<string, DependencyNode>>((accumulator, node) => ({ ...accumulator, [node.EphemeraId]: node }), previous)
+                    return tree.reduce<Record<string, DependencyNode>>((accumulator, node) => ({ ...accumulator, [node.EphemeraId]: { completeness: 'Complete', ...node } }), previous)
                 }, {})
             }
         })
@@ -282,6 +289,10 @@ export class DependencyGraphData {
 
     delete(EphemeraId: string, edge: DependencyEdge) {
         reduceDependencyGraph(this._Store, [{ EphemeraId, deleteItem: edge }])
+    }
+
+    apply(payloads: DependencyGraphAction[]) {
+        reduceDependencyGraph(this._Store, payloads)
     }
 
     invalidate(EphemeraId: string) {
