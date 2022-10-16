@@ -35,8 +35,6 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     }, [dispatch, CharacterId])
     const [MapId, setMapId] = useState<string>(Object.keys(maps || {})[0] || '')
 
-    console.log(`Maps: ${JSON.stringify(maps, null, 4)}`)
-    console.log(`MapId: ${MapId}`)
     return <Box sx={{ height: "100%", width: "100%" }}>
         <Box sx={{ width: "100%", margin: ".5rem", display: "flex", justifyContent: "center" }}>
             <Box>

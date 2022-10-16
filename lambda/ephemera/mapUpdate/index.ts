@@ -105,7 +105,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                     internalCache.ComponentRender.get(characterId, mapId),
                                     internalCache.CharacterMeta.get(characterId)
                                 ])
-                                if (mapDescribe.rooms[RoomId]) {
+                                if (mapDescribe.rooms.find(({ roomId }) => (RoomId === `ROOM#${roomId}`))) {
                                     messageBus.send({
                                         type: 'EphemeraUpdate',
                                         global: false,
