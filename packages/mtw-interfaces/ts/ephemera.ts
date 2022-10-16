@@ -265,11 +265,6 @@ export type EphemeraClientMessageEphemeraUpdateMapItemInactive = {
     active: false;
 }
 
-export type EphemeraClientMessageEphemeraExit = {
-    name: string;
-    to: string;
-}
-
 export type EphemeraClientMessageEphemeraUpdateMapItemActive = {
     type: 'MapUpdate';
     targets: EphemeraCharacterId[];
@@ -294,7 +289,7 @@ export const isEphemeraClientMessageEphemeraUpdateMapItem = (message: any): mess
         if (!message.active) {
             return true
         }
-        if (!('MapId' in message && typeof message.MapId === 'string')) {
+        if (!('MapId' in message && typeof message.MapId === 'string' && isEphemeraMapId(message.MapId))) {
             return false
         }
         return isMapDescribeData(message)

@@ -30,7 +30,7 @@ export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): MapTree => {
                         type: 'EXIT',
                         name: name || '',
                         fromRoomId: roomId,
-                        toRoomId: to.split('#')[1],
+                        toRoomId: to,
                         visible: true
                     },
                     children: []

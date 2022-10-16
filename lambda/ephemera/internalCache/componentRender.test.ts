@@ -230,7 +230,7 @@ describe('ComponentRender cache handler', () => {
             fileURL: 'https://test.com/test.png',
             rooms: [
                 {
-                    roomId: 'TestRoomOne',
+                    roomId: 'ROOM#TestRoomOne',
                     name: 'Test Room One',
                     x: 0,
                     y: 0,
@@ -240,7 +240,7 @@ describe('ComponentRender cache handler', () => {
                     }]
                 },
                 {
-                    roomId: 'TestRoomTwo',
+                    roomId: 'ROOM#TestRoomTwo',
                     name: 'Test Room Two',
                     x: 100,
                     y: 0,
