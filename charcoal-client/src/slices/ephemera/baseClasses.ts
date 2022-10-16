@@ -1,3 +1,4 @@
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
 export interface EphemeraInternal {
@@ -15,7 +16,7 @@ export type EphemeraCharacterColor = {
 }
 
 export type EphemeraCharacterInPlay = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     RoomId?: string;
     Connected?: boolean;
     Name: string;
@@ -24,7 +25,7 @@ export type EphemeraCharacterInPlay = {
 }
 
 export interface EphemeraPublic {
-    charactersInPlay: Record<string, EphemeraCharacterInPlay>
+    charactersInPlay: Record<EphemeraCharacterId, EphemeraCharacterInPlay>
 }
 
 export type EphemeraRecord = ISSMDataLayout<EphemeraInternal, EphemeraPublic>

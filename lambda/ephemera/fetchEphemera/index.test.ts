@@ -43,7 +43,7 @@ describe('fetchPlayerEphemera', () => {
             global: false,
             updates: [{
                 type: 'CharacterInPlay',
-                CharacterId: 'ABC',
+                CharacterId: 'CHARACTER#ABC',
                 Connected: true,
                 RoomId: 'ROOM#XYZ',
                 Name: 'Testy',

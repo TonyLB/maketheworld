@@ -24,7 +24,7 @@ describe('EphemeraUpdateMessage', () => {
                 global: false,
                 updates: [{
                     type: 'CharacterInPlay',
-                    CharacterId: 'ABC',
+                    CharacterId: 'CHARACTER#ABC',
                     Connected: true,
                     RoomId: 'VORTEX',
                     Name: 'Tess',
@@ -36,7 +36,7 @@ describe('EphemeraUpdateMessage', () => {
         })
         expect(apiClientMock.send).toHaveBeenCalledWith({
             ConnectionId: 'TestConnection',
-            Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\",\"targets\":[]}]}'
+            Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"CHARACTER#ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\",\"targets\":[]}]}'
         })
     })
 
@@ -57,7 +57,7 @@ describe('EphemeraUpdateMessage', () => {
                 global: true,
                 updates: [{
                     type: 'CharacterInPlay',
-                    CharacterId: 'ABC',
+                    CharacterId: 'CHARACTER#ABC',
                     Connected: true,
                     RoomId: 'VORTEX',
                     Name: 'Tess',
@@ -67,7 +67,7 @@ describe('EphemeraUpdateMessage', () => {
                 }]
             }]
         })
-        const expectedData = '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\",\"targets\":[]}]}'
+        const expectedData = '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"CHARACTER#ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\",\"targets\":[]}]}'
         expect(apiClientMock.send).toHaveBeenCalledWith({
             ConnectionId: 'Connection1',
             Data: expectedData

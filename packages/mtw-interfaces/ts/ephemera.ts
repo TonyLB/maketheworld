@@ -218,13 +218,13 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
 
 export type EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive = {
     type: 'CharacterInPlay';
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Connected: false;
 }
 
 export type EphemeraClientMessageEphemeraUpdateCharacterInPlayActive = {
     type: 'CharacterInPlay';
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Connected: true;
     RoomId: string;
     Name: string;
@@ -240,7 +240,7 @@ const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: any): mes
             if (!message.Connected) {
                 return true
             }
-            if (!('CharacterId' in message && typeof message.CharacterId === 'string')) {
+            if (!('CharacterId' in message && typeof message.CharacterId === 'string' && isEphemeraCharacterId(message.CharacterId))) {
                 return false
             }
             if (!('RoomId' in message && typeof message.RoomId === 'string')) {
