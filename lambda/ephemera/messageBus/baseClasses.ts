@@ -3,7 +3,7 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { TaggedMessageContent, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
-import { LegalCharacterColor, isEphemeraTaggedId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
 import { EphemeraExit } from "../cacheAsset/baseClasses"
 import {
@@ -256,16 +256,17 @@ export type DependencyCascadeMessage = {
 
 export type ExecuteActionMessage = {
     type: 'ExecuteAction';
-    actionId: string;
+    actionId: EphemeraActionId;
     characterId: EphemeraCharacterId;
 }
 
 export type MapUpdateMessage = {
     type: 'MapUpdate';
-    characterId: EphemeraCharacterId;
+    characterId?: EphemeraCharacterId;
     connectionId?: string;
     roomId?: EphemeraRoomId;
     previousRoomId?: EphemeraRoomId;
+    mapId?: EphemeraMapId;
 }
 
 export type MessageType = PublishMessage |

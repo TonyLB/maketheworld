@@ -39,8 +39,14 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
             return !Boolean(internalCache[dependencyTag].getPartial(message.deleteItem.EphemeraId).find(({ EphemeraId }) => (updatingNodes.includes(EphemeraId))))
         }
     }
+    const workableTargets = updatingNodes
+        .filter((target) => (
+            !payloadActions
+                .filter(({ EphemeraId }) => (EphemeraId === target))
+                .find((payload) => (!workablePayload(payload)))
+        ))
     const payloadsByTarget = payloadActions
-        .filter(workablePayload)
+        .filter(({ EphemeraId }) => (workableTargets.includes(EphemeraId)))
         .reduce<Record<string, DependencyGraphAction[]>>((previous, { EphemeraId, ...rest }) => ({
             ...previous,
             [EphemeraId]: [
@@ -48,7 +54,7 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                 { EphemeraId, ...rest }
             ]
         }), {})
-    const unworkablePayloads = payloads.filter(({ type, ...payload}) => (!workablePayload(payload)))
+    const unworkablePayloads = payloads.filter(({ EphemeraId }) => (!workableTargets.includes(EphemeraId)))
 
     unworkablePayloads.forEach((payload) => {
         messageBus.send(payload)
@@ -60,30 +66,42 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
         // Because we only update the Descent (and need the Ancestry's unchanged value), we run getItem and update
         // in parallel rather than suffer the hit for requesting ALL_NEW ReturnValue
         //
-        const antidependency = await getAntiDependency(dependencyTag)(targetId)
-        await ephemeraDB.optimisticUpdate({
-            key: {
-                EphemeraId: targetId,
-                DataCategory: `Meta::${tag}`
-            },
-            //
-            // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
-            // on so that it can recognize the existence of the row.
-            //
-            updateKeys: [dependencyTag, 'DataCategory'],
-            updateReducer: (draft) => {
-                if (typeof draft[dependencyTag] === 'undefined') {
-                    draft[dependencyTag] = []
+        const [antidependency] = await Promise.all([
+            getAntiDependency(dependencyTag)(targetId),
+            ephemeraDB.optimisticUpdate({
+                key: {
+                    EphemeraId: targetId,
+                    DataCategory: `Meta::${tag}`
+                },
+                //
+                // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
+                // on so that it can recognize the existence of the row.
+                //
+                updateKeys: [dependencyTag, 'DataCategory'],
+                updateReducer: (draft) => {
+                    if (typeof draft[dependencyTag] === 'undefined') {
+                        //
+                        // If you're defining for the first time, make a deeply non-immutable copy of the current
+                        // internalCache
+                        //
+                        draft[dependencyTag] = internalCache[dependencyTag].getPartial(targetId)
+                            .map(({ completeness, connections, ...rest }) => ({
+                                ...rest, 
+                                connections: connections
+                                    .map(({ assets, ...rest }) => ({ ...rest, assets: [...assets] }))
+                            }))
+                    }
+                    const startGraph: Record<string, DependencyNode> = draft[dependencyTag].reduce((previous, { EphemeraId, ...rest }) => ({ ...previous, [EphemeraId]: { EphemeraId, completeness: 'Complete', ...rest }}), {})
+                    reduceDependencyGraph(startGraph, payloadList)
+                    draft[dependencyTag] = extractTree(Object.values(startGraph), targetId)
+                        .map((node) => {
+                            const { completeness, ...rest } = node
+                            return rest
+                        })
                 }
-                const startGraph: Record<string, DependencyNode> = draft[dependencyTag].reduce((previous, { EphemeraId, ...rest }) => ({ ...previous, [EphemeraId]: { EphemeraId, completeness: 'Complete', ...rest }}), {})
-                reduceDependencyGraph(startGraph, payloadList)
-                draft[dependencyTag] = extractTree(Object.values(startGraph), targetId)
-                    .map((node) => {
-                        const { completeness, ...rest } = node
-                        return rest
-                    })
-            }
-        })
+            })
+        ])
+
         //
         // TODO: Don't double-message when a cascade update (below) reproduces a message that was repeated as unworkable (above)
         //

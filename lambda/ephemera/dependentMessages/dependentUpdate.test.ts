@@ -8,6 +8,7 @@ import dependentUpdateMessage from './dependentUpdate'
 import internalCache from '../internalCache'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 
 describe('DescentUpdateMessage', () => {
 
@@ -40,7 +41,7 @@ describe('DescentUpdateMessage', () => {
             messageBus
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(1)
+        expect(messageBus.send).toHaveBeenCalledTimes(2)
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
             EphemeraId: 'ASSET#ImportOne',

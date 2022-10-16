@@ -376,6 +376,7 @@ describe('DependencyGraph', () => {
             expect(output).toEqual([
                 {
                     EphemeraId: 'COMPUTED#Two',
+                    completeness: 'Complete',
                     connections: [
                         { EphemeraId: 'COMPUTED#Four', assets: ['base'] },
                         { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
@@ -384,24 +385,29 @@ describe('DependencyGraph', () => {
                 },
                 {
                     EphemeraId: 'COMPUTED#Four',
+                    completeness: 'Complete',
                     connections: [
                         { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
                     ]
                 },
                 {
                     EphemeraId: 'COMPUTED#Seven',
+                    completeness: 'Complete',
                     connections: []
                 },
                 {
                     EphemeraId: 'COMPUTED#Five',
+                    completeness: 'Complete',
                     connections: []
                 },
                 {
                     EphemeraId: 'COMPUTED#Eight',
+                    completeness: 'Complete',
                     connections: []
                 },
                 {
                     EphemeraId: 'COMPUTED#Three',
+                    completeness: 'Complete',
                     connections: [
                         { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
                         { EphemeraId: 'COMPUTED#Six', assets: ['base'] }
@@ -409,6 +415,7 @@ describe('DependencyGraph', () => {
                 },
                 {
                     EphemeraId: 'COMPUTED#Six',
+                    completeness: 'Complete',
                     connections: [
                         { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
                     ]

@@ -1,11 +1,11 @@
 import { TransactWriteItem } from "@aws-sdk/client-dynamodb"
 import { marshall } from "@aws-sdk/util-dynamodb"
-import { isEphemeraComputedId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { isEphemeraComputedId, isEphemeraMapId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
 import { DependencyNode } from "../internalCache/baseClasses"
-import { extractTree, tagFromEphemeraId } from "../internalCache/dependencyGraph"
+import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
 import { DependencyCascadeMessage, MessageBus } from "../messageBus/baseClasses"
 
 export const dependencyCascadeMessage = async ({ payloads, messageBus }: { payloads: DependencyCascadeMessage[]; messageBus: MessageBus }): Promise<void> => {
@@ -28,10 +28,6 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     const processOneMessage = async ({ targetId }: DependencyCascadeMessage): Promise<void> => {
         if (isEphemeraComputedId(targetId)) {
             await exponentialBackoffWrapper(async () => {
-                //
-                // TODO: Make Descent an optional property of the message, and fetch as part of the below when
-                // it is not provided
-                //
                 const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNode[]; src: string; value: any }>({
                     EphemeraId: targetId,
                     DataCategory: 'Meta::Computed',
@@ -120,6 +116,17 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     type: 'DependencyCascade',
                     targetId: EphemeraId
                 }
+            })
+        }
+        if (isEphemeraMapId(targetId)) {
+            //
+            // TODO: Optimize map dependency cascades so that they only happen when there has been
+            // either (a) an update of the map itself or (b) an update of the name or exits of an
+            // attached room
+            //
+            messageBus.send({
+                type: 'MapUpdate',
+                mapId: targetId
             })
         }
     }

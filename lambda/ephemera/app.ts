@@ -17,7 +17,7 @@ import {
     isMapSubscribeAPIMessage,
     isEphemeraAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
@@ -135,17 +135,19 @@ export const handler = async (event: any, context: any) => {
                 break
             case 'Execute Action':
                 if (event.detail.actionId && event.detail.characterId) {
-                    messageBus.send({
-                        type: 'ExecuteAction',
-                        actionId: event.detail.actionId,
-                        characterId: event.detail.characterId
-                    })
+                    const { actionId, characterId } = event.detail
+                    if (isEphemeraActionId(actionId) && isEphemeraCharacterId(characterId)) {
+                        messageBus.send({
+                            type: 'ExecuteAction',
+                            actionId,
+                            characterId
+                        })
+                    }
                 }
                 break
         }
     }
-    
-    if (routeKey === '$connect') {
+    else if (routeKey === '$connect') {
         const { Authorization = '' } = event.queryStringParameters || {}
         await connect(Authorization)
     }
@@ -230,32 +232,19 @@ export const handler = async (event: any, context: any) => {
             if (isLinkAPIMessage(request)) {
                 const CharacterId = request.CharacterId
                 if (isEphemeraCharacterId(CharacterId)) {
-                    switch(splitType(request.to)[0]) {
-                        case 'ACTION':
-                            //
-                            // TODO: Extend WML to assign legal Actions to Rooms, and then use that to check the legal
-                            // actions to which the character has access, and confirm access before executing
-                            //
-                            messageBus.send({
-                                type: 'ExecuteAction',
-                                actionId: request.to,
-                                characterId: CharacterId
-                            })
-                            break
-                        case 'FEATURE':
-                            messageBus.send({
-                                type: 'Perception',
-                                characterId: CharacterId,
-                                ephemeraId: request.to as `FEATURE#${string}`
-                            })
-                            break
-                        case 'CHARACTER':
-                            messageBus.send({
-                                type: 'Perception',
-                                characterId: CharacterId,
-                                ephemeraId: `CHARACTER#${splitType(request.to)[1]}`
-                            })
-                            break
+                    if (isEphemeraActionId(request.to)) {
+                        messageBus.send({
+                            type: 'ExecuteAction',
+                            actionId: request.to,
+                            characterId: CharacterId
+                        })
+                    }
+                    if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to)) {
+                        messageBus.send({
+                            type: 'Perception',
+                            characterId: CharacterId,
+                            ephemeraId: request.to
+                        })
                     }
                 }
             }
