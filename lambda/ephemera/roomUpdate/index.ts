@@ -6,12 +6,12 @@ export const roomUpdateMessage = async ({ payloads, messageBus }: { payloads: Ro
     await Promise.all(payloads
         .filter(({ roomId }) => (roomId))
         .map(async ({ roomId }) => {
-            const activeCharacters = await internalCache.RoomCharacterList.get(`ROOM#${roomId}`)
+            const activeCharacters = await internalCache.RoomCharacterList.get(roomId)
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [`ROOM#${roomId}`],
+                targets: [roomId],
                 displayProtocol: 'RoomUpdate',
-                RoomId: roomId,
+                RoomId: splitType(roomId)[1],
                 Characters: activeCharacters.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest }))
             })
         })

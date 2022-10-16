@@ -8,7 +8,10 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     const ConnectionId = await internalCache.Global.get('ConnectionId')
     const RequestId = await internalCache.Global.get('RequestId')
 
-    const nonGlobalSends = (payloads.find(({ global }) => (!global))) ? [
+    if (!ConnectionId) {
+        console.log('No ConnectionId specified in ephemeraUpdate')
+    }
+    const nonGlobalSends = (payloads.find(({ global }) => (!global)) && ConnectionId) ? [
         apiClient.send(
             ConnectionId,
             {

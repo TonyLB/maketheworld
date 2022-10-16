@@ -5,7 +5,7 @@ import { checkAll, checkTypes } from "./utils";
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
 }
 
 export type FetchEphemeraAPIMessage = {
@@ -132,8 +132,11 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
     }
     switch(message.message) {
         case 'registercharacter':
+            return Boolean(
+                checkTypes(message, { CharacterId: 'string' })
+                && isEphemeraCharacterId(message.CharacterId)
+            )
         case 'subscribeToMaps':
-            return checkTypes(message, { CharacterId: 'string' })
         case 'fetchEphemera':
             return checkTypes(message, {}, { CharacterId: 'string' })
         case 'fetchImportDefaults':

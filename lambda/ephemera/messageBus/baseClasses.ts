@@ -235,7 +235,7 @@ export type PlayerUpdateMessage = {
 
 export type RoomUpdateMessage = {
     type: 'RoomUpdate';
-    roomId: string;
+    roomId: EphemeraRoomId;
 }
 
 export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
