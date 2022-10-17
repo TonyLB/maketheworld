@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -23,7 +23,7 @@ type TaggedLineBreak = {
 export type TaggedLink = {
     tag: 'Link',
     text: string;
-    to: string;
+    to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId;
 }
 
 export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak;
@@ -39,6 +39,7 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
             return true
         case 'Link':
             return checkTypes(message, { text: 'string', to: 'string' })
+                && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to))
         default: return false
     }
 }
