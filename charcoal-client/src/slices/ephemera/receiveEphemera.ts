@@ -1,33 +1,36 @@
 import { PayloadAction } from '@reduxjs/toolkit'
-import { EphemeraCharacterInPlay, EphemeraCharacterColor } from './baseClasses'
+import { LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraClientMessageEphemeraUpdateCharacterInPlay } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { EphemeraCharacterColor } from './baseClasses'
 
-export type CharacterInPlayChange = Omit<EphemeraCharacterInPlay, "color"> & {
-    type: 'CharacterInPlay';
-}
+export type CharacterInPlayChange = EphemeraClientMessageEphemeraUpdateCharacterInPlay
 
 export type EphemeraChange = CharacterInPlayChange
 
-const colorSequence: EphemeraCharacterColor[] = ['pink', 'purple', 'green']
-    .map(color => ({
-        name: color,
-        primary: color,
-        light: `light${color}`,
-        recap: `recap${color}`,
-        recapLight: `recapLight${color}`,
-        direct: `direct${color}`
-    }))
+const colorTranslate = (color: LegalCharacterColor): EphemeraCharacterColor => ({
+    name: color,
+    primary: color,
+    light: `light${color}`,
+    recap: `recap${color}`,
+    recapLight: `recapLight${color}`,
+    direct: `direct${color}`
+})
 
 export const receiveEphemera = (state: any, action: PayloadAction<EphemeraChange>) => {
     if (action.payload.type === 'CharacterInPlay') {
-        const { CharacterId, Name, Connected, RoomId, fileURL } = action.payload
-        const nextColorIndex = (Object.values(state.charactersInPlay).length + 2) % 3
-        state.charactersInPlay[CharacterId] = {
-            CharacterId,
-            Name,
-            Connected,
-            RoomId,
-            fileURL,
-            color: state.charactersInPlay[CharacterId]?.color || colorSequence[nextColorIndex]
+        const { CharacterId, Connected } = action.payload
+        if (Connected) {
+            const { Name, RoomId, fileURL, Color } = action.payload
+            state.charactersInPlay[CharacterId] = {
+                CharacterId,
+                Name,
+                RoomId,
+                fileURL,
+                color: colorTranslate(Color)
+            }
+        }
+        else {
+            state.charactersInPlay[CharacterId] = undefined
         }
     }
 }
