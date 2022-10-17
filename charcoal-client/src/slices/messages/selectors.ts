@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { Message, RoomHeader } from '@tonylb/mtw-interfaces/dist/messages'
 import { MessageState } from './baseClasses'
 import { Selector } from '../../store'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 
 export const getMessages: Selector<MessageState> = (state) => {
@@ -17,7 +18,7 @@ export const getMessages: Selector<MessageState> = (state) => {
             const value = handlerLookup(obj, prop)
             return {
                 configurable: Object.getOwnPropertyDescriptor(obj, prop)?.configurable,
-                enumerable: Boolean(obj[prop.toString()]),
+                enumerable: Boolean(obj[prop.toString() as any]),
                 value
             }
         }
@@ -81,7 +82,7 @@ const combineCurrentHeader = ({ Messages, Groups, currentGroup }: MessageRoomInP
     }
 }
 
-export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBreakdown> = (CharacterId) => createSelector(
+export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<MessageRoomBreakdown> = (CharacterId) => createSelector(
     getMessages,
     (allMessages) => {
         let messages = [] as Message[]
