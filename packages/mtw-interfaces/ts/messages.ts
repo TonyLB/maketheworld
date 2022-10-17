@@ -1,10 +1,10 @@
-import { EphemeraMapId, EphemeraRoomId, isEphemeraMapId, isEphemeraRoomId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraMapId, isEphemeraRoomId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
     MessageId: string;
     CreatedTime: number;
-    Target: string;
+    Target: EphemeraCharacterId;
 }
 
 export type SpacerMessage = {
@@ -217,6 +217,9 @@ export const isMessage = (message: any): message is Message => {
         return false
     }
     if (!checkTypes(message, { MessageId: 'string', CreatedTime: 'number', Target: 'string' })) {
+        return false
+    }
+    if (!isEphemeraCharacterId(message.Target)) {
         return false
     }
     switch(message.DisplayProtocol) {

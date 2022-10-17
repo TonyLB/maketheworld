@@ -201,7 +201,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'TestID',
                     CreatedTime: 5,
-                    Target: 'TestABC',
+                    Target: 'CHARACTER#TestABC',
                     Message: {
                         tag: 'String',
                         value: 'Test'
@@ -217,7 +217,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     DisplayProtocol: 'Announcement',
                     MessageId: 'TestID',
                     CreatedTime: 5,
-                    Target: 'TestABC',
+                    Target: 'CHARACTER#TestABC',
                     Message: [{
                         tag: 'String',
                         value: 'Test'
@@ -233,7 +233,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'TestID',
                     CreatedTime: 5,
-                    Target: 'TestABC',
+                    Target: 'CHARACTER#TestABC',
                     Message: [{
                         tag: 'String',
                         value: 'Test'
@@ -246,14 +246,30 @@ describe('EphemeraClientMessage typeguard', () => {
             })).toBe(false)
         })
 
-        it('should reject illegal message', () => {
+        it('should reject illegal message target type', () => {
             expect(isEphemeraClientMessage({
                 messageType: 'Messages',
                 messages: [{
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'TestID',
                     CreatedTime: 5,
-                    Target: ['TestABC'],
+                    Target: ['CHARACTER#TestABC'],
+                    Message: [{
+                        tag: 'String',
+                        value: 'Test'
+                    }]
+                }]
+            })).toBe(false)
+        })
+
+        it('should reject illegal message format', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'Messages',
+                messages: [{
+                    DisplayProtocol: 'WorldMessage',
+                    MessageId: 'TestID',
+                    CreatedTime: 5,
+                    Target: 'TestABC',
                     Message: [{
                         tag: 'String',
                         value: 'Test'
@@ -269,7 +285,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'TestID',
                     CreatedTime: 5,
-                    Target: 'TestABC',
+                    Target: 'CHARACTER#TestABC',
                     Message: [{
                         tag: 'String',
                         value: 'Test'

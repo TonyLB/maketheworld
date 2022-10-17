@@ -26,7 +26,7 @@ describe('messages reducer', () => {
             MessageId: label,
             Message: [{ tag: 'String', value: 'Test' }],
             CreatedTime: value,
-            Target: 'Test'
+            Target: 'CHARACTER#Test'
         })) as WorldMessage[]
 
         it('should place elements at beginning of array', () => {
@@ -83,11 +83,11 @@ describe('messages reducer', () => {
             MessageId: label,
             Message: [{ tag: 'String', value: 'Test' }],
             CreatedTime: value,
-            Target: 'Test'
+            Target: 'CHARACTER#Test'
         })) as WorldMessage[]
 
         const state = {
-            TESS: testArray
+            'CHARACTER#TESS': testArray
         }
 
         it('should accept message in empty state', () => {
@@ -96,14 +96,14 @@ describe('messages reducer', () => {
                 CreatedTime: 1,
                 Message: [{ tag: 'String', value: 'Test message' }],
                 MessageId: 'Test',
-                Target: 'TESS'
+                Target: 'CHARACTER#TESS'
             }]))).toEqual({
-                TESS: [{
+                'CHARACTER#TESS': [{
                     DisplayProtocol: 'WorldMessage',
                     CreatedTime: 1,
                     Message: [{ tag: 'String', value: 'Test message' }],
                     MessageId: 'Test',
-                    Target: 'TESS'
+                    Target: 'CHARACTER#TESS'
                 }]
             })
         })
@@ -114,16 +114,16 @@ describe('messages reducer', () => {
                 CreatedTime: 1,
                 Message: [{ tag: 'String', value: 'Test message' }],
                 MessageId: 'Test',
-                Target: 'MARCO'
+                Target: 'CHARACTER#MARCO'
             }]))).toEqual({
-                MARCO: [{
+                'CHARACTER#MARCO': [{
                     DisplayProtocol: 'WorldMessage',
                     CreatedTime: 1,
                     Message: [{ tag: 'String', value: 'Test message' }],
                     MessageId: 'Test',
-                    Target: 'MARCO'
+                    Target: 'CHARACTER#MARCO'
                 }],
-                TESS: testArray
+                'CHARACTER#TESS': testArray
             })
         })
 
@@ -133,14 +133,14 @@ describe('messages reducer', () => {
                 CreatedTime: 1,
                 Message: [{ tag: 'String', value: 'Test message' }],
                 MessageId: 'Test',
-                Target: 'TESS'
+                Target: 'CHARACTER#TESS'
             }]))).toEqual({
-                TESS: [{
+                'CHARACTER#TESS': [{
                         DisplayProtocol: 'WorldMessage',
                         CreatedTime: 1,
                         Message: [{ tag: 'String', value: 'Test message' }],
                         MessageId: 'Test',
-                        Target: 'TESS'
+                        Target: 'CHARACTER#TESS'
                     },
                     ...testArray
                 ]
@@ -153,16 +153,16 @@ describe('messages reducer', () => {
                 CreatedTime: 200000,
                 Message: [{ tag: 'String', value: 'Test message' }],
                 MessageId: 'Test',
-                Target: 'TESS'
+                Target: 'CHARACTER#TESS'
             }]))).toEqual({
-                TESS: [
+                'CHARACTER#TESS': [
                     ...testArray,
                     {
                         DisplayProtocol: 'WorldMessage',
                         CreatedTime: 200000,
                         Message: [{ tag: 'String', value: 'Test message' }],
                         MessageId: 'Test',
-                        Target: 'TESS'
+                        Target: 'CHARACTER#TESS'
                     }
                 ]
             })
@@ -180,21 +180,21 @@ describe('messages reducer', () => {
             MessageId: label,
             Message: [{ tag: 'String', value: 'Test message' }],
             CreatedTime: value,
-            Target: 'Test'
+            Target: 'CHARACTER#Test'
         })) as WorldMessage[]
 
-        const state = { messages: { TESS: testArray } } as any
+        const state = { messages: { 'CHARACTER#TESS': testArray } } as any
 
         it('should return values when available', () => {
-            expect(getMessages(state).TESS).toEqual(testArray)
+            expect(getMessages(state)['CHARACTER#TESS']).toEqual(testArray)
         })
 
         it('should return empty array when target not available', () => {
-            expect(getMessages(state).MARCO).toEqual([])
+            expect(getMessages(state)['CHARACTER#MARCO']).toEqual([])
         })
 
         it('should handle object.entries correctly', () => {
-            expect(Object.entries(getMessages(state))).toEqual([['TESS', testArray]])
+            expect(Object.entries(getMessages(state))).toEqual([['CHARACTER#TESS', testArray]])
         })
     })
 })
