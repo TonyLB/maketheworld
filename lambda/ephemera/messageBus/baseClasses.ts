@@ -135,10 +135,10 @@ export type EphemeraUpdateCharacterEntry = {
     type: 'CharacterInPlay';
     CharacterId: EphemeraCharacterId;
     Connected: boolean;
-    RoomId: string;
+    RoomId: EphemeraRoomId;
     Name: string;
     fileURL: string;
-    Color: string;
+    Color: LegalCharacterColor;
 }
 
 export type EphemeraUpdateMapEntry = {

@@ -8,7 +8,7 @@ const testState: EphemeraPublic = {
         'CHARACTER#TESS': {
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
-            RoomId: 'ABC',
+            RoomId: 'ROOM#ABC',
             color: {
                 name: 'pink',
                 primary: 'pink',
@@ -21,7 +21,7 @@ const testState: EphemeraPublic = {
         'CHARACTER#MARCO': {
             CharacterId: 'CHARACTER#MARCO',
             Name: 'Marco',
-            RoomId: 'VORTEX',
+            RoomId: 'ROOM#VORTEX',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -34,7 +34,7 @@ const testState: EphemeraPublic = {
         'CHARACTER#ASAHINA': {
             CharacterId: 'CHARACTER#ASAHINA',
             Name: 'Asahina',
-            RoomId: 'ABC',
+            RoomId: 'ROOM#ABC',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -54,7 +54,7 @@ describe('charactersInPlay selectors', () => {
         expect(getCharactersInPlay(testState)['CHARACTER#TESS']).toEqual({
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
-            RoomId: 'ABC',
+            RoomId: 'ROOM#ABC',
             color: {
                 name: 'pink',
                 primary: 'pink',
@@ -70,6 +70,7 @@ describe('charactersInPlay selectors', () => {
         expect(getCharactersInPlay(testState).SAIONJI).toEqual({
             CharacterId: 'SAIONJI',
             Name: '??????',
+            RoomId: 'ROOM#VORTEX',
             color: {
                 name: 'grey',
                 primary: 'grey',
@@ -89,7 +90,7 @@ describe('charactersInPlay selectors', () => {
         expect(Object.values(getCharactersInPlay(testState))).toEqual([{
             CharacterId: 'CHARACTER#ASAHINA',
             Name: 'Asahina',
-            RoomId: 'ABC',
+            RoomId: 'ROOM#ABC',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -101,7 +102,7 @@ describe('charactersInPlay selectors', () => {
         }, {
             CharacterId: 'CHARACTER#MARCO',
             Name: 'Marco',
-            RoomId: 'VORTEX',
+            RoomId: 'ROOM#VORTEX',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -113,7 +114,7 @@ describe('charactersInPlay selectors', () => {
         }, {
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
-            RoomId: 'ABC',
+            RoomId: 'ROOM#ABC',
             color: {
                 name: 'pink',
                 primary: 'pink',
@@ -129,7 +130,7 @@ describe('charactersInPlay selectors', () => {
         expect(Object.entries(getCharactersInPlay(testState))).toEqual([['CHARACTER#ASAHINA', {
             CharacterId: 'CHARACTER#ASAHINA',
             Name: 'Asahina',
-            RoomId: 'ABC',
+            RoomId: 'ROOM#ABC',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -141,7 +142,7 @@ describe('charactersInPlay selectors', () => {
         }], ['CHARACTER#MARCO', {
             CharacterId: 'CHARACTER#MARCO',
             Name: 'Marco',
-            RoomId: 'VORTEX',
+            RoomId: 'ROOM#VORTEX',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -153,7 +154,7 @@ describe('charactersInPlay selectors', () => {
         }], ['CHARACTER#TESS', {
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
-            RoomId: 'ABC',
+            RoomId: 'ROOM#ABC',
             color: {
                 name: 'pink',
                 primary: 'pink',

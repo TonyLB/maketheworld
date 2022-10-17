@@ -226,7 +226,7 @@ export type EphemeraClientMessageEphemeraUpdateCharacterInPlayActive = {
     type: 'CharacterInPlay';
     CharacterId: EphemeraCharacterId;
     Connected: true;
-    RoomId: string;
+    RoomId: EphemeraRoomId;
     Name: string;
     fileURL?: string;
     Color: LegalCharacterColor;
@@ -243,7 +243,7 @@ const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: any): mes
             if (!('CharacterId' in message && typeof message.CharacterId === 'string' && isEphemeraCharacterId(message.CharacterId))) {
                 return false
             }
-            if (!('RoomId' in message && typeof message.RoomId === 'string')) {
+            if (!('RoomId' in message && typeof message.RoomId === 'string' && isEphemeraRoomId(message.RoomId))) {
                 return false
             }
             if (!('Name' in message && typeof message.Name === 'string')) {
