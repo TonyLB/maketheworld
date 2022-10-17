@@ -52,7 +52,7 @@ describe('Perception message', () => {
             type: 'PublishMessage',
             displayProtocol: 'CharacterDescription',
             targets: ['CHARACTER#TESS'],
-            CharacterId: 'TESS',
+            CharacterId: 'CHARACTER#TESS',
             Name: 'Tess', 
             FirstImpression: 'Testy',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }

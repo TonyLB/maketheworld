@@ -15,7 +15,6 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
     await Promise.all(payloads.map(async (payload) => {
         const { characterId, ephemeraId } = payload
         if (isEphemeraCharacterId(ephemeraId)) {
-            const CharacterId = splitType(ephemeraId)[1]
             const characterDescription = (await ephemeraDB.getItem<EphemeraCharacterDescription>({
                 EphemeraId: ephemeraId,
                 DataCategory: 'Meta::Character',
@@ -32,8 +31,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 type: 'PublishMessage',
                 targets: [characterId],
                 displayProtocol: 'CharacterDescription',
-                CharacterId,
-                ...characterDescription
+                ...characterDescription,
+                CharacterId: ephemeraId
             })
         }
         else {

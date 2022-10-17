@@ -29,7 +29,7 @@ export const RoomCharacter = ({
     const clickHandler = clickable ? () => {
         dispatch(socketDispatchPromise({
             message: 'link',
-            CharacterId: viewCharacterId,
+            CharacterId: `CHARACTER#${viewCharacterId}`,
             to: `CHARACTER#${CharacterId}`
         }))
     } : () => {}
