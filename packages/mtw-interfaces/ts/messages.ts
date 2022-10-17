@@ -87,7 +87,7 @@ const validateRoomCharacterList = (items: any) => {
 export type RoomDescribeData = {
     Description: TaggedMessageContent[];
     Name: string;
-    RoomId: string;
+    RoomId: EphemeraRoomId;
     Exits: RoomExit[];
     Characters: RoomCharacter[];
 }
@@ -240,14 +240,14 @@ export const isMessage = (message: any): message is Message => {
                 validateRoomExitList(message.Exits),
                 validateRoomCharacterList(message.Characters),
                 validateMessageList(message.Description)
-            )
+            ) && isEphemeraRoomId(message.RoomId)
         case 'RoomUpdate':
             return checkAll(
                 checkTypes(message, {}, { Name: 'string', RoomId: 'string' }),
                 validateRoomExitList(message.Exits ?? []),
                 validateRoomCharacterList(message.Characters ?? []),
                 validateMessageList(message.Description ?? [])
-            )
+            ) && isEphemeraRoomId(message.RoomId)
         case 'FeatureDescription':
             return checkAll(
                 checkTypes(message, { Name: 'string', FeatureId: 'string' }),
