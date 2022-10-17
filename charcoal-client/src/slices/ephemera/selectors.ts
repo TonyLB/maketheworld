@@ -16,8 +16,7 @@ export const getCharactersInPlay = (state: EphemeraPublic) => {
             recap: 'grey',
             recapLight: 'grey',
             direct: 'grey'
-        },
-        Connected: false
+        }
     }
     const handlerLookup = (obj: Record<string | symbol, EphemeraCharacterInPlay>, prop: string | symbol): EphemeraCharacterInPlay => (obj[prop] || {
         CharacterId: prop as string,
@@ -44,7 +43,7 @@ export const publicSelectors: PublicSelectorType = {
     getCharactersInPlay,
     getActiveCharacterList: (state: EphemeraPublic): EphemeraCharacterInPlay[] => {
         const charactersInPlay = getCharactersInPlay(state)
-        return Object.values(charactersInPlay).filter(({ Connected }) => (Connected)) as EphemeraCharacterInPlay[]
+        return Object.values(charactersInPlay) as EphemeraCharacterInPlay[]
     }
 }
 

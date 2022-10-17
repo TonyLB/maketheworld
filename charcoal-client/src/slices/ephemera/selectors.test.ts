@@ -8,7 +8,6 @@ const testState: EphemeraPublic = {
         'CHARACTER#TESS': {
             CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
-            Connected: true,
             RoomId: 'ABC',
             color: {
                 name: 'pink',
@@ -22,7 +21,7 @@ const testState: EphemeraPublic = {
         'CHARACTER#MARCO': {
             CharacterId: 'CHARACTER#MARCO',
             Name: 'Marco',
-            Connected: false,
+            RoomId: 'VORTEX',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -35,7 +34,6 @@ const testState: EphemeraPublic = {
         'CHARACTER#ASAHINA': {
             CharacterId: 'CHARACTER#ASAHINA',
             Name: 'Asahina',
-            Connected: false,
             RoomId: 'ABC',
             color: {
                 name: 'green',
@@ -54,9 +52,8 @@ describe('charactersInPlay selectors', () => {
 
     it('should correctly return when characterInPlay data is present', () => {
         expect(getCharactersInPlay(testState)['CHARACTER#TESS']).toEqual({
-            CharacterId: 'TESS',
+            CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
-            Connected: true,
             RoomId: 'ABC',
             color: {
                 name: 'pink',
@@ -73,7 +70,6 @@ describe('charactersInPlay selectors', () => {
         expect(getCharactersInPlay(testState).SAIONJI).toEqual({
             CharacterId: 'SAIONJI',
             Name: '??????',
-            Connected: false,
             color: {
                 name: 'grey',
                 primary: 'grey',
@@ -86,14 +82,13 @@ describe('charactersInPlay selectors', () => {
     })
 
     it('should correctly handle Object.keys', () => {
-        expect(Object.keys(getCharactersInPlay(testState))).toEqual(['ASAHINA', 'MARCO', 'TESS'])
+        expect(Object.keys(getCharactersInPlay(testState))).toEqual(['CHARACTER#ASAHINA', 'CHARACTER#MARCO', 'CHARACTER#TESS'])
     })
 
     it('should correctly handle Object.values', () => {
         expect(Object.values(getCharactersInPlay(testState))).toEqual([{
-            CharacterId: 'ASAHINA',
+            CharacterId: 'CHARACTER#ASAHINA',
             Name: 'Asahina',
-            Connected: false,
             RoomId: 'ABC',
             color: {
                 name: 'green',
@@ -104,9 +99,9 @@ describe('charactersInPlay selectors', () => {
                 direct: 'test'
             }
         }, {
-            CharacterId: 'MARCO',
+            CharacterId: 'CHARACTER#MARCO',
             Name: 'Marco',
-            Connected: false,
+            RoomId: 'VORTEX',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -116,9 +111,8 @@ describe('charactersInPlay selectors', () => {
                 direct: 'test'
             }
         }, {
-            CharacterId: 'TESS',
+            CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
-            Connected: true,
             RoomId: 'ABC',
             color: {
                 name: 'pink',
@@ -132,10 +126,9 @@ describe('charactersInPlay selectors', () => {
     })
 
     it('should correctly handle Object.entries', () => {
-        expect(Object.entries(getCharactersInPlay(testState))).toEqual([['ASAHINA', {
-            CharacterId: 'ASAHINA',
+        expect(Object.entries(getCharactersInPlay(testState))).toEqual([['CHARACTER#ASAHINA', {
+            CharacterId: 'CHARACTER#ASAHINA',
             Name: 'Asahina',
-            Connected: false,
             RoomId: 'ABC',
             color: {
                 name: 'green',
@@ -145,10 +138,10 @@ describe('charactersInPlay selectors', () => {
                 recapLight: 'test',
                 direct: 'test'
             }
-        }], ['MARCO', {
-            CharacterId: 'MARCO',
+        }], ['CHARACTER#MARCO', {
+            CharacterId: 'CHARACTER#MARCO',
             Name: 'Marco',
-            Connected: false,
+            RoomId: 'VORTEX',
             color: {
                 name: 'green',
                 primary: 'green',
@@ -157,10 +150,9 @@ describe('charactersInPlay selectors', () => {
                 recapLight: 'test',
                 direct: 'test'
             }
-        }], ['TESS', {
-            CharacterId: 'TESS',
+        }], ['CHARACTER#TESS', {
+            CharacterId: 'CHARACTER#TESS',
             Name: 'Tess',
-            Connected: true,
             RoomId: 'ABC',
             color: {
                 name: 'pink',
