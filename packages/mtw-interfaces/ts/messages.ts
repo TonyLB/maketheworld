@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraMapId, isEphemeraRoomId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -99,7 +99,7 @@ export type RoomDescription = {
 export type FeatureDescribeData = {
     Description: TaggedMessageContent[];
     Name: string;
-    FeatureId: string;
+    FeatureId: EphemeraFeatureId;
 }
 
 export type FeatureDescription = {
@@ -252,7 +252,7 @@ export const isMessage = (message: any): message is Message => {
             return checkAll(
                 checkTypes(message, { Name: 'string', FeatureId: 'string' }),
                 validateMessageList(message.Description)
-            )
+            ) && isEphemeraFeatureId(message.FeatureId)
         case 'CharacterDescription':
             return checkAll(
                 checkTypes(message, 
