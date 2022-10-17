@@ -184,7 +184,7 @@ export type RoomUpdate = {
 } & MessageAddressing & Partial<RoomDescribeData>
 
 type MessageCharacterInfo = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Name: string;
     Color: LegalCharacterColor;
 }
@@ -232,7 +232,7 @@ export const isMessage = (message: any): message is Message => {
                 checkTypes(message, { CharacterId: 'string', Name: 'string' }),
                 ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color),
                 validateMessageList(message.Message)
-            )
+            ) && isEphemeraCharacterId(message.CharacterId)
         case 'RoomDescription':
         case 'RoomHeader':
             return checkAll(

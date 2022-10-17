@@ -45,7 +45,7 @@ export type PublishWorldMessage = PublishMessageBase & {
 }
 
 type MessageCharacterInfo = {
-    characterId: string;
+    characterId: EphemeraCharacterId;
     name: string;
     color: LegalCharacterColor;
 }
