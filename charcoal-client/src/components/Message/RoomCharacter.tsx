@@ -30,7 +30,7 @@ export const RoomCharacter = ({
         dispatch(socketDispatchPromise({
             message: 'link',
             CharacterId: `CHARACTER#${viewCharacterId}`,
-            to: `CHARACTER#${CharacterId}`
+            to: CharacterId
         }))
     } : () => {}
 

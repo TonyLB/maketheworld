@@ -86,7 +86,7 @@ const NestedCharacterStyleWrapper: FunctionComponent<Omit<CharacterStyleWrapperP
     const whoIsActive = useSelector(getActiveCharacterList)
     const { color } = whoIsActive.find((character) => (character.CharacterId === CharacterId)) || { color: { name: 'grey' } }
 
-    return <CharacterColorWrapper color={(activeId === CharacterId) ? 'blue' : color.name as LegalCharacterColor || 'grey'} >
+    return <CharacterColorWrapper color={(`CHARACTER#${activeId}` === CharacterId) ? 'blue' : color.name || 'grey'} >
         { children }
     </CharacterColorWrapper>
 }

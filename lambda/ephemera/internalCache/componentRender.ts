@@ -166,7 +166,7 @@ export class ComponentRenderData {
                 dependencies: aggregateDependencies,
                 description: {
                     RoomId: EphemeraId,
-                    Characters: roomCharacterList.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
+                    Characters: roomCharacterList.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest })),
                     ...renderRoom
                 }
             }

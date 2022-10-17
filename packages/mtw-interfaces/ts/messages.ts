@@ -54,7 +54,7 @@ export type WorldMessage = {
 
 export type RoomExit = {
     Name: string;
-    RoomId: string;
+    RoomId: EphemeraRoomId;
     Visibility: 'Public' | 'Private';
 }
 
@@ -65,13 +65,14 @@ const validateRoomExitList = (items: any) => {
     return items.reduce<boolean>((previous, roomItem) => (
         previous
             && checkTypes(roomItem, { Name: 'string', RoomId: 'string' })
+            && isEphemeraRoomId(roomItem.RoomId)
             && ['Public', 'Private'].includes(roomItem.Visibility)
     ), true)
 }
 
 export type RoomCharacter = {
     Name: string;
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
 }
 
 const validateRoomCharacterList = (items: any) => {
@@ -81,6 +82,7 @@ const validateRoomCharacterList = (items: any) => {
     return items.reduce<boolean>((previous, roomItem) => (
         previous
             && checkTypes(roomItem, { Name: 'string', CharacterId: 'string' })
+            && isEphemeraCharacterId(roomItem.CharacterId)
     ), true)
 }
 

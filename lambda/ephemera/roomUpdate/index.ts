@@ -1,4 +1,3 @@
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
 import { MessageBus, RoomUpdateMessage } from "../messageBus/baseClasses"
 
@@ -12,7 +11,7 @@ export const roomUpdateMessage = async ({ payloads, messageBus }: { payloads: Ro
                 targets: [roomId],
                 displayProtocol: 'RoomUpdate',
                 RoomId: roomId,
-                Characters: activeCharacters.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest }))
+                Characters: activeCharacters.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest }))
             })
         })
     )

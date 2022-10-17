@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlay, EphemeraClientMessageEphemeraUpdateCharacterInPlayActive } from '@tonylb/mtw-interfaces/dist/ephemera';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
@@ -8,7 +8,7 @@ export interface EphemeraInternal {
 }
 
 export type EphemeraCharacterColor = {
-    name: string;
+    name: LegalCharacterColor;
     primary: string;
     light: string;
     recap: string;
