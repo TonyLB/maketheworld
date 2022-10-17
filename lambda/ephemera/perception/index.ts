@@ -49,13 +49,12 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             }
             if (isEphemeraFeatureId(ephemeraId)) {
                 const featureDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
-                const FeatureId = splitType(ephemeraId)[1]
                 messageBus.send({
                     type: 'PublishMessage',
                     targets: [characterId],
                     displayProtocol: 'FeatureDescription',
                     ...featureDescribe,
-                    FeatureId
+                    FeatureId: ephemeraId
                 })
             }
             if (isPerceptionMapMessage(payload)) {
