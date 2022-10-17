@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 import { checkAll, checkTypes } from "./utils";
@@ -91,8 +91,8 @@ export type ActionAPIMessage = {
 
 export type LinkAPIMessage = {
     message: 'link';
-    to: string;
-    CharacterId: string;
+    to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId;
+    CharacterId: EphemeraCharacterId;
 }
 
 export type CommandAPIMessage = {
@@ -152,19 +152,14 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
             )
         case 'link':
             return Boolean(
-                'CharacterId' in message
-                && typeof message.CharacterId === 'string'
-                /* && isEphemeraCharacterId(message.CharacterId)*/
-                && 'to' in message
-                && typeof message.to === 'string'
+                checkTypes(message, { CharacterId: 'string', to: 'string' })
+                && isEphemeraCharacterId(message.CharacterId)
+                && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to))
             )
         case 'command':
             return Boolean(
-                'CharacterId' in message
-                && typeof message.CharacterId === 'string'
-                /* && isEphemeraCharacterId(message.CharacterId)*/
-                && 'command' in message
-                && typeof message.command === 'string'
+                checkTypes(message, { CharacterId: 'string', command: 'string' })
+                && isEphemeraCharacterId(message.CharacterId)
             )
         case 'action':
             if (!('actionType' in message && 'payload' in message && typeof message.payload === 'object')) {
