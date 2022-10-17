@@ -76,7 +76,7 @@ describe('ComponentRender cache handler', () => {
         expect(output).toEqual({
             RoomId: 'ROOM#TestOne',
             Name: 'TestRoom',
-            Characters: [{ CharacterId: 'TESS', Name: 'Tess', Color: 'purple' }],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: []
         })
@@ -296,7 +296,7 @@ describe('ComponentRender cache handler', () => {
         expect(outputOne).toEqual({
             RoomId: 'ROOM#TestOne',
             Name: 'TestRoom',
-            Characters: [{ CharacterId: 'TESS', Name: 'Tess', Color: 'purple' }],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'First' }],
             Exits: []
         })
@@ -307,7 +307,7 @@ describe('ComponentRender cache handler', () => {
         expect(outputTwo).toEqual({
             RoomId: 'ROOM#TestOne',
             Name: 'TestRoom',
-            Characters: [{ CharacterId: 'TESS', Name: 'Tess', Color: 'purple' }],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: []
         })
@@ -318,7 +318,7 @@ describe('ComponentRender cache handler', () => {
         expect(outputThree).toEqual({
             RoomId: 'ROOM#TestOne',
             Name: 'TestRoom',
-            Characters: [{ CharacterId: 'TESS', Name: 'Tess', Color: 'purple' }],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: []
         })
