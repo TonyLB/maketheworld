@@ -156,7 +156,7 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
 }
 
 type CharacterDescribeData = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Name: string;
     fileURL?: string;
     FirstImpression?: string;
@@ -274,7 +274,7 @@ export const isMessage = (message: any): message is Message => {
                     adjective: 'string',
                     reflexive: 'string'
                 })
-            )
+            ) && isEphemeraCharacterId(message.CharacterId)
         default: return false
     }
 }
