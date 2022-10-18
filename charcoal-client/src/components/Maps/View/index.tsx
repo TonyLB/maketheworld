@@ -15,6 +15,7 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
+import { EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 
 type MapViewProps = {
 }
@@ -32,7 +33,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         dispatch(setIntent({ key: CharacterId, intent: ['MAPSUBSCRIBED'] }))
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
-    const [MapId, setMapId] = useState<string>(Object.keys(maps || {})[0] || '')
+    const [MapId, setMapId] = useState<EphemeraMapId | undefined>(Object.keys(maps || {})[0] as EphemeraMapId | undefined)
 
     return <Box sx={{ height: "100%", width: "100%" }}>
         <Box sx={{ width: "100%", margin: ".5rem", display: "flex", justifyContent: "center" }}>
@@ -44,7 +45,12 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                         labelId="map-view-select-label"
                         value={MapId}
                         label="Which Map"
-                        onChange={(event) => { setMapId(event.target.value) }}
+                        onChange={(event) => {
+                            const mapId = event.target.value
+                            if (isEphemeraMapId(mapId)) {
+                                setMapId(mapId)
+                            }
+                        }}
                     >
                         {
                             Object.entries(maps || {})

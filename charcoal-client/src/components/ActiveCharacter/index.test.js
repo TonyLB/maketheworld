@@ -10,7 +10,7 @@ const mockStore = configureStore()
 const store = mockStore({
     activeCharacters: {
         byId: {
-            TESS: {
+            'CHARACTER#TESS': {
                 meta: { currentState: 'CONNECTED' },
                 internalData: {},
                 publicData: {}
@@ -45,18 +45,18 @@ describe('ActiveCharacter wrapper component', () => {
     it('correctly sets context CharacterId', () => {
         const { container } = render(
             <Provider store={store}>
-                <ActiveCharacter CharacterId='ABC' >
+                <ActiveCharacter CharacterId='CHARACTER#ABC' >
                     <TestComponent />
                 </ActiveCharacter>
             </Provider>
         )
-        expect(container.textContent).toBe("ABC")
+        expect(container.textContent).toBe("CHARACTER#ABC")
     })
 
     it('correctly imports redux-store info into context', () => {
         const { container } = render(
             <Provider store={store}>
-                <ActiveCharacter CharacterId='TESS' >
+                <ActiveCharacter CharacterId='CHARACTER#TESS' >
                     <TestSubscriptionComponent />
                 </ActiveCharacter>
             </Provider>
@@ -71,7 +71,7 @@ describe('useActiveCharacter hook', () => {
         const { container } = render(
             <TestComponent />
         )
-        expect(container.textContent).toBe("")
+        expect(container.textContent).toBe("CHARACTER#NONE")
     })
 
 })

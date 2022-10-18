@@ -162,7 +162,7 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>(({
                     <MapIcon
                         sx={{ width:40, height: 50 }}
                         onClick={() => {
-                            navigate(`/Character/${CharacterId}/Map/`)
+                            navigate(`/Character/${CharacterId.split('#')[1]}/Map/`)
                         }}
                     />
                 </Avatar>

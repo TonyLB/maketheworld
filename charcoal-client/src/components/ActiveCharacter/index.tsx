@@ -44,16 +44,17 @@ import { getMessagesByRoom } from '../../slices/messages'
 import { getCharactersInPlay } from '../../slices/ephemera'
 import { EphemeraCharacterInPlay } from '../../slices/ephemera/baseClasses'
 import { MessageRoomBreakdown } from '../../slices/messages/selectors'
+import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type ActiveCharacterContextType = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     messageBreakdown: MessageRoomBreakdown;
     info?: EphemeraCharacterInPlay;
-    maps: Record<string, ActiveCharacterMap>
+    maps: Record<EphemeraMapId, ActiveCharacterMap>
 }
 
 const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
-    CharacterId: '',
+    CharacterId: 'CHARACTER#NONE',
     maps: {},
     messageBreakdown: {
         Messages: [],
@@ -62,7 +63,7 @@ const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
 })
 
 type ActiveCharacterProps = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     children?: ReactChild | ReactChildren;
 }
 
@@ -70,7 +71,7 @@ export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ Chara
 
     const characterState = useSelector(getActiveCharacters)[CharacterId]
     const maps = useSelector(getActiveCharacterMaps(CharacterId))
-    const messageBreakdown = useSelector(getMessagesByRoom(`CHARACTER#${CharacterId}`))
+    const messageBreakdown = useSelector(getMessagesByRoom(CharacterId))
     const info = useSelector(getCharactersInPlay)[CharacterId]
     return (
         <ActiveCharacterContext.Provider value={{

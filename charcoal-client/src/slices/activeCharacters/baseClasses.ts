@@ -1,8 +1,9 @@
+import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { EphemeraClientMessageEphemeraUpdateMapItemActive } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
 export interface ActiveCharacterInternal {
-    id?: string;
+    id?: EphemeraCharacterId;
     LastMessageSync?: number;
     subscription?: any;
     incrementalBackoff: number;
@@ -11,7 +12,7 @@ export interface ActiveCharacterInternal {
 export type ActiveCharacterMap = Omit<EphemeraClientMessageEphemeraUpdateMapItemActive, 'type' | 'targets' | 'active'>
 
 export interface ActiveCharacterPublic {
-    maps: Record<string, ActiveCharacterMap>;
+    maps: Record<EphemeraMapId, ActiveCharacterMap>;
 }
 
 export type ActiveCharacterRecord = ISSMDataLayout<ActiveCharacterInternal, ActiveCharacterPublic>

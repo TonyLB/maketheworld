@@ -60,7 +60,7 @@ export const RoomDescription = ({ message }: RoomDescriptionProps) => {
                 <Box css={css`
                     grid-area: exits;
                 `}>
-                    { Exits.map(({ RoomId, ...rest }) => (<RoomExit exit={{ RoomId: `ROOM#${RoomId}`, ...rest }} key={ RoomId } />))}
+                    { Exits.map((exit) => (<RoomExit exit={exit} key={ exit.RoomId } />))}
                 </Box>
                 <Box css={css`
                     grid-area: characters;

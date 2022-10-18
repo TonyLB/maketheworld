@@ -6,7 +6,7 @@
 // Layout component.
 //
 
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, FunctionComponent } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 // import { connectionRegister } from '../../actions/connection.js'
@@ -22,7 +22,11 @@ import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
 
-export const AppController = ({ signOut }) => {
+type AppControllerProps = {
+    signOut: () => void;
+}
+
+export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }) => {
     useStateSeekingMachines()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
@@ -41,8 +45,8 @@ export const AppController = ({ signOut }) => {
         // connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
         textEntryLines: TextEntryLines,
         showNeighborhoodHeaders: ShowNeighborhoodHeaders,
-        onTextEntryChange: (value) => { dispatch(putClientSettings({ TextEntryLines: value })) },
-        onShowNeighborhoodChange: (value) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) },
+        onTextEntryChange: (value: number) => { dispatch(putClientSettings({ TextEntryLines: value })) },
+        onShowNeighborhoodChange: (value: boolean) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) },
         signOut
     }
 

@@ -12,7 +12,7 @@ import {
 import { getActiveCharacterList } from '../../slices/ephemera'
 import { getPlayer } from '../../slices/player'
 import { useActiveCharacter } from '../ActiveCharacter'
-import { LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 declare module '@mui/material/styles' {
     interface PaletteOptions {
@@ -65,7 +65,7 @@ export const CharacterColorWrapper: FunctionComponent<CharacterColorWrapper> = (
 )
 
 type CharacterStyleWrapperProps = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     nested?: boolean;
     children?: ReactChild | ReactChildren;
 }
@@ -86,7 +86,7 @@ const NestedCharacterStyleWrapper: FunctionComponent<Omit<CharacterStyleWrapperP
     const whoIsActive = useSelector(getActiveCharacterList)
     const { color } = whoIsActive.find((character) => (character.CharacterId === CharacterId)) || { color: { name: 'grey' } }
 
-    return <CharacterColorWrapper color={(`CHARACTER#${activeId}` === CharacterId) ? 'blue' : color.name || 'grey'} >
+    return <CharacterColorWrapper color={(activeId === CharacterId) ? 'blue' : color.name || 'grey'} >
         { children }
     </CharacterColorWrapper>
 }

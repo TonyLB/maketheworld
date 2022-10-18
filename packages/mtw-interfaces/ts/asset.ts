@@ -1,3 +1,4 @@
+import { EphemeraCharacterId, isEphemeraCharacterId } from "./baseClasses";
 import { LibraryAsset, LibraryCharacter } from "./library";
 import { checkAll, checkTypes } from "./utils";
 
@@ -85,7 +86,7 @@ export type AssetClientPlayerAsset = {
 }
 
 export type AssetClientPlayerCharacter = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Name: string;
     scopedId?: string;
     fileName?: string;
@@ -190,7 +191,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                             adjective: 'string',
                             reflexive: 'string'
                         })
-                    )
+                    ) && isEphemeraCharacterId(characterItem.CharacterId)
                 ))
             )
         case 'Library':

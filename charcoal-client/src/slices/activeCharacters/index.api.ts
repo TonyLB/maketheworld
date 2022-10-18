@@ -12,9 +12,13 @@ import delayPromise from '../../lib/delayPromise'
 import { isEphemeraClientMessageEphemeraUpdateMapItem } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {
+    //
+    // TODO: Figure out whether lifelineCondition is failing now that we've constrained id to EphemeraCharacterId
+    //
     const state = getState()
     const status = getStatus(state)
     const character = getMyCharacterById(id)(state)
+    console.log(`Character: ${JSON.stringify(character, null, 4)}`)
 
     return (status === 'CONNECTED') && (Boolean(character))
 }
@@ -30,7 +34,7 @@ export const getLastMessageSync = (CharacterId: string) => (
 export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
 
     const LastMessageSync = await getLastMessageSync(id || '')
-    const messages = await cacheDB.messages.where("Target").equals(`CHARACTER#${id}` || '').toArray()
+    const messages = await cacheDB.messages.where("Target").equals(id || '').toArray()
 
     dispatch(receiveMessages(messages))
     return { internalData: { LastMessageSync } }
@@ -44,15 +48,15 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
             const { updates } = payload
             updates
                 .filter(isEphemeraClientMessageEphemeraUpdateMapItem)
-                .filter(({ targets }) => (id && targets.map((key) => (key.split('#')[1])).includes(id)))
+                .filter(({ targets }) => (id && targets.includes(id)))
                 .forEach(({ type, targets, ...rest }) => {
                     dispatch(receiveMapEphemera(rest))
                 })
         }
     })
-    await dispatch(socketDispatchPromise({ message: 'fetchEphemera', CharacterId: id }))
+    await dispatch(socketDispatchPromise({ message: 'fetchEphemera', CharacterId: id?.split('#')[1] }))
     if (id) {
-        await dispatch(socketDispatchPromise({ message: 'registercharacter', CharacterId: `CHARACTER#${id}` }))
+        await dispatch(socketDispatchPromise({ message: 'registercharacter', CharacterId: id }))
     }
     else {
         console.log(`NO ID for ACTIVE CHARACTER`)
@@ -73,7 +77,7 @@ export const syncAction: ActiveCharacterAction = ({ internalData: { id, LastMess
         throw new Error()
     }
     if (LastMessageSync) {
-        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: `CHARACTER#${id}`, startingAt: LastMessageSync - 30000 }))
+        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: id, startingAt: LastMessageSync - 30000 }))
             .then(() => ({ incrementalBackoff: 0.5 }))
             .catch(async (e: any) => {
                 dispatch(pushFeedback('Failed to synchronize messages, retrying...'))
@@ -81,7 +85,7 @@ export const syncAction: ActiveCharacterAction = ({ internalData: { id, LastMess
             })
     }
     else {
-        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: `CHARACTER#${id}` }))
+        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: id }))
             .then(() => ({ incrementalBackoff: 0.5 }))
             .catch(async (e: any) => {
                 dispatch(pushFeedback('Failed to synchronize messages, retrying...'))
@@ -99,6 +103,8 @@ export const backoffAction: ActiveCharacterAction = ({ internalData: { increment
 }
 
 export const mapSubscribeAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
-    await dispatch(socketDispatchPromise({ message: 'subscribeToMaps', CharacterId: id ? `CHARACTER#${id}` : '' }))
+    if (id) {
+        await dispatch(socketDispatchPromise({ message: 'subscribeToMaps', CharacterId: id }))
+    }
     return {}
 }
