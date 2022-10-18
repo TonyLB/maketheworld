@@ -56,6 +56,7 @@ export class AssetStateData {
     set(EphemeraId: StateItemId, value: any) {
         this._StateCache.set(Infinity, EphemeraId, value)
         this._StateOverriden[EphemeraId] = true
+        this._invalidateCallback(EphemeraId)
     }
 
     invalidate(EphemeraId: StateItemId) {

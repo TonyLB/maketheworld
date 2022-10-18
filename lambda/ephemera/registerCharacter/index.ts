@@ -97,7 +97,6 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         ConditionExpression: 'activeCharacters = :oldActiveCharacters'
                     }
                 }
-                console.log(`Register: activeCharactersUpdate: ${JSON.stringify(activeCharactersUpdate, null, 4)}`)
                 await multiTableTransactWrite([{
                     Update: metaCharacterUpdate
                 },

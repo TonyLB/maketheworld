@@ -36,7 +36,6 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             })
         }
         else {
-            console.log(`Perception Payload: ${JSON.stringify(payload, null, 4)}`)
             if (isEphemeraRoomId(ephemeraId)) {
                 const roomDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
                 messageBus.send({
