@@ -47,7 +47,6 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                 Promise.all(
                     mapsPossible.map(async (MapId) => {
                         const { RoomId } = await internalCache.CharacterMeta.get(EphemeraId)
-                        console.log(`Render: ${MapId} if it includes ${RoomId}`)
                         messageBus.send({
                             type: 'Perception',
                             characterId: EphemeraId,

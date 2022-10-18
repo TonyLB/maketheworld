@@ -41,6 +41,23 @@ export class Deferred <T>{
         }
         return false
     }
+
+    set (invalidationCounter: number, value: T): boolean {
+        if (invalidationCounter < this.invalidationCounter) {
+            return false
+        }
+        if (this.isFulfilled || this.isRejected) {
+            this.promise = new Promise((resolve, reject)=> {
+                this._reject = reject
+                this._resolve = resolve
+            })
+            this.isRejected = false
+        }
+        this._resolve(value)
+        this.isFulfilled = true
+        return true
+    }
+    
 }
 
 export class DeferredCacheException extends Error {
@@ -187,7 +204,7 @@ export class DeferredCacheGeneral <K, T>{
         if (this._callback) {
             this._callback(key, value)
         }
-        return cachedKey.resolve(invalidationCounter, value)
+        return cachedKey.set(invalidationCounter, value)
     }
 
     isCached(key: K): boolean {

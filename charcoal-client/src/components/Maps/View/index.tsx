@@ -24,7 +24,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     const dispatch = useDispatch()
     const { maps, CharacterId, info: { Name = '???' } = {} } = useActiveCharacter()
     useAutoPin({
-        href: `/Character/${CharacterId}/Map/`,
+        href: `/Character/${CharacterId.split('#')[1]}/Map/`,
         label: `Map: ${Name}`,
         iconName: 'Map'
     })
