@@ -2,6 +2,7 @@ import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library'
 import { CacheConstructor } from './baseClasses'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type PlayerLibrary = {
     Assets: Record<string, LibraryAsset>;
@@ -29,7 +30,7 @@ export class CachePlayerLibraryData {
             })
             const Characters = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-                .map(({ AssetId, Name, scopedId, fileName, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL, Pronouns, FirstImpression, OneCoolThing, Outfit }))
+                .map(({ AssetId, Name, scopedId, fileName, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: AssetId as EphemeraCharacterId, Name, scopedId, fileName, fileURL, Pronouns, FirstImpression, OneCoolThing, Outfit }))
                 .reduce((previous, item) => ({ ...previous, [item.CharacterId]: item }), {} as Record<string, LibraryCharacter>)
             const Assets = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))

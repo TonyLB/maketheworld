@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { FunctionComponent } from 'react'
 import PropTypes from 'prop-types'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,6 +15,7 @@ import AddIcon from '@mui/icons-material/Add'
 
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import MapIcon from '@mui/icons-material/Explore'
+import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -23,7 +24,12 @@ import MapIcon from '@mui/icons-material/Explore'
 //
 // TODO: Create a navigation path to the Help page
 //
-export const Home = ({
+type HomeProps = {
+    myCharacters?: AssetClientPlayerCharacter[];
+    signOut?: () => void;
+}
+
+export const Home: FunctionComponent<HomeProps> = ({
     myCharacters = [],
     signOut = () => {}
 }) => {
@@ -91,7 +97,7 @@ export const Home = ({
                     }}
                     onClick={() => {
                         if (CharacterId) {
-                            navigate(`/Character/${CharacterId}/Play`)
+                            navigate(`/Character/${CharacterId.split('#')[1]}/Play`)
                         }
                     }}
                 >
@@ -157,7 +163,8 @@ export const Home = ({
                     title: 'Logout',
                     onClick: () => {
                         signOut()
-                    }
+                    },
+                    href: undefined
                 }
             ].map(({ icon, title, href, onClick }) => (
                 <Grid key={title} item sm={3}>
@@ -182,18 +189,6 @@ export const Home = ({
             )) }
         </Grid>
     </Box>
-}
-
-Home.propTypes = {
-    myCharacters: PropTypes.arrayOf(PropTypes.shape({
-        CharacterId: PropTypes.string,
-        Name: PropTypes.string,
-        Pronouns: PropTypes.string,
-        FirstImpression: PropTypes.string,
-        OneCoolThing: PropTypes.string,
-        Outfit: PropTypes.string,
-        HomeId: PropTypes.string
-    }))
 }
 
 export default Home

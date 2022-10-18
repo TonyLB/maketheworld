@@ -1,5 +1,7 @@
+import { EphemeraCharacterId } from "./baseClasses";
+
 export type EventBridgeUpdatePlayerCharacter = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Name: string;
     scopedId: string;
     fileName: string;

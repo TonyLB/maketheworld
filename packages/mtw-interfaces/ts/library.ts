@@ -1,3 +1,5 @@
+import { EphemeraCharacterId } from "./baseClasses";
+
 export type LibraryAsset = {
     AssetId: string;
     scopedId?: string;
@@ -6,7 +8,7 @@ export type LibraryAsset = {
 }
 
 export type LibraryCharacter = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Name: string;
     scopedId: string;
     fileName: string;

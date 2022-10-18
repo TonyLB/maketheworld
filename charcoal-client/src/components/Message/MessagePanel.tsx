@@ -13,13 +13,13 @@ import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
     const { CharacterId, info: { Name = '???' } = {} } = useActiveCharacter()
-    useAutoPin({ href: `/Character/${CharacterId}/Play`, label: `Play: ${Name}`})
+    useAutoPin({ href: `/Character/${CharacterId.split('#')[1]}/Play`, label: `Play: ${Name}`})
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
     const handleInput = useCallback(({ entry, mode }) => {
-        dispatch(parseCommand(`CHARACTER#${CharacterId}`)({ entry, mode, raiseError: () => {} }))
+        dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
         return true
     }, [dispatch, CharacterId])
     return <Box sx={{

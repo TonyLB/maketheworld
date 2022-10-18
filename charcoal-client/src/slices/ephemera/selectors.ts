@@ -1,7 +1,8 @@
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { EphemeraPublic, EphemeraCharacterInPlay } from './baseClasses'
 
 export type PublicSelectorType = {
-    getCharactersInPlay: (state: EphemeraPublic) => Record<string, EphemeraCharacterInPlay>;
+    getCharactersInPlay: (state: EphemeraPublic) => Record<EphemeraCharacterId, EphemeraCharacterInPlay>;
     getActiveCharacterList: (state: EphemeraPublic) => EphemeraCharacterInPlay[];
 }
 
@@ -20,7 +21,7 @@ export const getCharactersInPlay = (state: EphemeraPublic) => {
         }
     }
     const handlerLookup = (obj: Record<string | symbol, EphemeraCharacterInPlay>, prop: string | symbol): EphemeraCharacterInPlay => (obj[prop] || {
-        CharacterId: prop as string,
+        CharacterId: prop as EphemeraCharacterId,
         ...defaultValues,
     })
     return new Proxy(charactersInPlay, {

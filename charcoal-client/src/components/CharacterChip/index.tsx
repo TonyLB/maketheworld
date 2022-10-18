@@ -9,9 +9,10 @@ import { Chip, Avatar } from '@mui/material'
 
 import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type CharacterChipProps = {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Name?: string;
     onClick: () => void;
 }

@@ -70,8 +70,7 @@ export const OOCBubble: FunctionComponent<OOCBubbleProps> = ({ variant, tailOffs
 
 export const OOCMessage: FunctionComponent<OOCMessageProps> = ({ message, variant }) => {
     const { CharacterId: activeId } = useActiveCharacter()
-    const { CharacterId: wrappedCharacterId, Color } = message
-    const CharacterId = wrappedCharacterId.split('#')[1]
+    const { CharacterId, Color } = message
     return <CharacterColorWrapper color={CharacterId === activeId ? 'blue' : Color}>
         <MessageComponent
             leftIcon={

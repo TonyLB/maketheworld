@@ -7,9 +7,10 @@ import {
 
 import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 interface CharacterAvatarDirectProps {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     Name: string;
     fileURL?: string;
     width?: string;
@@ -25,7 +26,7 @@ export const CharacterAvatarDirect: FunctionComponent<CharacterAvatarDirectProps
 }
 
 interface CharacterAvatarProps {
-    CharacterId: string;
+    CharacterId: EphemeraCharacterId;
     width?: string;
     height?: string;
 }

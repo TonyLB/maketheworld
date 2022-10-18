@@ -3,7 +3,7 @@
 //
 
 /** @jsxImportSource @emotion/react */
-import React from 'react'
+import React, { FunctionComponent } from 'react'
 import { css } from '@emotion/react'
 import { useSelector } from 'react-redux'
 import {
@@ -23,7 +23,8 @@ import {
     Tabs,
     Tab,
     Snackbar,
-    IconButton
+    IconButton,
+    SnackbarCloseReason
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import ForumIcon from '@mui/icons-material/Forum'
@@ -46,7 +47,7 @@ import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigatio
 import EditCharacter from '../Library/Edit/EditCharacter'
 
 
-const a11yProps = (index) => {
+const a11yProps = (index: number) => {
     return {
         id: `simple-tab-${index}`,
         'aria-controls': `simple-tabpanel-${index}`,
@@ -62,7 +63,7 @@ const IconDispatcher = ({ iconName = 'Forum' }) => {
     }
 }
 
-const tabList = ({ large, navigationTabs = [] }) => ([
+const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTabs: any[] }) => ([
     <Tab
         key="Home"
         label="Home"
@@ -83,11 +84,16 @@ const tabList = ({ large, navigationTabs = [] }) => ([
             to={href}
         />
     ))),
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="/Who/" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} to="/Who/" />])
+    ...(large ? [] : [<Tab key="Who" label="Who is on" value="/Who/" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} />])
 ])
 
-const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
-    const handleClose = (_, reason) => {
+type FeedbackSnackbarProps = {
+    feedbackMessage: string;
+    closeFeedback: () => void;
+}
+
+const FeedbackSnackbar: FunctionComponent<FeedbackSnackbarProps> = ({ feedbackMessage, closeFeedback }) => {
+    const handleClose = (_?: any, reason?: SnackbarCloseReason) => {
         if (reason === 'clickaway') {
             return
         }
@@ -104,7 +110,7 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
         autoHideDuration={6000}
         onClose={handleClose}
         action={
-            <IconButton size="small" aria-label="close" color="inherit" onClick={handleClose}>
+            <IconButton size="small" aria-label="close" color="inherit" onClick={() => { handleClose() }}>
                 <CloseIcon fontSize="small" />
             </IconButton>
         }
@@ -112,9 +118,9 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
 
 }
 
-const CharacterRouterSwitch = ({ messagePanel }) => {
+const CharacterRouterSwitch = ({ messagePanel }: any) => {
     const { CharacterId } = useParams()
-    return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={CharacterId}>
+    return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={`CHARACTER#${CharacterId}`}>
         <Routes>
             <Route path={`Play`} element={messagePanel} />
             <Route path={`Map/`} element={<MapView />} />
@@ -151,7 +157,7 @@ const NavigationTabs = () => {
     );
 }
 
-export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
+export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
 
     return <Router>
