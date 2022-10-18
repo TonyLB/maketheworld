@@ -12,13 +12,9 @@ import delayPromise from '../../lib/delayPromise'
 import { isEphemeraClientMessageEphemeraUpdateMapItem } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {
-    //
-    // TODO: Figure out whether lifelineCondition is failing now that we've constrained id to EphemeraCharacterId
-    //
     const state = getState()
     const status = getStatus(state)
     const character = getMyCharacterById(id)(state)
-    console.log(`Character: ${JSON.stringify(character, null, 4)}`)
 
     return (status === 'CONNECTED') && (Boolean(character))
 }
