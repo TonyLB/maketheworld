@@ -35,7 +35,6 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                             .filter(({ rooms }) => (rooms[roomId]))
                     messageBus.send({
                         type: 'EphemeraUpdate',
-                        global: false,
                         updates: [
                             ...activeMaps
                                 .map((mapEntry) => ({
@@ -70,7 +69,6 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                             .filter(({ rooms }) => (rooms[roomId]))
                     messageBus.send({
                         type: 'EphemeraUpdate',
-                        global: false,
                         updates: [
                             ...activeMaps
                                 .map((mapEntry) => ({
@@ -108,7 +106,6 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                 if (mapDescribe.rooms.find(({ roomId }) => (RoomId === roomId))) {
                                     messageBus.send({
                                         type: 'EphemeraUpdate',
-                                        global: false,
                                         updates: [{
                                             type: 'MapUpdate',
                                             targets: [characterId],
@@ -120,7 +117,6 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                 else {
                                     messageBus.send({
                                         type: 'EphemeraUpdate',
-                                        global: false,
                                         updates: [{
                                             type: 'MapUpdate',
                                             targets: [characterId],

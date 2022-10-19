@@ -115,7 +115,6 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 if ((currentConnections || []).length === 0) {
                     messageBus.send({
                         type: 'EphemeraUpdate',
-                        global: true,
                         updates: [{
                             type: 'CharacterInPlay',
                             CharacterId,
@@ -124,7 +123,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             RoomId,
                             fileURL: fileURL || '',
                             Color: Color || 'grey',
-                            targets: []
+                            targets: ['GLOBAL', `CONNECTION#${connectionId}`]
                         }]        
                     })
                     messageBus.send({

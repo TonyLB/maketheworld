@@ -131,37 +131,11 @@ export type RegisterCharacterMessage = {
     characterId: EphemeraCharacterId;
 }
 
-export type EphemeraUpdateCharacterEntry = {
-    type: 'CharacterInPlay';
-    CharacterId: EphemeraCharacterId;
-    Connected: boolean;
-    RoomId: EphemeraRoomId;
-    Name: string;
-    fileURL: string;
-    Color: LegalCharacterColor;
-}
-
-export type EphemeraUpdateMapEntry = {
-    type: 'MapUpdate';
-    targets: string[];
-    MapId: string;
-    Name: string;
-    fileURL?: string;
-    rooms: {
-        roomId: string;
-        name: string;
-        x: number;
-        y: number;
-        exits: EphemeraExit[];
-    }[]
-}
-
-export type EphemeraUpdateEntry = EphemeraUpdateCharacterEntry | EphemeraUpdateMapEntry;
+export type EphemeraPublishTarget = PublishTargetCharacter | PublishTargetConnection | PublishTargetGlobal | PublishTargetExcludeCharacter | PublishTargetExcludeConnection
 
 export type EphemeraUpdateMessage = {
     type: 'EphemeraUpdate';
-    global: boolean;
-    updates: (EphemeraClientMessageEphemeraUpdateItem & { targets: string[] })[];
+    updates: (EphemeraClientMessageEphemeraUpdateItem & { targets: EphemeraPublishTarget[] })[];
 }
 
 export type FetchPlayerEphemeraMessage = {

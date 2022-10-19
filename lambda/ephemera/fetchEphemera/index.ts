@@ -1,12 +1,9 @@
 import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
+import { FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
 import { EphemeraMapId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-
-type EphemeraQueryResult = {
-    EphemeraId: string;
-} & Omit<EphemeraUpdateEntry, 'CharacterId' | 'type'>
+import { EphemeraClientMessageEphemeraUpdateItem } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 const serialize = ({
     EphemeraId,
@@ -14,7 +11,7 @@ const serialize = ({
     Name,
     fileURL,
     Color
-}: CharacterMetaItem): EphemeraUpdateEntry => {
+}: CharacterMetaItem): EphemeraClientMessageEphemeraUpdateItem => {
     return {
         type: 'CharacterInPlay',
         CharacterId: EphemeraId,
@@ -33,19 +30,21 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
             DataCategory: 'Meta::Character',
             ProjectionFields: ['ConnectionId']
         })
-        const Items = await Promise.all(
-            connectedCharacters
-                .map(({ ConnectionId }) => (ConnectionId))
-                .filter(isEphemeraCharacterId)
-                .map((value) => (internalCache.CharacterMeta.get(value)))
-        )
+        const [Items, connectionId] = await Promise.all([
+            Promise.all(
+                connectedCharacters
+                    .map(({ ConnectionId }) => (ConnectionId))
+                    .filter(isEphemeraCharacterId)
+                    .map((value) => (internalCache.CharacterMeta.get(value)))
+            ),
+            internalCache.Global.get("ConnectionId")
+        ])
         const returnItems = Items
             .map(serialize)
 
         messageBus.send({
             type: 'EphemeraUpdate',
-            global: false,
-            updates: returnItems.map((item) => ({ ...item, Connected: true })) as any
+            updates: returnItems.map((item) => ({ ...item, Connected: true, targets: [`CONNECTION#${connectionId}`] })) as any
         })
     }
 }

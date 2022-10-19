@@ -60,7 +60,6 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 if ((!payload.mustIncludeRoomId) || mapDescribe.rooms.find(({ roomId }) => (payload.mustIncludeRoomId === `ROOM#${roomId}`))) {
                     messageBus.send({
                         type: `EphemeraUpdate`,
-                        global: false,
                         updates: [{
                             type: 'MapUpdate',
                             active: true,

@@ -58,7 +58,6 @@ describe("registerCharacter", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
-            global: true,
             updates: [{
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#ABC',
@@ -67,7 +66,7 @@ describe("registerCharacter", () => {
                 RoomId: 'ROOM#TestABC',
                 fileURL: '',
                 Color: 'purple',
-                targets: []
+                targets: ['GLOBAL', 'CONNECTION#TestConnection']
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
