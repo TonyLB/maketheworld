@@ -177,9 +177,5 @@ export type EphemeraImportState = {
 }
 export type EphemeraPushArgs = {
     EphemeraId: string;
-    State: EphemeraState;
-    Dependencies?: EphemeraDependencies;
-    Actions?: any;
-    importTree?: any;
     scopeMap?: any;
 }

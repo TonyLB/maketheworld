@@ -1,7 +1,8 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
+import { RoomDescribeData, FeatureDescribeData, TaggedMessageContent, isTaggedLink } from '@tonylb/mtw-interfaces/dist/messages'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { EphemeraError, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 //
 // TODO: Replace repeated direct assigns of spaceAfter and spaceBefore with a post-process
@@ -13,6 +14,18 @@ import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 const renderItemToTaggedMessage = (item: ComponentRenderItem): TaggedMessageContent => {
     if (item.tag === 'LineBreak') {
         return item
+    }
+    else if (item.tag === 'Link') {
+        const { spaceAfter, spaceBefore, to, ...rest } = item
+        if (isEphemeraCharacterId(to) || isEphemeraFeatureId(to) || isEphemeraActionId(to)) {
+            return {
+                to,
+                ...rest
+            }
+        }
+        else {
+            throw new EphemeraError('Invalid link target in renterItemToTaggedMessage')
+        }
     }
     else {
         const { spaceAfter, spaceBefore, ...rest } = item
