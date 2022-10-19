@@ -261,8 +261,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             ])
         
             stateSynthesizer.sendDependencyMessages()
-            stateSynthesizer.evaluateDefaults()
-        
+
             await Promise.all([
                 pushEphemera({
                     EphemeraId: AssetKey(assetItem.key),
