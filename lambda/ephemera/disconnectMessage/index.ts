@@ -105,12 +105,11 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
         if (remainingConnections.length === 0) {
             messageBus.send({
                 type: 'EphemeraUpdate',
-                global: true,
                 updates: [{
                     type: 'CharacterInPlay',
                     CharacterId: characterId,
                     Connected: false,
-                    targets: []
+                    targets: ['GLOBAL', `!CONNECTION#${connectionId}`]
                 }]
             })
             messageBus.send({

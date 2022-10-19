@@ -32,6 +32,7 @@ describe('fetchPlayerEphemera', () => {
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
+        internalCacheMock.Global.get.mockResolvedValue('XYZ')
         await fetchPlayerEphemera({
             payloads: [{
                 type: 'FetchPlayerEphemera'
@@ -40,7 +41,6 @@ describe('fetchPlayerEphemera', () => {
         })
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
-            global: false,
             updates: [{
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#ABC',
@@ -48,7 +48,8 @@ describe('fetchPlayerEphemera', () => {
                 RoomId: 'ROOM#XYZ',
                 Name: 'Testy',
                 fileURL: 'test.png',
-                Color: 'purple'
+                Color: 'purple',
+                targets: ['CONNECTION#XYZ']
             }]
         })
     })

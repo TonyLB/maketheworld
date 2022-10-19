@@ -57,12 +57,11 @@ describe("disconnectMessage", () => {
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
-            global: true,
             updates: [{
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#ABC',
                 Connected: false,
-                targets: []
+                targets: ['GLOBAL', '!CONNECTION#XYZ']
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({

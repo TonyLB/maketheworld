@@ -17,11 +17,10 @@ describe('EphemeraUpdateMessage', () => {
     })
 
     it('should call apiClient against registered connectionId', async () => {
-        internalCacheMock.Global.get.mockResolvedValueOnce("TestConnection").mockResolvedValueOnce('Request123')
+        internalCacheMock.Global.get.mockResolvedValueOnce("TestConnection").mockResolvedValueOnce('Request123').mockResolvedValueOnce([])
         await ephemeraUpdateMessage({
             payloads: [{
                 type: 'EphemeraUpdate',
-                global: false,
                 updates: [{
                     type: 'CharacterInPlay',
                     CharacterId: 'CHARACTER#ABC',
@@ -30,13 +29,13 @@ describe('EphemeraUpdateMessage', () => {
                     Name: 'Tess',
                     fileURL: 'TestURL',
                     Color: 'purple',
-                    targets: []
+                    targets: ['CONNECTION#TestConnection']
                 }]
             }]
         })
         expect(apiClientMock.send).toHaveBeenCalledWith({
             ConnectionId: 'TestConnection',
-            Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"CHARACTER#ABC\",\"Connected\":true,\"RoomId\":\"ROOM#VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\",\"targets\":[]}]}'
+            Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"CHARACTER#ABC\",\"Connected\":true,\"RoomId\":\"ROOM#VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\"}]}'
         })
     })
 
@@ -47,6 +46,8 @@ describe('EphemeraUpdateMessage', () => {
                     return 'TestConnection'
                 case 'connections':
                     return ['Connection1', 'Connection2']
+                case 'mapSubscriptions':
+                    return []
                 default:
                     return 'Request123'
             }
@@ -54,7 +55,6 @@ describe('EphemeraUpdateMessage', () => {
         await ephemeraUpdateMessage({
             payloads: [{
                 type: 'EphemeraUpdate',
-                global: true,
                 updates: [{
                     type: 'CharacterInPlay',
                     CharacterId: 'CHARACTER#ABC',
@@ -63,11 +63,11 @@ describe('EphemeraUpdateMessage', () => {
                     Name: 'Tess',
                     fileURL: 'TestURL',
                     Color: 'purple',
-                    targets: []
+                    targets: ['GLOBAL']
                 }]
             }]
         })
-        const expectedData = '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"CHARACTER#ABC\",\"Connected\":true,\"RoomId\":\"ROOM#VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\",\"targets\":[]}]}'
+        const expectedData = '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"CHARACTER#ABC\",\"Connected\":true,\"RoomId\":\"ROOM#VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\"}]}'
         expect(apiClientMock.send).toHaveBeenCalledWith({
             ConnectionId: 'Connection1',
             Data: expectedData
