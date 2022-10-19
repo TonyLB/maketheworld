@@ -6,15 +6,17 @@ import { S3Client } from "@aws-sdk/client-s3"
 import CachePlayerLibrary from './playerLibrary'
 import CacheConnectionsByPlayer from './connectionsByPlayer'
 
-type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player' | 's3Client'
+type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
 class CacheConnectionData {
     connectionId?: string;
     RequestId?: string;
     s3Client?: S3Client;
     player?: string;
+    librarySubscriptions?: string[];
     get(key: 'connectionId' | 'RequestId' | 'player'): Promise<string | undefined>
     get(key: 's3Client'): Promise<S3Client | undefined>
-    get(key: CacheConnectionKeys): Promise<S3Client | string | undefined>
+    get(key: 'librarySubscriptions'): Promise<string[] | undefined>
+    get(key: CacheConnectionKeys): Promise<S3Client | string | string[] | undefined>
     async get(key: CacheConnectionKeys) {
         switch(key) {
             case 'player':
@@ -45,6 +47,16 @@ class CacheConnectionData {
                     }
                 }
                 return this.player
+            case 'librarySubscriptions':
+                if (typeof this.librarySubscriptions === 'undefined') {
+                    const { ConnectionIds = [] } = (await connectionDB.getItem<{ ConnectionIds: string[] }>({
+                        ConnectionId: 'Library',
+                        DataCategory: 'Subscriptions',
+                        ProjectionFields: ['ConnectionIds']
+                    })) || {}
+                    this.librarySubscriptions = ConnectionIds
+                }
+                return this.librarySubscriptions
             default:
                 return this[key]
         }
@@ -61,6 +73,10 @@ class CacheConnectionData {
     set(props: { key: 's3Client', value: S3Client; }): void
     set({ key, value }: { key: CacheConnectionKeys, value: any }): void {
         this[key] = value
+    }
+
+    invalidate(key: 'librarySubscriptions'): void {
+        delete this[key]
     }
 }
 

@@ -98,6 +98,12 @@ class CacheGlobalData {
         this.RequestId = undefined
         this.player = undefined
         this.assets = undefined
+        this.connections = undefined
+        this.mapSubscriptions = undefined
+    }
+
+    invalidate(key: 'mapSubscriptions'): void {
+        this[key] = undefined
     }
 
     set(props: { key: 'ConnectionId' | 'RequestId', value: string; }): void {
