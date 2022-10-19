@@ -1,4 +1,3 @@
-import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes'
 import putAssetNormalized from './putAssetNormalized.js'
 import StateSynthesizer from './stateSynthesis'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
@@ -180,19 +179,11 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
 
 export const pushEphemera = async({
     EphemeraId,
-    State,
-    Dependencies = { room: [], computed: [] },
-    Actions = {},
-    importTree = {},
     scopeMap = {}
 }: EphemeraPushArgs) => {
     await ephemeraDB.putItem<EphemeraPushArgs & { DataCategory: 'Meta::Asset' }>({
         EphemeraId,
         DataCategory: 'Meta::Asset',
-        State,
-        Dependencies,
-        Actions,
-        importTree,
         scopeMap
     })
 }
@@ -265,45 +256,18 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             const stateSynthesizer = new StateSynthesizer(assetWorkspace, messageBus)
         
             await Promise.all([
-                stateSynthesizer.fetchFromEphemera(),
                 putAssetNormalized({ assetId, normalForm: ephemeraItems }),
                 mergeIntoEphemera(assetId, ephemeraItems)
             ])
         
             stateSynthesizer.sendDependencyMessages()
             stateSynthesizer.evaluateDefaults()
-            await stateSynthesizer.fetchImportedValues()
-            const { state } = recalculateComputes(
-                stateSynthesizer.state,
-                stateSynthesizer.dependencies,
-                Object.entries(stateSynthesizer.state)
-                    .filter(([_, { computed }]) => (!computed))
-                    .map(([key]) => (key))
-            )
-            stateSynthesizer.state = state
         
-            const actions = Object.values(assetWorkspace.normal || {})
-                .filter(isNormalAction)
-                .reduce((previous, { key, src }) => ({
-                    ...previous,
-                    [key]: {
-                        ...(previous[key] || {}),
-                        src
-                    }
-                }), {})
             await Promise.all([
                 pushEphemera({
                     EphemeraId: AssetKey(assetItem.key),
-                    State: stateSynthesizer.state,
-                    Dependencies: stateSynthesizer.dependencies,
-                    Actions: actions,
-                    //
-                    // TODO: Refactor ancestry/descent layer of ephemera storage
-                    //
-                    importTree: {},
                     scopeMap: assetWorkspace.namespaceIdToDB
-                }),
-                stateSynthesizer.updateImportedDependencies()
+                })
             ])
         }
 

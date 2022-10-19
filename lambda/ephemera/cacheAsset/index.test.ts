@@ -5,8 +5,6 @@ import {
     ephemeraDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
-jest.mock('@tonylb/mtw-utilities/dist/executeCode/recalculateComputes')
-import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes'
 jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')
 import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
 jest.mock('./perAsset')
@@ -68,8 +66,6 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const evaluateCodeMock = evaluateCode as jest.Mock
-const recalculateComputesMock = recalculateComputes as jest.Mock
-// const AssetWorkspaceMock = AssetWorkspace as jest.Mocked<typeof AssetWorkspace>
 
 describe('cacheAsset', () => {
     const messageBusMock = { send: jest.fn() } as unknown as MessageBus
@@ -119,7 +115,6 @@ describe('cacheAsset', () => {
         })
 
         expect(mergeIntoEphemera).toHaveBeenCalledTimes(0)
-        expect(recalculateComputes).toHaveBeenCalledTimes(0)
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
     })
 
@@ -162,7 +157,6 @@ describe('cacheAsset', () => {
         })
     
         expect(mergeIntoEphemera).toHaveBeenCalledTimes(0)
-        expect(recalculateComputes).toHaveBeenCalledTimes(0)
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
     })
 
@@ -277,19 +271,6 @@ describe('cacheAsset', () => {
                 }]
             }
         }
-        recalculateComputesMock.mockReturnValue({ state: {
-            active: {
-                computed: true,
-                key: 'active',
-                src: 'powered && switchedOn',
-            },
-            powered: {
-                value: true
-            },
-            switchedOn: {
-                value: true
-            }
-        } })
 
         await cacheAssetMessage({
             payloads: [{
@@ -343,71 +324,9 @@ describe('cacheAsset', () => {
                 ]
             }]
         )
-        expect(recalculateComputes).toHaveBeenCalledWith(
-            {
-                active: {
-                    computed: true,
-                    key: 'active',
-                    src: 'powered && switchedOn'
-                },
-                powered: {
-                    computed: false,
-                    key: 'powered',
-                    value: true
-                },
-                switchedOn: {
-                    computed: false,
-                    key: 'switchedOn',
-                    value: true
-                }
-            },
-            {
-                active: {
-                    room: ['DEF']
-                },
-                powered: {
-                    computed: ['active']
-                },
-                switchedOn: {
-                    computed: ['active']
-                }
-            },
-            ['powered', 'switchedOn']
-        )
-        const expectedState = {
-            active: {
-                computed: true,
-                key: 'active',
-                src: 'powered && switchedOn'
-            },
-            powered: {
-                value: true
-            },
-            switchedOn: {
-                value: true
-            }
-        }
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
-            Actions: {
-                toggleSwitch: {
-                    src: 'switchedOn = !switchedOn'
-                }
-            },
-            State: expectedState,
-            Dependencies: {
-                active: {
-                    room: ['DEF']
-                },
-                powered: {
-                    computed: ['active']
-                },
-                switchedOn: {
-                    computed: ['active']
-                }
-            },
-            importTree: {},
             scopeMap: {
                 test: 'ASSET#test',
                 ABC: 'ROOM#DEF',
