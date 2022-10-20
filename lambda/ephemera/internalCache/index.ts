@@ -106,8 +106,17 @@ class CacheGlobalData {
         this[key] = undefined
     }
 
-    set(props: { key: 'ConnectionId' | 'RequestId', value: string; }): void {
-        this[props.key] = props.value
+    set(props: { key: 'ConnectionId' | 'RequestId', value: string; }): void
+    set(props: { key: 'mapSubscriptions', value: MapSubscriptionConnection[] }): void
+    set(props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions', value: string | MapSubscriptionConnection[]; }): void {
+        const isMapSubscriptionEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions', value: string | MapSubscriptionConnection[]; }): props is { key: 'mapSubscriptions', value: MapSubscriptionConnection[] } => (props.key === 'mapSubscriptions')
+        const isNotMapSubscriptionEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions', value: string | MapSubscriptionConnection[]; }): props is { key: 'ConnectionId' | 'RequestId', value: string } => (props.key !== 'mapSubscriptions')
+        if (isMapSubscriptionEntry(props)) {
+            this.mapSubscriptions = props.value
+        }
+        if (isNotMapSubscriptionEntry(props)) {
+            this[props.key] = props.value
+        }
     }
 }
 

@@ -34,6 +34,11 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
     const [MapId, setMapId] = useState<EphemeraMapId | undefined>(Object.keys(maps || {})[0] as EphemeraMapId | undefined)
+    useEffect(() => {
+        if (typeof MapId === 'undefined' && Object.keys(maps).length) {
+            setMapId(Object.keys(maps || {})[0] as EphemeraMapId)
+        }
+    }, [MapId, setMapId, maps])
 
     return <Box sx={{ height: "100%", width: "100%" }}>
         <Box sx={{ width: "100%", margin: ".5rem", display: "flex", justifyContent: "center" }}>

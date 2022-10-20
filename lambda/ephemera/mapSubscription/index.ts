@@ -35,7 +35,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                 .map(({ characterId }) => (characterId))
                 .filter((characterId) => (checkCharacters.includes(characterId)))
             const newConnections = (checkSubscriptions || []).find(({ connectionId: check }) => (check === connectionId))
-                ? (checkSubscriptions || []).map((subscriptions) => (subscriptions.connectionId === connectionId ? unique(subscriptions, validCharacters) : subscriptions))
+                ? (checkSubscriptions || []).map((subscriptions) => (subscriptions.connectionId === connectionId ? { connectionId, characterIds: unique(subscriptions, validCharacters) as EphemeraCharacterId[] } : subscriptions))
                 : [
                     ...(checkSubscriptions || []),
                     {
@@ -85,6 +85,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                         }
                     }))
                 ])
+                internalCache.Global.set({ key: 'mapSubscriptions', value: newConnections })
                 subscriptionSuccess = true    
             }
         }, {
@@ -122,17 +123,28 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                 }
             })
         }
+        else {
+            messageBus.send({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Error',
+                    message: 'Map Subscription Failed',
+                    RequestId
+                }
+            })
+        }
 
     }
-
-    messageBus.send({
-        type: 'ReturnValue',
-        body: {
-            messageType: 'Error',
-            message: 'Map Subscription Failed',
-            RequestId
-        }
-    })
+    else {
+        messageBus.send({
+            type: 'ReturnValue',
+            body: {
+                messageType: 'Error',
+                message: 'Map Subscription Failed',
+                RequestId
+            }
+        })
+    }
 
 }
 

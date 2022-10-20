@@ -20,7 +20,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { C
             })
             messageBus.send({
                 type: 'ReturnValue',
-                body: { messageType: 'ActionComplete' }
+                body: { messageType: 'Success' }
             })
         }
     }
