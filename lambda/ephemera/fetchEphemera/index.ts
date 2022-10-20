@@ -55,47 +55,6 @@ export const fetchEphemeraForCharacter = async ({
 }) => {
     const RequestId = (await internalCache.Global.get('RequestId')) || ''
 
-    const [
-        { assets: characterAssets = [] } = {},
-        globalAssets = []
-    ] = await Promise.all([
-        internalCache.CharacterMeta.get(`CHARACTER#${CharacterId}`),
-        internalCache.Global.get('assets')
-    ])
-
-    const mapQueryLists = await Promise.all(
-        [...(new Set([ ...globalAssets, ...characterAssets ]))].map((asset) => (
-            ephemeraDB.query({
-                IndexName: 'DataCategoryIndex',
-                DataCategory: `ASSET#${asset}`,
-                KeyConditionExpression: 'begins_with(EphemeraId, :map)',
-                ExpressionAttributeValues: {
-                    ':map': 'MAP#'
-                }
-            })
-        ))
-    )
-
-    const allMaps = [...(new Set(
-        mapQueryLists.reduce<EphemeraMapId[]>((previous, mapList) => (
-            [ ...previous, ...mapList.map(({ EphemeraId }) => (EphemeraId as EphemeraMapId))]
-        ), [])
-    ))]
-
-    if (allMaps.length) {
-        const renderOutput = await Promise.all(allMaps.map((mapId) => (internalCache.ComponentRender.get(`CHARACTER#${CharacterId}`, mapId))))
-    
-        return {
-            messageType: 'Ephemera',
-            RequestId,
-            updates: renderOutput.map((mapDescribe) => ({
-                type: 'MapUpdate',
-                targets: [`CHARACTER#${CharacterId}`],
-                active: true,
-                ...mapDescribe
-            }))
-        }    
-    }
     return {
         messageType: 'Ephemera',
         RequestId,
