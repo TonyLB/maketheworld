@@ -33,7 +33,8 @@ import {
     ParseRoomLegalContents,
     ParseFeatureLegalContents,
     ParseMapLegalContents,
-    ParseImportLegalContents
+    ParseImportLegalContents,
+    ParseSpacerTag
 } from "../parser/baseClasses"
 
 export function *depthFirstParseTagGenerator(tree: ParseTag[]): Generator<ParseTag> {
@@ -65,6 +66,7 @@ export type TransformWithContextCallback = {
     (item: ParseExitTag, context: ParseTag[]): ParseExitTag;
     (item: ParseDescriptionTag, context: ParseTag[]): ParseDescriptionTag;
     (item: ParseLineBreakTag, context: ParseTag[]): ParseLineBreakTag;
+    (item: ParseSpacerTag, context: ParseTag[]): ParseSpacerTag;
     (item: ParseLinkTag, context: ParseTag[]): ParseLinkTag;
     (item: ParseRoomTag, context: ParseTag[]): ParseRoomTag;
     (item: ParseFeatureTag, context: ParseTag[]): ParseFeatureTag;
@@ -202,6 +204,11 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     }
                 ]
             case 'br':
+                return [
+                    ...previous,
+                    callback(item, context)
+                ]
+            case 'Space':
                 return [
                     ...previous,
                     callback(item, context)

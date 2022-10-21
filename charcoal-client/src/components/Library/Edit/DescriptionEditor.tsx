@@ -55,21 +55,19 @@ import { deepEqual } from '../../../lib/objects'
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
     render: ComponentRenderItem[];
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
     onChange?: (items: ComponentRenderItem[]) => void;
 }
 
 const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents> {
     for (const item of renderItems) {
         switch(item.tag) {
+            case 'Space':
+                yield {
+                    text: ' '
+                } as CustomText
+                break
             case 'Link':
                 const targetTag = normalForm[item.to]?.tag || 'Action'
-                if (item.spaceBefore) {
-                    yield {
-                        text: ' '
-                    } as CustomText
-                }
                 yield {
                     type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
                     to: item.to,
@@ -79,7 +77,7 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 } as CustomActionLinkElement | CustomFeatureLinkElement
                 break
             case 'String':
-                yield { text: `${item.spaceBefore ? ' ' : '' }${item.value}` } as CustomText
+                yield { text: item.value } as CustomText
                 break
             case 'LineBreak':
                 yield { type: 'lineBreak' }
@@ -87,15 +85,10 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
     }
 }
 
-const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore, spaceAfter }: { render: ComponentRenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): CustomParagraphElement[] => {
+const descendantsFromRender = (normalForm: NormalForm) => (render: ComponentRenderItem[]): CustomParagraphElement[] => {
     if (render.length > 0) {
         let returnValue = [] as CustomParagraphElement[]
         let accumulator = [] as CustomParagraphContents[]
-        if (spaceBefore) {
-            accumulator.push({
-                text: ' '
-            } as CustomText)
-        }
         for (const item of descendantsTranslate(normalForm, render)) {
             if (isCustomLineBreak(item)) {
                 returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
@@ -104,11 +97,6 @@ const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore
             else {
                 accumulator.push(item)
             }
-        }
-        if (spaceAfter) {
-            accumulator.push({
-                text: ' '
-            } as CustomText)
         }
         return [
             ...returnValue,
@@ -423,14 +411,14 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
         <LinkOffIcon />
     </Button>
 }
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, spaceBefore = false, spaceAfter = false, onChange = () => {} }) => {
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, onChange = () => {} }) => {
     const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const [defaultValue, setDefaultValue] = useState<Descendant[]>(() => ([{
         type: 'description',
-        children: descendantsFromRender(normalForm)({ render, spaceBefore, spaceAfter })
+        children: descendantsFromRender(normalForm)(render)
     }]))
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
@@ -461,7 +449,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     }, [])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
-        console.log('Save to reduce')
         const newRender = ((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
             .reduce((accumulator, { children = [] }, index) => (
                 children

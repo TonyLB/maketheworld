@@ -28,6 +28,7 @@ import parseMapFactory from './map'
 import parseConditionFactory from './condition'
 import parseLinkFactory from './link'
 import parseLineBreakFactory from './lineBreak'
+import parseSpacerFactory from './spacer'
 import parseDescriptionFactory from './description'
 import parseExitFactory from './exit'
 import parseUseFactory from './use'
@@ -66,6 +67,8 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             return parseLinkFactory(props)
         case 'br':
             return parseLineBreakFactory(props)
+        case 'Space':
+            return parseSpacerFactory(props)
         case 'Description':
             return parseDescriptionFactory(props)
         case 'Exit':

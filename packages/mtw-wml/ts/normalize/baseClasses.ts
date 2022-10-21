@@ -73,6 +73,8 @@ export type ComponentRenderItem = {
     spaceAfter?: boolean;
 } | {
     tag: 'LineBreak';
+} | {
+    tag: 'Space';
 }
 
 export type NormalDescriptionPayload = {

@@ -1,4 +1,4 @@
-import { ParseTagFactory, ParseDescriptionTag, ParseWhitespaceTag, ParseStringTag, ParseLinkTag, ParseLineBreakTag } from "./baseClasses"
+import { ParseTagFactory, ParseDescriptionTag, ParseWhitespaceTag, ParseStringTag, ParseLinkTag, ParseLineBreakTag, ParseSpacerTag } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
 export const parseDescriptionFactory: ParseTagFactory<ParseDescriptionTag> = ({ open, contents, endTagToken }) => {
@@ -11,9 +11,9 @@ export const parseDescriptionFactory: ParseTagFactory<ParseDescriptionTag> = ({ 
             spaceAfter: ['boolean']
         }
     })
-    const parseContents = validateContents<ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag>({
+    const parseContents = validateContents<ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag | ParseSpacerTag>({
         contents,
-        legalTags: ['Whitespace', 'String', 'Link', 'br'],
+        legalTags: ['Whitespace', 'String', 'Link', 'br', 'Space'],
         ignoreTags: ['Comment']
     })
     return {

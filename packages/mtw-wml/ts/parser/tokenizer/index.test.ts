@@ -39,6 +39,7 @@ describe('tokenizer', () => {
         const testSource = `<Asset key=(Test)>
             <Room key=(ABC)>
                 <Description>
+                    <Space />
                     Test description
                     <Link key=(DEF)>link text</Link>
                     End of test

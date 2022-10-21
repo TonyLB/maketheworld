@@ -65,10 +65,10 @@
     </Room>
     <Feature key=(wellStatues)>
         <Name>Stylized statues</Name>
-        <Description spaceAfter>
+        <Description>
             Four statues of people portrayed in sweeping geometric shapes: A
             <Link to=(childStatue)>child</Link> with hands raised in prayer, a
-            <Link to=(robedStatue)>robed figure</Link>
+            <Link to=(robedStatue)>robed figure</Link><Space />
         </Description>
     </Feature>
     <Feature key=(childStatue)>
@@ -100,65 +100,67 @@
     />
     <Feature key=(robedStatue)>
         <Name>Robed Statue</Name>
-        <Description spaceAfter>
-            This robed figure holds its head
+        <Description>
+            This robed figure holds its head<Space />
         </Description>
     </Feature>
     <Feature key=(robedStatueShoulders)>
         <Name>Statue Shoulders</Name>
-        <Description spaceAfter>
+        <Description>
             In the folds of the robes of this statue, there are two fine joints
             of stonework hidden. It looks very much as if the statue has been
-            crafted so that one could, with some effort,
+            crafted so that one could, with some effort,<Space />
         </Description>
     </Feature>
     <Condition if={robedStatueActive}>
         <Depend on=(robedStatueActive) />
         <Feature key=(wellStatues)>
-            <Description spaceBefore spaceAfter>
-                with cupped hands,
+            <Description>
+                <Space />with cupped hands,<Space />
             </Description>
         </Feature>
         <Feature key=(robedStatue)>
-            <Description spaceBefore spaceAfter>
-                upright, looking into the distance.
+            <Description>
+                <Space />upright, looking into the distance.<Space />
             </Description>
         </Feature>
         <Feature key=(robedStatueShoulders)>
-            <Description spaceBefore>
-                <Link to=(lowerRobedStatueHead)>lower the head</Link>into its hands.
+            <Description>
+                <Space /><Link to=(lowerRobedStatueHead)>lower the head</Link>into its hands.
             </Description>
         </Feature>
     </Condition>
     <Condition if={!robedStatueActive}>
         <Depend on=(robedStatueActive) />
         <Feature key=(wellStatues)>
-            <Description spaceBefore spaceAfter>
-                weeping,
+            <Description>
+                <Space />weeping,<Space />
             </Description>
         </Feature>
         <Feature key=(robedStatue)>
-            <Description spaceBefore spaceAfter>
+            <Description>
+                <Space />
                 slumped into its cupped hands, the bend of its shoulders
                 conveying miserable weeping.
+                <Space />
             </Description>
         </Feature>
         <Feature key=(robedStatueShoulders)>
-            <Description spaceBefore>
-                <Link to=(raiseRobedStatueHead)>raise the head</Link>from its
+            <Description>
+                <Space /><Link to=(raiseRobedStatueHead)>raise the head</Link>from its
                 weeping position.
             </Description>
         </Feature>
     </Condition>
     <Feature key=(wellStatues)>
-        <Description spaceBefore spaceAfter>
-            a
-            <Link to=(stoopedStatue)>stooped figure</Link>, and
+        <Description>
+            <Space />a
+            <Link to=(stoopedStatue)>stooped figure</Link>, and<Space />
         </Description>
     </Feature>
     <Feature key=(robedStatue)>
-        <Description spaceBefore>
-            On close inspection, there seems something strange about how the
+        <Description>
+            <Space />On close inspection, there seems something strange about how the
             <Link to=(robedStatueShoulders)>shoulders</Link> are sculpted.
         </Description>
     </Feature>
@@ -243,8 +245,8 @@
     />
     <Feature key=(determinedStatue)>
         <Name>Striding Statue</Name>
-        <Description spaceAfter>
-            Captured mid-stride, this figure is
+        <Description>
+            Captured mid-stride, this figure is<Space />
         </Description>
     </Feature>
     <Feature key=(determinedNeck)>
@@ -253,59 +255,59 @@
     </Feature>
     <Feature key=(determinedNeck)>
         <Name>Striding statue neck</Name>
-        <Description spaceAfter>
+        <Description>
             In several places the stone shapes are cunning carved to hide
             joints. You could
-            <Link to=(turnDeterminedHead)>turn the head</Link>,
+            <Link to=(turnDeterminedHead)>turn the head</Link>,<Space />
         </Description>
     </Feature>
     <Condition if={determinedStatueHead}>
         <Depend on=(determinedStatueHead) />
         <Feature key=(determinedStatue)>
-            <Description spaceBefore spaceAfter>
-                gazing forward with determination.
+            <Description>
+                <Space />gazing forward with determination.<Space />
             </Description>
         </Feature>
         <Feature key=(wellStatues)>
-            <Description spaceBefore spaceAfter>
-                a determined
+            <Description>
+                <Space />a determined<Space />
             </Description>
         </Feature>
     </Condition>
     <Condition if={!determinedStatueHead}>
         <Depend on=(determinedStatueHead) />
         <Feature key=(determinedStatue)>
-            <Description spaceBefore spaceAfter>
-                looking away dismissively toward the side of the room.
+            <Description>
+                <Space />looking away dismissively toward the side of the room.<Space />
             </Description>
         </Feature>
         <Feature key=(wellStatues)>
-            <Description spaceBefore spaceAfter>
-                an arrogant
+            <Description>
+                <Space />an arrogant<Space />
             </Description>
         </Feature>
     </Condition>
     <Condition if={determinedStatueRightArm}>
         <Depend on=(determinedStatueRightArm) />
         <Feature key=(determinedNeck)>
-            <Description spaceBefore spaceAfter>
-                <Link to=(lowerRightArm)>lower the right arm</Link>,
+            <Description>
+                <Space /><Link to=(lowerRightArm)>lower the right arm</Link>,<Space />
             </Description>
         </Feature>
     </Condition>
     <Condition if={!determinedStatueRightArm}>
         <Depend on=(determinedStatueRightArm) />
         <Feature key=(determinedNeck)>
-            <Description spaceBefore spaceAfter>
-                <Link to=(raiseRightArm)>raise the right arm</Link>,
+            <Description>
+                <Space /><Link to=(raiseRightArm)>raise the right arm</Link>,<Space />
             </Description>
         </Feature>
     </Condition>
     <Condition if={determinedStatueLeftArm}>
         <Depend on=(determinedStatueLeftArm) />
         <Feature key=(determinedNeck)>
-            <Description spaceBefore>
-                or
+            <Description>
+                <Space />or
                 <Link to=(lowerLeftArm)>lower the left arm</Link>.
             </Description>
         </Feature>
@@ -313,20 +315,20 @@
     <Condition if={!determinedStatueLeftArm}>
         <Depend on=(determinedStatueLeftArm) />
         <Feature key=(determinedNeck)>
-            <Description spaceBefore>
-                or
+            <Description>
+                <Space />or
                 <Link to=(raiseLeftArm)>raise the left arm</Link>.
             </Description>
         </Feature>
     </Condition>
     <Feature key=(wellStatues)>
-        <Description spaceBefore>
-            <Link to=(determinedStatue)>figure striding</Link>forward.
+        <Description>
+            <Space /><Link to=(determinedStatue)>figure striding</Link>forward.
         </Description>
     </Feature>
     <Feature key=(determinedStatue)>
-        <Description spaceBefore>
-            There is something strange about the carving of the figure's
+        <Description>
+            <Space />There is something strange about the carving of the figure's
             <Link to=(determinedNeck)>neck</Link>.
         </Description>
     </Feature>
@@ -341,27 +343,27 @@
     </Computed>
     <Room key=(well)>
         <Name>Well Room</Name>
-        <Description spaceAfter>
+        <Description>
             This is a mostly finished room, opening into a passage to the west
             and a ragged unfinished cave in its northeast corner. The room is
             filled with
             <Link to=(wellStatues)>statues</Link> of stylized people in strange
-            poses. In the center of the room is a well. Water
+            poses. In the center of the room is a well. Water<Space />
         </Description>
     </Room>
     <Condition if={waterFlow === 0}>
         <Depend on=(waterFlow) />
         <Room key=(well)>
-            <Description spaceBefore>
-                trickles out of the well, forming a small stream headed west.
+            <Description>
+                <Space />trickles out of the well, forming a small stream headed west.
             </Description>
         </Room>
     </Condition>
     <Condition if={waterFlow === 1}>
         <Depend on=(waterFlow) />
         <Room key=(well)>
-            <Description spaceBefore>
-                pours over the edge of the well, forming a burbling stream to
+            <Description>
+                <Space />pours over the edge of the well, forming a burbling stream to
                 the west.
             </Description>
         </Room>
@@ -369,8 +371,8 @@
     <Condition if={waterFlow === 2}>
         <Depend on=(waterFlow) />
         <Room key=(well)>
-            <Description spaceBefore>
-                rushes out of the well, forming a gushing torrent to the west.
+            <Description>
+                <Space />rushes out of the well, forming a gushing torrent to the west.
             </Description>
         </Room>
     </Condition>
@@ -405,16 +407,16 @@
     />
     <Feature key=(gratingDetail)>
         <Name>Grating</Name>
-        <Description spaceAfter>
+        <Description>
             Made of wrought iron and bolted into the stone, this grating covers
-            a crevasse down which water pours.
+            a crevasse down which water pours.<Space />
         </Description>
     </Feature>
     <Condition if={gratingBlocked}>
         <Depend on=(gratingBlocked) />
         <Feature key=(gratingDetail)>
-            <Description spaceBefore>
-                Moss-covered rocks cover the grating. You could easily move them
+            <Description>
+                <Space />Moss-covered rocks cover the grating. You could easily move them
                 to
                 <Link to=(toggleGratingBlocked)>open the flow</Link>.
             </Description>
@@ -423,8 +425,8 @@
     <Condition if={!gratingBlocked}>
         <Depend on=(gratingBlocked) />
         <Feature key=(gratingDetail)>
-            <Description spaceBefore>
-                Moss-covered rocks surround the grating. You could easily move
+            <Description>
+                <Space />Moss-covered rocks surround the grating. You could easily move
                 them to
                 <Link to=(toggleGratingBlocked)>block the flow</Link>.
             </Description>
@@ -432,19 +434,19 @@
     </Condition>
     <Room key=(fireCatGrotto)>
         <Name>Grotto</Name>
-        <Description spaceAfter>
+        <Description>
             Moss and vines cling to the sloping floor. Midway up the cave it
             connects to a finished room. Water pours from that room in a slow
-            stream down the cave and into a
+            stream down the cave and into a<Space />
         </Description>
     </Room>
     <Room key=(orchard)>
         <Name>Orchard</Name>
-        <Description spaceAfter>
+        <Description>
             Sunlight streams into this cavern from several vine-choked openings
             in the ceiling. Someone has planted careful rows of
             <Link to=(fruitTrees)>fruit trees</Link> here, taking advantage of
-            the sunlight. There are openings to
+            the sunlight. There are openings to<Space />
         </Description>
     </Room>
     <Condition if={waterLevel < 4}>
@@ -455,23 +457,23 @@
     <Condition if={waterLevel >= 4}>
         <Depend on=(waterLevel) />
         <Room key=(orchard)>
-            <Description spaceBefore>
-                a cavern on the west and a flooded passageway on the east.
+            <Description>
+                <Space />a cavern on the west and a flooded passageway on the east.
             </Description>
         </Room>
         <Room key=(fireCatGrotto)>
-            <Description spaceBefore spaceAfter>
-                pool of water blocking the entire bottom passage, and covering a
+            <Description>
+                <Space />pool of water blocking the entire bottom passage, and covering a
                 blocked
-                <Link to=(gratingDetail)>grated opening</Link>.
+                <Link to=(gratingDetail)>grated opening</Link>.<Space />
             </Description>
         </Room>
         <Condition if={catsInOrchard}>
             <Depend on=(catsInOrchard) />
             <Room key=(orchard)>
-                <Description spaceBefore spaceAfter>
-                    Wild cats prowl around this space, glaring occasionally at
-                    the pool to the west.
+                <Description>
+                    <Space />Wild cats prowl around this space, glaring occasionally at
+                    the pool to the west.<Space />
                 </Description>
             </Room>
         </Condition>
@@ -479,16 +481,16 @@
     <Condition if={waterLevel < 4}>
         <Depend on=(waterLevel) />
         <Room key=(orchard)>
-            <Description spaceBefore spaceAfter>
-                the east and west into other caverns.
+            <Description>
+                <Space />the east and west into other caverns.<Space />
             </Description>
         </Room>
         <Condition if={catsInOrchard}>
             <Depend on=(catsInOrchard) />
             <Room key=(orchard)>
-                <Description spaceBefore spaceAfter>
-                    Wild cats prowl around this space, occasionally bounding
-                    back and forth from the passage to the east.
+                <Description>
+                    <Space />Wild cats prowl around this space, occasionally bounding
+                    back and forth from the passage to the east.<Space />
                 </Description>
             </Room>
         </Condition>
@@ -496,34 +498,34 @@
     <Condition if={waterLevel < 4 && waterLevel >= 2}>
         <Depend on=(waterLevel) />
         <Room key=(fireCatGrotto)>
-            <Description spaceBefore spaceAfter>
-                shallow pool of water draining slowly into a
-                <Link to=(gratingDetail)>grated opening</Link>.
+            <Description>
+                <Space />shallow pool of water draining slowly into a
+                <Link to=(gratingDetail)>grated opening</Link>.<Space />
             </Description>
         </Room>
     </Condition>
     <Condition if={waterLevel < 2}>
         <Depend on=(waterLevel) />
         <Room key=(fireCatGrotto)>
-            <Description spaceBefore spaceAfter>
-                <Link to=(gratingDetail)>grated opening</Link>at the low opening
-                from the bottom of this cave to the next deeper one.
+            <Description>
+                <Space /><Link to=(gratingDetail)>grated opening</Link>at the low opening
+                from the bottom of this cave to the next deeper one.<Space />
             </Description>
         </Room>
     </Condition>
     <Condition if={birdsInOrchard}>
         <Depend on=(birdsInOrchard) />
         <Room key=(orchard)>
-            <Description spaceBefore>
-                A flock of small blue birds are happily eating fallen fruit
+            <Description>
+                <Space />A flock of small blue birds are happily eating fallen fruit
                 here, and singing noisily.
             </Description>
         </Room>
     </Condition>
     <Room key=(fireCatGrotto)>
-        <Description spaceBefore spaceAfter>
-            At the top of the room, a raised area has a clay wall, with several
-            holes dug into it.
+        <Description>
+            <Space />At the top of the room, a raised area has a clay wall, with several
+            holes dug into it.<Space />
         </Description>
     </Room>
     <Feature key=(ironworkingTools)>
@@ -646,18 +648,18 @@
     <Condition if={bellowsRunning}>
         <Depend on=(bellowsRunning) />
         <Feature key=(bellows)>
-            <Description spaceBefore>
-                There is a large handled wheel, spinning with the drawing power
+            <Description>
+                <Space />There is a large handled wheel, spinning with the drawing power
                 of the bellows, that you could slow in order to
-                <Link to=(toggleBellowsRunning)>stop the bellows</Link>.
+                <Link to=(toggleBellowsRunning)>stop the bellows</Link>.<Space />
             </Description>
         </Feature>
     </Condition>
     <Condition if={!bellowsRunning}>
         <Depend on=(bellowsRunning) />
         <Feature key=(bellows)>
-            <Description spaceBefore>
-                There is a large handled wheel, and it looks like you could spin
+            <Description>
+                <Space />There is a large handled wheel, and it looks like you could spin
                 the wheel in order to
                 <Link to=(toggleBellowsRunning)>start the bellows</Link>.
             </Description>
@@ -665,92 +667,92 @@
     </Condition>
     <Feature key=(hearthCrest)>
         <Name>Crest</Name>
-        <Description spaceAfter>
-            A plaque with an icon of a flame pointing
+        <Description>
+            A plaque with an icon of a flame pointing<Space />
         </Description>
     </Feature>
     <Condition if={hearthPrimed}>
         <Depend on=(hearthPrimed) />
         <Feature key=(hearthCrest)>
-            <Description spaceBefore spaceAfter>
-                upward.
+            <Description>
+                <Space />upward.<Space />
             </Description>
         </Feature>
     </Condition>
     <Condition if={!hearthPrimed}>
         <Depend on=(hearthPrimed) />
         <Feature key=(hearthCrest)>
-            <Description spaceBefore spaceAfter>
-                downward.
+            <Description>
+                <Space />downward.<Space />
             </Description>
         </Feature>
     </Condition>
     <Feature key=(hearthCrest)>
-        <Description spaceBefore>
-            The plaque is attached loosely, and it seems that you could
+        <Description>
+            <Space />The plaque is attached loosely, and it seems that you could
             <Link to=(toggleHearthPrimed)>turn the crest</Link>.
         </Description>
     </Feature>
     <Room key=(forest)>
         <Name>Forest</Name>
-        <Description spaceAfter>
+        <Description>
             A few narrow cracks in the ceiling of this cavern let in streams of
             sunlight. Hardy trees have grown here, spreading low and squat,
             competing for light. Their dense branches are home to many
             <Link to=(nests)>nests</Link>. To the east, another cavern opens. In
             the southwest wall of this forest-cave is a set of small, jagged,
-            openings
+            openings<Space />
         </Description>
     </Room>
     <Room key=(foundry)>
         <Name>Foundry</Name>
-        <Description spaceAfter>
+        <Description>
             This room is filled with racks of
             <Link to=(ironworkingTools)>iron-working tools</Link>, and
             <Link to=(bellows)>strange devices</Link>. What looks like a huge
             <Link to=(hearthDetail)>open fireplace</Link> dominates the
-            north-east corner,
+            north-east corner,<Space />
         </Description>
     </Room>
     <Feature key=(hearthDetail)>
         <Name>Hearth</Name>
-        <Description spaceAfter>
+        <Description>
             This huge construction is made of obsidian. If has an open back with
             various small tunnels leading further into the caves. There is a
             mantelpiece that is bare except for a single
-            <Link to=(hearthCrest)>crest</Link> mounted on it.
+            <Link to=(hearthCrest)>crest</Link> mounted on it.<Space />
         </Description>
     </Feature>
     <Condition if={hearthActive} >
         <Depend on=(hearthActive) />
         <Room key=(foundry)>
-            <Description spaceBefore>
-                flaming brightly.
+            <Description>
+                <Space />flaming brightly.
             </Description>
         </Room>
         <Room key=(forest)>
-            <Description spaceBefore>
-                lit from within by flame.
+            <Description>
+                <Space />lit from within by flame.
             </Description>
         </Room>
         <Feature key=(hearthDetail)>
-            <Description spaceBefore>
-                A roaring fire crackles in the hearth.
+            <Description>
+                <Space />A roaring fire crackles in the hearth.
             </Description>
         </Feature>
     </Condition>
     <Condition if={!hearthActive} >
         <Depend on=(hearthActive) />
         <Room key=(foundry)>
-            <Description spaceBefore>
-                and past the cold hearth are some jagged openings that a person
+            <Description>
+                <Space />and past the cold hearth are some jagged openings that a person
                 might squeeze through carefully.
             </Description>
             <Exit to=(forest)>forest</Exit>
         </Room>
         <Room key=(forest)>
-            <Description spaceBefore>
-                that a person might manage to squeeze through.
+            <Description>
+                <Space />that a person might manage to squeeze through.
             </Description>
             <Exit to=(foundry)>foundry</Exit>
         </Room>
@@ -808,14 +810,14 @@
     </Room>
     <Feature key=(trapDoor)>
         <Name>Trap Door</Name>
-        <Description spaceAfter>
-            A sturdy wooden door set into the floor on heavy iron hinges.
+        <Description>
+            A sturdy wooden door set into the floor on heavy iron hinges.<Space />
         </Description>
     </Feature>
     <Condition if={trapDoorOpen}>
         <Feature key=(trapDoor)>
-            <Description spaceBefore>
-                It is opened, resting against the floor. The opening reveals a
+            <Description>
+                <Space />It is opened, resting against the floor. The opening reveals a
                 staircase descending down into darkness (and, again, room for
                 more story that has not yet been created ... but congrats on
                 solving everything!) 
@@ -827,18 +829,18 @@
     </Condition>
     <Condition if={!trapDoorOpen}>
         <Feature key=(trapDoor)>
-            <Description spaceBefore>
-                It is closed. Pulling on the circular handle shows that it is
+            <Description>
+                <Space />It is closed. Pulling on the circular handle shows that it is
                 firmly locked by some internal mechanism.
             </Description>
         </Feature>
     </Condition>
     <Feature key=(columns)>
         <Name>Carved columns</Name>
-        <Description spaceAfter>
+        <Description>
             Each of the columns spaced around the perimeter of the room is
             carved differently. There is a
-            <Link to=(singingColumn)>column with singing people</Link>, a
+            <Link to=(singingColumn)>column with singing people</Link>, a<Space />
         </Description>
     </Feature>
     <Action
@@ -870,69 +872,69 @@
     </Feature>
     <Feature key=(catColumn)>
         <Name>Cat Column</Name>
-        <Description spaceAfter>Lounging cats are carved all up and down this column, surrounding one huge cat-face in relief.</Description>
+        <Description>Lounging cats are carved all up and down this column, surrounding one huge cat-face in relief.<Space /></Description>
     </Feature>
     <Condition if={hearthActive}>
         <Feature key=(catColumn)>
-            <Description spaceBefore>
-                Strands of glowing milky energy cling and crawl across the
+            <Description>
+                <Space />Strands of glowing milky energy cling and crawl across the
                 surface of this column.
             </Description>
         </Feature>
         <Feature key=(columns)>
-            <Description spaceBefore spaceAfter>
-                glowing
+            <Description>
+                <Space />glowing<Space />
             </Description>
         </Feature>
     </Condition>
     <Feature key=(columns)>
-        <Description spaceBefore spaceAfter>
-            <Link to=(catColumn)>column with cats</Link>, and a
+        <Description>
+            <Space /><Link to=(catColumn)>column with cats</Link>, and a<Space />
         </Description>
     </Feature>
     <Feature key=(birdColumn)>
         <Name>Bird Column</Name>
-        <Description spaceAfter>Birds in clusters dominate the carvings on this column.  They seem to have their beaks open in song.</Description>
+        <Description>Birds in clusters dominate the carvings on this column.  They seem to have their beaks open in song.<Space /></Description>
     </Feature>
     <Condition if={birdsInOrchard}>
         <Feature key=(birdColumn)>
-            <Description spaceBefore>
-                Strands of glowing milky energy cling and crawl across the
+            <Description>
+                <Space />Strands of glowing milky energy cling and crawl across the
                 surface of this column.
             </Description>
         </Feature>
         <Feature key=(columns)>
-            <Description spaceBefore spaceAfter>
-                glowing
+            <Description>
+                <Space />glowing
             </Description>
         </Feature>
     </Condition>
     <Feature key=(columns)>
-        <Description spaceBefore spaceAfter>
-            <Link to=(birdColumn)>column with birds</Link>.
+        <Description>
+            <Space /><Link to=(birdColumn)>column with birds</Link>.<Space />
         </Description>
     </Feature>
     <Condition if={hearthActive && birdsInOrchard}>
         <Depend on=(hearthActive) />
         <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
-            <Description spaceBefore>
-                
+            <Description>
+
                 <br />
                 A low purring sound and the echoes of birdsong sound through the
                 caverns.
             </Description>
         </Room>
         <Room key=(orchard)>
-            <Description spaceBefore>
-                
+            <Description>
+
                 <br />
                 A low purring sound and the echoes of birdsong sound through the
                 caverns.
             </Description>
         </Room>
         <Room key=(forest)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound and the echoes of birdsong sound through the
@@ -940,7 +942,7 @@
             </Description>
         </Room>
         <Room key=(fireCatGrotto)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound and the echoes of birdsong sound through the
@@ -948,7 +950,7 @@
             </Description>
         </Room>
         <Room key=(foundry)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound and the echoes of birdsong sound through the
@@ -956,7 +958,7 @@
             </Description>
         </Room>
         <Room key=(intersection)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound and the echoes of birdsong sound through the
@@ -964,7 +966,7 @@
             </Description>
         </Room>
         <Room key=(well)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound and the echoes of birdsong sound through the
@@ -977,49 +979,49 @@
         <Depend on=(bellowsRunning) />
         <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss and the sound of birdsong echo through the caverns.
             </Description>
         </Room>
         <Room key=(foundry)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss and the sound of birdsong echo through the caverns.
             </Description>
         </Room>
         <Room key=(forest)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss and the sound of birdsong echo through the caverns.
             </Description>
         </Room>
         <Room key=(orchard)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss and the sound of birdsong echo through the caverns.
             </Description>
         </Room>
         <Room key=(fireCatGrotto)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss and the sound of birdsong echo through the caverns.
             </Description>
         </Room>
         <Room key=(intersection)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss and the sound of birdsong echo through the caverns.
             </Description>
         </Room>
         <Room key=(well)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss and the sound of birdsong echo through the caverns.
@@ -1031,49 +1033,49 @@
         <Depend on=(bellowsRunning) />
         <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 The sound of birdsong echoes through the caverns.
             </Description>
         </Room>
         <Room key=(foundry)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 The sound of birdsong echoes through the caverns.
             </Description>
         </Room>
         <Room key=(forest)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 The sound of birdsong echoes through the caverns.
             </Description>
         </Room>
         <Room key=(orchard)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 The sound of birdsong echoes through the caverns.
             </Description>
         </Room>
         <Room key=(fireCatGrotto)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 The sound of birdsong echoes through the caverns.
             </Description>
         </Room>
         <Room key=(intersection)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 The sound of birdsong echoes through the caverns.
             </Description>
         </Room>
         <Room key=(well)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 The sound of birdsong echoes through the caverns.
@@ -1085,49 +1087,49 @@
         <Depend on=(bellowsRunning) />
         <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss winds through the caverns.
             </Description>
         </Room>
         <Room key=(foundry)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss winds through the caverns.
             </Description>
         </Room>
         <Room key=(forest)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss winds through the caverns.
             </Description>
         </Room>
         <Room key=(orchard)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss winds through the caverns.
             </Description>
         </Room>
         <Room key=(fireCatGrotto)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss winds through the caverns.
             </Description>
         </Room>
         <Room key=(intersection)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss winds through the caverns.
             </Description>
         </Room>
         <Room key=(well)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A loud hiss winds through the caverns.
@@ -1138,49 +1140,49 @@
         <Depend on=(hearthActive) />
         <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound echoes through the caverns.
             </Description>
         </Room>
         <Room key=(foundry)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound echoes through the caverns.
             </Description>
         </Room>
         <Room key=(forest)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound echoes through the caverns.
             </Description>
         </Room>
         <Room key=(orchard)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound echoes through the caverns.
             </Description>
         </Room>
         <Room key=(fireCatGrotto)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound echoes through the caverns.
             </Description>
         </Room>
         <Room key=(intersection)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound echoes through the caverns.
             </Description>
         </Room>
         <Room key=(well)>
-            <Description spaceBefore>
+            <Description>
                 
                 <br />
                 A low purring sound echoes through the caverns.

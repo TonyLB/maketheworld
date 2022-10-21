@@ -66,6 +66,10 @@ const renderFromNewNode = (normalForm) => (node: SchemaTag): ComponentRenderItem
             return {
                 tag: 'LineBreak'
             }
+        case 'Space':
+            return {
+                tag: 'Space'
+            }
         case 'String':
             return {
                 tag: 'String',
@@ -367,6 +371,8 @@ export class WMLQueryResult {
                         return `<Link to=(${item.to})>${item.text}</Link>`
                     case 'LineBreak':
                         return '<br />'
+                    case 'Space':
+                        return '<Space />'
                     case 'String':
                         return item.value
                 }

@@ -102,6 +102,9 @@ Object {
             "tag": "String",
             "value": "Hello, world!",
           },
+          Object {
+            "tag": "Space",
+          },
         ],
         "spaceAfter": false,
         "spaceBefore": false,

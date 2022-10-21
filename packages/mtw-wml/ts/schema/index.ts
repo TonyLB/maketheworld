@@ -77,7 +77,7 @@ import schemaFromString from "./string"
 import schemaFromUse from "./use"
 import { transformWithContext, TransformWithContextCallback } from "./utils"
 import schemaFromVariable from "./variable"
-import { schemaFromLineBreak, schemaFromWhitespace } from "./whiteSpace"
+import { schemaFromLineBreak, schemaFromSpacer, schemaFromWhitespace } from "./whiteSpace"
 
 function schemaFromParseItem(item: ParseAssetTag): SchemaAssetTag
 function schemaFromParseItem(item: ParseStoryTag): SchemaStoryTag
@@ -156,6 +156,8 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
             return schemaFromWhitespace(item)
         case 'br':
             return schemaFromLineBreak(item)
+        case 'Space':
+            return schemaFromSpacer(item)
         default:
             return {
                 tag: 'String',

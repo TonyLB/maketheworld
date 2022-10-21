@@ -104,7 +104,7 @@ describe('WML normalize', () => {
             </Room>
             <Room key=(a123)>
                 <Description>
-                    Hello, world!
+                    Hello, world!<Space />
                 </Description>
             </Room>
             <Condition if={true}>
