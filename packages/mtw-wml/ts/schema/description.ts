@@ -1,4 +1,4 @@
-import { SchemaDescriptionTag, SchemaDescriptionLegalContents, SchemaLinkTag, SchemaStringTag, SchemaDescriptionIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString } from "./baseClasses";
+import { SchemaDescriptionTag, SchemaDescriptionLegalContents, SchemaLinkTag, SchemaStringTag, SchemaDescriptionIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer } from "./baseClasses";
 import { ParseDescriptionTag } from "../parser/baseClasses";
 
 //
@@ -23,6 +23,18 @@ const adjustedDescriptionContents = (contents: SchemaDescriptionIncomingContents
             }
         }
         if (isSchemaLineBreak(item)) {
+            if (currentToken) {
+                returnValue.push({
+                    ...currentToken,
+                    spaceAfter: true
+                })
+                currentToken = undefined
+            }
+            returnValue.push(item)
+            currentSpaceBefore = true
+            pastFirstToken = true
+        }
+        if (isSchemaSpacer(item)) {
             if (currentToken) {
                 returnValue.push({
                     ...currentToken,

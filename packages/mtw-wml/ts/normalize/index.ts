@@ -578,6 +578,11 @@ export class Normalizer {
                                     tag: 'LineBreak' as 'LineBreak'
                                 }
                             }
+                            else if (renderItem.tag === 'Space') {
+                                return {
+                                    tag: 'Space' as 'Space'
+                                }
+                            }
                             else if (renderItem.tag === 'String') {
                                 return {
                                     tag: 'String' as 'String',

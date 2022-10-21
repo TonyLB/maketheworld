@@ -21,6 +21,7 @@ describe('schemaFromParse', () => {
             <Room key=(ABC)>
                 <Name>Vortex</Name>
                 <Description>
+                    <Space />
                     Vortex
                     <Link to=(toggleOpen)>(toggle)</Link>
                 </Description>

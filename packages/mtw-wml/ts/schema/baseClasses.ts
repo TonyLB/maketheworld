@@ -152,8 +152,8 @@ export type SchemaLinkTag = {
     spaceAfter?: boolean;
 } & SchemaBase
 
-export type SchemaDescriptionIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaWhitespaceTag
-export type SchemaDescriptionLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag
+export type SchemaDescriptionIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaWhitespaceTag
+export type SchemaDescriptionLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
@@ -165,6 +165,10 @@ export type SchemaDescriptionTag = {
 
 export type SchemaLineBreakTag = {
     tag: 'br';
+} & SchemaBase
+
+export type SchemaSpacerTag = {
+    tag: 'Space';
 } & SchemaBase
 
 export type SchemaNameTag = {
@@ -238,6 +242,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaExitTag |
     SchemaDescriptionTag |
     SchemaLineBreakTag |
+    SchemaSpacerTag |
     SchemaLinkTag |
     SchemaNameTag |
     SchemaRoomTag |
@@ -289,6 +294,7 @@ export const isSchemaImage = (value: SchemaTag): value is SchemaImageTag => (val
 export const isSchemaLink = (value: SchemaTag): value is SchemaLinkTag => (value.tag === 'Link')
 export const isSchemaWhitespace = (value: SchemaTag): value is SchemaWhitespaceTag => (value.tag === 'Whitespace')
 export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag => (value.tag === 'br')
+export const isSchemaSpacer = (value: SchemaTag): value is SchemaSpacerTag => (value.tag === 'Space')
 
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 
