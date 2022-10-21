@@ -78,8 +78,6 @@ export type AssetComponent = {
     defaultRender?: ComponentRenderItem[];
     name: string;
     render: ComponentRenderItem[];
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
 }
 
 const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, InheritedComponent> }): Record<string, AssetComponent> => {
@@ -98,18 +96,6 @@ const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: Norma
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                 .map(({ render = [] }) => render)
                 .reduce((previous, render) => ([ ...previous, ...render ]), [])
-            const spaceBefore = countRenderAppearances
-                ? component.appearances
-                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-                    .map(({ spaceBefore = false }) => spaceBefore)
-                    .reduce((previous, spaceBefore) => (previous || spaceBefore), false)
-                : undefined
-            const spaceAfter = countRenderAppearances
-                ? component.appearances
-                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-                    .map(({ spaceAfter = false }) => spaceAfter)
-                    .reduce((previous, spaceAfter) => (previous || spaceAfter), false)
-                : undefined
             const defaultName = defaultAppearances[component.key]?.name || ''
             const defaultRender = defaultAppearances[component.key]?.render
             return { [component.key]: {
@@ -118,8 +104,6 @@ const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: Norma
                 localRender,
                 defaultName,
                 defaultRender,
-                spaceBefore,
-                spaceAfter,
                 name: `${defaultName}${localName}`,
                 render: [...(defaultRender || []), ...localRender]
             }}

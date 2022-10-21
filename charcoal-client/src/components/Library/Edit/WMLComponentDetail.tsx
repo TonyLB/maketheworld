@@ -15,6 +15,7 @@ import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import RoomExits from './RoomExits'
 import useDebounce from '../../../hooks/useDebounce'
+import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 interface WMLComponentDetailProps {
 }
@@ -24,9 +25,37 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component = normalForm[ComponentId || '']
     const { tag } = component || {}
-    const onChange = useCallback((newRender) => {
-        let spaceBefore = newRender.length > 0 && newRender[0].tag === 'String' && newRender[0].value.search(/^\s+/) !== -1
-        let spaceAfter = newRender.length > 0 && newRender[newRender.length - 1].tag === 'String' && newRender[newRender.length - 1].value.search(/\s+$/) !== -1
+    const onChange = useCallback((newRender: ComponentRenderItem[]) => {
+        const adjustedRender = newRender.reduce<ComponentRenderItem[]>((previous, item, index) => {
+            if (index === 0 && item.tag === 'String' && item.value.search(/^\s+/) !== -1) {
+                return [
+                    ...previous,
+                    {
+                        tag: 'Space'
+                    },
+                    {
+                        tag: 'String',
+                        value: item.value.trimStart()
+                    }
+                ]
+            }
+            if ((index === newRender.length - 1) && item.tag === 'String' && item.value.search(/\s+$/) !== -1) {
+                return [
+                    ...previous,
+                    {
+                        tag: 'String',
+                        value: item.value.trimEnd()
+                    },
+                    {
+                        tag: 'Space'
+                    }
+                ]
+            }
+            return [
+                ...previous,
+                item
+            ]
+        }, [])
         const componentsQuery = wmlQuery
             .search(`${tag}[key="${ComponentId}"]`)
             .not(`Condition ${tag}`)
@@ -43,10 +72,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             componentsQuery
                 .extend()
                 .add('Description')
-                .prop('spaceBefore', spaceBefore, { type: 'boolean' })
-                .prop('spaceAfter', spaceAfter, { type: 'boolean' })
-                .render(newRender)
-
+                .render(adjustedRender)
         }
         updateWML(componentsQuery.source)
     }, [wmlQuery, tag, updateWML])
@@ -150,8 +176,6 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
                 <DescriptionEditor
                     inheritedRender={components[component.key]?.defaultRender}
                     render={components[component.key]?.localRender || []}
-                    spaceBefore={components[component.key]?.spaceBefore}
-                    spaceAfter={components[component.key]?.spaceAfter}
                     onChange={onChange}
                 />
             </Box>
