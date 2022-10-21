@@ -20,13 +20,19 @@ type TaggedLineBreak = {
     tag: 'LineBreak';
 }
 
+type TaggedSpacer = {
+    tag: 'Space';
+}
+
 export type TaggedLink = {
     tag: 'Link',
     text: string;
     to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId;
 }
 
-export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak;
+export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer;
+
+export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
 export const isTaggedMessageContent = (message: any): message is TaggedMessageContent => {
     if (typeof message !== 'object') {
@@ -36,6 +42,7 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
         case 'String':
             return checkTypes(message, { value: 'string' })
         case 'LineBreak':
+        case 'Space':
             return true
         case 'Link':
             return checkTypes(message, { text: 'string', to: 'string' })
@@ -47,6 +54,9 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
 export const isTaggedText = (item: TaggedMessageContent): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
+export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'Space')
+
+export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
 
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
