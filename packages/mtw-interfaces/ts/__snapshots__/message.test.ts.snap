@@ -1,0 +1,156 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`flattenTaggedMessageContent should correctly combine strings, links and line breaks 1`] = `
+[
+  {
+    "tag": "String",
+    "value": "OneTwo",
+  },
+  {
+    "tag": "Link",
+    "text": "Three",
+    "to": "FEATURE#Test",
+  },
+  {
+    "tag": "String",
+    "value": "Four",
+  },
+  {
+    "tag": "LineBreak",
+  },
+  {
+    "tag": "String",
+    "value": "Five",
+  },
+]
+`;
+
+exports[`flattenTaggedMessageContent should correctly handle spacer adjoining linebreak 1`] = `
+[
+  {
+    "tag": "String",
+    "value": "OneTwo",
+  },
+  {
+    "tag": "Link",
+    "text": "Three",
+    "to": "FEATURE#Test",
+  },
+  {
+    "tag": "String",
+    "value": "Four",
+  },
+  {
+    "tag": "LineBreak",
+  },
+  {
+    "tag": "String",
+    "value": "Five",
+  },
+]
+`;
+
+exports[`flattenTaggedMessageContent should correctly handle spacer at beginning of message 1`] = `
+[
+  {
+    "tag": "String",
+    "value": "OneTwo",
+  },
+  {
+    "tag": "Link",
+    "text": "Three",
+    "to": "FEATURE#Test",
+  },
+  {
+    "tag": "String",
+    "value": "Four",
+  },
+  {
+    "tag": "LineBreak",
+  },
+  {
+    "tag": "String",
+    "value": "Five",
+  },
+]
+`;
+
+exports[`flattenTaggedMessageContent should correctly handle spacer at end of message 1`] = `
+[
+  {
+    "tag": "String",
+    "value": "OneTwo",
+  },
+  {
+    "tag": "Link",
+    "text": "Three",
+    "to": "FEATURE#Test",
+  },
+  {
+    "tag": "String",
+    "value": "Four",
+  },
+  {
+    "tag": "LineBreak",
+  },
+  {
+    "tag": "String",
+    "value": "Five",
+  },
+]
+`;
+
+exports[`flattenTaggedMessageContent should correctly handle spacer between links 1`] = `
+[
+  {
+    "tag": "String",
+    "value": "OneTwo",
+  },
+  {
+    "tag": "Link",
+    "text": "Three",
+    "to": "FEATURE#Test",
+  },
+  {
+    "tag": "String",
+    "value": " ",
+  },
+  {
+    "tag": "Link",
+    "text": "Four",
+    "to": "FEATURE#Test",
+  },
+  {
+    "tag": "LineBreak",
+  },
+  {
+    "tag": "String",
+    "value": "Five",
+  },
+]
+`;
+
+exports[`flattenTaggedMessageContent should correctly handle spacer between strings 1`] = `
+[
+  {
+    "tag": "String",
+    "value": "One Two",
+  },
+  {
+    "tag": "Link",
+    "text": "Three",
+    "to": "FEATURE#Test",
+  },
+  {
+    "tag": "String",
+    "value": "Four",
+  },
+  {
+    "tag": "LineBreak",
+  },
+  {
+    "tag": "String",
+    "value": "Five",
+  },
+]
+`;
