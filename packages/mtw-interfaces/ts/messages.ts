@@ -54,9 +54,115 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
 export const isTaggedText = (item: TaggedMessageContent): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
-export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'Space')
+export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
 
 export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
+
+export const flattenTaggedMessageContent = async (messages: TaggedMessageContent[]): Promise<TaggedMessageContentFlat[]> => {
+    if (messages.length === 0) {
+        return []
+    }
+    //
+    // Initialize local state
+    //
+    let currentMessageQueued: TaggedMessageContent = messages[0]
+    let currentReturnValue: TaggedMessageContentFlat[] = []
+
+    //
+    // Process each entry in relation to the current entry queued
+    //
+    messages.slice(1).forEach((message) => {
+        if (isTaggedText(currentMessageQueued)) {
+            if (isTaggedText(message)) {
+                currentMessageQueued = {
+                    ...currentMessageQueued,
+                    value: `${currentMessageQueued.value}${message.value}`
+                }
+            }
+            else if (isTaggedLineBreak(message)) {
+                currentReturnValue.push({
+                    ...currentMessageQueued,
+                    value: currentMessageQueued.value.trimEnd()
+                })
+                currentMessageQueued = { ...message }
+            }
+            else if (isTaggedLink(message)) {
+                currentReturnValue.push(currentMessageQueued)
+                currentMessageQueued = { ...message }
+            }
+            else if (isTaggedSpacer(message)) {
+                currentMessageQueued = {
+                    ...currentMessageQueued,
+                    value: `${currentMessageQueued.value.trimEnd()} `
+                }
+            }
+        }
+        else if (isTaggedLink(currentMessageQueued)) {
+            currentReturnValue.push(currentMessageQueued)
+            currentMessageQueued = { ...message }
+        }
+        else if (isTaggedLineBreak(currentMessageQueued)) {
+            if (isTaggedLink(message)) {
+                currentReturnValue.push(currentMessageQueued)
+                currentMessageQueued = { ...message }
+            }
+            else if (isTaggedText(message)) {
+                currentReturnValue.push(currentMessageQueued)
+                currentMessageQueued = {
+                    ...message,
+                    value: message.value.trimStart()
+                }
+            }
+            //
+            // No-Op in the case of a Spacer or another LineBreak following a LineBreak
+            //
+        }
+        else if (isTaggedSpacer(currentMessageQueued)) {
+            if (isTaggedLineBreak(message)) {
+                currentMessageQueued = { ...message }
+            }
+            else if (isTaggedLink(message)) {
+                currentReturnValue.push({
+                    tag: 'String',
+                    value: ' '
+                })
+                currentMessageQueued = { ...message }
+            }
+            else if (isTaggedText(message)) {
+                currentMessageQueued = {
+                    ...message,
+                    value: ` ${message.value.trimStart()}`
+                }
+            }
+            //
+            // No-Op in the case of a Spacer following a Spacer
+            //
+        }
+    })
+
+    //
+    // Process the queued entry after you finish the list
+    //
+    if (!isTaggedSpacer(currentMessageQueued)) {
+        currentReturnValue.push(currentMessageQueued)
+    }
+
+    return currentReturnValue.map((item, index) => {
+        if (index === 0 && isTaggedText(item)) {
+            return {
+                ...item,
+                value: item.value.trimStart()
+            }
+        }
+        else if ((index === currentReturnValue.length - 1) && isTaggedText(item)) {
+            return {
+                ...item,
+                value: item.value.trimEnd()
+            }
+        }
+        return item
+    })
+}
 
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
