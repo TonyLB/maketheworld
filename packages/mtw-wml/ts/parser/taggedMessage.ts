@@ -1,8 +1,8 @@
-import { ParseTagFactory, ParseWhitespaceTag, ParseStringTag, ParseLinkTag, ParseLineBreakTag, ParseSpacerTag, ParseTaggedMessageLegalContents, ParseTaggedMessageTag } from "./baseClasses"
+import { ParseTagFactory, ParseWhitespaceTag, ParseStringTag, ParseLinkTag, ParseLineBreakTag, ParseSpacerTag, ParseTaggedMessageLegalContents, ParseTaggedMessageTag, ParseNameTag, ParseDescriptionTag, ParseStackTagEntry } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
-export const parseTaggedMessageContentsFactory = <T extends 'Description'>(tag: T, legalTags: ParseTaggedMessageLegalContents["tag"][]): ParseTagFactory<ParseTaggedMessageTag<T>> => ({ open, contents, endTagToken }) => {
-    const validate = validateProperties<ExtractProperties<ParseTaggedMessageTag<T>, never>>({
+export const parseTaggedMessageContentsFactory = <T extends ParseDescriptionTag | ParseNameTag>(tag: T["tag"], legalTags: ParseTaggedMessageLegalContents["tag"][]): ParseTagFactory<T> => ({ open, contents, endTagToken }) => {
+    const validate = validateProperties<ExtractProperties<T, never>>({
         open,
         endTagToken,
         required: {},
@@ -20,14 +20,12 @@ export const parseTaggedMessageContentsFactory = <T extends 'Description'>(tag: 
         type: 'Tag',
         tag: {
             ...validate,
-            spaceAfter: validate.spaceAfter || false,
-            spaceBefore: validate.spaceBefore || false,
             tag,
             startTagToken: open.startTagToken,
             endTagToken,
             contents: parseContents
         }
-    }    
+    } as ParseStackTagEntry<T>
 }
 
 export default parseTaggedMessageContentsFactory

@@ -48,11 +48,7 @@ export type ParseStoryTag = {
     instance: boolean;
 } & ParseAssetBase
 
-export type ParseNameTag = {
-    tag: 'Name';
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
-} & ParseValueBase
+export type ParseNameTag = ParseTaggedMessageTag<"Name">
 
 export type ParsePronounsTag = {
     tag: 'Pronouns';
@@ -157,9 +153,7 @@ export type ParseTaggedMessageLegalContents = ParseWhitespaceTag | ParseStringTa
 
 export type ParseTaggedMessageTag<T extends string> = {
     tag: T;
-    display: 'before' | 'after' | 'replace';
-    spaceBefore: boolean;
-    spaceAfter: boolean;
+    display?: 'before' | 'after' | 'replace';
     contents: ParseTaggedMessageLegalContents[];
 } & ParseTagBase
 
@@ -214,8 +208,8 @@ export type ParseCommentTag = {
 
 export type ParseTag = ParseAssetTag |
     ParseStoryTag |
-    ParseCharacterTag |
     ParseNameTag |
+    ParseCharacterTag |
     ParsePronounsTag |
     ParseOneCoolThingTag |
     ParseFirstImpressionTag |
@@ -229,7 +223,7 @@ export type ParseTag = ParseAssetTag |
     ParseImportTag |
     ParseConditionTag |
     ParseExitTag |
-    ParseTaggedMessageTag<'Description'> |
+    ParseDescriptionTag |
     ParseLineBreakTag |
     ParseLinkTag |
     ParseRoomTag |

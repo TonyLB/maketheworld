@@ -11,7 +11,7 @@ import {
     SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
-    SchemaDescriptionLegalContents,
+    SchemaTaggedMessageLegalContents,
     SchemaFeatureLegalContents,
     SchemaFeatureTag,
     SchemaImageTag,
@@ -66,7 +66,7 @@ type NormalizeAddReturnValue = {
 
 type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature" | "Character">
 
-const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaDescriptionLegalContents): ComponentRenderItem | undefined => {
+const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
     if (renderItem.tag === 'Link') {
         if (!(renderItem.to in translationTags)) {
             throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) with no matching key`)
