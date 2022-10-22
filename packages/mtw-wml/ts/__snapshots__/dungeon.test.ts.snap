@@ -1815,7 +1815,12 @@ Object {
           0,
           0,
         ],
-        "name": "Cave entrance",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Cave entrance",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -1854,7 +1859,7 @@ Object {
           1,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -1910,7 +1915,12 @@ Object {
           0,
           65,
         ],
-        "name": "Bellows",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Bellows",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -1941,7 +1951,7 @@ Object {
           66,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -1990,7 +2000,7 @@ Object {
           67,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2059,7 +2069,12 @@ Object {
           0,
           92,
         ],
-        "name": "Bird Column",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Bird Column",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2091,7 +2106,7 @@ Object {
           93,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2147,7 +2162,12 @@ Object {
           0,
           89,
         ],
-        "name": "Cat Column",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Cat Column",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2179,7 +2199,7 @@ Object {
           90,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2252,7 +2272,7 @@ Object {
           1,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -2272,7 +2292,12 @@ Object {
           0,
           2,
         ],
-        "name": "Shallow cave",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Shallow cave",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2372,7 +2397,12 @@ Object {
           0,
           6,
         ],
-        "name": "Child Statue",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Child Statue",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2426,7 +2456,12 @@ Object {
           0,
           86,
         ],
-        "name": "Carved columns",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Carved columns",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2472,7 +2507,7 @@ Object {
           90,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2501,7 +2536,7 @@ Object {
           0,
           91,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2544,7 +2579,7 @@ Object {
           93,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2571,7 +2606,7 @@ Object {
           0,
           94,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2632,7 +2667,7 @@ Object {
           1,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -2652,7 +2687,12 @@ Object {
           0,
           3,
         ],
-        "name": "Curving Passage",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Curving Passage",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2752,7 +2792,12 @@ Object {
           0,
           26,
         ],
-        "name": "Striding statue's neck",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Striding statue's neck",
+          },
+        ],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -2770,7 +2815,12 @@ Object {
           0,
           27,
         ],
-        "name": "Striding statue neck",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Striding statue neck",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2816,7 +2866,7 @@ Object {
           30,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2859,7 +2909,7 @@ Object {
           31,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2902,7 +2952,7 @@ Object {
           32,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2948,7 +2998,7 @@ Object {
           33,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2995,7 +3045,12 @@ Object {
           0,
           25,
         ],
-        "name": "Striding Statue",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Striding Statue",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -3027,7 +3082,7 @@ Object {
           28,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3062,7 +3117,7 @@ Object {
           29,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3091,7 +3146,7 @@ Object {
           0,
           35,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3437,7 +3492,7 @@ Object {
           1,
           7,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -3457,7 +3512,12 @@ Object {
           0,
           48,
         ],
-        "name": "Grotto",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Grotto",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -3497,7 +3557,7 @@ Object {
           50,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -3521,7 +3581,7 @@ Object {
           51,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3570,7 +3630,7 @@ Object {
           53,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3618,7 +3678,7 @@ Object {
           54,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3656,7 +3716,7 @@ Object {
           0,
           56,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3692,7 +3752,7 @@ Object {
           95,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3726,7 +3786,7 @@ Object {
           96,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3759,7 +3819,7 @@ Object {
           97,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3792,7 +3852,7 @@ Object {
           98,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3825,7 +3885,7 @@ Object {
           99,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3941,7 +4001,7 @@ Object {
           1,
           9,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -3961,7 +4021,12 @@ Object {
           0,
           72,
         ],
-        "name": "Forest",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Forest",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4010,7 +4075,7 @@ Object {
           75,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4049,7 +4114,7 @@ Object {
           76,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4082,7 +4147,7 @@ Object {
           95,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4116,7 +4181,7 @@ Object {
           96,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4149,7 +4214,7 @@ Object {
           97,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4182,7 +4247,7 @@ Object {
           98,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4215,7 +4280,7 @@ Object {
           99,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4331,7 +4396,7 @@ Object {
           1,
           10,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -4351,7 +4416,12 @@ Object {
           0,
           73,
         ],
-        "name": "Foundry",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Foundry",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4423,7 +4493,7 @@ Object {
           75,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4462,7 +4532,7 @@ Object {
           76,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4496,7 +4566,7 @@ Object {
           95,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4530,7 +4600,7 @@ Object {
           96,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4563,7 +4633,7 @@ Object {
           97,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4596,7 +4666,7 @@ Object {
           98,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4629,7 +4699,7 @@ Object {
           99,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4733,7 +4803,12 @@ Object {
           0,
           79,
         ],
-        "name": "Fruit Trees",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Fruit Trees",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4800,7 +4875,12 @@ Object {
           0,
           45,
         ],
-        "name": "Grating",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Grating",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4833,7 +4913,7 @@ Object {
           46,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4880,7 +4960,7 @@ Object {
           47,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4949,7 +5029,12 @@ Object {
           0,
           68,
         ],
-        "name": "Crest",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Crest",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4981,7 +5066,7 @@ Object {
           69,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5016,7 +5101,7 @@ Object {
           70,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5045,7 +5130,7 @@ Object {
           0,
           71,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5092,7 +5177,12 @@ Object {
           0,
           74,
         ],
-        "name": "Hearth",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Hearth",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5139,7 +5229,7 @@ Object {
           75,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5216,7 +5306,7 @@ Object {
           1,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -5236,7 +5326,12 @@ Object {
           0,
           4,
         ],
-        "name": "Intersection",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Intersection",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5265,7 +5360,7 @@ Object {
           95,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5299,7 +5394,7 @@ Object {
           96,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5332,7 +5427,7 @@ Object {
           97,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5365,7 +5460,7 @@ Object {
           98,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5398,7 +5493,7 @@ Object {
           99,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5537,7 +5632,12 @@ Object {
           0,
           57,
         ],
-        "name": "Iron working tools",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Iron working tools",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5655,7 +5755,12 @@ Object {
           0,
           77,
         ],
-        "name": "Nests",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Nests",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5702,7 +5807,7 @@ Object {
           1,
           8,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -5722,7 +5827,12 @@ Object {
           0,
           49,
         ],
-        "name": "Orchard",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Orchard",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5769,7 +5879,7 @@ Object {
           51,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5808,7 +5918,7 @@ Object {
           2,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5844,7 +5954,7 @@ Object {
           52,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5885,7 +5995,7 @@ Object {
           1,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5921,7 +6031,7 @@ Object {
           55,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5955,7 +6065,7 @@ Object {
           95,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5989,7 +6099,7 @@ Object {
           96,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6022,7 +6132,7 @@ Object {
           97,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6055,7 +6165,7 @@ Object {
           98,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6088,7 +6198,7 @@ Object {
           99,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6280,7 +6390,12 @@ Object {
           0,
           10,
         ],
-        "name": "Robed Statue",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Robed Statue",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6312,7 +6427,7 @@ Object {
           12,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -6347,7 +6462,7 @@ Object {
           13,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -6378,7 +6493,7 @@ Object {
           0,
           15,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -6446,7 +6561,12 @@ Object {
           0,
           11,
         ],
-        "name": "Statue Shoulders",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Statue Shoulders",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6480,7 +6600,7 @@ Object {
           12,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -6521,7 +6641,7 @@ Object {
           13,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -6636,7 +6756,12 @@ Object {
           0,
           88,
         ],
-        "name": "Singing Column",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Singing Column",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6699,7 +6824,7 @@ Object {
           1,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -6719,7 +6844,12 @@ Object {
           0,
           82,
         ],
-        "name": "Column Chamber",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Column Chamber",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6777,7 +6907,7 @@ Object {
           95,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6811,7 +6941,7 @@ Object {
           96,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6844,7 +6974,7 @@ Object {
           97,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6877,7 +7007,7 @@ Object {
           98,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6910,7 +7040,7 @@ Object {
           99,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7014,7 +7144,12 @@ Object {
           0,
           16,
         ],
-        "name": "Stooped Statue",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Stooped Statue",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -7220,7 +7355,12 @@ Object {
           0,
           83,
         ],
-        "name": "Trap Door",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Trap Door",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -7252,7 +7392,7 @@ Object {
           84,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7308,7 +7448,7 @@ Object {
           85,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7468,7 +7608,7 @@ Object {
           1,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -7488,7 +7628,12 @@ Object {
           0,
           38,
         ],
-        "name": "Well Room",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Well Room",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -7536,7 +7681,7 @@ Object {
           39,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7569,7 +7714,7 @@ Object {
           40,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7603,7 +7748,7 @@ Object {
           41,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7636,7 +7781,7 @@ Object {
           95,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7670,7 +7815,7 @@ Object {
           96,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7703,7 +7848,7 @@ Object {
           97,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7736,7 +7881,7 @@ Object {
           98,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7769,7 +7914,7 @@ Object {
           99,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7873,7 +8018,12 @@ Object {
           0,
           5,
         ],
-        "name": "Stylized statues",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Stylized statues",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -7927,7 +8077,7 @@ Object {
           12,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7962,7 +8112,7 @@ Object {
           13,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7991,7 +8141,7 @@ Object {
           0,
           14,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -8039,7 +8189,7 @@ Object {
           28,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -8074,7 +8224,7 @@ Object {
           29,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -8103,7 +8253,7 @@ Object {
           0,
           34,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",

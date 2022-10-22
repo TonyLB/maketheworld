@@ -51,6 +51,15 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
     }
 }
 
+const validateTaggedMessageList = (items: any): items is TaggedMessageContent[] => {
+    if (!Array.isArray(items)) {
+        return false
+    }
+    return items.reduce<boolean>((previous, item) => (
+        previous && isTaggedMessageContent(item)
+    ), true)
+}
+
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
 export const isTaggedText = (item: TaggedMessageContent): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
@@ -205,7 +214,7 @@ const validateRoomCharacterList = (items: any) => {
 
 export type RoomDescribeData = {
     Description: TaggedMessageContent[];
-    Name: string;
+    Name: TaggedMessageContent[];
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];
     Characters: RoomCharacter[];
@@ -217,7 +226,7 @@ export type RoomDescription = {
 
 export type FeatureDescribeData = {
     Description: TaggedMessageContent[];
-    Name: string;
+    Name: TaggedMessageContent[];
     FeatureId: EphemeraFeatureId;
 }
 
@@ -227,7 +236,7 @@ export type FeatureDescription = {
 
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
-    name: string;
+    name: TaggedMessageContent[];
     x: number;
     y: number;
     exits: {
@@ -238,7 +247,7 @@ export type MapDescribeRoom = {
 
 export type MapDescribeData = {
     MapId: EphemeraMapId;
-    Name: string;
+    Name: TaggedMessageContent[];
     fileURL?: string;
     rooms: MapDescribeRoom[];
 }
@@ -250,7 +259,7 @@ const validateMapRoomList = (items: any) => {
     return items.reduce<boolean>((previous, roomItem) => {
         if (!(
             previous &&
-            checkTypes(roomItem, { roomId: 'string', name: 'string', x: 'number', y: 'number' })
+            checkTypes(roomItem, { roomId: 'string', x: 'number', y: 'number' })
             && isEphemeraRoomId(roomItem.roomId)
         )) {
             return false
@@ -267,10 +276,11 @@ const validateMapRoomList = (items: any) => {
 
 export const isMapDescribeData = (message: any): message is MapDescribeData => {
     return checkAll(
-        checkTypes(message, { MapId: 'string', Name: 'string' }),
+        checkTypes(message, { MapId: 'string' }),
         !(message.fileURL && typeof message.fileURL !== 'string'),
         isEphemeraMapId(message.MapId),
-        validateMapRoomList(message.rooms)
+        validateMapRoomList(message.rooms),
+        validateTaggedMessageList(message.Name)
     )
 }
 
@@ -326,12 +336,6 @@ export type OutOfCharacterMessage = {
 export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
 
 export const isMessage = (message: any): message is Message => {
-    const validateMessageList = (messages: any): boolean => {
-        if (!Array.isArray(messages)) {
-            return false
-        }
-        return checkAll(...(messages.map((message) => (isTaggedMessageContent(message)))))
-    }
     if (typeof message !== 'object') {
         return false
     }
@@ -343,34 +347,37 @@ export const isMessage = (message: any): message is Message => {
     }
     switch(message.DisplayProtocol) {
         case 'WorldMessage':
-            return validateMessageList(message.Message)
+            return validateTaggedMessageList(message.Message)
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage':
             return checkAll(
                 checkTypes(message, { CharacterId: 'string', Name: 'string' }),
                 ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color),
-                validateMessageList(message.Message)
+                validateTaggedMessageList(message.Message)
             ) && isEphemeraCharacterId(message.CharacterId)
         case 'RoomDescription':
         case 'RoomHeader':
             return checkAll(
-                checkTypes(message, { Name: 'string', RoomId: 'string' }),
+                checkTypes(message, { RoomId: 'string' }),
                 validateRoomExitList(message.Exits),
                 validateRoomCharacterList(message.Characters),
-                validateMessageList(message.Description)
+                validateTaggedMessageList(message.Name),
+                validateTaggedMessageList(message.Description)
             ) && isEphemeraRoomId(message.RoomId)
         case 'RoomUpdate':
             return checkAll(
                 checkTypes(message, {}, { Name: 'string', RoomId: 'string' }),
                 validateRoomExitList(message.Exits ?? []),
                 validateRoomCharacterList(message.Characters ?? []),
-                validateMessageList(message.Description ?? [])
+                validateTaggedMessageList(message.Name ?? []),
+                validateTaggedMessageList(message.Description ?? [])
             ) && isEphemeraRoomId(message.RoomId)
         case 'FeatureDescription':
             return checkAll(
                 checkTypes(message, { Name: 'string', FeatureId: 'string' }),
-                validateMessageList(message.Description)
+                validateTaggedMessageList(message.Name),
+                validateTaggedMessageList(message.Description)
             ) && isEphemeraFeatureId(message.FeatureId)
         case 'CharacterDescription':
             return checkAll(

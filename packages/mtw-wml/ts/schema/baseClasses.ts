@@ -185,7 +185,7 @@ export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | Sch
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
-    name: string;
+    name: SchemaDescriptionLegalContents[];
     render: SchemaDescriptionLegalContents[];
     global: boolean;
     display?: string;
@@ -199,7 +199,7 @@ export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
     global: boolean;
-    name: string;
+    name: SchemaDescriptionLegalContents[];
     render: SchemaDescriptionLegalContents[];
     contents: SchemaFeatureLegalContents[];
 } & SchemaBase
@@ -208,7 +208,7 @@ export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoom
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
-    name: string;
+    name: SchemaDescriptionLegalContents[];
     contents: SchemaMapLegalContents[];
     rooms: Record<string, { x: number; y: number; index: number }>;
     images: string[];

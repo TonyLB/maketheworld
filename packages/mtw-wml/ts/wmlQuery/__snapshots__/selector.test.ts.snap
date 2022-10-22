@@ -150,7 +150,7 @@ Array [
     "display": undefined,
     "global": true,
     "key": "VORTEX",
-    "name": "",
+    "name": Array [],
     "render": Array [
       Object {
         "parse": Object {
@@ -365,7 +365,7 @@ Array [
     "display": undefined,
     "global": undefined,
     "key": "Test",
-    "name": "",
+    "name": Array [],
     "render": Array [],
     "tag": "Room",
     "x": undefined,
@@ -429,7 +429,7 @@ Array [
     "display": undefined,
     "global": true,
     "key": "VORTEX",
-    "name": "",
+    "name": Array [],
     "render": Array [
       Object {
         "parse": Object {
@@ -474,7 +474,7 @@ Array [
     "display": undefined,
     "global": undefined,
     "key": "Test",
-    "name": "",
+    "name": Array [],
     "render": Array [],
     "tag": "Room",
     "x": undefined,

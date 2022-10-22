@@ -117,7 +117,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                     const fileURL = (image && isNormalImage(image) && image.fileURL) || ''
                     return {
                         conditions: conditionsTransform(appearance.contextStack),
-                        name: appearance.name || '',
+                        name: appearance.name || [],
                         fileURL,
                         rooms: objectEntryMap(appearance.rooms, (key, { x, y }) => ({
                             EphemeraId: namespaceMap[key] || '',

@@ -465,7 +465,7 @@ Array [
     "display": undefined,
     "global": true,
     "key": "VORTEX",
-    "name": "",
+    "name": Array [],
     "parse": Object {
       "contents": Array [
         Object {

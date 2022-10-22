@@ -152,7 +152,7 @@ export function componentAppearanceReduce (...renderList: EphemeraRoomAppearance
 export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearance[] | EphemeraFeatureAppearance[])): (Omit<RoomDescribeData, 'RoomId' | 'Characters'> | Omit<FeatureDescribeData, 'FeatureId'>) {
     if (renderList.length === 0) {
         return {
-            Name: '',
+            Name: [],
             Description: [],
             Exits: []
         }
@@ -163,7 +163,7 @@ export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearanc
                 ...(previous.Description || []),
                 ...(current.render || [])
             ],
-            Name: `${previous.Name || ''}${current.name || ''}`,
+            Name: [...previous.Name, ...current.name],
             // features: [
             //     ...(previous.features || []),
             //     ...(current.features || [])
@@ -172,7 +172,7 @@ export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearanc
                 ...(previous.Exits || []),
                 ...(current.exits.map(({ name, to }) => ({ Name: name, RoomId: to, Visibility: "Private" as "Private" })) || [])
             ],
-        }), { Description: [], Name: '', Exits: [] })
+        }), { Description: [], Name: [], Exits: [] })
         return {
             ...joinedList,
             Description: [...joinRenderItems(joinedList.Description)]
@@ -184,8 +184,8 @@ export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearanc
                 ...(previous.Description || []),
                 ...(current.render || [])
             ],
-            Name: `${previous.Name || ''}${current.name || ''}`,
-        }), { Description: [], Name: '' })
+            Name: [...previous.Name, ...current.name]
+        }), { Description: [], Name: [] })
         return {
             ...joinedList,
             Description: [...joinRenderItems(joinedList.Description)]

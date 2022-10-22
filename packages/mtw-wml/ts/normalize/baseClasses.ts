@@ -87,7 +87,7 @@ export type NormalDescriptionPayload = {
 export type NormalDescription = NormalDescriptionPayload & NormalBase
 
 export type ComponentAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseAppearance & {
-    name?: string;
+    name?: ComponentRenderItem[];
     x?: number;
     y?: number;
 }
@@ -137,7 +137,7 @@ export type NormalImage = {
     appearances: ImageAppearance[];
 } & NormalBase
 
-type MapAppearanceRoom = {
+export type MapAppearanceRoom = {
     x: number;
     y: number;
     location: number[];
@@ -146,7 +146,7 @@ type MapAppearanceRoom = {
 type MapAppearanceImage = string
 
 export type MapAppearance = {
-    name?: string;
+    name: ComponentRenderItem[];
     images: MapAppearanceImage[];
     rooms: Record<string, MapAppearanceRoom>;
 } & BaseAppearance

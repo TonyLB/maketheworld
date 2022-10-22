@@ -402,7 +402,26 @@ Array [
         "display": undefined,
         "global": undefined,
         "key": "ABC",
-        "name": "Vortex",
+        "name": Array [
+          Object {
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 42,
+                  "startTagToken": 42,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              ],
+              "endTagToken": 43,
+              "startTagToken": 40,
+              "tag": "Name",
+              "value": "Vortex",
+            },
+            "tag": "String",
+            "value": "Vortex",
+          },
+        ],
         "parse": Object {
           "contents": Array [
             Object {
@@ -587,7 +606,7 @@ Array [
             "display": undefined,
             "global": undefined,
             "key": "ABC",
-            "name": "",
+            "name": Array [],
             "parse": Object {
               "contents": Array [
                 Object {
@@ -673,7 +692,26 @@ Array [
         "display": undefined,
         "global": undefined,
         "key": "DEF",
-        "name": "Welcome",
+        "name": Array [
+          Object {
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 102,
+                  "startTagToken": 102,
+                  "tag": "String",
+                  "value": "Welcome",
+                },
+              ],
+              "endTagToken": 103,
+              "startTagToken": 100,
+              "tag": "Name",
+              "value": "Welcome",
+            },
+            "tag": "String",
+            "value": "Welcome",
+          },
+        ],
         "parse": Object {
           "contents": Array [
             Object {

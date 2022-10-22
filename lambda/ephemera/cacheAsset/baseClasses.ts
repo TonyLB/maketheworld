@@ -8,6 +8,7 @@ import {
     EphemeraRoomId,
     EphemeraVariableId
 } from "@tonylb/mtw-interfaces/dist/baseClasses";
+import { TaggedMessageContent } from "@tonylb/mtw-interfaces/dist/messages";
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
 import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 
@@ -23,7 +24,7 @@ export type EphemeraCondition = {
 
 export type EphemeraFeatureAppearance = {
     conditions: EphemeraCondition[];
-    name: string;
+    name: TaggedMessageContent[];
     render: ComponentRenderItem[];
 }
 
@@ -40,7 +41,7 @@ export type EphemeraExit = {
 
 export type EphemeraRoomAppearance = {
     conditions: EphemeraCondition[];
-    name: string;
+    name: TaggedMessageContent[];
     render: ComponentRenderItem[];
     exits: EphemeraExit[];
 }
@@ -60,7 +61,7 @@ export type EphemeraMapRoom = {
 export type EphemeraMapAppearance = {
     conditions: EphemeraCondition[];
     fileURL: string;
-    name: string;
+    name: TaggedMessageContent[];
     rooms: Record<string, EphemeraMapRoom>;
 }
 

@@ -11,7 +11,7 @@ export const schemaFromFeature = (item: ParseFeatureTag, contents: SchemaFeature
         tag: 'Feature',
         key: item.key,
         global: item.global,
-        name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
+        name: contents.filter(isSchemaName).map(({ name, parse }) => ({ tag: 'String', value: name, parse })),
         render: contents.filter(isSchemaDescription).reduce((previous, description) => ([...previous, ...description.contents]), []),
         contents: componentContents,
         parse: item

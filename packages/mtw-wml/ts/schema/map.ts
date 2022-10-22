@@ -10,7 +10,7 @@ export const schemaFromMap = (item: ParseMapTag, contents: (SchemaMapLegalConten
     return {
         tag: 'Map',
         key: item.key,
-        name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
+        name: contents.filter(isSchemaName).map(({ name, parse }) => ({ tag: 'String', value: name, parse })),
         contents: componentContents,
         rooms: contents.reduce<Record<string, { x: number; y: number; index: number }>>((previous, item, index) => {
             if (isSchemaRoom(item)) {
