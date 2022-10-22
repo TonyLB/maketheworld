@@ -31,6 +31,7 @@ import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { InheritedExit, InheritedComponent } from '../../../slices/personalAssets/inheritedData'
 import { objectFilter } from '../../../lib/objects'
+import { isTaggedText } from '@tonylb/mtw-interfaces/dist/messages'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -72,11 +73,11 @@ type LibraryAssetProps = {
 
 export type AssetComponent = {
     tag: string;
-    localName: string;
+    localName: ComponentRenderItem[];
     localRender: ComponentRenderItem[];
-    defaultName: string;
+    defaultName: ComponentRenderItem[];
     defaultRender?: ComponentRenderItem[];
-    name: string;
+    name: ComponentRenderItem[];
     render: ComponentRenderItem[];
 }
 
@@ -87,7 +88,9 @@ const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: Norma
         .map((component) => {
             const localName = (component.appearances
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-                .map(({ name = '' }) => name)
+                .map(({ name = [] }) => name)
+                .reduce((previous, name) => ([ ...previous, ...name ]), [])
+                .map((item) => ((item.tag === 'String') ? item.value : ''))
                 .join('')) || ''
             const countRenderAppearances = component.appearances
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
@@ -96,7 +99,7 @@ const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: Norma
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                 .map(({ render = [] }) => render)
                 .reduce((previous, render) => ([ ...previous, ...render ]), [])
-            const defaultName = defaultAppearances[component.key]?.name || ''
+            const defaultName = [{ tag: 'String', value: defaultAppearances[component.key]?.name || '' }]
             const defaultRender = defaultAppearances[component.key]?.render
             return { [component.key]: {
                 tag: component.tag,
@@ -104,7 +107,7 @@ const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: Norma
                 localRender,
                 defaultName,
                 defaultRender,
-                name: `${defaultName}${localName}`,
+                name: [ ...defaultName, ...localName ],
                 render: [...(defaultRender || []), ...localRender]
             }}
         })
