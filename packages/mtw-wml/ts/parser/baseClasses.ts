@@ -153,14 +153,17 @@ export type ParseLinkTag = {
     contents: ParseLinkLegalContents[];
 } & ParseTagBase
 
-export type ParseDescriptionLegalContents = ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag | ParseSpacerTag
-export type ParseDescriptionTag = {
-    tag: 'Description';
+export type ParseTaggedMessageLegalContents = ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag | ParseSpacerTag
+
+export type ParseTaggedMessageTag<T extends string> = {
+    tag: T;
     display: 'before' | 'after' | 'replace';
     spaceBefore: boolean;
     spaceAfter: boolean;
-    contents: ParseDescriptionLegalContents[];
+    contents: ParseTaggedMessageLegalContents[];
 } & ParseTagBase
+
+export type ParseDescriptionTag = ParseTaggedMessageTag<"Description">
 
 export type ParseLineBreakTag = {
     tag: 'br';
@@ -226,7 +229,7 @@ export type ParseTag = ParseAssetTag |
     ParseImportTag |
     ParseConditionTag |
     ParseExitTag |
-    ParseDescriptionTag |
+    ParseTaggedMessageTag<'Description'> |
     ParseLineBreakTag |
     ParseLinkTag |
     ParseRoomTag |
