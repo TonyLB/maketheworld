@@ -42,6 +42,7 @@ describe('normalToTree', () => {
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
                     images: [],
+                    name: [],
                     rooms: {
                         '123': {
                             x: 200,
@@ -67,7 +68,7 @@ describe('normalToTree', () => {
                 tag: 'Room',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Vortex',
+                    name: [{ tag: 'String', value: 'Vortex' }],
                     contents: [],
                     location: [0, 1]
                 },
@@ -85,7 +86,7 @@ describe('normalToTree', () => {
                 tag: 'Room',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Welcome Room',
+                    name: [{ tag: 'String', value: 'Welcome Room' }],
                     contents: [
                         { key: '456#123', tag: 'Exit', index: 0 },
                         { key: '456#789', tag: 'Exit', index: 0 }
@@ -128,7 +129,7 @@ describe('normalToTree', () => {
                 tag: 'Room',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'None',
+                    name: [{ tag: 'String', value: 'None' }],
                     contents: [],
                     location: [0, 3]
                 },
@@ -145,9 +146,9 @@ describe('normalToTree', () => {
 
         const roomAssetFromName = (name: string) => ({
             tag: 'Room',
-            localName: '',
-            defaultName: name,
-            name: name,
+            localName: [],
+            defaultName: [{ tag: 'String' as 'String', value: name }],
+            name: [{ tag: 'String' as 'String', value: name }],
             localRender: [],
             defaultRender: [],
             render: []

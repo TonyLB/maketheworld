@@ -14,6 +14,7 @@ import HouseIcon from '@mui/icons-material/House'
 
 import MessageComponent from './MessageComponent'
 import {
+    isTaggedText,
     RoomDescription as RoomDescriptionType,
     RoomHeader as RoomHeaderType,
 } from '@tonylb/mtw-interfaces/dist/messages'
@@ -52,7 +53,7 @@ export const RoomDescription = ({ message }: RoomDescriptionProps) => {
                     padding-bottom: 5px;
                 `}>
                     <Typography variant='h5' align='left'>
-                        { Name }
+                        { Name.filter(isTaggedText).map(({ value }) => (value)).join('') }
                     </Typography>
                     <TaggedMessageContent list={Description} />
                     <Divider />
