@@ -9,6 +9,8 @@ jest.mock('../../../lib/wmlQueryCache')
 import { wmlQueryFromCache } from '../../../lib/wmlQueryCache'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 
+const wmlQueryFromCacheMock = wmlQueryFromCache as jest.Mock
+
 const mockStore = configureStore()
 const currentWML = `
 <Asset key=(Test) fileName="test">
@@ -75,7 +77,7 @@ describe('LibraryAsset context provider', () => {
         store.clearActions()
         jest.clearAllMocks()
         jest.resetAllMocks()
-        wmlQueryFromCache.mockReturnValue(
+        wmlQueryFromCacheMock.mockReturnValue(
             new WMLQuery(currentWML)
         )
     })
@@ -113,10 +115,10 @@ describe('LibraryAsset context provider', () => {
     })
 
     it('should provide rooms', ()=>{
-        const RoomComponent = ({ value }) => {
+        const RoomComponent = ({ value }: { value: AssetComponent }) => {
             const { name, render } = value
             return <div>
-                <span>{name}</span>
+                <span>{name.map((item) => ((item.tag === 'String') ? item.value : ''))}</span>
                 { render.map((room, index) => {
                     switch(room.tag) {
                         case 'String':
@@ -151,10 +153,10 @@ describe('LibraryAsset context provider', () => {
     })
 
     it('should provide features', ()=>{
-        const FeatureComponent = ({ value }) => {
+        const FeatureComponent = ({ value }: { value: AssetComponent }) => {
             const { name, render } = value
             return <div>
-                <span>{name}</span>
+                <span>{name.map((item) => ((item.tag === 'String') ? item.value : ''))}</span>
                 { render.map((room, index) => {
                     switch(room.tag) {
                         case 'String':
@@ -165,7 +167,7 @@ describe('LibraryAsset context provider', () => {
                         case 'Link': 
                             return <React.Fragment key={index}>
                                 <span>Link</span>
-                                <span>{ room.key }</span>
+                                <span>{ room.to }</span>
                             </React.Fragment>
                         default:
                             return null

@@ -9,7 +9,6 @@ Array [
         "value": "Tess",
       },
     ],
-    "name": "Tess",
     "tag": "Name",
   },
 ]
@@ -24,7 +23,6 @@ Array [
         "value": "Tess",
       },
     ],
-    "name": "Tess",
     "tag": "Name",
   },
 ]
@@ -52,7 +50,6 @@ Array [
             "value": "Tess",
           },
         ],
-        "name": "Tess",
         "tag": "Name",
       },
       Object {
@@ -102,22 +99,16 @@ Array [
       Object {
         "contents": Array [
           Object {
-            "spaceAfter": true,
-            "spaceBefore": false,
             "tag": "String",
             "value": "Test Render:",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "text": "Clock Tower",
             "to": "clockTower",
           },
         ],
         "display": undefined,
-        "spaceAfter": false,
-        "spaceBefore": false,
         "tag": "Description",
       },
       Object {
@@ -150,7 +141,7 @@ Array [
     "display": undefined,
     "global": true,
     "key": "VORTEX",
-    "name": "",
+    "name": Array [],
     "render": Array [
       Object {
         "parse": Object {
@@ -159,8 +150,6 @@ Array [
           "tag": "String",
           "value": "Test Render:",
         },
-        "spaceAfter": true,
-        "spaceBefore": false,
         "tag": "String",
         "value": "Test Render:",
       },
@@ -179,8 +168,6 @@ Array [
           "tag": "Link",
           "to": "clockTower",
         },
-        "spaceAfter": true,
-        "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
         "to": "clockTower",
@@ -234,36 +221,26 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "spaceAfter": true,
-        "spaceBefore": false,
         "tag": "String",
         "value": "Test Render:",
       },
       Object {
-        "spaceAfter": true,
-        "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
         "to": "clockTower",
       },
     ],
     "display": undefined,
-    "spaceAfter": false,
-    "spaceBefore": false,
     "tag": "Description",
   },
   Object {
     "contents": Array [
       Object {
-        "spaceAfter": true,
-        "spaceBefore": false,
         "tag": "String",
         "value": "Clocktower test on multiple lines",
       },
     ],
     "display": undefined,
-    "spaceAfter": false,
-    "spaceBefore": false,
     "tag": "Description",
   },
 ]
@@ -300,15 +277,11 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "spaceAfter": true,
-        "spaceBefore": false,
         "tag": "String",
         "value": "Clocktower test on multiple lines",
       },
     ],
     "display": undefined,
-    "spaceAfter": false,
-    "spaceBefore": false,
     "tag": "Description",
   },
 ]
@@ -319,22 +292,16 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "spaceAfter": true,
-        "spaceBefore": false,
         "tag": "String",
         "value": "Test Render:",
       },
       Object {
-        "spaceAfter": true,
-        "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
         "to": "clockTower",
       },
     ],
     "display": undefined,
-    "spaceAfter": false,
-    "spaceBefore": false,
     "tag": "Description",
   },
 ]
@@ -365,7 +332,7 @@ Array [
     "display": undefined,
     "global": undefined,
     "key": "Test",
-    "name": "",
+    "name": Array [],
     "render": Array [],
     "tag": "Room",
     "x": undefined,
@@ -381,22 +348,16 @@ Array [
       Object {
         "contents": Array [
           Object {
-            "spaceAfter": true,
-            "spaceBefore": false,
             "tag": "String",
             "value": "Test Render:",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "text": "Clock Tower",
             "to": "clockTower",
           },
         ],
         "display": undefined,
-        "spaceAfter": false,
-        "spaceBefore": false,
         "tag": "Description",
       },
       Object {
@@ -429,7 +390,7 @@ Array [
     "display": undefined,
     "global": true,
     "key": "VORTEX",
-    "name": "",
+    "name": Array [],
     "render": Array [
       Object {
         "parse": Object {
@@ -438,8 +399,6 @@ Array [
           "tag": "String",
           "value": "Test Render:",
         },
-        "spaceAfter": true,
-        "spaceBefore": false,
         "tag": "String",
         "value": "Test Render:",
       },
@@ -458,8 +417,6 @@ Array [
           "tag": "Link",
           "to": "clockTower",
         },
-        "spaceAfter": true,
-        "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
         "to": "clockTower",
@@ -474,7 +431,7 @@ Array [
     "display": undefined,
     "global": undefined,
     "key": "Test",
-    "name": "",
+    "name": Array [],
     "render": Array [],
     "tag": "Room",
     "x": undefined,
@@ -505,7 +462,6 @@ Array [
             "value": "Tess",
           },
         ],
-        "name": "Tess",
         "tag": "Name",
       },
       Object {

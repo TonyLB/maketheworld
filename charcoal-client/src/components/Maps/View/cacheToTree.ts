@@ -14,7 +14,7 @@ export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): MapTree => {
                 key: roomId,
                 item: {
                     type: 'ROOM',
-                    name: name || '',
+                    name: (name ?? []).map((item) => ((item.tag === 'String') ? item.value : '')).join(''),
                     x,
                     y,
                     roomId,

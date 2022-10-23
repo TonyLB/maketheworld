@@ -36,7 +36,7 @@ import {
     SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
-    SchemaDescriptionLegalContents,
+    SchemaTaggedMessageLegalContents,
     SchemaDescriptionTag,
     SchemaException,
     SchemaExitTag,
@@ -127,7 +127,7 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         case 'Name':
             return schemaFromName(item, schemaContents as SchemaLiteralLegalContents[])
         case 'Description':
-            return schemaFromDescription(item, schemaContents as SchemaDescriptionLegalContents[])
+            return schemaFromDescription(item, schemaContents as SchemaTaggedMessageLegalContents[])
         case 'Feature':
             return schemaFromFeature(item, schemaContents as SchemaFeatureLegalContents[])
         case 'Link':

@@ -12,16 +12,18 @@ import AddRoomExit from './AddRoomExit'
 import RoomExitHeader from './RoomExitHeader'
 import { objectFilter } from '../../../lib/objects'
 import { noConditionContext } from './utilities'
+import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 interface RoomExitsProps {
     RoomId: string;
 }
 
-const guessExitName = (roomName: string) => (
-    roomName.split(' ')
+const guessExitName = (roomName: ComponentRenderItem[] = []) => {
+    const roomNameText = roomName.map((item) => (item.tag === 'String' ? item.value : '')).join('')
+    return roomNameText.split(' ')
         .map((token) => (token.toLowerCase()))
         .filter((token) => (!['a', 'an', 'the'].includes(token)))[0] || 'unknown'
-)
+}
 
 export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
     const { wmlQuery, rooms, exits, updateWML } = useLibraryAsset()
@@ -34,8 +36,8 @@ export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
             return
         }
         const guessName = toTarget
-            ? guessExitName(rooms[targetId]?.name || '')
-            : guessExitName(rooms[RoomId]?.name || '')
+            ? guessExitName(rooms[targetId]?.name)
+            : guessExitName(rooms[RoomId]?.name)
         const newElement = `<Exit ${toTarget ? 'to' : 'from'}=(${targetId})>${guessName}</Exit>`
         const updateQuery = wmlQuery
             .search(`Room[key="${RoomId}"]`)

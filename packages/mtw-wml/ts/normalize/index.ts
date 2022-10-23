@@ -11,6 +11,7 @@ import {
     SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
+    SchemaTaggedMessageLegalContents,
     SchemaFeatureLegalContents,
     SchemaFeatureTag,
     SchemaImageTag,
@@ -27,6 +28,7 @@ import {
 import {
     BaseAppearance,
     ComponentRenderItem,
+    MapAppearance,
     NormalAction,
     NormalAsset,
     NormalCharacter,
@@ -62,9 +64,45 @@ type NormalizeAddReturnValue = {
     siblings: NormalReference[];
 }
 
+type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature" | "Character">
+
+const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
+    if (renderItem.tag === 'Link') {
+        if (!(renderItem.to in translationTags)) {
+            throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) with no matching key`)
+        }
+        const targetTag = translationTags[renderItem.to]
+        if (!['Action', 'Feature'].includes(targetTag)) {
+            throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) referring to an invalid tag (${targetTag})`)
+        }
+        return {
+            tag: 'Link',
+            to: renderItem.to,
+            text: renderItem.text,
+            targetTag: targetTag as 'Action' | 'Feature'
+        }
+    }
+    else if (renderItem.tag === 'br') {
+        return {
+            tag: 'LineBreak' as 'LineBreak'
+        }
+    }
+    else if (renderItem.tag === 'Space') {
+        return {
+            tag: 'Space' as 'Space'
+        }
+    }
+    else if (renderItem.tag === 'String') {
+        return {
+            tag: 'String' as 'String',
+            value: renderItem.value
+        }
+    }
+}
+
 export class Normalizer {
     _normalForm: NormalForm = {};
-    _tags: Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature" | "Character"> = {}
+    _tags: NormalizeTagTranslationMap = {}
 
     constructor() {}
     _mergeAppearance(key: string, item: NormalItem): number {
@@ -277,7 +315,7 @@ export class Normalizer {
                                     {
                                         key,
                                         tag: 'Room',
-                                        name: '',
+                                        name: [],
                                         global: false,
                                         contents: [],
                                         render: [],
@@ -297,7 +335,7 @@ export class Normalizer {
                                     {
                                         key,
                                         tag: 'Feature',
-                                        name: '',
+                                        name: [],
                                         global: false,
                                         contents: [],
                                         render: [],
@@ -555,42 +593,8 @@ export class Normalizer {
                     global: node.global ?? false,
                     appearances: [{
                         ...appearance,
-                        render: node.render.map<ComponentRenderItem>((renderItem) => {
-                            if (renderItem.tag === 'Link') {
-                                if (!(renderItem.to in this._tags)) {
-                                    throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) with no matching key`)
-                                }
-                                const targetTag = this._tags[renderItem.to]
-                                if (!['Action', 'Feature'].includes(targetTag)) {
-                                    throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) referring to an invalid tag (${targetTag})`)
-                                }
-                                return {
-                                    tag: 'Link',
-                                    to: renderItem.to,
-                                    text: renderItem.text,
-                                    spaceBefore: renderItem.spaceBefore,
-                                    spaceAfter: renderItem.spaceAfter,
-                                    targetTag: targetTag as 'Action' | 'Feature'
-                                }
-                            }
-                            else if (renderItem.tag === 'br') {
-                                return {
-                                    tag: 'LineBreak' as 'LineBreak'
-                                }
-                            }
-                            else if (renderItem.tag === 'Space') {
-                                return {
-                                    tag: 'Space' as 'Space'
-                                }
-                            }
-                            else if (renderItem.tag === 'String') {
-                                return {
-                                    tag: 'String' as 'String',
-                                    value: renderItem.value
-                                }
-                            }
-                        }).filter((value) => (value)),
-                        name: node.name,
+                        render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
+                        name: node.name.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
                         spaceAfter: false,
                         spaceBefore: false,
                         ...((node.tag === 'Room' && (node.x !== undefined || node.y !== undefined)) ? { x: node.x, y: node.y } : {})
@@ -607,7 +611,7 @@ export class Normalizer {
                             location: [...appearance.location, index]
                         }))),
                         images: node.images
-                    }]
+                    }] as MapAppearance[]
                 }
             case 'Exit':
                 return {

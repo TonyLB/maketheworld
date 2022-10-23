@@ -1,4 +1,4 @@
-import { SchemaCharacterLegalContents, SchemaCharacterTag, isSchemaName, isSchemaPronouns, isSchemaFirstImpression, isSchemaOneCoolThing, isSchemaOutfit, isSchemaImage, SchemaPronounsTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaLiteralLegalContents } from "./baseClasses";
+import { SchemaCharacterLegalContents, SchemaCharacterTag, isSchemaName, isSchemaPronouns, isSchemaFirstImpression, isSchemaOneCoolThing, isSchemaOutfit, isSchemaImage, SchemaPronounsTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaLiteralLegalContents, SchemaStringTag } from "./baseClasses";
 import { ParseCharacterTag, ParseFirstImpressionTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag } from "../parser/baseClasses";
 
 export const schemaFromPronouns = (item: ParsePronounsTag): SchemaPronounsTag => ({
@@ -39,7 +39,15 @@ export const schemaFromCharacter = (item: ParseCharacterTag, contents: SchemaCha
     zone: item.zone,
     subFolder: item.subFolder,
     player: item.player,
-    Name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
+    //
+    // TODO: Extend Character Name to render more complicated TaggedMessage predicates
+    //
+    Name: contents.filter(isSchemaName)
+        .map(({ contents }) => (contents))
+        .reduce((previous, item) => ([ ...previous, ...item ]), [])
+        .filter((item): item is SchemaStringTag => (item.tag === 'String'))
+        .map(({ value }) => (value))
+        .join(''),
     Pronouns: contents.filter(isSchemaPronouns).reduce((previous, { tag, parse, ...rest }) => (rest), {
         subject: 'they',
         object: 'them',

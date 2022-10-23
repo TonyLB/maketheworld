@@ -152,15 +152,13 @@ export type SchemaLinkTag = {
     spaceAfter?: boolean;
 } & SchemaBase
 
-export type SchemaDescriptionIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaWhitespaceTag
-export type SchemaDescriptionLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag
+export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaWhitespaceTag
+export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
-    display: 'before' | 'after' | 'replace';
-    spaceBefore: boolean;
-    spaceAfter: boolean;
-    contents: SchemaDescriptionLegalContents[];
+    display?: 'before' | 'after' | 'replace';
+    contents: SchemaTaggedMessageLegalContents[];
 } & SchemaBase
 
 export type SchemaLineBreakTag = {
@@ -173,8 +171,7 @@ export type SchemaSpacerTag = {
 
 export type SchemaNameTag = {
     tag: 'Name';
-    name: string;
-    contents: SchemaLiteralLegalContents[];
+    contents: SchemaTaggedMessageLegalContents[];
 } & SchemaBase
 
 //
@@ -185,8 +182,8 @@ export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | Sch
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
-    name: string;
-    render: SchemaDescriptionLegalContents[];
+    name: SchemaTaggedMessageLegalContents[];
+    render: SchemaTaggedMessageLegalContents[];
     global: boolean;
     display?: string;
     x?: number;
@@ -199,8 +196,8 @@ export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
     global: boolean;
-    name: string;
-    render: SchemaDescriptionLegalContents[];
+    name: SchemaTaggedMessageLegalContents[];
+    render: SchemaTaggedMessageLegalContents[];
     contents: SchemaFeatureLegalContents[];
 } & SchemaBase
 
@@ -208,7 +205,7 @@ export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoom
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
-    name: string;
+    name: SchemaTaggedMessageLegalContents[];
     contents: SchemaMapLegalContents[];
     rooms: Record<string, { x: number; y: number; index: number }>;
     images: string[];
@@ -276,7 +273,7 @@ export class SchemaException extends Error {
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
 export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')
-export const isSchemaDescriptionContents = (value: SchemaTag): value is SchemaDescriptionLegalContents => (['Whitespae', 'String', 'Link', 'br'].includes(value.tag))
+export const isSchemaDescriptionContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (['Whitespae', 'String', 'Link', 'br'].includes(value.tag))
 export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptionTag => (value.tag === 'Description')
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')

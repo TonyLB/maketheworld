@@ -72,7 +72,7 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
                     key,
                     item: {
                         type: 'ROOM',
-                        name: rooms[key]?.name || 'Untitled',
+                        name: (rooms[key]?.name ?? [{ tag: 'String', value: 'Untitled' }]).map((item) => ((item.tag === 'String') ? item.value : '')).join(''),
                         location,
                         x,
                         y,
@@ -91,7 +91,7 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
                     key,
                     item: {
                         type: 'ROOM',
-                        name: rooms[key]?.name || 'Untitled',
+                        name: (rooms[key]?.name ?? [{ tag: 'String', value: 'Untitled' }]).map((item) => ((item.tag === 'String') ? item.value : '')).join(''),
                         x,
                         y,
                         roomId: key,

@@ -16,7 +16,7 @@ describe('ComponentMeta', () => {
         ephemeraMock.batchGetItem.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             appearances: [{
-                name: '',
+                name: [],
                 render: [{
                     tag: 'String',
                     value: 'Testing'
@@ -28,7 +28,7 @@ describe('ComponentMeta', () => {
         {
             DataCategory: 'ASSET#Layer',
             appearances: [{
-                name: '',
+                name: [],
                 render: [{
                     tag: 'String',
                     value: 'TestingTwo'
@@ -43,7 +43,7 @@ describe('ComponentMeta', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
                 appearances: [{
-                    name: '',
+                    name: [],
                     render: [{
                         tag: 'String',
                         value: 'Testing'
@@ -56,7 +56,7 @@ describe('ComponentMeta', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Layer',
                 appearances: [{
-                    name: '',
+                    name: [],
                     render: [{
                         tag: 'String',
                         value: 'TestingTwo'
@@ -81,7 +81,7 @@ describe('ComponentMeta', () => {
             EphemeraId: 'ROOM#TestOne',
             assetId: 'Layer',
             appearances: [{
-                name: '',
+                name: [],
                 render: [{
                     tag: "String",
                     value: 'TestingTwo'
@@ -93,7 +93,7 @@ describe('ComponentMeta', () => {
         ephemeraMock.batchGetItem.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             appearances: [{
-                name: '',
+                name: [],
                 render: [{
                     tag: 'String',
                     value: 'Testing'
@@ -108,7 +108,7 @@ describe('ComponentMeta', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
                 appearances: [{
-                    name: '',
+                    name: [],
                     render: [{
                         tag: 'String',
                         value: 'Testing'
@@ -121,7 +121,7 @@ describe('ComponentMeta', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Layer',
                 appearances: [{
-                    name: '',
+                    name: [],
                     render: [{
                         tag: 'String',
                         value: 'TestingTwo'
@@ -144,7 +144,7 @@ describe('ComponentMeta', () => {
         ephemeraMock.batchGetItem.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             appearances: [{
-                name: '',
+                name: [],
                 render: [{
                     tag: 'String',
                     value: 'Testing'
@@ -159,7 +159,7 @@ describe('ComponentMeta', () => {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Base',
                 appearances: [{
-                    name: '',
+                    name: [],
                     render: [{
                         tag: 'String',
                         value: 'Testing'

@@ -29,7 +29,7 @@ import {
     ParseCommentTag,
     ParseAssetLegalContents,
     ParseCharacterLegalContents,
-    ParseDescriptionLegalContents,
+    ParseTaggedMessageLegalContents,
     ParseRoomLegalContents,
     ParseFeatureLegalContents,
     ParseMapLegalContents,
@@ -200,7 +200,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...descriptionItem,
-                        contents: transformWithContext(item.contents, callback, [...context, descriptionItem]) as ParseDescriptionLegalContents[]
+                        contents: transformWithContext(item.contents, callback, [...context, descriptionItem]) as ParseTaggedMessageLegalContents[]
                     }
                 ]
             case 'br':

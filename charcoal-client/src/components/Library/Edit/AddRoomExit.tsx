@@ -94,7 +94,10 @@ export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId, onAdd
     const exitOptions = useMemo<ExitSelectOptions>(() => {
         const allPossibleOptions = Object.entries(rooms)
             .filter(([key]) => (key !== RoomId))
-            .map(([key, { name }]) => ({ value: key, name }))
+            .map(([key, { name }]) => ({
+                value: key,
+                name: name.map((item) => ((item.tag === 'String') ? item.value : '')).join('')
+            }))
         return {
             to: allPossibleOptions.filter(({ value: targetId }) => (!Object.values(exits).find(({ from, to }) => (from === RoomId && to === targetId)))),
             from: allPossibleOptions.filter(({ value: targetId }) => (!Object.values(exits).find(({ from, to }) => (to === RoomId && from === targetId))))

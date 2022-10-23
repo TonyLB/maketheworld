@@ -1,14 +1,5 @@
 import internalCache from "../internalCache"
-jest.mock('../messageBus')
-import messageBus from '../messageBus'
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { ComponentMetaMapItem, ComponentMetaRoomItem } from '../internalCache/componentMeta'
-
-import perceptionMessage from '.'
-
-const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
-const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 describe('ComponentRender cache handler', () => {
     beforeEach(() => {
@@ -34,13 +25,13 @@ describe('ComponentRender cache handler', () => {
                 appearances: [
                     {
                         conditions: [{ if: 'testOne', dependencies: [] }],
-                        name: 'TestRoom',
+                        name: [{ tag: 'String', value: 'TestRoom' }],
                         render: [{ tag: 'String', value: 'First' }],
                         exits: []
                     },
                     {
                         conditions: [{ if: 'testTwo', dependencies: [] }],
-                        name: '',
+                        name: [],
                         render: [{ tag: 'String', value: 'ERROR' }],
                         exits: []
                     }
@@ -52,13 +43,13 @@ describe('ComponentRender cache handler', () => {
                 appearances: [
                     {
                         conditions: [{ if: 'testThree', dependencies: [] }],
-                        name: 'ERROR',
+                        name: [{ tag: 'String', value: 'ERROR' }],
                         render: [{ tag: 'String', value: 'ERROR' }],
                         exits: []
                     },
                     {
                         conditions: [{ if: 'testFour', dependencies: [] }],
-                        name: '',
+                        name: [],
                         render: [{ tag: 'String', value: 'Second' }],
                         exits: []
                     }
@@ -75,7 +66,7 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base', 'Personal'])
         expect(output).toEqual({
             RoomId: 'ROOM#TestOne',
-            Name: 'TestRoom',
+            Name: [{ tag: 'String', value: 'TestRoom' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: []
@@ -99,12 +90,12 @@ describe('ComponentRender cache handler', () => {
                 appearances: [
                     {
                         conditions: [{ if: 'testOne', dependencies: [] }],
-                        name: 'TestFeature',
+                        name: [{ tag: 'String', value: 'TestFeature' }],
                         render: [{ tag: 'String', value: 'First' }],
                     },
                     {
                         conditions: [{ if: 'testTwo', dependencies: [] }],
-                        name: '',
+                        name: [],
                         render: [{ tag: 'String', value: 'ERROR' }],
                     }
                 ]
@@ -115,12 +106,12 @@ describe('ComponentRender cache handler', () => {
                 appearances: [
                     {
                         conditions: [{ if: 'testThree', dependencies: [] }],
-                        name: 'ERROR',
+                        name: [{ tag: 'String', value: 'ERROR' }],
                         render: [{ tag: 'String', value: 'ERROR' }],
                     },
                     {
                         conditions: [{ if: 'testFour', dependencies: [] }],
-                        name: '',
+                        name: [],
                         render: [{ tag: 'String', value: 'Second' }],
                     }
                 ]
@@ -136,7 +127,7 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['Base', 'Personal'])
         expect(output).toEqual({
             FeatureId: 'FEATURE#TestOne',
-            Name: 'TestFeature',
+            Name: [{ tag: 'String', value: 'TestFeature' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
         })
     })
@@ -157,7 +148,7 @@ describe('ComponentRender cache handler', () => {
                 assetId: 'Base',
                 appearances: [{
                     conditions: [],
-                    name: 'Test Map',
+                    name: [{ tag: 'String', value: 'Test Map' }],
                     fileURL: 'https://test.com/test.png',
                     rooms: {
                         TestRoomOne: {
@@ -173,7 +164,7 @@ describe('ComponentRender cache handler', () => {
                 assetId: 'Personal',
                 appearances: [{
                     conditions: [],
-                    name: '',
+                    name: [],
                     fileURL: '',
                     rooms: {
                         TestRoomOne: {
@@ -190,7 +181,7 @@ describe('ComponentRender cache handler', () => {
                 assetId: 'Base',
                 appearances: [{
                     conditions: [],
-                    name: 'Test Room One',
+                    name: [{ tag: 'String', value: 'Test Room One' }],
                     render: [],
                     exits: [
                         {
@@ -212,7 +203,7 @@ describe('ComponentRender cache handler', () => {
                 assetId: 'Personal',
                 appearances: [{
                     conditions: [],
-                    name: 'Test Room Two',
+                    name: [{ tag: 'String', value: 'Test Room Two' }],
                     render: [],
                     exits: [
                         {
@@ -226,12 +217,12 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(output).toEqual({
             MapId: 'MAP#TestOne',
-            Name: 'Test Map',
+            Name: [{ tag: 'String', value: 'Test Map' }],
             fileURL: 'https://test.com/test.png',
             rooms: [
                 {
                     roomId: 'ROOM#TestRoomOne',
-                    name: 'Test Room One',
+                    name: [{ tag: 'String', value: 'Test Room One' }],
                     x: 0,
                     y: 0,
                     exits: [{
@@ -241,7 +232,7 @@ describe('ComponentRender cache handler', () => {
                 },
                 {
                     roomId: 'ROOM#TestRoomTwo',
-                    name: 'Test Room Two',
+                    name: [{ tag: 'String', value: 'Test Room Two' }],
                     x: 100,
                     y: 0,
                     exits: [{
@@ -270,13 +261,13 @@ describe('ComponentRender cache handler', () => {
                 appearances: [
                     {
                         conditions: [],
-                        name: 'TestRoom',
+                        name: [{ tag: 'String', value: 'TestRoom' }],
                         render: [{ tag: 'String', value: 'First' }],
                         exits: []
                     },
                     {
                         conditions: [{ if: 'testTwo', dependencies: [{ key: 'testTwo', EphemeraId: 'VARIABLE#testVariable' }] }],
-                        name: '',
+                        name: [],
                         render: [{ tag: 'String', value: 'Second' }],
                         exits: []
                     }
@@ -295,7 +286,7 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(1)
         expect(outputOne).toEqual({
             RoomId: 'ROOM#TestOne',
-            Name: 'TestRoom',
+            Name: [{ tag: 'String', value: 'TestRoom' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'First' }],
             Exits: []
@@ -306,7 +297,7 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
         expect(outputTwo).toEqual({
             RoomId: 'ROOM#TestOne',
-            Name: 'TestRoom',
+            Name: [{ tag: 'String', value: 'TestRoom' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: []
@@ -317,7 +308,7 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
         expect(outputThree).toEqual({
             RoomId: 'ROOM#TestOne',
-            Name: 'TestRoom',
+            Name: [{ tag: 'String', value: 'TestRoom' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: []

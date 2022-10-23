@@ -35,7 +35,6 @@ Array [
         "endTagToken": 26,
         "startTagToken": 23,
         "tag": "Name",
-        "value": "Tess",
       },
       Object {
         "adjective": "hers",
@@ -77,7 +76,6 @@ Array [
             "endTagToken": 17,
             "startTagToken": 14,
             "tag": "Name",
-            "value": "Test Map",
           },
           Object {
             "endTagToken": 26,
@@ -142,7 +140,6 @@ Array [
             "endTagToken": 17,
             "startTagToken": 14,
             "tag": "Name",
-            "value": "Vortex",
           },
           Object {
             "contents": Array [
@@ -154,8 +151,6 @@ Array [
               },
             ],
             "endTagToken": 21,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 18,
             "tag": "Description",
           },
@@ -219,7 +214,6 @@ Array [
             "endTagToken": 43,
             "startTagToken": 40,
             "tag": "Name",
-            "value": "Vortex",
           },
           Object {
             "contents": Array [
@@ -270,8 +264,6 @@ Array [
               },
             ],
             "endTagToken": 61,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 44,
             "tag": "Description",
           },
@@ -351,7 +343,6 @@ Array [
             "endTagToken": 103,
             "startTagToken": 100,
             "tag": "Name",
-            "value": "Welcome",
           },
         ],
         "endTagToken": 104,

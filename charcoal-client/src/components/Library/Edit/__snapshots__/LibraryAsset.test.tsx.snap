@@ -39,7 +39,9 @@ exports[`LibraryAsset context provider should provide features 1`] = `
 <div>
   <div>
     <div>
-      <span />
+      <span>
+        
+      </span>
       <span>
         String
       </span>
@@ -203,7 +205,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                 ],
                 \\"contents\\": [],
                 \\"render\\": [],
-                \\"name\\": \\"\\",
+                \\"name\\": [],
                 \\"spaceAfter\\": false,
                 \\"spaceBefore\\": false
             },
@@ -238,7 +240,12 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                 ],
                 \\"contents\\": [],
                 \\"render\\": [],
-                \\"name\\": \\"Welcome\\",
+                \\"name\\": [
+                    {
+                        \\"tag\\": \\"String\\",
+                        \\"value\\": \\"Welcome\\"
+                    }
+                ],
                 \\"spaceAfter\\": false,
                 \\"spaceBefore\\": false
             }
@@ -268,7 +275,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"value\\": \\"A worn stone clock tower.\\"
                     }
                 ],
-                \\"name\\": \\"\\",
+                \\"name\\": [],
                 \\"spaceAfter\\": false,
                 \\"spaceBefore\\": false
             }
@@ -301,12 +308,15 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"tag\\": \\"Link\\",
                         \\"to\\": \\"toggleOpen\\",
                         \\"text\\": \\"(toggle)\\",
-                        \\"spaceBefore\\": true,
-                        \\"spaceAfter\\": true,
                         \\"targetTag\\": \\"Action\\"
                     }
                 ],
-                \\"name\\": \\"Vortex\\",
+                \\"name\\": [
+                    {
+                        \\"tag\\": \\"String\\",
+                        \\"value\\": \\"Vortex\\"
+                    }
+                ],
                 \\"spaceAfter\\": false,
                 \\"spaceBefore\\": false
             },
@@ -336,7 +346,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                     }
                 ],
                 \\"render\\": [],
-                \\"name\\": \\"\\",
+                \\"name\\": [],
                 \\"spaceAfter\\": false,
                 \\"spaceBefore\\": false
             }
@@ -486,7 +496,14 @@ exports[`LibraryAsset context provider should provide rooms 1`] = `
   <div>
     <div>
       <span>
-        Welcome
+        
+        
+        
+        
+        
+        
+        
+        
       </span>
       <span>
         String
@@ -497,7 +514,13 @@ exports[`LibraryAsset context provider should provide rooms 1`] = `
     </div>
     <div>
       <span>
-        Vortex
+        
+        
+        
+        
+        
+        
+        
       </span>
       <span>
         String

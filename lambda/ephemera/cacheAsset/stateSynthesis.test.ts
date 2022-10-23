@@ -74,8 +74,8 @@ describe('stateSynthesis', () => {
             },
             {
                 contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                name: '(lit)',
-                render: [{ type: 'String', value: 'The lights are on ' }],
+                name: [{ tag: 'String', value: '(lit)' }],
+                render: [{ tag: 'String', value: 'The lights are on ' }],
                 contents: []
             }] as ComponentAppearance[]
         },

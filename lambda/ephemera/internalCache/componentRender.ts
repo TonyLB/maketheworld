@@ -2,7 +2,7 @@ import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { ComponentMeta } from './componentMeta'
 import { DeferredCache } from './deferredCache'
 import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, MapDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
+import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
 import internalCache from '.';
 import { componentAppearanceReduce } from '../perception/components';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
@@ -94,7 +94,7 @@ export class ComponentRenderData {
                         description: {
                             FeatureId: cacheKey,
                             Description: [],
-                            Name: ''
+                            Name: []
                         }
                     }
                 }
@@ -104,7 +104,7 @@ export class ComponentRenderData {
                         description: {
                             RoomId: cacheKey,
                             Description: [],
-                            Name: '',
+                            Name: [],
                             Exits: [],
                             Characters: []
                         }
@@ -201,13 +201,13 @@ export class ComponentRenderData {
                 const metaByAsset = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
                 const possibleRoomAppearances = [...(globalAssets || []), ...characterAssets]
                     .map((assetId) => (((metaByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[])
-                        .filter(({ name, exits }) => (name || exits.find(({ to }) => (isEphemeraRoomId(to) &&  allRooms.includes(to)))))
+                        .filter(({ name, exits }) => (name.length || exits.find(({ to }) => (isEphemeraRoomId(to) &&  allRooms.includes(to)))))
                     ))
                     .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
                 const renderRoomMapAppearances = await filterAppearances(possibleRoomAppearances)
                 const aggregateRoomDescription = {
                     roomId: ephemeraId,
-                    name: renderRoomMapAppearances.map(({ name }) => (name)).join(''),
+                    name: renderRoomMapAppearances.map(({ name }) => (name)).reduce<TaggedMessageContent[]>((previous, name) => ([ ...previous, ...name ]), []),
                     x: roomPositions[ephemeraId].x,
                     y: roomPositions[ephemeraId].y,
                     exits: Object.values(renderRoomMapAppearances
@@ -225,7 +225,7 @@ export class ComponentRenderData {
                 dependencies: aggregateDependencies,
                 description: {
                     MapId: EphemeraId,
-                    Name: renderMapAppearances.map(({ name }) => (name)).join(''),
+                    Name: renderMapAppearances.map(({ name }) => (name)).reduce<TaggedMessageContent[]>((previous, name) => ([ ...previous, ...name ]), []),
                     fileURL: renderMapAppearances
                         .map(({ fileURL }) => (fileURL))
                         .filter((value) => (value))

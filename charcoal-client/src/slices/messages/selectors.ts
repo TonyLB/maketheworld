@@ -109,7 +109,7 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
                     Target: CharacterId,
                     RoomId: 'ROOM#NONE',
                     CreatedTime: probeMessages[0].CreatedTime,
-                    Name: 'Unknown',
+                    Name: [{ tag: 'String', value: 'Unknown' }],
                     Description: [{ tag: 'String', value: '??????' }],
                     Exits: [],
                     Characters: []

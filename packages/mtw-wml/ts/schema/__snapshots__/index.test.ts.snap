@@ -28,7 +28,6 @@ Array [
             "value": "Tess",
           },
         ],
-        "name": "Tess",
         "parse": Object {
           "contents": Array [
             Object {
@@ -41,7 +40,6 @@ Array [
           "endTagToken": 14,
           "startTagToken": 11,
           "tag": "Name",
-          "value": "Tess",
         },
         "tag": "Name",
       },
@@ -153,7 +151,6 @@ Array [
           "endTagToken": 14,
           "startTagToken": 11,
           "tag": "Name",
-          "value": "Tess",
         },
         Object {
           "contents": Array [
@@ -277,8 +274,6 @@ Array [
                   "tag": "String",
                   "value": "Vortex",
                 },
-                "spaceAfter": true,
-                "spaceBefore": true,
                 "tag": "String",
                 "value": "Vortex",
               },
@@ -297,8 +292,6 @@ Array [
                   "tag": "Link",
                   "to": "toggleOpen",
                 },
-                "spaceAfter": true,
-                "spaceBefore": true,
                 "tag": "Link",
                 "text": "(toggle)",
                 "to": "toggleOpen",
@@ -354,13 +347,9 @@ Array [
                 },
               ],
               "endTagToken": 61,
-              "spaceAfter": false,
-              "spaceBefore": false,
               "startTagToken": 44,
               "tag": "Description",
             },
-            "spaceAfter": false,
-            "spaceBefore": false,
             "tag": "Description",
           },
           Object {
@@ -402,7 +391,18 @@ Array [
         "display": undefined,
         "global": undefined,
         "key": "ABC",
-        "name": "Vortex",
+        "name": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 42,
+              "startTagToken": 42,
+              "tag": "String",
+              "value": "Vortex",
+            },
+            "tag": "String",
+            "value": "Vortex",
+          },
+        ],
         "parse": Object {
           "contents": Array [
             Object {
@@ -417,7 +417,6 @@ Array [
               "endTagToken": 43,
               "startTagToken": 40,
               "tag": "Name",
-              "value": "Vortex",
             },
             Object {
               "contents": Array [
@@ -468,8 +467,6 @@ Array [
                 },
               ],
               "endTagToken": 61,
-              "spaceAfter": false,
-              "spaceBefore": false,
               "startTagToken": 44,
               "tag": "Description",
             },
@@ -513,8 +510,6 @@ Array [
               "tag": "String",
               "value": "Vortex",
             },
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "String",
             "value": "Vortex",
           },
@@ -533,8 +528,6 @@ Array [
               "tag": "Link",
               "to": "toggleOpen",
             },
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "text": "(toggle)",
             "to": "toggleOpen",
@@ -587,7 +580,7 @@ Array [
             "display": undefined,
             "global": undefined,
             "key": "ABC",
-            "name": "",
+            "name": Array [],
             "parse": Object {
               "contents": Array [
                 Object {
@@ -673,7 +666,18 @@ Array [
         "display": undefined,
         "global": undefined,
         "key": "DEF",
-        "name": "Welcome",
+        "name": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 102,
+              "startTagToken": 102,
+              "tag": "String",
+              "value": "Welcome",
+            },
+            "tag": "String",
+            "value": "Welcome",
+          },
+        ],
         "parse": Object {
           "contents": Array [
             Object {
@@ -688,7 +692,6 @@ Array [
               "endTagToken": 103,
               "startTagToken": 100,
               "tag": "Name",
-              "value": "Welcome",
             },
           ],
           "endTagToken": 104,
@@ -792,7 +795,6 @@ Array [
               "endTagToken": 43,
               "startTagToken": 40,
               "tag": "Name",
-              "value": "Vortex",
             },
             Object {
               "contents": Array [
@@ -843,8 +845,6 @@ Array [
                 },
               ],
               "endTagToken": 61,
-              "spaceAfter": false,
-              "spaceBefore": false,
               "startTagToken": 44,
               "tag": "Description",
             },
@@ -928,7 +928,6 @@ Array [
               "endTagToken": 103,
               "startTagToken": 100,
               "tag": "Name",
-              "value": "Welcome",
             },
           ],
           "endTagToken": 104,

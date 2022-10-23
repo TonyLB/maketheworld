@@ -1815,7 +1815,12 @@ Object {
           0,
           0,
         ],
-        "name": "Cave entrance",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Cave entrance",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -1854,7 +1859,7 @@ Object {
           1,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -1910,7 +1915,12 @@ Object {
           0,
           65,
         ],
-        "name": "Bellows",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Bellows",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -1941,7 +1951,7 @@ Object {
           66,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -1953,8 +1963,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "stop the bellows",
@@ -1990,7 +1998,7 @@ Object {
           67,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2002,8 +2010,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "start the bellows",
@@ -2059,7 +2065,12 @@ Object {
           0,
           92,
         ],
-        "name": "Bird Column",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Bird Column",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2091,7 +2102,7 @@ Object {
           93,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2147,7 +2158,12 @@ Object {
           0,
           89,
         ],
-        "name": "Cat Column",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Cat Column",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2179,7 +2195,7 @@ Object {
           90,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2252,7 +2268,7 @@ Object {
           1,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -2272,7 +2288,12 @@ Object {
           0,
           2,
         ],
-        "name": "Shallow cave",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Shallow cave",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2372,7 +2393,12 @@ Object {
           0,
           6,
         ],
-        "name": "Child Statue",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Child Statue",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2426,7 +2452,12 @@ Object {
           0,
           86,
         ],
-        "name": "Carved columns",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Carved columns",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2435,8 +2466,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "column with singing people",
@@ -2472,7 +2501,7 @@ Object {
           90,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2501,14 +2530,12 @@ Object {
           0,
           91,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "column with cats",
@@ -2544,7 +2571,7 @@ Object {
           93,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2571,14 +2598,12 @@ Object {
           0,
           94,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "column with birds",
@@ -2632,7 +2657,7 @@ Object {
           1,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -2652,7 +2677,12 @@ Object {
           0,
           3,
         ],
-        "name": "Curving Passage",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Curving Passage",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2752,7 +2782,12 @@ Object {
           0,
           26,
         ],
-        "name": "Striding statue's neck",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Striding statue's neck",
+          },
+        ],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -2770,7 +2805,12 @@ Object {
           0,
           27,
         ],
-        "name": "Striding statue neck",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Striding statue neck",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2779,8 +2819,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "turn the head",
@@ -2816,14 +2854,12 @@ Object {
           30,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "lower the right arm",
@@ -2859,14 +2895,12 @@ Object {
           31,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "raise the right arm",
@@ -2902,7 +2936,7 @@ Object {
           32,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2913,8 +2947,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "lower the left arm",
@@ -2948,7 +2980,7 @@ Object {
           33,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -2959,8 +2991,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "raise the left arm",
@@ -2995,7 +3025,12 @@ Object {
           0,
           25,
         ],
-        "name": "Striding Statue",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Striding Statue",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -3027,7 +3062,7 @@ Object {
           28,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3062,7 +3097,7 @@ Object {
           29,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3091,7 +3126,7 @@ Object {
           0,
           35,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3102,8 +3137,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "neck",
@@ -3437,7 +3470,7 @@ Object {
           1,
           7,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -3457,7 +3490,12 @@ Object {
           0,
           48,
         ],
-        "name": "Grotto",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Grotto",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -3497,7 +3535,7 @@ Object {
           50,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -3521,7 +3559,7 @@ Object {
           51,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3533,8 +3571,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "grated opening",
@@ -3570,7 +3606,7 @@ Object {
           53,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3581,8 +3617,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "grated opening",
@@ -3618,14 +3652,12 @@ Object {
           54,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "grated opening",
@@ -3656,7 +3688,7 @@ Object {
           0,
           56,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -3692,7 +3724,7 @@ Object {
           95,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3726,7 +3758,7 @@ Object {
           96,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3759,7 +3791,7 @@ Object {
           97,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3792,7 +3824,7 @@ Object {
           98,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3825,7 +3857,7 @@ Object {
           99,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -3941,7 +3973,7 @@ Object {
           1,
           9,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -3961,7 +3993,12 @@ Object {
           0,
           72,
         ],
-        "name": "Forest",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Forest",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -3971,8 +4008,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "nests",
@@ -4010,7 +4045,7 @@ Object {
           75,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4049,7 +4084,7 @@ Object {
           76,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4082,7 +4117,7 @@ Object {
           95,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4116,7 +4151,7 @@ Object {
           96,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4149,7 +4184,7 @@ Object {
           97,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4182,7 +4217,7 @@ Object {
           98,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4215,7 +4250,7 @@ Object {
           99,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4331,7 +4366,7 @@ Object {
           1,
           10,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -4351,7 +4386,12 @@ Object {
           0,
           73,
         ],
-        "name": "Foundry",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Foundry",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4359,8 +4399,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "iron-working tools",
@@ -4372,8 +4410,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "strange devices",
@@ -4385,8 +4421,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "open fireplace",
@@ -4423,7 +4457,7 @@ Object {
           75,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4462,7 +4496,7 @@ Object {
           76,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4496,7 +4530,7 @@ Object {
           95,
           4,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4530,7 +4564,7 @@ Object {
           96,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4563,7 +4597,7 @@ Object {
           97,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4596,7 +4630,7 @@ Object {
           98,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4629,7 +4663,7 @@ Object {
           99,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -4733,7 +4767,12 @@ Object {
           0,
           79,
         ],
-        "name": "Fruit Trees",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Fruit Trees",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4743,8 +4782,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "shake a tree",
@@ -4800,7 +4837,12 @@ Object {
           0,
           45,
         ],
-        "name": "Grating",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Grating",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4833,7 +4875,7 @@ Object {
           46,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4845,8 +4887,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "open the flow",
@@ -4880,7 +4920,7 @@ Object {
           47,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -4892,8 +4932,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "block the flow",
@@ -4949,7 +4987,12 @@ Object {
           0,
           68,
         ],
-        "name": "Crest",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Crest",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -4981,7 +5024,7 @@ Object {
           69,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5016,7 +5059,7 @@ Object {
           70,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5045,7 +5088,7 @@ Object {
           0,
           71,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5056,8 +5099,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "turn the crest",
@@ -5092,7 +5133,12 @@ Object {
           0,
           74,
         ],
-        "name": "Hearth",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Hearth",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5102,8 +5148,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "crest",
@@ -5139,7 +5183,7 @@ Object {
           75,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5216,7 +5260,7 @@ Object {
           1,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -5236,7 +5280,12 @@ Object {
           0,
           4,
         ],
-        "name": "Intersection",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Intersection",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5265,7 +5314,7 @@ Object {
           95,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5299,7 +5348,7 @@ Object {
           96,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5332,7 +5381,7 @@ Object {
           97,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5365,7 +5414,7 @@ Object {
           98,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5398,7 +5447,7 @@ Object {
           99,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5537,7 +5586,12 @@ Object {
           0,
           57,
         ],
-        "name": "Iron working tools",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Iron working tools",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5655,7 +5709,12 @@ Object {
           0,
           77,
         ],
-        "name": "Nests",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Nests",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5702,7 +5761,7 @@ Object {
           1,
           8,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -5722,7 +5781,12 @@ Object {
           0,
           49,
         ],
-        "name": "Orchard",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Orchard",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -5731,8 +5795,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "fruit trees",
@@ -5769,7 +5831,7 @@ Object {
           51,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5808,7 +5870,7 @@ Object {
           2,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5844,7 +5906,7 @@ Object {
           52,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5885,7 +5947,7 @@ Object {
           1,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5921,7 +5983,7 @@ Object {
           55,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -5955,7 +6017,7 @@ Object {
           95,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -5989,7 +6051,7 @@ Object {
           96,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6022,7 +6084,7 @@ Object {
           97,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6055,7 +6117,7 @@ Object {
           98,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6088,7 +6150,7 @@ Object {
           99,
           3,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6280,7 +6342,12 @@ Object {
           0,
           10,
         ],
-        "name": "Robed Statue",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Robed Statue",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6312,7 +6379,7 @@ Object {
           12,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -6347,7 +6414,7 @@ Object {
           13,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -6378,7 +6445,7 @@ Object {
           0,
           15,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -6389,8 +6456,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "shoulders",
@@ -6446,7 +6511,12 @@ Object {
           0,
           11,
         ],
-        "name": "Statue Shoulders",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Statue Shoulders",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6480,14 +6550,12 @@ Object {
           12,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "lower the head",
@@ -6521,14 +6589,12 @@ Object {
           13,
           2,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "raise the head",
@@ -6636,7 +6702,12 @@ Object {
           0,
           88,
         ],
-        "name": "Singing Column",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Singing Column",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6646,8 +6717,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "sing",
@@ -6699,7 +6768,7 @@ Object {
           1,
           5,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -6719,7 +6788,12 @@ Object {
           0,
           82,
         ],
-        "name": "Column Chamber",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Column Chamber",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6727,8 +6801,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "carved columns",
@@ -6741,8 +6813,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "trap door",
@@ -6777,7 +6847,7 @@ Object {
           95,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6811,7 +6881,7 @@ Object {
           96,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6844,7 +6914,7 @@ Object {
           97,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6877,7 +6947,7 @@ Object {
           98,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -6910,7 +6980,7 @@ Object {
           99,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7014,7 +7084,12 @@ Object {
           0,
           16,
         ],
-        "name": "Stooped Statue",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Stooped Statue",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -7220,7 +7295,12 @@ Object {
           0,
           83,
         ],
-        "name": "Trap Door",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Trap Door",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -7252,7 +7332,7 @@ Object {
           84,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7273,8 +7353,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Action",
             "text": "close the door",
@@ -7308,7 +7386,7 @@ Object {
           85,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7468,7 +7546,7 @@ Object {
           1,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
@@ -7488,7 +7566,12 @@ Object {
           0,
           38,
         ],
-        "name": "Well Room",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Well Room",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -7498,8 +7581,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "statues",
@@ -7536,7 +7617,7 @@ Object {
           39,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7569,7 +7650,7 @@ Object {
           40,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7603,7 +7684,7 @@ Object {
           41,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7636,7 +7717,7 @@ Object {
           95,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7670,7 +7751,7 @@ Object {
           96,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7703,7 +7784,7 @@ Object {
           97,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7736,7 +7817,7 @@ Object {
           98,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7769,7 +7850,7 @@ Object {
           99,
           6,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "LineBreak",
@@ -7873,7 +7954,12 @@ Object {
           0,
           5,
         ],
-        "name": "Stylized statues",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Stylized statues",
+          },
+        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -7881,8 +7967,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "child",
@@ -7894,8 +7978,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": true,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "robed figure",
@@ -7927,7 +8009,7 @@ Object {
           12,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7962,7 +8044,7 @@ Object {
           13,
           0,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -7991,7 +8073,7 @@ Object {
           0,
           14,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -8002,8 +8084,6 @@ Object {
 ",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "stooped figure",
@@ -8039,7 +8119,7 @@ Object {
           28,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -8074,7 +8154,7 @@ Object {
           29,
           1,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
@@ -8103,14 +8183,12 @@ Object {
           0,
           34,
         ],
-        "name": "",
+        "name": Array [],
         "render": Array [
           Object {
             "tag": "Space",
           },
           Object {
-            "spaceAfter": false,
-            "spaceBefore": true,
             "tag": "Link",
             "targetTag": "Feature",
             "text": "figure striding",
@@ -8197,8 +8275,6 @@ Array [
               },
             ],
             "endTagToken": 38,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 27,
             "tag": "Description",
           },
@@ -8214,7 +8290,6 @@ Array [
             "endTagToken": 42,
             "startTagToken": 39,
             "tag": "Name",
-            "value": "Cave entrance",
           },
         ],
         "endTagToken": 43,
@@ -8577,7 +8652,6 @@ Array [
             "endTagToken": 299,
             "startTagToken": 296,
             "tag": "Name",
-            "value": "Shallow cave",
           },
           Object {
             "contents": Array [
@@ -8589,8 +8663,6 @@ Array [
               },
             ],
             "endTagToken": 303,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 300,
             "tag": "Description",
           },
@@ -8616,7 +8688,6 @@ Array [
             "endTagToken": 313,
             "startTagToken": 310,
             "tag": "Name",
-            "value": "Curving Passage",
           },
           Object {
             "contents": Array [
@@ -8628,8 +8699,6 @@ Array [
               },
             ],
             "endTagToken": 317,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 314,
             "tag": "Description",
           },
@@ -8655,7 +8724,6 @@ Array [
             "endTagToken": 327,
             "startTagToken": 324,
             "tag": "Name",
-            "value": "Intersection",
           },
           Object {
             "contents": Array [
@@ -8667,8 +8735,6 @@ Array [
               },
             ],
             "endTagToken": 331,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 328,
             "tag": "Description",
           },
@@ -8694,7 +8760,6 @@ Array [
             "endTagToken": 341,
             "startTagToken": 338,
             "tag": "Name",
-            "value": "Stylized statues",
           },
           Object {
             "contents": Array [
@@ -8772,8 +8837,6 @@ Array [
               },
             ],
             "endTagToken": 368,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 342,
             "tag": "Description",
           },
@@ -8797,7 +8860,6 @@ Array [
             "endTagToken": 378,
             "startTagToken": 375,
             "tag": "Name",
-            "value": "Child Statue",
           },
           Object {
             "contents": Array [
@@ -8809,8 +8871,6 @@ Array [
               },
             ],
             "endTagToken": 382,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 379,
             "tag": "Description",
           },
@@ -8869,7 +8929,6 @@ Array [
             "endTagToken": 419,
             "startTagToken": 416,
             "tag": "Name",
-            "value": "Robed Statue",
           },
           Object {
             "contents": Array [
@@ -8896,8 +8955,6 @@ Array [
               },
             ],
             "endTagToken": 428,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 420,
             "tag": "Description",
           },
@@ -8921,7 +8978,6 @@ Array [
             "endTagToken": 438,
             "startTagToken": 435,
             "tag": "Name",
-            "value": "Statue Shoulders",
           },
           Object {
             "contents": Array [
@@ -8950,8 +9006,6 @@ Array [
               },
             ],
             "endTagToken": 447,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 439,
             "tag": "Description",
           },
@@ -8995,8 +9049,6 @@ Array [
                   },
                 ],
                 "endTagToken": 476,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 465,
                 "tag": "Description",
               },
@@ -9038,8 +9090,6 @@ Array [
                   },
                 ],
                 "endTagToken": 494,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 483,
                 "tag": "Description",
               },
@@ -9091,8 +9141,6 @@ Array [
                   },
                 ],
                 "endTagToken": 516,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 501,
                 "tag": "Description",
               },
@@ -9150,8 +9198,6 @@ Array [
                   },
                 ],
                 "endTagToken": 546,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 535,
                 "tag": "Description",
               },
@@ -9205,8 +9251,6 @@ Array [
                   },
                 ],
                 "endTagToken": 566,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 553,
                 "tag": "Description",
               },
@@ -9259,8 +9303,6 @@ Array [
                   },
                 ],
                 "endTagToken": 588,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 573,
                 "tag": "Description",
               },
@@ -9342,8 +9384,6 @@ Array [
               },
             ],
             "endTagToken": 616,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 596,
             "tag": "Description",
           },
@@ -9412,8 +9452,6 @@ Array [
               },
             ],
             "endTagToken": 641,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 623,
             "tag": "Description",
           },
@@ -9437,7 +9475,6 @@ Array [
             "endTagToken": 651,
             "startTagToken": 648,
             "tag": "Name",
-            "value": "Stooped Statue",
           },
           Object {
             "contents": Array [
@@ -9449,8 +9486,6 @@ Array [
               },
             ],
             "endTagToken": 655,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 652,
             "tag": "Description",
           },
@@ -9582,7 +9617,6 @@ Array [
             "endTagToken": 737,
             "startTagToken": 734,
             "tag": "Name",
-            "value": "Striding Statue",
           },
           Object {
             "contents": Array [
@@ -9609,8 +9643,6 @@ Array [
               },
             ],
             "endTagToken": 746,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 738,
             "tag": "Description",
           },
@@ -9634,13 +9666,10 @@ Array [
             "endTagToken": 756,
             "startTagToken": 753,
             "tag": "Name",
-            "value": "Striding statue's neck",
           },
           Object {
             "contents": Array [],
             "endTagToken": 759,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 757,
             "tag": "Description",
           },
@@ -9664,7 +9693,6 @@ Array [
             "endTagToken": 769,
             "startTagToken": 766,
             "tag": "Name",
-            "value": "Striding statue neck",
           },
           Object {
             "contents": Array [
@@ -9718,8 +9746,6 @@ Array [
               },
             ],
             "endTagToken": 787,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 770,
             "tag": "Description",
           },
@@ -9763,8 +9789,6 @@ Array [
                   },
                 ],
                 "endTagToken": 816,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 805,
                 "tag": "Description",
               },
@@ -9806,8 +9830,6 @@ Array [
                   },
                 ],
                 "endTagToken": 834,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 823,
                 "tag": "Description",
               },
@@ -9865,8 +9887,6 @@ Array [
                   },
                 ],
                 "endTagToken": 864,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 853,
                 "tag": "Description",
               },
@@ -9908,8 +9928,6 @@ Array [
                   },
                 ],
                 "endTagToken": 882,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 871,
                 "tag": "Description",
               },
@@ -9981,8 +9999,6 @@ Array [
                   },
                 ],
                 "endTagToken": 919,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 901,
                 "tag": "Description",
               },
@@ -10054,8 +10070,6 @@ Array [
                   },
                 ],
                 "endTagToken": 956,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 938,
                 "tag": "Description",
               },
@@ -10135,8 +10149,6 @@ Array [
                   },
                 ],
                 "endTagToken": 992,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 975,
                 "tag": "Description",
               },
@@ -10216,8 +10228,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1028,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1011,
                 "tag": "Description",
               },
@@ -10283,8 +10293,6 @@ Array [
               },
             ],
             "endTagToken": 1051,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1036,
             "tag": "Description",
           },
@@ -10348,8 +10356,6 @@ Array [
               },
             ],
             "endTagToken": 1075,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1058,
             "tag": "Description",
           },
@@ -10421,7 +10427,6 @@ Array [
             "endTagToken": 1133,
             "startTagToken": 1130,
             "tag": "Name",
-            "value": "Well Room",
           },
           Object {
             "contents": Array [
@@ -10482,8 +10487,6 @@ Array [
               },
             ],
             "endTagToken": 1152,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1134,
             "tag": "Description",
           },
@@ -10525,8 +10528,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1178,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1170,
                 "tag": "Description",
               },
@@ -10583,8 +10584,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1205,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1197,
                 "tag": "Description",
               },
@@ -10640,8 +10639,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1232,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1224,
                 "tag": "Description",
               },
@@ -10736,7 +10733,6 @@ Array [
             "endTagToken": 1282,
             "startTagToken": 1279,
             "tag": "Name",
-            "value": "Grating",
           },
           Object {
             "contents": Array [
@@ -10764,8 +10760,6 @@ Array [
               },
             ],
             "endTagToken": 1291,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1283,
             "tag": "Description",
           },
@@ -10832,8 +10826,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1326,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1309,
                 "tag": "Description",
               },
@@ -10914,8 +10906,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1362,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1345,
                 "tag": "Description",
               },
@@ -10953,7 +10943,6 @@ Array [
             "endTagToken": 1373,
             "startTagToken": 1370,
             "tag": "Name",
-            "value": "Grotto",
           },
           Object {
             "contents": Array [
@@ -10982,8 +10971,6 @@ Array [
               },
             ],
             "endTagToken": 1382,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1374,
             "tag": "Description",
           },
@@ -11009,7 +10996,6 @@ Array [
             "endTagToken": 1392,
             "startTagToken": 1389,
             "tag": "Name",
-            "value": "Orchard",
           },
           Object {
             "contents": Array [
@@ -11069,8 +11055,6 @@ Array [
               },
             ],
             "endTagToken": 1411,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1393,
             "tag": "Description",
           },
@@ -11145,8 +11129,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1456,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1448,
                 "tag": "Description",
               },
@@ -11217,8 +11199,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1483,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1463,
                 "tag": "Description",
               },
@@ -11265,8 +11245,6 @@ Array [
                       },
                     ],
                     "endTagToken": 1512,
-                    "spaceAfter": false,
-                    "spaceBefore": false,
                     "startTagToken": 1501,
                     "tag": "Description",
                   },
@@ -11340,8 +11318,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1543,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1532,
                 "tag": "Description",
               },
@@ -11388,8 +11364,6 @@ Array [
                       },
                     ],
                     "endTagToken": 1572,
-                    "spaceAfter": false,
-                    "spaceBefore": false,
                     "startTagToken": 1561,
                     "tag": "Description",
                   },
@@ -11489,8 +11463,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1612,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1592,
                 "tag": "Description",
               },
@@ -11565,8 +11537,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1649,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1631,
                 "tag": "Description",
               },
@@ -11623,8 +11593,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1676,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1668,
                 "tag": "Description",
               },
@@ -11683,8 +11651,6 @@ Array [
               },
             ],
             "endTagToken": 1695,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1684,
             "tag": "Description",
           },
@@ -11710,7 +11676,6 @@ Array [
             "endTagToken": 1705,
             "startTagToken": 1702,
             "tag": "Name",
-            "value": "Iron working tools",
           },
           Object {
             "contents": Array [
@@ -11722,8 +11687,6 @@ Array [
               },
             ],
             "endTagToken": 1709,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1706,
             "tag": "Description",
           },
@@ -11889,7 +11852,6 @@ Array [
             "endTagToken": 1782,
             "startTagToken": 1779,
             "tag": "Name",
-            "value": "Bellows",
           },
           Object {
             "contents": Array [
@@ -11913,8 +11875,6 @@ Array [
               },
             ],
             "endTagToken": 1788,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1783,
             "tag": "Description",
           },
@@ -11985,8 +11945,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1826,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1806,
                 "tag": "Description",
               },
@@ -12067,8 +12025,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1862,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1845,
                 "tag": "Description",
               },
@@ -12106,7 +12062,6 @@ Array [
             "endTagToken": 1873,
             "startTagToken": 1870,
             "tag": "Name",
-            "value": "Crest",
           },
           Object {
             "contents": Array [
@@ -12133,8 +12088,6 @@ Array [
               },
             ],
             "endTagToken": 1882,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1874,
             "tag": "Description",
           },
@@ -12178,8 +12131,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1911,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1900,
                 "tag": "Description",
               },
@@ -12237,8 +12188,6 @@ Array [
                   },
                 ],
                 "endTagToken": 1941,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 1930,
                 "tag": "Description",
               },
@@ -12316,8 +12265,6 @@ Array [
               },
             ],
             "endTagToken": 1966,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1949,
             "tag": "Description",
           },
@@ -12341,7 +12288,6 @@ Array [
             "endTagToken": 1976,
             "startTagToken": 1973,
             "tag": "Name",
-            "value": "Forest",
           },
           Object {
             "contents": Array [
@@ -12398,8 +12344,6 @@ Array [
               },
             ],
             "endTagToken": 1994,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 1977,
             "tag": "Description",
           },
@@ -12425,7 +12369,6 @@ Array [
             "endTagToken": 2004,
             "startTagToken": 2001,
             "tag": "Name",
-            "value": "Foundry",
           },
           Object {
             "contents": Array [
@@ -12536,8 +12479,6 @@ Array [
               },
             ],
             "endTagToken": 2041,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2005,
             "tag": "Description",
           },
@@ -12563,7 +12504,6 @@ Array [
             "endTagToken": 2051,
             "startTagToken": 2048,
             "tag": "Name",
-            "value": "Hearth",
           },
           Object {
             "contents": Array [
@@ -12623,8 +12563,6 @@ Array [
               },
             ],
             "endTagToken": 2070,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2052,
             "tag": "Description",
           },
@@ -12664,8 +12602,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2097,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2089,
                 "tag": "Description",
               },
@@ -12705,8 +12641,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2112,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2104,
                 "tag": "Description",
               },
@@ -12746,8 +12680,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2127,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2119,
                 "tag": "Description",
               },
@@ -12802,8 +12734,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2155,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2147,
                 "tag": "Description",
               },
@@ -12857,8 +12787,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2177,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2169,
                 "tag": "Description",
               },
@@ -12912,7 +12840,6 @@ Array [
             "endTagToken": 2195,
             "startTagToken": 2192,
             "tag": "Name",
-            "value": "Nests",
           },
           Object {
             "contents": Array [
@@ -12924,8 +12851,6 @@ Array [
               },
             ],
             "endTagToken": 2199,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2196,
             "tag": "Description",
           },
@@ -12972,7 +12897,6 @@ Array [
             "endTagToken": 2218,
             "startTagToken": 2215,
             "tag": "Name",
-            "value": "Fruit Trees",
           },
           Object {
             "contents": Array [
@@ -13023,8 +12947,6 @@ Array [
               },
             ],
             "endTagToken": 2233,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2219,
             "tag": "Description",
           },
@@ -13065,7 +12987,6 @@ Array [
             "endTagToken": 2261,
             "startTagToken": 2258,
             "tag": "Name",
-            "value": "Column Chamber",
           },
           Object {
             "contents": Array [
@@ -13147,8 +13068,6 @@ Array [
               },
             ],
             "endTagToken": 2286,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2262,
             "tag": "Description",
           },
@@ -13174,7 +13093,6 @@ Array [
             "endTagToken": 2296,
             "startTagToken": 2293,
             "tag": "Name",
-            "value": "Trap Door",
           },
           Object {
             "contents": Array [
@@ -13201,8 +13119,6 @@ Array [
               },
             ],
             "endTagToken": 2305,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2297,
             "tag": "Description",
           },
@@ -13292,8 +13208,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2340,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2317,
                 "tag": "Description",
               },
@@ -13341,8 +13255,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2361,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2353,
                 "tag": "Description",
               },
@@ -13373,7 +13285,6 @@ Array [
             "endTagToken": 2372,
             "startTagToken": 2369,
             "tag": "Name",
-            "value": "Carved columns",
           },
           Object {
             "contents": Array [
@@ -13427,8 +13338,6 @@ Array [
               },
             ],
             "endTagToken": 2390,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2373,
             "tag": "Description",
           },
@@ -13473,7 +13382,6 @@ Array [
             "endTagToken": 2409,
             "startTagToken": 2406,
             "tag": "Name",
-            "value": "Singing Column",
           },
           Object {
             "contents": Array [
@@ -13529,8 +13437,6 @@ Array [
               },
             ],
             "endTagToken": 2425,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2410,
             "tag": "Description",
           },
@@ -13554,7 +13460,6 @@ Array [
             "endTagToken": 2435,
             "startTagToken": 2432,
             "tag": "Name",
-            "value": "Cat Column",
           },
           Object {
             "contents": Array [
@@ -13571,8 +13476,6 @@ Array [
               },
             ],
             "endTagToken": 2442,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2436,
             "tag": "Description",
           },
@@ -13613,8 +13516,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2462,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2454,
                 "tag": "Description",
               },
@@ -13656,8 +13557,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2480,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2469,
                 "tag": "Description",
               },
@@ -13720,8 +13619,6 @@ Array [
               },
             ],
             "endTagToken": 2506,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2488,
             "tag": "Description",
           },
@@ -13745,7 +13642,6 @@ Array [
             "endTagToken": 2516,
             "startTagToken": 2513,
             "tag": "Name",
-            "value": "Bird Column",
           },
           Object {
             "contents": Array [
@@ -13762,8 +13658,6 @@ Array [
               },
             ],
             "endTagToken": 2523,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2517,
             "tag": "Description",
           },
@@ -13804,8 +13698,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2543,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2535,
                 "tag": "Description",
               },
@@ -13843,8 +13735,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2558,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2550,
                 "tag": "Description",
               },
@@ -13907,8 +13797,6 @@ Array [
               },
             ],
             "endTagToken": 2584,
-            "spaceAfter": false,
-            "spaceBefore": false,
             "startTagToken": 2566,
             "tag": "Description",
           },
@@ -13954,8 +13842,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2617,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2608,
                 "tag": "Description",
               },
@@ -14001,8 +13887,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2633,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2624,
                 "tag": "Description",
               },
@@ -14048,8 +13932,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2649,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2640,
                 "tag": "Description",
               },
@@ -14095,8 +13977,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2665,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2656,
                 "tag": "Description",
               },
@@ -14142,8 +14022,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2681,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2672,
                 "tag": "Description",
               },
@@ -14189,8 +14067,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2697,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2688,
                 "tag": "Description",
               },
@@ -14236,8 +14112,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2713,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2704,
                 "tag": "Description",
               },
@@ -14304,8 +14178,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2753,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2744,
                 "tag": "Description",
               },
@@ -14350,8 +14222,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2769,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2760,
                 "tag": "Description",
               },
@@ -14396,8 +14266,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2785,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2776,
                 "tag": "Description",
               },
@@ -14442,8 +14310,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2801,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2792,
                 "tag": "Description",
               },
@@ -14488,8 +14354,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2817,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2808,
                 "tag": "Description",
               },
@@ -14534,8 +14398,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2833,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2824,
                 "tag": "Description",
               },
@@ -14580,8 +14442,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2849,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2840,
                 "tag": "Description",
               },
@@ -14654,8 +14514,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2889,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2880,
                 "tag": "Description",
               },
@@ -14700,8 +14558,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2905,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2896,
                 "tag": "Description",
               },
@@ -14746,8 +14602,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2921,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2912,
                 "tag": "Description",
               },
@@ -14792,8 +14646,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2937,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2928,
                 "tag": "Description",
               },
@@ -14838,8 +14690,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2953,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2944,
                 "tag": "Description",
               },
@@ -14884,8 +14734,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2969,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2960,
                 "tag": "Description",
               },
@@ -14930,8 +14778,6 @@ Array [
                   },
                 ],
                 "endTagToken": 2985,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 2976,
                 "tag": "Description",
               },
@@ -15004,8 +14850,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3025,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3016,
                 "tag": "Description",
               },
@@ -15050,8 +14894,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3041,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3032,
                 "tag": "Description",
               },
@@ -15096,8 +14938,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3057,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3048,
                 "tag": "Description",
               },
@@ -15142,8 +14982,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3073,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3064,
                 "tag": "Description",
               },
@@ -15188,8 +15026,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3089,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3080,
                 "tag": "Description",
               },
@@ -15234,8 +15070,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3105,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3096,
                 "tag": "Description",
               },
@@ -15280,8 +15114,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3121,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3112,
                 "tag": "Description",
               },
@@ -15354,8 +15186,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3155,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3146,
                 "tag": "Description",
               },
@@ -15400,8 +15230,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3171,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3162,
                 "tag": "Description",
               },
@@ -15446,8 +15274,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3187,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3178,
                 "tag": "Description",
               },
@@ -15492,8 +15318,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3203,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3194,
                 "tag": "Description",
               },
@@ -15538,8 +15362,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3219,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3210,
                 "tag": "Description",
               },
@@ -15584,8 +15406,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3235,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3226,
                 "tag": "Description",
               },
@@ -15630,8 +15450,6 @@ Array [
                   },
                 ],
                 "endTagToken": 3251,
-                "spaceAfter": false,
-                "spaceBefore": false,
                 "startTagToken": 3242,
                 "tag": "Description",
               },

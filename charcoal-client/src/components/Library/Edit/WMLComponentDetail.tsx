@@ -131,9 +131,10 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     if (!component) {
         return <Box />
     }
+    const componentName = (components[component.key]?.name ?? [{ tag: 'String', value: 'Untitled' }]).map((item) => ((item.tag === 'String') ? item.value : '')).join('')
     return <Box sx={{ width: "100%" }}>
             <LibraryBanner
-                primary={components[component.key]?.name || 'Untitled'}
+                primary={componentName}
                 secondary={component.key}
                 icon={<HomeIcon />}
                 breadCrumbProps={[{
@@ -145,7 +146,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
                     label: assetKey || ''
                 },
                 {
-                    label: components[component.key]?.name || 'Untitled'
+                    label: componentName
                 }]}
             />
 
