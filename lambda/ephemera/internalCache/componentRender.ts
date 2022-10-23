@@ -2,7 +2,7 @@ import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { ComponentMeta } from './componentMeta'
 import { DeferredCache } from './deferredCache'
 import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
+import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContent, TaggedMessageContentFlat, flattenTaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
 import internalCache from '.';
 import { componentAppearanceReduce } from '../perception/components';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
@@ -161,7 +161,7 @@ export class ComponentRenderData {
                 internalCache.RoomCharacterList.get(EphemeraId),
                 filterAppearances(possibleRoomAppearances)
             ]))
-            const renderRoom = componentAppearanceReduce(...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters'>
+            const renderRoom = await componentAppearanceReduce(...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters'>
             return {
                 dependencies: aggregateDependencies,
                 description: {
@@ -176,7 +176,7 @@ export class ComponentRenderData {
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraFeatureAppearance[]))
                 .reduce<EphemeraFeatureAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderFeatureAppearances = await filterAppearances(possibleFeatureAppearances)
-            const renderFeature = componentAppearanceReduce(...renderFeatureAppearances)
+            const renderFeature = await componentAppearanceReduce(...renderFeatureAppearances)
             return {
                 dependencies: aggregateDependencies,
                 description: {
@@ -205,9 +205,15 @@ export class ComponentRenderData {
                     ))
                     .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
                 const renderRoomMapAppearances = await filterAppearances(possibleRoomAppearances)
+                const flattenedNames = await Promise.all(
+                    renderRoomMapAppearances.map(({ name }) => (
+                        flattenTaggedMessageContent(name)
+                    ))
+                )
+        
                 const aggregateRoomDescription = {
                     roomId: ephemeraId,
-                    name: renderRoomMapAppearances.map(({ name }) => (name)).reduce<TaggedMessageContent[]>((previous, name) => ([ ...previous, ...name ]), []),
+                    name: flattenedNames.reduce<TaggedMessageContentFlat[]>((previous, name) => ([ ...previous, ...name ]), []),
                     x: roomPositions[ephemeraId].x,
                     y: roomPositions[ephemeraId].y,
                     exits: Object.values(renderRoomMapAppearances
@@ -221,11 +227,17 @@ export class ComponentRenderData {
                 }
                 return aggregateRoomDescription
             }))
+
+            const flattenedNames = await Promise.all(
+                renderMapAppearances.map(({ name }) => (
+                    flattenTaggedMessageContent(name)
+                ))
+            )
             return {
                 dependencies: aggregateDependencies,
                 description: {
                     MapId: EphemeraId,
-                    Name: renderMapAppearances.map(({ name }) => (name)).reduce<TaggedMessageContent[]>((previous, name) => ([ ...previous, ...name ]), []),
+                    Name: flattenedNames.reduce<TaggedMessageContentFlat[]>((previous, name) => ([ ...previous, ...name ]), []),
                     fileURL: renderMapAppearances
                         .map(({ fileURL }) => (fileURL))
                         .filter((value) => (value))

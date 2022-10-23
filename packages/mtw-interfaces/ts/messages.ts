@@ -213,8 +213,8 @@ const validateRoomCharacterList = (items: any) => {
 }
 
 export type RoomDescribeData = {
-    Description: TaggedMessageContent[];
-    Name: TaggedMessageContent[];
+    Description: TaggedMessageContentFlat[];
+    Name: TaggedMessageContentFlat[];
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];
     Characters: RoomCharacter[];
@@ -225,8 +225,8 @@ export type RoomDescription = {
 } & RoomDescribeData & MessageAddressing
 
 export type FeatureDescribeData = {
-    Description: TaggedMessageContent[];
-    Name: TaggedMessageContent[];
+    Description: TaggedMessageContentFlat[];
+    Name: TaggedMessageContentFlat[];
     FeatureId: EphemeraFeatureId;
 }
 
@@ -236,7 +236,7 @@ export type FeatureDescription = {
 
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
-    name: TaggedMessageContent[];
+    name: TaggedMessageContentFlat[];
     x: number;
     y: number;
     exits: {
@@ -247,7 +247,7 @@ export type MapDescribeRoom = {
 
 export type MapDescribeData = {
     MapId: EphemeraMapId;
-    Name: TaggedMessageContent[];
+    Name: TaggedMessageContentFlat[];
     fileURL?: string;
     rooms: MapDescribeRoom[];
 }

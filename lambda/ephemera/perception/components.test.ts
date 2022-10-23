@@ -2,16 +2,16 @@ import { componentAppearanceReduce } from './components'
 
 describe('component utilities', () => {
     describe('componentAppearanceReduce', () => {
-        it('should return empty from empty string', () => {
-            expect(componentAppearanceReduce()).toEqual({
+        it('should return empty from empty string', async () => {
+            expect(await componentAppearanceReduce()).toEqual({
                 Description: [],
                 Name: [],
                 Exits: []
             })
         })
 
-        it('should correctly join render strings', () => {
-            expect(componentAppearanceReduce({
+        it('should correctly join render strings', async () => {
+            expect(await componentAppearanceReduce({
                 conditions: [],
                 name: [],
                 exits: [],
@@ -30,8 +30,8 @@ describe('component utilities', () => {
             })
         })
 
-        it('should correctly join link after string', () => {
-            expect(componentAppearanceReduce({
+        it('should correctly join link after string', async () => {
+            expect(await componentAppearanceReduce({
                 conditions: [],
                 name: [],
                 exits: [],
@@ -55,8 +55,8 @@ describe('component utilities', () => {
 
         })
 
-        it('should correctly join string after link', () => {
-            expect(componentAppearanceReduce({
+        it('should correctly join string after link', async () => {
+            expect(await componentAppearanceReduce({
                 conditions: [],
                 name: [],
                 exits: [],
@@ -80,8 +80,8 @@ describe('component utilities', () => {
 
         })
 
-        it('should correctly join links with space between', () => {
-            expect(componentAppearanceReduce({
+        it('should correctly join links with space between', async () => {
+            expect(await componentAppearanceReduce({
                 conditions: [],
                 name: [],
                 exits: [],
@@ -111,8 +111,8 @@ describe('component utilities', () => {
 
         })
 
-        it('should correctly join items with line breaks', () => {
-            expect(componentAppearanceReduce({
+        it('should correctly join items with line breaks', async () => {
+            expect(await componentAppearanceReduce({
                 conditions: [],
                 name: [],
                 exits: [],
@@ -142,8 +142,8 @@ describe('component utilities', () => {
         })
 
 
-        it('should correctly join items without spacing fields', () => {
-            expect(componentAppearanceReduce({
+        it('should correctly join items without spacing fields', async () => {
+            expect(await componentAppearanceReduce({
                 conditions: [],
                 name: [],
                 exits: [],

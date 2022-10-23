@@ -1,18 +1,18 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
+import { RoomDescribeData, FeatureDescribeData, TaggedMessageContent, flattenTaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages'
 
 type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters'>
 type RenderFeatureOutput = Omit<FeatureDescribeData, 'FeatureId'>
 
 const isEphemeraRoomAppearance = (value: EphemeraFeatureAppearance[] | EphemeraRoomAppearance[]): value is EphemeraRoomAppearance[] => (value.length === 0 || 'exits' in value[0])
 
-const joinMessageItems = function * (render: TaggedMessageContent[] = []): Generator<TaggedMessageContent> {
+const joinMessageItems = function * (render: TaggedMessageContentFlat[] = []): Generator<TaggedMessageContentFlat> {
     if (render.length > 0) {
         //
         // Use spread-operator to clear the read-only tags that Immer can apply
         //
-        let currentItem: TaggedMessageContent = { ...render[0] }
+        let currentItem: TaggedMessageContentFlat = { ...render[0] }
         for (const renderItem of (render.slice(1) || [])) {
             switch(renderItem.tag) {
                 case 'String':
@@ -37,9 +37,9 @@ const joinMessageItems = function * (render: TaggedMessageContent[] = []): Gener
         yield currentItem
     }
 }
-export function componentAppearanceReduce (...renderList: EphemeraFeatureAppearance[]): Omit<FeatureDescribeData, 'FeatureId'>
-export function componentAppearanceReduce (...renderList: EphemeraRoomAppearance[]): Omit<RoomDescribeData, 'RoomId' | 'Characters'>
-export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearance[] | EphemeraFeatureAppearance[])): (Omit<RoomDescribeData, 'RoomId' | 'Characters'> | Omit<FeatureDescribeData, 'FeatureId'>) {
+export async function componentAppearanceReduce (...renderList: EphemeraFeatureAppearance[]): Promise<Omit<FeatureDescribeData, 'FeatureId'>>
+export async function componentAppearanceReduce (...renderList: EphemeraRoomAppearance[]): Promise<Omit<RoomDescribeData, 'RoomId' | 'Characters'>>
+export async function componentAppearanceReduce (...renderList: (EphemeraRoomAppearance[] | EphemeraFeatureAppearance[])): Promise<(Omit<RoomDescribeData, 'RoomId' | 'Characters'> | Omit<FeatureDescribeData, 'FeatureId'>)> {
     if (renderList.length === 0) {
         return {
             Name: [],
@@ -48,7 +48,15 @@ export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearanc
         }
     }
     if (isEphemeraRoomAppearance(renderList)) {
-        const joinedList = renderList.reduce<RenderRoomOutput>((previous, current) => ({
+        const flattenedList = await Promise.all(
+            renderList.map(({ render, name, ...rest }) => (
+                Promise.all([
+                    flattenTaggedMessageContent(render),
+                    flattenTaggedMessageContent(name)
+                ]).then(([render, name]) => ({ render, name, ...rest }))
+            ))
+        )
+        const joinedList = flattenedList.reduce<RenderRoomOutput>((previous, current) => ({
             Description: [ ...joinMessageItems([
                 ...(previous.Description || []),
                 ...(current.render || [])
@@ -62,7 +70,15 @@ export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearanc
         return joinedList
     }
     else {
-        const joinedList = renderList.reduce<RenderFeatureOutput>((previous, current) => ({
+        const flattenedList = await Promise.all(
+            renderList.map(({ render, name, ...rest }) => (
+                Promise.all([
+                    flattenTaggedMessageContent(render),
+                    flattenTaggedMessageContent(name)
+                ]).then(([render, name]) => ({ render, name, ...rest }))
+            ))
+        )
+        const joinedList = flattenedList.reduce<RenderFeatureOutput>((previous, current) => ({
             Description: [ ...joinMessageItems([
                 ...(previous.Description || []),
                 ...(current.render || [])
