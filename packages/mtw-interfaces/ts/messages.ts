@@ -58,7 +58,7 @@ export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer
 
 export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
 
-const validateTaggedMessageList = (items: any): items is TaggedMessageContentFlat[] => {
+export const validateTaggedMessageList = (items: any): items is TaggedMessageContentFlat[] => {
     if (!Array.isArray(items)) {
         return false
     }

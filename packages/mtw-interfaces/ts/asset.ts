@@ -1,9 +1,16 @@
 import { EphemeraCharacterId, isEphemeraCharacterId } from "./baseClasses";
 import { LibraryAsset, LibraryCharacter } from "./library";
+import { FeatureDescribeData, RoomDescribeData, validateTaggedMessageList } from "./messages";
 import { checkAll, checkTypes } from "./utils";
 
 export type FetchLibraryAPIMessage = {
     message: 'fetchLibrary';
+}
+
+export type FetchImportDefaultsAPIMessage = {
+    message: 'fetchImportDefaults';
+    assetId: `ASSET#${string}`;
+    keys: string[];
 }
 
 export type FetchAssetAPIMessage = {
@@ -61,6 +68,7 @@ export type AssetSubscribeAPIMessage = {
 
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
+    FetchImportDefaultsAPIMessage |
     FetchAssetAPIMessage |
     UploadAssetLinkAPIMessage |
     UploadImageLinkAPIMessage |
@@ -71,6 +79,7 @@ export type AssetAPIMessage = { RequestId?: string } & (
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
+export const isFetchImportDefaultsAPIMessage = (message: AssetAPIMessage): message is FetchImportDefaultsAPIMessage => (message.message === 'fetchImportDefaults')
 export const isFetchAssetAPIMessage = (message: AssetAPIMessage): message is FetchAssetAPIMessage => (message.message === 'fetch')
 export const isUploadAssetLinkAPIMessage = (message: AssetAPIMessage): message is UploadAssetLinkAPIMessage => (message.message === 'upload')
 export const isUploadImageLinkAPIMessage = (message: AssetAPIMessage): message is UploadImageLinkAPIMessage => (message.message === 'uploadImage')
@@ -132,10 +141,18 @@ export type AssetClientUploadURL = {
     s3Object: string;
 }
 
+export type AssetClientImportDefaultsRoom = {
+    tag: 'Room';
+} & Omit<RoomDescribeData, 'RoomId' | 'Characters'>
+
+export type AssetClientImportDefaultsFeature = {
+    tag: 'Feature';
+} & Omit<FeatureDescribeData, 'FeatureId'>
+
 export type AssetClientImportDefaults = {
     messageType: 'ImportDefaults';
-    components: Record<string, any>;
-    aggregateExits: any[];
+    assetId: `ASSET#${string}`;
+    defaultsByKey: Record<string, AssetClientImportDefaultsRoom | AssetClientImportDefaultsFeature>;
 }
 
 export type AssetClientMessage = AssetClientPlayerMessage |
@@ -247,7 +264,12 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
         case 'UploadURL':
             return checkTypes(message, { url: 'string', s3Object: 'string' }, { RequestId: 'string' })
         case 'ImportDefaults':
-            return true
+            return checkAll(
+                checkTypes(message, { assetId: 'string' }),
+                ...Object.values(message.defaultsByKey || {}).map((item: any) => (
+                    ['Room', 'Feature'].includes(item.tag) && validateTaggedMessageList(item.Name) && validateTaggedMessageList(item.Description)
+                ))
+            ) && message.assetId.split('#')[0] === 'ASSET'
         default: return false
     }
 
