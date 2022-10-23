@@ -367,7 +367,7 @@ export const isMessage = (message: any): message is Message => {
             ) && isEphemeraRoomId(message.RoomId)
         case 'RoomUpdate':
             return checkAll(
-                checkTypes(message, {}, { Name: 'string', RoomId: 'string' }),
+                checkTypes(message, {}, { RoomId: 'string' }),
                 validateRoomExitList(message.Exits ?? []),
                 validateRoomCharacterList(message.Characters ?? []),
                 validateTaggedMessageList(message.Name ?? []),
@@ -375,7 +375,7 @@ export const isMessage = (message: any): message is Message => {
             ) && isEphemeraRoomId(message.RoomId)
         case 'FeatureDescription':
             return checkAll(
-                checkTypes(message, { Name: 'string', FeatureId: 'string' }),
+                checkTypes(message, { FeatureId: 'string' }),
                 validateTaggedMessageList(message.Name),
                 validateTaggedMessageList(message.Description)
             ) && isEphemeraFeatureId(message.FeatureId)

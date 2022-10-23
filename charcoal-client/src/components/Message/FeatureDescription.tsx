@@ -13,6 +13,7 @@ import FeatureIcon from '@mui/icons-material/Search'
 import MessageComponent from './MessageComponent'
 import {
     FeatureDescription as FeatureDescriptionType,
+    isTaggedText,
     TaggedMessageContent
 } from '@tonylb/mtw-interfaces/dist/messages'
 
@@ -50,7 +51,7 @@ export const FeatureDescription = ({ message }: FeatureDescriptionProps) => {
                 padding-bottom: 5px;
             `}>
                 <Typography variant='h5' align='left'>
-                    { Name }
+                    { Name.filter(isTaggedText).map(({ value }) => (value)).join('') }
                 </Typography>
                 <Divider />
                 { Description.map(renderFeatureDescriptionItem) }
