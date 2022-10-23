@@ -15,11 +15,13 @@ import {
     isAssetCheckinAPIMessage,
     isAssetCheckoutAPIMessage,
     isAssetSubscribeAPIMessage,
-    isParseWMLAPIMessage
+    isParseWMLAPIMessage,
+    isFetchImportDefaultsAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset.js'
 
 import messageBus from "./messageBus/index.js"
 import { extractReturnValue } from './returnValue'
+import { is } from "immer/dist/internal"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -51,7 +53,7 @@ export const handler = async (event, context) => {
     }
     
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
-    if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe', 'parseWML'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'fetchImportDefaults', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe', 'parseWML'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -61,6 +63,13 @@ export const handler = async (event, context) => {
         if (isFetchLibraryAPIMessage(request)) {
             messageBus.send({
                 type: 'FetchLibrary'
+            })
+        }
+        if (isFetchImportDefaultsAPIMessage(request)) {
+            messageBus.send({
+                type: 'FetchImportDefaults',
+                assetId: request.assetId,
+                keys: request.keys
             })
         }
         if (isFetchAssetAPIMessage(request)) {
