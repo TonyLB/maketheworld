@@ -7,7 +7,6 @@ import { objectMap } from '@tonylb/mtw-utilities/dist/objects'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { componentAppearanceReduce, isComponentKey } from '@tonylb/mtw-utilities/dist/components/components'
 import { ImportDefaultsMessage, FetchImportDefaultsMessage, MessageBus } from '../messageBus/baseClasses'
-import { TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
 
 type NamespaceMapItem = {
     assetId: string;
@@ -19,18 +18,6 @@ type AssetMeta = {
     namespaceMap: Record<string, NamespaceMapItem>;
     defaultNames: Record<string, { name: string; tag: 'Feature' | 'Room' }>;
     defaultExits: { name: string; to: string; from: string }[];
-}
-
-type AssetAppearance = {
-    exits: {
-        name: string;
-        to: string;
-    }[];
-    name: string;
-    render: ({
-        spaceAfter?: boolean;
-        spaceBefore?: boolean;
-    } & TaggedMessageContent)[]
 }
 
 type MapAppearance = {
