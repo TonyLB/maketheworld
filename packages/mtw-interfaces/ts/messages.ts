@@ -51,21 +51,21 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
     }
 }
 
-const validateTaggedMessageList = (items: any): items is TaggedMessageContent[] => {
-    if (!Array.isArray(items)) {
-        return false
-    }
-    return items.reduce<boolean>((previous, item) => (
-        previous && isTaggedMessageContent(item)
-    ), true)
-}
-
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
 export const isTaggedText = (item: TaggedMessageContent): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
 
 export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
+
+const validateTaggedMessageList = (items: any): items is TaggedMessageContentFlat[] => {
+    if (!Array.isArray(items)) {
+        return false
+    }
+    return items.reduce<boolean>((previous, item) => (
+        previous && isTaggedMessageContentFlat(item)
+    ), true)
+}
 
 export const flattenTaggedMessageContent = async (messages: TaggedMessageContent[]): Promise<TaggedMessageContentFlat[]> => {
     if (messages.length === 0) {
@@ -175,7 +175,7 @@ export const flattenTaggedMessageContent = async (messages: TaggedMessageContent
 
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
-    Message: TaggedMessageContent[];
+    Message: TaggedMessageContentFlat[];
 } & MessageAddressing
 
 export type RoomExit = {
@@ -320,17 +320,17 @@ type MessageCharacterInfo = {
 
 export type CharacterSpeech = {
     DisplayProtocol: 'SayMessage';
-    Message: TaggedMessageContent[];
+    Message: TaggedMessageContentFlat[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type CharacterNarration = {
     DisplayProtocol: 'NarrateMessage';
-    Message: TaggedMessageContent[];
+    Message: TaggedMessageContentFlat[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type OutOfCharacterMessage = {
     DisplayProtocol: 'OOCMessage';
-    Message: TaggedMessageContent[];
+    Message: TaggedMessageContentFlat[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage

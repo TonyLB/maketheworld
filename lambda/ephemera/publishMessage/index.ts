@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
 import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage } from "../messageBus/baseClasses"
-import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
 import { messageDB, messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
@@ -124,6 +123,9 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     await mapper.initialize(payloads)
 
     let dbPromises: Promise<void>[] = []
+    //
+    // TODO: Constrain messageByConnectionId to appropriate message type
+    //
     let messagesByConnectionId: Record<string, any[]> = {}
 
     const pushToQueues = <T extends { Targets: PublishTarget[]; CreatedTime: number; MessageId: string; }>({ Targets, ...rest }: T) => {

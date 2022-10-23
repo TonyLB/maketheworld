@@ -2,7 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { TaggedMessageContent, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
+import { TaggedMessageContent, FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat } from "@tonylb/mtw-interfaces/dist/messages"
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
 import { EphemeraExit } from "../cacheAsset/baseClasses"
@@ -41,7 +41,7 @@ export type PublishMessageBase = {
 
 export type PublishWorldMessage = PublishMessageBase & {
     displayProtocol: 'WorldMessage';
-    message: TaggedMessageContent[];
+    message: TaggedMessageContentFlat[];
 }
 
 type MessageCharacterInfo = {
@@ -52,17 +52,17 @@ type MessageCharacterInfo = {
 
 export type PublishSpeechMessage = PublishMessageBase & MessageCharacterInfo & {
     displayProtocol: 'SayMessage';
-    message: TaggedMessageContent[];
+    message: TaggedMessageContentFlat[];
 }
 
 export type PublishNarrateMessage = PublishMessageBase & MessageCharacterInfo & {
     displayProtocol: 'NarrateMessage';
-    message: TaggedMessageContent[];
+    message: TaggedMessageContentFlat[];
 }
 
 export type PublishOutOfCharacterMessage = {
     displayProtocol: 'OOCMessage';
-    message: TaggedMessageContent[];
+    message: TaggedMessageContentFlat[];
 } & PublishMessageBase & MessageCharacterInfo
 
 export type PublishRoomUpdateMessage = {
