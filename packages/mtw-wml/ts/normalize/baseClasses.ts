@@ -76,8 +76,6 @@ export type ComponentRenderItem = {
 export type NormalDescriptionPayload = {
     type: 'Description';
     render?: ComponentRenderItem[];
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
 }
 
 export type NormalDescription = NormalDescriptionPayload & NormalBase

@@ -57,11 +57,11 @@ const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
             key: item.key,
             defaultAppearances: item.appearances
                 .filter(noConditionContext)
-                .filter(({ contents= [], render = [], name = '' }) => (contents.length > 0 || render.length > 0 || name))
-                .map(({ contents = [], render = [], name = '' }) => ({
+                .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
+                .map(({ contents = [], render = [], name = [] }) => ({
                     exits: denormalizeExits(normalForm)(contents),
                     render: render.map(tagRenderLink(normalForm)),
-                    name
+                    name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
                 }))
         }
     }
@@ -71,10 +71,10 @@ const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
             key: item.key,
             defaultAppearances: item.appearances
                 .filter(noConditionContext)
-                .filter(({ render = [], name = '' }) => (render.length > 0 || name))
-                .map(({ render, name }) => ({
+                .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
+                .map(({ render, name = [] }) => ({
                     render: (render || []).map(tagRenderLink(normalForm)),
-                    name
+                    name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
                 }))
         }
     }
@@ -99,7 +99,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 key,
                 name: (appearances || [])
                     .filter(noConditionContext)
-                    .map(({ name = '' }) => name)
+                    .map(({ name = [] }) => (name.map((item) => (item.tag === 'String' ? item.value : '')).join('')))
                     .join('')
             }))
             .filter(({ name }) => (Boolean(name)))

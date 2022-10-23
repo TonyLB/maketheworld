@@ -148,8 +148,6 @@ export type SchemaLinkTag = {
     tag: 'Link';
     to: string;
     text: string;
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
 } & SchemaBase
 
 export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaWhitespaceTag
@@ -214,8 +212,6 @@ export type SchemaMapTag = {
 export type SchemaStringTag = {
     tag: 'String';
     value: string;
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
 } & SchemaBase
 
 export type SchemaWhitespaceTag = {

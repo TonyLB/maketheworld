@@ -6,10 +6,7 @@ export const parseTaggedMessageContentsFactory = <T extends ParseDescriptionTag 
         open,
         endTagToken,
         required: {},
-        optional: {
-            spaceBefore: ['boolean'],
-            spaceAfter: ['boolean']
-        }
+        optional: {}
     })
     const parseContents = validateContents<ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag | ParseSpacerTag>({
         contents,
