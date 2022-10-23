@@ -15,7 +15,7 @@ describe('fetchImportDefaults', () => {
         jest.resetAllMocks()
     })
 
-    it('should fetch importTree from assets and rooms from all ancestor imports', async () => {
+    xit('should fetch importTree from assets and rooms from all ancestor imports', async () => {
         assetDBMock.getItem.mockImplementation(async ({ AssetId }) => {
             switch(AssetId) {
                 case 'ASSET#BASE':
@@ -197,7 +197,7 @@ describe('fetchImportDefaults', () => {
     // from component inheritance (see index.js file comments)
     //
 
-    it('should create successive inherited layers for imported maps', async () => {
+    xit('should create successive inherited layers for imported maps', async () => {
         assetDBMock.getItem.mockImplementation(async ({ AssetId }) => {
             switch(AssetId) {
                 case 'ASSET#BASE':
