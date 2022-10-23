@@ -30,7 +30,7 @@ import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
 import { EphemeraError, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
+import { TaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages.js'
 
 //
 // TODO:
