@@ -64,13 +64,9 @@ export type ComponentRenderItem = {
     targetTag: 'Feature' | 'Action';
     to: string;
     text: string;
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
 } | {
     tag: 'String';
     value: string;
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
 } | {
     tag: 'LineBreak';
 } | {

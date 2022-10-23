@@ -79,8 +79,6 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
             tag: 'Link',
             to: renderItem.to,
             text: renderItem.text,
-            spaceBefore: renderItem.spaceBefore,
-            spaceAfter: renderItem.spaceAfter,
             targetTag: targetTag as 'Action' | 'Feature'
         }
     }
