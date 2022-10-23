@@ -102,7 +102,7 @@ describe('dbRegister', () => {
                     tag: 'Room',
                     key: 'Welcome',
                     appearances: [{
-                        name: 'Welcome',
+                        name: [{ tag: 'String', value: 'Welcome' }],
                         contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
                         contents: []
                     }]
@@ -346,13 +346,13 @@ describe('dbRegister', () => {
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
                         contents: [],
                         render: ['Test render!', { tag: 'Link', to: 'clockTower', text: '(clock tower)'}],
-                        name: 'Test'
+                        name: [{ tag: 'String', value: 'Test' }]
                     },
                     {
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
                         contents: [],
                         render: ['Should not render'],
-                        name: 'Should not'
+                        name: [{ tag: 'String', value: 'Should not' }]
                     }]
                 },
                 clockTower: {
@@ -360,7 +360,7 @@ describe('dbRegister', () => {
                     key: 'clockTower',
                     appearances: [{
                         contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
-                        name: 'TestFeature',
+                        name: [{ tag: 'String', value: 'TestFeature' }],
                         render: ['Test feature render']
                     },
                     {
@@ -369,7 +369,7 @@ describe('dbRegister', () => {
                     {
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
                         render: ['Should not render'],
-                        name: 'Should not'
+                        name: [{ tag: 'String', value: 'Should not' }]
                     }]
                 }
             }
@@ -435,13 +435,13 @@ describe('dbRegister', () => {
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
                         contents: [],
                         render: ['Test render!'],
-                        name: 'Test'
+                        name: [{ tag: 'String', value: 'Test' }]
                     },
                     {
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
                         contents: [],
                         render: ['Should not render'],
-                        name: 'Should not',
+                        name: [{ tag: 'String', value: 'Should not' }],
                         contents: [{
                             tag: 'Exit',
                             key: 'Welcome#Entry',
@@ -460,7 +460,7 @@ describe('dbRegister', () => {
                             index: 0
                         }],
                         render: ['Entry render!'],
-                        name: 'Entry'
+                        name: [{ tag: 'String', value: 'Entry' }]
                     }]
                 },
                 ['Entry#Welcome']: {

@@ -1,10 +1,6 @@
 import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer } from "./baseClasses";
 
 //
-// Utility function to assign spaceBefore and spaceAfter depending upon the whitespace passed in from token parse
-//
-
-//
 // TODO: This may (with new refinements) be so simple as to barely need any real code ... refactor
 //
 export const translateTaggedMessageContents = (contents: SchemaTaggedMessageIncomingContents[]): SchemaTaggedMessageLegalContents[] => {

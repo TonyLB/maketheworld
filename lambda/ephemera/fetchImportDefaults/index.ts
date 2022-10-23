@@ -5,7 +5,7 @@ import internalCache from '../internalCache'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { objectMap } from '@tonylb/mtw-utilities/dist/objects'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { componentAppearanceReduce, isComponentKey } from '@tonylb/mtw-utilities/dist/components/components'
+import { isComponentKey } from '@tonylb/mtw-utilities/dist/components/components'
 import { ImportDefaultsMessage, FetchImportDefaultsMessage, MessageBus } from '../messageBus/baseClasses'
 
 type NamespaceMapItem = {
@@ -160,9 +160,10 @@ export const fetchImportDefaults = async ({ payloads, messageBus }: { payloads: 
                     }), accumulator)
                 }, previous)
             }, {} as Record<string, MapAppearance[]>)
-        const reduceAppearances = (defaultAppearances: MapAppearance[]) => (
-            defaultAppearances.reduce(componentAppearanceReduce, { name: '', render: [], contents: [] })
-        )
+        //
+        // TODO: Replace worthless stub of reduceAppearances
+        //
+        const reduceAppearances = (defaultAppearances: MapAppearance[]) => ({ render: [], name: [], contents: [] })
         const filterAppearances = ({ name, render = [], contents = [] }) => ({
             ...(name ? { name } : {}),
             ...(render.length ? { render } : {}),

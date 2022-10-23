@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
 import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-import { AssetKey, CharacterKey } from '@tonylb/mtw-utilities/dist/types'
-import { componentAppearanceReduce } from '@tonylb/mtw-utilities/dist/components/components'
+import { AssetKey } from '@tonylb/mtw-utilities/dist/types'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { objectEntryMap } from '../lib/objects.js'
-import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
+import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
+import { EphemeraError } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -26,54 +26,57 @@ const denormalizeExits = (normalForm) => (contents) => {
 
 const noConditionContext = ({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition')))
 
-const itemRegistry = (normalForm) => (item) => {
-    const { tag, name, key, global: isGlobal, appearances = [] } = item
-    switch(tag) {
-        case 'Map':
-            const mapDefaultAppearances = appearances
-                .filter(noConditionContext)
-                .map(({ rooms }) => ({
-                    rooms: objectEntryMap(rooms, (key, { location, ...rest }) => ({
+const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
+    if (isNormalMap(item)) {
+        const mapDefaultAppearances = item.appearances
+            .filter(noConditionContext)
+            .map(({ rooms }) => ({
+                rooms: objectEntryMap(rooms, (key, { location, ...rest }) => {
+                    const lookup = normalForm[key]
+                    if (!isNormalRoom(lookup)) {
+                        throw new EphemeraError(`Invalid item in map room lookup: ${key}`)
+                    }
+                    return {
                         ...rest,
-                        name: (normalForm[key]?.appearances || [])
+                        name: (lookup.appearances || [])
                             .filter(noConditionContext)
-                            .reduce(componentAppearanceReduce, { name: '' }).name
-                    }))
+                            .map<string>(({ name }) => ((name || []).map((namePart) => (namePart.tag === 'String' ? namePart.value : '')).join('')))
+                            .join('')
+                    }
+                })
+            }))
+        return {
+            tag: item.tag,
+            key: item.key,
+            defaultAppearances: mapDefaultAppearances
+        }
+    }
+    if (isNormalRoom(item)) {
+        return {
+            tag: item.tag,
+            key: item.key,
+            defaultAppearances: item.appearances
+                .filter(noConditionContext)
+                .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
+                .map(({ contents = [], render = [], name = [] }) => ({
+                    exits: denormalizeExits(normalForm)(contents),
+                    render: render.map(tagRenderLink(normalForm)),
+                    name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
                 }))
-            return {
-                tag,
-                key,
-                defaultAppearances: mapDefaultAppearances
-            }
-        case 'Room':
-            return {
-                tag,
-                name,
-                isGlobal,
-                key,
-                defaultAppearances: appearances
-                    .filter(noConditionContext)
-                    .filter(({ contents= [], render = [], name = '' }) => (contents.length > 0 || render.length > 0 || name))
-                    .map(({ contents = [], render = [], name = '' }) => ({
-                        exits: denormalizeExits(normalForm)(contents),
-                        render: render.map(tagRenderLink(normalForm)),
-                        name
-                    }))
-            }
-        case 'Feature':
-            return {
-                tag,
-                name,
-                isGlobal,
-                key,
-                defaultAppearances: appearances
-                    .filter(noConditionContext)
-                    .filter(({ render = [], name = '' }) => (render.length > 0 || name))
-                    .map(({ render, name }) => ({
-                        render: render.map(tagRenderLink(normalForm)),
-                        name
-                    }))
-            }
+        }
+    }
+    if (isNormalFeature(item)) {
+        return {
+            tag: item.tag,
+            key: item.key,
+            defaultAppearances: item.appearances
+                .filter(noConditionContext)
+                .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
+                .map(({ render, name = [] }) => ({
+                    render: (render || []).map(tagRenderLink(normalForm)),
+                    name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
+                }))
+        }
     }
 }
 
@@ -96,7 +99,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 key,
                 name: (appearances || [])
                     .filter(noConditionContext)
-                    .map(({ name = '' }) => name)
+                    .map(({ name = [] }) => (name.map((item) => (item.tag === 'String' ? item.value : '')).join('')))
                     .join('')
             }))
             .filter(({ name }) => (Boolean(name)))

@@ -595,8 +595,6 @@ export class Normalizer {
                         ...appearance,
                         render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
                         name: node.name.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
-                        spaceAfter: false,
-                        spaceBefore: false,
                         ...((node.tag === 'Room' && (node.x !== undefined || node.y !== undefined)) ? { x: node.x, y: node.y } : {})
                     }]
                 }
