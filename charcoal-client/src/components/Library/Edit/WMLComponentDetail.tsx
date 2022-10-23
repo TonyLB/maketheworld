@@ -85,12 +85,6 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             componentQuery.remove()
         }
         if (value) {
-            const spaceBefore = value.search(/^\s+/) !== -1
-            const spaceAfter = value.search(/\s+$/) !== -1
-            const spacingProps = [
-                ...(spaceBefore ? ['spaceBefore'] : []),
-                ...(spaceAfter ? ['spaceAfter'] : []),
-            ]
             const componentsQuery = wmlQuery.search(`${tag}[key="${ComponentId}"]`)
                 .not(`Condition ${tag}`)
                 .not(`Map ${tag}`)
@@ -104,7 +98,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             componentsQuery
                 .extend()
                 .add(':first')
-                .addElement(`<Name${ spacingProps.length ? ` ${spacingProps.join(' ')} ` : ''}>${value.trim()}</Name>`, { position: 'after' })
+                .addElement(`<Name>${value.trim()}</Name>`, { position: 'after' })
         }
         else {
             const componentsQuery = wmlQuery.search(`${tag}[key="${ComponentId}"]`)
