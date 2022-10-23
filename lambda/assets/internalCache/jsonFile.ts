@@ -1,11 +1,12 @@
 import { DeferredCache } from './deferredCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import AssetWorkspace, { isAssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
+import AssetWorkspace, { isAssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
 type JSONFileCache = {
     normal: NormalForm;
+    namespaceIdToDB: NamespaceMapping;
 }
 
 export class JSONFileData {
@@ -15,7 +16,8 @@ export class JSONFileData {
         this._Cache = new DeferredCache<JSONFileCache>({
             defaultValue: (cacheKey) => {
                 return {
-                    normal: {}
+                    normal: {},
+                    namespaceIdToDB: {}
                 }
             }
         })
@@ -29,7 +31,7 @@ export class JSONFileData {
         this._Cache.clear()
     }
 
-    async _getPromiseFactory(AssetId: `ASSET#${string}`): Promise<{ normal: NormalForm }> {
+    async _getPromiseFactory(AssetId: `ASSET#${string}`): Promise<JSONFileCache> {
         const address = await assetDB.getItem<{ zone: string; player?: string; subFolder?: string; fileName: string }>({
             AssetId,
             DataCategory: 'Meta::Asset',
@@ -39,16 +41,20 @@ export class JSONFileData {
             }
         })
         if (!isAssetWorkspaceAddress(address)) {
-            return { normal: {} }
+            return {
+                normal: {},
+                namespaceIdToDB: {}
+            }
         }
         const assetWorkspace = new AssetWorkspace(address)
         await assetWorkspace.loadJSON()
         return {
-            normal: assetWorkspace.normal || {}
+            normal: assetWorkspace.normal || {},
+            namespaceIdToDB: assetWorkspace.namespaceIdToDB || {}
         }
     }
 
-    async get(AssetId: `ASSET#${string}`): Promise<{ normal: NormalForm }> {
+    async get(AssetId: `ASSET#${string}`): Promise<JSONFileCache> {
         if (!this._Cache.isCached(AssetId)) {
             this._Cache.add({
                 promiseFactory: () => (this._getPromiseFactory(AssetId)),

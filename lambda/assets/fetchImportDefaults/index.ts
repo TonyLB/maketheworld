@@ -6,6 +6,7 @@ import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagemen
 import { isNormalExit, isNormalFeature, isNormalImport, isNormalRoom, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { RoomExit } from "@tonylb/mtw-interfaces/dist/messages"
+import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 type AssetKey = `ASSET#${string}`
 
@@ -82,12 +83,13 @@ const recursivePayloadDefault = async (payload: FetchImportDefaultsMessage): Pro
                             if (!isNormalExit(exitItem)) {
                                 return undefined
                             }
+                            const RoomId = jsonFile.namespaceIdToDB[key]
+                            if (!isEphemeraRoomId(RoomId)) {
+                                return undefined
+                            }
                             return {
                                 Name: exitItem.name,
-                                //
-                                // TODO: Add namespaceMapping to JSONFile internalCache, and translate exitItem.to to an EphemeraRoomId
-                                //
-                                RoomId: exitItem.to,
+                                RoomId,
                                 Visibility: 'Public'
                             }
                         })
