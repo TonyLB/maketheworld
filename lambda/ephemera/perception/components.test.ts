@@ -5,7 +5,7 @@ describe('component utilities', () => {
         it('should return empty from empty string', () => {
             expect(componentAppearanceReduce()).toEqual({
                 Description: [],
-                Name: "",
+                Name: [],
                 Exits: []
             })
         })
@@ -13,21 +13,19 @@ describe('component utilities', () => {
         it('should correctly join render strings', () => {
             expect(componentAppearanceReduce({
                 conditions: [],
-                name: '',
+                name: [],
                 exits: [],
                 render: [{
                     tag: 'String',
-                    value: 'Test',
-                    spaceAfter: true
+                    value: 'Test '
                 },
                 {
                     tag: 'String',
-                    value: 'One',
-                    spaceBefore: true
+                    value: 'One'
                 }]
             })).toEqual({
                 Description: [{ tag: 'String', value: 'Test One' }],
-                Name: '',
+                Name: [],
                 Exits: []
             })
         })
@@ -35,26 +33,23 @@ describe('component utilities', () => {
         it('should correctly join link after string', () => {
             expect(componentAppearanceReduce({
                 conditions: [],
-                name: '',
+                name: [],
                 exits: [],
                 render: [{
                     tag: 'String',
-                    value: 'Test',
-                    spaceAfter: true
+                    value: 'Test '
                 },
                 {
                     tag: 'Link',
                     text: 'One',
-                    to: 'FEATURE#TestOne',
-                    targetTag: 'Feature',
-                    spaceBefore: true
+                    to: 'FEATURE#TestOne'
                 }]
             })).toEqual({
                 Description: [
                     { tag: 'String', value: 'Test ' },
-                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne', targetTag: 'Feature' }
+                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne' }
                 ],
-                Name: '',
+                Name: [],
                 Exits: []
             })
 
@@ -63,26 +58,23 @@ describe('component utilities', () => {
         it('should correctly join string after link', () => {
             expect(componentAppearanceReduce({
                 conditions: [],
-                name: '',
+                name: [],
                 exits: [],
                 render: [{
                     tag: 'Link',
                     text: 'Test',
-                    to: 'FEATURE#TestOne',
-                    targetTag: 'Feature',
-                    spaceAfter: true
+                    to: 'FEATURE#TestOne'
                 },
                 {
                     tag: 'String',
-                    value: 'One',
-                    spaceBefore: true
+                    value: ' One'
                 }]
             })).toEqual({
                 Description: [
-                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne', targetTag: 'Feature' },
+                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne' },
                     { tag: 'String', value: ' One' }
                 ],
-                Name: '',
+                Name: [],
                 Exits: []
             })
 
@@ -91,29 +83,29 @@ describe('component utilities', () => {
         it('should correctly join links with space between', () => {
             expect(componentAppearanceReduce({
                 conditions: [],
-                name: '',
+                name: [],
                 exits: [],
                 render: [{
                     tag: 'Link',
                     text: 'Test',
-                    to: 'FEATURE#TestOne',
-                    targetTag: 'Feature',
-                    spaceAfter: true
+                    to: 'FEATURE#TestOne'
+                },
+                {
+                    tag: 'String',
+                    value: ' '
                 },
                 {
                     tag: 'Link',
                     text: 'One',
-                    to: 'FEATURE#TestOne',
-                    targetTag: 'Feature',
-                    spaceBefore: true
+                    to: 'FEATURE#TestOne'
                 }]
             })).toEqual({
                 Description: [
-                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne', targetTag: 'Feature' },
+                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne' },
                     { tag: 'String', value: ' ' },
-                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne', targetTag: 'Feature' }
+                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne' }
                 ],
-                Name: '',
+                Name: [],
                 Exits: []
             })
 
@@ -122,14 +114,12 @@ describe('component utilities', () => {
         it('should correctly join items with line breaks', () => {
             expect(componentAppearanceReduce({
                 conditions: [],
-                name: '',
+                name: [],
                 exits: [],
                 render: [{
                     tag: 'Link',
                     text: 'Test',
-                    to: 'FEATURE#TestOne',
-                    targetTag: 'Feature',
-                    spaceAfter: true
+                    to: 'FEATURE#TestOne'
                 },
                 {
                     tag: 'LineBreak'
@@ -137,17 +127,15 @@ describe('component utilities', () => {
                 {
                     tag: 'Link',
                     text: 'One',
-                    to: 'FEATURE#TestOne',
-                    targetTag: 'Feature',
-                    spaceBefore: true
+                    to: 'FEATURE#TestOne'
                 }]
             })).toEqual({
                 Description: [
-                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne', targetTag: 'Feature' },
+                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne' },
                     { tag: 'LineBreak' },
-                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne', targetTag: 'Feature' }
+                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne' }
                 ],
-                Name: '',
+                Name: [],
                 Exits: []
             })
 
@@ -157,7 +145,7 @@ describe('component utilities', () => {
         it('should correctly join items without spacing fields', () => {
             expect(componentAppearanceReduce({
                 conditions: [],
-                name: '',
+                name: [],
                 exits: [],
                 render: [{
                     tag: 'String',
@@ -166,15 +154,14 @@ describe('component utilities', () => {
                 {
                     tag: 'Link',
                     text: 'One',
-                    to: 'FEATURE#TestOne',
-                    targetTag: 'Feature'
+                    to: 'FEATURE#TestOne'
                 }]
             })).toEqual({
                 Description: [
                     { tag: 'String', value: 'Test ' },
-                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne', targetTag: 'Feature' }
+                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne' }
                 ],
-                Name: '',
+                Name: [],
                 Exits: []
             })
 

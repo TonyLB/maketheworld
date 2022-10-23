@@ -222,7 +222,7 @@ describe('cacheAsset', () => {
                 tag: 'Room',
                 appearances: [{
                     ...topLevelAppearance,
-                    name: 'Vortex',
+                    name: [{ tag: 'String', value: 'Vortex' }],
                     render: []
                 },
                 {
@@ -288,7 +288,7 @@ describe('cacheAsset', () => {
                 appearances: [{
                     conditions: [],
                     exits: [],
-                    name: 'Vortex',
+                    name: [{ tag: 'String', value: 'Vortex' }],
                     render: []
                 },
                 {
@@ -300,7 +300,7 @@ describe('cacheAsset', () => {
                         if: "active"
                     }],
                     exits: [],
-                    name: '',
+                    name: [],
                     render: ["The lights are on "]
                 }]
             },

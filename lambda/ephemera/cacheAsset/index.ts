@@ -29,7 +29,8 @@ import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
-import { EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraError, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 
 //
 // TODO:
@@ -54,11 +55,15 @@ type CacheAssetOptions = {
 //
 // TODO(ISS1387): Translate features and actions in render links to their DB ID counterparts
 //
-const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem: ComponentRenderItem): ComponentRenderItem => {
+const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem: ComponentRenderItem): TaggedMessageContent => {
     if (renderItem.tag === 'Link') {
+        const to = assetWorkspace.namespaceIdToDB[renderItem.to]
+        if (!(isEphemeraActionId(to) || isEphemeraCharacterId(to) || isEphemeraFeatureId(to))) {
+            throw new EphemeraError(`Illegal target in link: ${to}`)
+        }
         return {
             ...renderItem,
-            to: assetWorkspace.namespaceIdToDB[renderItem.to]
+            to
         }
     }
     else {
@@ -81,16 +86,22 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             appearances: item.appearances
                 .map((appearance) => ({
                     conditions: conditionsTransform(appearance.contextStack),
-                    name: appearance.name || '',
+                    name: (appearance.name ?? []).map(renderTranslate),
                     render: (appearance.render || []).map(renderTranslate),
                     exits: appearance.contents
                         .filter(({ tag }) => (tag === 'Exit'))
                         .map(({ key }) => (normal[key]))
                         .filter(isNormalExit)
-                        .map(({ to, name }) => ({
-                            name: name || '',
-                            to: namespaceMap[to]
-                        }))
+                        .map(({ to: toTarget, name }) => {
+                            const to = namespaceMap[toTarget]
+                            if (!(isEphemeraRoomId(to))) {
+                                throw new EphemeraError(`Illegal target in exit: ${to}`)
+                            }
+                            return {
+                                name: name || '',
+                                to
+                            }
+                        })
                         .filter((value: { to: string; name: string }): value is { to: EphemeraRoomId; name: string } => (isEphemeraRoomId(value.to)))
                 }))
         }
@@ -102,7 +113,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             appearances: item.appearances
                 .map((appearance) => ({
                     conditions: conditionsTransform(appearance.contextStack),
-                    name: appearance.name || '',
+                    name: (appearance.name ?? []).map(renderTranslate),
                     render: (appearance.render || []).map(renderTranslate),
                 }))
         }
@@ -117,7 +128,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                     const fileURL = (image && isNormalImage(image) && image.fileURL) || ''
                     return {
                         conditions: conditionsTransform(appearance.contextStack),
-                        name: appearance.name || [],
+                        name: (appearance.name ?? []).map(renderTranslate),
                         fileURL,
                         rooms: objectEntryMap(appearance.rooms, (key, { x, y }) => ({
                             EphemeraId: namespaceMap[key] || '',

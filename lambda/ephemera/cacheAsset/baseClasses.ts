@@ -25,7 +25,7 @@ export type EphemeraCondition = {
 export type EphemeraFeatureAppearance = {
     conditions: EphemeraCondition[];
     name: TaggedMessageContent[];
-    render: ComponentRenderItem[];
+    render: TaggedMessageContent[];
 }
 
 export type EphemeraFeature = {
@@ -42,7 +42,7 @@ export type EphemeraExit = {
 export type EphemeraRoomAppearance = {
     conditions: EphemeraCondition[];
     name: TaggedMessageContent[];
-    render: ComponentRenderItem[];
+    render: TaggedMessageContent[];
     exits: EphemeraExit[];
 }
 

@@ -225,7 +225,7 @@ export class ComponentRenderData {
                 dependencies: aggregateDependencies,
                 description: {
                     MapId: EphemeraId,
-                    Name: [{ tag: 'String', value: renderMapAppearances.map(({ name }) => (name)).join('') }],
+                    Name: renderMapAppearances.map(({ name }) => (name)).reduce<TaggedMessageContent[]>((previous, name) => ([ ...previous, ...name ]), []),
                     fileURL: renderMapAppearances
                         .map(({ fileURL }) => (fileURL))
                         .filter((value) => (value))
