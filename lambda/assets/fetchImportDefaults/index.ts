@@ -3,7 +3,7 @@ import { FetchImportDefaultsMessage, MessageBus } from "../messageBus/baseClasse
 import internalCache from '../internalCache'
 import { AssetClientImportDefaults, AssetClientImportDefaultsFeature, AssetClientImportDefaultsRoom } from "@tonylb/mtw-interfaces/dist/asset"
 import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
-import { isNormalExit, isNormalFeature, isNormalImport, isNormalRoom, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { isNormalExit, isNormalFeature, isNormalImport, isNormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { RoomExit } from "@tonylb/mtw-interfaces/dist/messages"
 import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"

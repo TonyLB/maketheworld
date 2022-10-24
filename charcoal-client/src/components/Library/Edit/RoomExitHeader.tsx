@@ -13,6 +13,7 @@ import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader
 import { useLibraryAsset } from './LibraryAsset'
 import useDebounce from '../../../hooks/useDebounce'
 import { noConditionContext } from './utilities'
+import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 
 interface RoomExitHeaderBaseProps {
     defaultName: string;
@@ -86,7 +87,7 @@ export const RoomExitHeader: FunctionComponent<RoomExitHeaderProps> = ({ ItemId,
                         : `${rooms[item.from]?.defaultName}${rooms[item.from]?.localName}`
                 }
                 toTarget={toTarget}
-                defaultName={item?.name || defaultItem?.name || ''}
+                defaultName={item?.name || taggedMessageToString(defaultItem?.Name || []) || ''}
                 onChanged={saveName({ location })}
                 onDelete={onDelete({ to: item.to, from: item.from })}
             />

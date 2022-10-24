@@ -52,14 +52,14 @@ const store = mockStore({
                publicData: {
                    originalWML: currentWML,
                    currentWML,
-                   defaultAppearances: {
-                       DEF: {
-                           render: [{
-                               tag: 'String',
-                               value: 'A welcome area'
-                           }],
-                           contents: []
-                       }
+                   importDefaults: {
+                        DEF: {
+                            Description: [{
+                                tag: 'String',
+                                value: 'A welcome area'
+                            }],
+                            Name: []
+                        }
                    }
                },
                meta: {

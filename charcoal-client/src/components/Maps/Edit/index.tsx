@@ -17,19 +17,26 @@ import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import normalToTree from './normalToTree'
 import { objectEntryMap, objectMap } from '../../../lib/objects'
 import { MapAppearance, isNormalImage } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { InheritedExit } from '../../../slices/personalAssets/inheritedData'
 
 type MapEditProps = {
 }
 
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
-    const { normalForm, rooms, inheritedExits, defaultAppearances, wmlQuery, updateWML } = useLibraryAsset()
+    const { normalForm, rooms, wmlQuery, updateWML } = useLibraryAsset()
     const { MapId: mapId } = useParams<{ MapId: string }>()
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
+    //
+    // TODO: Extend importDefaults to properly fetch inherited exits from ancestor assets, and then
+    // put back the inheritedExits and inheritedAppearances functionality in normalToTree that shows
+    // locked prior layers of map functionality.
+    //
+    const inheritedExits: InheritedExit[] = []
     const defaultTree = useMemo(() => (
-        normalToTree({ MapId: mapId || '', normalForm, rooms, inheritedExits, inheritedAppearances: (defaultAppearances[mapId  || ''] as unknown as any)?.layers || [] })
-    ), [normalToTree, mapId, normalForm, rooms, inheritedExits, defaultAppearances])
+        normalToTree({ MapId: mapId || '', normalForm, rooms, inheritedExits, inheritedAppearances: [] })
+    ), [normalToTree, mapId, normalForm, rooms, inheritedExits])
     const [{ tree }, dispatch] = useReducer<MapReducer, MapTree>(
         mapReducer,
         defaultTree,
