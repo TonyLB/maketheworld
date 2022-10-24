@@ -202,8 +202,8 @@ Array [
     "contents": Array [
       Object {
         "parse": Object {
-          "endTagToken": 49,
-          "startTagToken": 49,
+          "endTagToken": 48,
+          "startTagToken": 48,
           "tag": "String",
           "value": "Conditional Render",
         },
@@ -215,24 +215,24 @@ Array [
     "parse": Object {
       "contents": Array [
         Object {
-          "endTagToken": 48,
-          "startTagToken": 48,
+          "endTagToken": 47,
+          "startTagToken": 47,
           "tag": "Whitespace",
         },
         Object {
-          "endTagToken": 49,
-          "startTagToken": 49,
+          "endTagToken": 48,
+          "startTagToken": 48,
           "tag": "String",
           "value": "Conditional Render",
         },
         Object {
-          "endTagToken": 50,
-          "startTagToken": 50,
+          "endTagToken": 49,
+          "startTagToken": 49,
           "tag": "Whitespace",
         },
       ],
-      "endTagToken": 51,
-      "startTagToken": 46,
+      "endTagToken": 50,
+      "startTagToken": 45,
       "tag": "Description",
     },
     "tag": "Description",
@@ -252,14 +252,14 @@ exports[`wmlQuery extend method should correctly update base query from filter e
             <Room key=(test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
-            <Condition if={true}>
+            <If {true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
                     </Description>
                     <Exit from=(Test)>vortex</Exit>
                 </Room>
-            </Condition>
+            </If>
         </Asset>
     "
 `;
@@ -271,9 +271,9 @@ exports[`wmlQuery extend method should not impact base search on extension 1`] =
             <Room key=(test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
-            <Condition if={true}>
+            <If {true}>
                 
-            </Condition>
+            </If>
         </Asset>
     "
 `;
@@ -288,7 +288,7 @@ exports[`wmlQuery not method should correctly chain multiple not operations 1`] 
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition if={true}>
+            <If {true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -297,7 +297,7 @@ exports[`wmlQuery not method should correctly chain multiple not operations 1`] 
                 <Room key=(Test)>
                     <Name>Test</Name>
                 </Room>
-            </Condition>
+            </If>
             <Map key=(QRS)>
                 <Room key=(Test) x=\\"100\\" y=\\"100\\" />
             </Map>
@@ -555,9 +555,9 @@ exports[`wmlQuery remove method should correctly remove nodes from source 1`] = 
 "
         <Asset key=(BASE)>
             
-            <Condition if={true}>
+            <If {true}>
                 
-            </Condition>
+            </If>
             <Room key=(Test) />
             <Room key=(multipleTest)>
                 <Description>
@@ -798,7 +798,7 @@ exports[`wmlQuery should correctly remove and update boolean prop 3`] = `
 exports[`wmlQuery should correctly remove and update expression prop 1`] = `
 "
             <Asset key=(BASE)>
-                <Condition if={false}></Condition>
+                <Variable key=(test) default={false} />
             </Asset>
         "
 `;

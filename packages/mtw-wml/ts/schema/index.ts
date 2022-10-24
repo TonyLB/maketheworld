@@ -132,7 +132,7 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
             return schemaFromFeature(item, schemaContents as SchemaFeatureLegalContents[])
         case 'Link':
             return schemaFromLink(item, schemaContents as SchemaStringTag[])
-        case 'Condition':
+        case 'If':
             return schemaFromCondition(item, schemaContents as SchemaAssetLegalContents[])
         case 'Action':
             return schemaFromAction(item)

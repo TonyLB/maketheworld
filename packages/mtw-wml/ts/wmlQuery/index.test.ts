@@ -146,11 +146,11 @@ describe('wmlQuery', () => {
     it('should correctly remove and update expression prop', () => {
         const expressionPropsMatch = `
             <Asset key=(BASE)>
-                <Condition if={true}></Condition>
+                <Variable key=(test) default={true} />
             </Asset>
         `
         let expressionQuery = new WMLQuery(expressionPropsMatch, { onChange: onChangeMock })
-        expect(expressionQuery.search('Condition').prop('if', 'false', { type: 'expression' }).source).toMatchSnapshot()
+        expect(expressionQuery.search('Variable').prop('default', 'false', { type: 'expression' }).source).toMatchSnapshot()
     })
 
     it('should return empty array contents on failed match', () => {
@@ -312,7 +312,7 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition if={true}>
+            <If {true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -321,7 +321,7 @@ describe('wmlQuery', () => {
                 <Room key=(Test)>
                     <Name>Test</Name>
                 </Room>
-            </Condition>
+            </If>
             <Map key=(QRS)>
                 <Room key=(Test) x="100" y="100" />
             </Map>
@@ -353,11 +353,11 @@ describe('wmlQuery', () => {
         })    
 
         it('should correctly remove nodes from result-set', () => {
-            expect(notQuery.search('Room[key="VORTEX"]').not('Condition Room').nodes()).toMatchSnapshot()
+            expect(notQuery.search('Room[key="VORTEX"]').not('If Room').nodes()).toMatchSnapshot()
         })
 
         it('should correctly chain multiple not operations', () => {
-            expect(notQuery.search('Room[key="Test"]').not('Condition Room').not('Map Room').remove().source).toMatchSnapshot()
+            expect(notQuery.search('Room[key="Test"]').not('If Room').not('Map Room').remove().source).toMatchSnapshot()
         })
     })
 
@@ -373,14 +373,14 @@ describe('wmlQuery', () => {
             <Room key=(test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
-            <Condition if={true}>
+            <If {true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
                     </Description>
                     <Exit from=(Test)>vortex</Exit>
                 </Room>
-            </Condition>
+            </If>
         </Asset>
     `
         let baseQuery = new WMLQuery(filterMatch, { onChange: onChangeMock })
@@ -391,7 +391,7 @@ describe('wmlQuery', () => {
         })    
 
         it('should correctly update base query from filter extension', () => {
-            const newFirstResult = baseQuery.search('Room[key="VORTEX"]').not('Condition Room')
+            const newFirstResult = baseQuery.search('Room[key="VORTEX"]').not('If Room')
             newFirstResult.extend().add('Exit').remove()
             expect(newFirstResult.source).toMatchSnapshot()
         })
@@ -414,13 +414,13 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition if={true}>
+            <If {true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
                     </Description>
                 </Room>
-            </Condition>
+            </If>
             <Room key=(Test) />
             <Room key=(multipleTest)>
                 <Description>
@@ -506,13 +506,13 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition if={true}>
+            <If {true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
                     </Description>
                 </Room>
-            </Condition>
+            </If>
         </Asset>
     `
         let childrenQuery = new WMLQuery(childrenMatch, { onChange: onChangeMock })

@@ -28,7 +28,7 @@
         </Description>
         <Feature key=(lightSwitch) />
     </Room>
-    <Condition if={active}>
+    <If {active}>
         <Depend on=(active) />
         <Map key=(importTestMap)>
             <Room key=(welcomeRoom) x="50" y="0" />
@@ -38,5 +38,5 @@
                 It's a welcome area, with bright lighting and pastel walls.
             </Description>
         </Room>
-    </Condition>
+    </If>
 </Asset>

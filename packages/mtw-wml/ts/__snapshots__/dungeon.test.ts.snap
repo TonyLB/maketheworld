@@ -2,1280 +2,6 @@
 
 exports[`large WML test should normalize properly 1`] = `
 Object {
-  "Condition-0": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 1,
-            "key": "wellStatues",
-            "tag": "Feature",
-          },
-          Object {
-            "index": 1,
-            "key": "robedStatue",
-            "tag": "Feature",
-          },
-          Object {
-            "index": 1,
-            "key": "robedStatueShoulders",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          12,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "robedStatueActive",
-    ],
-    "if": "robedStatueActive",
-    "key": "Condition-0",
-    "tag": "Condition",
-  },
-  "Condition-1": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "wellStatues",
-            "tag": "Feature",
-          },
-          Object {
-            "index": 2,
-            "key": "robedStatue",
-            "tag": "Feature",
-          },
-          Object {
-            "index": 2,
-            "key": "robedStatueShoulders",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          13,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "robedStatueActive",
-    ],
-    "if": "!robedStatueActive",
-    "key": "Condition-1",
-    "tag": "Condition",
-  },
-  "Condition-10": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 4,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          41,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "waterFlow",
-    ],
-    "if": "waterFlow === 2",
-    "key": "Condition-10",
-    "tag": "Condition",
-  },
-  "Condition-11": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 1,
-            "key": "gratingDetail",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          46,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "gratingBlocked",
-    ],
-    "if": "gratingBlocked",
-    "key": "Condition-11",
-    "tag": "Condition",
-  },
-  "Condition-12": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "gratingDetail",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          47,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "gratingBlocked",
-    ],
-    "if": "!gratingBlocked",
-    "key": "Condition-12",
-    "tag": "Condition",
-  },
-  "Condition-13": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          50,
-        ],
-      },
-      Object {
-        "contents": Array [
-          Object {
-            "index": 4,
-            "key": "orchard",
-            "tag": "Room",
-          },
-          Object {
-            "index": 1,
-            "key": "Condition-15",
-            "tag": "Condition",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          52,
-        ],
-      },
-    ],
-    "dependencies": Array [],
-    "if": "waterLevel < 4",
-    "key": "Condition-13",
-    "tag": "Condition",
-  },
-  "Condition-14": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "orchard",
-            "tag": "Room",
-          },
-          Object {
-            "index": 3,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-          Object {
-            "index": 0,
-            "key": "Condition-15",
-            "tag": "Condition",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          51,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "waterLevel",
-    ],
-    "if": "waterLevel >= 4",
-    "key": "Condition-14",
-    "tag": "Condition",
-  },
-  "Condition-15": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 3,
-            "key": "orchard",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "Condition-14",
-            "tag": "Condition",
-          },
-        ],
-        "location": Array [
-          0,
-          51,
-          2,
-        ],
-      },
-      Object {
-        "contents": Array [
-          Object {
-            "index": 5,
-            "key": "orchard",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 1,
-            "key": "Condition-13",
-            "tag": "Condition",
-          },
-        ],
-        "location": Array [
-          0,
-          52,
-          1,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "catsInOrchard",
-    ],
-    "if": "catsInOrchard",
-    "key": "Condition-15",
-    "tag": "Condition",
-  },
-  "Condition-16": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 4,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          53,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "waterLevel",
-    ],
-    "if": "waterLevel < 4 && waterLevel >= 2",
-    "key": "Condition-16",
-    "tag": "Condition",
-  },
-  "Condition-17": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 5,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          54,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "waterLevel",
-    ],
-    "if": "waterLevel < 2",
-    "key": "Condition-17",
-    "tag": "Condition",
-  },
-  "Condition-18": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 6,
-            "key": "orchard",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          55,
-        ],
-      },
-      Object {
-        "contents": Array [
-          Object {
-            "index": 1,
-            "key": "birdColumn",
-            "tag": "Feature",
-          },
-          Object {
-            "index": 3,
-            "key": "columns",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          93,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "birdsInOrchard",
-    ],
-    "if": "birdsInOrchard",
-    "key": "Condition-18",
-    "tag": "Condition",
-  },
-  "Condition-19": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 1,
-            "key": "bellows",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          66,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "bellowsRunning",
-    ],
-    "if": "bellowsRunning",
-    "key": "Condition-19",
-    "tag": "Condition",
-  },
-  "Condition-2": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 1,
-            "key": "determinedStatue",
-            "tag": "Feature",
-          },
-          Object {
-            "index": 4,
-            "key": "wellStatues",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          28,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "determinedStatueHead",
-    ],
-    "if": "determinedStatueHead",
-    "key": "Condition-2",
-    "tag": "Condition",
-  },
-  "Condition-20": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "bellows",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          67,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "bellowsRunning",
-    ],
-    "if": "!bellowsRunning",
-    "key": "Condition-20",
-    "tag": "Condition",
-  },
-  "Condition-21": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 1,
-            "key": "hearthCrest",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          69,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthPrimed",
-    ],
-    "if": "hearthPrimed",
-    "key": "Condition-21",
-    "tag": "Condition",
-  },
-  "Condition-22": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "hearthCrest",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          70,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthPrimed",
-    ],
-    "if": "!hearthPrimed",
-    "key": "Condition-22",
-    "tag": "Condition",
-  },
-  "Condition-23": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "foundry",
-            "tag": "Room",
-          },
-          Object {
-            "index": 2,
-            "key": "forest",
-            "tag": "Room",
-          },
-          Object {
-            "index": 1,
-            "key": "hearthDetail",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          75,
-        ],
-      },
-      Object {
-        "contents": Array [
-          Object {
-            "index": 1,
-            "key": "catColumn",
-            "tag": "Feature",
-          },
-          Object {
-            "index": 1,
-            "key": "columns",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          90,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthActive",
-    ],
-    "if": "hearthActive",
-    "key": "Condition-23",
-    "tag": "Condition",
-  },
-  "Condition-24": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 3,
-            "key": "foundry",
-            "tag": "Room",
-          },
-          Object {
-            "index": 3,
-            "key": "forest",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          76,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthActive",
-    ],
-    "if": "!hearthActive",
-    "key": "Condition-24",
-    "tag": "Condition",
-  },
-  "Condition-25": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 1,
-            "key": "trapDoor",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          84,
-        ],
-      },
-    ],
-    "dependencies": Array [],
-    "if": "trapDoorOpen",
-    "key": "Condition-25",
-    "tag": "Condition",
-  },
-  "Condition-26": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "trapDoor",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          85,
-        ],
-      },
-    ],
-    "dependencies": Array [],
-    "if": "!trapDoorOpen",
-    "key": "Condition-26",
-    "tag": "Condition",
-  },
-  "Condition-27": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "statueChamber",
-            "tag": "Room",
-          },
-          Object {
-            "index": 7,
-            "key": "orchard",
-            "tag": "Room",
-          },
-          Object {
-            "index": 4,
-            "key": "forest",
-            "tag": "Room",
-          },
-          Object {
-            "index": 7,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-          Object {
-            "index": 4,
-            "key": "foundry",
-            "tag": "Room",
-          },
-          Object {
-            "index": 2,
-            "key": "intersection",
-            "tag": "Room",
-          },
-          Object {
-            "index": 5,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          95,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthActive",
-      "birdsInOrchard",
-    ],
-    "if": "hearthActive && birdsInOrchard",
-    "key": "Condition-27",
-    "tag": "Condition",
-  },
-  "Condition-28": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 3,
-            "key": "statueChamber",
-            "tag": "Room",
-          },
-          Object {
-            "index": 5,
-            "key": "foundry",
-            "tag": "Room",
-          },
-          Object {
-            "index": 5,
-            "key": "forest",
-            "tag": "Room",
-          },
-          Object {
-            "index": 8,
-            "key": "orchard",
-            "tag": "Room",
-          },
-          Object {
-            "index": 8,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-          Object {
-            "index": 3,
-            "key": "intersection",
-            "tag": "Room",
-          },
-          Object {
-            "index": 6,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          96,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthActive",
-      "bellowsRunning",
-      "birdsInOrchard",
-    ],
-    "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-    "key": "Condition-28",
-    "tag": "Condition",
-  },
-  "Condition-29": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 4,
-            "key": "statueChamber",
-            "tag": "Room",
-          },
-          Object {
-            "index": 6,
-            "key": "foundry",
-            "tag": "Room",
-          },
-          Object {
-            "index": 6,
-            "key": "forest",
-            "tag": "Room",
-          },
-          Object {
-            "index": 9,
-            "key": "orchard",
-            "tag": "Room",
-          },
-          Object {
-            "index": 9,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-          Object {
-            "index": 4,
-            "key": "intersection",
-            "tag": "Room",
-          },
-          Object {
-            "index": 7,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          97,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthActive",
-      "bellowsRunning",
-      "birdsInOrchard",
-    ],
-    "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-    "key": "Condition-29",
-    "tag": "Condition",
-  },
-  "Condition-3": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "determinedStatue",
-            "tag": "Feature",
-          },
-          Object {
-            "index": 5,
-            "key": "wellStatues",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          29,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "determinedStatueHead",
-    ],
-    "if": "!determinedStatueHead",
-    "key": "Condition-3",
-    "tag": "Condition",
-  },
-  "Condition-30": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 5,
-            "key": "statueChamber",
-            "tag": "Room",
-          },
-          Object {
-            "index": 7,
-            "key": "foundry",
-            "tag": "Room",
-          },
-          Object {
-            "index": 7,
-            "key": "forest",
-            "tag": "Room",
-          },
-          Object {
-            "index": 10,
-            "key": "orchard",
-            "tag": "Room",
-          },
-          Object {
-            "index": 10,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-          Object {
-            "index": 5,
-            "key": "intersection",
-            "tag": "Room",
-          },
-          Object {
-            "index": 8,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          98,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthActive",
-      "bellowsRunning",
-      "birdsInOrchard",
-    ],
-    "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-    "key": "Condition-30",
-    "tag": "Condition",
-  },
-  "Condition-31": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 6,
-            "key": "statueChamber",
-            "tag": "Room",
-          },
-          Object {
-            "index": 8,
-            "key": "foundry",
-            "tag": "Room",
-          },
-          Object {
-            "index": 8,
-            "key": "forest",
-            "tag": "Room",
-          },
-          Object {
-            "index": 11,
-            "key": "orchard",
-            "tag": "Room",
-          },
-          Object {
-            "index": 11,
-            "key": "fireCatGrotto",
-            "tag": "Room",
-          },
-          Object {
-            "index": 6,
-            "key": "intersection",
-            "tag": "Room",
-          },
-          Object {
-            "index": 9,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          99,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "hearthActive",
-      "birdsInOrchard",
-    ],
-    "if": "hearthActive && !birdsInOrchard",
-    "key": "Condition-31",
-    "tag": "Condition",
-  },
-  "Condition-4": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "determinedNeck",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          30,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "determinedStatueRightArm",
-    ],
-    "if": "determinedStatueRightArm",
-    "key": "Condition-4",
-    "tag": "Condition",
-  },
-  "Condition-5": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 3,
-            "key": "determinedNeck",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          31,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "determinedStatueRightArm",
-    ],
-    "if": "!determinedStatueRightArm",
-    "key": "Condition-5",
-    "tag": "Condition",
-  },
-  "Condition-6": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 4,
-            "key": "determinedNeck",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          32,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "determinedStatueLeftArm",
-    ],
-    "if": "determinedStatueLeftArm",
-    "key": "Condition-6",
-    "tag": "Condition",
-  },
-  "Condition-7": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 5,
-            "key": "determinedNeck",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          33,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "determinedStatueLeftArm",
-    ],
-    "if": "!determinedStatueLeftArm",
-    "key": "Condition-7",
-    "tag": "Condition",
-  },
-  "Condition-8": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 2,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          39,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "waterFlow",
-    ],
-    "if": "waterFlow === 0",
-    "key": "Condition-8",
-    "tag": "Condition",
-  },
-  "Condition-9": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 3,
-            "key": "well",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          40,
-        ],
-      },
-    ],
-    "dependencies": Array [
-      "waterFlow",
-    ],
-    "if": "waterFlow === 1",
-    "key": "Condition-9",
-    "tag": "Condition",
-  },
   "Dungeon": Object {
     "Story": false,
     "appearances": Array [
@@ -1343,13 +69,13 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-0",
-            "tag": "Condition",
+            "key": "If-0",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-1",
-            "tag": "Condition",
+            "key": "If-1",
+            "tag": "If",
           },
           Object {
             "index": 3,
@@ -1423,33 +149,33 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-2",
-            "tag": "Condition",
+            "key": "If-2",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-3",
-            "tag": "Condition",
+            "key": "If-3",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-4",
-            "tag": "Condition",
+            "key": "If-4",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-5",
-            "tag": "Condition",
+            "key": "If-5",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-6",
-            "tag": "Condition",
+            "key": "If-6",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-7",
-            "tag": "Condition",
+            "key": "If-7",
+            "tag": "If",
           },
           Object {
             "index": 6,
@@ -1478,18 +204,18 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-8",
-            "tag": "Condition",
+            "key": "If-8",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-9",
-            "tag": "Condition",
+            "key": "If-9",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-10",
-            "tag": "Condition",
+            "key": "If-10",
+            "tag": "If",
           },
           Object {
             "index": 0,
@@ -1513,13 +239,13 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-11",
-            "tag": "Condition",
+            "key": "If-11",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-12",
-            "tag": "Condition",
+            "key": "If-12",
+            "tag": "If",
           },
           Object {
             "index": 1,
@@ -1533,33 +259,33 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-13",
-            "tag": "Condition",
+            "key": "If-13",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-14",
-            "tag": "Condition",
+            "key": "If-14",
+            "tag": "If",
           },
           Object {
             "index": 1,
-            "key": "Condition-13",
-            "tag": "Condition",
+            "key": "If-13",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-16",
-            "tag": "Condition",
+            "key": "If-16",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-17",
-            "tag": "Condition",
+            "key": "If-17",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-18",
-            "tag": "Condition",
+            "key": "If-18",
+            "tag": "If",
           },
           Object {
             "index": 6,
@@ -1613,13 +339,13 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-19",
-            "tag": "Condition",
+            "key": "If-19",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-20",
-            "tag": "Condition",
+            "key": "If-20",
+            "tag": "If",
           },
           Object {
             "index": 0,
@@ -1628,13 +354,13 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-21",
-            "tag": "Condition",
+            "key": "If-21",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-22",
-            "tag": "Condition",
+            "key": "If-22",
+            "tag": "If",
           },
           Object {
             "index": 3,
@@ -1658,13 +384,13 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-23",
-            "tag": "Condition",
+            "key": "If-23",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-24",
-            "tag": "Condition",
+            "key": "If-24",
+            "tag": "If",
           },
           Object {
             "index": 0,
@@ -1703,13 +429,13 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-25",
-            "tag": "Condition",
+            "key": "If-25",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-26",
-            "tag": "Condition",
+            "key": "If-26",
+            "tag": "If",
           },
           Object {
             "index": 0,
@@ -1733,8 +459,8 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "Condition-23",
-            "tag": "Condition",
+            "key": "If-23",
+            "tag": "If",
           },
           Object {
             "index": 2,
@@ -1748,8 +474,8 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "Condition-18",
-            "tag": "Condition",
+            "key": "If-18",
+            "tag": "If",
           },
           Object {
             "index": 4,
@@ -1758,28 +484,28 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-27",
-            "tag": "Condition",
+            "key": "If-27",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-28",
-            "tag": "Condition",
+            "key": "If-28",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-29",
-            "tag": "Condition",
+            "key": "If-29",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-30",
-            "tag": "Condition",
+            "key": "If-30",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-31",
-            "tag": "Condition",
+            "key": "If-31",
+            "tag": "If",
           },
         ],
         "contextStack": Array [],
@@ -1793,6 +519,1280 @@ Object {
     "key": "Dungeon",
     "tag": "Asset",
     "zone": "Personal",
+  },
+  "If-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "wellStatues",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 1,
+            "key": "robedStatue",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 1,
+            "key": "robedStatueShoulders",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          12,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "robedStatueActive",
+    ],
+    "if": "robedStatueActive",
+    "key": "If-0",
+    "tag": "If",
+  },
+  "If-1": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "wellStatues",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 2,
+            "key": "robedStatue",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 2,
+            "key": "robedStatueShoulders",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          13,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "robedStatueActive",
+    ],
+    "if": "!robedStatueActive",
+    "key": "If-1",
+    "tag": "If",
+  },
+  "If-10": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 4,
+            "key": "well",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          41,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "waterFlow",
+    ],
+    "if": "waterFlow === 2",
+    "key": "If-10",
+    "tag": "If",
+  },
+  "If-11": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "gratingDetail",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          46,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "gratingBlocked",
+    ],
+    "if": "gratingBlocked",
+    "key": "If-11",
+    "tag": "If",
+  },
+  "If-12": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "gratingDetail",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          47,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "gratingBlocked",
+    ],
+    "if": "!gratingBlocked",
+    "key": "If-12",
+    "tag": "If",
+  },
+  "If-13": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          50,
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 4,
+            "key": "orchard",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "If-15",
+            "tag": "If",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          52,
+        ],
+      },
+    ],
+    "dependencies": Array [],
+    "if": "waterLevel < 4",
+    "key": "If-13",
+    "tag": "If",
+  },
+  "If-14": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "orchard",
+            "tag": "Room",
+          },
+          Object {
+            "index": 3,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "If-15",
+            "tag": "If",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          51,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "waterLevel",
+    ],
+    "if": "waterLevel >= 4",
+    "key": "If-14",
+    "tag": "If",
+  },
+  "If-15": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 3,
+            "key": "orchard",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "If-14",
+            "tag": "If",
+          },
+        ],
+        "location": Array [
+          0,
+          51,
+          2,
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 5,
+            "key": "orchard",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 1,
+            "key": "If-13",
+            "tag": "If",
+          },
+        ],
+        "location": Array [
+          0,
+          52,
+          1,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "catsInOrchard",
+    ],
+    "if": "catsInOrchard",
+    "key": "If-15",
+    "tag": "If",
+  },
+  "If-16": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 4,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          53,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "waterLevel",
+    ],
+    "if": "waterLevel < 4 && waterLevel >= 2",
+    "key": "If-16",
+    "tag": "If",
+  },
+  "If-17": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 5,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          54,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "waterLevel",
+    ],
+    "if": "waterLevel < 2",
+    "key": "If-17",
+    "tag": "If",
+  },
+  "If-18": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 6,
+            "key": "orchard",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          55,
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "birdColumn",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 3,
+            "key": "columns",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          93,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "birdsInOrchard",
+    ],
+    "if": "birdsInOrchard",
+    "key": "If-18",
+    "tag": "If",
+  },
+  "If-19": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "bellows",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          66,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "bellowsRunning",
+    ],
+    "if": "bellowsRunning",
+    "key": "If-19",
+    "tag": "If",
+  },
+  "If-2": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "determinedStatue",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 4,
+            "key": "wellStatues",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          28,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "determinedStatueHead",
+    ],
+    "if": "determinedStatueHead",
+    "key": "If-2",
+    "tag": "If",
+  },
+  "If-20": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "bellows",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          67,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "bellowsRunning",
+    ],
+    "if": "!bellowsRunning",
+    "key": "If-20",
+    "tag": "If",
+  },
+  "If-21": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "hearthCrest",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          69,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthPrimed",
+    ],
+    "if": "hearthPrimed",
+    "key": "If-21",
+    "tag": "If",
+  },
+  "If-22": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "hearthCrest",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          70,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthPrimed",
+    ],
+    "if": "!hearthPrimed",
+    "key": "If-22",
+    "tag": "If",
+  },
+  "If-23": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "foundry",
+            "tag": "Room",
+          },
+          Object {
+            "index": 2,
+            "key": "forest",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "hearthDetail",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          75,
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "catColumn",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 1,
+            "key": "columns",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          90,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthActive",
+    ],
+    "if": "hearthActive",
+    "key": "If-23",
+    "tag": "If",
+  },
+  "If-24": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 3,
+            "key": "foundry",
+            "tag": "Room",
+          },
+          Object {
+            "index": 3,
+            "key": "forest",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          76,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthActive",
+    ],
+    "if": "!hearthActive",
+    "key": "If-24",
+    "tag": "If",
+  },
+  "If-25": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "trapDoor",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          84,
+        ],
+      },
+    ],
+    "dependencies": Array [],
+    "if": "trapDoorOpen",
+    "key": "If-25",
+    "tag": "If",
+  },
+  "If-26": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "trapDoor",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          85,
+        ],
+      },
+    ],
+    "dependencies": Array [],
+    "if": "!trapDoorOpen",
+    "key": "If-26",
+    "tag": "If",
+  },
+  "If-27": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "statueChamber",
+            "tag": "Room",
+          },
+          Object {
+            "index": 7,
+            "key": "orchard",
+            "tag": "Room",
+          },
+          Object {
+            "index": 4,
+            "key": "forest",
+            "tag": "Room",
+          },
+          Object {
+            "index": 7,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+          Object {
+            "index": 4,
+            "key": "foundry",
+            "tag": "Room",
+          },
+          Object {
+            "index": 2,
+            "key": "intersection",
+            "tag": "Room",
+          },
+          Object {
+            "index": 5,
+            "key": "well",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          95,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthActive",
+      "birdsInOrchard",
+    ],
+    "if": "hearthActive && birdsInOrchard",
+    "key": "If-27",
+    "tag": "If",
+  },
+  "If-28": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 3,
+            "key": "statueChamber",
+            "tag": "Room",
+          },
+          Object {
+            "index": 5,
+            "key": "foundry",
+            "tag": "Room",
+          },
+          Object {
+            "index": 5,
+            "key": "forest",
+            "tag": "Room",
+          },
+          Object {
+            "index": 8,
+            "key": "orchard",
+            "tag": "Room",
+          },
+          Object {
+            "index": 8,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+          Object {
+            "index": 3,
+            "key": "intersection",
+            "tag": "Room",
+          },
+          Object {
+            "index": 6,
+            "key": "well",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          96,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthActive",
+      "bellowsRunning",
+      "birdsInOrchard",
+    ],
+    "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+    "key": "If-28",
+    "tag": "If",
+  },
+  "If-29": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 4,
+            "key": "statueChamber",
+            "tag": "Room",
+          },
+          Object {
+            "index": 6,
+            "key": "foundry",
+            "tag": "Room",
+          },
+          Object {
+            "index": 6,
+            "key": "forest",
+            "tag": "Room",
+          },
+          Object {
+            "index": 9,
+            "key": "orchard",
+            "tag": "Room",
+          },
+          Object {
+            "index": 9,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+          Object {
+            "index": 4,
+            "key": "intersection",
+            "tag": "Room",
+          },
+          Object {
+            "index": 7,
+            "key": "well",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          97,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthActive",
+      "bellowsRunning",
+      "birdsInOrchard",
+    ],
+    "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+    "key": "If-29",
+    "tag": "If",
+  },
+  "If-3": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "determinedStatue",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 5,
+            "key": "wellStatues",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          29,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "determinedStatueHead",
+    ],
+    "if": "!determinedStatueHead",
+    "key": "If-3",
+    "tag": "If",
+  },
+  "If-30": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 5,
+            "key": "statueChamber",
+            "tag": "Room",
+          },
+          Object {
+            "index": 7,
+            "key": "foundry",
+            "tag": "Room",
+          },
+          Object {
+            "index": 7,
+            "key": "forest",
+            "tag": "Room",
+          },
+          Object {
+            "index": 10,
+            "key": "orchard",
+            "tag": "Room",
+          },
+          Object {
+            "index": 10,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+          Object {
+            "index": 5,
+            "key": "intersection",
+            "tag": "Room",
+          },
+          Object {
+            "index": 8,
+            "key": "well",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          98,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthActive",
+      "bellowsRunning",
+      "birdsInOrchard",
+    ],
+    "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+    "key": "If-30",
+    "tag": "If",
+  },
+  "If-31": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 6,
+            "key": "statueChamber",
+            "tag": "Room",
+          },
+          Object {
+            "index": 8,
+            "key": "foundry",
+            "tag": "Room",
+          },
+          Object {
+            "index": 8,
+            "key": "forest",
+            "tag": "Room",
+          },
+          Object {
+            "index": 11,
+            "key": "orchard",
+            "tag": "Room",
+          },
+          Object {
+            "index": 11,
+            "key": "fireCatGrotto",
+            "tag": "Room",
+          },
+          Object {
+            "index": 6,
+            "key": "intersection",
+            "tag": "Room",
+          },
+          Object {
+            "index": 9,
+            "key": "well",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          99,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "hearthActive",
+      "birdsInOrchard",
+    ],
+    "if": "hearthActive && !birdsInOrchard",
+    "key": "If-31",
+    "tag": "If",
+  },
+  "If-4": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "determinedNeck",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          30,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "determinedStatueRightArm",
+    ],
+    "if": "determinedStatueRightArm",
+    "key": "If-4",
+    "tag": "If",
+  },
+  "If-5": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 3,
+            "key": "determinedNeck",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          31,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "determinedStatueRightArm",
+    ],
+    "if": "!determinedStatueRightArm",
+    "key": "If-5",
+    "tag": "If",
+  },
+  "If-6": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 4,
+            "key": "determinedNeck",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          32,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "determinedStatueLeftArm",
+    ],
+    "if": "determinedStatueLeftArm",
+    "key": "If-6",
+    "tag": "If",
+  },
+  "If-7": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 5,
+            "key": "determinedNeck",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          33,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "determinedStatueLeftArm",
+    ],
+    "if": "!determinedStatueLeftArm",
+    "key": "If-7",
+    "tag": "If",
+  },
+  "If-8": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "well",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          39,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "waterFlow",
+    ],
+    "if": "waterFlow === 0",
+    "key": "If-8",
+    "tag": "If",
+  },
+  "If-9": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 3,
+            "key": "well",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          40,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "waterFlow",
+    ],
+    "if": "waterFlow === 1",
+    "key": "If-9",
+    "tag": "If",
   },
   "VORTEX": Object {
     "appearances": Array [
@@ -1936,8 +1936,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-19",
-            "tag": "Condition",
+            "key": "If-19",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -1981,8 +1981,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-20",
-            "tag": "Condition",
+            "key": "If-20",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -2081,8 +2081,8 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "Condition-18",
-            "tag": "Condition",
+            "key": "If-18",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -2170,8 +2170,8 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "Condition-23",
-            "tag": "Condition",
+            "key": "If-23",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -2466,8 +2466,8 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "Condition-23",
-            "tag": "Condition",
+            "key": "If-23",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -2532,8 +2532,8 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "Condition-18",
-            "tag": "Condition",
+            "key": "If-18",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -2803,8 +2803,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-4",
-            "tag": "Condition",
+            "key": "If-4",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -2842,8 +2842,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-5",
-            "tag": "Condition",
+            "key": "If-5",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -2881,8 +2881,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-6",
-            "tag": "Condition",
+            "key": "If-6",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -2923,8 +2923,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-7",
-            "tag": "Condition",
+            "key": "If-7",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3001,8 +3001,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-2",
-            "tag": "Condition",
+            "key": "If-2",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3034,8 +3034,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-3",
-            "tag": "Condition",
+            "key": "If-3",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3464,8 +3464,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-13",
-            "tag": "Condition",
+            "key": "If-13",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3486,8 +3486,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-14",
-            "tag": "Condition",
+            "key": "If-14",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3531,8 +3531,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-16",
-            "tag": "Condition",
+            "key": "If-16",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3575,8 +3575,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-17",
-            "tag": "Condition",
+            "key": "If-17",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3643,8 +3643,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-27",
-            "tag": "Condition",
+            "key": "If-27",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3675,8 +3675,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-28",
-            "tag": "Condition",
+            "key": "If-28",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3706,8 +3706,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-29",
-            "tag": "Condition",
+            "key": "If-29",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3737,8 +3737,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-30",
-            "tag": "Condition",
+            "key": "If-30",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3768,8 +3768,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-31",
-            "tag": "Condition",
+            "key": "If-31",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3806,8 +3806,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-13",
-            "tag": "Condition",
+            "key": "If-13",
+            "tag": "If",
           },
           Object {
             "index": 2,
@@ -3950,8 +3950,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-23",
-            "tag": "Condition",
+            "key": "If-23",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -3987,8 +3987,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-24",
-            "tag": "Condition",
+            "key": "If-24",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4018,8 +4018,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-27",
-            "tag": "Condition",
+            "key": "If-27",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4050,8 +4050,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-28",
-            "tag": "Condition",
+            "key": "If-28",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4081,8 +4081,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-29",
-            "tag": "Condition",
+            "key": "If-29",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4112,8 +4112,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-30",
-            "tag": "Condition",
+            "key": "If-30",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4143,8 +4143,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-31",
-            "tag": "Condition",
+            "key": "If-31",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4181,8 +4181,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-24",
-            "tag": "Condition",
+            "key": "If-24",
+            "tag": "If",
           },
           Object {
             "index": 3,
@@ -4344,8 +4344,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-23",
-            "tag": "Condition",
+            "key": "If-23",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4381,8 +4381,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-24",
-            "tag": "Condition",
+            "key": "If-24",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4413,8 +4413,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-27",
-            "tag": "Condition",
+            "key": "If-27",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4445,8 +4445,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-28",
-            "tag": "Condition",
+            "key": "If-28",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4476,8 +4476,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-29",
-            "tag": "Condition",
+            "key": "If-29",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4507,8 +4507,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-30",
-            "tag": "Condition",
+            "key": "If-30",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4538,8 +4538,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-31",
-            "tag": "Condition",
+            "key": "If-31",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4576,8 +4576,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-24",
-            "tag": "Condition",
+            "key": "If-24",
+            "tag": "If",
           },
           Object {
             "index": 3,
@@ -4744,8 +4744,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-11",
-            "tag": "Condition",
+            "key": "If-11",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4787,8 +4787,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-12",
-            "tag": "Condition",
+            "key": "If-12",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4887,8 +4887,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-21",
-            "tag": "Condition",
+            "key": "If-21",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -4920,8 +4920,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-22",
-            "tag": "Condition",
+            "key": "If-22",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5038,8 +5038,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-23",
-            "tag": "Condition",
+            "key": "If-23",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5163,8 +5163,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-27",
-            "tag": "Condition",
+            "key": "If-27",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5195,8 +5195,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-28",
-            "tag": "Condition",
+            "key": "If-28",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5226,8 +5226,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-29",
-            "tag": "Condition",
+            "key": "If-29",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5257,8 +5257,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-30",
-            "tag": "Condition",
+            "key": "If-30",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5288,8 +5288,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-31",
-            "tag": "Condition",
+            "key": "If-31",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5662,8 +5662,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-14",
-            "tag": "Condition",
+            "key": "If-14",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5693,13 +5693,13 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-14",
-            "tag": "Condition",
+            "key": "If-14",
+            "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "Condition-15",
-            "tag": "Condition",
+            "key": "If-15",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5733,8 +5733,8 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "Condition-13",
-            "tag": "Condition",
+            "key": "If-13",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5766,13 +5766,13 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "Condition-13",
-            "tag": "Condition",
+            "key": "If-13",
+            "tag": "If",
           },
           Object {
             "index": 1,
-            "key": "Condition-15",
-            "tag": "Condition",
+            "key": "If-15",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5806,8 +5806,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-18",
-            "tag": "Condition",
+            "key": "If-18",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5838,8 +5838,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-27",
-            "tag": "Condition",
+            "key": "If-27",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5870,8 +5870,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-28",
-            "tag": "Condition",
+            "key": "If-28",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5901,8 +5901,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-29",
-            "tag": "Condition",
+            "key": "If-29",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5932,8 +5932,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-30",
-            "tag": "Condition",
+            "key": "If-30",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -5963,8 +5963,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-31",
-            "tag": "Condition",
+            "key": "If-31",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6188,8 +6188,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-0",
-            "tag": "Condition",
+            "key": "If-0",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6221,8 +6221,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-1",
-            "tag": "Condition",
+            "key": "If-1",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6351,8 +6351,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-0",
-            "tag": "Condition",
+            "key": "If-0",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6388,8 +6388,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-1",
-            "tag": "Condition",
+            "key": "If-1",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6638,8 +6638,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-27",
-            "tag": "Condition",
+            "key": "If-27",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6670,8 +6670,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-28",
-            "tag": "Condition",
+            "key": "If-28",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6701,8 +6701,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-29",
-            "tag": "Condition",
+            "key": "If-29",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6732,8 +6732,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-30",
-            "tag": "Condition",
+            "key": "If-30",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -6763,8 +6763,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-31",
-            "tag": "Condition",
+            "key": "If-31",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7109,8 +7109,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-25",
-            "tag": "Condition",
+            "key": "If-25",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7161,8 +7161,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-26",
-            "tag": "Condition",
+            "key": "If-26",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7386,8 +7386,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-8",
-            "tag": "Condition",
+            "key": "If-8",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7417,8 +7417,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-9",
-            "tag": "Condition",
+            "key": "If-9",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7449,8 +7449,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-10",
-            "tag": "Condition",
+            "key": "If-10",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7480,8 +7480,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-27",
-            "tag": "Condition",
+            "key": "If-27",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7512,8 +7512,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-28",
-            "tag": "Condition",
+            "key": "If-28",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7543,8 +7543,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-29",
-            "tag": "Condition",
+            "key": "If-29",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7574,8 +7574,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-30",
-            "tag": "Condition",
+            "key": "If-30",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7605,8 +7605,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-31",
-            "tag": "Condition",
+            "key": "If-31",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7760,8 +7760,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-0",
-            "tag": "Condition",
+            "key": "If-0",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7793,8 +7793,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-1",
-            "tag": "Condition",
+            "key": "If-1",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7864,8 +7864,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-2",
-            "tag": "Condition",
+            "key": "If-2",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -7897,8 +7897,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "Condition-3",
-            "tag": "Condition",
+            "key": "If-3",
+            "tag": "If",
           },
         ],
         "location": Array [
@@ -8910,7 +8910,7 @@ Array [
         "endTagToken": 517,
         "if": "robedStatueActive",
         "startTagToken": 449,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -9072,7 +9072,7 @@ Array [
         "endTagToken": 588,
         "if": "!robedStatueActive",
         "startTagToken": 518,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -9599,7 +9599,7 @@ Array [
         "endTagToken": 833,
         "if": "determinedStatueHead",
         "startTagToken": 787,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -9697,7 +9697,7 @@ Array [
         "endTagToken": 880,
         "if": "!determinedStatueHead",
         "startTagToken": 834,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -9768,7 +9768,7 @@ Array [
         "endTagToken": 916,
         "if": "determinedStatueRightArm",
         "startTagToken": 881,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -9839,7 +9839,7 @@ Array [
         "endTagToken": 952,
         "if": "!determinedStatueRightArm",
         "startTagToken": 917,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -9918,7 +9918,7 @@ Array [
         "endTagToken": 987,
         "if": "determinedStatueLeftArm",
         "startTagToken": 953,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -9997,7 +9997,7 @@ Array [
         "endTagToken": 1022,
         "if": "!determinedStatueLeftArm",
         "startTagToken": 988,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -10299,7 +10299,7 @@ Array [
         "endTagToken": 1171,
         "if": "waterFlow === 0",
         "startTagToken": 1146,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -10355,7 +10355,7 @@ Array [
         "endTagToken": 1197,
         "if": "waterFlow === 1",
         "startTagToken": 1172,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -10410,7 +10410,7 @@ Array [
         "endTagToken": 1223,
         "if": "waterFlow === 2",
         "startTagToken": 1198,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "default": "false",
@@ -10595,7 +10595,7 @@ Array [
         "endTagToken": 1316,
         "if": "gratingBlocked",
         "startTagToken": 1282,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -10675,7 +10675,7 @@ Array [
         "endTagToken": 1351,
         "if": "!gratingBlocked",
         "startTagToken": 1317,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -10845,7 +10845,7 @@ Array [
         "endTagToken": 1417,
         "if": "waterLevel < 4",
         "startTagToken": 1400,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11016,7 +11016,7 @@ Array [
             "endTagToken": 1498,
             "if": "catsInOrchard",
             "startTagToken": 1470,
-            "tag": "Condition",
+            "tag": "If",
           },
         ],
         "dependencies": Array [
@@ -11030,7 +11030,7 @@ Array [
         "endTagToken": 1499,
         "if": "waterLevel >= 4",
         "startTagToken": 1418,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11135,7 +11135,7 @@ Array [
             "endTagToken": 1556,
             "if": "catsInOrchard",
             "startTagToken": 1528,
-            "tag": "Condition",
+            "tag": "If",
           },
         ],
         "dependencies": Array [
@@ -11149,7 +11149,7 @@ Array [
         "endTagToken": 1557,
         "if": "waterLevel < 4",
         "startTagToken": 1500,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11234,7 +11234,7 @@ Array [
         "endTagToken": 1595,
         "if": "waterLevel < 4 && waterLevel >= 2",
         "startTagToken": 1558,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11308,7 +11308,7 @@ Array [
         "endTagToken": 1631,
         "if": "waterLevel < 2",
         "startTagToken": 1596,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11364,7 +11364,7 @@ Array [
         "endTagToken": 1657,
         "if": "birdsInOrchard",
         "startTagToken": 1632,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11714,7 +11714,7 @@ Array [
         "endTagToken": 1806,
         "if": "bellowsRunning",
         "startTagToken": 1769,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11794,7 +11794,7 @@ Array [
         "endTagToken": 1841,
         "if": "!bellowsRunning",
         "startTagToken": 1807,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11900,7 +11900,7 @@ Array [
         "endTagToken": 1889,
         "if": "hearthPrimed",
         "startTagToken": 1861,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -11957,7 +11957,7 @@ Array [
         "endTagToken": 1918,
         "if": "!hearthPrimed",
         "startTagToken": 1890,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -12449,7 +12449,7 @@ Array [
         "endTagToken": 2103,
         "if": "hearthActive",
         "startTagToken": 2047,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -12572,7 +12572,7 @@ Array [
         "endTagToken": 2159,
         "if": "!hearthActive",
         "startTagToken": 2104,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -12970,7 +12970,7 @@ Array [
         "endTagToken": 2314,
         "if": "trapDoorOpen",
         "startTagToken": 2280,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -13017,7 +13017,7 @@ Array [
         "endTagToken": 2334,
         "if": "!trapDoorOpen",
         "startTagToken": 2315,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -13319,7 +13319,7 @@ Array [
         "endTagToken": 2452,
         "if": "hearthActive",
         "startTagToken": 2415,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -13497,7 +13497,7 @@ Array [
         "endTagToken": 2529,
         "if": "birdsInOrchard",
         "startTagToken": 2495,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -13889,7 +13889,7 @@ Array [
         "endTagToken": 2683,
         "if": "hearthActive && birdsInOrchard",
         "startTagToken": 2555,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -14225,7 +14225,7 @@ Array [
         "endTagToken": 2818,
         "if": "!hearthActive && bellowsRunning && birdsInOrchard",
         "startTagToken": 2684,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -14561,7 +14561,7 @@ Array [
         "endTagToken": 2953,
         "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
         "startTagToken": 2819,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -14897,7 +14897,7 @@ Array [
         "endTagToken": 3088,
         "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
         "startTagToken": 2954,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [
@@ -15227,7 +15227,7 @@ Array [
         "endTagToken": 3217,
         "if": "hearthActive && !birdsInOrchard",
         "startTagToken": 3089,
-        "tag": "Condition",
+        "tag": "If",
       },
     ],
     "endTagToken": 3218,

@@ -21,11 +21,11 @@
             </Description>
         </Room>
     </Layer>
-    <Condition if={true}>
+    <If {true}>
         <Room global key=(VORTEX)>
             <Description>Alternate</Description>
         </Room>
-    </Condition>
+    </If>
     <Map key=(testMap)>
         <Image key=(testImage) fileURL="https://musique.opus-31.fr/images/aaa.png" />
         <Room key=(VORTEX) x="0" y="100" />

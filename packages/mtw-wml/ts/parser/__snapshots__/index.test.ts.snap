@@ -327,7 +327,7 @@ Array [
         "endTagToken": 93,
         "if": "open",
         "startTagToken": 70,
-        "tag": "Condition",
+        "tag": "If",
       },
       Object {
         "contents": Array [

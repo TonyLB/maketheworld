@@ -107,13 +107,13 @@ describe('WML normalize', () => {
                     Hello, world!<Space />
                 </Description>
             </Room>
-            <Condition if={true}>
+            <If {true}>
                 <Room key=(a123)>
                     <Description>
                         Vortex!
                     </Description>
                 </Room>
-            </Condition>
+            </If>
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
@@ -130,14 +130,14 @@ describe('WML normalize', () => {
                     Hello, world!
                 </Description>
             </Room>
-            <Condition if={strong}>
+            <If {strong}>
                 <Depend on=(strong) />
                 <Room key=(a123)>
                     <Description>
                         Vortex!
                     </Description>
                 </Room>
-            </Condition>
+            </If>
             <Variable key=(strong) default={false} />
         </Asset>`
         const normalizer = new Normalizer()
@@ -155,25 +155,25 @@ describe('WML normalize', () => {
                     Hello, world!
                 </Description>
             </Room>
-            <Condition if={strong}>
+            <If {strong}>
                 <Depend on=(strong) />
                 <Room key=(a123)>
                     <Description>
                         Vortex!
                     </Description>
                 </Room>
-            </Condition>
-            <Condition if={!strong}>
+            </If>
+            <If {!strong}>
                 <Depend on=(strong) />
-                <Condition if={trendy}>
+                <If {trendy}>
                     <Depend on=(trendy) />
                     <Room key=(a123)>
                         <Description>
                             V.O.R.T.E.X.
                         </Description>
                     </Room>
-                </Condition>
-            </Condition>
+                </If>
+            </If>
             <Variable key=(strong) default={false} />
             <Variable key=(trendy) default={false} />
         </Asset>`

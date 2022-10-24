@@ -27,12 +27,12 @@ describe('schemaFromParse', () => {
                 </Description>
                 <Exit from=(DEF)>vortex</Exit>
             </Room>
-            <Condition if={open}>
+            <If {open}>
                 <Depend on=(open) />
                 <Room key=(ABC)>
                     <Exit to=(DEF)>welcome</Exit>
                 </Room>
-            </Condition>
+            </If>
             <Room key=(DEF)>
                 <Name>Welcome</Name>
             </Room>

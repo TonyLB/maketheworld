@@ -176,7 +176,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                         contents: transformWithContext(item.contents, callback, [...context, importItem]) as ParseImportLegalContents[]
                     }
                 ]
-            case 'Condition':
+            case 'If':
                 const conditionItem = callback(item, context)
                 return [
                     ...previous,

@@ -2,7 +2,7 @@ type TagType = 'Asset' |
     'Story' |
     'Character' |
     'Import' |
-    'Condition' |
+    'If' |
     'Description' |
     'Room' |
     'Feature' |
@@ -115,7 +115,7 @@ export type NormalImport = {
 } & NormalBase
 
 export type NormalCondition = {
-    tag: 'Condition';
+    tag: 'If';
     if: string;
     dependencies: string[];
     appearances: BaseAppearance[];
@@ -227,7 +227,7 @@ export function isNormalAsset(arg: NormalItem): arg is NormalAsset {
 }
 export const isNormalCharacter = (arg: NormalItem): arg is NormalCharacter => (arg?.tag === 'Character')
 export const isNormalImport = (arg: NormalItem): arg is NormalImport => (arg?.tag === 'Import')
-export const isNormalCondition = (arg: NormalItem): arg is NormalCondition => (arg.tag === 'Condition')
+export const isNormalCondition = (arg: NormalItem): arg is NormalCondition => (arg.tag === 'If')
 export const isNormalVariable = (arg: NormalItem): arg is NormalVariable => (arg.tag === 'Variable')
 export const isNormalComputed = (arg: NormalItem): arg is NormalComputed => (arg.tag === 'Computed')
 export const isNormalAction = (arg: NormalItem): arg is NormalAction => (arg.tag === 'Action')
