@@ -140,8 +140,6 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                         while(propertyTags.length > 0) {
                             const firstTag = propertyTags.pop()
                             if (firstTag.token.type !== 'Property') {
-                                console.log(`stackItem: ${JSON.stringify(stackItem, null, 4)}`)
-                                console.log(`firstTag: ${JSON.stringify(firstTag, null, 4)}`)
                                 if (parseTagDefaultProps[stackItem.tag]) {
                                     properties[parseTagDefaultProps[stackItem.tag]] = firstTag.token
                                 }

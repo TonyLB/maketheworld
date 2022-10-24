@@ -15,7 +15,7 @@ interface NormalToTreeProps {
 export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inheritedAppearances }: NormalToTreeProps): MapTree => {
     const map = (normalForm[MapId] || {}) as NormalMap
     const roomItems = (map.appearances || [])
-        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
         .reduce((previous, { rooms }) => ({
             ...previous, 
             ...rooms
@@ -23,7 +23,7 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
     const exitPairs = Object.values(normalForm || {})
         .filter(isNormalExit)
         .reduce<Record<string, string[]>>((previous, { to, from, appearances = [] }) => {
-            if (appearances.find(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))) {
+            if (appearances.find(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))) {
                 return {
                     ...previous,
                     [from]: unique(previous[from] || [], [to])

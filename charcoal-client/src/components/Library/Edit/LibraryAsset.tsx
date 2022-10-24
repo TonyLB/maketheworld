@@ -83,16 +83,16 @@ const assetComponents = ({ normalForm, importDefaults }: { normalForm: NormalFor
     const roomReturns = componentNormals
         .map((component) => {
             const localName = (component.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .map(({ name = [] }) => name)
                 .reduce((previous, name) => ([ ...previous, ...name ]), [])
                 .map((item) => ((item.tag === 'String') ? item.value : ''))
                 .join('')) || ''
             const countRenderAppearances = component.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .length
             const localRender = component.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .map(({ render = [] }) => render)
                 .reduce((previous, render) => ([ ...previous, ...render ]), [])
             const defaultName = importDefaults[component.key]?.Name || []

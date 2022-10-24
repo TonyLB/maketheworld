@@ -18,7 +18,7 @@ export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({
     const primaryBase: AssetDataHeaderRenderFunction = ({ item, defaultItem }) => {
         if (isNormalComponent(item)) {
             const aggregateName = item.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .map(({ name = [] }) => name)
                 .reduce((previous, name) => ([ ...previous, ...name ]), [])
             return `${taggedMessageToString(defaultItem?.Name || [])}${taggedMessageToString(aggregateName)}` || 'Untitled'

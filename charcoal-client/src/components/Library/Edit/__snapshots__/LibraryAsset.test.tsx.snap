@@ -87,8 +87,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 1
                     },
                     {
-                        \\"key\\": \\"Condition-0\\",
-                        \\"tag\\": \\"Condition\\",
+                        \\"key\\": \\"If-0\\",
+                        \\"tag\\": \\"If\\",
                         \\"index\\": 0
                     },
                     {
@@ -318,8 +318,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     },
                     {
-                        \\"tag\\": \\"Condition\\",
-                        \\"key\\": \\"Condition-0\\",
+                        \\"tag\\": \\"If\\",
+                        \\"key\\": \\"If-0\\",
                         \\"index\\": 0
                     }
                 ],
@@ -369,9 +369,9 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             }
         ]
     },
-    \\"Condition-0\\": {
-        \\"key\\": \\"Condition-0\\",
-        \\"tag\\": \\"Condition\\",
+    \\"If-0\\": {
+        \\"key\\": \\"If-0\\",
+        \\"tag\\": \\"If\\",
         \\"if\\": \\"open\\",
         \\"dependencies\\": [
             \\"open\\"
@@ -414,8 +414,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     },
                     {
-                        \\"tag\\": \\"Condition\\",
-                        \\"key\\": \\"Condition-0\\",
+                        \\"tag\\": \\"If\\",
+                        \\"key\\": \\"If-0\\",
                         \\"index\\": 0
                     },
                     {
