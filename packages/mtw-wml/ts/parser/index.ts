@@ -63,6 +63,8 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             return parseFeatureFactory(props)
         case 'Condition':
             return parseConditionFactory(props)
+        case 'If':
+            return parseConditionFactory(props)
         case 'Link':
             return parseLinkFactory(props)
         case 'br':
