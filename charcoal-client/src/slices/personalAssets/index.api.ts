@@ -11,6 +11,7 @@ import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache'
 import { TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
+import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -57,7 +58,9 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { curren
     if (!currentWML) {
         throw new Error()
     }
-    const assetKey = id?.split('#').slice(1).join('#')
+    if (!id) {
+        return {}
+    }
 
     const wmlQuery = new WMLQuery(currentWML)
     const normalized = wmlQuery.normalize()
@@ -73,12 +76,31 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { curren
                 }), {})
         }), {} as ImportsByAssets)
 
-    const { importDefaults } = await dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', importsByAssetId, assetId: assetKey || '' }))
+    const importFetches: AssetClientImportDefaults[] = await Promise.all(
+        Object.entries(importsByAssetId).map(([assetId, keys]) => (
+            dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
+        ))        
+    )
+
+    const importDefaults = importFetches.reduce<AssetClientImportDefaults["defaultsByKey"]>((previous, importFetch) => (
+        Object.entries(importsByAssetId[importFetch.assetId.split('#')[1]] || {})
+            .reduce<AssetClientImportDefaults["defaultsByKey"]>((accumulator, [localKey, awayKey]) => {
+                const defaultItem = importFetch.defaultsByKey[awayKey]
+                if (!defaultItem) {
+                    return accumulator
+                }
+                else {
+                    return {
+                        ...accumulator,
+                        [localKey]: defaultItem
+                    }
+                }
+            }, previous)
+    ), {})
 
     return {
         publicData: {
-            defaultAppearances: importDefaults.components,
-            inheritedExits: importDefaults.aggregateExits
+            importDefaults
         }
     }
 }

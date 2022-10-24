@@ -1,5 +1,4 @@
 import { FunctionComponent, ReactChild } from 'react'
-import { useSelector } from 'react-redux'
 
 import {
     ListItemButton,
@@ -11,13 +10,13 @@ import {
 
 import { NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { AssetComponent, useLibraryAsset } from './LibraryAsset'
-import { InheritedComponent } from '../../../slices/personalAssets/inheritedData'
+import { AssetClientImportDefaults, AssetClientImportDefaultsFeature, AssetClientImportDefaultsRoom } from '@tonylb/mtw-interfaces/dist/asset'
 
 type AssetDataHeaderRenderFunctionProps = {
     item: NormalItem;
-    defaultItem: InheritedComponent;
+    defaultItem: AssetClientImportDefaultsFeature | AssetClientImportDefaultsRoom;
     normalForm: Record<string, NormalItem>;
-    defaultAppearances: Record<string, InheritedComponent>;
+    importDefaults: AssetClientImportDefaults["defaultsByKey"],
     rooms: Record<string, AssetComponent>;
 }
 
@@ -36,13 +35,13 @@ interface AssetDataHeaderProps {
 }
 
 export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, primary, secondary, ItemId, onClick, sx, selected }) => {
-    const { normalForm, defaultAppearances, rooms } = useLibraryAsset()
+    const { normalForm, importDefaults, rooms } = useLibraryAsset()
 
     const props = {
         item: normalForm[ItemId],
-        defaultItem: defaultAppearances[ItemId],
+        defaultItem: importDefaults[ItemId],
         normalForm,
-        defaultAppearances,
+        importDefaults,
         rooms
     }
     const primaryOutput = primary?.(props) || null

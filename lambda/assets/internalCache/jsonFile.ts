@@ -1,6 +1,6 @@
 import { DeferredCache } from './deferredCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import AssetWorkspace, { isAssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace'
+import AssetWorkspace, { isAssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/index'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 

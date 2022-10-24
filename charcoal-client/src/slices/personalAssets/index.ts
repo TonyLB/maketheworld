@@ -28,8 +28,7 @@ export const {
             incrementalBackoff: 0.5
         },
         publicData: {
-            defaultAppearances: {},
-            inheritedExits: []
+            importDefaults: {}
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -45,8 +44,7 @@ export const {
                 incrementalBackoff: 0.5
             },
             publicData: {
-                defaultAppearances: {},
-                inheritedExits: []
+                importDefaults: {}
             }
         },
         states: {
@@ -160,8 +158,7 @@ export const {
     getCurrentWML,
     getNormalized,
     getWMLQuery,
-    getDefaultAppearances,
-    getInheritedExits
+    getImportDefaults
 } = selectors
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>

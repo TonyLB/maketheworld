@@ -35,7 +35,6 @@ import whoAmIMessage from '../whoAmI'
 import { syncRequest, syncResponse } from '../syncHandler'
 import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
-import { importDefaultsMessage, fetchImportDefaults } from '../fetchImportDefaults'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
 import decacheAssetMessage from '../decacheMessage'
@@ -108,18 +107,6 @@ messageBus.subscribe({
     priority: 2,
     filter: isMapSubscription,
     callback: mapSubscriptionMessage
-})
-messageBus.subscribe({
-    tag: 'ImportDefaults',
-    priority: 3,
-    filter: isImportDefaults,
-    callback: importDefaultsMessage
-})
-messageBus.subscribe({
-    tag: 'FetchImportDefaults',
-    priority: 2,
-    filter: isFetchImportDefaults,
-    callback: fetchImportDefaults
 })
 messageBus.subscribe({
     tag: 'Perception',

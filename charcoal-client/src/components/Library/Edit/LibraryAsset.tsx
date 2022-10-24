@@ -19,32 +19,29 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import {
     getCurrentWML,
+    getImportDefaults,
     getNormalized,
     getWMLQuery,
-    getDefaultAppearances,
-    getInheritedExits,
     setCurrentWML,
     setIntent
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
-import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { InheritedExit, InheritedComponent } from '../../../slices/personalAssets/inheritedData'
+import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
-import { isTaggedText } from '@tonylb/mtw-interfaces/dist/messages'
+import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
 
 type LibraryAssetContextType = {
     assetKey: string;
     AssetId: string;
     currentWML: string;
     normalForm: NormalForm;
-    defaultAppearances: Record<string, InheritedComponent>;
+    importDefaults: AssetClientImportDefaults["defaultsByKey"];
     wmlQuery: WMLQuery;
     updateWML: (value: string, options?: { prettyPrint?: boolean }) => void;
     components: Record<string, AssetComponent>;
     rooms: Record<string, AssetComponent>;
     exits: Record<string, NormalExit>;
-    inheritedExits: InheritedExit[];
     features: Record<string, AssetComponent>;
     save: () => void;
 }
@@ -54,13 +51,12 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     AssetId: '',
     currentWML: '',
     normalForm: {},
-    defaultAppearances: {},
+    importDefaults: {},
     wmlQuery: new WMLQuery(''),
     updateWML: () => {},
     components: {},
     rooms: {},
     exits: {},
-    inheritedExits: [],
     features: {},
     save: () => {}
 })
@@ -81,7 +77,7 @@ export type AssetComponent = {
     render: ComponentRenderItem[];
 }
 
-const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, InheritedComponent> }): Record<string, AssetComponent> => {
+const assetComponents = ({ normalForm, importDefaults }: { normalForm: NormalForm, importDefaults: AssetClientImportDefaults["defaultsByKey"] }): Record<string, AssetComponent> => {
     const componentNormals = Object.values(normalForm).filter((item) => (isNormalComponent(item))) as NormalComponent[]
 
     const roomReturns = componentNormals
@@ -99,8 +95,8 @@ const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: Norma
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                 .map(({ render = [] }) => render)
                 .reduce((previous, render) => ([ ...previous, ...render ]), [])
-            const defaultName = [{ tag: 'String', value: defaultAppearances[component.key]?.name || '' }]
-            const defaultRender = defaultAppearances[component.key]?.render
+            const defaultName = importDefaults[component.key]?.Name || []
+            const defaultRender = importDefaults[component.key]?.Description || []
             return { [component.key]: {
                 tag: component.tag,
                 localName,
@@ -121,8 +117,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const currentWML = useSelector(getCurrentWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))
-    const defaultAppearances = useSelector(getDefaultAppearances(AssetId))
-    const inheritedExits = useSelector(getInheritedExits(AssetId))
+    const importDefaults = useSelector(getImportDefaults(AssetId))
     const dispatch = useDispatch()
     const updateWML = (value: string, options?: { prettyPrint?: boolean }) => {
         const { prettyPrint = true } = options || {}
@@ -135,7 +130,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             dispatch(setCurrentWML(AssetId)({ value }))
         }
     }
-    const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
+    const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importDefaults }) ), [normalForm, importDefaults])
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
     const exits = useMemo<Record<string, NormalExit>>(() => ( objectFilter(normalForm, isNormalExit) ), [components])
     const features = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Feature')) ), [components])
@@ -150,8 +145,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             AssetId,
             currentWML,
             normalForm,
-            defaultAppearances,
-            inheritedExits,
+            importDefaults,
             wmlQuery,
             updateWML,
             components,

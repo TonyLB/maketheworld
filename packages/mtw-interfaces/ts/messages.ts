@@ -30,7 +30,15 @@ export type TaggedLink = {
     to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId;
 }
 
+export type TaggedLinkUnrestricted = {
+    tag: 'Link',
+    text: string;
+    to: string;
+}
+
 export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer;
+
+export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer;
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
@@ -52,7 +60,7 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
 }
 
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
-export const isTaggedText = (item: TaggedMessageContent): item is TaggedText => (item.tag === 'String')
+export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
 
@@ -171,6 +179,17 @@ export const flattenTaggedMessageContent = async (messages: TaggedMessageContent
         }
         return item
     })
+}
+
+export const taggedMessageToString = (message: (TaggedMessageContent | TaggedMessageContentUnrestricted)[]): string => {
+    return message.map((item) => {
+        if (isTaggedText(item)) {
+            return item.value
+        }
+        else {
+            return ''
+        }
+    }).join('')
 }
 
 export type WorldMessage = {

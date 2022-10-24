@@ -1,17 +1,17 @@
 import { createSelector } from '@reduxjs/toolkit';
 
-import { PersonalAssetsNodes, PersonalAssetsPublic } from './baseClasses'
+import { PersonalAssetsPublic } from './baseClasses'
 import { InheritedExit, InheritedComponent } from './inheritedData'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
-import { NormalForm, ComponentAppearance } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache';
+import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset';
 
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
     getNormalized: (state: PersonalAssetsPublic & { key: string }) => NormalForm;
     getWMLQuery: (state: PersonalAssetsPublic & { key: string }) => WMLQuery;
-    getDefaultAppearances: (state: PersonalAssetsPublic) => Record<string, InheritedComponent>
-    getInheritedExits: (state: PersonalAssetsPublic) => InheritedExit[]
+    getImportDefaults: (state: PersonalAssetsPublic) => AssetClientImportDefaults["defaultsByKey"]
 }
 
 const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
@@ -26,14 +26,11 @@ const getWMLSource = (state: PersonalAssetsPublic & { key: string }) => (getWMLQ
 
 const getNormalized = createSelector(getWMLQuery, getWMLSource, (wmlQuery) => (wmlQuery.normalize() || {}))
 
-const getDefaultAppearances = (state: PersonalAssetsPublic) => (state.defaultAppearances || {})
-
-const getInheritedExits = (state: PersonalAssetsPublic) => (state.inheritedExits || [])
+const getImportDefaults = (state: PersonalAssetsPublic) => (state.importDefaults)
 
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
     getWMLQuery,
     getNormalized,
-    getDefaultAppearances,
-    getInheritedExits
+    getImportDefaults
 }

@@ -83,7 +83,7 @@ const addExitFieldsGenerator = (exitOptions: ExitSelectOptions): FunctionCompone
 }
 
 export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId, onAdd = () => { }}) => {
-    const { rooms, exits, inheritedExits } = useLibraryAsset()
+    const { rooms, exits } = useLibraryAsset()
     const validate = useCallback((props: AddExitFields): string => {
         const { targetId } = props
         if (!targetId) {
@@ -102,7 +102,7 @@ export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId, onAdd
             to: allPossibleOptions.filter(({ value: targetId }) => (!Object.values(exits).find(({ from, to }) => (from === RoomId && to === targetId)))),
             from: allPossibleOptions.filter(({ value: targetId }) => (!Object.values(exits).find(({ from, to }) => (to === RoomId && from === targetId))))
         }
-    }, [rooms, exits, inheritedExits])
+    }, [rooms, exits])
     const renderFields = useMemo<FunctionComponent<AddExitFieldsProps>>(() => (
         addExitFieldsGenerator(exitOptions)
     ), [exitOptions])
