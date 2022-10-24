@@ -74,7 +74,7 @@ const recursivePayloadDefault = async (payload: FetchImportDefaultsMessage): Pro
                 Exits: []
             }
             const defaultItem = item.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .reduce<AssetClientImportDefaultsRoom>((accumulator, appearance) => {
                     const exits = appearance.contents
                         .filter(({ tag }) => (tag === 'Exit'))
@@ -123,7 +123,7 @@ const recursivePayloadDefault = async (payload: FetchImportDefaultsMessage): Pro
                 Name: []
             }
             const defaultItem = item.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .reduce<AssetClientImportDefaultsFeature>((accumulator, appearance) => {
                     return {
                         tag: 'Feature',

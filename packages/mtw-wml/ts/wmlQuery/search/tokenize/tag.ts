@@ -4,7 +4,7 @@ import { TokenizeException } from "../../../parser/tokenizer/baseClasses"
 const legalTags: SearchTokenTagLegal[] = [
     'Asset',
     'Character',
-    'Condition',
+    'If',
     'Description',
     'Exit',
     'Feature',
@@ -14,7 +14,11 @@ const legalTags: SearchTokenTagLegal[] = [
     'Outfit',
     'Pronouns',
     'Room',
-    'Story'
+    'Story',
+    'Action',
+    'Variable',
+    'Computed',
+    'If'
 ]
 
 const isLegalTagString = (value: string): value is SearchTokenTagLegal => ((legalTags as string[]).includes(value))

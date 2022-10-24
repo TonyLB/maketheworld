@@ -12,12 +12,15 @@ export type SearchTokenTagLegal = "Asset" |
     "OneCoolThing" |
     "Outfit" |
     "FirstImpression" |
-    "Condition" |
     "Exit" |
     "Description" |
     "Room" |
     "Feature" |
-    "Map"
+    "Map" |
+    "Action" |
+    "Computed" |
+    "Variable" |
+    "If"
 
 export type SearchTokenTag = {
     type: 'Tag';

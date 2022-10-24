@@ -58,7 +58,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         }, [])
         const componentsQuery = wmlQuery
             .search(`${tag}[key="${ComponentId}"]`)
-            .not(`Condition ${tag}`)
+            .not(`If ${tag}`)
             .not(`Map ${tag}`)
         componentsQuery
             .extend()
@@ -80,13 +80,13 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const [name, setName] = useState(defaultName)
 
     const dispatchNameChange = useCallback((value) => {
-        const componentQuery = wmlQuery.search(tag).not(`Condition ${tag}`).not(`Map ${tag}`).add(`[key="${ComponentId}"] Name`)
+        const componentQuery = wmlQuery.search(tag).not(`If ${tag}`).not(`Map ${tag}`).add(`[key="${ComponentId}"] Name`)
         if (componentQuery) {
             componentQuery.remove()
         }
         if (value) {
             const componentsQuery = wmlQuery.search(`${tag}[key="${ComponentId}"]`)
-                .not(`Condition ${tag}`)
+                .not(`If ${tag}`)
                 .not(`Map ${tag}`)
             if (tag === 'Feature') {
                 componentsQuery.not(`Room Feature`)
@@ -102,7 +102,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         }
         else {
             const componentsQuery = wmlQuery.search(`${tag}[key="${ComponentId}"]`)
-                .not(`Condition ${tag}`)
+                .not(`If ${tag}`)
                 .not(`Map ${tag}`)
             if (tag === 'Feature') {
                 componentsQuery.not(`Room Feature`)

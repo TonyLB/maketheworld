@@ -51,7 +51,7 @@ import { keyForValue } from './keyUtil';
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
 const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWithNormalEquivalent => (
-    isSchemaWithKey(node) || (['Import', 'Condition'].includes(node.tag))
+    isSchemaWithKey(node) || (['Import', 'If'].includes(node.tag))
 )
 
 type NormalizerContext = {
@@ -64,7 +64,7 @@ type NormalizeAddReturnValue = {
     siblings: NormalReference[];
 }
 
-type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature" | "Character">
+type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Character">
 
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
     if (renderItem.tag === 'Link') {
@@ -472,8 +472,8 @@ export class Normalizer {
             case 'Import':
                 keyToCompare = keyForValue('Import', node.from)
                 break
-            case 'Condition':
-                keyToCompare = keyForValue('Condition', node.if)
+            case 'If':
+                keyToCompare = keyForValue('If', node.if)
                 break
         }
         if (this._tags[keyToCompare] && this._tags[keyToCompare] !== tagToCompare) {
@@ -569,10 +569,10 @@ export class Normalizer {
                     src: node.src,
                     appearances: [appearance]
                 }
-            case 'Condition':
+            case 'If':
                 return {
-                    key: keyForValue('Condition', node.if),
-                    tag: 'Condition',
+                    key: keyForValue('If', node.if),
+                    tag: 'If',
                     if: node.if,
                     dependencies: node.dependencies,
                     appearances: [appearance]

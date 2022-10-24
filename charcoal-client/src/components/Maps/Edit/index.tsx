@@ -55,7 +55,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const mapImages = useMemo<string[]>(() => {
         const mapAppearances = (normalForm[mapId || '']?.appearances || []) as MapAppearance[]
         const images = mapAppearances
-            .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+            .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
             .reduce<string[]>((previous, { images = [] }) => ([
                 ...previous,
                 ...(images
@@ -79,7 +79,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
             // functionality of MapEdit becomes more sophisticated
             //
             const locationsToUpdate: Record<string, number[]> = (normalMap.appearances)
-                .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .reduce((previous, { rooms = {} }) => ({
                     ...previous,
                     ...objectMap(rooms, ({ location }) => (location))
@@ -105,16 +105,16 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     }, [normalForm, mapId, wmlQuery, updateWML])
 
     const onAddExit = useCallback(({ to, from }: { to: string; from: string }) => {
-        const outgoingQuery = wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not("Condition Exit")
-        const incomingQuery = wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not("Condition Exit")
+        const outgoingQuery = wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not("If Exit")
+        const incomingQuery = wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not("If Exit")
         if (outgoingQuery.nodes().length === 0 && incomingQuery.nodes().length === 0) {
-            wmlQuery.search(`Room[key="${from}"]`).not("Condition Room").add(':first').addElement(`<Exit to=(${to}) />`, { position: 'after' })
+            wmlQuery.search(`Room[key="${from}"]`).not("If Room").add(':first').addElement(`<Exit to=(${to}) />`, { position: 'after' })
             updateWML(wmlQuery.source)
         }
     }, [wmlQuery, updateWML])
 
     const onAddRoom = useCallback(({ clientX, clientY, roomId }: { clientX: number; clientY: number; roomId: string }) => {
-        wmlQuery.search(`Map[key="${mapId}"]`).not('Condition Map').add(':first').addElement(`<Room key=(${roomId}) x="${clientX}" y="${clientY}" />`, { position: 'after' })
+        wmlQuery.search(`Map[key="${mapId}"]`).not('If Map').add(':first').addElement(`<Room key=(${roomId}) x="${clientX}" y="${clientY}" />`, { position: 'after' })
         updateWML(wmlQuery.source)
     }, [wmlQuery, updateWML])
 

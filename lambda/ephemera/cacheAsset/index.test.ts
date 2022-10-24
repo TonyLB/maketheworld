@@ -191,8 +191,8 @@ describe('cacheAsset', () => {
                         index: 0
                     },
                     {
-                        key: 'Condition-0',
-                        tag: 'Condition',
+                        key: 'If-0',
+                        tag: 'If',
                         index: 0
                     },
                     {
@@ -226,7 +226,7 @@ describe('cacheAsset', () => {
                     render: []
                 },
                 {
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }],
                     render: ['The lights are on '],
                     contents: []
                 }] as ComponentAppearance[]
@@ -256,9 +256,9 @@ describe('cacheAsset', () => {
                 src: 'switchedOn = !switchedOn',
                 appearances: [topLevelAppearance]
             },
-            ['Condition-0']: {
-                key: 'Condition-0',
-                tag: 'Condition',
+            ['If-0']: {
+                key: 'If-0',
+                tag: 'If',
                 if: 'active',
                 dependencies: ['active'],
                 appearances: [{

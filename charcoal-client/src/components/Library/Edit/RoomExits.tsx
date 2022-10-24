@@ -41,7 +41,7 @@ export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
         const newElement = `<Exit ${toTarget ? 'to' : 'from'}=(${targetId})>${guessName}</Exit>`
         const updateQuery = wmlQuery
             .search(`Room[key="${RoomId}"]`)
-            .not('Condition Room')
+            .not('If Room')
             .not('Map Room')
             .add(':first')
         updateQuery

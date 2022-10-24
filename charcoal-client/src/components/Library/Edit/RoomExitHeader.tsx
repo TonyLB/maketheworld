@@ -72,8 +72,8 @@ export const RoomExitHeader: FunctionComponent<RoomExitHeaderProps> = ({ ItemId,
         }
     }, [ItemId, RoomId, wmlQuery, updateWML])
     const onDelete = useCallback(({ to, from }: { to: string; from: string }) => () => {
-        wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not('Condition Exit').remove()
-        wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not('Condition Exit').remove()
+        wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not('If Exit').remove()
+        wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not('If Exit').remove()
         updateWML(wmlQuery.source)
     }, [wmlQuery, updateWML])
     const primaryBase: AssetDataHeaderRenderFunction = ({ item, defaultItem, rooms }) => {

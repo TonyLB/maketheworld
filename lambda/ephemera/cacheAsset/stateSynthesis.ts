@@ -71,7 +71,7 @@ export class StateSynthesizer extends Object {
                     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Map'))))
                     .reduce((previous, { contextStack }) => (
                         contextStack
-                            .filter(({ tag }) => (tag === 'Condition'))
+                            .filter(({ tag }) => (tag === 'If'))
                             .map(({ key }) => (this.normalForm[key]))
                             .filter(isNormalCondition)
                             .reduce((accumulator, { dependencies }) => ([
