@@ -100,9 +100,9 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
             }
         }
         else {
-            const checkSubTokens = checkSubTokenizers<TokenTagOpenEnd | TokenComment | TokenWhitespace | TokenProperty>({
+            const checkSubTokens = checkSubTokenizers<TokenTagOpenEnd | TokenComment | TokenWhitespace | TokenProperty | TokenLiteralValue | TokenKeyValue | TokenExpressionValue>({
                 sourceStream,
-                subTokenizers: [tagOpenEndTokenizer, commentTokenizer, whiteSpaceTokenizer, tagPropertyTokenizer],
+                subTokenizers: [tagOpenEndTokenizer, commentTokenizer, whiteSpaceTokenizer, tagPropertyTokenizer, literalValueTokenizer, keyValueTokenizer, expressionValueTokenizer],
                 callback: (token) => {
                     returnValue.push(token)
                     if (token.type === 'TagOpenEnd') {

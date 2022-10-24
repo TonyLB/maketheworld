@@ -107,3 +107,7 @@ export const isTokenWhitespace = (item: Token): item is TokenWhitespace => (item
 export const isTokenComment = (item: Token): item is TokenComment => (item.type === 'Comment')
 export const isTokenDescription = (item: Token): item is TokenDescription => (item.type === 'Description')
 export const isLegalBareToken = (item: Token): item is (TokenWhitespace | TokenComment | TokenDescription) => (['Whitespace', 'Comment', 'Description'].includes(item.type))
+
+export const tagOpenDefaultProps: Record<string, string> = {
+    If: 'if'
+}

@@ -276,3 +276,7 @@ export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenE
 export const isParseStackTagOpenEntry = (value: ParseStackEntry): value is ParseStackTagOpenEntry => (value.type === 'TagOpen')
 
 export type ParseTagFactory<T extends ParseTag> = (value: { open: ParseStackTagOpenEntry, context: ParseStackTagOpenEntry[]; contents: ParseTag[], endTagToken: number }) => ParseStackTagEntry<T>
+
+export const parseTagDefaultProps: Record<string, string> = {
+    If: 'if'
+}

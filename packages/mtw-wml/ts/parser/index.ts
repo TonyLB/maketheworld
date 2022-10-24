@@ -18,7 +18,8 @@ import {
     ParseStackEntry,
     ParseException,
     ParseStackTagOpenEntry,
-    isParseStackTagOpenEntry
+    isParseStackTagOpenEntry,
+    parseTagDefaultProps
 } from './baseClasses'
 
 import parseAssetFactory, { parseStoryFactory } from './asset'
@@ -141,21 +142,30 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                         while(propertyTags.length > 0) {
                             const firstTag = propertyTags.pop()
                             if (firstTag.token.type !== 'Property') {
-                                throw new ParseException('Unexpected value token', firstTag.index, firstTag.index)
-                            }
-                            //
-                            // TODO: Validate that no key is assigned twice
-                            //
-                            if (firstTag.token.isBoolean) {
-                                properties[firstTag.token.key] = firstTag.token.value
-                            }
-                            else {
-                                const secondTag = propertyTags.pop()
-                                if (secondTag.token.type === 'Property') {
-                                    throw new ParseException('Unexpected property token', secondTag.index, secondTag.index)
+                                console.log(`stackItem: ${JSON.stringify(stackItem, null, 4)}`)
+                                console.log(`firstTag: ${JSON.stringify(firstTag, null, 4)}`)
+                                if (parseTagDefaultProps[stackItem.tag]) {
+                                    properties[parseTagDefaultProps[stackItem.tag]] = firstTag.token
                                 }
                                 else {
-                                    properties[firstTag.token.key] = secondTag.token
+                                    throw new ParseException('Unexpected value token', firstTag.index, firstTag.index)
+                                }
+                            }
+                            else {
+                                //
+                                // TODO: Validate that no key is assigned twice
+                                //
+                                if (firstTag.token.isBoolean) {
+                                    properties[firstTag.token.key] = firstTag.token.value
+                                }
+                                else {
+                                    const secondTag = propertyTags.pop()
+                                    if (secondTag.token.type === 'Property') {
+                                        throw new ParseException('Unexpected property token', secondTag.index, secondTag.index)
+                                    }
+                                    else {
+                                        properties[firstTag.token.key] = secondTag.token
+                                    }
                                 }
                             }
                         }
