@@ -112,7 +112,7 @@
             crafted so that one could, with some effort,<Space />
         </Description>
     </Feature>
-    <Condition if={robedStatueActive}>
+    <If if={robedStatueActive}>
         <Depend on=(robedStatueActive) />
         <Feature key=(wellStatues)>
             <Description>
@@ -129,8 +129,8 @@
                 <Space /><Link to=(lowerRobedStatueHead)>lower the head</Link>into its hands.
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!robedStatueActive}>
+    </If>
+    <If if={!robedStatueActive}>
         <Depend on=(robedStatueActive) />
         <Feature key=(wellStatues)>
             <Description>
@@ -151,7 +151,7 @@
                 weeping position.
             </Description>
         </Feature>
-    </Condition>
+    </If>
     <Feature key=(wellStatues)>
         <Description>
             <Space />a
@@ -261,7 +261,7 @@
             <Link to=(turnDeterminedHead)>turn the head</Link>,<Space />
         </Description>
     </Feature>
-    <Condition if={determinedStatueHead}>
+    <If if={determinedStatueHead}>
         <Depend on=(determinedStatueHead) />
         <Feature key=(determinedStatue)>
             <Description>
@@ -273,8 +273,8 @@
                 <Space />a determined<Space />
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!determinedStatueHead}>
+    </If>
+    <If if={!determinedStatueHead}>
         <Depend on=(determinedStatueHead) />
         <Feature key=(determinedStatue)>
             <Description>
@@ -286,24 +286,24 @@
                 <Space />an arrogant<Space />
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={determinedStatueRightArm}>
+    </If>
+    <If if={determinedStatueRightArm}>
         <Depend on=(determinedStatueRightArm) />
         <Feature key=(determinedNeck)>
             <Description>
                 <Space /><Link to=(lowerRightArm)>lower the right arm</Link>,<Space />
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!determinedStatueRightArm}>
+    </If>
+    <If if={!determinedStatueRightArm}>
         <Depend on=(determinedStatueRightArm) />
         <Feature key=(determinedNeck)>
             <Description>
                 <Space /><Link to=(raiseRightArm)>raise the right arm</Link>,<Space />
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={determinedStatueLeftArm}>
+    </If>
+    <If if={determinedStatueLeftArm}>
         <Depend on=(determinedStatueLeftArm) />
         <Feature key=(determinedNeck)>
             <Description>
@@ -311,8 +311,8 @@
                 <Link to=(lowerLeftArm)>lower the left arm</Link>.
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!determinedStatueLeftArm}>
+    </If>
+    <If if={!determinedStatueLeftArm}>
         <Depend on=(determinedStatueLeftArm) />
         <Feature key=(determinedNeck)>
             <Description>
@@ -320,7 +320,7 @@
                 <Link to=(raiseLeftArm)>raise the left arm</Link>.
             </Description>
         </Feature>
-    </Condition>
+    </If>
     <Feature key=(wellStatues)>
         <Description>
             <Space /><Link to=(determinedStatue)>figure striding</Link>forward.
@@ -351,15 +351,15 @@
             poses. In the center of the room is a well. Water<Space />
         </Description>
     </Room>
-    <Condition if={waterFlow === 0}>
+    <If if={waterFlow === 0}>
         <Depend on=(waterFlow) />
         <Room key=(well)>
             <Description>
                 <Space />trickles out of the well, forming a small stream headed west.
             </Description>
         </Room>
-    </Condition>
-    <Condition if={waterFlow === 1}>
+    </If>
+    <If if={waterFlow === 1}>
         <Depend on=(waterFlow) />
         <Room key=(well)>
             <Description>
@@ -367,15 +367,15 @@
                 the west.
             </Description>
         </Room>
-    </Condition>
-    <Condition if={waterFlow === 2}>
+    </If>
+    <If if={waterFlow === 2}>
         <Depend on=(waterFlow) />
         <Room key=(well)>
             <Description>
                 <Space />rushes out of the well, forming a gushing torrent to the west.
             </Description>
         </Room>
-    </Condition>
+    </If>
     <Variable key=(gratingBlocked) default={false} />
     <Computed key=(waterLevel) src={ waterFlow * (gratingBlocked ? 2 : 1) }>
         <Depend on=(waterFlow) />
@@ -412,7 +412,7 @@
             a crevasse down which water pours.<Space />
         </Description>
     </Feature>
-    <Condition if={gratingBlocked}>
+    <If if={gratingBlocked}>
         <Depend on=(gratingBlocked) />
         <Feature key=(gratingDetail)>
             <Description>
@@ -421,8 +421,8 @@
                 <Link to=(toggleGratingBlocked)>open the flow</Link>.
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!gratingBlocked}>
+    </If>
+    <If if={!gratingBlocked}>
         <Depend on=(gratingBlocked) />
         <Feature key=(gratingDetail)>
             <Description>
@@ -431,7 +431,7 @@
                 <Link to=(toggleGratingBlocked)>block the flow</Link>.
             </Description>
         </Feature>
-    </Condition>
+    </If>
     <Room key=(fireCatGrotto)>
         <Name>Grotto</Name>
         <Description>
@@ -449,12 +449,12 @@
             the sunlight. There are openings to<Space />
         </Description>
     </Room>
-    <Condition if={waterLevel < 4}>
+    <If if={waterLevel < 4}>
         <Room key=(fireCatGrotto)>
             <Exit to=(orchard)>orchard</Exit>
         </Room>
-    </Condition>
-    <Condition if={waterLevel >= 4}>
+    </If>
+    <If if={waterLevel >= 4}>
         <Depend on=(waterLevel) />
         <Room key=(orchard)>
             <Description>
@@ -468,7 +468,7 @@
                 <Link to=(gratingDetail)>grated opening</Link>.<Space />
             </Description>
         </Room>
-        <Condition if={catsInOrchard}>
+        <If if={catsInOrchard}>
             <Depend on=(catsInOrchard) />
             <Room key=(orchard)>
                 <Description>
@@ -476,16 +476,16 @@
                     the pool to the west.<Space />
                 </Description>
             </Room>
-        </Condition>
-    </Condition>
-    <Condition if={waterLevel < 4}>
+        </If>
+    </If>
+    <If if={waterLevel < 4}>
         <Depend on=(waterLevel) />
         <Room key=(orchard)>
             <Description>
                 <Space />the east and west into other caverns.<Space />
             </Description>
         </Room>
-        <Condition if={catsInOrchard}>
+        <If if={catsInOrchard}>
             <Depend on=(catsInOrchard) />
             <Room key=(orchard)>
                 <Description>
@@ -493,9 +493,9 @@
                     back and forth from the passage to the east.<Space />
                 </Description>
             </Room>
-        </Condition>
-    </Condition>
-    <Condition if={waterLevel < 4 && waterLevel >= 2}>
+        </If>
+    </If>
+    <If if={waterLevel < 4 && waterLevel >= 2}>
         <Depend on=(waterLevel) />
         <Room key=(fireCatGrotto)>
             <Description>
@@ -503,8 +503,8 @@
                 <Link to=(gratingDetail)>grated opening</Link>.<Space />
             </Description>
         </Room>
-    </Condition>
-    <Condition if={waterLevel < 2}>
+    </If>
+    <If if={waterLevel < 2}>
         <Depend on=(waterLevel) />
         <Room key=(fireCatGrotto)>
             <Description>
@@ -512,8 +512,8 @@
                 from the bottom of this cave to the next deeper one.<Space />
             </Description>
         </Room>
-    </Condition>
-    <Condition if={birdsInOrchard}>
+    </If>
+    <If if={birdsInOrchard}>
         <Depend on=(birdsInOrchard) />
         <Room key=(orchard)>
             <Description>
@@ -521,7 +521,7 @@
                 here, and singing noisily.
             </Description>
         </Room>
-    </Condition>
+    </If>
     <Room key=(fireCatGrotto)>
         <Description>
             <Space />At the top of the room, a raised area has a clay wall, with several
@@ -645,7 +645,7 @@
             a loose hose to the hearth.
         </Description>
     </Feature>
-    <Condition if={bellowsRunning}>
+    <If if={bellowsRunning}>
         <Depend on=(bellowsRunning) />
         <Feature key=(bellows)>
             <Description>
@@ -654,8 +654,8 @@
                 <Link to=(toggleBellowsRunning)>stop the bellows</Link>.<Space />
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!bellowsRunning}>
+    </If>
+    <If if={!bellowsRunning}>
         <Depend on=(bellowsRunning) />
         <Feature key=(bellows)>
             <Description>
@@ -664,29 +664,29 @@
                 <Link to=(toggleBellowsRunning)>start the bellows</Link>.
             </Description>
         </Feature>
-    </Condition>
+    </If>
     <Feature key=(hearthCrest)>
         <Name>Crest</Name>
         <Description>
             A plaque with an icon of a flame pointing<Space />
         </Description>
     </Feature>
-    <Condition if={hearthPrimed}>
+    <If if={hearthPrimed}>
         <Depend on=(hearthPrimed) />
         <Feature key=(hearthCrest)>
             <Description>
                 <Space />upward.<Space />
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!hearthPrimed}>
+    </If>
+    <If if={!hearthPrimed}>
         <Depend on=(hearthPrimed) />
         <Feature key=(hearthCrest)>
             <Description>
                 <Space />downward.<Space />
             </Description>
         </Feature>
-    </Condition>
+    </If>
     <Feature key=(hearthCrest)>
         <Description>
             <Space />The plaque is attached loosely, and it seems that you could
@@ -723,7 +723,7 @@
             <Link to=(hearthCrest)>crest</Link> mounted on it.<Space />
         </Description>
     </Feature>
-    <Condition if={hearthActive} >
+    <If if={hearthActive} >
         <Depend on=(hearthActive) />
         <Room key=(foundry)>
             <Description>
@@ -740,8 +740,8 @@
                 <Space />A roaring fire crackles in the hearth.
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!hearthActive} >
+    </If>
+    <If if={!hearthActive} >
         <Depend on=(hearthActive) />
         <Room key=(foundry)>
             <Description>
@@ -756,7 +756,7 @@
             </Description>
             <Exit to=(foundry)>foundry</Exit>
         </Room>
-    </Condition>
+    </If>
     <Feature key=(nests)>
         <Name>Nests</Name>
         <Description>The trees are filled with snug little nests built of sticks and creeper.  You occasionally get a glimpse of one of the shy little blue birds that inhabit them.</Description>
@@ -814,7 +814,7 @@
             A sturdy wooden door set into the floor on heavy iron hinges.<Space />
         </Description>
     </Feature>
-    <Condition if={trapDoorOpen}>
+    <If if={trapDoorOpen}>
         <Feature key=(trapDoor)>
             <Description>
                 <Space />It is opened, resting against the floor. The opening reveals a
@@ -826,15 +826,15 @@
                 <Link to=(closeTrapDoor)>close the door</Link>.
             </Description>
         </Feature>
-    </Condition>
-    <Condition if={!trapDoorOpen}>
+    </If>
+    <If if={!trapDoorOpen}>
         <Feature key=(trapDoor)>
             <Description>
                 <Space />It is closed. Pulling on the circular handle shows that it is
                 firmly locked by some internal mechanism.
             </Description>
         </Feature>
-    </Condition>
+    </If>
     <Feature key=(columns)>
         <Name>Carved columns</Name>
         <Description>
@@ -874,7 +874,7 @@
         <Name>Cat Column</Name>
         <Description>Lounging cats are carved all up and down this column, surrounding one huge cat-face in relief.<Space /></Description>
     </Feature>
-    <Condition if={hearthActive}>
+    <If if={hearthActive}>
         <Feature key=(catColumn)>
             <Description>
                 <Space />Strands of glowing milky energy cling and crawl across the
@@ -886,7 +886,7 @@
                 <Space />glowing<Space />
             </Description>
         </Feature>
-    </Condition>
+    </If>
     <Feature key=(columns)>
         <Description>
             <Space /><Link to=(catColumn)>column with cats</Link>, and a<Space />
@@ -896,7 +896,7 @@
         <Name>Bird Column</Name>
         <Description>Birds in clusters dominate the carvings on this column.  They seem to have their beaks open in song.<Space /></Description>
     </Feature>
-    <Condition if={birdsInOrchard}>
+    <If if={birdsInOrchard}>
         <Feature key=(birdColumn)>
             <Description>
                 <Space />Strands of glowing milky energy cling and crawl across the
@@ -908,13 +908,13 @@
                 <Space />glowing
             </Description>
         </Feature>
-    </Condition>
+    </If>
     <Feature key=(columns)>
         <Description>
             <Space /><Link to=(birdColumn)>column with birds</Link>.<Space />
         </Description>
     </Feature>
-    <Condition if={hearthActive && birdsInOrchard}>
+    <If if={hearthActive && birdsInOrchard}>
         <Depend on=(hearthActive) />
         <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
@@ -973,8 +973,8 @@
                 caverns.
             </Description>
         </Room>
-    </Condition>
-    <Condition if={!hearthActive && bellowsRunning && birdsInOrchard}>
+    </If>
+    <If if={!hearthActive && bellowsRunning && birdsInOrchard}>
         <Depend on=(hearthActive) />
         <Depend on=(bellowsRunning) />
         <Depend on=(birdsInOrchard) />
@@ -1027,8 +1027,8 @@
                 A loud hiss and the sound of birdsong echo through the caverns.
             </Description>
         </Room>
-    </Condition>
-    <Condition if={!hearthActive && !bellowsRunning && birdsInOrchard}>
+    </If>
+    <If if={!hearthActive && !bellowsRunning && birdsInOrchard}>
         <Depend on=(hearthActive) />
         <Depend on=(bellowsRunning) />
         <Depend on=(birdsInOrchard) />
@@ -1081,8 +1081,8 @@
                 The sound of birdsong echoes through the caverns.
             </Description>
         </Room>
-    </Condition>
-    <Condition if={!hearthActive && bellowsRunning && !birdsInOrchard}>
+    </If>
+    <If if={!hearthActive && bellowsRunning && !birdsInOrchard}>
         <Depend on=(hearthActive) />
         <Depend on=(bellowsRunning) />
         <Depend on=(birdsInOrchard) />
@@ -1135,8 +1135,8 @@
                 A loud hiss winds through the caverns.
             </Description>
         </Room>
-    </Condition>
-    <Condition if={hearthActive && !birdsInOrchard}>
+    </If>
+    <If if={hearthActive && !birdsInOrchard}>
         <Depend on=(hearthActive) />
         <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
@@ -1188,5 +1188,5 @@
                 A low purring sound echoes through the caverns.
             </Description>
         </Room>
-    </Condition>
+    </If>
 </Asset>
