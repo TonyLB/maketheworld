@@ -24,7 +24,7 @@ const denormalizeExits = (normalForm) => (contents) => {
     return exits.map(({ name, to }) => ({ name, to }))
 }
 
-const noConditionContext = ({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition')))
+const noConditionContext = ({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If')))
 
 const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
     if (isNormalMap(item)) {

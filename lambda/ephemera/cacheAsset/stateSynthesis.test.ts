@@ -33,8 +33,8 @@ describe('stateSynthesis', () => {
                     index: 0
                 },
                 {
-                    key: 'Condition-0',
-                    tag: 'Condition',
+                    key: 'If-0',
+                    tag: 'If',
                     index: 0
                 },
                 {
@@ -73,7 +73,7 @@ describe('stateSynthesis', () => {
                 render: []
             },
             {
-                contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }],
                 name: [{ tag: 'String', value: '(lit)' }],
                 render: [{ tag: 'String', value: 'The lights are on ' }],
                 contents: []
@@ -104,9 +104,9 @@ describe('stateSynthesis', () => {
             src: 'switchedOn = !switchedOn',
             appearances: [topLevelAppearance]
         },
-        ['Condition-0']: {
-            key: 'Condition-0',
-            tag: 'Condition',
+        ['If-0']: {
+            key: 'If-0',
+            tag: 'If',
             if: 'active',
             dependencies: ['active'],
             appearances: [{

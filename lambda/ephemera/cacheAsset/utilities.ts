@@ -8,7 +8,7 @@ import { EphemeraCondition } from "./baseClasses"
 
 export const conditionsFromContext = (assetWorkspace: AssetWorkspace) => (contextStack: NormalReference[]): EphemeraCondition[] => (
     contextStack
-        .filter(({ tag }) => (tag === 'Condition'))
+        .filter(({ tag }) => (tag === 'If'))
         .map(({ key }) => ((assetWorkspace.normal || {})[key]))
         .filter(isNormalCondition)
         .map((condition) => ({

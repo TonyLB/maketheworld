@@ -305,8 +305,8 @@ describe('dbRegister', () => {
                     appearances: [{
                         contextStack: [],
                         contents: [{
-                            tag: 'Condition',
-                            key: 'Condition-0',
+                            tag: 'If',
+                            key: 'If-0',
                             index: 0
                         },
                         {
@@ -321,9 +321,9 @@ describe('dbRegister', () => {
                         }]
                     }]
                 },
-                ['Condition-0']: {
-                    tag: 'Condition',
-                    key: 'Condition-0',
+                ['If-0']: {
+                    tag: 'If',
+                    key: 'If-0',
                     if: 'false',
                     appearances: [{
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
@@ -349,7 +349,7 @@ describe('dbRegister', () => {
                         name: [{ tag: 'String', value: 'Test' }]
                     },
                     {
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }],
                         contents: [],
                         render: ['Should not render'],
                         name: [{ tag: 'String', value: 'Should not' }]
@@ -367,7 +367,7 @@ describe('dbRegister', () => {
                         contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
                     },
                     {
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }],
                         render: ['Should not render'],
                         name: [{ tag: 'String', value: 'Should not' }]
                     }]
@@ -399,8 +399,8 @@ describe('dbRegister', () => {
                     appearances: [{
                         contextStack: [],
                         contents: [{
-                            tag: 'Condition',
-                            key: 'Condition-0',
+                            tag: 'If',
+                            key: 'If-0',
                             index: 0
                         },
                         {
@@ -415,9 +415,9 @@ describe('dbRegister', () => {
                         }]
                     }]
                 },
-                ['Condition-0']: {
-                    tag: 'Condition',
-                    key: 'Condition-0',
+                ['If-0']: {
+                    tag: 'If',
+                    key: 'If-0',
                     if: 'false',
                     appearances: [{
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
@@ -438,7 +438,7 @@ describe('dbRegister', () => {
                         name: [{ tag: 'String', value: 'Test' }]
                     },
                     {
-                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }],
                         contents: [],
                         render: ['Should not render'],
                         name: [{ tag: 'String', value: 'Should not' }],
@@ -486,7 +486,7 @@ describe('dbRegister', () => {
                     appearances: [{
                         contextStack: [
                             { key: 'TEST', tag: 'Asset', index: 0 },
-                            { key: 'Condition-0', tag: 'Condition', index: 0 },
+                            { key: 'If-0', tag: 'If', index: 0 },
                             { key: 'Welcome', tag: 'Room', index: 0 },
                         ],
                         contents: []
