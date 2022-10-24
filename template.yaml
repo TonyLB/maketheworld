@@ -124,7 +124,6 @@ Resources:
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
-          ASSETS_SERVICE: !GetAtt AssetsFunction.Arn
           WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           S3_BUCKET: !Sub '${TablePrefix}-assets'
           COGNITO_USER_POOL_CLIENT: !Ref UserPoolClient
@@ -135,8 +134,6 @@ Resources:
                   Region: !Ref AWS::Region
                   CognitoUserPool: !Ref UserPool
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Sub '${TablePrefix}_assets'
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
         - DynamoDBCrudPolicy:

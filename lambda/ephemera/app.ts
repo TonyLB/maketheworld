@@ -8,7 +8,6 @@ import {
     EphemeraAPIMessage,
     isRegisterCharacterAPIMessage,
     isFetchEphemeraAPIMessage,
-    isFetchImportDefaultsAPIMessage,
     isWhoAmIAPIMessage,
     isSyncAPIMessage,
     isActionAPIMessage,
@@ -26,7 +25,6 @@ import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
-import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -187,15 +185,6 @@ export const handler = async (event: any, context: any) => {
                 else {
                     messageBus.send({
                         type: 'FetchPlayerEphemera'
-                    })
-                }
-            }
-            if (isFetchImportDefaultsAPIMessage(request)) {
-                if (request.importsByAssetId && request.assetId) {
-                    messageBus.send({
-                        type: 'FetchImportDefaults',
-                        importsByAssetId: request.importsByAssetId,
-                        assetId: request.assetId
                     })
                 }
             }
