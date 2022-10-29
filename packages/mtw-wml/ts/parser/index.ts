@@ -17,9 +17,11 @@ import {
     ParseTagFactory,
     ParseStackEntry,
     ParseException,
-    ParseStackTagOpenEntry,
     isParseStackTagOpenEntry,
-    parseTagDefaultProps
+    parseTagDefaultProps,
+    isParseLegalTag,
+    ParseConditionTag,
+    isLegalParseConditionContextTag
 } from './baseClasses'
 
 import parseAssetFactory, { parseStoryFactory } from './asset'
@@ -63,7 +65,18 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
         case 'Feature':
             return parseFeatureFactory(props)
         case 'If':
-            return parseConditionFactory(props)
+            //
+            // Provide context so that Conditionals can parse different legal contents depending upon what
+            // is legal for the tag they are nested inside
+            //
+            const contextTag = props.context.reduce<ParseConditionTag["contextTag"]>((previous, item) => {
+                const tag = item.tag
+                if (isLegalParseConditionContextTag(tag)) {
+                    return tag
+                }
+                return previous
+            }, undefined)
+            return parseConditionFactory(contextTag)(props)
         case 'Link':
             return parseLinkFactory(props)
         case 'br':
@@ -105,7 +118,6 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
 export const parse = (tokens: Token[]): ParseTag[] => {
     let returnValue: ParseTag[] = []
     let stack: ParseStackEntry[] = []
-    let context: ParseStackTagOpenEntry[] = []
     tokens.forEach((token, index) => {
         switch(token.type) {
             case 'TagOpenBegin':
@@ -165,11 +177,15 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                                 }
                             }
                         }
+                        const tag = stackItem.tag
+                        if (!isParseLegalTag(tag)) {
+                            throw new ParseException(`Illegal parse tag: ${tag}`, stackItem.startTagToken, stackItem.startTagToken)
+                        }
                         if (token.selfClosing) {
                             const stackTag = createParseTag({
                                 open: {
                                     type: 'TagOpen',
-                                    tag: stackItem.tag,
+                                    tag,
                                     startTagToken: stackItem.startTagToken,
                                     properties
                                 },
@@ -187,7 +203,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                         else {
                             stack.push({
                                 type: 'TagOpen',
-                                tag: stackItem.tag,
+                                tag,
                                 startTagToken: stackItem.startTagToken,
                                 properties
                             })

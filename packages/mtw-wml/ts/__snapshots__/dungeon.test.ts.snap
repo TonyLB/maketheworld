@@ -8899,6 +8899,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 458,
@@ -9061,6 +9062,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 527,
@@ -9588,6 +9590,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 796,
@@ -9686,6 +9689,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 843,
@@ -9757,6 +9761,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 890,
@@ -9828,6 +9833,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 926,
@@ -9907,6 +9913,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 962,
@@ -9986,6 +9993,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 997,
@@ -10288,6 +10296,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1155,
@@ -10344,6 +10353,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1181,
@@ -10399,6 +10409,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1207,
@@ -10584,6 +10595,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1291,
@@ -10664,6 +10676,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1326,
@@ -10841,6 +10854,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [],
         "endTagToken": 1417,
         "if": "waterLevel < 4",
@@ -11005,6 +11019,7 @@ Array [
                 "y": undefined,
               },
             ],
+            "contextTag": "Asset",
             "dependencies": Array [
               Object {
                 "endTagToken": 1479,
@@ -11019,6 +11034,7 @@ Array [
             "tag": "If",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1427,
@@ -11124,6 +11140,7 @@ Array [
                 "y": undefined,
               },
             ],
+            "contextTag": "Asset",
             "dependencies": Array [
               Object {
                 "endTagToken": 1537,
@@ -11138,6 +11155,7 @@ Array [
             "tag": "If",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1509,
@@ -11223,6 +11241,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1567,
@@ -11297,6 +11316,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1605,
@@ -11353,6 +11373,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1641,
@@ -11703,6 +11724,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1778,
@@ -11783,6 +11805,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1816,
@@ -11889,6 +11912,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1870,
@@ -11946,6 +11970,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 1899,
@@ -12438,6 +12463,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 2057,
@@ -12561,6 +12587,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 2114,
@@ -12966,6 +12993,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [],
         "endTagToken": 2314,
         "if": "trapDoorOpen",
@@ -13013,6 +13041,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [],
         "endTagToken": 2334,
         "if": "!trapDoorOpen",
@@ -13315,6 +13344,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [],
         "endTagToken": 2452,
         "if": "hearthActive",
@@ -13493,6 +13523,7 @@ Array [
             "tag": "Feature",
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [],
         "endTagToken": 2529,
         "if": "birdsInOrchard",
@@ -13872,6 +13903,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 2564,
@@ -14202,6 +14234,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 2693,
@@ -14538,6 +14571,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 2828,
@@ -14874,6 +14908,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 2963,
@@ -15210,6 +15245,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 3098,

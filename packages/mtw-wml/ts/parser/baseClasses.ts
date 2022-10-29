@@ -126,12 +126,37 @@ export type ParseImportTag = {
     contents: ParseImportLegalContents[];
 } & ParseTagBase
 
-export type ParseConditionTag = {
+export type ParseConditionLegalContextTag = 'Asset' | 'Description'
+
+export type ParseConditionTagAssetContext = {
     tag: 'If';
+    contextTag: 'Asset';
     if: string;
     dependencies: ParseDependencyTag[];
     contents: ParseAssetLegalContents[];
 } & ParseTagBase
+
+export type ParseConditionTagDescriptionContext = {
+    tag: 'If';
+    contextTag: 'Description';
+    if: string;
+    dependencies: ParseDependencyTag[];
+    contents: ParseTaggedMessageLegalContents[];
+} & ParseTagBase
+
+export type ParseConditionTypeFromContextTag<T extends ParseConditionLegalContextTag> =
+    T extends 'Description' ? ParseConditionTagDescriptionContext : ParseConditionTagAssetContext
+
+export type ParseConditionTag = ParseConditionTagAssetContext | ParseConditionTagDescriptionContext
+
+export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description'].includes(value))
+export const isParseConditionTagAssetContext = (value: ParseConditionTag): value is ParseConditionTagAssetContext => (value.contextTag === 'Asset')
+export const isParseConditionTagDescriptionContext = (value: ParseConditionTag): value is ParseConditionTagDescriptionContext => (value.contextTag === 'Description')
+
+export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
+    Asset: ['Exit', 'Feature', 'Room', 'If', 'Image', 'Map'],
+    Description: ['Space', 'String', 'Link', 'br']
+}
 
 export type ParseExitTag = {
     tag: 'Exit';
@@ -234,6 +259,38 @@ export type ParseTag = ParseAssetTag |
     ParseSpacerTag |
     ParseCommentTag
 
+export type ParseLegalTag = ParseTag["tag"]
+
+export const isParseLegalTag = (tag: string): tag is ParseLegalTag => ([
+    'Asset',
+    'Story',
+    'Name',
+    'Character',
+    'Pronouns',
+    'OneCoolThing',
+    'FirstImpression',
+    'Outfit',
+    'Image',
+    'Variable',
+    'Computed',
+    'Depend',
+    'Action',
+    'Use',
+    'Import',
+    'If',
+    'Exit',
+    'Description',
+    'br',
+    'Link',
+    'Room',
+    'Feature',
+    'Map',
+    'String',
+    'Whitespace',
+    'Space',
+    'Comment'
+].includes(tag))
+
 export type ParseStackTagOpenPendingEntry = {
     type: 'TagOpenPending';
     tag: string;
@@ -242,7 +299,7 @@ export type ParseStackTagOpenPendingEntry = {
 
 export type ParseStackTagOpenEntry = {
     type: 'TagOpen';
-    tag: string;
+    tag: ParseLegalTag;
     startTagToken: number;
     properties: Record<string, (TokenExpressionValue | TokenKeyValue | TokenLiteralValue | boolean)>;
 }

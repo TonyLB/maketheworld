@@ -646,6 +646,7 @@ Array [
               "y": undefined,
             },
           ],
+          "contextTag": "Asset",
           "dependencies": Array [
             Object {
               "endTagToken": 79,
@@ -901,6 +902,7 @@ Array [
               "y": undefined,
             },
           ],
+          "contextTag": "Asset",
           "dependencies": Array [
             Object {
               "endTagToken": 79,

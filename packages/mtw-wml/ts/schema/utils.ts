@@ -34,8 +34,11 @@ import {
     ParseFeatureLegalContents,
     ParseMapLegalContents,
     ParseImportLegalContents,
-    ParseSpacerTag
+    ParseSpacerTag,
+    isParseConditionTagAssetContext,
+    isParseConditionTagDescriptionContext
 } from "../parser/baseClasses"
+import { SchemaException } from "./baseClasses";
 
 export function *depthFirstParseTagGenerator(tree: ParseTag[]): Generator<ParseTag> {
     for (const node of tree) {
@@ -178,13 +181,25 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                 ]
             case 'If':
                 const conditionItem = callback(item, context)
-                return [
-                    ...previous,
-                    {
-                        ...conditionItem,
-                        contents: transformWithContext(item.contents, callback, [...context, conditionItem]) as ParseAssetLegalContents[]
-                    }
-                ]
+                if (isParseConditionTagAssetContext(conditionItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...conditionItem,
+                            contents: transformWithContext(item.contents, callback, [...context, conditionItem]) as ParseAssetLegalContents[]
+                        }
+                    ]
+                }
+                else if (isParseConditionTagDescriptionContext(conditionItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...conditionItem,
+                            contents: transformWithContext(item.contents, callback, [...context, conditionItem]) as ParseTaggedMessageLegalContents[]
+                        }
+                    ]    
+                }
+                throw new SchemaException(`Invalid condition context`, conditionItem)
             case 'Exit':
                 const exitItem = callback(item, context)
                 return [

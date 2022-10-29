@@ -316,6 +316,7 @@ Array [
             "y": undefined,
           },
         ],
+        "contextTag": "Asset",
         "dependencies": Array [
           Object {
             "endTagToken": 79,

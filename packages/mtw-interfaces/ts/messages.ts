@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraActionId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -36,9 +36,23 @@ export type TaggedLinkUnrestricted = {
     to: string;
 }
 
-export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer;
+export type TaggedLinkConditional = {
+    tag: 'Conditional';
+    if: string;
+    dependencies: Record<string, EphemeraVariableId | EphemeraComputedId>;
+    contents: TaggedMessageContent[];
+}
 
-export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer;
+export type TaggedLinkConditionalUnrestricted = {
+    tag: 'Conditional';
+    if: string;
+    dependencies: Record<string, EphemeraVariableId | EphemeraComputedId>;
+    contents: TaggedMessageContentUnrestricted[];
+}
+
+export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedLinkConditional;
+
+export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedLinkConditionalUnrestricted;
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
@@ -55,6 +69,13 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
         case 'Link':
             return checkTypes(message, { text: 'string', to: 'string' })
                 && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to))
+        case 'Conditional':
+            const { dependencies, contents } = message || {}
+            return checkTypes(message, { if: 'string' })
+                && typeof dependencies === 'object'
+                && checkAll(...Object.values(dependencies || {}).map((value) => (typeof value === 'string' && (isEphemeraVariableId(value) || isEphemeraComputedId(value)))))
+                && Array.isArray(contents)
+                && checkAll(...contents.map(isTaggedMessageContent))
         default: return false
     }
 }
@@ -63,6 +84,7 @@ export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => 
 export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
+export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedLinkConditional => (item.tag === 'Conditional')
 
 export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
 
@@ -160,7 +182,7 @@ export const flattenTaggedMessageContent = async (messages: TaggedMessageContent
     //
     // Process the queued entry after you finish the list
     //
-    if (!isTaggedSpacer(currentMessageQueued)) {
+    if (!isTaggedSpacer(currentMessageQueued) && !isTaggedConditional(currentMessageQueued)) {
         currentReturnValue.push(currentMessageQueued)
     }
 
