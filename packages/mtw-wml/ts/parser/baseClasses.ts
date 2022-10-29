@@ -149,8 +149,14 @@ export type ParseConditionTypeFromContextTag<T extends ParseConditionLegalContex
 
 export type ParseConditionTag = ParseConditionTagAssetContext | ParseConditionTagDescriptionContext
 
+export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description'].includes(value))
 export const isParseConditionTagAssetContext = (value: ParseConditionTag): value is ParseConditionTagAssetContext => (value.contextTag === 'Asset')
 export const isParseConditionTagDescriptionContext = (value: ParseConditionTag): value is ParseConditionTagDescriptionContext => (value.contextTag === 'Description')
+
+export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
+    Asset: ['Exit', 'Feature', 'Room', 'If', 'Image', 'Map'],
+    Description: ['Space', 'String', 'Link', 'br']
+}
 
 export type ParseExitTag = {
     tag: 'Exit';

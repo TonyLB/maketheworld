@@ -1,5 +1,5 @@
 import { ArrayContents } from "../types"
-import { ParseTagFactory, ParseConditionTag, isParseTagDependency, ParseAssetLegalContents, ParseLegalTag, ParseTag, ParseConditionLegalContextTag, ParseConditionTypeFromContextTag, ParseStackTagEntry } from "./baseClasses"
+import { ParseTagFactory, ParseConditionTag, isParseTagDependency, ParseConditionTypeFromContextTag, ParseStackTagEntry, parseDifferentiatingTags } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
 //
@@ -15,14 +15,10 @@ export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>
     })
     const dependencies = contents.filter(isParseTagDependency)
     const nonDependencyContents = contents.filter((value) => (!isParseTagDependency(value)))
-    const differentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
-        Asset: ['Exit', 'Feature', 'Room', 'If', 'Image', 'Map'],
-        Description: ['Space', 'String', 'Link', 'br']
-    }
     type ValidationType = ArrayContents<ParseConditionTypeFromContextTag<T>["contents"]>
     const parsedContents = validateContents<ValidationType>({
         contents: nonDependencyContents,
-        legalTags: differentiatingTags[contextTag] as ValidationType["tag"][],
+        legalTags: parseDifferentiatingTags[contextTag] as ValidationType["tag"][],
         ignoreTags: ['Whitespace', 'Comment']
     })
     return {

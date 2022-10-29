@@ -17,10 +17,11 @@ import {
     ParseTagFactory,
     ParseStackEntry,
     ParseException,
-    ParseStackTagOpenEntry,
     isParseStackTagOpenEntry,
     parseTagDefaultProps,
-    isParseLegalTag
+    isParseLegalTag,
+    ParseConditionTag,
+    isLegalParseConditionContextTag
 } from './baseClasses'
 
 import parseAssetFactory, { parseStoryFactory } from './asset'
@@ -64,7 +65,18 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
         case 'Feature':
             return parseFeatureFactory(props)
         case 'If':
-            return parseConditionFactory('Asset')(props)
+            //
+            // Provide context so that Conditionals can parse different legal contents depending upon what
+            // is legal for the tag they are nested inside
+            //
+            const contextTag = props.context.reduce<ParseConditionTag["contextTag"]>((previous, item) => {
+                const tag = item.tag
+                if (isLegalParseConditionContextTag(tag)) {
+                    return tag
+                }
+                return previous
+            }, undefined)
+            return parseConditionFactory(contextTag)(props)
         case 'Link':
             return parseLinkFactory(props)
         case 'br':
