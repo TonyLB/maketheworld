@@ -1,7 +1,11 @@
-import { ParseTagFactory, ParseConditionTag, isParseTagDependency, ParseAssetLegalContents } from "./baseClasses"
+import { ArrayContents } from "../types"
+import { ParseTagFactory, ParseConditionTag, isParseTagDependency, ParseAssetLegalContents, ParseLegalTag, ParseTag, ParseConditionLegalContextTag, ParseConditionTypeFromContextTag, ParseStackTagEntry } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
-export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open, context, contents, endTagToken }) => {
+//
+// TODO: Figure out how to sub-type different conditions to have different legal contents
+//
+export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>(contextTag: T): ParseTagFactory<ParseConditionTypeFromContextTag<T>> => ({ open, contents, endTagToken }) => {
     const validate = validateProperties<ExtractProperties<ParseConditionTag, 'dependencies'>>({
         open,
         endTagToken,
@@ -11,30 +15,28 @@ export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open
     })
     const dependencies = contents.filter(isParseTagDependency)
     const nonDependencyContents = contents.filter((value) => (!isParseTagDependency(value)))
-    const closestTag = context.length > 0 ? context[context.length - 1] : open
-    switch(closestTag.tag) {
-        //
-        // TODO: Allow Conditions in different contexts, where they can allow different things (i.e., inside a
-        // description context, allowing strings, links, etc.)
-        //
-        default:
-            const parsedContents = validateContents<ParseAssetLegalContents>({
-                contents: nonDependencyContents,
-                legalTags: ['Exit', 'Feature', 'Room', 'If', 'Image', 'Map'],
-                ignoreTags: ['Whitespace', 'Comment']
-            })
-            return {
-                type: 'Tag',
-                tag: {
-                    ...validate,
-                    tag: 'If',
-                    startTagToken: open.startTagToken,
-                    endTagToken,
-                    contents: parsedContents,
-                    dependencies
-                }
-            }
+    const differentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
+        Asset: ['Exit', 'Feature', 'Room', 'If', 'Image', 'Map'],
+        Description: ['Space', 'String', 'Link', 'br']
     }
+    type ValidationType = ArrayContents<ParseConditionTypeFromContextTag<T>["contents"]>
+    const parsedContents = validateContents<ValidationType>({
+        contents: nonDependencyContents,
+        legalTags: differentiatingTags[contextTag] as ValidationType["tag"][],
+        ignoreTags: ['Whitespace', 'Comment']
+    })
+    return {
+        type: 'Tag',
+        tag: {
+            ...validate,
+            tag: 'If',
+            contextTag,
+            startTagToken: open.startTagToken,
+            endTagToken,
+            contents: parsedContents,
+            dependencies
+        }
+    } as ParseStackTagEntry<ParseConditionTypeFromContextTag<T>>
 }
 
 export default parseConditionFactory
