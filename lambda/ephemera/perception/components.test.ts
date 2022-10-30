@@ -186,13 +186,13 @@ describe('component utilities', () => {
                     {
                         tag: 'Conditional',
                         if: 'checkOne',
-                        dependencies: { checkOne: 'VARIABLE#Test' },
+                        dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
                         contents: [
                             { tag: 'String', value: 'and this, ' },
                             {
                                 tag: 'Conditional',
                                 if: 'checkOne',
-                                dependencies: { checkOne: 'VARIABLE#Test' },
+                                dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
                                 contents: [
                                     { tag: 'String', value: `and also this` },
                                 ]
@@ -200,7 +200,7 @@ describe('component utilities', () => {
                             {
                                 tag: 'Conditional',
                                 if: 'checkTwo',
-                                dependencies: { checkTwo: 'VARIABLE#Test' },
+                                dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
                                 contents: [
                                     { tag: 'String', value: `but not this` },
                                 ]
@@ -210,7 +210,7 @@ describe('component utilities', () => {
                     {
                         tag: 'Conditional',
                         if: 'checkTwo',
-                        dependencies: { checkTwo: 'VARIABLE#Test' },
+                        dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
                         contents: [
                             { tag: 'String', value: `and not this` },
                         ]
