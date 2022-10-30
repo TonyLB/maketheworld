@@ -2,7 +2,7 @@ import { ComponentMeta, ComponentMetaData, ComponentMetaFromId } from './compone
 import { DeferredCache } from './deferredCache'
 import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
-import internalCache from '.';
+import { CacheGlobal, CacheGlobalData } from '.';
 import { componentAppearanceReduce } from '../perception/components';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import AssetState, { EvaluateCodeAddress, EvaluateCodeData, StateItemId } from './assetState';
@@ -19,6 +19,9 @@ import {
     isEphemeraRoomId,
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import CacheRoomCharacterLists, { CacheRoomCharacterListsData } from './roomCharacterLists';
+import { RoomCharacterListItem } from './baseClasses';
+import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 
 export type ComponentMetaRoomItem = {
     EphemeraId: EphemeraRoomId;
@@ -78,13 +81,25 @@ const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) => Promi
 export class ComponentRenderData {
     _evaluateCode: (address: EvaluateCodeAddress) => Promise<any>;
     _componentMeta: <T extends EphemeraFeatureId | EphemeraRoomId | EphemeraMapId>(EphemeraId: T, assetList: string[]) => Promise<Record<string, ComponentMetaFromId<T>>>;
+    _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
+    _getAssets: () => Promise<string[]>;
+    _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
     _Cache: DeferredCache<ComponentDescriptionCache>;
     _Store: Record<string, ComponentDescriptionItem> = {}
     _Dependencies: Record<string, StateItemId[]> = {}
     
-    constructor(evaluateCode: EvaluateCodeData, componentMeta: ComponentMetaData) {
+    constructor(
+        evaluateCode: EvaluateCodeData,
+        componentMeta: ComponentMetaData,
+        roomCharacterList: CacheRoomCharacterListsData,
+        globalCache: CacheGlobalData,
+        characterMeta: CacheCharacterMetaData
+    ) {
         this._evaluateCode = (address) => (evaluateCode.get(address))
         this._componentMeta = (EphemeraId, assetList) => (componentMeta.getAcrossAssets(EphemeraId, assetList))
+        this._roomCharacterList = (RoomId) => (roomCharacterList.get(RoomId))
+        this._getAssets = async () => (await globalCache.get('assets') || [])
+        this._characterMeta = (characterId) => (characterMeta.get(characterId))
         this._Cache = new DeferredCache<ComponentDescriptionCache>({
             callback: (key, { dependencies, description }) => {
                 this._setStore(key, description)
@@ -141,8 +156,8 @@ export class ComponentRenderData {
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: MapDescribeData }>
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | MapDescribeData }> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
-            internalCache.Global.get('assets'),
-            internalCache.CharacterMeta.get(CharacterId)
+            this._getAssets(),
+            this._characterMeta(CharacterId)
         ])
         const appearancesByAsset = await this._componentMeta(EphemeraId, unique(globalAssets || [], characterAssets) as string[])
         const aggregateDependencies = unique(...(Object.values(appearancesByAsset) as (ComponentMetaMapItem | ComponentMetaRoomItem | ComponentMetaFeatureItem)[])
@@ -161,7 +176,7 @@ export class ComponentRenderData {
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[]))
                 .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const [roomCharacterList, renderRoomAppearances] = (await Promise.all([
-                internalCache.RoomCharacterList.get(EphemeraId),
+                this._roomCharacterList(EphemeraId),
                 filterAppearances(this._evaluateCode)(possibleRoomAppearances)
             ]))
             const renderRoom = await componentAppearanceReduce(...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters'>
@@ -346,13 +361,25 @@ export class ComponentRenderData {
     }
 }
 
-export const ComponentRender = <GBase extends ReturnType<typeof ComponentMeta> & ReturnType<typeof AssetState>>(Base: GBase) => {
+export const ComponentRender = <GBase extends (
+        ReturnType<typeof ComponentMeta> &
+        ReturnType<typeof AssetState> &
+        ReturnType<typeof CacheRoomCharacterLists> &
+        ReturnType<typeof CacheGlobal> &
+        ReturnType<typeof CacheCharacterMeta>
+    )>(Base: GBase) => {
     return class ComponentMeta extends Base {
         ComponentRender: ComponentRenderData;
 
         constructor(...rest: any) {
             super(...rest)
-            this.ComponentRender = new ComponentRenderData(this.EvaluateCode, this.ComponentMeta)
+            this.ComponentRender = new ComponentRenderData(
+                this.EvaluateCode,
+                this.ComponentMeta,
+                this.RoomCharacterList,
+                this.Global,
+                this.CharacterMeta
+            )
         }
         override clear() {
             this.ComponentRender.clear()

@@ -20,7 +20,7 @@ export type MapSubscriptionConnection = {
     characterIds: EphemeraCharacterId[]
 }
 
-class CacheGlobalData {
+export class CacheGlobalData {
     ConnectionId?: string;
     RequestId?: string;
     player?: string;
