@@ -36,23 +36,23 @@ export type TaggedLinkUnrestricted = {
     to: string;
 }
 
-export type TaggedLinkConditional = {
+export type TaggedConditional = {
     tag: 'Conditional';
     if: string;
     dependencies: Record<string, EphemeraVariableId | EphemeraComputedId>;
     contents: TaggedMessageContent[];
 }
 
-export type TaggedLinkConditionalUnrestricted = {
+export type TaggedConditionalUnrestricted = {
     tag: 'Conditional';
     if: string;
     dependencies: Record<string, EphemeraVariableId | EphemeraComputedId>;
     contents: TaggedMessageContentUnrestricted[];
 }
 
-export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedLinkConditional;
+export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditional;
 
-export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedLinkConditionalUnrestricted;
+export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditionalUnrestricted;
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
@@ -84,7 +84,7 @@ export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => 
 export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
-export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedLinkConditional => (item.tag === 'Conditional')
+export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedConditional => (item.tag === 'Conditional')
 
 export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
 
@@ -97,20 +97,58 @@ export const validateTaggedMessageList = (items: any): items is TaggedMessageCon
     ), true)
 }
 
-export const flattenTaggedMessageContent = async (messages: TaggedMessageContent[]): Promise<TaggedMessageContentFlat[]> => {
+type FlattenTaggedMessageContentOptions = {
+    evaluateConditional?: (ifTest: string, dependencies: Record<string, EphemeraVariableId | EphemeraComputedId>) => Promise<boolean>;
+}
+
+const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions): Promise<(TaggedMessageContentFlat | TaggedSpacer)[]> => {
+    const { evaluateConditional = async (src) => (src === 'true' ? true : false) } = options
+    const evaluatedMessages: (TaggedMessageContentFlat | TaggedSpacer)[][] = await Promise.all(
+        messages.map(async (message) => {
+            if (isTaggedConditional(message)) {
+                //
+                // TODO: If we refactor the system to include performance modes (low, high, ultra, etc.) then this is a
+                // good place to trade performance (as it's currently set, optimistically evaluating the entire conditional
+                // tree before the first conditional is known good) for lower cost (which could be achieved by waiting to
+                // create the nestingPromise until after evaluationPromise returns true)
+                //
+                const evaluationPromise = evaluateConditional(message.if, message.dependencies)
+                const nestingPromise = flattenTaggedMessageContent(message.contents, { evaluateConditional })
+                const evaluation = await evaluationPromise
+                if (evaluation) {
+                    return await nestingPromise
+                }
+                else {
+                    return []
+                }
+            }
+            else {
+                return [message]
+            }
+        })
+    )
+    return evaluatedMessages.reduce<(TaggedMessageContentFlat | TaggedSpacer)[]>((previous, messages) => ([ ...previous, ...messages ]), [])
+}
+
+export const flattenTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions = {}): Promise<TaggedMessageContentFlat[]> => {
     if (messages.length === 0) {
         return []
     }
     //
+    // Recursively evaluated all conditionals
+    //
+    const evaluatedMessages = await evaluateTaggedMessageContent(messages, options)
+
+    //
     // Initialize local state
     //
-    let currentMessageQueued: TaggedMessageContent = messages[0]
+    let currentMessageQueued: TaggedMessageContent = evaluatedMessages[0]
     let currentReturnValue: TaggedMessageContentFlat[] = []
 
     //
     // Process each entry in relation to the current entry queued
     //
-    messages.slice(1).forEach((message) => {
+    evaluatedMessages.slice(1).forEach((message) => {
         if (isTaggedText(currentMessageQueued)) {
             if (isTaggedText(message)) {
                 currentMessageQueued = {

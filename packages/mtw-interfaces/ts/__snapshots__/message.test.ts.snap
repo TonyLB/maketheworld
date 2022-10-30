@@ -25,6 +25,15 @@ exports[`flattenTaggedMessageContent should correctly combine strings, links and
 ]
 `;
 
+exports[`flattenTaggedMessageContent should correctly evaluate conditionals 1`] = `
+[
+  {
+    "tag": "String",
+    "value": "Show this, and this, and also this.",
+  },
+]
+`;
+
 exports[`flattenTaggedMessageContent should correctly handle spacer adjoining linebreak 1`] = `
 [
   {
@@ -151,6 +160,15 @@ exports[`flattenTaggedMessageContent should correctly handle spacer between stri
   {
     "tag": "String",
     "value": "Five",
+  },
+]
+`;
+
+exports[`flattenTaggedMessageContent should correctly ignore failing conditional trees 1`] = `
+[
+  {
+    "tag": "String",
+    "value": "Show, Also Show",
   },
 ]
 `;
