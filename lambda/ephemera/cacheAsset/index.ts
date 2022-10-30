@@ -30,7 +30,7 @@ import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
 import { EphemeraError, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { TaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages.js'
+import { TaggedConditionalItemDependency, TaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages.js'
 
 //
 // TODO:
@@ -51,10 +51,6 @@ type CacheAssetOptions = {
 //
 // Translates from normal form to a fetch-ready record to be stored in the Ephemera table.
 //
-
-//
-// TODO(ISS1387): Translate features and actions in render links to their DB ID counterparts
-//
 const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem: ComponentRenderItem): TaggedMessageContent => {
     if (renderItem.tag === 'Link') {
         const to = assetWorkspace.namespaceIdToDB[renderItem.to]
@@ -64,6 +60,23 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
         return {
             ...renderItem,
             to
+        }
+    }
+    else if (renderItem.tag === 'Condition') {
+        const dependencies = renderItem.dependencies.map<TaggedConditionalItemDependency>((depend) => {
+            const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
+            if (!(isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated))) {
+                throw new EphemeraError(`Illegal dependency in If: ${depend}`)
+            }
+            return {
+                key: depend,
+                EphemeraId: dependTranslated
+            }
+        })
+        return {
+            ...renderItem,
+            dependencies,
+            contents: renderItem.contents.map(ephemeraTranslateRender(assetWorkspace))
         }
     }
     else {

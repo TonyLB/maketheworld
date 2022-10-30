@@ -42,14 +42,14 @@ export type TaggedConditionalItemDependency = {
 }
 
 export type TaggedConditional = {
-    tag: 'Conditional';
+    tag: 'Condition';
     if: string;
     dependencies: TaggedConditionalItemDependency[];
     contents: TaggedMessageContent[];
 }
 
 export type TaggedConditionalUnrestricted = {
-    tag: 'Conditional';
+    tag: 'Condition';
     if: string;
     dependencies: TaggedConditionalItemDependency[];
     contents: TaggedMessageContentUnrestricted[];
@@ -74,7 +74,7 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
         case 'Link':
             return checkTypes(message, { text: 'string', to: 'string' })
                 && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to))
-        case 'Conditional':
+        case 'Condition':
             const { dependencies, contents } = message || {}
             return checkTypes(message, { if: 'string' })
                 && Array.isArray(dependencies)
@@ -89,7 +89,7 @@ export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => 
 export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
-export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedConditional => (item.tag === 'Conditional')
+export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedConditional => (item.tag === 'Condition')
 
 export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
 
