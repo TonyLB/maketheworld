@@ -36,17 +36,22 @@ export type TaggedLinkUnrestricted = {
     to: string;
 }
 
+export type TaggedConditionalItemDependency = {
+    key: string;
+    EphemeraId: string;
+}
+
 export type TaggedConditional = {
     tag: 'Conditional';
     if: string;
-    dependencies: Record<string, EphemeraVariableId | EphemeraComputedId>;
+    dependencies: TaggedConditionalItemDependency[];
     contents: TaggedMessageContent[];
 }
 
 export type TaggedConditionalUnrestricted = {
     tag: 'Conditional';
     if: string;
-    dependencies: Record<string, EphemeraVariableId | EphemeraComputedId>;
+    dependencies: TaggedConditionalItemDependency[];
     contents: TaggedMessageContentUnrestricted[];
 }
 
@@ -72,8 +77,8 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
         case 'Conditional':
             const { dependencies, contents } = message || {}
             return checkTypes(message, { if: 'string' })
-                && typeof dependencies === 'object'
-                && checkAll(...Object.values(dependencies || {}).map((value) => (typeof value === 'string' && (isEphemeraVariableId(value) || isEphemeraComputedId(value)))))
+                && Array.isArray(dependencies)
+                && checkAll(...(dependencies || []).map((value) => (checkTypes(value, { key: 'string', EphemeraId: 'string' }) && (isEphemeraComputedId(value.EphemeraId) || isEphemeraVariableId(value.EphemeraId)))))
                 && Array.isArray(contents)
                 && checkAll(...contents.map(isTaggedMessageContent))
         default: return false
@@ -98,7 +103,7 @@ export const validateTaggedMessageList = (items: any): items is TaggedMessageCon
 }
 
 type FlattenTaggedMessageContentOptions = {
-    evaluateConditional?: (ifTest: string, dependencies: Record<string, EphemeraVariableId | EphemeraComputedId>) => Promise<boolean>;
+    evaluateConditional?: (ifTest: string, dependencies: TaggedConditionalItemDependency[]) => Promise<boolean>;
 }
 
 const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions): Promise<(TaggedMessageContentFlat | TaggedSpacer)[]> => {
