@@ -1,6 +1,7 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, TaggedMessageContent, flattenTaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages'
+import { RoomDescribeData, FeatureDescribeData, flattenTaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages'
+import { evaluateConditional } from './utils'
 
 type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters'>
 type RenderFeatureOutput = Omit<FeatureDescribeData, 'FeatureId'>
@@ -37,6 +38,7 @@ const joinMessageItems = function * (render: TaggedMessageContentFlat[] = []): G
         yield currentItem
     }
 }
+
 export async function componentAppearanceReduce (...renderList: EphemeraFeatureAppearance[]): Promise<Omit<FeatureDescribeData, 'FeatureId'>>
 export async function componentAppearanceReduce (...renderList: EphemeraRoomAppearance[]): Promise<Omit<RoomDescribeData, 'RoomId' | 'Characters'>>
 export async function componentAppearanceReduce (...renderList: (EphemeraRoomAppearance[] | EphemeraFeatureAppearance[])): Promise<(Omit<RoomDescribeData, 'RoomId' | 'Characters'> | Omit<FeatureDescribeData, 'FeatureId'>)> {
@@ -51,8 +53,8 @@ export async function componentAppearanceReduce (...renderList: (EphemeraRoomApp
         const flattenedList = await Promise.all(
             renderList.map(({ render, name, ...rest }) => (
                 Promise.all([
-                    flattenTaggedMessageContent(render),
-                    flattenTaggedMessageContent(name)
+                    flattenTaggedMessageContent(render, { evaluateConditional }),
+                    flattenTaggedMessageContent(name, { evaluateConditional })
                 ]).then(([render, name]) => ({ render, name, ...rest }))
             ))
         )
@@ -73,8 +75,8 @@ export async function componentAppearanceReduce (...renderList: (EphemeraRoomApp
         const flattenedList = await Promise.all(
             renderList.map(({ render, name, ...rest }) => (
                 Promise.all([
-                    flattenTaggedMessageContent(render),
-                    flattenTaggedMessageContent(name)
+                    flattenTaggedMessageContent(render, { evaluateConditional }),
+                    flattenTaggedMessageContent(name, { evaluateConditional })
                 ]).then(([render, name]) => ({ render, name, ...rest }))
             ))
         )
