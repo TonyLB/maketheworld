@@ -68,7 +68,15 @@
         <Description>
             Four statues of people portrayed in sweeping geometric shapes: A
             <Link to=(childStatue)>child</Link> with hands raised in prayer, a
-            <Link to=(robedStatue)>robed figure</Link><Space />
+            <Link to=(robedStatue)>robed figure</Link>
+            <If {robedStatueActive}>
+                <Depend on=(robedStatueActive) />
+                with cupped hands,
+            </If>
+            <If {!robedStatueActive}>
+                <Depend on=(robedStatueActive) />
+                weeping,
+            </If>
         </Description>
     </Feature>
     <Feature key=(childStatue)>
@@ -114,11 +122,6 @@
     </Feature>
     <If {robedStatueActive}>
         <Depend on=(robedStatueActive) />
-        <Feature key=(wellStatues)>
-            <Description>
-                <Space />with cupped hands,<Space />
-            </Description>
-        </Feature>
         <Feature key=(robedStatue)>
             <Description>
                 <Space />upright, looking into the distance.<Space />

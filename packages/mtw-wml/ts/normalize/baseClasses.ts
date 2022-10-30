@@ -71,6 +71,11 @@ export type ComponentRenderItem = {
     tag: 'LineBreak';
 } | {
     tag: 'Space';
+} | {
+    tag: 'Condition';
+    if: string;
+    dependencies: string[];
+    contents: ComponentRenderItem[];
 }
 
 export type NormalDescriptionPayload = {

@@ -23,7 +23,8 @@ import {
     SchemaStoryTag,
     SchemaTag,
     SchemaVariableTag,
-    SchemaWithKey
+    SchemaWithKey,
+    isSchemaConditionTagDescriptionContext
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -67,6 +68,14 @@ type NormalizeAddReturnValue = {
 type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Character">
 
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
+    if (renderItem.tag === 'If' && isSchemaConditionTagDescriptionContext(renderItem)) {
+        return {
+            tag: 'Condition',
+            if: renderItem.if,
+            dependencies: renderItem.dependencies,
+            contents: renderItem.contents.map(schemaDescriptionToComponentRender(translationTags))
+        }
+    }
     if (renderItem.tag === 'Link') {
         if (!(renderItem.to in translationTags)) {
             throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) with no matching key`)

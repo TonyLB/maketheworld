@@ -22,7 +22,7 @@ describe('schemaFromParse', () => {
                 <Name>Vortex</Name>
                 <Description>
                     <Space />
-                    Vortex
+                    Vortex<If {open}><Depend on=(open) />: Open</If>
                     <Link to=(toggleOpen)>(toggle)</Link>
                 </Description>
                 <Exit from=(DEF)>vortex</Exit>

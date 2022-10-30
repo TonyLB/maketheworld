@@ -3,7 +3,7 @@ import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { objectEntryMap } from '../lib/objects.js'
-import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
+import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { EphemeraError } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
@@ -18,9 +18,9 @@ const tagRenderLink = (normalForm) => (renderItem) => {
     return renderItem
 }
 
-const denormalizeExits = (normalForm) => (contents) => {
+const denormalizeExits = (normalForm: NormalForm) => (contents: NormalReference[]) => {
     const exitTags = contents.filter(({ tag }) => (tag === 'Exit'))
-    const exits = exitTags.map(({ key }) => (normalForm[key]))
+    const exits = exitTags.map(({ key }) => (normalForm[key])).filter(isNormalExit)
     return exits.map(({ name, to }) => ({ name, to }))
 }
 

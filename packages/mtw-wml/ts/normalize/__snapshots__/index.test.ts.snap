@@ -145,6 +145,154 @@ Object {
 }
 `;
 
+exports[`WML normalize should correctly handle conditionals in message text 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "strong",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "trendy",
+            "tag": "Variable",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Vortex",
+          },
+        ],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Hello, world!",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "tag": "String",
+                "value": "Vortex!",
+              },
+            ],
+            "dependencies": Array [
+              "strong",
+            ],
+            "if": "strong",
+            "tag": "Condition",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "contents": Array [
+                  Object {
+                    "tag": "String",
+                    "value": "V.O.R.T.E.X.",
+                  },
+                ],
+                "dependencies": Array [
+                  "trendy",
+                ],
+                "if": "trendy",
+                "tag": "Condition",
+              },
+            ],
+            "dependencies": Array [
+              "strong",
+            ],
+            "if": "!strong",
+            "tag": "Condition",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
+  },
+  "strong": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "strong",
+    "tag": "Variable",
+  },
+  "trendy": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          2,
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "trendy",
+    "tag": "Variable",
+  },
+}
+`;
+
 exports[`WML normalize should correctly handle multiple and nested conditionals 1`] = `
 Object {
   "If-0": Object {

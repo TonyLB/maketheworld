@@ -184,6 +184,29 @@ describe('WML normalize', () => {
 
     })
 
+    it('should correctly handle conditionals in message text', () => {
+        const testSource = `<Asset key=(Test) fileName="Test">
+            <Room key=(a123)>
+                <Name>Vortex</Name>
+                <Description>
+                    Hello, world!<If {strong}><Depend on=(strong) /> Vortex!</If>
+                    <If {!strong}><Depend on=(strong) />
+                        <If {trendy}><Depend on=(trendy) />
+                            V.O.R.T.E.X.
+                        </If>
+                    </If>
+                </Description>
+            </Room>
+            <Variable key=(strong) default={false} />
+            <Variable key=(trendy) default={false} />
+        </Asset>`
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.normal).toMatchSnapshot()
+
+    })
+
     it('should correctly serialize multiple unconditioned descriptions', () => {
         const testSource = `<Asset key=(Test) fileName="Test">
             <Room key=(test)>
