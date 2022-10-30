@@ -29,6 +29,15 @@ export type ComponentMetaMapItem = {
 }
 export type ComponentMetaItem = ComponentMetaRoomItem | ComponentMetaFeatureItem | ComponentMetaMapItem
 
+export type ComponentMetaFromId<T extends EphemeraRoomId | EphemeraFeatureId | EphemeraMapId> =
+    T extends EphemeraRoomId
+        ? ComponentMetaRoomItem
+        : T extends EphemeraFeatureId
+            ? ComponentMetaFeatureItem
+            : T extends EphemeraMapId
+                ? ComponentMetaMapItem
+                : never
+
 const generateCacheKey = (EphemeraId, assetId) => (`${assetId}::${EphemeraId}`)
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: string, assetId: string } => {
     const [assetId, EphemeraId] = cacheKey.split('::')
@@ -83,11 +92,7 @@ export class ComponentMetaData {
         })
     }
 
-    async get(EphemeraId: EphemeraRoomId, assetId: string): Promise<ComponentMetaRoomItem>
-    async get(EphemeraId: EphemeraFeatureId, assetId: string): Promise<ComponentMetaFeatureItem>
-    async get(EphemeraId: EphemeraMapId, assetId: string): Promise<ComponentMetaMapItem>
-    async get(EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId, assetId: string): Promise<ComponentMetaItem>
-    async get(EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId, assetId: string): Promise<ComponentMetaItem> {
+    async get<T extends EphemeraFeatureId | EphemeraRoomId | EphemeraMapId>(EphemeraId: T, assetId: string): Promise<ComponentMetaFromId<T>> {
         const cacheKey = generateCacheKey(EphemeraId, assetId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -156,14 +161,11 @@ export class ComponentMetaData {
             }
         }
         await this._Cache.get(cacheKey)
-        return this._Store[cacheKey]
+        return this._Store[cacheKey] as ComponentMetaFromId<T>
     }
 
-    async getAcrossAssets(EphemeraId: EphemeraRoomId, assetList: string[]): Promise<Record<string, ComponentMetaRoomItem>>
-    async getAcrossAssets(EphemeraId: EphemeraFeatureId, assetList: string[]): Promise<Record<string, ComponentMetaFeatureItem>>
-    async getAcrossAssets(EphemeraId: EphemeraMapId, assetList: string[]): Promise<Record<string, ComponentMetaMapItem>>
-    async getAcrossAssets(EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId, assetList: string[]): Promise<Record<string, ComponentMetaFeatureItem> | Record<string, ComponentMetaRoomItem> | Record<string, ComponentMetaMapItem>>
-    async getAcrossAssets(EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId, assetList: string[]): Promise<Record<string, ComponentMetaFeatureItem> | Record<string, ComponentMetaRoomItem> | Record<string, ComponentMetaMapItem>> {
+    
+    async getAcrossAssets<T extends EphemeraFeatureId | EphemeraRoomId | EphemeraMapId>(EphemeraId: T, assetList: string[]): Promise<Record<string, ComponentMetaFromId<T>>> {
         if (isEphemeraRoomId(EphemeraId)) {
             this._Cache.add({
                 promiseFactory: (cacheKeys: string[]) => {
@@ -193,7 +195,7 @@ export class ComponentMetaData {
                 }
             })
             const individualMetas = await Promise.all(assetList.map((assetId) => (this.get(EphemeraId, assetId))))
-            return individualMetas.reduce<Record<string, ComponentMetaRoomItem>>((previous, item) => ({
+            return individualMetas.reduce<Record<string, ComponentMetaFromId<T>>>((previous, item) => ({
                 ...previous,
                 [item.assetId]: item
             }), {})
@@ -225,7 +227,7 @@ export class ComponentMetaData {
                 }
             })
             const individualMetas = await Promise.all(assetList.map((assetId) => (this.get(EphemeraId, assetId))))
-            return individualMetas.reduce<Record<string, ComponentMetaFeatureItem>>((previous, item) => ({
+            return individualMetas.reduce<Record<string, ComponentMetaFromId<T>>>((previous, item) => ({
                 ...previous,
                 [item.assetId]: item
             }), {})
@@ -257,7 +259,7 @@ export class ComponentMetaData {
                 }
             })
             const individualMetas = await Promise.all(assetList.map((assetId) => (this.get(EphemeraId, assetId))))
-            return individualMetas.reduce<Record<string, ComponentMetaMapItem>>((previous, item) => ({
+            return individualMetas.reduce<Record<string, ComponentMetaFromId<T>>>((previous, item) => ({
                 ...previous,
                 [item.assetId]: item
             }), {})

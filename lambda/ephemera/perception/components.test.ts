@@ -1,4 +1,8 @@
+jest.mock('../internalCache')
+import internalCache from "../internalCache"
 import { componentAppearanceReduce } from './components'
+
+const cacheMock = jest.mocked(internalCache, true)
 
 describe('component utilities', () => {
     describe('componentAppearanceReduce', () => {
@@ -141,7 +145,6 @@ describe('component utilities', () => {
 
         })
 
-
         it('should correctly join items without spacing fields', async () => {
             expect(await componentAppearanceReduce({
                 conditions: [],
@@ -165,6 +168,62 @@ describe('component utilities', () => {
                 Exits: []
             })
 
+        })
+
+        it('should correctly evaluate conditionals', async () => {
+            cacheMock.EvaluateCode.get.mockImplementation(async ({ source }) => {
+                switch(source) {
+                    case 'checkOne': return true
+                    case 'checkTwo': return false
+                }
+            })
+            expect(await componentAppearanceReduce({
+                conditions: [],
+                name: [],
+                exits: [],
+                render: [
+                    { tag: 'String', value: 'Show this, ' },
+                    {
+                        tag: 'Conditional',
+                        if: 'checkOne',
+                        dependencies: { checkOne: 'VARIABLE#Test' },
+                        contents: [
+                            { tag: 'String', value: 'and this, ' },
+                            {
+                                tag: 'Conditional',
+                                if: 'checkOne',
+                                dependencies: { checkOne: 'VARIABLE#Test' },
+                                contents: [
+                                    { tag: 'String', value: `and also this` },
+                                ]
+                            },
+                            {
+                                tag: 'Conditional',
+                                if: 'checkTwo',
+                                dependencies: { checkTwo: 'VARIABLE#Test' },
+                                contents: [
+                                    { tag: 'String', value: `but not this` },
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        tag: 'Conditional',
+                        if: 'checkTwo',
+                        dependencies: { checkTwo: 'VARIABLE#Test' },
+                        contents: [
+                            { tag: 'String', value: `and not this` },
+                        ]
+                    },
+                    { tag: 'String', value: '.' }
+                ]
+            })).toEqual({
+                Description: [
+                    { tag: 'String', value: 'Show this, and this, and also this.' }
+                ],
+                Name: [],
+                Exits: []
+            })
         })
 
     })

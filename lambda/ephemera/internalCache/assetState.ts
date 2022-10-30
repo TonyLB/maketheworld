@@ -70,7 +70,7 @@ export class AssetStateData {
     }
 }
 
-type EvaluateCodeAddress = {
+export type EvaluateCodeAddress = {
     mapping: AssetStateMapping;
     source: string;
 }
