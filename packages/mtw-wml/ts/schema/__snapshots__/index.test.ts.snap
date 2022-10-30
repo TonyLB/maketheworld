@@ -322,6 +322,15 @@ Array [
               },
               Object {
                 "parse": Object {
+                  "endTagToken": 64,
+                  "startTagToken": 64,
+                  "tag": "Whitespace",
+                },
+                "tag": "String",
+                "value": " ",
+              },
+              Object {
+                "parse": Object {
                   "contents": Array [
                     Object {
                       "endTagToken": 70,
@@ -644,6 +653,15 @@ Array [
               "tag": "If",
             },
             "tag": "If",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 64,
+              "startTagToken": 64,
+              "tag": "Whitespace",
+            },
+            "tag": "String",
+            "value": " ",
           },
           Object {
             "parse": Object {

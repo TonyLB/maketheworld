@@ -294,7 +294,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                 \\"render\\": [
                     {
                         \\"tag\\": \\"String\\",
-                        \\"value\\": \\"Vortex\\"
+                        \\"value\\": \\"Vortex \\"
                     },
                     {
                         \\"tag\\": \\"Link\\",
@@ -512,7 +512,7 @@ exports[`LibraryAsset context provider should provide rooms 1`] = `
         String
       </span>
       <span>
-        Vortex
+        Vortex 
       </span>
       <span>
         Link

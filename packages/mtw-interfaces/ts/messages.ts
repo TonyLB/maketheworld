@@ -51,7 +51,7 @@ export type TaggedConditional = {
 export type TaggedConditionalUnrestricted = {
     tag: 'Condition';
     if: string;
-    dependencies: TaggedConditionalItemDependency[];
+    dependencies: string[];
     contents: TaggedMessageContentUnrestricted[];
 }
 

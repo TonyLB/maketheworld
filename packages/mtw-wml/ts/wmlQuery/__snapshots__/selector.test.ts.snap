@@ -100,7 +100,7 @@ Array [
         "contents": Array [
           Object {
             "tag": "String",
-            "value": "Test Render:",
+            "value": "Test Render: ",
           },
           Object {
             "tag": "Link",
@@ -151,7 +151,7 @@ Array [
           "value": "Test Render:",
         },
         "tag": "String",
-        "value": "Test Render:",
+        "value": "Test Render: ",
       },
       Object {
         "parse": Object {
@@ -222,7 +222,7 @@ Array [
     "contents": Array [
       Object {
         "tag": "String",
-        "value": "Test Render:",
+        "value": "Test Render: ",
       },
       Object {
         "tag": "Link",
@@ -293,7 +293,7 @@ Array [
     "contents": Array [
       Object {
         "tag": "String",
-        "value": "Test Render:",
+        "value": "Test Render: ",
       },
       Object {
         "tag": "Link",
@@ -349,7 +349,7 @@ Array [
         "contents": Array [
           Object {
             "tag": "String",
-            "value": "Test Render:",
+            "value": "Test Render: ",
           },
           Object {
             "tag": "Link",
@@ -400,7 +400,7 @@ Array [
           "value": "Test Render:",
         },
         "tag": "String",
-        "value": "Test Render:",
+        "value": "Test Render: ",
       },
       Object {
         "parse": Object {

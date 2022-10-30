@@ -220,6 +220,10 @@ Object {
             "tag": "Condition",
           },
           Object {
+            "tag": "String",
+            "value": " ",
+          },
+          Object {
             "contents": Array [
               Object {
                 "contents": Array [

@@ -1,7 +1,8 @@
+import { current } from "immer";
 import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag } from "./baseClasses";
 
 //
-// TODO: This may (with new refinements) be so simple as to barely need any real code ... refactor
+// Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values
 //
 export const translateTaggedMessageContents = (contents: SchemaTaggedMessageIncomingContents[]): SchemaTaggedMessageLegalContents[] => {
     let returnValue: SchemaTaggedMessageLegalContents[] = []
@@ -9,8 +10,20 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
     contents.forEach((item) => {
         if (isSchemaWhitespace(item)) {
             if (currentToken) {
-                returnValue.push(currentToken)
-                currentToken = undefined
+                if (isSchemaString(currentToken)) {
+                    currentToken = {
+                        ...currentToken,
+                        value: `${currentToken.value.trimEnd()} `
+                    }
+                }
+                else {
+                    returnValue.push(currentToken)
+                    currentToken = {
+                        tag: 'String',
+                        value: ' ',
+                        parse: item.parse
+                    }
+                }
             }
         }
         if (isSchemaLineBreak(item)) {
@@ -27,7 +40,33 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
             }
             returnValue.push(item)
         }
-        if (isSchemaLink(item) || isSchemaString(item) || isSchemaCondition(item)) {
+        if (isSchemaString(item)) {
+            if (currentToken) {
+                if (isSchemaString(currentToken)) {
+                    currentToken = {
+                        ...currentToken,
+                        value: `${currentToken.value}${item.value}`
+                    }
+                }
+                else {
+                    returnValue.push(currentToken)
+                    currentToken = { ...item }
+                }
+            }
+            else {
+                currentToken = { ...item }
+            }
+        }
+        if (isSchemaCondition(item) && isSchemaConditionTagDescriptionContext(item)) {
+            if (currentToken) {
+                returnValue.push(currentToken)
+            }
+            currentToken = {
+                ...item,
+                contents: translateTaggedMessageContents(item.contents)
+            }
+        }
+        if (isSchemaLink(item)) {
             if (currentToken) {
                 returnValue.push(currentToken)
             }
@@ -35,7 +74,23 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
         }
     })
     if (currentToken) {
-        returnValue.push(currentToken)
+        if (currentToken.tag === 'String') {
+            if (currentToken.value.trimEnd()) {
+                returnValue.push({
+                    ...currentToken,
+                    value: currentToken.value.trimEnd()
+                })
+            }
+        }
+        else if (isSchemaCondition(currentToken) && isSchemaConditionTagDescriptionContext(currentToken)) {
+            returnValue.push({
+                ...currentToken,
+                contents: translateTaggedMessageContents(currentToken.contents)
+            })
+        }
+        else {
+            returnValue.push(currentToken)
+        }
     }
     return returnValue
 }
