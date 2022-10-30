@@ -127,13 +127,27 @@ export type SchemaImportTag = {
 // TODO:  Figure out how to define limits on schemaConditionTag contents
 // without causing circular reference
 //
-export type SchemaConditionTag = {
+export type SchemaConditionTagAssetContext = {
     tag: 'If';
+    contextTag: 'Asset';
     if: string;
     key?: string;
     dependencies: string[];
     contents: SchemaAssetLegalContents[];
 } & SchemaBase
+
+export type SchemaConditionTagDescriptionContext = {
+    tag: 'If';
+    contextTag: 'Description';
+    if: string;
+    key?: string;
+    dependencies: string[];
+    contents: SchemaTaggedMessageIncomingContents[];
+} & SchemaBase
+
+export type SchemaConditionTag = SchemaConditionTagAssetContext | SchemaConditionTagDescriptionContext
+
+export const isSchemaConditionTagDescriptionContext = (value: SchemaConditionTag): value is SchemaConditionTagDescriptionContext => (value.contextTag === 'Description')
 
 export type SchemaExitTag = {
     tag: 'Exit';
@@ -150,8 +164,8 @@ export type SchemaLinkTag = {
     text: string;
 } & SchemaBase
 
-export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaWhitespaceTag
-export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag
+export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaWhitespaceTag
+export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
@@ -288,6 +302,7 @@ export const isSchemaLink = (value: SchemaTag): value is SchemaLinkTag => (value
 export const isSchemaWhitespace = (value: SchemaTag): value is SchemaWhitespaceTag => (value.tag === 'Whitespace')
 export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag => (value.tag === 'br')
 export const isSchemaSpacer = (value: SchemaTag): value is SchemaSpacerTag => (value.tag === 'Space')
+export const isSchemaCondition = (value: SchemaTag): value is SchemaConditionTag => (value.tag === 'If')
 
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 

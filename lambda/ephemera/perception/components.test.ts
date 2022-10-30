@@ -184,13 +184,13 @@ describe('component utilities', () => {
                 render: [
                     { tag: 'String', value: 'Show this, ' },
                     {
-                        tag: 'Conditional',
+                        tag: 'Condition',
                         if: 'checkOne',
                         dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
                         contents: [
                             { tag: 'String', value: 'and this, ' },
                             {
-                                tag: 'Conditional',
+                                tag: 'Condition',
                                 if: 'checkOne',
                                 dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
                                 contents: [
@@ -198,7 +198,7 @@ describe('component utilities', () => {
                                 ]
                             },
                             {
-                                tag: 'Conditional',
+                                tag: 'Condition',
                                 if: 'checkTwo',
                                 dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
                                 contents: [
@@ -208,7 +208,7 @@ describe('component utilities', () => {
                         ]
                     },
                     {
-                        tag: 'Conditional',
+                        tag: 'Condition',
                         if: 'checkTwo',
                         dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
                         contents: [

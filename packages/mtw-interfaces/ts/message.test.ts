@@ -77,12 +77,12 @@ describe('flattenTaggedMessageContent', () => {
         expect(await flattenTaggedMessageContent([
             { tag: 'String', value: 'Show,' },
             { tag: 'Space' },
-            { tag: 'Conditional',
+            { tag: 'Condition',
                 if: 'check',
                 dependencies: [{ key: 'check', EphemeraId: 'VARIABLE#Test' }],
                 contents: [
                     { tag: 'String', value: `Don't show` },
-                    { tag: 'Conditional',
+                    { tag: 'Condition',
                         if: 'check',
                         dependencies: [{ key: 'check', EphemeraId: 'VARIABLE#Test' }],
                         contents: [
@@ -105,13 +105,13 @@ describe('flattenTaggedMessageContent', () => {
         const output = await flattenTaggedMessageContent([
             { tag: 'String', value: 'Show this, ' },
             {
-                tag: 'Conditional',
+                tag: 'Condition',
                 if: 'checkOne',
                 dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
                 contents: [
                     { tag: 'String', value: 'and this, ' },
                     {
-                        tag: 'Conditional',
+                        tag: 'Condition',
                         if: 'checkOne',
                         dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
                         contents: [
@@ -119,7 +119,7 @@ describe('flattenTaggedMessageContent', () => {
                         ]
                     },
                     {
-                        tag: 'Conditional',
+                        tag: 'Condition',
                         if: 'checkTwo',
                         dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
                         contents: [
@@ -129,7 +129,7 @@ describe('flattenTaggedMessageContent', () => {
                 ]
             },
             {
-                tag: 'Conditional',
+                tag: 'Condition',
                 if: 'checkTwo',
                 dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
                 contents: [
