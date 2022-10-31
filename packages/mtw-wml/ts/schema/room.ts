@@ -1,5 +1,6 @@
-import { SchemaRoomTag, isSchemaName, isSchemaDescription, SchemaRoomLegalContents, SchemaNameTag, isSchemaRoomContents } from "./baseClasses";
+import { SchemaRoomTag, SchemaRoomLegalContents, SchemaNameTag, isSchemaRoomContents } from "./baseClasses";
 import { ParseRoomTag } from "../parser/baseClasses";
+import { extractDescriptionFromContents, extractNameFromContents } from "./utils";
 
 //
 // TODO: Refactor room schema formation to keep name and description tags not folded into name
@@ -14,8 +15,8 @@ export const schemaFromRoom = (item: ParseRoomTag, contents: (SchemaRoomLegalCon
         display: item.display,
         x: item.x,
         y: item.y,
-        name: contents.filter(isSchemaName).map(({ contents }) => (contents)).reduce((previous, item) => ([ ...previous, ...item ]), []),
-        render: contents.filter(isSchemaDescription).reduce((previous, description) => ([...previous, ...description.contents]), []),
+        name: extractNameFromContents(contents),
+        render: extractDescriptionFromContents(contents),
         contents: componentContents,
         parse: item
     }

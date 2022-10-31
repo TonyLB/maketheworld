@@ -1,5 +1,6 @@
-import { SchemaMapTag, isSchemaName, SchemaMapLegalContents, isSchemaMapContents, SchemaNameTag, isSchemaRoom, isSchemaImage } from "./baseClasses";
+import { SchemaMapTag, SchemaMapLegalContents, isSchemaMapContents, SchemaNameTag, isSchemaRoom, isSchemaImage } from "./baseClasses";
 import { ParseMapTag } from "../parser/baseClasses";
+import { extractNameFromContents } from "./utils";
 
 //
 // TODO: Refactor room schema formation to keep name and description tags not folded into name
@@ -10,7 +11,7 @@ export const schemaFromMap = (item: ParseMapTag, contents: (SchemaMapLegalConten
     return {
         tag: 'Map',
         key: item.key,
-        name: contents.filter(isSchemaName).map(({ contents }) => (contents)).reduce((previous, item) => ([ ...previous, ...item ]), []),
+        name: extractNameFromContents(contents),
         contents: componentContents,
         rooms: contents.reduce<Record<string, { x: number; y: number; index: number }>>((previous, item, index) => {
             if (isSchemaRoom(item)) {

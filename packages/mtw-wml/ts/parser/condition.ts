@@ -16,11 +16,12 @@ export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>
     const dependencies = contents.filter(isParseTagDependency)
     const nonDependencyContents = contents.filter((value) => (!isParseTagDependency(value)))
     type ValidationType = ArrayContents<ParseConditionTypeFromContextTag<T>["contents"]>
+    console.log(`If legal tags(${contextTag}): ${JSON.stringify(parseDifferentiatingTags[contextTag], null, 4)}`)
     const parsedContents = validateContents<ValidationType>({
         contents: nonDependencyContents,
         legalTags: parseDifferentiatingTags[contextTag] as ValidationType["tag"][],
         ignoreTags: ['Comment', ...(('Whitespace' in parseDifferentiatingTags[contextTag]) ? [] : ['Whitespace'] as 'Whitespace'[])]
-    })
+    }) as ParseConditionTypeFromContextTag<T>["contents"]
     return {
         type: 'Tag',
         tag: {
