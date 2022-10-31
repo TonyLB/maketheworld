@@ -1820,7 +1820,7 @@ Object {
           Object {
             "tag": "String",
             "value": "Natural rock formations rise in a jagged cliff-face. An asymmetric
- opening leads into a dimly lit cave.",
+ opening leads into a dimly lit cave. ",
           },
           Object {
             "tag": "LineBreak",
@@ -1828,8 +1828,7 @@ Object {
           Object {
             "tag": "String",
             "value": "(You could also go literally anywhere else in the world, if any of
- it had been created. But it hasn't)
-",
+ it had been created. But it hasn't)",
           },
         ],
       },
@@ -1916,8 +1915,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A large contraption of aged leather, wood, and iron. It connects by
- a loose hose to the hearth.
-",
+ a loose hose to the hearth.",
           },
         ],
       },
@@ -1948,8 +1946,7 @@ Object {
           Object {
             "tag": "String",
             "value": "There is a large handled wheel, spinning with the drawing power
- of the bellows, that you could slow in order to
-",
+ of the bellows, that you could slow in order to ",
           },
           Object {
             "tag": "Link",
@@ -1993,8 +1990,7 @@ Object {
           Object {
             "tag": "String",
             "value": "There is a large handled wheel, and it looks like you could spin
- the wheel in order to
-",
+ the wheel in order to ",
           },
           Object {
             "tag": "Link",
@@ -2004,8 +2000,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -2093,8 +2088,7 @@ Object {
           Object {
             "tag": "String",
             "value": "Strands of glowing milky energy cling and crawl across the
- surface of this column.
-",
+ surface of this column.",
           },
         ],
       },
@@ -2182,8 +2176,7 @@ Object {
           Object {
             "tag": "String",
             "value": "Strands of glowing milky energy cling and crawl across the
- surface of this column.
-",
+ surface of this column.",
           },
         ],
       },
@@ -2433,8 +2426,7 @@ Object {
           Object {
             "tag": "String",
             "value": "Each of the columns spaced around the perimeter of the room is
- carved differently. There is a
-",
+ carved differently. There is a ",
           },
           Object {
             "tag": "Link",
@@ -2543,8 +2535,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "glowing
-",
+            "value": "glowing",
           },
         ],
       },
@@ -2770,8 +2761,7 @@ Object {
           Object {
             "tag": "String",
             "value": "In several places the stone shapes are cunning carved to hide
- joints. You could
-",
+ joints. You could ",
           },
           Object {
             "tag": "Link",
@@ -2892,8 +2882,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "or
-",
+            "value": "or ",
           },
           Object {
             "tag": "Link",
@@ -2903,8 +2892,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -2934,8 +2922,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "or
-",
+            "value": "or ",
           },
           Object {
             "tag": "Link",
@@ -2945,8 +2932,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -3072,8 +3058,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "There is something strange about the carving of the figure's
-",
+            "value": "There is something strange about the carving of the figure's ",
           },
           Object {
             "tag": "Link",
@@ -3083,8 +3068,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -3498,8 +3482,7 @@ Object {
           Object {
             "tag": "String",
             "value": "pool of water blocking the entire bottom passage, and covering a
- blocked
-",
+ blocked ",
           },
           Object {
             "tag": "Link",
@@ -3542,8 +3525,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "shallow pool of water draining slowly into a
-",
+            "value": "shallow pool of water draining slowly into a ",
           },
           Object {
             "tag": "Link",
@@ -3655,8 +3637,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A low purring sound and the echoes of birdsong sound through the
- caverns.
-",
+ caverns.",
           },
         ],
       },
@@ -3686,8 +3667,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.
-",
+            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
           },
         ],
       },
@@ -3717,8 +3697,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.
-",
+            "value": "The sound of birdsong echoes through the caverns.",
           },
         ],
       },
@@ -3748,8 +3727,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss winds through the caverns.
-",
+            "value": "A loud hiss winds through the caverns.",
           },
         ],
       },
@@ -3779,8 +3757,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A low purring sound echoes through the caverns.
-",
+            "value": "A low purring sound echoes through the caverns.",
           },
         ],
       },
@@ -3915,8 +3892,7 @@ Object {
             "tag": "String",
             "value": "A few narrow cracks in the ceiling of this cavern let in streams of
  sunlight. Hardy trees have grown here, spreading low and squat,
- competing for light. Their dense branches are home to many
-",
+ competing for light. Their dense branches are home to many ",
           },
           Object {
             "tag": "Link",
@@ -3961,8 +3937,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "lit from within by flame.
-",
+            "value": "lit from within by flame.",
           },
         ],
       },
@@ -3998,8 +3973,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "that a person might manage to squeeze through.
-",
+            "value": "that a person might manage to squeeze through.",
           },
         ],
       },
@@ -4030,8 +4004,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A low purring sound and the echoes of birdsong sound through the
- caverns.
-",
+ caverns.",
           },
         ],
       },
@@ -4061,8 +4034,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.
-",
+            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
           },
         ],
       },
@@ -4092,8 +4064,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.
-",
+            "value": "The sound of birdsong echoes through the caverns.",
           },
         ],
       },
@@ -4123,8 +4094,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss winds through the caverns.
-",
+            "value": "A loud hiss winds through the caverns.",
           },
         ],
       },
@@ -4154,8 +4124,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A low purring sound echoes through the caverns.
-",
+            "value": "A low purring sound echoes through the caverns.",
           },
         ],
       },
@@ -4288,8 +4257,7 @@ Object {
         "render": Array [
           Object {
             "tag": "String",
-            "value": "This room is filled with racks of
-",
+            "value": "This room is filled with racks of ",
           },
           Object {
             "tag": "Link",
@@ -4299,8 +4267,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ", and
-",
+            "value": ", and ",
           },
           Object {
             "tag": "Link",
@@ -4310,8 +4277,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ". What looks like a huge
-",
+            "value": ". What looks like a huge ",
           },
           Object {
             "tag": "Link",
@@ -4321,7 +4287,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "dominates the
+            "value": " dominates the
  north-east corner,",
           },
           Object {
@@ -4355,8 +4321,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "flaming brightly.
-",
+            "value": "flaming brightly.",
           },
         ],
       },
@@ -4393,8 +4358,7 @@ Object {
           Object {
             "tag": "String",
             "value": "and past the cold hearth are some jagged openings that a person
- might squeeze through carefully.
-",
+ might squeeze through carefully.",
           },
         ],
       },
@@ -4425,8 +4389,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A low purring sound and the echoes of birdsong sound through the
- caverns.
-",
+ caverns.",
           },
         ],
       },
@@ -4456,8 +4419,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.
-",
+            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
           },
         ],
       },
@@ -4487,8 +4449,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.
-",
+            "value": "The sound of birdsong echoes through the caverns.",
           },
         ],
       },
@@ -4518,8 +4479,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss winds through the caverns.
-",
+            "value": "A loud hiss winds through the caverns.",
           },
         ],
       },
@@ -4549,8 +4509,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A low purring sound echoes through the caverns.
-",
+            "value": "A low purring sound echoes through the caverns.",
           },
         ],
       },
@@ -4655,8 +4614,7 @@ Object {
             "tag": "String",
             "value": "Gnarled fruit trees, planted in careful rows but clearly left to
  grow on their own for some time. Their limbs are heavily burdened
- with ripe fruit. Some would probably fall off if you
-",
+ with ripe fruit. Some would probably fall off if you ",
           },
           Object {
             "tag": "Link",
@@ -4666,8 +4624,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -4756,8 +4713,7 @@ Object {
           Object {
             "tag": "String",
             "value": "Moss-covered rocks cover the grating. You could easily move them
- to
-",
+ to ",
           },
           Object {
             "tag": "Link",
@@ -4767,8 +4723,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -4799,8 +4754,7 @@ Object {
           Object {
             "tag": "String",
             "value": "Moss-covered rocks surround the grating. You could easily move
- them to
-",
+ them to ",
           },
           Object {
             "tag": "Link",
@@ -4810,8 +4764,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -4958,8 +4911,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "The plaque is attached loosely, and it seems that you could
-",
+            "value": "The plaque is attached loosely, and it seems that you could ",
           },
           Object {
             "tag": "Link",
@@ -4969,8 +4921,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -5005,8 +4956,7 @@ Object {
             "tag": "String",
             "value": "This huge construction is made of obsidian. If has an open back with
  various small tunnels leading further into the caves. There is a
- mantelpiece that is bare except for a single
-",
+ mantelpiece that is bare except for a single ",
           },
           Object {
             "tag": "Link",
@@ -5016,7 +4966,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "mounted on it.",
+            "value": " mounted on it.",
           },
           Object {
             "tag": "Space",
@@ -5049,8 +4999,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A roaring fire crackles in the hearth.
-",
+            "value": "A roaring fire crackles in the hearth.",
           },
         ],
       },
@@ -5175,8 +5124,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A low purring sound and the echoes of birdsong sound through the
- caverns.
-",
+ caverns.",
           },
         ],
       },
@@ -5206,8 +5154,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.
-",
+            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
           },
         ],
       },
@@ -5237,8 +5184,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.
-",
+            "value": "The sound of birdsong echoes through the caverns.",
           },
         ],
       },
@@ -5268,8 +5214,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss winds through the caverns.
-",
+            "value": "A loud hiss winds through the caverns.",
           },
         ],
       },
@@ -5299,8 +5244,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A low purring sound echoes through the caverns.
-",
+            "value": "A low purring sound echoes through the caverns.",
           },
         ],
       },
@@ -5628,8 +5572,7 @@ Object {
           Object {
             "tag": "String",
             "value": "Sunlight streams into this cavern from several vine-choked openings
- in the ceiling. Someone has planted careful rows of
-",
+ in the ceiling. Someone has planted careful rows of ",
           },
           Object {
             "tag": "Link",
@@ -5639,7 +5582,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "here, taking advantage of
+            "value": " here, taking advantage of
  the sunlight. There are openings to",
           },
           Object {
@@ -5673,8 +5616,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "a cavern on the west and a flooded passageway on the east.
-",
+            "value": "a cavern on the west and a flooded passageway on the east.",
           },
         ],
       },
@@ -5818,8 +5760,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A flock of small blue birds are happily eating fallen fruit
- here, and singing noisily.
-",
+ here, and singing noisily.",
           },
         ],
       },
@@ -5850,8 +5791,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A low purring sound and the echoes of birdsong sound through the
- caverns.
-",
+ caverns.",
           },
         ],
       },
@@ -5881,8 +5821,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.
-",
+            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
           },
         ],
       },
@@ -5912,8 +5851,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.
-",
+            "value": "The sound of birdsong echoes through the caverns.",
           },
         ],
       },
@@ -5943,8 +5881,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss winds through the caverns.
-",
+            "value": "A loud hiss winds through the caverns.",
           },
         ],
       },
@@ -5974,8 +5911,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A low purring sound echoes through the caverns.
-",
+            "value": "A low purring sound echoes through the caverns.",
           },
         ],
       },
@@ -6233,8 +6169,7 @@ Object {
           Object {
             "tag": "String",
             "value": "slumped into its cupped hands, the bend of its shoulders
- conveying miserable weeping.
-",
+ conveying miserable weeping. ",
           },
           Object {
             "tag": "Space",
@@ -6261,8 +6196,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "On close inspection, there seems something strange about how the
-",
+            "value": "On close inspection, there seems something strange about how the ",
           },
           Object {
             "tag": "Link",
@@ -6272,8 +6206,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "are sculpted.
-",
+            "value": " are sculpted.",
           },
         ],
       },
@@ -6368,8 +6301,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "into its hands.
-",
+            "value": "into its hands.",
           },
         ],
       },
@@ -6406,8 +6338,7 @@ Object {
           Object {
             "tag": "String",
             "value": "from its
- weeping position.
-",
+ weeping position.",
           },
         ],
       },
@@ -6514,8 +6445,7 @@ Object {
             "tag": "String",
             "value": "Groups of people in various sizes dominate the carvings on this
  column. Each of the people has their heads raised, mouth open in
- what appears to be song. You could
-",
+ what appears to be song. You could ",
           },
           Object {
             "tag": "Link",
@@ -6525,8 +6455,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "and see if it does anything.
-",
+            "value": " and see if it does anything.",
           },
         ],
       },
@@ -6594,8 +6523,7 @@ Object {
         "render": Array [
           Object {
             "tag": "String",
-            "value": "The ceiling of this circular room is vaulted, and three
-",
+            "value": "The ceiling of this circular room is vaulted, and three ",
           },
           Object {
             "tag": "Link",
@@ -6605,9 +6533,8 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "rise to meet it. In the
- center of the floor is a
-",
+            "value": " rise to meet it. In the
+ center of the floor is a ",
           },
           Object {
             "tag": "Link",
@@ -6618,8 +6545,7 @@ Object {
           Object {
             "tag": "String",
             "value": ". There are exits to east and
- west.
-",
+ west.",
           },
         ],
       },
@@ -6650,8 +6576,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A low purring sound and the echoes of birdsong sound through the
- caverns.
-",
+ caverns.",
           },
         ],
       },
@@ -6681,8 +6606,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.
-",
+            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
           },
         ],
       },
@@ -6712,8 +6636,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.
-",
+            "value": "The sound of birdsong echoes through the caverns.",
           },
         ],
       },
@@ -6743,8 +6666,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss winds through the caverns.
-",
+            "value": "A loud hiss winds through the caverns.",
           },
         ],
       },
@@ -6774,8 +6696,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A low purring sound echoes through the caverns.
-",
+            "value": "A low purring sound echoes through the caverns.",
           },
         ],
       },
@@ -7123,15 +7044,14 @@ Object {
             "value": "It is opened, resting against the floor. The opening reveals a
  staircase descending down into darkness (and, again, room for
  more story that has not yet been created ... but congrats on
- solving everything!)",
+ solving everything!) ",
           },
           Object {
             "tag": "LineBreak",
           },
           Object {
             "tag": "String",
-            "value": "You can
-",
+            "value": "You can ",
           },
           Object {
             "tag": "Link",
@@ -7141,8 +7061,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": ".
-",
+            "value": ".",
           },
         ],
       },
@@ -7173,8 +7092,7 @@ Object {
           Object {
             "tag": "String",
             "value": "It is closed. Pulling on the circular handle shows that it is
- firmly locked by some internal mechanism.
-",
+ firmly locked by some internal mechanism.",
           },
         ],
       },
@@ -7352,8 +7270,7 @@ Object {
             "tag": "String",
             "value": "This is a mostly finished room, opening into a passage to the west
  and a ragged unfinished cave in its northeast corner. The room is
- filled with
-",
+ filled with ",
           },
           Object {
             "tag": "Link",
@@ -7363,7 +7280,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "of stylized people in strange
+            "value": " of stylized people in strange
  poses. In the center of the room is a well. Water",
           },
           Object {
@@ -7397,8 +7314,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "trickles out of the well, forming a small stream headed west.
-",
+            "value": "trickles out of the well, forming a small stream headed west.",
           },
         ],
       },
@@ -7429,8 +7345,7 @@ Object {
           Object {
             "tag": "String",
             "value": "pours over the edge of the well, forming a burbling stream to
- the west.
-",
+ the west.",
           },
         ],
       },
@@ -7460,8 +7375,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "rushes out of the well, forming a gushing torrent to the west.
-",
+            "value": "rushes out of the well, forming a gushing torrent to the west.",
           },
         ],
       },
@@ -7492,8 +7406,7 @@ Object {
           Object {
             "tag": "String",
             "value": "A low purring sound and the echoes of birdsong sound through the
- caverns.
-",
+ caverns.",
           },
         ],
       },
@@ -7523,8 +7436,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.
-",
+            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
           },
         ],
       },
@@ -7554,8 +7466,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.
-",
+            "value": "The sound of birdsong echoes through the caverns.",
           },
         ],
       },
@@ -7585,8 +7496,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A loud hiss winds through the caverns.
-",
+            "value": "A loud hiss winds through the caverns.",
           },
         ],
       },
@@ -7616,8 +7526,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "A low purring sound echoes through the caverns.
-",
+            "value": "A low purring sound echoes through the caverns.",
           },
         ],
       },
@@ -7720,8 +7629,7 @@ Object {
         "render": Array [
           Object {
             "tag": "String",
-            "value": "Four statues of people portrayed in sweeping geometric shapes: A
-",
+            "value": "Four statues of people portrayed in sweeping geometric shapes: A ",
           },
           Object {
             "tag": "Link",
@@ -7731,8 +7639,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "with hands raised in prayer, a
-",
+            "value": " with hands raised in prayer, a ",
           },
           Object {
             "tag": "Link",
@@ -7741,11 +7648,14 @@ Object {
             "to": "robedStatue",
           },
           Object {
+            "tag": "String",
+            "value": " ",
+          },
+          Object {
             "contents": Array [
               Object {
                 "tag": "String",
-                "value": "with cupped hands,
-",
+                "value": "with cupped hands,",
               },
             ],
             "dependencies": Array [
@@ -7755,11 +7665,14 @@ Object {
             "tag": "Condition",
           },
           Object {
+            "tag": "String",
+            "value": " ",
+          },
+          Object {
             "contents": Array [
               Object {
                 "tag": "String",
-                "value": "weeping,
-",
+                "value": "weeping,",
               },
             ],
             "dependencies": Array [
@@ -7823,8 +7736,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "a
-",
+            "value": "a ",
           },
           Object {
             "tag": "Link",
@@ -7933,8 +7845,7 @@ Object {
           },
           Object {
             "tag": "String",
-            "value": "forward.
-",
+            "value": "forward.",
           },
         ],
       },
@@ -8568,11 +8479,26 @@ Array [
               Object {
                 "contents": Array [
                   Object {
+                    "endTagToken": 369,
+                    "startTagToken": 369,
+                    "tag": "Whitespace",
+                  },
+                  Object {
+                    "endTagToken": 376,
+                    "startTagToken": 376,
+                    "tag": "Whitespace",
+                  },
+                  Object {
                     "endTagToken": 377,
                     "startTagToken": 377,
                     "tag": "String",
                     "value": "with cupped hands,
 ",
+                  },
+                  Object {
+                    "endTagToken": 378,
+                    "startTagToken": 378,
+                    "tag": "Whitespace",
                   },
                 ],
                 "contextTag": "Description",
@@ -8597,11 +8523,26 @@ Array [
               Object {
                 "contents": Array [
                   Object {
+                    "endTagToken": 385,
+                    "startTagToken": 385,
+                    "tag": "Whitespace",
+                  },
+                  Object {
+                    "endTagToken": 392,
+                    "startTagToken": 392,
+                    "tag": "Whitespace",
+                  },
+                  Object {
                     "endTagToken": 393,
                     "startTagToken": 393,
                     "tag": "String",
                     "value": "weeping,
 ",
+                  },
+                  Object {
+                    "endTagToken": 394,
+                    "startTagToken": 394,
+                    "tag": "Whitespace",
                   },
                 ],
                 "contextTag": "Description",

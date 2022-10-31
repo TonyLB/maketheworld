@@ -19,7 +19,7 @@ export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>
     const parsedContents = validateContents<ValidationType>({
         contents: nonDependencyContents,
         legalTags: parseDifferentiatingTags[contextTag] as ValidationType["tag"][],
-        ignoreTags: ['Whitespace', 'Comment']
+        ignoreTags: ['Comment', ...(('Whitespace' in parseDifferentiatingTags[contextTag]) ? [] : ['Whitespace'] as 'Whitespace'[])]
     })
     return {
         type: 'Tag',

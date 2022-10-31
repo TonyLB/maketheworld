@@ -208,10 +208,25 @@ Array [
               Object {
                 "contents": Array [
                   Object {
+                    "endTagToken": 25,
+                    "startTagToken": 25,
+                    "tag": "Whitespace",
+                  },
+                  Object {
+                    "endTagToken": 32,
+                    "startTagToken": 32,
+                    "tag": "Whitespace",
+                  },
+                  Object {
                     "endTagToken": 33,
                     "startTagToken": 33,
                     "tag": "String",
                     "value": ": Open",
+                  },
+                  Object {
+                    "endTagToken": 34,
+                    "startTagToken": 34,
+                    "tag": "Whitespace",
                   },
                 ],
                 "contextTag": "Description",

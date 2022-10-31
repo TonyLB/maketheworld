@@ -155,7 +155,7 @@ export const isParseConditionTagDescriptionContext = (value: ParseConditionTag):
 
 export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
     Asset: ['Exit', 'Feature', 'Room', 'If', 'Image', 'Map'],
-    Description: ['If', 'Space', 'String', 'Link', 'br']
+    Description: ['If', 'Space', 'String', 'Link', 'br', 'Whitespace']
 }
 
 export type ParseExitTag = {

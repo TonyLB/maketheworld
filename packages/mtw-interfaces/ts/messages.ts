@@ -51,12 +51,17 @@ export type TaggedConditional = {
 export type TaggedConditionalUnrestricted = {
     tag: 'Condition';
     if: string;
-    dependencies: TaggedConditionalItemDependency[];
+    dependencies: string[];
     contents: TaggedMessageContentUnrestricted[];
 }
 
 export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditional;
 
+//
+// TaggedMessageContentUnrestricted is a utility type which should (hopefully) match ComponentRenderItem from mtw-wml,
+// and let the more basic of the message utility functions operate identically on both those types (since
+// they share a lot of basic structure, with ComponentRenderItem using local keys rather than global ones)
+//
 export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditionalUnrestricted;
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;

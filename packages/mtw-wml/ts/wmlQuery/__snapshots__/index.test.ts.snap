@@ -96,7 +96,7 @@ Array [
           "value": "Test Render:",
         },
         "tag": "String",
-        "value": "Test Render:",
+        "value": "Test Render: ",
       },
       Object {
         "parse": Object {
@@ -337,7 +337,7 @@ Array [
               "value": "Test Render:",
             },
             "tag": "String",
-            "value": "Test Render:",
+            "value": "Test Render: ",
           },
           Object {
             "parse": Object {
@@ -522,7 +522,7 @@ Array [
           "value": "Test Render:",
         },
         "tag": "String",
-        "value": "Test Render:",
+        "value": "Test Render: ",
       },
       Object {
         "parse": Object {
@@ -619,7 +619,7 @@ exports[`wmlQuery render method should correctly extract renders 1`] = `
 Array [
   Object {
     "tag": "String",
-    "value": "Test Render:",
+    "value": "Test Render: ",
   },
   Object {
     "tag": "Link",
