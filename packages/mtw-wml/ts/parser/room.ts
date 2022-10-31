@@ -24,7 +24,7 @@ export const parseRoomFactory: ParseTagFactory<ParseRoomTag> = ({ open, contents
     }
     const parseContents = validateContents<ParseRoomLegalContents>({
         contents,
-        legalTags: ['Description', 'Name', 'Feature', 'Exit'],
+        legalTags: ['Description', 'Name', 'Feature', 'Exit', 'If'],
         ignoreTags: ['Whitespace', 'Comment']
     })
     return {
