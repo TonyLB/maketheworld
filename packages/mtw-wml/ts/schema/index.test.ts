@@ -47,6 +47,33 @@ describe('schemaFromParse', () => {
 
     })
 
+    it('should combine conditional elements at every level', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+        <Asset key=(Test) fileName="test">
+            <Room key=(ABC)>
+                <Description>
+                    Test One
+                    <If {open}><Depend on=(open) />Test Two</If>
+                </Description>
+                <If {open}><Depend on=(open) />
+                    <Description>
+                        Test Three
+                    </Description>
+                </If>
+            </Room>
+            <If {open}>
+                <Depend on=(open) />
+                <Room key=(ABC)>
+                    <Description>Test Four</Description>
+                </Room>
+            </If>
+            <Variable key=(open) default={false} />
+        </Asset>
+    `)))
+        expect(schemaFromParse(testParse)).toMatchSnapshot()
+
+    })
+
     it('should make a schema for a character correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
         <Character key=(TESS) fileName="Tess" player="TonyLB">

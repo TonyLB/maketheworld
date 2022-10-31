@@ -169,13 +169,24 @@ export type ParseConditionTagMapContext = {
 } & ParseTagBase
 
 export type ParseConditionTypeFromContextTag<T extends ParseConditionLegalContextTag> =
-    T extends 'Description' ? ParseConditionTagDescriptionContext : ParseConditionTagAssetContext
+    T extends 'Description'
+        ? ParseConditionTagDescriptionContext
+        : T extends 'Room'
+            ? ParseConditionTagRoomContext
+            : T extends 'Feature'
+                ? ParseConditionTagFeatureContext
+                : T extends 'Map'
+                    ? ParseConditionTagMapContext
+                    : ParseConditionTagAssetContext
 
 export type ParseConditionTag = ParseConditionTagAssetContext | ParseConditionTagDescriptionContext | ParseConditionTagRoomContext | ParseConditionTagFeatureContext | ParseConditionTagMapContext
 
-export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description'].includes(value))
+export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description', 'Room', 'Feature', 'Map'].includes(value))
 export const isParseConditionTagAssetContext = (value: ParseConditionTag): value is ParseConditionTagAssetContext => (value.contextTag === 'Asset')
 export const isParseConditionTagDescriptionContext = (value: ParseConditionTag): value is ParseConditionTagDescriptionContext => (value.contextTag === 'Description')
+export const isParseConditionTagRoomContext = (value: ParseConditionTag): value is ParseConditionTagRoomContext => (value.contextTag === 'Room')
+export const isParseConditionTagFeatureContext = (value: ParseConditionTag): value is ParseConditionTagFeatureContext => (value.contextTag === 'Feature')
+export const isParseConditionTagMapContext = (value: ParseConditionTag): value is ParseConditionTagMapContext => (value.contextTag === 'Map')
 
 export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
     Asset: ['Exit', 'Feature', 'Room', 'If', 'Image', 'Map'],

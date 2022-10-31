@@ -1,5 +1,652 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`schemaFromParse should combine conditional elements at every level 1`] = `
+Array [
+  Object {
+    "Story": undefined,
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "parse": Object {
+                  "endTagToken": 16,
+                  "startTagToken": 16,
+                  "tag": "String",
+                  "value": "Test One",
+                },
+                "tag": "String",
+                "value": "Test One ",
+              },
+              Object {
+                "contents": Array [
+                  Object {
+                    "parse": Object {
+                      "endTagToken": 28,
+                      "startTagToken": 28,
+                      "tag": "String",
+                      "value": "Test Two",
+                    },
+                    "tag": "String",
+                    "value": "Test Two",
+                  },
+                ],
+                "contextTag": "Description",
+                "dependencies": Array [
+                  "open",
+                ],
+                "if": "open",
+                "parse": Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 28,
+                      "startTagToken": 28,
+                      "tag": "String",
+                      "value": "Test Two",
+                    },
+                  ],
+                  "contextTag": "Description",
+                  "dependencies": Array [
+                    Object {
+                      "endTagToken": 27,
+                      "on": "open",
+                      "startTagToken": 22,
+                      "tag": "Depend",
+                    },
+                  ],
+                  "endTagToken": 29,
+                  "if": "open",
+                  "startTagToken": 18,
+                  "tag": "If",
+                },
+                "tag": "If",
+              },
+            ],
+            "display": undefined,
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 15,
+                  "startTagToken": 15,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "endTagToken": 16,
+                  "startTagToken": 16,
+                  "tag": "String",
+                  "value": "Test One",
+                },
+                Object {
+                  "endTagToken": 17,
+                  "startTagToken": 17,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 28,
+                      "startTagToken": 28,
+                      "tag": "String",
+                      "value": "Test Two",
+                    },
+                  ],
+                  "contextTag": "Description",
+                  "dependencies": Array [
+                    Object {
+                      "endTagToken": 27,
+                      "on": "open",
+                      "startTagToken": 22,
+                      "tag": "Depend",
+                    },
+                  ],
+                  "endTagToken": 29,
+                  "if": "open",
+                  "startTagToken": 18,
+                  "tag": "If",
+                },
+                Object {
+                  "endTagToken": 30,
+                  "startTagToken": 30,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 31,
+              "startTagToken": 13,
+              "tag": "Description",
+            },
+            "tag": "Description",
+          },
+        ],
+        "display": undefined,
+        "global": undefined,
+        "key": "ABC",
+        "name": Array [],
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 15,
+                  "startTagToken": 15,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "endTagToken": 16,
+                  "startTagToken": 16,
+                  "tag": "String",
+                  "value": "Test One",
+                },
+                Object {
+                  "endTagToken": 17,
+                  "startTagToken": 17,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 28,
+                      "startTagToken": 28,
+                      "tag": "String",
+                      "value": "Test Two",
+                    },
+                  ],
+                  "contextTag": "Description",
+                  "dependencies": Array [
+                    Object {
+                      "endTagToken": 27,
+                      "on": "open",
+                      "startTagToken": 22,
+                      "tag": "Depend",
+                    },
+                  ],
+                  "endTagToken": 29,
+                  "if": "open",
+                  "startTagToken": 18,
+                  "tag": "If",
+                },
+                Object {
+                  "endTagToken": 30,
+                  "startTagToken": 30,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 31,
+              "startTagToken": 13,
+              "tag": "Description",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 44,
+                      "startTagToken": 44,
+                      "tag": "Whitespace",
+                    },
+                    Object {
+                      "endTagToken": 45,
+                      "startTagToken": 45,
+                      "tag": "String",
+                      "value": "Test Three",
+                    },
+                    Object {
+                      "endTagToken": 46,
+                      "startTagToken": 46,
+                      "tag": "Whitespace",
+                    },
+                  ],
+                  "endTagToken": 47,
+                  "startTagToken": 42,
+                  "tag": "Description",
+                },
+              ],
+              "contextTag": "Room",
+              "dependencies": Array [
+                Object {
+                  "endTagToken": 41,
+                  "on": "open",
+                  "startTagToken": 36,
+                  "tag": "Depend",
+                },
+              ],
+              "endTagToken": 48,
+              "if": "open",
+              "startTagToken": 32,
+              "tag": "If",
+            },
+          ],
+          "endTagToken": 49,
+          "key": "ABC",
+          "startTagToken": 8,
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+        "render": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 16,
+              "startTagToken": 16,
+              "tag": "String",
+              "value": "Test One",
+            },
+            "tag": "String",
+            "value": "Test One ",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "parse": Object {
+                  "endTagToken": 28,
+                  "startTagToken": 28,
+                  "tag": "String",
+                  "value": "Test Two",
+                },
+                "tag": "String",
+                "value": "Test Two",
+              },
+            ],
+            "contextTag": "Description",
+            "dependencies": Array [
+              "open",
+            ],
+            "if": "open",
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 28,
+                  "startTagToken": 28,
+                  "tag": "String",
+                  "value": "Test Two",
+                },
+              ],
+              "contextTag": "Description",
+              "dependencies": Array [
+                Object {
+                  "endTagToken": 27,
+                  "on": "open",
+                  "startTagToken": 22,
+                  "tag": "Depend",
+                },
+              ],
+              "endTagToken": 29,
+              "if": "open",
+              "startTagToken": 18,
+              "tag": "If",
+            },
+            "tag": "If",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "parse": Object {
+                  "endTagToken": 45,
+                  "startTagToken": 45,
+                  "tag": "String",
+                  "value": "Test Three",
+                },
+                "tag": "String",
+                "value": "Test Three",
+              },
+            ],
+            "contextTag": "Description",
+            "dependencies": Array [
+              "open",
+            ],
+            "if": "open",
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 44,
+                      "startTagToken": 44,
+                      "tag": "Whitespace",
+                    },
+                    Object {
+                      "endTagToken": 45,
+                      "startTagToken": 45,
+                      "tag": "String",
+                      "value": "Test Three",
+                    },
+                    Object {
+                      "endTagToken": 46,
+                      "startTagToken": 46,
+                      "tag": "Whitespace",
+                    },
+                  ],
+                  "endTagToken": 47,
+                  "startTagToken": 42,
+                  "tag": "Description",
+                },
+              ],
+              "contextTag": "Room",
+              "dependencies": Array [
+                Object {
+                  "endTagToken": 41,
+                  "on": "open",
+                  "startTagToken": 36,
+                  "tag": "Depend",
+                },
+              ],
+              "endTagToken": 48,
+              "if": "open",
+              "startTagToken": 32,
+              "tag": "If",
+            },
+            "tag": "If",
+          },
+        ],
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "contents": Array [
+                  Object {
+                    "parse": Object {
+                      "endTagToken": 67,
+                      "startTagToken": 67,
+                      "tag": "String",
+                      "value": "Test Four",
+                    },
+                    "tag": "String",
+                    "value": "Test Four",
+                  },
+                ],
+                "display": undefined,
+                "parse": Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 67,
+                      "startTagToken": 67,
+                      "tag": "String",
+                      "value": "Test Four",
+                    },
+                  ],
+                  "endTagToken": 68,
+                  "startTagToken": 65,
+                  "tag": "Description",
+                },
+                "tag": "Description",
+              },
+            ],
+            "display": undefined,
+            "global": undefined,
+            "key": "ABC",
+            "name": Array [],
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 67,
+                      "startTagToken": 67,
+                      "tag": "String",
+                      "value": "Test Four",
+                    },
+                  ],
+                  "endTagToken": 68,
+                  "startTagToken": 65,
+                  "tag": "Description",
+                },
+              ],
+              "endTagToken": 69,
+              "key": "ABC",
+              "startTagToken": 60,
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+            "render": Array [
+              Object {
+                "parse": Object {
+                  "endTagToken": 67,
+                  "startTagToken": 67,
+                  "tag": "String",
+                  "value": "Test Four",
+                },
+                "tag": "String",
+                "value": "Test Four",
+              },
+            ],
+            "tag": "Room",
+            "x": undefined,
+            "y": undefined,
+          },
+        ],
+        "contextTag": "Asset",
+        "dependencies": Array [
+          "open",
+        ],
+        "if": "open",
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 67,
+                      "startTagToken": 67,
+                      "tag": "String",
+                      "value": "Test Four",
+                    },
+                  ],
+                  "endTagToken": 68,
+                  "startTagToken": 65,
+                  "tag": "Description",
+                },
+              ],
+              "endTagToken": 69,
+              "key": "ABC",
+              "startTagToken": 60,
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+          ],
+          "contextTag": "Asset",
+          "dependencies": Array [
+            Object {
+              "endTagToken": 59,
+              "on": "open",
+              "startTagToken": 54,
+              "tag": "Depend",
+            },
+          ],
+          "endTagToken": 70,
+          "if": "open",
+          "startTagToken": 50,
+          "tag": "If",
+        },
+        "tag": "If",
+      },
+      Object {
+        "default": "false",
+        "key": "open",
+        "parse": Object {
+          "default": "false",
+          "endTagToken": 79,
+          "key": "open",
+          "startTagToken": 71,
+          "tag": "Variable",
+        },
+        "tag": "Variable",
+      },
+    ],
+    "fileName": "test",
+    "key": "Test",
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 15,
+                  "startTagToken": 15,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "endTagToken": 16,
+                  "startTagToken": 16,
+                  "tag": "String",
+                  "value": "Test One",
+                },
+                Object {
+                  "endTagToken": 17,
+                  "startTagToken": 17,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 28,
+                      "startTagToken": 28,
+                      "tag": "String",
+                      "value": "Test Two",
+                    },
+                  ],
+                  "contextTag": "Description",
+                  "dependencies": Array [
+                    Object {
+                      "endTagToken": 27,
+                      "on": "open",
+                      "startTagToken": 22,
+                      "tag": "Depend",
+                    },
+                  ],
+                  "endTagToken": 29,
+                  "if": "open",
+                  "startTagToken": 18,
+                  "tag": "If",
+                },
+                Object {
+                  "endTagToken": 30,
+                  "startTagToken": 30,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 31,
+              "startTagToken": 13,
+              "tag": "Description",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 44,
+                      "startTagToken": 44,
+                      "tag": "Whitespace",
+                    },
+                    Object {
+                      "endTagToken": 45,
+                      "startTagToken": 45,
+                      "tag": "String",
+                      "value": "Test Three",
+                    },
+                    Object {
+                      "endTagToken": 46,
+                      "startTagToken": 46,
+                      "tag": "Whitespace",
+                    },
+                  ],
+                  "endTagToken": 47,
+                  "startTagToken": 42,
+                  "tag": "Description",
+                },
+              ],
+              "contextTag": "Room",
+              "dependencies": Array [
+                Object {
+                  "endTagToken": 41,
+                  "on": "open",
+                  "startTagToken": 36,
+                  "tag": "Depend",
+                },
+              ],
+              "endTagToken": 48,
+              "if": "open",
+              "startTagToken": 32,
+              "tag": "If",
+            },
+          ],
+          "endTagToken": 49,
+          "key": "ABC",
+          "startTagToken": 8,
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 67,
+                      "startTagToken": 67,
+                      "tag": "String",
+                      "value": "Test Four",
+                    },
+                  ],
+                  "endTagToken": 68,
+                  "startTagToken": 65,
+                  "tag": "Description",
+                },
+              ],
+              "endTagToken": 69,
+              "key": "ABC",
+              "startTagToken": 60,
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+          ],
+          "contextTag": "Asset",
+          "dependencies": Array [
+            Object {
+              "endTagToken": 59,
+              "on": "open",
+              "startTagToken": 54,
+              "tag": "Depend",
+            },
+          ],
+          "endTagToken": 70,
+          "if": "open",
+          "startTagToken": 50,
+          "tag": "If",
+        },
+        Object {
+          "default": "false",
+          "endTagToken": 79,
+          "key": "open",
+          "startTagToken": 71,
+          "tag": "Variable",
+        },
+      ],
+      "endTagToken": 80,
+      "fileName": "test",
+      "key": "Test",
+      "startTagToken": 0,
+      "tag": "Asset",
+    },
+    "player": undefined,
+    "subFolder": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+]
+`;
+
 exports[`schemaFromParse should make a schema for a character correctly 1`] = `
 Array [
   Object {

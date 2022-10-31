@@ -36,9 +36,12 @@ import {
     ParseImportLegalContents,
     ParseSpacerTag,
     isParseConditionTagAssetContext,
-    isParseConditionTagDescriptionContext
+    isParseConditionTagDescriptionContext,
+    isParseConditionTagRoomContext,
+    isParseConditionTagFeatureContext,
+    isParseConditionTagMapContext
 } from "../parser/baseClasses"
-import { SchemaException } from "./baseClasses";
+import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
 
 export function *depthFirstParseTagGenerator(tree: ParseTag[]): Generator<ParseTag> {
     for (const node of tree) {
@@ -199,6 +202,33 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                         }
                     ]    
                 }
+                else if (isParseConditionTagRoomContext(conditionItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...conditionItem,
+                            contents: transformWithContext(item.contents, callback, [...context, conditionItem]) as ParseRoomLegalContents[]
+                        }
+                    ]    
+                }
+                else if (isParseConditionTagFeatureContext(conditionItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...conditionItem,
+                            contents: transformWithContext(item.contents, callback, [...context, conditionItem]) as ParseFeatureLegalContents[]
+                        }
+                    ]    
+                }
+                else if (isParseConditionTagMapContext(conditionItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...conditionItem,
+                            contents: transformWithContext(item.contents, callback, [...context, conditionItem]) as ParseMapLegalContents[]
+                        }
+                    ]    
+                }
                 throw new SchemaException(`Invalid condition context`, conditionItem)
             case 'Exit':
                 const exitItem = callback(item, context)
@@ -284,5 +314,103 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
             ...previous,
             callback(item, context)
         ]
+    }, [])
+}
+
+export const extractNameFromContents = <T extends SchemaFeatureLegalContents | SchemaRoomLegalContents | SchemaMapLegalContents>(contents: T[]): SchemaTaggedMessageLegalContents[] => {
+    return contents.reduce<SchemaTaggedMessageLegalContents[]>((previous, item) => {
+        if (isSchemaName(item)) {
+            return [
+                ...previous,
+                ...(item.contents)
+            ]
+        }
+        if (isSchemaCondition(item)) {
+            if (isSchemaConditionTagRoomContext(item)) {
+                const contents = extractNameFromContents(item.contents)
+                if (contents.length) {
+                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                        ...item,
+                        contextTag: 'Name',
+                        contents
+                    }
+                    return [
+                        ...previous,
+                        conditionGroup
+                    ]
+                }
+            }
+            if (isSchemaConditionTagFeatureContext(item)) {
+                const contents = extractNameFromContents(item.contents)
+                if (contents.length) {
+                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                        ...item,
+                        contextTag: 'Name',
+                        contents
+                    }
+                    return [
+                        ...previous,
+                        conditionGroup
+                    ]
+                }
+            }
+            if (isSchemaConditionTagMapContext(item)) {
+                const contents = extractNameFromContents(item.contents)
+                if (contents.length) {
+                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                        ...item,
+                        contextTag: 'Name',
+                        contents
+                    }
+                    return [
+                        ...previous,
+                        conditionGroup
+                    ]
+                }
+            }
+        }
+        return previous
+    }, [])
+}
+
+export const extractDescriptionFromContents = <T extends SchemaFeatureLegalContents | SchemaRoomLegalContents | SchemaMapLegalContents>(contents: T[]): SchemaTaggedMessageLegalContents[] => {
+    return contents.reduce<SchemaTaggedMessageLegalContents[]>((previous, item) => {
+        if (isSchemaDescription(item)) {
+            return [
+                ...previous,
+                ...(item.contents)
+            ]
+        }
+        if (isSchemaCondition(item)) {
+            if (isSchemaConditionTagRoomContext(item)) {
+                const contents = extractDescriptionFromContents(item.contents)
+                if (contents.length) {
+                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                        ...item,
+                        contextTag: 'Description',
+                        contents
+                    }
+                    return [
+                        ...previous,
+                        conditionGroup
+                    ]
+                }
+            }
+            if (isSchemaConditionTagFeatureContext(item)) {
+                const contents = extractDescriptionFromContents(item.contents)
+                if (contents.length) {
+                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                        ...item,
+                        contextTag: 'Description',
+                        contents
+                    }
+                    return [
+                        ...previous,
+                        conditionGroup
+                    ]
+                }
+            }
+        }
+        return previous
     }, [])
 }

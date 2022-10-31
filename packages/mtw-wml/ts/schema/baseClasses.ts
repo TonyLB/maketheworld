@@ -136,6 +136,15 @@ export type SchemaConditionTagAssetContext = {
     contents: SchemaAssetLegalContents[];
 } & SchemaBase
 
+export type SchemaConditionTagNameContext = {
+    tag: 'If';
+    contextTag: 'Name';
+    if: string;
+    key?: string;
+    dependencies: string[];
+    contents: SchemaTaggedMessageIncomingContents[];
+} & SchemaBase
+
 export type SchemaConditionTagDescriptionContext = {
     tag: 'If';
     contextTag: 'Description';
@@ -145,9 +154,39 @@ export type SchemaConditionTagDescriptionContext = {
     contents: SchemaTaggedMessageIncomingContents[];
 } & SchemaBase
 
-export type SchemaConditionTag = SchemaConditionTagAssetContext | SchemaConditionTagDescriptionContext
+export type SchemaConditionTagRoomContext = {
+    tag: 'If';
+    contextTag: 'Room';
+    if: string;
+    key?: string;
+    dependencies: string[];
+    contents: SchemaRoomLegalContents[];
+} & SchemaBase
+
+export type SchemaConditionTagFeatureContext = {
+    tag: 'If';
+    contextTag: 'Feature';
+    if: string;
+    key?: string;
+    dependencies: string[];
+    contents: SchemaFeatureLegalContents[];
+} & SchemaBase
+
+export type SchemaConditionTagMapContext = {
+    tag: 'If';
+    contextTag: 'Map';
+    if: string;
+    key?: string;
+    dependencies: string[];
+    contents: SchemaMapLegalContents[];
+} & SchemaBase
+
+export type SchemaConditionTag = SchemaConditionTagAssetContext | SchemaConditionTagDescriptionContext | SchemaConditionTagNameContext | SchemaConditionTagRoomContext | SchemaConditionTagFeatureContext | SchemaConditionTagMapContext
 
 export const isSchemaConditionTagDescriptionContext = (value: SchemaConditionTag): value is SchemaConditionTagDescriptionContext => (value.contextTag === 'Description')
+export const isSchemaConditionTagRoomContext = (value: SchemaConditionTag): value is SchemaConditionTagRoomContext => (value.contextTag === 'Room')
+export const isSchemaConditionTagFeatureContext = (value: SchemaConditionTag): value is SchemaConditionTagFeatureContext => (value.contextTag === 'Feature')
+export const isSchemaConditionTagMapContext = (value: SchemaConditionTag): value is SchemaConditionTagMapContext => (value.contextTag === 'Map')
 
 export type SchemaExitTag = {
     tag: 'Exit';
@@ -190,7 +229,7 @@ export type SchemaNameTag = {
 // TODO: Refactor room schema formation to keep name and description tags not folded into name
 // and render properties
 //
-export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag
+export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaConditionTagRoomContext
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
@@ -203,7 +242,7 @@ export type SchemaRoomTag = {
     contents: SchemaRoomLegalContents[];
 } & SchemaBase
 
-export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag
+export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTagFeatureContext
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
@@ -213,7 +252,7 @@ export type SchemaFeatureTag = {
     contents: SchemaFeatureLegalContents[];
 } & SchemaBase
 
-export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag
+export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTagMapContext
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
