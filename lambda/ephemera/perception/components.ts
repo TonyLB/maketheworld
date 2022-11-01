@@ -1,7 +1,8 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
-import { EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
+import { EphemeraExit, EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, flattenTaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages'
-import { evaluateConditional } from './utils'
+import { evaluateConditional, filterAppearances } from './utils'
+import internalCache from '../internalCache'
 
 type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters'>
 type RenderFeatureOutput = Omit<FeatureDescribeData, 'FeatureId'>
@@ -51,11 +52,12 @@ export async function componentAppearanceReduce (...renderList: (EphemeraRoomApp
     }
     if (isEphemeraRoomAppearance(renderList)) {
         const flattenedList = await Promise.all(
-            renderList.map(({ render, name, ...rest }) => (
+            renderList.map(({ render, name, exits, ...rest }) => (
                 Promise.all([
                     flattenTaggedMessageContent(render, { evaluateConditional }),
-                    flattenTaggedMessageContent(name, { evaluateConditional })
-                ]).then(([render, name]) => ({ render, name, ...rest }))
+                    flattenTaggedMessageContent(name, { evaluateConditional }),
+                    filterAppearances((address) => (internalCache.EvaluateCode.get(address)))(exits)
+                ]).then(([render, name, exits]) => ({ render, name, exits, ...rest }))
             ))
         )
         const joinedList = flattenedList.reduce<RenderRoomOutput>((previous, current) => ({
