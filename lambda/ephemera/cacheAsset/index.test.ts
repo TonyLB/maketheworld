@@ -337,4 +337,151 @@ describe('cacheAsset', () => {
         })
     })
 
+    it('should correctly extract query-ready exits from room contents', async () => {
+        const topLevelAppearance: BaseAppearance = {
+            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
+            contents: []
+        }
+
+        const mockEvaluate = jest.fn().mockReturnValue(true)
+        evaluateCodeMock.mockReturnValue(mockEvaluate)
+
+        ephemeraDBMock.getItem
+            .mockResolvedValueOnce({ State: {} })
+        mockNamespaceMap = {
+            test: 'ASSET#test',
+            ABC: 'ROOM#ABC',
+            DEF: 'ROOM#DEF',
+            open: 'VARIABLE#QRS'
+        }
+        mockTestAsset = {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    contents: [{
+                        key: 'ABC',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'DEF',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'open',
+                        tag: 'Variable',
+                        index: 0
+                    }]
+                }]
+            },
+            ABC: {
+                key: 'ABC',
+                tag: 'Room',
+                appearances: [{
+                    ...topLevelAppearance,
+                    name: [{ tag: 'String', value: 'Vortex' }],
+                    render: []
+                }] as ComponentAppearance[]
+            },
+            DEF: {
+                key: 'DEF',
+                tag: 'Room',
+                appearances: [{
+                    ...topLevelAppearance,
+                    name: [{ tag: 'String', value: 'Elsewhere' }],
+                    render: [],
+                    contents: [
+                        {
+                            tag: 'If', key: 'If-0', index: 0
+                        }
+                    ]
+                }] as ComponentAppearance[]
+            },
+            open: {
+                key: 'open',
+                tag: 'Variable',
+                default: 'false',
+                appearances: [topLevelAppearance]
+            },
+            ['DEF#ABC']: {
+                key: 'DEF#ABC',
+                tag: 'Exit',
+                from: 'DEF',
+                to: 'ABC',
+                name: 'Vortex'
+            },
+            ['If-0']: {
+                key: 'If-0',
+                tag: 'If',
+                if: 'open',
+                dependencies: ['open'],
+                appearances: [{
+                    ...topLevelAppearance,
+                    contents: [{
+                        key: 'DEF#ABC',
+                        tag: 'Exit',
+                        index: 0
+                    }]
+                }]
+            }
+        }
+
+        await cacheAssetMessage({
+            payloads: [{
+                type: 'CacheAsset',
+                address: { fileName: 'Test', zone: 'Library' },
+                options: {}
+            }],
+            messageBus: messageBusMock
+        })
+        expect(mergeIntoEphemera).toHaveBeenCalledWith(
+            'test',
+            [{
+                EphemeraId: 'ROOM#ABC',
+                key: 'ABC',
+                appearances: [{
+                    conditions: [],
+                    exits: [],
+                    name: [{ tag: 'String', value: 'Vortex' }],
+                    render: []
+                }]
+            },
+            {
+                EphemeraId: 'ROOM#DEF',
+                key: 'DEF',
+                appearances: [{
+                    conditions: [],
+                    exits: [{
+                        conditions: [{
+                            if: 'open',
+                            dependencies: [{ key: 'open', EphemeraId: 'VARIABLE#QRS' }]
+                        }],
+                        name: 'Vortex',
+                        to: 'ROOM#ABC'
+                    }],
+                    name: [{ tag: 'String', value: 'Elsewhere' }],
+                    render: []
+                }]
+            },
+            {
+                EphemeraId: 'VARIABLE#QRS',
+                key: 'open',
+                default: 'false'
+            }]
+        )
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: "ASSET#test",
+            DataCategory: "Meta::Asset",
+            scopeMap: {
+                test: 'ASSET#test',
+                ABC: 'ROOM#ABC',
+                DEF: 'ROOM#DEF',
+                open: 'VARIABLE#QRS'
+            }
+        })
+    })
 })

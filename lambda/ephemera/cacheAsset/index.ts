@@ -15,12 +15,16 @@ import {
     isNormalMap,
     isNormalVariable,
     isNormalComputed,
-    isNormalImage
+    isNormalImage,
+    NormalReference,
+    isNormalCondition
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
     EphemeraCharacter,
+    EphemeraExit,
     EphemeraItem,
+    EphemeraItemDependency,
     EphemeraPushArgs
 } from './baseClasses'
 import { objectEntryMap } from '../lib/objects.js'
@@ -84,6 +88,63 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
     }
 }
 
+//
+// Extract fetch-ready list of exits from EphemeraRoom contents
+//
+const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: NormalReference[]): EphemeraExit[] => {
+    return contents.reduce<EphemeraExit[]>((previous, item) => {
+        const itemLookup = assetWorkspace.normal?.[item.key]
+        if (itemLookup) {
+            if (isNormalExit(itemLookup)) {
+                const to = assetWorkspace.namespaceIdToDB[itemLookup.to]
+                if (!isEphemeraRoomId(to)) {
+                    throw new EphemeraError(`Illegal target in exit: ${to}`)
+                }
+                return [
+                    ...previous,
+                    {
+                        conditions: [],
+                        name: itemLookup.name || '',
+                        to
+                    }
+                ]
+            }
+            if (isNormalCondition(itemLookup)) {
+                const nestedExits = ephemeraExtractExits(assetWorkspace)(itemLookup.appearances[item.index].contents)
+                if (nestedExits.length) {
+                    const dependencies = itemLookup.dependencies.map<EphemeraItemDependency>((depend) => {
+                        const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
+                        if (!dependTranslated) {
+                            throw new EphemeraError(`Illegal dependency in If: ${depend}`)
+                        }
+                        if (!(isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated))) {
+                            throw new EphemeraError(`Illegal dependency in If: ${depend}`)
+                        }
+                        return {
+                            key: depend,
+                            EphemeraId: dependTranslated
+                        }
+                    })
+                    return [
+                        ...previous,
+                        ...(nestedExits.map((exit) => ({
+                            ...exit,
+                            conditions: [
+                                {
+                                    if: itemLookup.if,
+                                    dependencies
+                                },
+                                ...exit.conditions
+                            ]
+                        })))
+                    ]
+                }
+            }
+        }
+        return previous
+    }, [])
+}
+
 const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { namespaceIdToDB: namespaceMap, normal = {} } = assetWorkspace
     const conditionsTransform = conditionsFromContext(assetWorkspace)
@@ -92,6 +153,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
         return undefined
     }
     const renderTranslate = ephemeraTranslateRender(assetWorkspace)
+    const exitTranslate = ephemeraExtractExits(assetWorkspace)
     if (isEphemeraRoomId(EphemeraId) && isNormalRoom(item)) {
         return {
             key: item.key,
@@ -101,22 +163,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                     conditions: conditionsTransform(appearance.contextStack),
                     name: (appearance.name ?? []).map(renderTranslate),
                     render: (appearance.render || []).map(renderTranslate),
-                    exits: appearance.contents
-                        .filter(({ tag }) => (tag === 'Exit'))
-                        .map(({ key }) => (normal[key]))
-                        .filter(isNormalExit)
-                        .map(({ to: toTarget, name }) => {
-                            const to = namespaceMap[toTarget]
-                            if (!(isEphemeraRoomId(to))) {
-                                throw new EphemeraError(`Illegal target in exit: ${to}`)
-                            }
-                            return {
-                                conditions: [],
-                                name: name || '',
-                                to
-                            }
-                        })
-                        .filter((value: { to: string; name: string }): value is { to: EphemeraRoomId; name: string } => (isEphemeraRoomId(value.to)))
+                    exits: exitTranslate(appearance.contents)
                 }))
         }
     }
