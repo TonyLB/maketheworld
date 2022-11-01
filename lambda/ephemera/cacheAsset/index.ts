@@ -111,6 +111,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                                 throw new EphemeraError(`Illegal target in exit: ${to}`)
                             }
                             return {
+                                conditions: [],
                                 name: name || '',
                                 to
                             }
