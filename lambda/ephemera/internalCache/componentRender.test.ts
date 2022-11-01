@@ -185,10 +185,12 @@ describe('ComponentRender cache handler', () => {
                     render: [],
                     exits: [
                         {
+                            conditions: [],
                             to: 'ROOM#TestRoomTwo',
                             name: 'Other Room'
                         },
                         {
+                            conditions: [],
                             to: 'ROOM#TestRoomThree',
                             name: 'Not in Map'
                         }
@@ -207,6 +209,7 @@ describe('ComponentRender cache handler', () => {
                     render: [],
                     exits: [
                         {
+                            conditions: [],
                             to: 'ROOM#TestRoomOne',
                             name: 'First Room'
                         }
@@ -226,6 +229,7 @@ describe('ComponentRender cache handler', () => {
                     x: 0,
                     y: 0,
                     exits: [{
+                        conditions: [],
                         to: 'ROOM#TestRoomTwo',
                         name: 'Other Room'
                     }]
@@ -236,6 +240,7 @@ describe('ComponentRender cache handler', () => {
                     x: 100,
                     y: 0,
                     exits: [{
+                        conditions: [],
                         to: 'ROOM#TestRoomOne',
                         name: 'First Room'
                     }]

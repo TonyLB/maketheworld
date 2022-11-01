@@ -35,6 +35,7 @@ export type EphemeraFeature = {
 }
 
 export type EphemeraExit = {
+    conditions: EphemeraCondition[];
     name: string;
     to: EphemeraRoomId;
 }
