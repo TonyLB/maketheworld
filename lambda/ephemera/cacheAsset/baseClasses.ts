@@ -63,7 +63,7 @@ export type EphemeraMapAppearance = {
     conditions: EphemeraCondition[];
     fileURL: string;
     name: TaggedMessageContent[];
-    rooms: Record<string, EphemeraMapRoom>;
+    rooms: EphemeraMapRoom[];
 }
 
 export type EphemeraMap = {

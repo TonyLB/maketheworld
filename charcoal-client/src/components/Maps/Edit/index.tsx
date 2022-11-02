@@ -80,9 +80,9 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
             //
             const locationsToUpdate: Record<string, number[]> = (normalMap.appearances)
                 .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-                .reduce((previous, { rooms = {} }) => ({
+                .reduce((previous, { rooms = [] }) => ({
                     ...previous,
-                    ...objectMap(rooms, ({ location }) => (location))
+                    ...rooms.map(({ location }) => (location))
                 }), {})
             const updatesNeeded = Object.entries(newPositions)
                 .filter(([roomId]) => (locationsToUpdate[roomId]))
