@@ -1,5 +1,5 @@
 import { ArrayContents } from "../types"
-import { ParseTagFactory, ParseConditionTag, isParseTagDependency, ParseConditionTypeFromContextTag, ParseStackTagEntry, parseDifferentiatingTags } from "./baseClasses"
+import { ParseTagFactory, ParseConditionTag, ParseConditionTypeFromContextTag, ParseStackTagEntry, parseDifferentiatingTags } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents, extractDependenciesFromJS } from "./utils"
 
 export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>(contextTag: T): ParseTagFactory<ParseConditionTypeFromContextTag<T>> => ({ open, contents, endTagToken }) => {
@@ -12,7 +12,7 @@ export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>
     })
     type ValidationType = ArrayContents<ParseConditionTypeFromContextTag<T>["contents"]>
     const parsedContents = validateContents<ValidationType>({
-        contents: contents.filter((item) => (!isParseTagDependency(item))),
+        contents,
         legalTags: parseDifferentiatingTags[contextTag] as ValidationType["tag"][],
         ignoreTags: ['Comment', ...(('Whitespace' in parseDifferentiatingTags[contextTag]) ? [] : ['Whitespace'] as 'Whitespace'[])]
     }) as ParseConditionTypeFromContextTag<T>["contents"]

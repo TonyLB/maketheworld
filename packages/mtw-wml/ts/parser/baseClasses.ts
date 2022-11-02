@@ -94,11 +94,6 @@ export type ParseVariableTag = {
     default?: string;
 } & ParseTagBase
 
-export type ParseDependencyTag = {
-    tag: 'Depend';
-    on: string;
-} & ParseTagBase
-
 export type ParseComputedTag = {
     tag: 'Computed';
     key: string;
@@ -132,7 +127,7 @@ export type ParseConditionTagAssetContext = {
     tag: 'If';
     contextTag: 'Asset';
     if: string;
-    dependencies: ParseDependencyTag[];
+    dependencies: string[];
     contents: ParseAssetLegalContents[];
 } & ParseTagBase
 
@@ -140,7 +135,7 @@ export type ParseConditionTagDescriptionContext = {
     tag: 'If';
     contextTag: 'Description';
     if: string;
-    dependencies: ParseDependencyTag[];
+    dependencies: string[];
     contents: ParseTaggedMessageLegalContents[];
 } & ParseTagBase
 
@@ -148,7 +143,7 @@ export type ParseConditionTagRoomContext = {
     tag: 'If';
     contextTag: 'Room';
     if: string;
-    dependencies: ParseDependencyTag[];
+    dependencies: string[];
     contents: ParseRoomLegalContents[];
 } & ParseTagBase
 
@@ -164,7 +159,7 @@ export type ParseConditionTagMapContext = {
     tag: 'If';
     contextTag: 'Map';
     if: string;
-    dependencies: ParseDependencyTag[];
+    dependencies: string[];
     contents: ParseMapLegalContents[];
 } & ParseTagBase
 
@@ -280,7 +275,6 @@ export type ParseTag = ParseAssetTag |
     ParseImageTag |
     ParseVariableTag |
     ParseComputedTag |
-    ParseDependencyTag |
     ParseActionTag |
     ParseUseTag |
     ParseImportTag |
@@ -311,7 +305,6 @@ export const isParseLegalTag = (tag: string): tag is ParseLegalTag => ([
     'Image',
     'Variable',
     'Computed',
-    'Depend',
     'Action',
     'Use',
     'Import',
@@ -358,7 +351,6 @@ export class ParseException extends Error {
     }
 }
 
-export const isParseTagDependency = (value: ParseTag): value is ParseDependencyTag => (value.tag === 'Depend')
 export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag | ParseExitTag | ParseNameTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag) => (
     ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Link', 'Map', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
