@@ -32,7 +32,6 @@ const currentWML = `
         <Exit from=(DEF)>vortex</Exit>
     </Room>
     <If {open}>
-        <Depend on=(open) />
         <Room key=(ABC)>
             <Exit to=(DEF)>welcome</Exit>
         </Room>

@@ -6,7 +6,7 @@ export const schemaFromComputed = (item: ParseComputedTag): SchemaComputedTag =>
         tag: 'Computed',
         key: item.key,
         src: item.src,
-        dependencies: item.dependencies.map(({ on }) => (on)),
+        dependencies: item.dependencies,
         parse: item
     }
 }

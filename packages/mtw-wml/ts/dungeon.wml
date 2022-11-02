@@ -321,15 +321,8 @@
             <Link to=(determinedNeck)>neck</Link>.
         </Description>
     </Feature>
-    <Computed key=(determinedStatueComplete) src={determinedStatueLeftArm && determinedStatueRightArm && determinedStatueHead}>
-        <Depend on=(determinedStatueLeftArm) />
-        <Depend on=(determinedStatueRightArm) />
-        <Depend on=(determinedStatueHead) />
-    </Computed>
-    <Computed key=(waterFlow) src={(determinedStatueComplete ? 1 : 0) + (robedStatueActive ? 1 : 0)}>
-        <Depend on=(determinedStatueComplete) />
-        <Depend on=(robedStatueActive) />
-    </Computed>
+    <Computed key=(determinedStatueComplete) src={determinedStatueLeftArm && determinedStatueRightArm && determinedStatueHead} />
+    <Computed key=(waterFlow) src={(determinedStatueComplete ? 1 : 0) + (robedStatueActive ? 1 : 0)} />
     <Room key=(well)>
         <Name>Well Room</Name>
         <Description>
@@ -363,10 +356,7 @@
         </Room>
     </If>
     <Variable key=(gratingBlocked) default={false} />
-    <Computed key=(waterLevel) src={ waterFlow * (gratingBlocked ? 2 : 1) }>
-        <Depend on=(waterFlow) />
-        <Depend on=(gratingBlocked) />
-    </Computed>
+    <Computed key=(waterLevel) src={ waterFlow * (gratingBlocked ? 2 : 1) } />
     <Action
         key=(toggleGratingBlocked)
         src={

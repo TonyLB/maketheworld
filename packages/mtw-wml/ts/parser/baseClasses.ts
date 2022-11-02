@@ -103,7 +103,7 @@ export type ParseComputedTag = {
     tag: 'Computed';
     key: string;
     src: string;
-    dependencies: ParseDependencyTag[];
+    dependencies: string[];
 } & ParseTagBase
 
 export type ParseActionTag = {
