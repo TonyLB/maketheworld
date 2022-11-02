@@ -8,7 +8,7 @@ import { simple as simpleWalk } from "acorn-walk"
 // extractDependenciesFromJS is a painfully naive dependency extractor using only the barest fraction of the recursive
 // scoping functionality of acorn-walk ... and will still probably be good enough for 99+% of cases
 //
-export const extractDependenciesFromJS = (src: string) => {
+export const extractDependenciesFromJS = (src: string): string[] => {
     const parsedJS = acornParse(src.trim(), { ecmaVersion: 'latest' })
     let identifiedGlobals: string[] = []
     let definedLocals: string[] = []
@@ -16,7 +16,7 @@ export const extractDependenciesFromJS = (src: string) => {
         Identifier(node) {
             const identifier = (node as any).name
             if (!(definedLocals.includes(identifier))) {
-                identifiedGlobals.push((node as any).name)
+                identifiedGlobals.push(identifier)
             }
         },
         ArrowFunctionExpression(node) {
@@ -39,12 +39,9 @@ export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>
             if: ['expression']
         }
     })
-    const dependencies = contents.filter(isParseTagDependency)
-    const nonDependencyContents = contents.filter((value) => (!isParseTagDependency(value)))
     type ValidationType = ArrayContents<ParseConditionTypeFromContextTag<T>["contents"]>
-    console.log(`If legal tags(${contextTag}): ${JSON.stringify(parseDifferentiatingTags[contextTag], null, 4)}`)
     const parsedContents = validateContents<ValidationType>({
-        contents: nonDependencyContents,
+        contents: contents.filter((item) => (!isParseTagDependency(item))),
         legalTags: parseDifferentiatingTags[contextTag] as ValidationType["tag"][],
         ignoreTags: ['Comment', ...(('Whitespace' in parseDifferentiatingTags[contextTag]) ? [] : ['Whitespace'] as 'Whitespace'[])]
     }) as ParseConditionTypeFromContextTag<T>["contents"]
@@ -57,7 +54,7 @@ export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>
             startTagToken: open.startTagToken,
             endTagToken,
             contents: parsedContents,
-            dependencies
+            dependencies: extractDependenciesFromJS(validate.if)
         }
     } as ParseStackTagEntry<ParseConditionTypeFromContextTag<T>>
 }

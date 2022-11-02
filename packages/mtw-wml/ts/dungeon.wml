@@ -69,14 +69,8 @@
             Four statues of people portrayed in sweeping geometric shapes: A
             <Link to=(childStatue)>child</Link> with hands raised in prayer, a
             <Link to=(robedStatue)>robed figure</Link>
-            <If {robedStatueActive}>
-                <Depend on=(robedStatueActive) />
-                with cupped hands,
-            </If>
-            <If {!robedStatueActive}>
-                <Depend on=(robedStatueActive) />
-                weeping,
-            </If>
+            <If {robedStatueActive}>with cupped hands,</If>
+            <If {!robedStatueActive}>weeping,</If>
         </Description>
     </Feature>
     <Feature key=(childStatue)>
@@ -121,7 +115,6 @@
         </Description>
     </Feature>
     <If {robedStatueActive}>
-        <Depend on=(robedStatueActive) />
         <Feature key=(robedStatue)>
             <Description>
                 <Space />upright, looking into the distance.<Space />
@@ -134,7 +127,6 @@
         </Feature>
     </If>
     <If {!robedStatueActive}>
-        <Depend on=(robedStatueActive) />
         <Feature key=(wellStatues)>
             <Description>
                 <Space />weeping,<Space />
@@ -265,7 +257,6 @@
         </Description>
     </Feature>
     <If {determinedStatueHead}>
-        <Depend on=(determinedStatueHead) />
         <Feature key=(determinedStatue)>
             <Description>
                 <Space />gazing forward with determination.<Space />
@@ -278,7 +269,6 @@
         </Feature>
     </If>
     <If {!determinedStatueHead}>
-        <Depend on=(determinedStatueHead) />
         <Feature key=(determinedStatue)>
             <Description>
                 <Space />looking away dismissively toward the side of the room.<Space />
@@ -291,7 +281,6 @@
         </Feature>
     </If>
     <If {determinedStatueRightArm}>
-        <Depend on=(determinedStatueRightArm) />
         <Feature key=(determinedNeck)>
             <Description>
                 <Space /><Link to=(lowerRightArm)>lower the right arm</Link>,<Space />
@@ -299,7 +288,6 @@
         </Feature>
     </If>
     <If {!determinedStatueRightArm}>
-        <Depend on=(determinedStatueRightArm) />
         <Feature key=(determinedNeck)>
             <Description>
                 <Space /><Link to=(raiseRightArm)>raise the right arm</Link>,<Space />
@@ -307,7 +295,6 @@
         </Feature>
     </If>
     <If {determinedStatueLeftArm}>
-        <Depend on=(determinedStatueLeftArm) />
         <Feature key=(determinedNeck)>
             <Description>
                 <Space />or
@@ -316,7 +303,6 @@
         </Feature>
     </If>
     <If {!determinedStatueLeftArm}>
-        <Depend on=(determinedStatueLeftArm) />
         <Feature key=(determinedNeck)>
             <Description>
                 <Space />or
@@ -355,7 +341,6 @@
         </Description>
     </Room>
     <If {waterFlow === 0}>
-        <Depend on=(waterFlow) />
         <Room key=(well)>
             <Description>
                 <Space />trickles out of the well, forming a small stream headed west.
@@ -363,7 +348,6 @@
         </Room>
     </If>
     <If {waterFlow === 1}>
-        <Depend on=(waterFlow) />
         <Room key=(well)>
             <Description>
                 <Space />pours over the edge of the well, forming a burbling stream to
@@ -372,7 +356,6 @@
         </Room>
     </If>
     <If {waterFlow === 2}>
-        <Depend on=(waterFlow) />
         <Room key=(well)>
             <Description>
                 <Space />rushes out of the well, forming a gushing torrent to the west.
@@ -416,7 +399,6 @@
         </Description>
     </Feature>
     <If {gratingBlocked}>
-        <Depend on=(gratingBlocked) />
         <Feature key=(gratingDetail)>
             <Description>
                 <Space />Moss-covered rocks cover the grating. You could easily move them
@@ -426,7 +408,6 @@
         </Feature>
     </If>
     <If {!gratingBlocked}>
-        <Depend on=(gratingBlocked) />
         <Feature key=(gratingDetail)>
             <Description>
                 <Space />Moss-covered rocks surround the grating. You could easily move
@@ -458,7 +439,6 @@
         </Room>
     </If>
     <If {waterLevel >= 4}>
-        <Depend on=(waterLevel) />
         <Room key=(orchard)>
             <Description>
                 <Space />a cavern on the west and a flooded passageway on the east.
@@ -472,7 +452,6 @@
             </Description>
         </Room>
         <If {catsInOrchard}>
-            <Depend on=(catsInOrchard) />
             <Room key=(orchard)>
                 <Description>
                     <Space />Wild cats prowl around this space, glaring occasionally at
@@ -482,14 +461,12 @@
         </If>
     </If>
     <If {waterLevel < 4}>
-        <Depend on=(waterLevel) />
         <Room key=(orchard)>
             <Description>
                 <Space />the east and west into other caverns.<Space />
             </Description>
         </Room>
         <If {catsInOrchard}>
-            <Depend on=(catsInOrchard) />
             <Room key=(orchard)>
                 <Description>
                     <Space />Wild cats prowl around this space, occasionally bounding
@@ -499,7 +476,6 @@
         </If>
     </If>
     <If {waterLevel < 4 && waterLevel >= 2}>
-        <Depend on=(waterLevel) />
         <Room key=(fireCatGrotto)>
             <Description>
                 <Space />shallow pool of water draining slowly into a
@@ -508,7 +484,6 @@
         </Room>
     </If>
     <If {waterLevel < 2}>
-        <Depend on=(waterLevel) />
         <Room key=(fireCatGrotto)>
             <Description>
                 <Space /><Link to=(gratingDetail)>grated opening</Link>at the low opening
@@ -517,7 +492,6 @@
         </Room>
     </If>
     <If {birdsInOrchard}>
-        <Depend on=(birdsInOrchard) />
         <Room key=(orchard)>
             <Description>
                 <Space />A flock of small blue birds are happily eating fallen fruit
@@ -649,7 +623,6 @@
         </Description>
     </Feature>
     <If {bellowsRunning}>
-        <Depend on=(bellowsRunning) />
         <Feature key=(bellows)>
             <Description>
                 <Space />There is a large handled wheel, spinning with the drawing power
@@ -659,7 +632,6 @@
         </Feature>
     </If>
     <If {!bellowsRunning}>
-        <Depend on=(bellowsRunning) />
         <Feature key=(bellows)>
             <Description>
                 <Space />There is a large handled wheel, and it looks like you could spin
@@ -675,7 +647,6 @@
         </Description>
     </Feature>
     <If {hearthPrimed}>
-        <Depend on=(hearthPrimed) />
         <Feature key=(hearthCrest)>
             <Description>
                 <Space />upward.<Space />
@@ -683,7 +654,6 @@
         </Feature>
     </If>
     <If {!hearthPrimed}>
-        <Depend on=(hearthPrimed) />
         <Feature key=(hearthCrest)>
             <Description>
                 <Space />downward.<Space />
@@ -727,7 +697,6 @@
         </Description>
     </Feature>
     <If {hearthActive} >
-        <Depend on=(hearthActive) />
         <Room key=(foundry)>
             <Description>
                 <Space />flaming brightly.
@@ -745,7 +714,6 @@
         </Feature>
     </If>
     <If {!hearthActive} >
-        <Depend on=(hearthActive) />
         <Room key=(foundry)>
             <Description>
                 <Space />and past the cold hearth are some jagged openings that a person
@@ -918,8 +886,6 @@
         </Description>
     </Feature>
     <If {hearthActive && birdsInOrchard}>
-        <Depend on=(hearthActive) />
-        <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
             <Description>
 
@@ -978,9 +944,6 @@
         </Room>
     </If>
     <If {!hearthActive && bellowsRunning && birdsInOrchard}>
-        <Depend on=(hearthActive) />
-        <Depend on=(bellowsRunning) />
-        <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
             <Description>
                 
@@ -1032,9 +995,6 @@
         </Room>
     </If>
     <If {!hearthActive && !bellowsRunning && birdsInOrchard}>
-        <Depend on=(hearthActive) />
-        <Depend on=(bellowsRunning) />
-        <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
             <Description>
                 
@@ -1086,9 +1046,6 @@
         </Room>
     </If>
     <If {!hearthActive && bellowsRunning && !birdsInOrchard}>
-        <Depend on=(hearthActive) />
-        <Depend on=(bellowsRunning) />
-        <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
             <Description>
                 
@@ -1140,8 +1097,6 @@
         </Room>
     </If>
     <If {hearthActive && !birdsInOrchard}>
-        <Depend on=(hearthActive) />
-        <Depend on=(birdsInOrchard) />
         <Room key=(statueChamber)>
             <Description>
                 

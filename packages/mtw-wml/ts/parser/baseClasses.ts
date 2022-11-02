@@ -156,7 +156,7 @@ export type ParseConditionTagFeatureContext = {
     tag: 'If';
     contextTag: 'Feature';
     if: string;
-    dependencies: ParseDependencyTag[];
+    dependencies: string[];
     contents: ParseFeatureLegalContents[];
 } & ParseTagBase
 

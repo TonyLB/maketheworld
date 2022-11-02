@@ -131,7 +131,6 @@ describe('WML normalize', () => {
                 </Description>
             </Room>
             <If {strong}>
-                <Depend on=(strong) />
                 <Room key=(a123)>
                     <Description>
                         Vortex!
@@ -156,7 +155,6 @@ describe('WML normalize', () => {
                 </Description>
             </Room>
             <If {strong}>
-                <Depend on=(strong) />
                 <Room key=(a123)>
                     <Description>
                         Vortex!
@@ -164,9 +162,7 @@ describe('WML normalize', () => {
                 </Room>
             </If>
             <If {!strong}>
-                <Depend on=(strong) />
                 <If {trendy}>
-                    <Depend on=(trendy) />
                     <Room key=(a123)>
                         <Description>
                             V.O.R.T.E.X.
@@ -189,9 +185,9 @@ describe('WML normalize', () => {
             <Room key=(a123)>
                 <Name>Vortex</Name>
                 <Description>
-                    Hello, world!<If {strong}><Depend on=(strong) /> Vortex!</If>
-                    <If {!strong}><Depend on=(strong) />
-                        <If {trendy}><Depend on=(trendy) />
+                    Hello, world!<If {strong}> Vortex!</If>
+                    <If {!strong}>
+                        <If {trendy}>
                             V.O.R.T.E.X.
                         </If>
                     </If>
