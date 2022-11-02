@@ -3273,8 +3273,9 @@ Object {
           0,
           1,
         ],
-        "rooms": Object {
-          "VORTEX": Object {
+        "rooms": Array [
+          Object {
+            "key": "VORTEX",
             "location": Array [
               0,
               1,
@@ -3283,7 +3284,8 @@ Object {
             "x": 0,
             "y": 250,
           },
-          "cave": Object {
+          Object {
+            "key": "cave",
             "location": Array [
               0,
               1,
@@ -3292,43 +3294,8 @@ Object {
             "x": 0,
             "y": 150,
           },
-          "curvingPassage": Object {
-            "location": Array [
-              0,
-              1,
-              4,
-            ],
-            "x": -150,
-            "y": 100,
-          },
-          "fireCatGrotto": Object {
-            "location": Array [
-              0,
-              1,
-              7,
-            ],
-            "x": 250,
-            "y": -150,
-          },
-          "forest": Object {
-            "location": Array [
-              0,
-              1,
-              9,
-            ],
-            "x": -50,
-            "y": -200,
-          },
-          "foundry": Object {
-            "location": Array [
-              0,
-              1,
-              10,
-            ],
-            "x": -200,
-            "y": -150,
-          },
-          "intersection": Object {
+          Object {
+            "key": "intersection",
             "location": Array [
               0,
               1,
@@ -3337,16 +3304,18 @@ Object {
             "x": -150,
             "y": -50,
           },
-          "orchard": Object {
+          Object {
+            "key": "curvingPassage",
             "location": Array [
               0,
               1,
-              8,
+              4,
             ],
-            "x": 100,
-            "y": -200,
+            "x": -150,
+            "y": 100,
           },
-          "statueChamber": Object {
+          Object {
+            "key": "statueChamber",
             "location": Array [
               0,
               1,
@@ -3355,7 +3324,8 @@ Object {
             "x": 0,
             "y": 0,
           },
-          "well": Object {
+          Object {
+            "key": "well",
             "location": Array [
               0,
               1,
@@ -3364,7 +3334,47 @@ Object {
             "x": 150,
             "y": -50,
           },
-        },
+          Object {
+            "key": "fireCatGrotto",
+            "location": Array [
+              0,
+              1,
+              7,
+            ],
+            "x": 250,
+            "y": -150,
+          },
+          Object {
+            "key": "orchard",
+            "location": Array [
+              0,
+              1,
+              8,
+            ],
+            "x": 100,
+            "y": -200,
+          },
+          Object {
+            "key": "forest",
+            "location": Array [
+              0,
+              1,
+              9,
+            ],
+            "x": -50,
+            "y": -200,
+          },
+          Object {
+            "key": "foundry",
+            "location": Array [
+              0,
+              1,
+              10,
+            ],
+            "x": -200,
+            "y": -150,
+          },
+        ],
       },
     ],
     "key": "dungeonMap",

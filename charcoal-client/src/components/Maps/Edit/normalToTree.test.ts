@@ -43,13 +43,14 @@ describe('normalToTree', () => {
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
                     images: [],
                     name: [],
-                    rooms: {
-                        '123': {
+                    rooms: [
+                        {
+                            key: '123',
                             x: 200,
                             y: 150,
                             location: [0, 0, 0]
                         }
-                    },
+                    ],
                     contents: [{
                         tag: 'Image',
                         key: 'ImageTest',

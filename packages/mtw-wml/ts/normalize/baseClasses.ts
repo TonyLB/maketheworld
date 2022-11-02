@@ -137,6 +137,7 @@ export type NormalImage = {
 } & NormalBase
 
 export type MapAppearanceRoom = {
+    key: string;
     x: number;
     y: number;
     location: number[];
@@ -147,7 +148,7 @@ type MapAppearanceImage = string
 export type MapAppearance = {
     name: ComponentRenderItem[];
     images: MapAppearanceImage[];
-    rooms: Record<string, MapAppearanceRoom>;
+    rooms: MapAppearanceRoom[];
 } & BaseAppearance
 
 export type NormalMap = {

@@ -150,13 +150,13 @@ describe('ComponentRender cache handler', () => {
                     conditions: [],
                     name: [{ tag: 'String', value: 'Test Map' }],
                     fileURL: 'https://test.com/test.png',
-                    rooms: {
-                        TestRoomOne: {
+                    rooms: [
+                        {
                             EphemeraId: 'ROOM#TestRoomOne',
                             x: 0,
                             y: 0
                         }
-                    }
+                    ]
                 }]
             },
             Personal: {
@@ -166,13 +166,13 @@ describe('ComponentRender cache handler', () => {
                     conditions: [],
                     name: [],
                     fileURL: '',
-                    rooms: {
-                        TestRoomOne: {
+                    rooms: [
+                        {
                             EphemeraId: 'ROOM#TestRoomTwo',
                             x: 100,
                             y: 0
                         }
-                    }
+                    ]
                 }]
             }
         } as Record<string, ComponentMetaMapItem>).mockResolvedValueOnce({

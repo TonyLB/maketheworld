@@ -613,10 +613,10 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...appearance,
-                        rooms: objectMap(node.rooms, (({ index, ...room }) => ({
+                        rooms: node.rooms.map(({ index, ...room }) => ({
                             ...room,
                             location: [...appearance.location, index]
-                        }))),
+                        })),
                         images: node.images
                     }] as MapAppearance[]
                 }

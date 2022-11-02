@@ -258,7 +258,7 @@ export type SchemaMapTag = {
     key: string;
     name: SchemaTaggedMessageLegalContents[];
     contents: SchemaMapLegalContents[];
-    rooms: Record<string, { x: number; y: number; index: number }>;
+    rooms: { key: string, x: number; y: number; index: number }[];
     images: string[];
 } & SchemaBase
 

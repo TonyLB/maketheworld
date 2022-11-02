@@ -1104,8 +1104,9 @@ Object {
           0,
           2,
         ],
-        "rooms": Object {
-          "a123": Object {
+        "rooms": Array [
+          Object {
+            "key": "a123",
             "location": Array [
               0,
               2,
@@ -1114,7 +1115,7 @@ Object {
             "x": 200,
             "y": 150,
           },
-        },
+        ],
       },
     ],
     "key": "TestMap",

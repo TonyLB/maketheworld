@@ -191,7 +191,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                         conditions: conditionsTransform(appearance.contextStack),
                         name: (appearance.name ?? []).map(renderTranslate),
                         fileURL,
-                        rooms: objectEntryMap(appearance.rooms, (key, { x, y }) => ({
+                        rooms: appearance.rooms.map(({ key,  x, y }) => ({
                             EphemeraId: namespaceMap[key] || '',
                             x,
                             y
