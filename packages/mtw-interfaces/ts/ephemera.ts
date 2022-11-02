@@ -317,9 +317,15 @@ export type EphemeraClientMessageRegisterMessage = {
     CharacterId: string;
 }
 
+export type EphemeraClientMessageSubscribeToMapsMessage = {
+    messageType: 'SubscribeToMaps';
+    RequestId?: string;
+}
+
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessagePublishMessages |
-    EphemeraClientMessageRegisterMessage
+    EphemeraClientMessageRegisterMessage |
+    EphemeraClientMessageSubscribeToMapsMessage
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {
@@ -328,6 +334,8 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
     switch(message.messageType) {
         case 'Registration':
             return checkTypes(message, { CharacterId: 'string' }, { RequestId: 'string' })
+        case 'SubscribeToMaps':
+            return checkTypes(message, {}, { RequestId: 'string' })
         case 'Ephemera':
             if (!('updates' in message)) {
                 return false
