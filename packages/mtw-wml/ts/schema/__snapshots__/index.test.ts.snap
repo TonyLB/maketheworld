@@ -107,6 +107,90 @@ Array [
             },
             "tag": "Description",
           },
+          Object {
+            "contents": Array [
+              Object {
+                "contents": Array [
+                  Object {
+                    "parse": Object {
+                      "endTagToken": 33,
+                      "startTagToken": 33,
+                      "tag": "String",
+                      "value": "Test Three",
+                    },
+                    "tag": "String",
+                    "value": "Test Three",
+                  },
+                ],
+                "display": undefined,
+                "parse": Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 32,
+                      "startTagToken": 32,
+                      "tag": "Whitespace",
+                    },
+                    Object {
+                      "endTagToken": 33,
+                      "startTagToken": 33,
+                      "tag": "String",
+                      "value": "Test Three",
+                    },
+                    Object {
+                      "endTagToken": 34,
+                      "startTagToken": 34,
+                      "tag": "Whitespace",
+                    },
+                  ],
+                  "endTagToken": 35,
+                  "startTagToken": 30,
+                  "tag": "Description",
+                },
+                "tag": "Description",
+              },
+            ],
+            "contextTag": "Room",
+            "dependencies": Array [
+              "open",
+            ],
+            "if": "open",
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 32,
+                      "startTagToken": 32,
+                      "tag": "Whitespace",
+                    },
+                    Object {
+                      "endTagToken": 33,
+                      "startTagToken": 33,
+                      "tag": "String",
+                      "value": "Test Three",
+                    },
+                    Object {
+                      "endTagToken": 34,
+                      "startTagToken": 34,
+                      "tag": "Whitespace",
+                    },
+                  ],
+                  "endTagToken": 35,
+                  "startTagToken": 30,
+                  "tag": "Description",
+                },
+              ],
+              "contextTag": "Room",
+              "dependencies": Array [
+                "open",
+              ],
+              "endTagToken": 36,
+              "if": "open",
+              "startTagToken": 26,
+              "tag": "If",
+            },
+            "tag": "If",
+          },
         ],
         "display": undefined,
         "global": undefined,

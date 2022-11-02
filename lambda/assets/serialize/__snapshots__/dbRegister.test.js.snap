@@ -214,13 +214,13 @@ Object {
     Object {
       "defaultAppearances": Array [
         Object {
-          "rooms": Object {
-            "Welcome": Object {
+          "rooms": Array [
+            Object {
               "name": "Welcome",
               "x": 0,
               "y": 100,
             },
-          },
+          ],
         },
       ],
       "key": "Village",

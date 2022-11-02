@@ -93,9 +93,9 @@ describe('dbRegister', () => {
                     key: 'Village',
                     appearances: [{
                         contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
-                        rooms: {
-                            Welcome: { x: 0, y: 100 }
-                        }
+                        rooms: [
+                            { key: 'Welcome', x: 0, y: 100 }
+                        ]
                     }]
                 },
                 Welcome: {
