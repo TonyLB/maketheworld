@@ -21,7 +21,6 @@ exports[`LibraryAsset context provider should provide currentWML 1`] = `
         <Exit from=(DEF)>vortex</Exit>
     </Room>
     <If {open}>
-        <Depend on=(open) />
         <Room key=(ABC)>
             <Exit to=(DEF)>welcome</Exit>
         </Room>

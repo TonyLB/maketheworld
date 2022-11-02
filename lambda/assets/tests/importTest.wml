@@ -6,10 +6,7 @@
         <Use key=(testMap) type="Map" as=(importTestMap) />
     </Import>
     <Variable key=(switchUp) default={false} />
-    <Computed key=(active) src={switchUp && power}>
-        <Depend on=(switchUp) />
-        <Depend on=(power) />
-    </Computed>
+    <Computed key=(active) src={switchUp && power} />
     <Action key=(toggleSwitch) src={
         switchUp = !switchUp
         me.narrate(`${me.Name} lifts ${me.possessive} finger and flips the light switch.`)
@@ -29,7 +26,6 @@
         <Feature key=(lightSwitch) />
     </Room>
     <If {active}>
-        <Depend on=(active) />
         <Map key=(importTestMap)>
             <Room key=(welcomeRoom) x="50" y="0" />
         </Map>
