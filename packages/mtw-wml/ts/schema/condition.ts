@@ -12,7 +12,7 @@ export const schemaFromCondition = <T extends ParseConditionTag>(item: T, conten
         tag: 'If',
         contextTag: item.contextTag,
         if: item.if,
-        dependencies: item.dependencies.map(({ on }) => (on)),
+        dependencies: item.dependencies,
         contents: (isParseConditionTagDescriptionContext(item)) ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[]) : contents,
         parse: item
     } as SchemaConditionTagFromParse<T>

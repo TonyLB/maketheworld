@@ -733,7 +733,9 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [],
+    "dependencies": Array [
+      "waterLevel",
+    ],
     "if": "waterLevel < 4",
     "key": "If-13",
     "tag": "If",
@@ -1233,7 +1235,9 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [],
+    "dependencies": Array [
+      "trapDoorOpen",
+    ],
     "if": "trapDoorOpen",
     "key": "If-25",
     "tag": "If",
@@ -1261,7 +1265,9 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [],
+    "dependencies": Array [
+      "trapDoorOpen",
+    ],
     "if": "!trapDoorOpen",
     "key": "If-26",
     "tag": "If",
@@ -8503,12 +8509,7 @@ Array [
                 ],
                 "contextTag": "Description",
                 "dependencies": Array [
-                  Object {
-                    "endTagToken": 375,
-                    "on": "robedStatueActive",
-                    "startTagToken": 370,
-                    "tag": "Depend",
-                  },
+                  "robedStatueActive",
                 ],
                 "endTagToken": 379,
                 "if": "robedStatueActive",
@@ -8547,12 +8548,7 @@ Array [
                 ],
                 "contextTag": "Description",
                 "dependencies": Array [
-                  Object {
-                    "endTagToken": 391,
-                    "on": "robedStatueActive",
-                    "startTagToken": 386,
-                    "tag": "Depend",
-                  },
+                  "robedStatueActive",
                 ],
                 "endTagToken": 395,
                 "if": "!robedStatueActive",
@@ -8841,12 +8837,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 487,
-            "on": "robedStatueActive",
-            "startTagToken": 482,
-            "tag": "Depend",
-          },
+          "robedStatueActive",
         ],
         "endTagToken": 528,
         "if": "robedStatueActive",
@@ -9004,12 +8995,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 538,
-            "on": "robedStatueActive",
-            "startTagToken": 533,
-            "tag": "Depend",
-          },
+          "robedStatueActive",
         ],
         "endTagToken": 599,
         "if": "!robedStatueActive",
@@ -9532,12 +9518,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 807,
-            "on": "determinedStatueHead",
-            "startTagToken": 802,
-            "tag": "Depend",
-          },
+          "determinedStatueHead",
         ],
         "endTagToken": 844,
         "if": "determinedStatueHead",
@@ -9631,12 +9612,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 854,
-            "on": "determinedStatueHead",
-            "startTagToken": 849,
-            "tag": "Depend",
-          },
+          "determinedStatueHead",
         ],
         "endTagToken": 891,
         "if": "!determinedStatueHead",
@@ -9703,12 +9679,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 901,
-            "on": "determinedStatueRightArm",
-            "startTagToken": 896,
-            "tag": "Depend",
-          },
+          "determinedStatueRightArm",
         ],
         "endTagToken": 927,
         "if": "determinedStatueRightArm",
@@ -9775,12 +9746,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 937,
-            "on": "determinedStatueRightArm",
-            "startTagToken": 932,
-            "tag": "Depend",
-          },
+          "determinedStatueRightArm",
         ],
         "endTagToken": 963,
         "if": "!determinedStatueRightArm",
@@ -9855,12 +9821,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 973,
-            "on": "determinedStatueLeftArm",
-            "startTagToken": 968,
-            "tag": "Depend",
-          },
+          "determinedStatueLeftArm",
         ],
         "endTagToken": 998,
         "if": "determinedStatueLeftArm",
@@ -9935,12 +9896,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1008,
-            "on": "determinedStatueLeftArm",
-            "startTagToken": 1003,
-            "tag": "Depend",
-          },
+          "determinedStatueLeftArm",
         ],
         "endTagToken": 1033,
         "if": "!determinedStatueLeftArm",
@@ -10238,12 +10194,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1166,
-            "on": "waterFlow",
-            "startTagToken": 1161,
-            "tag": "Depend",
-          },
+          "waterFlow",
         ],
         "endTagToken": 1182,
         "if": "waterFlow === 0",
@@ -10295,12 +10246,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1192,
-            "on": "waterFlow",
-            "startTagToken": 1187,
-            "tag": "Depend",
-          },
+          "waterFlow",
         ],
         "endTagToken": 1208,
         "if": "waterFlow === 1",
@@ -10351,12 +10297,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1218,
-            "on": "waterFlow",
-            "startTagToken": 1213,
-            "tag": "Depend",
-          },
+          "waterFlow",
         ],
         "endTagToken": 1234,
         "if": "waterFlow === 2",
@@ -10537,12 +10478,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1302,
-            "on": "gratingBlocked",
-            "startTagToken": 1297,
-            "tag": "Depend",
-          },
+          "gratingBlocked",
         ],
         "endTagToken": 1327,
         "if": "gratingBlocked",
@@ -10618,12 +10554,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1337,
-            "on": "gratingBlocked",
-            "startTagToken": 1332,
-            "tag": "Depend",
-          },
+          "gratingBlocked",
         ],
         "endTagToken": 1362,
         "if": "!gratingBlocked",
@@ -10795,7 +10726,9 @@ Array [
           },
         ],
         "contextTag": "Asset",
-        "dependencies": Array [],
+        "dependencies": Array [
+          "waterLevel",
+        ],
         "endTagToken": 1428,
         "if": "waterLevel < 4",
         "startTagToken": 1411,
@@ -10961,12 +10894,7 @@ Array [
             ],
             "contextTag": "Asset",
             "dependencies": Array [
-              Object {
-                "endTagToken": 1490,
-                "on": "catsInOrchard",
-                "startTagToken": 1485,
-                "tag": "Depend",
-              },
+              "catsInOrchard",
             ],
             "endTagToken": 1509,
             "if": "catsInOrchard",
@@ -10976,12 +10904,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1438,
-            "on": "waterLevel",
-            "startTagToken": 1433,
-            "tag": "Depend",
-          },
+          "waterLevel",
         ],
         "endTagToken": 1510,
         "if": "waterLevel >= 4",
@@ -11082,12 +11005,7 @@ Array [
             ],
             "contextTag": "Asset",
             "dependencies": Array [
-              Object {
-                "endTagToken": 1548,
-                "on": "catsInOrchard",
-                "startTagToken": 1543,
-                "tag": "Depend",
-              },
+              "catsInOrchard",
             ],
             "endTagToken": 1567,
             "if": "catsInOrchard",
@@ -11097,12 +11015,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1520,
-            "on": "waterLevel",
-            "startTagToken": 1515,
-            "tag": "Depend",
-          },
+          "waterLevel",
         ],
         "endTagToken": 1568,
         "if": "waterLevel < 4",
@@ -11183,12 +11096,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1578,
-            "on": "waterLevel",
-            "startTagToken": 1573,
-            "tag": "Depend",
-          },
+          "waterLevel",
         ],
         "endTagToken": 1606,
         "if": "waterLevel < 4 && waterLevel >= 2",
@@ -11258,12 +11166,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1616,
-            "on": "waterLevel",
-            "startTagToken": 1611,
-            "tag": "Depend",
-          },
+          "waterLevel",
         ],
         "endTagToken": 1642,
         "if": "waterLevel < 2",
@@ -11315,12 +11218,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1652,
-            "on": "birdsInOrchard",
-            "startTagToken": 1647,
-            "tag": "Depend",
-          },
+          "birdsInOrchard",
         ],
         "endTagToken": 1668,
         "if": "birdsInOrchard",
@@ -11666,12 +11564,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1789,
-            "on": "bellowsRunning",
-            "startTagToken": 1784,
-            "tag": "Depend",
-          },
+          "bellowsRunning",
         ],
         "endTagToken": 1817,
         "if": "bellowsRunning",
@@ -11747,12 +11640,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1827,
-            "on": "bellowsRunning",
-            "startTagToken": 1822,
-            "tag": "Depend",
-          },
+          "bellowsRunning",
         ],
         "endTagToken": 1852,
         "if": "!bellowsRunning",
@@ -11854,12 +11742,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1881,
-            "on": "hearthPrimed",
-            "startTagToken": 1876,
-            "tag": "Depend",
-          },
+          "hearthPrimed",
         ],
         "endTagToken": 1900,
         "if": "hearthPrimed",
@@ -11912,12 +11795,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 1910,
-            "on": "hearthPrimed",
-            "startTagToken": 1905,
-            "tag": "Depend",
-          },
+          "hearthPrimed",
         ],
         "endTagToken": 1929,
         "if": "!hearthPrimed",
@@ -12405,12 +12283,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 2068,
-            "on": "hearthActive",
-            "startTagToken": 2063,
-            "tag": "Depend",
-          },
+          "hearthActive",
         ],
         "endTagToken": 2114,
         "if": "hearthActive",
@@ -12529,12 +12402,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 2125,
-            "on": "hearthActive",
-            "startTagToken": 2120,
-            "tag": "Depend",
-          },
+          "hearthActive",
         ],
         "endTagToken": 2170,
         "if": "!hearthActive",
@@ -12934,7 +12802,9 @@ Array [
           },
         ],
         "contextTag": "Asset",
-        "dependencies": Array [],
+        "dependencies": Array [
+          "trapDoorOpen",
+        ],
         "endTagToken": 2325,
         "if": "trapDoorOpen",
         "startTagToken": 2291,
@@ -12982,7 +12852,9 @@ Array [
           },
         ],
         "contextTag": "Asset",
-        "dependencies": Array [],
+        "dependencies": Array [
+          "trapDoorOpen",
+        ],
         "endTagToken": 2345,
         "if": "!trapDoorOpen",
         "startTagToken": 2326,
@@ -13285,7 +13157,9 @@ Array [
           },
         ],
         "contextTag": "Asset",
-        "dependencies": Array [],
+        "dependencies": Array [
+          "hearthActive",
+        ],
         "endTagToken": 2463,
         "if": "hearthActive",
         "startTagToken": 2426,
@@ -13464,7 +13338,9 @@ Array [
           },
         ],
         "contextTag": "Asset",
-        "dependencies": Array [],
+        "dependencies": Array [
+          "birdsInOrchard",
+        ],
         "endTagToken": 2540,
         "if": "birdsInOrchard",
         "startTagToken": 2506,
@@ -13845,18 +13721,8 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 2575,
-            "on": "hearthActive",
-            "startTagToken": 2570,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 2581,
-            "on": "birdsInOrchard",
-            "startTagToken": 2576,
-            "tag": "Depend",
-          },
+          "hearthActive",
+          "birdsInOrchard",
         ],
         "endTagToken": 2694,
         "if": "hearthActive && birdsInOrchard",
@@ -14176,24 +14042,9 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 2704,
-            "on": "hearthActive",
-            "startTagToken": 2699,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 2710,
-            "on": "bellowsRunning",
-            "startTagToken": 2705,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 2716,
-            "on": "birdsInOrchard",
-            "startTagToken": 2711,
-            "tag": "Depend",
-          },
+          "hearthActive",
+          "bellowsRunning",
+          "birdsInOrchard",
         ],
         "endTagToken": 2829,
         "if": "!hearthActive && bellowsRunning && birdsInOrchard",
@@ -14513,24 +14364,9 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 2839,
-            "on": "hearthActive",
-            "startTagToken": 2834,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 2845,
-            "on": "bellowsRunning",
-            "startTagToken": 2840,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 2851,
-            "on": "birdsInOrchard",
-            "startTagToken": 2846,
-            "tag": "Depend",
-          },
+          "hearthActive",
+          "bellowsRunning",
+          "birdsInOrchard",
         ],
         "endTagToken": 2964,
         "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
@@ -14850,24 +14686,9 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 2974,
-            "on": "hearthActive",
-            "startTagToken": 2969,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 2980,
-            "on": "bellowsRunning",
-            "startTagToken": 2975,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 2986,
-            "on": "birdsInOrchard",
-            "startTagToken": 2981,
-            "tag": "Depend",
-          },
+          "hearthActive",
+          "bellowsRunning",
+          "birdsInOrchard",
         ],
         "endTagToken": 3099,
         "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
@@ -15187,18 +15008,8 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 3109,
-            "on": "hearthActive",
-            "startTagToken": 3104,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 3115,
-            "on": "birdsInOrchard",
-            "startTagToken": 3110,
-            "tag": "Depend",
-          },
+          "hearthActive",
+          "birdsInOrchard",
         ],
         "endTagToken": 3228,
         "if": "hearthActive && !birdsInOrchard",

@@ -231,12 +231,7 @@ Array [
                 ],
                 "contextTag": "Description",
                 "dependencies": Array [
-                  Object {
-                    "endTagToken": 31,
-                    "on": "open",
-                    "startTagToken": 26,
-                    "tag": "Depend",
-                  },
+                  "open",
                 ],
                 "endTagToken": 35,
                 "if": "open",
@@ -437,12 +432,7 @@ Array [
         ],
         "contextTag": "Asset",
         "dependencies": Array [
-          Object {
-            "endTagToken": 79,
-            "on": "open",
-            "startTagToken": 74,
-            "tag": "Depend",
-          },
+          "open",
         ],
         "endTagToken": 93,
         "if": "open",

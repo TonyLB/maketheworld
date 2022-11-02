@@ -48,12 +48,7 @@ Array [
                   ],
                   "contextTag": "Description",
                   "dependencies": Array [
-                    Object {
-                      "endTagToken": 27,
-                      "on": "open",
-                      "startTagToken": 22,
-                      "tag": "Depend",
-                    },
+                    "open",
                   ],
                   "endTagToken": 29,
                   "if": "open",
@@ -93,12 +88,7 @@ Array [
                   ],
                   "contextTag": "Description",
                   "dependencies": Array [
-                    Object {
-                      "endTagToken": 27,
-                      "on": "open",
-                      "startTagToken": 22,
-                      "tag": "Depend",
-                    },
+                    "open",
                   ],
                   "endTagToken": 29,
                   "if": "open",
@@ -153,12 +143,7 @@ Array [
                   ],
                   "contextTag": "Description",
                   "dependencies": Array [
-                    Object {
-                      "endTagToken": 27,
-                      "on": "open",
-                      "startTagToken": 22,
-                      "tag": "Depend",
-                    },
+                    "open",
                   ],
                   "endTagToken": 29,
                   "if": "open",
@@ -203,12 +188,7 @@ Array [
               ],
               "contextTag": "Room",
               "dependencies": Array [
-                Object {
-                  "endTagToken": 41,
-                  "on": "open",
-                  "startTagToken": 36,
-                  "tag": "Depend",
-                },
+                "open",
               ],
               "endTagToken": 48,
               "if": "open",
@@ -263,12 +243,7 @@ Array [
               ],
               "contextTag": "Description",
               "dependencies": Array [
-                Object {
-                  "endTagToken": 27,
-                  "on": "open",
-                  "startTagToken": 22,
-                  "tag": "Depend",
-                },
+                "open",
               ],
               "endTagToken": 29,
               "if": "open",
@@ -323,12 +298,7 @@ Array [
               ],
               "contextTag": "Room",
               "dependencies": Array [
-                Object {
-                  "endTagToken": 41,
-                  "on": "open",
-                  "startTagToken": 36,
-                  "tag": "Depend",
-                },
+                "open",
               ],
               "endTagToken": 48,
               "if": "open",
@@ -453,12 +423,7 @@ Array [
           ],
           "contextTag": "Asset",
           "dependencies": Array [
-            Object {
-              "endTagToken": 59,
-              "on": "open",
-              "startTagToken": 54,
-              "tag": "Depend",
-            },
+            "open",
           ],
           "endTagToken": 70,
           "if": "open",
@@ -515,12 +480,7 @@ Array [
                   ],
                   "contextTag": "Description",
                   "dependencies": Array [
-                    Object {
-                      "endTagToken": 27,
-                      "on": "open",
-                      "startTagToken": 22,
-                      "tag": "Depend",
-                    },
+                    "open",
                   ],
                   "endTagToken": 29,
                   "if": "open",
@@ -565,12 +525,7 @@ Array [
               ],
               "contextTag": "Room",
               "dependencies": Array [
-                Object {
-                  "endTagToken": 41,
-                  "on": "open",
-                  "startTagToken": 36,
-                  "tag": "Depend",
-                },
+                "open",
               ],
               "endTagToken": 48,
               "if": "open",
@@ -613,12 +568,7 @@ Array [
           ],
           "contextTag": "Asset",
           "dependencies": Array [
-            Object {
-              "endTagToken": 59,
-              "on": "open",
-              "startTagToken": 54,
-              "tag": "Depend",
-            },
+            "open",
           ],
           "endTagToken": 70,
           "if": "open",
@@ -953,12 +903,7 @@ Array [
                   ],
                   "contextTag": "Description",
                   "dependencies": Array [
-                    Object {
-                      "endTagToken": 61,
-                      "on": "open",
-                      "startTagToken": 56,
-                      "tag": "Depend",
-                    },
+                    "open",
                   ],
                   "endTagToken": 63,
                   "if": "open",
@@ -1031,12 +976,7 @@ Array [
                   ],
                   "contextTag": "Description",
                   "dependencies": Array [
-                    Object {
-                      "endTagToken": 61,
-                      "on": "open",
-                      "startTagToken": 56,
-                      "tag": "Depend",
-                    },
+                    "open",
                   ],
                   "endTagToken": 63,
                   "if": "open",
@@ -1174,12 +1114,7 @@ Array [
                   ],
                   "contextTag": "Description",
                   "dependencies": Array [
-                    Object {
-                      "endTagToken": 61,
-                      "on": "open",
-                      "startTagToken": 56,
-                      "tag": "Depend",
-                    },
+                    "open",
                   ],
                   "endTagToken": 63,
                   "if": "open",
@@ -1287,12 +1222,7 @@ Array [
               ],
               "contextTag": "Description",
               "dependencies": Array [
-                Object {
-                  "endTagToken": 61,
-                  "on": "open",
-                  "startTagToken": 56,
-                  "tag": "Depend",
-                },
+                "open",
               ],
               "endTagToken": 63,
               "if": "open",
@@ -1446,12 +1376,7 @@ Array [
           ],
           "contextTag": "Asset",
           "dependencies": Array [
-            Object {
-              "endTagToken": 91,
-              "on": "open",
-              "startTagToken": 86,
-              "tag": "Depend",
-            },
+            "open",
           ],
           "endTagToken": 105,
           "if": "open",
@@ -1629,12 +1554,7 @@ Array [
                   ],
                   "contextTag": "Description",
                   "dependencies": Array [
-                    Object {
-                      "endTagToken": 61,
-                      "on": "open",
-                      "startTagToken": 56,
-                      "tag": "Depend",
-                    },
+                    "open",
                   ],
                   "endTagToken": 63,
                   "if": "open",
@@ -1725,12 +1645,7 @@ Array [
           ],
           "contextTag": "Asset",
           "dependencies": Array [
-            Object {
-              "endTagToken": 91,
-              "on": "open",
-              "startTagToken": 86,
-              "tag": "Depend",
-            },
+            "open",
           ],
           "endTagToken": 105,
           "if": "open",
