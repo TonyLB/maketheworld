@@ -1,6 +1,6 @@
-import { extractDependenciesFromJS } from './condition'
+import { extractDependenciesFromJS } from './utils'
 
-describe('condition parsing', () => {
+describe('parser utilities', () => {
     describe('extractDependenciesFromJS', () => {
         it('should extract top-level globals', () => {
             expect(extractDependenciesFromJS('testVariableOne && !testVariableTwo')).toEqual(['testVariableOne', 'testVariableTwo'])

@@ -1461,14 +1461,9 @@ Array [
         "key": "closed",
         "parse": Object {
           "dependencies": Array [
-            Object {
-              "endTagToken": 135,
-              "on": "open",
-              "startTagToken": 130,
-              "tag": "Depend",
-            },
+            "open",
           ],
-          "endTagToken": 136,
+          "endTagToken": 130,
           "key": "closed",
           "src": "!open",
           "startTagToken": 122,
@@ -1691,21 +1686,16 @@ Array [
         },
         Object {
           "dependencies": Array [
-            Object {
-              "endTagToken": 135,
-              "on": "open",
-              "startTagToken": 130,
-              "tag": "Depend",
-            },
+            "open",
           ],
-          "endTagToken": 136,
+          "endTagToken": 130,
           "key": "closed",
           "src": "!open",
           "startTagToken": 122,
           "tag": "Computed",
         },
       ],
-      "endTagToken": 137,
+      "endTagToken": 131,
       "fileName": "test",
       "key": "Test",
       "startTagToken": 0,

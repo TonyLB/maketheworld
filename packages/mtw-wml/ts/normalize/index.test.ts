@@ -37,9 +37,7 @@ describe('WML normalize', () => {
                 <Name>Clock Tower</Name>
             </Feature>
             <Variable key=(active) default={true} />
-            <Computed key=(inactive) src={!active}>
-                <Depend on=(active) />
-            </Computed>
+            <Computed key=(inactive) src={!active} />
             <Action key=(toggleActive) src={active = !active} />
         </Asset>`
         const normalizer = new Normalizer()

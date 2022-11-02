@@ -37,9 +37,7 @@ describe('schemaFromParse', () => {
             </Room>
             <Variable key=(open) default={false} />
             <Action key=(toggleOpen) src={open = !open} />
-            <Computed key=(closed) src={!open}>
-                <Depend on=(open) />
-            </Computed>
+            <Computed key=(closed) src={!open} />
         </Asset>
     `)))
         expect(schemaFromParse(testParse)).toMatchSnapshot()
