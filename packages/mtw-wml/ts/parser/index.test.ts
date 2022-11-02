@@ -41,7 +41,6 @@ describe('wml parser', () => {
                     <Exit from=(DEF)>vortex</Exit>
                 </Room>
                 <If {open}>
-                    <Depend on=(open) />
                     <Room key=(ABC)>
                         <Exit to=(DEF)>welcome</Exit>
                     </Room>
@@ -113,7 +112,6 @@ describe('wml parser', () => {
                 <Name>Vortex</Name>
                 <Description>
                     Vortex<If {open}>
-                        <Depend on=(open) />
                         : Open
                     </If>
                 </Description>

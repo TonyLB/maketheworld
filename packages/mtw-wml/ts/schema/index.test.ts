@@ -22,13 +22,12 @@ describe('schemaFromParse', () => {
                 <Name>Vortex</Name>
                 <Description>
                     <Space />
-                    Vortex<If {open}><Depend on=(open) />: Open</If>
+                    Vortex<If {open}>: Open</If>
                     <Link to=(toggleOpen)>(toggle)</Link>
                 </Description>
                 <Exit from=(DEF)>vortex</Exit>
             </Room>
             <If {open}>
-                <Depend on=(open) />
                 <Room key=(ABC)>
                     <Exit to=(DEF)>welcome</Exit>
                 </Room>
@@ -53,16 +52,15 @@ describe('schemaFromParse', () => {
             <Room key=(ABC)>
                 <Description>
                     Test One
-                    <If {open}><Depend on=(open) />Test Two</If>
+                    <If {open}>Test Two</If>
                 </Description>
-                <If {open}><Depend on=(open) />
+                <If {open}>
                     <Description>
                         Test Three
                     </Description>
                 </If>
             </Room>
             <If {open}>
-                <Depend on=(open) />
                 <Room key=(ABC)>
                     <Description>Test Four</Description>
                 </Room>
