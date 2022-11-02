@@ -12,7 +12,6 @@ import {
     ParseImageTag,
     ParseVariableTag,
     ParseComputedTag,
-    ParseDependencyTag,
     ParseActionTag,
     ParseUseTag,
     ParseImportTag,
@@ -64,7 +63,6 @@ export type TransformWithContextCallback = {
     (item: ParseImageTag, context: ParseTag[]): ParseImageTag;
     (item: ParseVariableTag, context: ParseTag[]): ParseVariableTag;
     (item: ParseComputedTag, context: ParseTag[]): ParseComputedTag;
-    (item: ParseDependencyTag, context: ParseTag[]): ParseDependencyTag;
     (item: ParseActionTag, context: ParseTag[]): ParseActionTag;
     (item: ParseUseTag, context: ParseTag[]): ParseUseTag;
     (item: ParseImportTag, context: ParseTag[]): ParseImportTag;
@@ -154,11 +152,6 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     callback(item, context)
                 ]
             case 'Computed':
-                return [
-                    ...previous,
-                    callback(item, context)
-                ]
-            case 'Depend':
                 return [
                     ...previous,
                     callback(item, context)

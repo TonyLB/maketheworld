@@ -16,7 +16,7 @@ type ParsePrettyPrintEvaluation = {
     cached?: string;
 }
 
-const selfClosingTags: ParseTag["tag"][] = ['Pronouns', 'Image', 'Use', 'Depend', 'Variable', 'Computed', 'Action', 'Exit', 'Room', 'Feature']
+const selfClosingTags: ParseTag["tag"][] = ['Pronouns', 'Image', 'Use', 'Variable', 'Computed', 'Action', 'Exit', 'Room', 'Feature']
 const mustIndentContents: ParseTag["tag"][] = ['Asset', 'Story', 'Room', 'Feature', 'Import']
 
 const trimWhitespaceEnds = (items: ParseTag[]): ParseTag[] => {
