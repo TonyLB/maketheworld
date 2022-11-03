@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
-import { objectEntryMap } from '../lib/objects.js'
 import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { EphemeraError } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
 
@@ -31,7 +30,7 @@ const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
         const mapDefaultAppearances = item.appearances
             .filter(noConditionContext)
             .map(({ rooms }) => ({
-                rooms: objectEntryMap(rooms, (key, { location, ...rest }) => {
+                rooms: rooms.map(({ key, location, ...rest }) => {
                     const lookup = normalForm[key]
                     if (!isNormalRoom(lookup)) {
                         throw new EphemeraError(`Invalid item in map room lookup: ${key}`)

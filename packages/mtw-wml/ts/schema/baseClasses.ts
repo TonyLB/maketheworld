@@ -327,9 +327,9 @@ export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptio
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
 export const isSchemaRoom = (value: SchemaTag): value is SchemaRoomTag => (value.tag === 'Room')
-export const isSchemaFeatureContents = (value: SchemaTag): value is SchemaFeatureLegalContents => (isSchemaExit(value) || isSchemaFeature(value) || value.tag === 'Description')
-export const isSchemaRoomContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Image', 'Exit', 'Feature', 'Description'].includes(value.tag))
-export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room'].includes(value.tag))
+export const isSchemaFeatureContents = (value: SchemaTag): value is SchemaFeatureLegalContents => (isSchemaExit(value) || isSchemaFeature(value) || value.tag === 'Description' || isSchemaCondition(value))
+export const isSchemaRoomContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Image', 'Exit', 'Feature', 'Description', 'If'].includes(value.tag))
+export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'If'].includes(value.tag))
 
 export const isSchemaFirstImpression = (value: SchemaTag): value is SchemaFirstImpressionTag => (value.tag === 'FirstImpression')
 export const isSchemaOneCoolThing = (value: SchemaTag): value is SchemaOneCoolThingTag => (value.tag === 'OneCoolThing')
