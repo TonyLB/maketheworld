@@ -87,7 +87,7 @@ export class StateSynthesizer extends Object {
             .map(({ key, appearances }) => ({
                 key,
                 dependencies: unique(appearances
-                    .reduce<string[]>((previous, { rooms }) => ([ ...previous, ...Object.keys(rooms)]), [])
+                    .reduce<string[]>((previous, { rooms }) => ([ ...previous, ...(rooms.map(({ key }) => (key)))]), [])
                 ) as string[]
             }))
             .forEach(sendMessages)
