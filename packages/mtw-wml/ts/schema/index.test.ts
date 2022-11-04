@@ -91,4 +91,19 @@ describe('schemaFromParse', () => {
 
     })
 
+    it('should correctly extract map rooms', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+        <Asset key=(Test) fileName="test">
+            <Map key=(testMap)>
+                <Room key=(ABC) x="100" y="0" />
+                <If {open}>
+                    <Room key=(DEF) x="-100" y="0" />
+                </If>
+            </Map>
+            <Variable key=(open) default={false} />
+        </Asset>
+    `)))
+        expect(schemaFromParse(testParse)).toMatchSnapshot()
+
+    })
 })

@@ -1,6 +1,6 @@
 import { SchemaMapTag, SchemaMapLegalContents, isSchemaMapContents, SchemaNameTag, isSchemaRoom, isSchemaImage } from "./baseClasses";
 import { ParseMapTag } from "../parser/baseClasses";
-import { extractNameFromContents } from "./utils";
+import { extractConditionedItemFromContents, extractNameFromContents } from "./utils";
 
 //
 // TODO: Refactor room schema formation to keep name and description tags not folded into name
@@ -13,13 +13,11 @@ export const schemaFromMap = (item: ParseMapTag, contents: (SchemaMapLegalConten
         key: item.key,
         name: extractNameFromContents(contents),
         contents: componentContents,
-        rooms: contents.reduce<{ key: string; x: number; y: number; index: number }[]>((previous, item, index) => {
-            if (isSchemaRoom(item)) {
-                const { key, x, y } = item
-                return [ ...previous, { key, x, y, index } ]
-            }
-            return previous
-        }, []),
+        rooms: extractConditionedItemFromContents({
+            contents,
+            typeGuard: isSchemaRoom,
+            transform: ({ key, x, y }, index) => ({ conditions: [], key, x, y, index })
+        }),
         images: contents.filter(isSchemaImage).map(({ key }) => (key)),
         parse: item
     }

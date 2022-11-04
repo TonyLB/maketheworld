@@ -137,6 +137,10 @@ export type NormalImage = {
 } & NormalBase
 
 export type MapAppearanceRoom = {
+    conditions: {
+        if: string;
+        dependencies: string[]
+    }[];
     key: string;
     x: number;
     y: number;

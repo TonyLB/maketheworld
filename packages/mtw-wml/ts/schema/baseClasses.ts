@@ -7,6 +7,13 @@ type SchemaBase = {
     parse: ParseTag
 }
 
+export type SchemaConditionMixin = {
+    conditions: {
+        if: string;
+        dependencies: string[];
+    }[]
+}
+
 type SchemaAssetBase = {
     key: string;
     fileName?: string;
@@ -253,12 +260,20 @@ export type SchemaFeatureTag = {
 } & SchemaBase
 
 export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTagMapContext
+
+export type SchemaMapRoom = {
+    key: string;
+    x: number;
+    y: number;
+    index: number;
+} & SchemaConditionMixin
+
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
     name: SchemaTaggedMessageLegalContents[];
     contents: SchemaMapLegalContents[];
-    rooms: { key: string, x: number; y: number; index: number }[];
+    rooms: SchemaMapRoom[];
     images: string[];
 } & SchemaBase
 
@@ -353,3 +368,39 @@ export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | Sc
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
     ['Asset', 'Story', 'Room', 'Feature', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit'].includes(value.tag)
 )
+
+export const isSchemaTag = (value: any): value is SchemaTag => {
+    if ('tag' in value) {
+        if (
+            ['Asset',
+            'Story',
+            'FirstImpression',
+            'Pronouns',
+            'OneCoolThing',
+            'Outfit',
+            'Character',
+            'Image',
+            'Variable',
+            'Computed',
+            'Action',
+            'Use',
+            'Import',
+            'If',
+            'Exit',
+            'Description',
+            'br',
+            'Spacer',
+            'Link',
+            'Name',
+            'Room',
+            'Feature',
+            'Map',
+            'String',
+            'Whitespace']
+                .includes(value.tag)
+        ) {
+            return true
+        }
+    }
+    return false
+}

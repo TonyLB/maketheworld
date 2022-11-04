@@ -54,6 +54,7 @@ export type EphemeraRoom = {
 }
 
 export type EphemeraMapRoom = {
+    conditions: EphemeraCondition[];
     EphemeraId: string;
     x: number;
     y: number;

@@ -17,14 +17,17 @@ import {
     isNormalComputed,
     isNormalImage,
     NormalReference,
-    isNormalCondition
+    isNormalCondition,
+    MapAppearanceRoom
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
     EphemeraCharacter,
+    EphemeraCondition,
     EphemeraExit,
     EphemeraItem,
     EphemeraItemDependency,
+    EphemeraMapRoom,
     EphemeraPushArgs
 } from './baseClasses'
 import { objectEntryMap } from '../lib/objects.js'
@@ -148,6 +151,27 @@ const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: Norm
 const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { namespaceIdToDB: namespaceMap, normal = {} } = assetWorkspace
     const conditionsTransform = conditionsFromContext(assetWorkspace)
+    const conditionsRemap = (conditions: { if: string; dependencies: string[] }[]): EphemeraCondition[] => {
+        return conditions.map((condition) => {
+            const dependencies = condition.dependencies.reduce<EphemeraCondition["dependencies"]>((previous, key) => {
+                const dependencyLookup = assetWorkspace.namespaceIdToDB[key]
+                if (!(isEphemeraComputedId(dependencyLookup) || isEphemeraVariableId(dependencyLookup))) {
+                    throw new EphemeraError(`Illegal dependency: ${key}`)
+                }
+                return [
+                    ...previous,
+                    {
+                        key,
+                        EphemeraId: dependencyLookup
+                    }
+                ]
+            }, [])
+            return {
+                if: condition.if,
+                dependencies
+            }
+        })
+    }
     const EphemeraId = namespaceMap[item.key]
     if (!EphemeraId) {
         return undefined
@@ -191,7 +215,8 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                         conditions: conditionsTransform(appearance.contextStack),
                         name: (appearance.name ?? []).map(renderTranslate),
                         fileURL,
-                        rooms: appearance.rooms.map(({ key,  x, y }) => ({
+                        rooms: appearance.rooms.map(({ conditions, key,  x, y }) => ({
+                            conditions: conditionsRemap(conditions),
                             EphemeraId: namespaceMap[key] || '',
                             x,
                             y

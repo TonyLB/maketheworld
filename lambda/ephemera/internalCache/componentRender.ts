@@ -1,6 +1,6 @@
 import { ComponentMeta, ComponentMetaData, ComponentMetaFromId } from './componentMeta'
 import { DeferredCache } from './deferredCache'
-import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency } from '../cacheAsset/baseClasses'
+import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency, EphemeraMapRoom } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
 import { componentAppearanceReduce } from '../perception/components';
@@ -178,12 +178,12 @@ export class ComponentRenderData {
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraMapAppearance[]))
                 .reduce<EphemeraMapAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderMapAppearances = await filterAppearances(this._evaluateCode)(possibleMapAppearances)
-            const allRooms = (unique(...renderMapAppearances.map(({ rooms }) => (Object.values(rooms).map(({ EphemeraId }) => (EphemeraId))))) as string[])
+            const flattenedRooms = await filterAppearances(this._evaluateCode)(renderMapAppearances.reduce<EphemeraMapRoom[]>((previous, { rooms }) => ([ ...previous, ...rooms ]), []))
+            const allRooms = (unique(flattenedRooms.map(({ EphemeraId }) => (EphemeraId))) as string[])
                 .filter(isEphemeraRoomId)
-            const roomPositions = renderMapAppearances
-                .map(({ rooms }) => (rooms))
-                .reduce<Record<EphemeraRoomId, { x: number; y: number }>>((previous, rooms) => (
-                    Object.values(rooms).reduce((accumulator, room) => ({ ...accumulator, [room.EphemeraId]: { x: room.x, y: room.y } }), previous)
+            const roomPositions = flattenedRooms
+                .reduce<Record<EphemeraRoomId, { x: number; y: number }>>((previous, room) => (
+                    { ...previous, [room.EphemeraId]: { x: room.x, y: room.y } }
                 ), {})
             const roomMetas = await Promise.all(allRooms.map(async (ephemeraId) => {
                 const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as string[])

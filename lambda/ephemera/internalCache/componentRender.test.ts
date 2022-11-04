@@ -152,6 +152,7 @@ describe('ComponentRender cache handler', () => {
                     fileURL: 'https://test.com/test.png',
                     rooms: [
                         {
+                            conditions: [],
                             EphemeraId: 'ROOM#TestRoomOne',
                             x: 0,
                             y: 0
@@ -168,6 +169,7 @@ describe('ComponentRender cache handler', () => {
                     fileURL: '',
                     rooms: [
                         {
+                            conditions: [],
                             EphemeraId: 'ROOM#TestRoomTwo',
                             x: 100,
                             y: 0
