@@ -3275,6 +3275,7 @@ Object {
         ],
         "rooms": Array [
           Object {
+            "conditions": Array [],
             "key": "VORTEX",
             "location": Array [
               0,
@@ -3285,6 +3286,7 @@ Object {
             "y": 250,
           },
           Object {
+            "conditions": Array [],
             "key": "cave",
             "location": Array [
               0,
@@ -3295,6 +3297,7 @@ Object {
             "y": 150,
           },
           Object {
+            "conditions": Array [],
             "key": "intersection",
             "location": Array [
               0,
@@ -3305,6 +3308,7 @@ Object {
             "y": -50,
           },
           Object {
+            "conditions": Array [],
             "key": "curvingPassage",
             "location": Array [
               0,
@@ -3315,6 +3319,7 @@ Object {
             "y": 100,
           },
           Object {
+            "conditions": Array [],
             "key": "statueChamber",
             "location": Array [
               0,
@@ -3325,6 +3330,7 @@ Object {
             "y": 0,
           },
           Object {
+            "conditions": Array [],
             "key": "well",
             "location": Array [
               0,
@@ -3335,6 +3341,7 @@ Object {
             "y": -50,
           },
           Object {
+            "conditions": Array [],
             "key": "fireCatGrotto",
             "location": Array [
               0,
@@ -3345,6 +3352,7 @@ Object {
             "y": -150,
           },
           Object {
+            "conditions": Array [],
             "key": "orchard",
             "location": Array [
               0,
@@ -3355,6 +3363,7 @@ Object {
             "y": -200,
           },
           Object {
+            "conditions": Array [],
             "key": "forest",
             "location": Array [
               0,
@@ -3365,6 +3374,7 @@ Object {
             "y": -200,
           },
           Object {
+            "conditions": Array [],
             "key": "foundry",
             "location": Array [
               0,

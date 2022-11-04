@@ -40,7 +40,7 @@ import {
     isParseConditionTagFeatureContext,
     isParseConditionTagMapContext
 } from "../parser/baseClasses"
-import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
+import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, isSchemaTag, SchemaConditionMixin, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaNameTag, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
 
 export function *depthFirstParseTagGenerator(tree: ParseTag[]): Generator<ParseTag> {
     for (const node of tree) {
@@ -403,6 +403,40 @@ export const extractDescriptionFromContents = <T extends SchemaFeatureLegalConte
                     ]
                 }
             }
+        }
+        return previous
+    }, [])
+}
+
+export const extractConditionedItemFromContents = <C extends SchemaMapLegalContents | SchemaNameTag, T extends C, O extends SchemaConditionMixin>(props: {
+    contents: C[];
+    typeGuard: (value: C) => value is T;
+    transform: (value: T, index: number) => O;
+}): O[] => {
+    const { contents, typeGuard, transform } = props
+    return contents.reduce<O[]>((previous, item, index) => {
+        if (typeGuard(item)) {
+            return [
+                ...previous,
+                transform(item, index)
+            ]
+        }
+        if (isSchemaTag(item) && isSchemaCondition(item)) {
+            const nestedItems = extractConditionedItemFromContents({ contents: item.contents as C[], typeGuard, transform })
+                .map(({ conditions, ...rest }) => ({
+                    conditions: [
+                        {
+                            if: item.if,
+                            dependencies: item.dependencies
+                        },
+                        ...conditions
+                    ],
+                    ...rest
+                })) as O[]
+            return [
+                ...previous,
+                ...nestedItems
+            ]
         }
         return previous
     }, [])

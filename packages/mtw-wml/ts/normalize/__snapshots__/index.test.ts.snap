@@ -1106,6 +1106,7 @@ Object {
         ],
         "rooms": Array [
           Object {
+            "conditions": Array [],
             "key": "a123",
             "location": Array [
               0,

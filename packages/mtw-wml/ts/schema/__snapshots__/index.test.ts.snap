@@ -681,6 +681,228 @@ Array [
 ]
 `;
 
+exports[`schemaFromParse should correctly extract map rooms 1`] = `
+Array [
+  Object {
+    "Story": undefined,
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [],
+            "display": undefined,
+            "global": undefined,
+            "key": "ABC",
+            "name": Array [],
+            "parse": Object {
+              "contents": Array [],
+              "endTagToken": 24,
+              "key": "ABC",
+              "startTagToken": 13,
+              "tag": "Room",
+              "x": 100,
+              "y": 0,
+            },
+            "render": Array [],
+            "tag": "Room",
+            "x": 100,
+            "y": 0,
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "contents": Array [],
+                "display": undefined,
+                "global": undefined,
+                "key": "DEF",
+                "name": Array [],
+                "parse": Object {
+                  "contents": Array [],
+                  "endTagToken": 40,
+                  "key": "DEF",
+                  "startTagToken": 29,
+                  "tag": "Room",
+                  "x": -100,
+                  "y": 0,
+                },
+                "render": Array [],
+                "tag": "Room",
+                "x": -100,
+                "y": 0,
+              },
+            ],
+            "contextTag": "Map",
+            "dependencies": Array [
+              "open",
+            ],
+            "if": "open",
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [],
+                  "endTagToken": 40,
+                  "key": "DEF",
+                  "startTagToken": 29,
+                  "tag": "Room",
+                  "x": -100,
+                  "y": 0,
+                },
+              ],
+              "contextTag": "Map",
+              "dependencies": Array [
+                "open",
+              ],
+              "endTagToken": 41,
+              "if": "open",
+              "startTagToken": 25,
+              "tag": "If",
+            },
+            "tag": "If",
+          },
+        ],
+        "images": Array [],
+        "key": "testMap",
+        "name": Array [],
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "contents": Array [],
+              "endTagToken": 24,
+              "key": "ABC",
+              "startTagToken": 13,
+              "tag": "Room",
+              "x": 100,
+              "y": 0,
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [],
+                  "endTagToken": 40,
+                  "key": "DEF",
+                  "startTagToken": 29,
+                  "tag": "Room",
+                  "x": -100,
+                  "y": 0,
+                },
+              ],
+              "contextTag": "Map",
+              "dependencies": Array [
+                "open",
+              ],
+              "endTagToken": 41,
+              "if": "open",
+              "startTagToken": 25,
+              "tag": "If",
+            },
+          ],
+          "endTagToken": 42,
+          "key": "testMap",
+          "startTagToken": 8,
+          "tag": "Map",
+        },
+        "rooms": Array [
+          Object {
+            "conditions": Array [],
+            "index": 0,
+            "key": "ABC",
+            "x": 100,
+            "y": 0,
+          },
+          Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "open",
+                ],
+                "if": "open",
+              },
+            ],
+            "index": 0,
+            "key": "DEF",
+            "x": -100,
+            "y": 0,
+          },
+        ],
+        "tag": "Map",
+      },
+      Object {
+        "default": "false",
+        "key": "open",
+        "parse": Object {
+          "default": "false",
+          "endTagToken": 51,
+          "key": "open",
+          "startTagToken": 43,
+          "tag": "Variable",
+        },
+        "tag": "Variable",
+      },
+    ],
+    "fileName": "test",
+    "key": "Test",
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "contents": Array [
+            Object {
+              "contents": Array [],
+              "endTagToken": 24,
+              "key": "ABC",
+              "startTagToken": 13,
+              "tag": "Room",
+              "x": 100,
+              "y": 0,
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [],
+                  "endTagToken": 40,
+                  "key": "DEF",
+                  "startTagToken": 29,
+                  "tag": "Room",
+                  "x": -100,
+                  "y": 0,
+                },
+              ],
+              "contextTag": "Map",
+              "dependencies": Array [
+                "open",
+              ],
+              "endTagToken": 41,
+              "if": "open",
+              "startTagToken": 25,
+              "tag": "If",
+            },
+          ],
+          "endTagToken": 42,
+          "key": "testMap",
+          "startTagToken": 8,
+          "tag": "Map",
+        },
+        Object {
+          "default": "false",
+          "endTagToken": 51,
+          "key": "open",
+          "startTagToken": 43,
+          "tag": "Variable",
+        },
+      ],
+      "endTagToken": 52,
+      "fileName": "test",
+      "key": "Test",
+      "startTagToken": 0,
+      "tag": "Asset",
+    },
+    "player": undefined,
+    "subFolder": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+]
+`;
+
 exports[`schemaFromParse should make a schema for a character correctly 1`] = `
 Array [
   Object {
