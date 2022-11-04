@@ -45,6 +45,7 @@ describe('normalToTree', () => {
                     name: [],
                     rooms: [
                         {
+                            conditions: [],
                             key: '123',
                             x: 200,
                             y: 150,
