@@ -70,19 +70,25 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
         }
     }
     else if (renderItem.tag === 'Condition') {
-        const dependencies = renderItem.dependencies.map<TaggedConditionalItemDependency>((depend) => {
-            const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
-            if (!(isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated))) {
-                throw new EphemeraError(`Illegal dependency in If: ${depend}`)
-            }
+        const mappedConditions = renderItem.conditions.map<EphemeraCondition>((condition) => {
+            const dependencies = condition.dependencies.map<TaggedConditionalItemDependency>((depend) => {
+                const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
+                if (!(isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated))) {
+                    throw new EphemeraError(`Illegal dependency in If: ${depend}`)
+                }
+                return {
+                    key: depend,
+                    EphemeraId: dependTranslated
+                }
+            })
             return {
-                key: depend,
-                EphemeraId: dependTranslated
+                if: condition.if,
+                dependencies
             }
         })
         return {
             ...renderItem,
-            dependencies,
+            conditions: mappedConditions,
             contents: renderItem.contents.map(ephemeraTranslateRender(assetWorkspace))
         }
     }
@@ -115,17 +121,23 @@ const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: Norm
             if (isNormalCondition(itemLookup)) {
                 const nestedExits = ephemeraExtractExits(assetWorkspace)(itemLookup.appearances[item.index].contents)
                 if (nestedExits.length) {
-                    const dependencies = itemLookup.dependencies.map<EphemeraItemDependency>((depend) => {
-                        const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
-                        if (!dependTranslated) {
-                            throw new EphemeraError(`Illegal dependency in If: ${depend}`)
-                        }
-                        if (!(isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated))) {
-                            throw new EphemeraError(`Illegal dependency in If: ${depend}`)
-                        }
+                    const mappedConditions = itemLookup.conditions.map<EphemeraCondition>((condition) => {
+                        const dependencies = condition.dependencies.map<EphemeraItemDependency>((depend) => {
+                            const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
+                            if (!dependTranslated) {
+                                throw new EphemeraError(`Illegal dependency in If: ${depend}`)
+                            }
+                            if (!(isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated))) {
+                                throw new EphemeraError(`Illegal dependency in If: ${depend}`)
+                            }
+                            return {
+                                key: depend,
+                                EphemeraId: dependTranslated
+                            }
+                        })
                         return {
-                            key: depend,
-                            EphemeraId: dependTranslated
+                            if: condition.if,
+                            dependencies
                         }
                     })
                     return [
@@ -133,10 +145,7 @@ const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: Norm
                         ...(nestedExits.map((exit) => ({
                             ...exit,
                             conditions: [
-                                {
-                                    if: itemLookup.if,
-                                    dependencies
-                                },
+                                ...mappedConditions,
                                 ...exit.conditions
                             ]
                         })))

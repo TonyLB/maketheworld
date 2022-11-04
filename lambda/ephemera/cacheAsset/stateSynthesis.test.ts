@@ -107,8 +107,10 @@ describe('stateSynthesis', () => {
         ['If-0']: {
             key: 'If-0',
             tag: 'If',
-            if: 'active',
-            dependencies: ['active'],
+            conditions: [{
+                if: 'active',
+                dependencies: ['active']
+            }],
             appearances: [{
                 ...topLevelAppearance,
                 contents: [{

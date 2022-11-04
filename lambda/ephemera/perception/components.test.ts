@@ -185,22 +185,28 @@ describe('component utilities', () => {
                     { tag: 'String', value: 'Show this, ' },
                     {
                         tag: 'Condition',
-                        if: 'checkOne',
-                        dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
+                        conditions: [{
+                            if: 'checkOne',
+                            dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }]
+                        }],
                         contents: [
                             { tag: 'String', value: 'and this, ' },
                             {
                                 tag: 'Condition',
-                                if: 'checkOne',
-                                dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
+                                conditions: [{
+                                    if: 'checkOne',
+                                    dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }]
+                                }],
                                 contents: [
                                     { tag: 'String', value: `and also this` },
                                 ]
                             },
                             {
                                 tag: 'Condition',
-                                if: 'checkTwo',
-                                dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
+                                conditions: [{
+                                    if: 'checkTwo',
+                                    dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }]
+                                }],
                                 contents: [
                                     { tag: 'String', value: `but not this` },
                                 ]
@@ -209,8 +215,10 @@ describe('component utilities', () => {
                     },
                     {
                         tag: 'Condition',
-                        if: 'checkTwo',
-                        dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
+                        conditions: [{
+                            if: 'checkTwo',
+                            dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }]
+                        }],
                         contents: [
                             { tag: 'String', value: `and not this` },
                         ]

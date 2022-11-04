@@ -41,10 +41,14 @@ export type TaggedConditionalItemDependency = {
     EphemeraId: string;
 }
 
-export type TaggedConditional = {
-    tag: 'Condition';
+export type TaggedConditionalStatement = {
     if: string;
     dependencies: TaggedConditionalItemDependency[];
+}
+
+export type TaggedConditional = {
+    tag: 'Condition';
+    conditions: TaggedConditionalStatement[];
     contents: TaggedMessageContent[];
 }
 
@@ -122,10 +126,12 @@ const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], op
                 // tree before the first conditional is known good) for lower cost (which could be achieved by waiting to
                 // create the nestingPromise until after evaluationPromise returns true)
                 //
-                const evaluationPromise = evaluateConditional(message.if, message.dependencies)
+                const evaluationPromise = Promise.all(
+                    message.conditions.map((condition) => (evaluateConditional(condition.if, condition.dependencies)))
+                )
                 const nestingPromise = flattenTaggedMessageContent(message.contents, { evaluateConditional })
                 const evaluation = await evaluationPromise
-                if (evaluation) {
+                if (evaluation.reduce<boolean>((previous, statement) => (previous && statement), true)) {
                     return await nestingPromise
                 }
                 else {
