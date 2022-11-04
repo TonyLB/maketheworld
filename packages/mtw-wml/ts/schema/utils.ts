@@ -425,10 +425,7 @@ export const extractConditionedItemFromContents = <C extends SchemaMapLegalConte
             const nestedItems = extractConditionedItemFromContents({ contents: item.contents as C[], typeGuard, transform })
                 .map(({ conditions, ...rest }) => ({
                     conditions: [
-                        {
-                            if: item.if,
-                            dependencies: item.dependencies
-                        },
+                        ...item.conditions,
                         ...conditions
                     ],
                     ...rest

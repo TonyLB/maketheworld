@@ -47,7 +47,7 @@ import {
     NormalRoom,
     NormalVariable
 } from './baseClasses'
-import { keyForValue } from './keyUtil';
+import { keyForIfValue, keyForValue } from './keyUtil';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -71,8 +71,7 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
     if (renderItem.tag === 'If' && isSchemaConditionTagDescriptionContext(renderItem)) {
         return {
             tag: 'Condition',
-            if: renderItem.if,
-            dependencies: renderItem.dependencies,
+            conditions: renderItem.conditions,
             contents: renderItem.contents.map(schemaDescriptionToComponentRender(translationTags))
         }
     }
@@ -482,7 +481,7 @@ export class Normalizer {
                 keyToCompare = keyForValue('Import', node.from)
                 break
             case 'If':
-                keyToCompare = keyForValue('If', node.if)
+                keyToCompare = keyForIfValue(node.conditions)
                 break
         }
         if (this._tags[keyToCompare] && this._tags[keyToCompare] !== tagToCompare) {
@@ -580,10 +579,9 @@ export class Normalizer {
                 }
             case 'If':
                 return {
-                    key: keyForValue('If', node.if),
+                    key: keyForIfValue(node.conditions),
                     tag: 'If',
-                    if: node.if,
-                    dependencies: node.dependencies,
+                    conditions: node.conditions,
                     appearances: [appearance]
                 }
             case 'Import':

@@ -20,6 +20,14 @@ Array [
                 "value": "Test One ",
               },
               Object {
+                "conditions": Array [
+                  Object {
+                    "dependencies": Array [
+                      "open",
+                    ],
+                    "if": "open",
+                  },
+                ],
                 "contents": Array [
                   Object {
                     "parse": Object {
@@ -33,10 +41,6 @@ Array [
                   },
                 ],
                 "contextTag": "Description",
-                "dependencies": Array [
-                  "open",
-                ],
-                "if": "open",
                 "parse": Object {
                   "contents": Array [
                     Object {
@@ -108,6 +112,14 @@ Array [
             "tag": "Description",
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "open",
+                ],
+                "if": "open",
+              },
+            ],
             "contents": Array [
               Object {
                 "contents": Array [
@@ -150,10 +162,6 @@ Array [
               },
             ],
             "contextTag": "Room",
-            "dependencies": Array [
-              "open",
-            ],
-            "if": "open",
             "parse": Object {
               "contents": Array [
                 Object {
@@ -299,6 +307,14 @@ Array [
             "value": "Test One ",
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "open",
+                ],
+                "if": "open",
+              },
+            ],
             "contents": Array [
               Object {
                 "parse": Object {
@@ -312,10 +328,6 @@ Array [
               },
             ],
             "contextTag": "Description",
-            "dependencies": Array [
-              "open",
-            ],
-            "if": "open",
             "parse": Object {
               "contents": Array [
                 Object {
@@ -337,6 +349,14 @@ Array [
             "tag": "If",
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "open",
+                ],
+                "if": "open",
+              },
+            ],
             "contents": Array [
               Object {
                 "parse": Object {
@@ -350,10 +370,6 @@ Array [
               },
             ],
             "contextTag": "Description",
-            "dependencies": Array [
-              "open",
-            ],
-            "if": "open",
             "parse": Object {
               "contents": Array [
                 Object {
@@ -397,6 +413,14 @@ Array [
         "y": undefined,
       },
       Object {
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "open",
+            ],
+            "if": "open",
+          },
+        ],
         "contents": Array [
           Object {
             "contents": Array [
@@ -475,10 +499,6 @@ Array [
           },
         ],
         "contextTag": "Asset",
-        "dependencies": Array [
-          "open",
-        ],
-        "if": "open",
         "parse": Object {
           "contents": Array [
             Object {
@@ -709,6 +729,14 @@ Array [
             "y": 0,
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "open",
+                ],
+                "if": "open",
+              },
+            ],
             "contents": Array [
               Object {
                 "contents": Array [],
@@ -732,10 +760,6 @@ Array [
               },
             ],
             "contextTag": "Map",
-            "dependencies": Array [
-              "open",
-            ],
-            "if": "open",
             "parse": Object {
               "contents": Array [
                 Object {
@@ -1181,6 +1205,14 @@ Array [
                 "value": "Vortex",
               },
               Object {
+                "conditions": Array [
+                  Object {
+                    "dependencies": Array [
+                      "open",
+                    ],
+                    "if": "open",
+                  },
+                ],
                 "contents": Array [
                   Object {
                     "parse": Object {
@@ -1194,10 +1226,6 @@ Array [
                   },
                 ],
                 "contextTag": "Description",
-                "dependencies": Array [
-                  "open",
-                ],
-                "if": "open",
                 "parse": Object {
                   "contents": Array [
                     Object {
@@ -1500,6 +1528,14 @@ Array [
             "value": "Vortex",
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "open",
+                ],
+                "if": "open",
+              },
+            ],
             "contents": Array [
               Object {
                 "parse": Object {
@@ -1513,10 +1549,6 @@ Array [
               },
             ],
             "contextTag": "Description",
-            "dependencies": Array [
-              "open",
-            ],
-            "if": "open",
             "parse": Object {
               "contents": Array [
                 Object {
@@ -1571,6 +1603,14 @@ Array [
         "y": undefined,
       },
       Object {
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "open",
+            ],
+            "if": "open",
+          },
+        ],
         "contents": Array [
           Object {
             "contents": Array [
@@ -1647,10 +1687,6 @@ Array [
           },
         ],
         "contextTag": "Asset",
-        "dependencies": Array [
-          "open",
-        ],
-        "if": "open",
         "parse": Object {
           "contents": Array [
             Object {
