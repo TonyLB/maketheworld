@@ -548,10 +548,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "robedStatueActive",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "robedStatueActive",
+        ],
+        "if": "robedStatueActive",
+      },
     ],
-    "if": "robedStatueActive",
     "key": "If-0",
     "tag": "If",
   },
@@ -588,10 +592,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "robedStatueActive",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "robedStatueActive",
+        ],
+        "if": "!robedStatueActive",
+      },
     ],
-    "if": "!robedStatueActive",
     "key": "If-1",
     "tag": "If",
   },
@@ -618,10 +626,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "waterFlow",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "waterFlow",
+        ],
+        "if": "waterFlow === 2",
+      },
     ],
-    "if": "waterFlow === 2",
     "key": "If-10",
     "tag": "If",
   },
@@ -648,10 +660,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "gratingBlocked",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "gratingBlocked",
+        ],
+        "if": "gratingBlocked",
+      },
     ],
-    "if": "gratingBlocked",
     "key": "If-11",
     "tag": "If",
   },
@@ -678,10 +694,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "gratingBlocked",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "gratingBlocked",
+        ],
+        "if": "!gratingBlocked",
+      },
     ],
-    "if": "!gratingBlocked",
     "key": "If-12",
     "tag": "If",
   },
@@ -733,10 +753,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "waterLevel",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "waterLevel",
+        ],
+        "if": "waterLevel < 4",
+      },
     ],
-    "if": "waterLevel < 4",
     "key": "If-13",
     "tag": "If",
   },
@@ -773,10 +797,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "waterLevel",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "waterLevel",
+        ],
+        "if": "waterLevel >= 4",
+      },
     ],
-    "if": "waterLevel >= 4",
     "key": "If-14",
     "tag": "If",
   },
@@ -835,10 +863,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "catsInOrchard",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "catsInOrchard",
+        ],
+        "if": "catsInOrchard",
+      },
     ],
-    "if": "catsInOrchard",
     "key": "If-15",
     "tag": "If",
   },
@@ -865,10 +897,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "waterLevel",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "waterLevel",
+        ],
+        "if": "waterLevel < 4 && waterLevel >= 2",
+      },
     ],
-    "if": "waterLevel < 4 && waterLevel >= 2",
     "key": "If-16",
     "tag": "If",
   },
@@ -895,10 +931,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "waterLevel",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "waterLevel",
+        ],
+        "if": "waterLevel < 2",
+      },
     ],
-    "if": "waterLevel < 2",
     "key": "If-17",
     "tag": "If",
   },
@@ -950,10 +990,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "birdsInOrchard",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "birdsInOrchard",
+        ],
+        "if": "birdsInOrchard",
+      },
     ],
-    "if": "birdsInOrchard",
     "key": "If-18",
     "tag": "If",
   },
@@ -980,10 +1024,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "bellowsRunning",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "bellowsRunning",
+        ],
+        "if": "bellowsRunning",
+      },
     ],
-    "if": "bellowsRunning",
     "key": "If-19",
     "tag": "If",
   },
@@ -1015,10 +1063,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "determinedStatueHead",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "determinedStatueHead",
+        ],
+        "if": "determinedStatueHead",
+      },
     ],
-    "if": "determinedStatueHead",
     "key": "If-2",
     "tag": "If",
   },
@@ -1045,10 +1097,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "bellowsRunning",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "bellowsRunning",
+        ],
+        "if": "!bellowsRunning",
+      },
     ],
-    "if": "!bellowsRunning",
     "key": "If-20",
     "tag": "If",
   },
@@ -1075,10 +1131,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthPrimed",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthPrimed",
+        ],
+        "if": "hearthPrimed",
+      },
     ],
-    "if": "hearthPrimed",
     "key": "If-21",
     "tag": "If",
   },
@@ -1105,10 +1165,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthPrimed",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthPrimed",
+        ],
+        "if": "!hearthPrimed",
+      },
     ],
-    "if": "!hearthPrimed",
     "key": "If-22",
     "tag": "If",
   },
@@ -1170,10 +1234,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthActive",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthActive",
+        ],
+        "if": "hearthActive",
+      },
     ],
-    "if": "hearthActive",
     "key": "If-23",
     "tag": "If",
   },
@@ -1205,10 +1273,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthActive",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthActive",
+        ],
+        "if": "!hearthActive",
+      },
     ],
-    "if": "!hearthActive",
     "key": "If-24",
     "tag": "If",
   },
@@ -1235,10 +1307,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "trapDoorOpen",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "trapDoorOpen",
+        ],
+        "if": "trapDoorOpen",
+      },
     ],
-    "if": "trapDoorOpen",
     "key": "If-25",
     "tag": "If",
   },
@@ -1265,10 +1341,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "trapDoorOpen",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "trapDoorOpen",
+        ],
+        "if": "!trapDoorOpen",
+      },
     ],
-    "if": "!trapDoorOpen",
     "key": "If-26",
     "tag": "If",
   },
@@ -1325,11 +1405,15 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthActive",
-      "birdsInOrchard",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthActive",
+          "birdsInOrchard",
+        ],
+        "if": "hearthActive && birdsInOrchard",
+      },
     ],
-    "if": "hearthActive && birdsInOrchard",
     "key": "If-27",
     "tag": "If",
   },
@@ -1386,12 +1470,16 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthActive",
-      "bellowsRunning",
-      "birdsInOrchard",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthActive",
+          "bellowsRunning",
+          "birdsInOrchard",
+        ],
+        "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+      },
     ],
-    "if": "!hearthActive && bellowsRunning && birdsInOrchard",
     "key": "If-28",
     "tag": "If",
   },
@@ -1448,12 +1536,16 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthActive",
-      "bellowsRunning",
-      "birdsInOrchard",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthActive",
+          "bellowsRunning",
+          "birdsInOrchard",
+        ],
+        "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+      },
     ],
-    "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
     "key": "If-29",
     "tag": "If",
   },
@@ -1485,10 +1577,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "determinedStatueHead",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "determinedStatueHead",
+        ],
+        "if": "!determinedStatueHead",
+      },
     ],
-    "if": "!determinedStatueHead",
     "key": "If-3",
     "tag": "If",
   },
@@ -1545,12 +1641,16 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthActive",
-      "bellowsRunning",
-      "birdsInOrchard",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthActive",
+          "bellowsRunning",
+          "birdsInOrchard",
+        ],
+        "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+      },
     ],
-    "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
     "key": "If-30",
     "tag": "If",
   },
@@ -1607,11 +1707,15 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "hearthActive",
-      "birdsInOrchard",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "hearthActive",
+          "birdsInOrchard",
+        ],
+        "if": "hearthActive && !birdsInOrchard",
+      },
     ],
-    "if": "hearthActive && !birdsInOrchard",
     "key": "If-31",
     "tag": "If",
   },
@@ -1638,10 +1742,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "determinedStatueRightArm",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "determinedStatueRightArm",
+        ],
+        "if": "determinedStatueRightArm",
+      },
     ],
-    "if": "determinedStatueRightArm",
     "key": "If-4",
     "tag": "If",
   },
@@ -1668,10 +1776,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "determinedStatueRightArm",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "determinedStatueRightArm",
+        ],
+        "if": "!determinedStatueRightArm",
+      },
     ],
-    "if": "!determinedStatueRightArm",
     "key": "If-5",
     "tag": "If",
   },
@@ -1698,10 +1810,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "determinedStatueLeftArm",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "determinedStatueLeftArm",
+        ],
+        "if": "determinedStatueLeftArm",
+      },
     ],
-    "if": "determinedStatueLeftArm",
     "key": "If-6",
     "tag": "If",
   },
@@ -1728,10 +1844,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "determinedStatueLeftArm",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "determinedStatueLeftArm",
+        ],
+        "if": "!determinedStatueLeftArm",
+      },
     ],
-    "if": "!determinedStatueLeftArm",
     "key": "If-7",
     "tag": "If",
   },
@@ -1758,10 +1878,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "waterFlow",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "waterFlow",
+        ],
+        "if": "waterFlow === 0",
+      },
     ],
-    "if": "waterFlow === 0",
     "key": "If-8",
     "tag": "If",
   },
@@ -1788,10 +1912,14 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "waterFlow",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "waterFlow",
+        ],
+        "if": "waterFlow === 1",
+      },
     ],
-    "if": "waterFlow === 1",
     "key": "If-9",
     "tag": "If",
   },
@@ -7678,16 +7806,20 @@ Object {
             "value": " ",
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "robedStatueActive",
+                ],
+                "if": "robedStatueActive",
+              },
+            ],
             "contents": Array [
               Object {
                 "tag": "String",
                 "value": "with cupped hands,",
               },
             ],
-            "dependencies": Array [
-              "robedStatueActive",
-            ],
-            "if": "robedStatueActive",
             "tag": "Condition",
           },
           Object {
@@ -7695,16 +7827,20 @@ Object {
             "value": " ",
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "robedStatueActive",
+                ],
+                "if": "!robedStatueActive",
+              },
+            ],
             "contents": Array [
               Object {
                 "tag": "String",
                 "value": "weeping,",
               },
             ],
-            "dependencies": Array [
-              "robedStatueActive",
-            ],
-            "if": "!robedStatueActive",
             "tag": "Condition",
           },
         ],

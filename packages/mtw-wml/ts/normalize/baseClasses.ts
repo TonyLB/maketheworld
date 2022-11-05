@@ -71,12 +71,10 @@ export type ComponentRenderItem = {
     tag: 'LineBreak';
 } | {
     tag: 'Space';
-} | {
+} | ({
     tag: 'Condition';
-    if: string;
-    dependencies: string[];
     contents: ComponentRenderItem[];
-}
+} & NormalConditionMixin)
 
 export type NormalDescriptionPayload = {
     type: 'Description';
@@ -119,12 +117,19 @@ export type NormalImport = {
     appearances: BaseAppearance[];
 } & NormalBase
 
-export type NormalCondition = {
-    tag: 'If';
+export type NormalConditionStatement = {
     if: string;
     dependencies: string[];
+}
+
+export type NormalConditionMixin = {
+    conditions: NormalConditionStatement[];
+}
+
+export type NormalCondition = {
+    tag: 'If';
     appearances: BaseAppearance[];
-} & NormalBase
+} & NormalBase & NormalConditionMixin
 
 export type ImageAppearance = {
     display?: 'replace'
@@ -137,15 +142,11 @@ export type NormalImage = {
 } & NormalBase
 
 export type MapAppearanceRoom = {
-    conditions: {
-        if: string;
-        dependencies: string[]
-    }[];
     key: string;
     x: number;
     y: number;
     location: number[];
-}
+} & NormalConditionMixin
 
 type MapAppearanceImage = string
 

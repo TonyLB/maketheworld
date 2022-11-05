@@ -22,11 +22,14 @@ export type EphemeraCondition = {
     if: string;
 }
 
-export type EphemeraFeatureAppearance = {
+export type EphemeraConditionMixin = {
     conditions: EphemeraCondition[];
+}
+
+export type EphemeraFeatureAppearance = {
     name: TaggedMessageContent[];
     render: TaggedMessageContent[];
-}
+} & EphemeraConditionMixin
 
 export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
@@ -41,11 +44,10 @@ export type EphemeraExit = {
 }
 
 export type EphemeraRoomAppearance = {
-    conditions: EphemeraCondition[];
     name: TaggedMessageContent[];
     render: TaggedMessageContent[];
     exits: EphemeraExit[];
-}
+} & EphemeraConditionMixin
 
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
@@ -54,18 +56,16 @@ export type EphemeraRoom = {
 }
 
 export type EphemeraMapRoom = {
-    conditions: EphemeraCondition[];
     EphemeraId: string;
     x: number;
     y: number;
-}
+} & EphemeraConditionMixin
 
 export type EphemeraMapAppearance = {
-    conditions: EphemeraCondition[];
     fileURL: string;
     name: TaggedMessageContent[];
     rooms: EphemeraMapRoom[];
-}
+} & EphemeraConditionMixin
 
 export type EphemeraMap = {
     EphemeraId: EphemeraMapId;

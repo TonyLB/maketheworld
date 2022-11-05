@@ -78,13 +78,17 @@ describe('flattenTaggedMessageContent', () => {
             { tag: 'String', value: 'Show,' },
             { tag: 'Space' },
             { tag: 'Condition',
-                if: 'check',
-                dependencies: [{ key: 'check', EphemeraId: 'VARIABLE#Test' }],
+                conditions: [{
+                    if: 'check',
+                    dependencies: [{ key: 'check', EphemeraId: 'VARIABLE#Test' }]
+                }],
                 contents: [
                     { tag: 'String', value: `Don't show` },
                     { tag: 'Condition',
-                        if: 'check',
-                        dependencies: [{ key: 'check', EphemeraId: 'VARIABLE#Test' }],
+                        conditions: [{
+                            if: 'check',
+                            dependencies: [{ key: 'check', EphemeraId: 'VARIABLE#Test' }]
+                        }],
                         contents: [
                             { tag: 'String', value: `Definitely don't show` },
                         ]
@@ -106,22 +110,28 @@ describe('flattenTaggedMessageContent', () => {
             { tag: 'String', value: 'Show this, ' },
             {
                 tag: 'Condition',
-                if: 'checkOne',
-                dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
+                conditions: [{
+                    if: 'checkOne',
+                    dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }]
+                }],
                 contents: [
                     { tag: 'String', value: 'and this, ' },
                     {
                         tag: 'Condition',
-                        if: 'checkOne',
-                        dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }],
+                        conditions: [{
+                            if: 'checkOne',
+                            dependencies: [{ key: 'checkOne', EphemeraId: 'VARIABLE#Test' }]
+                        }],
                         contents: [
                             { tag: 'String', value: `and also this` },
                         ]
                     },
                     {
                         tag: 'Condition',
-                        if: 'checkTwo',
-                        dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
+                        conditions: [{
+                            if: 'checkTwo',
+                            dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }]
+                        }],
                         contents: [
                             { tag: 'String', value: `but not this` },
                         ]
@@ -130,8 +140,10 @@ describe('flattenTaggedMessageContent', () => {
             },
             {
                 tag: 'Condition',
-                if: 'checkTwo',
-                dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }],
+                conditions: [{
+                    if: 'checkTwo',
+                    dependencies: [{ key: 'checkTwo', EphemeraId: 'VARIABLE#Test' }]
+                }],
                 contents: [
                     { tag: 'String', value: `and not this` },
                 ]

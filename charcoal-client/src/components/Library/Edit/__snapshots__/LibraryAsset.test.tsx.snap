@@ -371,9 +371,13 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
     \\"If-0\\": {
         \\"key\\": \\"If-0\\",
         \\"tag\\": \\"If\\",
-        \\"if\\": \\"open\\",
-        \\"dependencies\\": [
-            \\"open\\"
+        \\"conditions\\": [
+            {
+                \\"if\\": \\"open\\",
+                \\"dependencies\\": [
+                    \\"open\\"
+                ]
+            }
         ],
         \\"appearances\\": [
             {

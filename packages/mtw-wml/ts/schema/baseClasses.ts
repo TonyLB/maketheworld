@@ -137,56 +137,44 @@ export type SchemaImportTag = {
 export type SchemaConditionTagAssetContext = {
     tag: 'If';
     contextTag: 'Asset';
-    if: string;
     key?: string;
-    dependencies: string[];
     contents: SchemaAssetLegalContents[];
-} & SchemaBase
+} & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagNameContext = {
     tag: 'If';
     contextTag: 'Name';
-    if: string;
     key?: string;
-    dependencies: string[];
     contents: SchemaTaggedMessageIncomingContents[];
-} & SchemaBase
+} & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagDescriptionContext = {
     tag: 'If';
     contextTag: 'Description';
-    if: string;
     key?: string;
-    dependencies: string[];
     contents: SchemaTaggedMessageIncomingContents[];
-} & SchemaBase
+} & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagRoomContext = {
     tag: 'If';
     contextTag: 'Room';
-    if: string;
     key?: string;
-    dependencies: string[];
     contents: SchemaRoomLegalContents[];
-} & SchemaBase
+} & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagFeatureContext = {
     tag: 'If';
     contextTag: 'Feature';
-    if: string;
     key?: string;
-    dependencies: string[];
     contents: SchemaFeatureLegalContents[];
-} & SchemaBase
+} & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagMapContext = {
     tag: 'If';
     contextTag: 'Map';
-    if: string;
     key?: string;
-    dependencies: string[];
     contents: SchemaMapLegalContents[];
-} & SchemaBase
+} & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTag = SchemaConditionTagAssetContext | SchemaConditionTagDescriptionContext | SchemaConditionTagNameContext | SchemaConditionTagRoomContext | SchemaConditionTagFeatureContext | SchemaConditionTagMapContext
 

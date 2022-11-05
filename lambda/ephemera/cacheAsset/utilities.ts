@@ -11,12 +11,15 @@ export const conditionsFromContext = (assetWorkspace: AssetWorkspace) => (contex
         .filter(({ tag }) => (tag === 'If'))
         .map(({ key }) => ((assetWorkspace.normal || {})[key]))
         .filter(isNormalCondition)
-        .map((condition) => ({
-            dependencies: condition.dependencies
-                .map((key) => ({
-                    key,
-                    EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
-                })),
-            if: condition.if
-        }))
+        .reduce<EphemeraCondition[]>((previous, condition) => ([
+            ...previous,
+            ...condition.conditions.map((statement) => ({
+                dependencies: statement.dependencies
+                    .map((key) => ({
+                        key,
+                        EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
+                    })),
+                if: statement.if
+            }))
+        ]), [])
 )

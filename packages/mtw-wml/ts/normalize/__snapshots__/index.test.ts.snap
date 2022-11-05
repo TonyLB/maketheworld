@@ -25,8 +25,12 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [],
-    "if": "true",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [],
+        "if": "true",
+      },
+    ],
     "key": "If-0",
     "tag": "If",
   },
@@ -207,16 +211,20 @@ Object {
             "value": "Hello, world!",
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "strong",
+                ],
+                "if": "strong",
+              },
+            ],
             "contents": Array [
               Object {
                 "tag": "String",
                 "value": "Vortex!",
               },
             ],
-            "dependencies": Array [
-              "strong",
-            ],
-            "if": "strong",
             "tag": "Condition",
           },
           Object {
@@ -224,25 +232,33 @@ Object {
             "value": " ",
           },
           Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "strong",
+                ],
+                "if": "!strong",
+              },
+            ],
             "contents": Array [
               Object {
+                "conditions": Array [
+                  Object {
+                    "dependencies": Array [
+                      "trendy",
+                    ],
+                    "if": "trendy",
+                  },
+                ],
                 "contents": Array [
                   Object {
                     "tag": "String",
                     "value": "V.O.R.T.E.X.",
                   },
                 ],
-                "dependencies": Array [
-                  "trendy",
-                ],
-                "if": "trendy",
                 "tag": "Condition",
               },
             ],
-            "dependencies": Array [
-              "strong",
-            ],
-            "if": "!strong",
             "tag": "Condition",
           },
         ],
@@ -299,7 +315,7 @@ Object {
 
 exports[`WML normalize should correctly handle multiple and nested conditionals 1`] = `
 Object {
-  "If-0": Object {
+  "If-1": Object {
     "appearances": Array [
       Object {
         "contents": Array [
@@ -322,20 +338,24 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "strong",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "strong",
+        ],
+        "if": "strong",
+      },
     ],
-    "if": "strong",
-    "key": "If-0",
+    "key": "If-1",
     "tag": "If",
   },
-  "If-1": Object {
+  "If-2": Object {
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 0,
-            "key": "If-2",
+            "key": "If-3",
             "tag": "If",
           },
         ],
@@ -352,14 +372,18 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "strong",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "strong",
+        ],
+        "if": "!strong",
+      },
     ],
-    "if": "!strong",
-    "key": "If-1",
+    "key": "If-2",
     "tag": "If",
   },
-  "If-2": Object {
+  "If-3": Object {
     "appearances": Array [
       Object {
         "contents": Array [
@@ -377,7 +401,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-1",
+            "key": "If-2",
             "tag": "If",
           },
         ],
@@ -388,11 +412,15 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "trendy",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "trendy",
+        ],
+        "if": "trendy",
+      },
     ],
-    "if": "trendy",
-    "key": "If-2",
+    "key": "If-3",
     "tag": "If",
   },
   "Test": Object {
@@ -407,12 +435,12 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-0",
+            "key": "If-1",
             "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "If-1",
+            "key": "If-2",
             "tag": "If",
           },
           Object {
@@ -476,7 +504,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-0",
+            "key": "If-1",
             "tag": "If",
           },
         ],
@@ -503,12 +531,12 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-1",
+            "key": "If-2",
             "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "If-2",
+            "key": "If-3",
             "tag": "If",
           },
         ],
@@ -768,7 +796,7 @@ Object {
 
 exports[`WML normalize should denormalize condition dependencies into contextStack 1`] = `
 Object {
-  "If-0": Object {
+  "If-1": Object {
     "appearances": Array [
       Object {
         "contents": Array [
@@ -791,11 +819,15 @@ Object {
         ],
       },
     ],
-    "dependencies": Array [
-      "strong",
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "strong",
+        ],
+        "if": "strong",
+      },
     ],
-    "if": "strong",
-    "key": "If-0",
+    "key": "If-1",
     "tag": "If",
   },
   "Test": Object {
@@ -810,7 +842,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-0",
+            "key": "If-1",
             "tag": "If",
           },
           Object {
@@ -869,7 +901,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-0",
+            "key": "If-1",
             "tag": "If",
           },
         ],
