@@ -111,7 +111,9 @@ describe('wml parser', () => {
                 <Description>
                     Vortex<If {open}>
                         : Open
-                    </If>
+                    </If><Else>
+                        : Closed
+                    </Else>
                 </Description>
                 <Exit from=(DEF)>vortex</Exit>
             </Room>
