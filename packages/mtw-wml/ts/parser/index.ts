@@ -43,6 +43,7 @@ import parseNameFactory from './name'
 import parseCharacterFactory, { parsePronounsFactory, parseOutfitFactory, parseOneCoolThingFactory } from './character'
 import parseImageFactory from './image'
 import parseElseFactory from './else'
+import parseElseIfFactory from './elseif'
 
 export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     switch(props.open.tag) {
@@ -66,6 +67,7 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             return parseFeatureFactory(props)
         case 'If':
         case 'Else':
+        case 'ElseIf':
             //
             // Provide context so that Conditionals can parse different legal contents depending upon what
             // is legal for the tag they are nested inside
@@ -77,7 +79,14 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
                 }
                 return previous
             }, undefined)
-            return props.open.tag === 'If' ? parseConditionFactory(contextTag)(props) : parseElseFactory(contextTag)(props)
+            switch(props.open.tag) {
+                case 'If':
+                    return parseConditionFactory(contextTag)(props)
+                case 'Else':
+                    return parseElseFactory(contextTag)(props)
+                case 'ElseIf':
+                    return parseElseIfFactory(contextTag)(props)
+            }
         case 'Link':
             return parseLinkFactory(props)
         case 'br':

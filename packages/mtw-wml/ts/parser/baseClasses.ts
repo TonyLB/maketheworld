@@ -135,11 +135,11 @@ export type ParseConditionContentsFromContextTag<T extends ParseConditionLegalCo
                     ? ParseMapLegalContents
                     : ParseAssetLegalContents
 
-export type ParseConditionTypeFromContextTag<K extends 'If' | 'Else', T extends ParseConditionLegalContextTag> = {
+export type ParseConditionTypeFromContextTag<K extends 'If' | 'Else' | 'ElseIf', T extends ParseConditionLegalContextTag> = {
     tag: K;
     contextTag: T;
     contents: ParseConditionContentsFromContextTag<T>[];
-} & (K extends 'If' ? {
+} & (K extends 'If' | 'ElseIf' ? {
     if: string;
     dependencies: string[];
 } : {}) & ParseTagBase
@@ -173,12 +173,26 @@ export const isParseElseTagRoomContext = (value: ParseElseTag): value is ParseEl
 export const isParseElseTagFeatureContext = (value: ParseElseTag): value is ParseElseTagFeatureContext => (value.contextTag === 'Feature')
 export const isParseElseTagMapContext = (value: ParseElseTag): value is ParseElseTagMapContext => (value.contextTag === 'Map')
 
+export type ParseElseIfTagAssetContext = ParseConditionTypeFromContextTag<'ElseIf', 'Asset'>
+export type ParseElseIfTagDescriptionContext = ParseConditionTypeFromContextTag<'ElseIf', 'Description'>
+export type ParseElseIfTagRoomContext = ParseConditionTypeFromContextTag<'ElseIf', 'Room'>
+export type ParseElseIfTagFeatureContext = ParseConditionTypeFromContextTag<'ElseIf', 'Feature'>
+export type ParseElseIfTagMapContext = ParseConditionTypeFromContextTag<'ElseIf', 'Map'>
+
+export type ParseElseIfTag = ParseConditionTypeFromContextTag<'ElseIf', ParseConditionLegalContextTag>
+
+export const isParseElseIfTagAssetContext = (value: ParseElseIfTag): value is ParseElseIfTagAssetContext => (value.contextTag === 'Asset')
+export const isParseElseIfTagDescriptionContext = (value: ParseElseIfTag): value is ParseElseIfTagDescriptionContext => (value.contextTag === 'Description')
+export const isParseElseIfTagRoomContext = (value: ParseElseIfTag): value is ParseElseIfTagRoomContext => (value.contextTag === 'Room')
+export const isParseElseIfTagFeatureContext = (value: ParseElseIfTag): value is ParseElseIfTagFeatureContext => (value.contextTag === 'Feature')
+export const isParseElseIfTagMapContext = (value: ParseElseIfTag): value is ParseElseIfTagMapContext => (value.contextTag === 'Map')
+
 export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
-    Asset: ['Exit', 'Feature', 'Room', 'If', 'Else', 'Image', 'Map'],
-    Description: ['If', 'Else', 'Space', 'String', 'Link', 'br', 'Whitespace'],
-    Room: ['If', 'Else', 'Description', 'Name', 'Exit'],
-    Feature: ['If', 'Else', 'Description', 'Name'],
-    Map: ['If', 'Else', 'Image', 'Room', 'Name', 'Exit']
+    Asset: ['Exit', 'Feature', 'Room', 'If', 'Else', 'ElseIf', 'Image', 'Map'],
+    Description: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'br', 'Whitespace'],
+    Room: ['If', 'Else', 'ElseIf', 'Description', 'Name', 'Exit'],
+    Feature: ['If', 'Else', 'ElseIf', 'Description', 'Name'],
+    Map: ['If', 'Else', 'ElseIf', 'Image', 'Room', 'Name', 'Exit']
 }
 
 export type ParseExitTag = {
@@ -197,7 +211,7 @@ export type ParseLinkTag = {
     contents: ParseLinkLegalContents[];
 } & ParseTagBase
 
-export type ParseTaggedMessageLegalContents = ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag | ParseSpacerTag | ParseConditionTagDescriptionContext | ParseElseTagDescriptionContext
+export type ParseTaggedMessageLegalContents = ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag | ParseSpacerTag | ParseConditionTagDescriptionContext | ParseElseTagDescriptionContext | ParseElseIfTagDescriptionContext
 
 export type ParseTaggedMessageTag<T extends string> = {
     tag: T;
@@ -215,7 +229,7 @@ export type ParseSpacerTag = {
     tag: 'Space';
 } & ParseTagBase
 
-export type ParseRoomLegalContents = ParseDescriptionTag | ParseNameTag | ParseExitTag | ParseFeatureTag | ParseConditionTagRoomContext | ParseElseTagRoomContext
+export type ParseRoomLegalContents = ParseDescriptionTag | ParseNameTag | ParseExitTag | ParseFeatureTag | ParseConditionTagRoomContext | ParseElseTagRoomContext | ParseElseIfTagRoomContext
 export type ParseRoomTag = {
     tag: 'Room';
     key: string;
@@ -226,7 +240,7 @@ export type ParseRoomTag = {
     contents: ParseRoomLegalContents[];
 } & ParseTagBase
 
-export type ParseFeatureLegalContents = ParseDescriptionTag | ParseNameTag | ParseConditionTagFeatureContext | ParseElseTagFeatureContext
+export type ParseFeatureLegalContents = ParseDescriptionTag | ParseNameTag | ParseConditionTagFeatureContext | ParseElseTagFeatureContext | ParseElseIfTagFeatureContext
 export type ParseFeatureTag = {
     tag: 'Feature';
     key: string;
@@ -234,7 +248,7 @@ export type ParseFeatureTag = {
     contents: ParseFeatureLegalContents[];
 } & ParseTagBase
 
-export type ParseMapLegalContents = ParseNameTag | ParseRoomTag | ParseImageTag | ParseExitTag | ParseConditionTagMapContext | ParseElseTagMapContext
+export type ParseMapLegalContents = ParseNameTag | ParseRoomTag | ParseImageTag | ParseExitTag | ParseConditionTagMapContext | ParseElseTagMapContext | ParseElseIfTagMapContext
 export type ParseMapTag = {
     tag: 'Map';
     key: string;
@@ -270,6 +284,7 @@ export type ParseTag = ParseAssetTag |
     ParseImportTag |
     ParseConditionTag |
     ParseElseTag |
+    ParseElseIfTag |
     ParseExitTag |
     ParseDescriptionTag |
     ParseLineBreakTag |
