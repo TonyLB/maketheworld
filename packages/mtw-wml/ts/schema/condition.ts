@@ -39,4 +39,22 @@ export const schemaFromElse = <T extends ParseConditionTag>(item: Omit<T, 'tag' 
     } as unknown as SchemaConditionTagFromParse<T>
 )
 
+export const schemaFromElseIf = <T extends ParseConditionTag>(item: Omit<T, 'tag'> & { tag: 'ElseIf' }, conditions: SchemaConditionMixin["conditions"], contents: SchemaConditionTagFromParse<T>["contents"]): SchemaConditionTagFromParse<T> => (
+    {
+        tag: 'If',
+        contextTag: item.contextTag,
+        conditions: [
+            ...conditions,
+            {
+                if: item.if,
+                dependencies: item.dependencies
+            }
+        ],
+        contents: (isParseConditionTagDescriptionContext({ ...item, tag: 'If', if: '', dependencies: [] }))
+            ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+            : contents,
+        parse: item
+    } as unknown as SchemaConditionTagFromParse<T>
+)
+
 export default schemaFromCondition

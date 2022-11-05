@@ -14,7 +14,7 @@ export const parseFeatureFactory: ParseTagFactory<ParseFeatureTag> = ({ open, co
     })
     const parseContents = validateContents<ParseFeatureLegalContents>({
         contents,
-        legalTags: ['Name', 'Description', 'If', 'Else'],
+        legalTags: ['Name', 'Description', 'If', 'Else', 'ElseIf'],
         ignoreTags: ['Whitespace', 'Comment']
     })
     return {

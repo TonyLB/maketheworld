@@ -22,6 +22,7 @@ export type ParseAssetLegalContents = ParseActionTag |
     ParseComputedTag |
     ParseConditionTag |
     ParseElseTag |
+    ParseElseIfTag |
     ParseExitTag |
     ParseFeatureTag |
     ParseImageTag |
@@ -316,6 +317,7 @@ export const isParseLegalTag = (tag: string): tag is ParseLegalTag => ([
     'Import',
     'If',
     'Else',
+    'ElseIf',
     'Exit',
     'Description',
     'br',
@@ -359,7 +361,7 @@ export class ParseException extends Error {
 }
 
 export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseElseTag | ParseLinkTag | ParseMapTag | ParseExitTag | ParseNameTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag) => (
-    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Else', 'Link', 'Map', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
+    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Else', 'ElseIf', 'Link', 'Map', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 export const isParseExit = (value: ParseTag): value is ParseExitTag => (value.tag === 'Exit')
 export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
@@ -372,5 +374,6 @@ export const isParseStackTagOpenEntry = (value: ParseStackEntry): value is Parse
 export type ParseTagFactory<T extends ParseTag> = (value: { open: ParseStackTagOpenEntry, context: ParseStackTagOpenEntry[]; contents: ParseTag[], endTagToken: number }) => ParseStackTagEntry<T>
 
 export const parseTagDefaultProps: Record<string, string> = {
-    If: 'if'
+    If: 'if',
+    ElseIf: 'if'
 }

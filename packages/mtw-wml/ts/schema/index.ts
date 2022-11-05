@@ -65,7 +65,7 @@ import {
 } from "./baseClasses"
 import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit, schemaFromPronouns } from "./character"
 import schemaFromComputed from "./computed"
-import schemaFromCondition, { SchemaConditionTagFromParse, schemaFromElse } from "./condition"
+import schemaFromCondition, { SchemaConditionTagFromParse, schemaFromElse, schemaFromElseIf } from "./condition"
 import schemaFromDescription from "./description"
 import schemaFromExit from "./exit"
 import schemaFromFeature from "./feature"
@@ -118,7 +118,7 @@ function schemaFromParseItem(item: ParseTag, options: SchemaFromParseItemOptions
         const setNestedFailedConditions = (conditions: SchemaConditionMixin["conditions"]): void => { nestedFailedConditions = conditions }
         schemaContents = (item.contents as any).map((item) => (schemaFromParseItem(item, { failedConditions: nestedFailedConditions, setFailedConditions: setNestedFailedConditions })))
     }
-    if (!(['If', 'Whitespace', 'Else'].includes(item.tag))) {
+    if (!(['If', 'Whitespace', 'Else', 'ElseIf'].includes(item.tag))) {
         setFailedConditions([])
         failedConditions = []
     }
@@ -159,6 +159,19 @@ function schemaFromParseItem(item: ParseTag, options: SchemaFromParseItemOptions
             }
             const elseConditions = failedConditions.map((condition) => ({ ...condition, not: true }))
             return schemaFromElse(item, elseConditions, schemaContents as SchemaConditionTagFromParse<Omit<typeof item, 'tag'> & { tag: 'If'; if: string; dependencies: string[] }>["contents"])
+        case 'ElseIf':
+            if (!failedConditions.length) {
+                throw new SchemaException('ElseIf must follow a conditional', item)
+            }
+            const elseIfConditions = failedConditions.map((condition) => ({ ...condition, not: true }))
+            setFailedConditions([
+                ...failedConditions,
+                {
+                    if: item.if,
+                    dependencies: item.dependencies
+                }
+            ])
+            return schemaFromElseIf(item, elseIfConditions, schemaContents as SchemaConditionTagFromParse<Omit<typeof item, 'tag'> & { tag: 'If'; if: string; dependencies: string[] }>["contents"])
         case 'Action':
             return schemaFromAction(item)
         case 'Computed':
