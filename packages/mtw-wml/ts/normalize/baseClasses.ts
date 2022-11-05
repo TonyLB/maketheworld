@@ -119,6 +119,7 @@ export type NormalImport = {
 
 export type NormalConditionStatement = {
     if: string;
+    not?: boolean;
     dependencies: string[];
 }
 

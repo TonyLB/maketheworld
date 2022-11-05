@@ -43,6 +43,7 @@ export type TaggedConditionalItemDependency = {
 
 export type TaggedConditionalStatement = {
     if: string;
+    not?: boolean;
     dependencies: TaggedConditionalItemDependency[];
 }
 
@@ -54,6 +55,7 @@ export type TaggedConditional = {
 
 export type TaggedConditionalStatementUnrestricted = {
     if: string;
+    not?: boolean;
     dependencies: string[];
 }
 
