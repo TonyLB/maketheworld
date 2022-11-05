@@ -11,16 +11,16 @@ export type SpacerMessage = {
     DisplayProtocol: 'SpacerMessage';
 } & MessageAddressing
 
-type TaggedText = {
+export type TaggedText = {
     tag: 'String';
     value: string;
 }
 
-type TaggedLineBreak = {
+export type TaggedLineBreak = {
     tag: 'LineBreak';
 }
 
-type TaggedSpacer = {
+export type TaggedSpacer = {
     tag: 'Space';
 }
 
@@ -52,10 +52,14 @@ export type TaggedConditional = {
     contents: TaggedMessageContent[];
 }
 
-export type TaggedConditionalUnrestricted = {
-    tag: 'Condition';
+export type TaggedConditionalStatementUnrestricted = {
     if: string;
     dependencies: string[];
+}
+
+export type TaggedConditionalUnrestricted = {
+    tag: 'Condition';
+    conditions: TaggedConditionalStatementUnrestricted[];
     contents: TaggedMessageContentUnrestricted[];
 }
 
