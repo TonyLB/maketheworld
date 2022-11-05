@@ -1,11 +1,16 @@
-import { SchemaConditionTagAssetContext, SchemaConditionTagDescriptionContext, SchemaTaggedMessageIncomingContents } from "./baseClasses";
-import { isParseConditionTagDescriptionContext, ParseConditionTag, ParseConditionTagAssetContext } from "../parser/baseClasses";
+import { SchemaConditionTagAssetContext, SchemaConditionTagDescriptionContext, SchemaConditionTagMapContext, SchemaTaggedMessageIncomingContents } from "./baseClasses";
+import { isParseConditionTagDescriptionContext, ParseConditionTag, ParseConditionTagAssetContext, ParseConditionTagMapContext } from "../parser/baseClasses";
 import { translateTaggedMessageContents } from "./taggedMessage";
 
-type SchemaConditionTagFromParse<T extends ParseConditionTag> =
+//
+// TODO: Refactor SchemaCondition to be as generalizable as ParseCondition
+//
+export type SchemaConditionTagFromParse<T extends ParseConditionTag> =
     T extends ParseConditionTagAssetContext
         ? SchemaConditionTagAssetContext
-        : SchemaConditionTagDescriptionContext
+        : T extends ParseConditionTagMapContext
+            ? SchemaConditionTagMapContext
+            : SchemaConditionTagDescriptionContext
 
 export const schemaFromCondition = <T extends ParseConditionTag>(item: T, contents: SchemaConditionTagFromParse<T>["contents"]): SchemaConditionTagFromParse<T> => (
     {
@@ -15,9 +20,11 @@ export const schemaFromCondition = <T extends ParseConditionTag>(item: T, conten
             if: item.if,
             dependencies: item.dependencies,    
         }],
-        contents: (isParseConditionTagDescriptionContext(item)) ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[]) : contents,
+        contents: (isParseConditionTagDescriptionContext(item))
+            ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+            : contents,
         parse: item
-    } as SchemaConditionTagFromParse<T>
+    } as unknown as SchemaConditionTagFromParse<T>
 )
 
 export default schemaFromCondition

@@ -59,11 +59,12 @@ import {
     SchemaStringTag,
     SchemaTag,
     SchemaUseTag,
-    SchemaVariableTag
+    SchemaVariableTag,
+    SchemaConditionMixin
 } from "./baseClasses"
 import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit, schemaFromPronouns } from "./character"
 import schemaFromComputed from "./computed"
-import schemaFromCondition from "./condition"
+import schemaFromCondition, { SchemaConditionTagFromParse } from "./condition"
 import schemaFromDescription from "./description"
 import schemaFromExit from "./exit"
 import schemaFromFeature from "./feature"
@@ -104,8 +105,12 @@ function schemaFromParseItem(item: ParseCharacterTag): SchemaCharacterTag
 function schemaFromParseItem(item: ParseTag): SchemaTag
 function schemaFromParseItem(item: ParseTag): SchemaTag {
     let schemaContents: SchemaTag[] = []
+    let failedConditions: SchemaConditionMixin["conditions"] = []
     if (isParseTagNesting(item)) {
         schemaContents = (item.contents as any).map(schemaFromParseItem)
+    }
+    if (!(['If', 'Whitespace'].includes(item.tag))) {
+        failedConditions = []
     }
     switch(item.tag) {
         case 'Asset':
@@ -133,7 +138,11 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         case 'Link':
             return schemaFromLink(item, schemaContents as SchemaStringTag[])
         case 'If':
-            return schemaFromCondition(item, schemaContents as SchemaAssetLegalContents[])
+            failedConditions = [{
+                if: item.if,
+                dependencies: item.dependencies
+            }]
+            return schemaFromCondition(item, schemaContents as SchemaConditionTagFromParse<typeof item>["contents"])
         case 'Action':
             return schemaFromAction(item)
         case 'Computed':
