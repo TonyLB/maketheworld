@@ -133,7 +133,15 @@ const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], op
                 // create the nestingPromise until after evaluationPromise returns true)
                 //
                 const evaluationPromise = Promise.all(
-                    message.conditions.map((condition) => (evaluateConditional(condition.if, condition.dependencies)))
+                    message.conditions.map(async (condition) => {
+                        const evaluation = await evaluateConditional(condition.if, condition.dependencies)
+                        if (condition.not) {
+                            return !Boolean(evaluation)
+                        }
+                        else {
+                            return Boolean(evaluation)
+                        }
+                    })
                 )
                 const nestingPromise = flattenTaggedMessageContent(message.contents, { evaluateConditional })
                 const evaluation = await evaluationPromise

@@ -24,8 +24,8 @@ export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) =
     //
     const allPromises = possibleAppearances
         .map(async (appearance): Promise<T | undefined> => {
-            const conditionsPassList = await Promise.all(appearance.conditions.map(({ if: source, dependencies }) => (
-                evaluateCode({
+            const conditionsPassList = await Promise.all(appearance.conditions.map(async ({ if: source, not, dependencies }) => {
+                const evaluated = await evaluateCode({
                     source,
                     mapping: dependencies
                         .reduce<Record<string, EphemeraComputedId | EphemeraVariableId>>((previous, { EphemeraId, key }) => (
@@ -34,7 +34,13 @@ export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) =
                                 : previous
                             ), {})
                 })
-            )))
+                if (not) {
+                    return !Boolean(evaluated)
+                }
+                else {
+                    return Boolean(evaluated)
+                }
+            }))
             const allConditionsPass = conditionsPassList.reduce<boolean>((previous, value) => (previous && Boolean(value)), true)
             if (allConditionsPass) {
                 return appearance

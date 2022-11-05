@@ -19,6 +19,7 @@ export type EphemeraItemDependency = {
 
 export type EphemeraCondition = {
     dependencies: EphemeraItemDependency[];
+    not?: boolean;
     if: string;
 }
 
