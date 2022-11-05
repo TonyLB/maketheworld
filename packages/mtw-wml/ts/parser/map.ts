@@ -11,7 +11,7 @@ export const parseMapFactory: ParseTagFactory<ParseMapTag> = ({ open, contents, 
     })
     const parseContents = validateContents<ParseMapLegalContents>({
         contents,
-        legalTags: ['Name', 'Room', 'Exit', 'Image', 'If', 'Else'],
+        legalTags: ['Name', 'Room', 'Exit', 'Image', 'If', 'Else', 'ElseIf'],
         ignoreTags: ['Whitespace', 'Comment']
     })
     return {

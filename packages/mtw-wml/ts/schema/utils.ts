@@ -44,7 +44,13 @@ import {
     isParseElseTagAssetContext,
     isParseElseTagDescriptionContext,
     isParseElseTagRoomContext,
-    isParseElseTagFeatureContext
+    isParseElseTagFeatureContext,
+    ParseElseIfTag,
+    isParseElseIfTagAssetContext,
+    isParseElseIfTagMapContext,
+    isParseElseIfTagFeatureContext,
+    isParseElseIfTagRoomContext,
+    isParseElseIfTagDescriptionContext
 } from "../parser/baseClasses"
 import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, isSchemaTag, SchemaConditionMixin, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaNameTag, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
 
@@ -74,6 +80,7 @@ export type TransformWithContextCallback = {
     (item: ParseImportTag, context: ParseTag[]): ParseImportTag;
     (item: ParseConditionTag, context: ParseTag[]): ParseConditionTag;
     (item: ParseElseTag, context: ParseTag[]): ParseElseTag;
+    (item: ParseElseIfTag, context: ParseTag[]): ParseElseIfTag;
     (item: ParseExitTag, context: ParseTag[]): ParseExitTag;
     (item: ParseDescriptionTag, context: ParseTag[]): ParseDescriptionTag;
     (item: ParseLineBreakTag, context: ParseTag[]): ParseLineBreakTag;
@@ -278,6 +285,54 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ]    
                 }
                 throw new SchemaException(`Invalid else context`, elseItem)
+            case 'ElseIf':
+                const elseIfItem = callback(item, context)
+                if (isParseElseIfTagAssetContext(elseIfItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...elseIfItem,
+                            contents: transformWithContext(item.contents, callback, [...context, elseIfItem]) as ParseAssetLegalContents[]
+                        }
+                    ]
+                }
+                else if (isParseElseIfTagDescriptionContext(elseIfItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...elseIfItem,
+                            contents: transformWithContext(item.contents, callback, [...context, elseIfItem]) as ParseTaggedMessageLegalContents[]
+                        }
+                    ]    
+                }
+                else if (isParseElseIfTagRoomContext(elseIfItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...elseIfItem,
+                            contents: transformWithContext(item.contents, callback, [...context, elseIfItem]) as ParseRoomLegalContents[]
+                        }
+                    ]    
+                }
+                else if (isParseElseIfTagFeatureContext(elseIfItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...elseIfItem,
+                            contents: transformWithContext(item.contents, callback, [...context, elseIfItem]) as ParseFeatureLegalContents[]
+                        }
+                    ]    
+                }
+                else if (isParseElseIfTagMapContext(elseIfItem)) {
+                    return [
+                        ...previous,
+                        {
+                            ...elseIfItem,
+                            contents: transformWithContext(item.contents, callback, [...context, elseIfItem]) as ParseMapLegalContents[]
+                        }
+                    ]    
+                }
+                throw new SchemaException(`Invalid elseIf context`, elseIfItem)
             case 'Exit':
                 const exitItem = callback(item, context)
                 return [
