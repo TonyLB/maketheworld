@@ -69,8 +69,7 @@
             Four statues of people portrayed in sweeping geometric shapes: A
             <Link to=(childStatue)>child</Link> with hands raised in prayer, a
             <Link to=(robedStatue)>robed figure</Link>
-            <If {robedStatueActive}>with cupped hands,</If>
-            <If {!robedStatueActive}>weeping,</If>
+            <If {robedStatueActive}>with cupped hands,</If><Else>weeping,</Else>
         </Description>
     </Feature>
     <Feature key=(childStatue)>
@@ -125,8 +124,7 @@
                 <Space /><Link to=(lowerRobedStatueHead)>lower the head</Link>into its hands.
             </Description>
         </Feature>
-    </If>
-    <If {!robedStatueActive}>
+    </If><Else>
         <Feature key=(wellStatues)>
             <Description>
                 <Space />weeping,<Space />
@@ -146,7 +144,7 @@
                 weeping position.
             </Description>
         </Feature>
-    </If>
+    </Else>
     <Feature key=(wellStatues)>
         <Description>
             <Space />a
@@ -267,8 +265,7 @@
                 <Space />a determined<Space />
             </Description>
         </Feature>
-    </If>
-    <If {!determinedStatueHead}>
+    </If><Else>
         <Feature key=(determinedStatue)>
             <Description>
                 <Space />looking away dismissively toward the side of the room.<Space />
@@ -279,21 +276,20 @@
                 <Space />an arrogant<Space />
             </Description>
         </Feature>
-    </If>
+    </Else>
     <If {determinedStatueRightArm}>
         <Feature key=(determinedNeck)>
             <Description>
                 <Space /><Link to=(lowerRightArm)>lower the right arm</Link>,<Space />
             </Description>
         </Feature>
-    </If>
-    <If {!determinedStatueRightArm}>
+    </If><Else>
         <Feature key=(determinedNeck)>
             <Description>
                 <Space /><Link to=(raiseRightArm)>raise the right arm</Link>,<Space />
             </Description>
         </Feature>
-    </If>
+    </Else>
     <If {determinedStatueLeftArm}>
         <Feature key=(determinedNeck)>
             <Description>
@@ -301,15 +297,14 @@
                 <Link to=(lowerLeftArm)>lower the left arm</Link>.
             </Description>
         </Feature>
-    </If>
-    <If {!determinedStatueLeftArm}>
+    </If><Else>
         <Feature key=(determinedNeck)>
             <Description>
                 <Space />or
                 <Link to=(raiseLeftArm)>raise the left arm</Link>.
             </Description>
         </Feature>
-    </If>
+    </Else>
     <Feature key=(wellStatues)>
         <Description>
             <Space /><Link to=(determinedStatue)>figure striding</Link>forward.

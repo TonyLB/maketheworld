@@ -1,3 +1,4 @@
+import { stringify } from "uuid"
 import {
     isParseExit,
     isParseRoom,
@@ -64,7 +65,7 @@ import {
 } from "./baseClasses"
 import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit, schemaFromPronouns } from "./character"
 import schemaFromComputed from "./computed"
-import schemaFromCondition, { SchemaConditionTagFromParse } from "./condition"
+import schemaFromCondition, { SchemaConditionTagFromParse, schemaFromElse } from "./condition"
 import schemaFromDescription from "./description"
 import schemaFromExit from "./exit"
 import schemaFromFeature from "./feature"
@@ -80,36 +81,45 @@ import { transformWithContext, TransformWithContextCallback } from "./utils"
 import schemaFromVariable from "./variable"
 import { schemaFromLineBreak, schemaFromSpacer, schemaFromWhitespace } from "./whiteSpace"
 
-function schemaFromParseItem(item: ParseAssetTag): SchemaAssetTag
-function schemaFromParseItem(item: ParseStoryTag): SchemaStoryTag
-function schemaFromParseItem(item: ParseMapTag): SchemaMapTag
-function schemaFromParseItem(item: ParseImportTag): SchemaImportTag
-function schemaFromParseItem(item: ParseUseTag): SchemaUseTag
-function schemaFromParseItem(item: ParseExitTag): SchemaExitTag
-function schemaFromParseItem(item: ParseRoomTag): SchemaRoomTag
-function schemaFromParseItem(item: ParseNameTag): SchemaNameTag
-function schemaFromParseItem(item: ParseStringTag): SchemaStringTag
-function schemaFromParseItem(item: ParseDescriptionTag): SchemaDescriptionTag
-function schemaFromParseItem(item: ParseFeatureTag): SchemaFeatureTag
-function schemaFromParseItem(item: ParseLinkTag): SchemaLinkTag
-function schemaFromParseItem(item: ParseConditionTag): SchemaConditionTag
-function schemaFromParseItem(item: ParseActionTag): SchemaActionTag
-function schemaFromParseItem(item: ParseComputedTag): SchemaComputedTag
-function schemaFromParseItem(item: ParseImageTag): SchemaImageTag
-function schemaFromParseItem(item: ParseVariableTag): SchemaVariableTag
-function schemaFromParseItem(item: ParsePronounsTag): SchemaPronounsTag
-function schemaFromParseItem(item: ParseFirstImpressionTag): SchemaFirstImpressionTag
-function schemaFromParseItem(item: ParseOneCoolThingTag): SchemaOneCoolThingTag
-function schemaFromParseItem(item: ParseOutfitTag): SchemaOutfitTag
-function schemaFromParseItem(item: ParseCharacterTag): SchemaCharacterTag
-function schemaFromParseItem(item: ParseTag): SchemaTag
-function schemaFromParseItem(item: ParseTag): SchemaTag {
+type SchemaFromParseItemOptions = {
+    failedConditions: SchemaConditionMixin["conditions"];
+    setFailedConditions: (value: SchemaConditionMixin["conditions"]) => void;
+}
+
+function schemaFromParseItem(item: ParseAssetTag, options: SchemaFromParseItemOptions): SchemaAssetTag
+function schemaFromParseItem(item: ParseStoryTag, options: SchemaFromParseItemOptions): SchemaStoryTag
+function schemaFromParseItem(item: ParseMapTag, options: SchemaFromParseItemOptions): SchemaMapTag
+function schemaFromParseItem(item: ParseImportTag, options: SchemaFromParseItemOptions): SchemaImportTag
+function schemaFromParseItem(item: ParseUseTag, options: SchemaFromParseItemOptions): SchemaUseTag
+function schemaFromParseItem(item: ParseExitTag, options: SchemaFromParseItemOptions): SchemaExitTag
+function schemaFromParseItem(item: ParseRoomTag, options: SchemaFromParseItemOptions): SchemaRoomTag
+function schemaFromParseItem(item: ParseNameTag, options: SchemaFromParseItemOptions): SchemaNameTag
+function schemaFromParseItem(item: ParseStringTag, options: SchemaFromParseItemOptions): SchemaStringTag
+function schemaFromParseItem(item: ParseDescriptionTag, options: SchemaFromParseItemOptions): SchemaDescriptionTag
+function schemaFromParseItem(item: ParseFeatureTag, options: SchemaFromParseItemOptions): SchemaFeatureTag
+function schemaFromParseItem(item: ParseLinkTag, options: SchemaFromParseItemOptions): SchemaLinkTag
+function schemaFromParseItem(item: ParseConditionTag, options: SchemaFromParseItemOptions): SchemaConditionTag
+function schemaFromParseItem(item: ParseActionTag, options: SchemaFromParseItemOptions): SchemaActionTag
+function schemaFromParseItem(item: ParseComputedTag, options: SchemaFromParseItemOptions): SchemaComputedTag
+function schemaFromParseItem(item: ParseImageTag, options: SchemaFromParseItemOptions): SchemaImageTag
+function schemaFromParseItem(item: ParseVariableTag, options: SchemaFromParseItemOptions): SchemaVariableTag
+function schemaFromParseItem(item: ParsePronounsTag, options: SchemaFromParseItemOptions): SchemaPronounsTag
+function schemaFromParseItem(item: ParseFirstImpressionTag, options: SchemaFromParseItemOptions): SchemaFirstImpressionTag
+function schemaFromParseItem(item: ParseOneCoolThingTag, options: SchemaFromParseItemOptions): SchemaOneCoolThingTag
+function schemaFromParseItem(item: ParseOutfitTag, options: SchemaFromParseItemOptions): SchemaOutfitTag
+function schemaFromParseItem(item: ParseCharacterTag, options: SchemaFromParseItemOptions): SchemaCharacterTag
+function schemaFromParseItem(item: ParseTag, options: SchemaFromParseItemOptions): SchemaTag
+function schemaFromParseItem(item: ParseTag, options: SchemaFromParseItemOptions): SchemaTag {
     let schemaContents: SchemaTag[] = []
-    let failedConditions: SchemaConditionMixin["conditions"] = []
+    const { setFailedConditions } = options
+    let failedConditions = options.failedConditions
     if (isParseTagNesting(item)) {
-        schemaContents = (item.contents as any).map(schemaFromParseItem)
+        let nestedFailedConditions: SchemaConditionMixin["conditions"] = []
+        const setNestedFailedConditions = (conditions: SchemaConditionMixin["conditions"]): void => { nestedFailedConditions = conditions }
+        schemaContents = (item.contents as any).map((item) => (schemaFromParseItem(item, { failedConditions: nestedFailedConditions, setFailedConditions: setNestedFailedConditions })))
     }
-    if (!(['If', 'Whitespace'].includes(item.tag))) {
+    if (!(['If', 'Whitespace', 'Else'].includes(item.tag))) {
+        setFailedConditions([])
         failedConditions = []
     }
     switch(item.tag) {
@@ -138,11 +148,17 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         case 'Link':
             return schemaFromLink(item, schemaContents as SchemaStringTag[])
         case 'If':
-            failedConditions = [{
+            setFailedConditions([{
                 if: item.if,
                 dependencies: item.dependencies
-            }]
+            }])
             return schemaFromCondition(item, schemaContents as SchemaConditionTagFromParse<typeof item>["contents"])
+        case 'Else':
+            if (!failedConditions.length) {
+                throw new SchemaException('Else must follow a conditional', item)
+            }
+            const elseConditions = failedConditions.map((condition) => ({ ...condition, not: true }))
+            return schemaFromElse(item, elseConditions, schemaContents as SchemaConditionTagFromParse<Omit<typeof item, 'tag'> & { tag: 'If'; if: string; dependencies: string[] }>["contents"])
         case 'Action':
             return schemaFromAction(item)
         case 'Computed':
@@ -202,5 +218,7 @@ const exitContextCallback: TransformWithContextCallback = ((item: ParseTag, cont
 
 export const schemaFromParse = (tags: ParseTag[]): SchemaTag[] => {
     const firstPass = transformWithContext(tags, exitContextCallback)
-    return firstPass.map(schemaFromParseItem)
+    let failedConditions: SchemaConditionMixin["conditions"] = []
+    const setFailedConditions = (conditions: SchemaConditionMixin["conditions"]): void => { failedConditions = conditions }
+    return firstPass.map((item) => (schemaFromParseItem(item, { failedConditions, setFailedConditions })))
 }

@@ -174,11 +174,11 @@ export const isParseElseTagFeatureContext = (value: ParseElseTag): value is Pars
 export const isParseElseTagMapContext = (value: ParseElseTag): value is ParseElseTagMapContext => (value.contextTag === 'Map')
 
 export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
-    Asset: ['Exit', 'Feature', 'Room', 'If', 'Image', 'Map'],
-    Description: ['If', 'Space', 'String', 'Link', 'br', 'Whitespace'],
-    Room: ['If', 'Description', 'Name', 'Exit'],
-    Feature: ['If', 'Description', 'Name'],
-    Map: ['If', 'Image', 'Room', 'Name', 'Exit']
+    Asset: ['Exit', 'Feature', 'Room', 'If', 'Else', 'Image', 'Map'],
+    Description: ['If', 'Else', 'Space', 'String', 'Link', 'br', 'Whitespace'],
+    Room: ['If', 'Else', 'Description', 'Name', 'Exit'],
+    Feature: ['If', 'Else', 'Description', 'Name'],
+    Map: ['If', 'Else', 'Image', 'Room', 'Name', 'Exit']
 }
 
 export type ParseExitTag = {

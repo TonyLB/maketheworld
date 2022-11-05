@@ -1,5 +1,5 @@
-import { SchemaConditionTagAssetContext, SchemaConditionTagDescriptionContext, SchemaConditionTagMapContext, SchemaTaggedMessageIncomingContents } from "./baseClasses";
-import { isParseConditionTagDescriptionContext, ParseConditionTag, ParseConditionTagAssetContext, ParseConditionTagMapContext } from "../parser/baseClasses";
+import { SchemaConditionMixin, SchemaConditionTagAssetContext, SchemaConditionTagDescriptionContext, SchemaConditionTagMapContext, SchemaTaggedMessageIncomingContents } from "./baseClasses";
+import { isParseConditionTagDescriptionContext, ParseConditionTag, ParseConditionTagAssetContext, ParseConditionTagMapContext, ParseElseTag } from "../parser/baseClasses";
 import { translateTaggedMessageContents } from "./taggedMessage";
 
 //
@@ -21,6 +21,18 @@ export const schemaFromCondition = <T extends ParseConditionTag>(item: T, conten
             dependencies: item.dependencies,    
         }],
         contents: (isParseConditionTagDescriptionContext(item))
+            ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+            : contents,
+        parse: item
+    } as unknown as SchemaConditionTagFromParse<T>
+)
+
+export const schemaFromElse = <T extends ParseConditionTag>(item: Omit<T, 'tag' | 'if' | 'dependencies'> & { tag: 'Else' }, conditions: SchemaConditionMixin["conditions"], contents: SchemaConditionTagFromParse<T>["contents"]): SchemaConditionTagFromParse<T> => (
+    {
+        tag: 'If',
+        contextTag: item.contextTag,
+        conditions,
+        contents: (isParseConditionTagDescriptionContext({ ...item, tag: 'If', if: '', dependencies: [] }))
             ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
             : contents,
         parse: item
