@@ -83,6 +83,7 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
             })
             return {
                 if: condition.if,
+                not: condition.not,
                 dependencies
             }
         })
@@ -137,6 +138,7 @@ const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: Norm
                         })
                         return {
                             if: condition.if,
+                            not: condition.not,
                             dependencies
                         }
                     })
@@ -160,7 +162,7 @@ const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: Norm
 const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { namespaceIdToDB: namespaceMap, normal = {} } = assetWorkspace
     const conditionsTransform = conditionsFromContext(assetWorkspace)
-    const conditionsRemap = (conditions: { if: string; dependencies: string[] }[]): EphemeraCondition[] => {
+    const conditionsRemap = (conditions: { if: string; not?: boolean; dependencies: string[] }[]): EphemeraCondition[] => {
         return conditions.map((condition) => {
             const dependencies = condition.dependencies.reduce<EphemeraCondition["dependencies"]>((previous, key) => {
                 const dependencyLookup = assetWorkspace.namespaceIdToDB[key]
@@ -177,6 +179,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             }, [])
             return {
                 if: condition.if,
+                not: condition.not,
                 dependencies
             }
         })

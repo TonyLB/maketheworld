@@ -1,6 +1,5 @@
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist"
 import {
-    NormalForm,
     NormalReference,
     isNormalCondition
 } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
@@ -19,7 +18,8 @@ export const conditionsFromContext = (assetWorkspace: AssetWorkspace) => (contex
                         key,
                         EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
                     })),
-                if: statement.if
+                if: statement.if,
+                not: statement.not
             }))
         ]), [])
 )

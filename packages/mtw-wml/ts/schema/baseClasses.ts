@@ -10,6 +10,7 @@ type SchemaBase = {
 export type SchemaConditionMixin = {
     conditions: {
         if: string;
+        not?: boolean;
         dependencies: string[];
     }[]
 }
