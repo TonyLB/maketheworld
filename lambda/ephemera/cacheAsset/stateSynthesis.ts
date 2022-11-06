@@ -4,12 +4,14 @@ import {
     isNormalMap,
     NormalForm,
     isNormalComputed,
-    isNormalCondition
+    isNormalCondition,
+    NormalReference,
+    NormalItem,
+    NormalConditionMixin
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import { MessageBus } from '../messageBus/baseClasses.js'
-import { isTaggedConditional, TaggedMessageContent, TaggedMessageContentUnrestricted } from '@tonylb/mtw-interfaces/dist/messages.js'
-import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
+import { TaggedMessageContentUnrestricted } from '@tonylb/mtw-interfaces/dist/messages.js'
 
 const extractDependenciesFromTaggedContent = (values: TaggedMessageContentUnrestricted[]): string[] => {
     const returnValue = values.reduce<string[]>((previous, item) => {
@@ -25,6 +27,17 @@ const extractDependenciesFromTaggedContent = (values: TaggedMessageContentUnrest
         }
         return previous
     }, [])
+    return unique(returnValue) as string[]
+}
+
+const extractDependenciesFromContents = (normalForm: NormalForm, values: NormalReference[]): string[] => {
+    const returnValue = values
+        .filter(({ tag }) => (tag === 'If'))
+        .map(({ key }) => (normalForm[key]))
+        .filter((value): value is NormalItem => (Boolean(value)))
+        .filter(isNormalCondition)
+        .reduce<NormalConditionMixin["conditions"]>((previous, { conditions }) => ([ ...previous, ...conditions ]), [])
+        .reduce<string[]>((previous, { dependencies }) => ([ ...previous, ...dependencies ]), [])
     return unique(returnValue) as string[]
 }
 
@@ -103,13 +116,11 @@ export class StateSynthesizer extends Object {
                                 ]), previous)
                         ), [] as string[]),
                     appearances
-                        .reduce<string[]>((previous, { render = [], name = [] }) => ([
+                        .reduce<string[]>((previous, { render = [], name = [], contents = [] }) => ([
                             ...previous,
                             ...extractDependenciesFromTaggedContent(render),
                             ...extractDependenciesFromTaggedContent(name),
-                            //
-                            // TODO: Add functionality to extract exit conditional dependencies
-                            //
+                            ...extractDependenciesFromContents(this.normalForm, contents)
                         ]), [])
                 ) as string[]
             }))
