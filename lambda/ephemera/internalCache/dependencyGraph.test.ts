@@ -3,8 +3,132 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import internalCache from "."
 import { DependencyNode } from './baseClasses'
+import { DependencyTreeWalker } from './dependencyGraph'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+
+describe('DependencyTreeWalker', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
+    it('should walk an acyclic tree', () => {
+        const walker = new DependencyTreeWalker([
+            {
+                EphemeraId: 'VARIABLE#testOne',
+                connections: [
+                    { EphemeraId: 'COMPUTED#testTwo', key: 'testOne', assets: ['base'] },
+                    { EphemeraId: 'COMPUTED#testThree', key: 'testOne', assets: ['base'] }
+                ]
+            },
+            {
+                EphemeraId: 'COMPUTED#testTwo',
+                connections: [{ EphemeraId: 'COMPUTED#testThree', key: 'testTwo', assets: ['base'] }]
+            },
+            {
+                EphemeraId: 'COMPUTED#testThree',
+                connections: []
+            }
+        ])
+
+        const testCallback = jest.fn()
+        walker.walk({ start: 'VARIABLE#testOne', callback: testCallback })
+        expect(testCallback).toHaveBeenCalledTimes(4)
+        expect(testCallback).toHaveBeenCalledWith({
+            node: {
+                EphemeraId: 'VARIABLE#testOne',
+                connections: [
+                    { EphemeraId: 'COMPUTED#testTwo', key: 'testOne', assets: ['base'] },
+                    { EphemeraId: 'COMPUTED#testThree', key: 'testOne',  assets: ['base'] }
+                ]
+            },
+            revisit: false
+        })
+        expect(testCallback).toHaveBeenCalledWith({
+            key: 'testOne',
+            assets: ['base'],
+            revisit: false,
+            node: {
+                EphemeraId: 'COMPUTED#testTwo',
+                connections: [{ EphemeraId: 'COMPUTED#testThree', key: 'testTwo', assets: ['base'] }],
+            }
+        })
+        expect(testCallback).toHaveBeenCalledWith({
+            key: 'testTwo',
+            assets: ['base'],
+            revisit: false,
+            node: {
+                EphemeraId: 'COMPUTED#testThree',
+                connections: [],
+            }
+        })
+        expect(testCallback).toHaveBeenCalledWith({
+            key: 'testOne',
+            assets: ['base'],
+            revisit: true,
+            node: {
+                EphemeraId: 'COMPUTED#testThree',
+                connections: [],
+            }
+        })
+    })
+
+    it('should walk a cyclic tree', () => {
+        const walker = new DependencyTreeWalker([
+            {
+                EphemeraId: 'FEATURE#testOne',
+                connections: [{ EphemeraId: 'FEATURE#testTwo', key: 'testOne', assets: ['base'] }]
+            },
+            {
+                EphemeraId: 'FEATURE#testTwo',
+                connections: [{ EphemeraId: 'FEATURE#testThree', key: 'testTwo', assets: ['base'] }]
+            },
+            {
+                EphemeraId: 'FEATURE#testThree',
+                connections: [{ EphemeraId: 'FEATURE#testOne', key: 'testThree', assets: ['base'] }]
+            }
+        ])
+
+        const testCallback = jest.fn()
+        walker.walk({ start: 'FEATURE#testOne', callback: testCallback })
+        expect(testCallback).toHaveBeenCalledTimes(4)
+        expect(testCallback).toHaveBeenCalledWith({
+            node: {
+                EphemeraId: 'FEATURE#testOne',
+                connections: [{ EphemeraId: 'FEATURE#testTwo', key: 'testOne', assets: ['base'] }]
+            },
+            revisit: false
+        })
+        expect(testCallback).toHaveBeenCalledWith({
+            key: 'testOne',
+            assets: ['base'],
+            revisit: false,
+            node: {
+                EphemeraId: 'FEATURE#testTwo',
+                connections: [{ EphemeraId: 'FEATURE#testThree', key: 'testTwo', assets: ['base'] }],
+            }
+        })
+        expect(testCallback).toHaveBeenCalledWith({
+            key: 'testTwo',
+            assets: ['base'],
+            revisit: false,
+            node: {
+                EphemeraId: 'FEATURE#testThree',
+                connections: [{ EphemeraId: 'FEATURE#testOne', key: 'testThree', assets: ['base'] }],
+            }
+        })
+        expect(testCallback).toHaveBeenCalledWith({
+            key: 'testThree',
+            assets: ['base'],
+            revisit: true,
+            node: {
+                EphemeraId: 'FEATURE#testOne',
+                connections: [{ EphemeraId: 'FEATURE#testTwo', key: 'testOne', assets: ['base'] }]
+            }
+        })
+    })
+})
 
 describe('DependencyGraph', () => {
     beforeEach(() => {
