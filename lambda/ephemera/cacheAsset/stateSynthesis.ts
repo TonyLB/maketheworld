@@ -8,6 +8,25 @@ import {
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import { MessageBus } from '../messageBus/baseClasses.js'
+import { isTaggedConditional, TaggedMessageContent, TaggedMessageContentUnrestricted } from '@tonylb/mtw-interfaces/dist/messages.js'
+import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
+
+const extractDependenciesFromTaggedContent = (values: TaggedMessageContentUnrestricted[]): string[] => {
+    const returnValue = values.reduce<string[]>((previous, item) => {
+        if (item.tag === 'Condition') {
+            return [
+                ...previous,
+                ...(item.conditions
+                    .map(({ dependencies }) => (dependencies))
+                    .reduce<string[]>((accumulator, list) => ([ ...accumulator, ...list ]), [])
+                ),
+                ...extractDependenciesFromTaggedContent(item.contents)
+            ]
+        }
+        return previous
+    }, [])
+    return unique(returnValue) as string[]
+}
 
 export class StateSynthesizer extends Object {
     assetId: string;
@@ -67,21 +86,31 @@ export class StateSynthesizer extends Object {
             .filter(isNormalRoom)
             .map(({ key, appearances }) => ({
                 key,
-                dependencies: unique(appearances
-                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Map'))))
-                    .reduce((previous, { contextStack }) => (
-                        contextStack
-                            .filter(({ tag }) => (tag === 'If'))
-                            .map(({ key }) => (this.normalForm[key]))
-                            .filter(isNormalCondition)
-                            .reduce((accumulator, { conditions }) => ([
-                                ...accumulator,
-                                ...conditions.reduce((innerAccumulator, { dependencies }) => ([
-                                    ...innerAccumulator,
-                                    ...dependencies
-                                ]), accumulator)
-                            ]), previous)
-                    ), [] as string[])
+                dependencies: unique(
+                    appearances
+                        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Map'))))
+                        .reduce((previous, { contextStack }) => (
+                            contextStack
+                                .filter(({ tag }) => (tag === 'If'))
+                                .map(({ key }) => (this.normalForm[key]))
+                                .filter(isNormalCondition)
+                                .reduce((accumulator, { conditions }) => ([
+                                    ...accumulator,
+                                    ...conditions.reduce((innerAccumulator, { dependencies }) => ([
+                                        ...innerAccumulator,
+                                        ...dependencies
+                                    ]), accumulator)
+                                ]), previous)
+                        ), [] as string[]),
+                    appearances
+                        .reduce<string[]>((previous, { render = [], name = [] }) => ([
+                            ...previous,
+                            ...extractDependenciesFromTaggedContent(render),
+                            ...extractDependenciesFromTaggedContent(name),
+                            //
+                            // TODO: Add functionality to extract exit conditional dependencies
+                            //
+                        ]), [])
                 ) as string[]
             }))
             .forEach(sendMessages)
