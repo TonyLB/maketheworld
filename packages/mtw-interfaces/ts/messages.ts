@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraActionId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -25,7 +25,7 @@ export type TaggedSpacer = {
 }
 
 export type TaggedLink = {
-    tag: 'Link',
+    tag: 'Link';
     text: string;
     to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId;
 }
@@ -33,6 +33,16 @@ export type TaggedLink = {
 export type TaggedLinkUnrestricted = {
     tag: 'Link',
     text: string;
+    to: string;
+}
+
+export type TaggedBookmark = {
+    tag: 'Bookmark';
+    to: EphemeraBookmarkId;
+}
+
+export type TaggedBookmarkUnrestricted = {
+    tag: 'Bookmark';
     to: string;
 }
 
@@ -65,14 +75,14 @@ export type TaggedConditionalUnrestricted = {
     contents: TaggedMessageContentUnrestricted[];
 }
 
-export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditional;
+export type TaggedMessageContent = TaggedLink | TaggedBookmark | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditional;
 
 //
 // TaggedMessageContentUnrestricted is a utility type which should (hopefully) match ComponentRenderItem from mtw-wml,
 // and let the more basic of the message utility functions operate identically on both those types (since
 // they share a lot of basic structure, with ComponentRenderItem using local keys rather than global ones)
 //
-export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditionalUnrestricted;
+export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedBookmarkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditionalUnrestricted;
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
@@ -89,6 +99,9 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
         case 'Link':
             return checkTypes(message, { text: 'string', to: 'string' })
                 && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to))
+        case 'Bookmark':
+            return checkTypes(message, { to: 'string' })
+                && isEphemeraBookmarkId(message.to)
         case 'Condition':
             const { dependencies, contents } = message || {}
             return checkTypes(message, { if: 'string' })
@@ -101,6 +114,7 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
 }
 
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
+export const isTaggedBookmark = (item: TaggedMessageContent): item is TaggedBookmark => (item.tag === 'Bookmark')
 export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted): item is TaggedText => (item.tag === 'String')
 export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
@@ -119,10 +133,14 @@ export const validateTaggedMessageList = (items: any): items is TaggedMessageCon
 
 type FlattenTaggedMessageContentOptions = {
     evaluateConditional?: (ifTest: string, dependencies: TaggedConditionalItemDependency[]) => Promise<boolean>;
+    renderBookmark?: (bookmark: EphemeraBookmarkId) => Promise<TaggedMessageContent[]>;
 }
 
 const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions): Promise<(TaggedMessageContentFlat | TaggedSpacer)[]> => {
-    const { evaluateConditional = async (src) => (src === 'true' ? true : false) } = options
+    const {
+        evaluateConditional = async (src) => (src === 'true' ? true : false),
+        renderBookmark = async () => ([])
+    } = options
     const evaluatedMessages: (TaggedMessageContentFlat | TaggedSpacer)[][] = await Promise.all(
         messages.map(async (message) => {
             if (isTaggedConditional(message)) {
@@ -151,6 +169,10 @@ const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], op
                 else {
                     return []
                 }
+            }
+            else if (isTaggedBookmark(message)) {
+                const evaluatedContents = await renderBookmark(message.to)
+                return evaluateTaggedMessageContent(evaluatedContents, options)
             }
             else {
                 return [message]
