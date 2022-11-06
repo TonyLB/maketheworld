@@ -4,10 +4,42 @@ import {
     isNormalMap,
     NormalForm,
     isNormalComputed,
-    isNormalCondition
+    isNormalCondition,
+    NormalReference,
+    NormalItem,
+    NormalConditionMixin
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import { MessageBus } from '../messageBus/baseClasses.js'
+import { TaggedMessageContentUnrestricted } from '@tonylb/mtw-interfaces/dist/messages.js'
+
+const extractDependenciesFromTaggedContent = (values: TaggedMessageContentUnrestricted[]): string[] => {
+    const returnValue = values.reduce<string[]>((previous, item) => {
+        if (item.tag === 'Condition') {
+            return [
+                ...previous,
+                ...(item.conditions
+                    .map(({ dependencies }) => (dependencies))
+                    .reduce<string[]>((accumulator, list) => ([ ...accumulator, ...list ]), [])
+                ),
+                ...extractDependenciesFromTaggedContent(item.contents)
+            ]
+        }
+        return previous
+    }, [])
+    return unique(returnValue) as string[]
+}
+
+const extractDependenciesFromContents = (normalForm: NormalForm, values: NormalReference[]): string[] => {
+    const returnValue = values
+        .filter(({ tag }) => (tag === 'If'))
+        .map(({ key }) => (normalForm[key]))
+        .filter((value): value is NormalItem => (Boolean(value)))
+        .filter(isNormalCondition)
+        .reduce<NormalConditionMixin["conditions"]>((previous, { conditions }) => ([ ...previous, ...conditions ]), [])
+        .reduce<string[]>((previous, { dependencies }) => ([ ...previous, ...dependencies ]), [])
+    return unique(returnValue) as string[]
+}
 
 export class StateSynthesizer extends Object {
     assetId: string;
@@ -67,21 +99,29 @@ export class StateSynthesizer extends Object {
             .filter(isNormalRoom)
             .map(({ key, appearances }) => ({
                 key,
-                dependencies: unique(appearances
-                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Map'))))
-                    .reduce((previous, { contextStack }) => (
-                        contextStack
-                            .filter(({ tag }) => (tag === 'If'))
-                            .map(({ key }) => (this.normalForm[key]))
-                            .filter(isNormalCondition)
-                            .reduce((accumulator, { conditions }) => ([
-                                ...accumulator,
-                                ...conditions.reduce((innerAccumulator, { dependencies }) => ([
-                                    ...innerAccumulator,
-                                    ...dependencies
-                                ]), accumulator)
-                            ]), previous)
-                    ), [] as string[])
+                dependencies: unique(
+                    appearances
+                        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Map'))))
+                        .reduce((previous, { contextStack }) => (
+                            contextStack
+                                .filter(({ tag }) => (tag === 'If'))
+                                .map(({ key }) => (this.normalForm[key]))
+                                .filter(isNormalCondition)
+                                .reduce((accumulator, { conditions }) => ([
+                                    ...accumulator,
+                                    ...conditions.reduce((innerAccumulator, { dependencies }) => ([
+                                        ...innerAccumulator,
+                                        ...dependencies
+                                    ]), accumulator)
+                                ]), previous)
+                        ), [] as string[]),
+                    appearances
+                        .reduce<string[]>((previous, { render = [], name = [], contents = [] }) => ([
+                            ...previous,
+                            ...extractDependenciesFromTaggedContent(render),
+                            ...extractDependenciesFromTaggedContent(name),
+                            ...extractDependenciesFromContents(this.normalForm, contents)
+                        ]), [])
                 ) as string[]
             }))
             .forEach(sendMessages)

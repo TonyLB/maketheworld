@@ -69,7 +69,7 @@ describe('stateSynthesis', () => {
             tag: 'Room',
             appearances: [{
                 ...topLevelAppearance,
-                name: 'Vortex',
+                name: [{ tag: 'String', value: 'Vortex' }],
                 render: []
             },
             {
