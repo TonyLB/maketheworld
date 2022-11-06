@@ -4,6 +4,65 @@ import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
 import { DeferredCache } from './deferredCache';
 
+export class DependencyTreeWalker<T extends Omit<DependencyNode, 'completeness'>> {
+    _nodes: T[];
+    _alreadyVisited: string[] = [];
+
+    constructor(nodes: T[]) {
+        this._nodes = nodes
+    }
+
+    _findNode(ephemeraId: string): T | undefined {
+        const returnNode = this._nodes.find(({ EphemeraId }) => (EphemeraId === ephemeraId))
+        return returnNode
+    }
+
+    _walkHelper(props: {
+        start: string;
+        key?: string;
+        assets?: string[];
+        callback: (props: { node: T, key?: string; assets?: string[], revisit?: boolean }) => void;
+    }): void {
+        const { start, key, assets, callback } = props
+        const startNode = this._findNode(start)
+        if (startNode) {
+            const revisit = this._alreadyVisited.includes(start)
+            callback({
+                node: startNode,
+                key,
+                assets,
+                revisit
+            })
+            if (!revisit) {
+                this._alreadyVisited = unique(this._alreadyVisited, [start]) as string[]
+                if (startNode.connections.length) {
+                    startNode.connections.forEach((edge) => {
+                        this._walkHelper({
+                            start: edge.EphemeraId,
+                            key: edge.key,
+                            assets: edge.assets,
+                            callback
+                        })
+                    })
+                }
+            }
+        }        
+    }
+
+    walk(props: {
+        start: string;
+        callback: (props: { node: T, key?: string; assets?: string[], revisit?: boolean }) => void;
+    }): void {
+        const { start, callback } = props
+        this._alreadyVisited = []
+        this._walkHelper({
+            start,
+            callback
+        })
+    }
+
+}
+
 export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
     const [upperTag] = splitType(EphemeraId)
     if (!upperTag) {
@@ -19,15 +78,15 @@ export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
 }
 
 export const extractTree = <T extends Omit<DependencyNode, 'completeness'>>(tree: T[], EphemeraId: string): T[] => {
-    const treeByEphemeraId = tree.reduce((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {} as Record<string, T>)
-    if (!(EphemeraId in treeByEphemeraId)) {
-        return []
+    let returnValue: T[] = []
+    let walker = new DependencyTreeWalker(tree)
+    const callback = ({ node, revisit }: { node: T, revisit?: boolean }) => {
+        if (!revisit) {
+            returnValue.push(node)
+        }
     }
-    const currentNode = treeByEphemeraId[EphemeraId]
-    return [
-        currentNode,
-        ...(currentNode.connections.reduce((previous, { EphemeraId }) => ([...previous, ...extractTree(tree, EphemeraId).filter(({ EphemeraId }) => (!(previous.find(({ EphemeraId: check }) => (check === EphemeraId)))))]), [] as T[]))
-    ]
+    walker.walk({ start: EphemeraId, callback })
+    return returnValue
 }
 
 const invertTree = (tree: DependencyNode[]): DependencyNode[] => {
