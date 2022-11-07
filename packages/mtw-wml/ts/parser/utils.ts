@@ -4,7 +4,7 @@ import { simple as simpleWalk } from "acorn-walk"
 
 type ValidatePropertiesValueType = 'boolean' | 'key' | 'expression' | 'literal'
 
-type ValidatePropertiesItem = Record<string, ValidatePropertiesValueType[]>
+export type ValidatePropertiesItem = Record<string, ValidatePropertiesValueType[]>
 
 type ValidatePropertiesProps = {
     open: ParseStackTagOpenEntry;

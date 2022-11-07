@@ -112,4 +112,21 @@ describe('schemaFromParse', () => {
         expect(schemaFromParse(testParse)).toMatchSnapshot()
 
     })
+
+    it('should correctly schematize bookmarks', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+        <Story key=(Test) instance fileName="test">
+            <Bookmark key=(postFix)>
+                <Space />(awesome!)
+            </Bookmark>
+            <Room key=(ABC)>
+                <Name>Vortex</Name>
+                <Description>Vortex<Bookmark key=(postFix) /></Description>
+            </Room>
+        </Story>
+    `)))
+        expect(schemaFromParse(testParse)).toMatchSnapshot()
+
+    })
+
 })

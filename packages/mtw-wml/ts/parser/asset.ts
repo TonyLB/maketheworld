@@ -17,7 +17,7 @@ export const parseAssetFactory: ParseTagFactory<ParseAssetTag> = ({ open, conten
     })
     const parseContents = validateContents<ParseAssetLegalContents>({
         contents,
-        legalTags: ['Action', 'Computed', 'If', 'Else', 'ElseIf', 'Exit', 'Feature', 'Import', 'Room', 'Variable', 'Map'],
+        legalTags: ['Action', 'Computed', 'If', 'Else', 'ElseIf', 'Exit', 'Feature', 'Bookmark', 'Import', 'Room', 'Variable', 'Map'],
         ignoreTags: ['Whitespace', 'Comment']
     })
     return {
@@ -49,7 +49,7 @@ export const parseStoryFactory: ParseTagFactory<ParseStoryTag> = ({ open, conten
     })
     const parseContents = validateContents<ParseAssetLegalContents>({
         contents,
-        legalTags: ['Action', 'Computed', 'If', 'Exit', 'Feature', 'Import', 'Room', 'Variable', 'Map'],
+        legalTags: ['Action', 'Computed', 'If', 'Exit', 'Feature', 'Bookmark', 'Import', 'Room', 'Variable', 'Map'],
         ignoreTags: ['Whitespace', 'Comment']
     })
     return {

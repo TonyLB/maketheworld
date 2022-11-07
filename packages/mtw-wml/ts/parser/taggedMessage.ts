@@ -1,14 +1,18 @@
-import { ParseTagFactory, ParseWhitespaceTag, ParseStringTag, ParseLinkTag, ParseLineBreakTag, ParseSpacerTag, ParseTaggedMessageLegalContents, ParseTaggedMessageTag, ParseNameTag, ParseDescriptionTag, ParseStackTagEntry, ParseConditionTagDescriptionContext, ParseElseTagDescriptionContext, ParseElseIfTagDescriptionContext } from "./baseClasses"
-import { validateProperties, ExtractProperties, validateContents } from "./utils"
+import { ParseTagFactory, ParseWhitespaceTag, ParseStringTag, ParseLinkTag, ParseLineBreakTag, ParseSpacerTag, ParseTaggedMessageLegalContents, ParseNameTag, ParseDescriptionTag, ParseStackTagEntry, ParseConditionTagDescriptionContext, ParseElseTagDescriptionContext, ParseElseIfTagDescriptionContext, ParseBookmarkTag } from "./baseClasses"
+import { validateProperties, ExtractProperties, validateContents, ValidatePropertiesItem } from "./utils"
 
-export const parseTaggedMessageContentsFactory = <T extends ParseDescriptionTag | ParseNameTag>(tag: T["tag"], legalTags: ParseTaggedMessageLegalContents["tag"][]): ParseTagFactory<T> => ({ open, contents, endTagToken }) => {
+export const parseTaggedMessageContentsFactory = <T extends ParseDescriptionTag | ParseNameTag | ParseBookmarkTag>(
+    tag: T["tag"],
+    legalTags: ParseTaggedMessageLegalContents["tag"][],
+    requiredKeys: ValidatePropertiesItem = {}
+): ParseTagFactory<T> => ({ open, contents, endTagToken }) => {
     const validate = validateProperties<ExtractProperties<T, never>>({
         open,
         endTagToken,
-        required: {},
+        required: requiredKeys,
         optional: {}
     })
-    const parseContents = validateContents<ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag | ParseSpacerTag | ParseConditionTagDescriptionContext | ParseElseTagDescriptionContext | ParseElseIfTagDescriptionContext>({
+    const parseContents = validateContents<ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag | ParseBookmarkTag | ParseSpacerTag | ParseConditionTagDescriptionContext | ParseElseTagDescriptionContext | ParseElseIfTagDescriptionContext>({
         contents,
         legalTags: ['Whitespace', ...legalTags],
         ignoreTags: ['Comment']

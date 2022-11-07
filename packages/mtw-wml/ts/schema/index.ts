@@ -63,6 +63,7 @@ import {
     SchemaVariableTag,
     SchemaConditionMixin
 } from "./baseClasses"
+import schemaFromBookmark from "./bookmark"
 import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit, schemaFromPronouns } from "./character"
 import schemaFromComputed from "./computed"
 import schemaFromCondition, { SchemaConditionTagFromParse, schemaFromElse, schemaFromElseIf } from "./condition"
@@ -143,6 +144,8 @@ function schemaFromParseItem(item: ParseTag, options: SchemaFromParseItemOptions
             return schemaFromName(item, schemaContents as SchemaLiteralLegalContents[])
         case 'Description':
             return schemaFromDescription(item, schemaContents as SchemaTaggedMessageLegalContents[])
+        case 'Bookmark':
+            return schemaFromBookmark(item, schemaContents as SchemaTaggedMessageLegalContents[])
         case 'Feature':
             return schemaFromFeature(item, schemaContents as SchemaFeatureLegalContents[])
         case 'Link':

@@ -927,6 +927,262 @@ Array [
 ]
 `;
 
+exports[`schemaFromParse should correctly schematize bookmarks 1`] = `
+Array [
+  Object {
+    "Story": true,
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 16,
+              "startTagToken": 14,
+              "tag": "Space",
+            },
+            "tag": "Space",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 17,
+              "startTagToken": 17,
+              "tag": "String",
+              "value": "(awesome!)",
+            },
+            "tag": "String",
+            "value": "(awesome!)",
+          },
+        ],
+        "display": undefined,
+        "key": "postFix",
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 16,
+              "startTagToken": 14,
+              "tag": "Space",
+            },
+            Object {
+              "endTagToken": 17,
+              "startTagToken": 17,
+              "tag": "String",
+              "value": "(awesome!)",
+            },
+            Object {
+              "endTagToken": 18,
+              "startTagToken": 18,
+              "tag": "Whitespace",
+            },
+          ],
+          "endTagToken": 19,
+          "key": "postFix",
+          "startTagToken": 9,
+          "tag": "Bookmark",
+        },
+        "tag": "Bookmark",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "parse": Object {
+                  "endTagToken": 31,
+                  "startTagToken": 31,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+                "tag": "String",
+                "value": "Vortex",
+              },
+            ],
+            "display": undefined,
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 31,
+                  "startTagToken": 31,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+                Object {
+                  "contents": Array [],
+                  "endTagToken": 37,
+                  "key": "postFix",
+                  "startTagToken": 32,
+                  "tag": "Bookmark",
+                },
+              ],
+              "endTagToken": 38,
+              "startTagToken": 29,
+              "tag": "Description",
+            },
+            "tag": "Description",
+          },
+        ],
+        "display": undefined,
+        "global": undefined,
+        "key": "ABC",
+        "name": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 27,
+              "startTagToken": 27,
+              "tag": "String",
+              "value": "Vortex",
+            },
+            "tag": "String",
+            "value": "Vortex",
+          },
+        ],
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 27,
+                  "startTagToken": 27,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              ],
+              "endTagToken": 28,
+              "startTagToken": 25,
+              "tag": "Name",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 31,
+                  "startTagToken": 31,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+                Object {
+                  "contents": Array [],
+                  "endTagToken": 37,
+                  "key": "postFix",
+                  "startTagToken": 32,
+                  "tag": "Bookmark",
+                },
+              ],
+              "endTagToken": 38,
+              "startTagToken": 29,
+              "tag": "Description",
+            },
+          ],
+          "endTagToken": 39,
+          "key": "ABC",
+          "startTagToken": 20,
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+        "render": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 31,
+              "startTagToken": 31,
+              "tag": "String",
+              "value": "Vortex",
+            },
+            "tag": "String",
+            "value": "Vortex",
+          },
+        ],
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+    ],
+    "fileName": "test",
+    "instance": true,
+    "key": "Test",
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 16,
+              "startTagToken": 14,
+              "tag": "Space",
+            },
+            Object {
+              "endTagToken": 17,
+              "startTagToken": 17,
+              "tag": "String",
+              "value": "(awesome!)",
+            },
+            Object {
+              "endTagToken": 18,
+              "startTagToken": 18,
+              "tag": "Whitespace",
+            },
+          ],
+          "endTagToken": 19,
+          "key": "postFix",
+          "startTagToken": 9,
+          "tag": "Bookmark",
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 27,
+                  "startTagToken": 27,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              ],
+              "endTagToken": 28,
+              "startTagToken": 25,
+              "tag": "Name",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 31,
+                  "startTagToken": 31,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+                Object {
+                  "contents": Array [],
+                  "endTagToken": 37,
+                  "key": "postFix",
+                  "startTagToken": 32,
+                  "tag": "Bookmark",
+                },
+              ],
+              "endTagToken": 38,
+              "startTagToken": 29,
+              "tag": "Description",
+            },
+          ],
+          "endTagToken": 39,
+          "key": "ABC",
+          "startTagToken": 20,
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+      ],
+      "endTagToken": 40,
+      "fileName": "test",
+      "instance": true,
+      "key": "Test",
+      "startTagToken": 0,
+      "tag": "Story",
+    },
+    "player": undefined,
+    "subFolder": undefined,
+    "tag": "Story",
+    "zone": undefined,
+  },
+]
+`;
+
 exports[`schemaFromParse should make a schema for a character correctly 1`] = `
 Array [
   Object {

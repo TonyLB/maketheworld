@@ -12,6 +12,88 @@ Array [
 ]
 `;
 
+exports[`wml parser should parse a bookmark tag correctly 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 16,
+            "startTagToken": 14,
+            "tag": "Space",
+          },
+          Object {
+            "endTagToken": 17,
+            "startTagToken": 17,
+            "tag": "String",
+            "value": "(awesome!)",
+          },
+          Object {
+            "endTagToken": 18,
+            "startTagToken": 18,
+            "tag": "Whitespace",
+          },
+        ],
+        "endTagToken": 19,
+        "key": "postFix",
+        "startTagToken": 9,
+        "tag": "Bookmark",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 27,
+                "startTagToken": 27,
+                "tag": "String",
+                "value": "Vortex",
+              },
+            ],
+            "endTagToken": 28,
+            "startTagToken": 25,
+            "tag": "Name",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 31,
+                "startTagToken": 31,
+                "tag": "String",
+                "value": "Vortex",
+              },
+              Object {
+                "contents": Array [],
+                "endTagToken": 37,
+                "key": "postFix",
+                "startTagToken": 32,
+                "tag": "Bookmark",
+              },
+            ],
+            "endTagToken": 38,
+            "startTagToken": 29,
+            "tag": "Description",
+          },
+        ],
+        "endTagToken": 39,
+        "key": "ABC",
+        "startTagToken": 20,
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+    ],
+    "endTagToken": 40,
+    "fileName": "test",
+    "instance": true,
+    "key": "Test",
+    "startTagToken": 0,
+    "tag": "Story",
+  },
+]
+`;
+
 exports[`wml parser should parse a character tag correctly 1`] = `
 Array [
   Object {

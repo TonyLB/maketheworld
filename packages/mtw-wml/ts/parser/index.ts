@@ -44,6 +44,7 @@ import parseCharacterFactory, { parsePronounsFactory, parseOutfitFactory, parseO
 import parseImageFactory from './image'
 import parseElseFactory from './else'
 import parseElseIfFactory from './elseif'
+import parseBookmarkFactory from './bookmark'
 
 export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     switch(props.open.tag) {
@@ -89,6 +90,8 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             }
         case 'Link':
             return parseLinkFactory(props)
+        case 'Bookmark':
+            return parseBookmarkFactory(props)
         case 'br':
             return parseLineBreakFactory(props)
         case 'Space':

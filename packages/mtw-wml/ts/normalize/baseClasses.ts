@@ -65,6 +65,9 @@ export type ComponentRenderItem = {
     to: string;
     text: string;
 } | {
+    tag: 'Bookmark';
+    to: string;
+} | {
     tag: 'String';
     value: string;
 } | {
