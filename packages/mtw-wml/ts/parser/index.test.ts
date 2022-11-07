@@ -103,6 +103,21 @@ describe('wml parser', () => {
         expect(parse(testTokens)).toMatchSnapshot()
     })
 
+    it('should parse a bookmark tag correctly', () => {
+        const testTokens = tokenizer(new SourceStream(`
+        <Story key=(Test) instance fileName="test">
+            <Bookmark key=(postFix)>
+                <Space />(awesome!)
+            </Bookmark>
+            <Room key=(ABC)>
+                <Name>Vortex</Name>
+                <Description>Vortex<Bookmark key=(postFix) /></Description>
+            </Room>
+        </Story>
+        `))
+        expect(parse(testTokens)).toMatchSnapshot()
+    })
+
     it('should parse conditional taggedMessageContents correctly', () => {
         const testTokens = tokenizer(new SourceStream(`
             <Asset key=(Test) fileName="test">

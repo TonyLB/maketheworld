@@ -199,11 +199,18 @@ export type SchemaLinkTag = {
     text: string;
 } & SchemaBase
 
-export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaWhitespaceTag
-export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag
+export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaWhitespaceTag
+export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
+    display?: 'before' | 'after' | 'replace';
+    contents: SchemaTaggedMessageLegalContents[];
+} & SchemaBase
+
+export type SchemaBookmarkTag = {
+    tag: 'Bookmark';
+    key: string;
     display?: 'before' | 'after' | 'replace';
     contents: SchemaTaggedMessageLegalContents[];
 } & SchemaBase
@@ -294,6 +301,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaLineBreakTag |
     SchemaSpacerTag |
     SchemaLinkTag |
+    SchemaBookmarkTag |
     SchemaNameTag |
     SchemaRoomTag |
     SchemaFeatureTag |
@@ -307,6 +315,7 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaRoomTag |
     SchemaFeatureTag |
     SchemaDescriptionTag |
+    SchemaBookmarkTag |
     SchemaExitTag |
     SchemaCharacterTag |
     SchemaMapTag |
@@ -328,6 +337,7 @@ export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value
 export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')
 export const isSchemaDescriptionContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (['Whitespae', 'String', 'Link', 'br'].includes(value.tag))
 export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptionTag => (value.tag === 'Description')
+export const isSchemaBookmark = (value: SchemaTag): value is SchemaBookmarkTag => (value.tag === 'Bookmark')
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
 export const isSchemaRoom = (value: SchemaTag): value is SchemaRoomTag => (value.tag === 'Room')

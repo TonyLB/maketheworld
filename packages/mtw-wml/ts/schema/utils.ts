@@ -50,7 +50,8 @@ import {
     isParseElseIfTagMapContext,
     isParseElseIfTagFeatureContext,
     isParseElseIfTagRoomContext,
-    isParseElseIfTagDescriptionContext
+    isParseElseIfTagDescriptionContext,
+    ParseBookmarkTag
 } from "../parser/baseClasses"
 import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, isSchemaTag, SchemaConditionMixin, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaNameTag, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
 
@@ -83,6 +84,7 @@ export type TransformWithContextCallback = {
     (item: ParseElseIfTag, context: ParseTag[]): ParseElseIfTag;
     (item: ParseExitTag, context: ParseTag[]): ParseExitTag;
     (item: ParseDescriptionTag, context: ParseTag[]): ParseDescriptionTag;
+    (item: ParseBookmarkTag, context: ParseTag[]): ParseBookmarkTag;
     (item: ParseLineBreakTag, context: ParseTag[]): ParseLineBreakTag;
     (item: ParseSpacerTag, context: ParseTag[]): ParseSpacerTag;
     (item: ParseLinkTag, context: ParseTag[]): ParseLinkTag;
@@ -349,6 +351,15 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     {
                         ...descriptionItem,
                         contents: transformWithContext(item.contents, callback, [...context, descriptionItem]) as ParseTaggedMessageLegalContents[]
+                    }
+                ]
+            case 'Bookmark':
+                const bookmarkItem = callback(item, context)
+                return [
+                    ...previous,
+                    {
+                        ...bookmarkItem,
+                        contents: transformWithContext(item.contents, callback, [...context, bookmarkItem]) as ParseTaggedMessageLegalContents[]
                     }
                 ]
             case 'br':
