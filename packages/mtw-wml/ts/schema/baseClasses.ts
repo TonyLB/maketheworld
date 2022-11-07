@@ -363,9 +363,9 @@ export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithConte
     ['Asset', 'Story', 'If', 'Room', 'Feature', 'Description', 'Exit', 'Character', 'Map', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 
-export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag
+export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaBookmarkTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Asset', 'Story', 'Room', 'Feature', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit'].includes(value.tag)
+    ['Asset', 'Story', 'Room', 'Feature', 'Bookmark', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit'].includes(value.tag)
 )
 
 export const isSchemaTag = (value: any): value is SchemaTag => {
@@ -393,6 +393,7 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
             'Name',
             'Room',
             'Feature',
+            'Bookmark',
             'Map',
             'String',
             'Whitespace']

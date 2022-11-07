@@ -73,13 +73,14 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             // Provide context so that Conditionals can parse different legal contents depending upon what
             // is legal for the tag they are nested inside
             //
-            const contextTag = props.context.reduce<ParseConditionTag["contextTag"]>((previous, item) => {
+            const contextTagRaw = props.context.reduce<ParseConditionTag["contextTag"]>((previous, item) => {
                 const tag = item.tag
                 if (isLegalParseConditionContextTag(tag)) {
                     return tag
                 }
                 return previous
             }, undefined)
+            const contextTag = contextTagRaw === 'Bookmark' ? 'Description' : contextTagRaw
             switch(props.open.tag) {
                 case 'If':
                     return parseConditionFactory(contextTag)(props)
