@@ -7,7 +7,8 @@ import {
     isNormalCondition,
     NormalReference,
     NormalItem,
-    NormalConditionMixin
+    NormalConditionMixin,
+    isNormalBookmark
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import { MessageBus } from '../messageBus/baseClasses.js'
@@ -23,6 +24,12 @@ const extractDependenciesFromTaggedContent = (values: TaggedMessageContentUnrest
                     .reduce<string[]>((accumulator, list) => ([ ...accumulator, ...list ]), [])
                 ),
                 ...extractDependenciesFromTaggedContent(item.contents)
+            ]
+        }
+        if (item.tag === 'Bookmark') {
+            return [
+                ...previous,
+                item.to
             ]
         }
         return previous
@@ -68,8 +75,8 @@ export class StateSynthesizer extends Object {
                 const parentTag = this.normalForm[key]?.tag
                 const childTag = this.normalForm[childKey]?.tag
                 if (
-                    (parentTag === 'Variable' || parentTag === 'Computed' || parentTag === 'Room' || parentTag === 'Map') &&
-                    (childTag === 'Variable' || childTag === 'Computed' || childTag === 'Room' || childTag === 'Map')
+                    (parentTag === 'Variable' || parentTag === 'Computed' || parentTag === 'Room' || parentTag === 'Map' || parentTag === 'Bookmark') &&
+                    (childTag === 'Variable' || childTag === 'Computed' || childTag === 'Room' || childTag === 'Map' || parentTag === 'Bookmark')
                 ) {
                     this.messageBus.send({
                         type: 'DescentUpdate',
@@ -121,6 +128,34 @@ export class StateSynthesizer extends Object {
                             ...extractDependenciesFromTaggedContent(render),
                             ...extractDependenciesFromTaggedContent(name),
                             ...extractDependenciesFromContents(this.normalForm, contents)
+                        ]), [])
+                ) as string[]
+            }))
+            .forEach(sendMessages)
+        Object.values(this.normalForm)
+            .filter(isNormalBookmark)
+            .map(({ key, appearances }) => ({
+                key,
+                dependencies: unique(
+                    appearances
+                        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Map'))))
+                        .reduce((previous, { contextStack }) => (
+                            contextStack
+                                .filter(({ tag }) => (tag === 'If'))
+                                .map(({ key }) => (this.normalForm[key]))
+                                .filter(isNormalCondition)
+                                .reduce((accumulator, { conditions }) => ([
+                                    ...accumulator,
+                                    ...conditions.reduce((innerAccumulator, { dependencies }) => ([
+                                        ...innerAccumulator,
+                                        ...dependencies
+                                    ]), accumulator)
+                                ]), previous)
+                        ), [] as string[]),
+                    appearances
+                        .reduce<string[]>((previous, { render = [] }) => ([
+                            ...previous,
+                            ...extractDependenciesFromTaggedContent(render)
                         ]), [])
                 ) as string[]
             }))
