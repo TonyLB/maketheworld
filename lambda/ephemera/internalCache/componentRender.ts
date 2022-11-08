@@ -287,7 +287,19 @@ export class ComponentRenderData {
             this._getAssets(),
             this._characterMeta(CharacterId)
         ])
-        const options = {}
+        const options: FlattenTaggedMessageContentOptions = {
+            evaluateConditional: (source, dependencies) => (
+                this._evaluateCode({
+                    source,
+                    mapping: dependencies.reduce<EvaluateCodeAddress["mapping"]>((previous, { key, EphemeraId }) => ((isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)) ?
+                        {
+                            ...previous,
+                            [key]: EphemeraId
+                        }
+                        : previous ), {})
+                })
+            )
+        }
         const appearancesByAsset = await this._componentMeta(EphemeraId, unique(globalAssets || [], characterAssets) as string[])
         const aggregateDependencies = unique(...(Object.values(appearancesByAsset) as (ComponentMetaMapItem | ComponentMetaRoomItem | ComponentMetaFeatureItem)[])
             .map(({ appearances }) => (
