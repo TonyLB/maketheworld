@@ -1,13 +1,15 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
-import { EphemeraExit, EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, flattenTaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages'
+import { EphemeraBookmarkAppearance, EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
+import { RoomDescribeData, FeatureDescribeData, flattenTaggedMessageContent, TaggedMessageContentFlat, BookmarkDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
 import { evaluateConditional, filterAppearances } from './utils'
 import internalCache from '../internalCache'
 
 type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters'>
 type RenderFeatureOutput = Omit<FeatureDescribeData, 'FeatureId'>
+type RenderBookmarkOutput = Omit<BookmarkDescribeData, 'BookmarkId'>
 
-const isEphemeraRoomAppearance = (value: EphemeraFeatureAppearance[] | EphemeraRoomAppearance[]): value is EphemeraRoomAppearance[] => (value.length === 0 || 'exits' in value[0])
+const isEphemeraRoomAppearance = (value: EphemeraFeatureAppearance[] | EphemeraRoomAppearance[] | EphemeraBookmarkAppearance[]): value is EphemeraRoomAppearance[] => (value.length === 0 || 'exits' in value[0])
+const isEphemeraFeatureAppearance = (value: EphemeraFeatureAppearance[] | EphemeraRoomAppearance[] | EphemeraBookmarkAppearance[]): value is EphemeraFeatureAppearance[] => (value.length === 0 || (!('exits' in value[0]) && 'name' in value[0]))
 
 const joinMessageItems = function * (render: TaggedMessageContentFlat[] = []): Generator<TaggedMessageContentFlat> {
     if (render.length > 0) {
@@ -40,9 +42,10 @@ const joinMessageItems = function * (render: TaggedMessageContentFlat[] = []): G
     }
 }
 
-export async function componentAppearanceReduce (...renderList: EphemeraFeatureAppearance[]): Promise<Omit<FeatureDescribeData, 'FeatureId'>>
-export async function componentAppearanceReduce (...renderList: EphemeraRoomAppearance[]): Promise<Omit<RoomDescribeData, 'RoomId' | 'Characters'>>
-export async function componentAppearanceReduce (...renderList: (EphemeraRoomAppearance[] | EphemeraFeatureAppearance[])): Promise<(Omit<RoomDescribeData, 'RoomId' | 'Characters'> | Omit<FeatureDescribeData, 'FeatureId'>)> {
+export async function componentAppearanceReduce (...renderList: EphemeraFeatureAppearance[]): Promise<RenderFeatureOutput>
+export async function componentAppearanceReduce (...renderList: EphemeraBookmarkAppearance[]): Promise<RenderBookmarkOutput>
+export async function componentAppearanceReduce (...renderList: EphemeraRoomAppearance[]): Promise<RenderRoomOutput>
+export async function componentAppearanceReduce (...renderList: (EphemeraRoomAppearance[] | EphemeraFeatureAppearance[] | EphemeraBookmarkAppearance[])): Promise<RenderRoomOutput | RenderFeatureOutput | RenderBookmarkOutput> {
     if (renderList.length === 0) {
         return {
             Name: [],
@@ -73,7 +76,7 @@ export async function componentAppearanceReduce (...renderList: (EphemeraRoomApp
         }), { Description: [], Name: [], Exits: [] })
         return joinedList
     }
-    else {
+    else if (isEphemeraFeatureAppearance(renderList)) {
         const flattenedList = await Promise.all(
             renderList.map(({ render, name, ...rest }) => (
                 Promise.all([
@@ -91,8 +94,23 @@ export async function componentAppearanceReduce (...renderList: (EphemeraRoomApp
         }), { Description: [], Name: [] })
         return joinedList
     }
+    else {
+        const flattenedList = await Promise.all(
+            renderList.map(({ render, ...rest }) => (
+                    flattenTaggedMessageContent(render, { evaluateConditional })
+                ).then((render) => ({ render, ...rest }))
+            )
+        )
+        const joinedList = flattenedList.reduce<RenderBookmarkOutput>((previous, current) => ({
+            Description: [ ...joinMessageItems([
+                ...(previous.Description || []),
+                ...(current.render || [])
+            ])],
+        }), { Description: [] })
+        return joinedList
+    }
 }
 
-export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
+export const isComponentTag = (tag) => (['Room', 'Feature', 'Bookmark'].includes(tag))
 
-export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(key)[0]))
+export const isComponentKey = (key) => (['ROOM', 'FEATURE', 'BOOKMARK'].includes(splitType(key)[0]))

@@ -343,6 +343,11 @@ const validateRoomCharacterList = (items: any) => {
     ), true)
 }
 
+export type BookmarkDescribeData = {
+    Description: TaggedMessageContentFlat[];
+    BookmarkId: EphemeraBookmarkId;
+}
+
 export type RoomDescribeData = {
     Description: TaggedMessageContentFlat[];
     Name: TaggedMessageContentFlat[];

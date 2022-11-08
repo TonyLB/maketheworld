@@ -1,5 +1,5 @@
-import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
-import { TaggedConditionalItemDependency } from "@tonylb/mtw-interfaces/dist/messages"
+import { EphemeraBookmarkId, EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { TaggedConditionalItemDependency, TaggedMessageContent } from "@tonylb/mtw-interfaces/dist/messages"
 import { EphemeraCondition } from "../cacheAsset/baseClasses"
 import internalCache from "../internalCache"
 import { EvaluateCodeAddress } from "../internalCache/assetState"
@@ -14,6 +14,10 @@ export const evaluateConditional = async (src: string, dependencies: TaggedCondi
                     : previous
                 ), {})
     }))
+}
+
+export const renderBookmark = async (src: EphemeraBookmarkId): Promise<TaggedMessageContent[]> => {
+    return []
 }
 
 export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) => Promise<any>) => async <T extends { conditions: EphemeraCondition[] }>(possibleAppearances: T[]): Promise<T[]> => {
