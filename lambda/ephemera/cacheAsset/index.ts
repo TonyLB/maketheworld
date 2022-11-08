@@ -4,10 +4,8 @@ import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
 import {
     isNormalAsset,
     NormalItem,
-    NormalForm,
     isNormalExit,
     isNormalAction,
-    NormalCharacter,
     isNormalCharacter,
     ComponentRenderItem,
     isNormalRoom,
@@ -18,7 +16,7 @@ import {
     isNormalImage,
     NormalReference,
     isNormalCondition,
-    MapAppearanceRoom
+    isNormalBookmark
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
@@ -27,17 +25,15 @@ import {
     EphemeraExit,
     EphemeraItem,
     EphemeraItemDependency,
-    EphemeraMapRoom,
     EphemeraPushArgs
 } from './baseClasses'
-import { objectEntryMap } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
-import { EphemeraError, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { TaggedConditionalItemDependency, TaggedMessageContent, TaggedMessageContentFlat } from '@tonylb/mtw-interfaces/dist/messages.js'
+import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 
 //
 // TODO:
@@ -69,11 +65,21 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
             to
         }
     }
+    else if (renderItem.tag === 'Bookmark') {
+        const to = assetWorkspace.namespaceIdToDB[renderItem.to]
+        if (!isEphemeraBookmarkId(to)) {
+            throw new EphemeraError(`Illegal key in bookmark: ${to}`)
+        }
+        return {
+            ...renderItem,
+            to
+        }
+    }
     else if (renderItem.tag === 'Condition') {
         const mappedConditions = renderItem.conditions.map<EphemeraCondition>((condition) => {
             const dependencies = condition.dependencies.map<TaggedConditionalItemDependency>((depend) => {
                 const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
-                if (!(isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated))) {
+                if (!(dependTranslated && (isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated)))) {
                     throw new EphemeraError(`Illegal dependency in If: ${depend}`)
                 }
                 return {
@@ -211,6 +217,17 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 .map((appearance) => ({
                     conditions: conditionsTransform(appearance.contextStack),
                     name: (appearance.name ?? []).map(renderTranslate),
+                    render: (appearance.render || []).map(renderTranslate),
+                }))
+        }
+    }
+    if (isEphemeraBookmarkId(EphemeraId) && isNormalBookmark(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            appearances: item.appearances
+                .map((appearance) => ({
+                    conditions: conditionsTransform(appearance.contextStack),
                     render: (appearance.render || []).map(renderTranslate),
                 }))
         }

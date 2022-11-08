@@ -1094,6 +1094,11 @@ Object {
             "key": "toggleActive",
             "tag": "Action",
           },
+          Object {
+            "index": 0,
+            "key": "postFix",
+            "tag": "Bookmark",
+          },
         ],
         "contextStack": Array [],
         "location": Array [
@@ -1382,6 +1387,35 @@ Object {
     "global": false,
     "key": "overview",
     "tag": "Room",
+  },
+  "postFix": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          7,
+        ],
+        "render": Array [
+          Object {
+            "tag": "Space",
+          },
+          Object {
+            "tag": "String",
+            "value": "Inactive",
+          },
+        ],
+      },
+    ],
+    "key": "postFix",
+    "tag": "Bookmark",
   },
   "power": Object {
     "appearances": Array [

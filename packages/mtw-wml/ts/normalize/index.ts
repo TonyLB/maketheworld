@@ -24,7 +24,8 @@ import {
     SchemaTag,
     SchemaVariableTag,
     SchemaWithKey,
-    isSchemaConditionTagDescriptionContext
+    isSchemaConditionTagDescriptionContext,
+    SchemaBookmarkTag
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -32,6 +33,7 @@ import {
     MapAppearance,
     NormalAction,
     NormalAsset,
+    NormalBookmark,
     NormalCharacter,
     NormalComputed,
     NormalCondition,
@@ -65,7 +67,7 @@ type NormalizeAddReturnValue = {
     siblings: NormalReference[];
 }
 
-type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Character">
+type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character">
 
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
     if (renderItem.tag === 'If' && isSchemaConditionTagDescriptionContext(renderItem)) {
@@ -88,6 +90,12 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
             to: renderItem.to,
             text: renderItem.text,
             targetTag: targetTag as 'Action' | 'Feature'
+        }
+    }
+    else if (renderItem.tag === 'Bookmark') {
+        return {
+            tag: 'Bookmark',
+            to: renderItem.key
         }
     }
     else if (renderItem.tag === 'br') {
@@ -523,6 +531,7 @@ export class Normalizer {
     _translate(appearance: BaseAppearance, node: SchemaImportTag): NormalImport
     _translate(appearance: BaseAppearance, node: SchemaRoomTag): NormalRoom
     _translate(appearance: BaseAppearance, node: SchemaFeatureTag): NormalFeature
+    _translate(appearance: BaseAppearance, node: SchemaBookmarkTag): NormalBookmark
     _translate(appearance: BaseAppearance, node: SchemaMapTag): NormalMap
     _translate(appearance: BaseAppearance, node: SchemaCharacterTag): NormalCharacter
     _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem
@@ -603,6 +612,15 @@ export class Normalizer {
                         render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
                         name: node.name.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
                         ...((node.tag === 'Room' && (node.x !== undefined || node.y !== undefined)) ? { x: node.x, y: node.y } : {})
+                    }]
+                }
+            case 'Bookmark':
+                return {
+                    key: node.key,
+                    tag: node.tag,
+                    appearances: [{
+                        ...appearance,
+                        render: node.contents.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value))
                     }]
                 }
             case 'Map':

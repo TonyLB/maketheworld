@@ -1,6 +1,7 @@
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist"
 import {
     EphemeraActionId,
+    EphemeraBookmarkId,
     EphemeraCharacterId,
     EphemeraComputedId,
     EphemeraFeatureId,
@@ -10,7 +11,7 @@ import {
 } from "@tonylb/mtw-interfaces/dist/baseClasses";
 import { TaggedMessageContent } from "@tonylb/mtw-interfaces/dist/messages";
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
-import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 
 export type EphemeraItemDependency = {
     key: string;
@@ -36,6 +37,16 @@ export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
     key: string;
     appearances: EphemeraFeatureAppearance[];
+}
+
+export type EphemeraBookmarkAppearance = {
+    render: TaggedMessageContent[];
+} & EphemeraConditionMixin
+
+export type EphemeraBookmark = {
+    EphemeraId: EphemeraBookmarkId;
+    key: string;
+    appearances: EphemeraBookmarkAppearance[];
 }
 
 export type EphemeraExit = {
@@ -109,7 +120,7 @@ export type EphemeraComputed = {
     dependencies: EphemeraItemDependency[];
 }
 
-export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
+export type EphemeraItem = EphemeraFeature | EphemeraBookmark | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
 
 type LegalEphemeraTag = 'Asset' | (EphemeraItem['EphemeraId'] extends `${infer T}#${string}` ? Capitalize<Lowercase<T>> : never)
 

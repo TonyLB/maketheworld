@@ -39,6 +39,7 @@ describe('WML normalize', () => {
             <Variable key=(active) default={true} />
             <Computed key=(inactive) src={!active} />
             <Action key=(toggleActive) src={active = !active} />
+            <Bookmark key=(postFix)><Space />Inactive</Bookmark>
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))

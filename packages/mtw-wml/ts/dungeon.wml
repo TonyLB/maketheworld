@@ -325,31 +325,20 @@
             and a ragged unfinished cave in its northeast corner. The room is
             filled with
             <Link to=(wellStatues)>statues</Link> of stylized people in strange
-            poses. In the center of the room is a well. Water<Space />
+            poses. In the center of the room is a well. Water<Space /><Bookmark key=(waterDescription) />
         </Description>
     </Room>
-    <If {waterFlow === 0}>
-        <Room key=(well)>
-            <Description>
-                <Space />trickles out of the well, forming a small stream headed west.
-            </Description>
-        </Room>
-    </If>
-    <If {waterFlow === 1}>
-        <Room key=(well)>
-            <Description>
-                <Space />pours over the edge of the well, forming a burbling stream to
-                the west.
-            </Description>
-        </Room>
-    </If>
-    <If {waterFlow === 2}>
-        <Room key=(well)>
-            <Description>
-                <Space />rushes out of the well, forming a gushing torrent to the west.
-            </Description>
-        </Room>
-    </If>
+    <Bookmark key=(waterDescription)>
+        <If {waterFlow === 0}>
+            trickles out of the well, forming a small stream headed west.
+        </If>
+        <ElseIf {waterFlow === 1}>
+            pours over the edge of the well, forming a burbling stream to the west.
+        </ElseIf>
+        <Else>
+            rushes out of the well, forming a gushing torrent to the west.
+        </Else>
+    </Bookmark>
     <Variable key=(gratingBlocked) default={false} />
     <Computed key=(waterLevel) src={ waterFlow * (gratingBlocked ? 2 : 1) } />
     <Action

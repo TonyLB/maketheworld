@@ -6,6 +6,7 @@ type TagType = 'Asset' |
     'Description' |
     'Room' |
     'Feature' |
+    'Bookmark' |
     'Image' |
     'Map' |
     'Exit' |
@@ -108,6 +109,13 @@ export type NormalFeature = NormalComponent & {
     tag: 'Feature';
 }
 
+export type NormalBookmarkAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseAppearance
+
+export type NormalBookmark = {
+    tag: 'Bookmark';
+    appearances: NormalBookmarkAppearance[];
+} & NormalBase
+
 type NormalImportMapping = {
     key: string;
     type: string;
@@ -198,6 +206,7 @@ export type NormalAction = {
 
 export type NormalItem = NormalAsset |
     NormalComponent |
+    NormalBookmark |
     NormalImport |
     NormalImage |
     NormalMap |
@@ -236,6 +245,7 @@ export const isNormalImage = (arg: NormalItem): arg is NormalImage => (arg?.tag 
 export const isNormalComponent = (arg: NormalItem): arg is NormalComponent => (['Room', 'Feature'].includes(arg?.tag))
 export const isNormalRoom = (arg: NormalItem): arg is NormalRoom => (arg?.tag === 'Room')
 export const isNormalFeature = (arg: NormalItem): arg is NormalFeature => (arg?.tag === 'Feature')
+export const isNormalBookmark = (arg: NormalItem): arg is NormalBookmark => (arg?.tag === 'Bookmark')
 export const isNormalMap = (arg: NormalItem): arg is NormalMap => (arg?.tag === 'Map')
 export function isNormalAsset(arg: NormalItem): arg is NormalAsset {
     return arg?.tag === 'Asset'

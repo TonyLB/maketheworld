@@ -124,10 +124,10 @@ export type ParseImportTag = {
     contents: ParseImportLegalContents[];
 } & ParseTagBase
 
-export type ParseConditionLegalContextTag = 'Asset' | 'Description' | 'Room' | 'Feature' | 'Map'
+export type ParseConditionLegalContextTag = 'Asset' | 'Description' | 'Room' | 'Feature' | 'Map' | 'Bookmark'
 
 export type ParseConditionContentsFromContextTag<T extends ParseConditionLegalContextTag> =
-    T extends 'Description'
+    T extends ('Description' | 'Bookmark')
         ? ParseTaggedMessageLegalContents
         : T extends 'Room'
             ? ParseRoomLegalContents
@@ -154,7 +154,7 @@ export type ParseConditionTagMapContext = ParseConditionTypeFromContextTag<'If',
 
 export type ParseConditionTag = ParseConditionTypeFromContextTag<'If', ParseConditionLegalContextTag>
 
-export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description', 'Room', 'Feature', 'Map'].includes(value))
+export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description', 'Room', 'Feature', 'Bookmark', 'Map'].includes(value))
 export const isParseConditionTagAssetContext = (value: ParseConditionTag): value is ParseConditionTagAssetContext => (value.contextTag === 'Asset')
 export const isParseConditionTagDescriptionContext = (value: ParseConditionTag): value is ParseConditionTagDescriptionContext => (value.contextTag === 'Description')
 export const isParseConditionTagRoomContext = (value: ParseConditionTag): value is ParseConditionTagRoomContext => (value.contextTag === 'Room')
@@ -191,7 +191,8 @@ export const isParseElseIfTagMapContext = (value: ParseElseIfTag): value is Pars
 
 export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
     Asset: ['Exit', 'Feature', 'Room', 'If', 'Else', 'ElseIf', 'Image', 'Map'],
-    Description: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'br', 'Whitespace'],
+    Description: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'Bookmark', 'br', 'Whitespace'],
+    Bookmark: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'Bookmark',  'br', 'Whitespace'],
     Room: ['If', 'Else', 'ElseIf', 'Description', 'Name', 'Exit'],
     Feature: ['If', 'Else', 'ElseIf', 'Description', 'Name'],
     Map: ['If', 'Else', 'ElseIf', 'Image', 'Room', 'Name', 'Exit']
