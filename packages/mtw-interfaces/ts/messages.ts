@@ -131,7 +131,7 @@ export const validateTaggedMessageList = (items: any): items is TaggedMessageCon
     ), true)
 }
 
-type FlattenTaggedMessageContentOptions = {
+export type FlattenTaggedMessageContentOptions = {
     evaluateConditional?: (ifTest: string, dependencies: TaggedConditionalItemDependency[]) => Promise<boolean>;
     renderBookmark?: (bookmark: EphemeraBookmarkId) => Promise<TaggedMessageContent[]>;
 }
