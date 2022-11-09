@@ -183,13 +183,13 @@ const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], op
 }
 
 export const flattenTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions = {}): Promise<TaggedMessageContentFlat[]> => {
-    if (messages.length === 0) {
-        return []
-    }
     //
     // Recursively evaluated all conditionals
     //
     const evaluatedMessages = await evaluateTaggedMessageContent(messages, options)
+    if (evaluatedMessages.length === 0) {
+        return []
+    }
 
     //
     // Initialize local state
