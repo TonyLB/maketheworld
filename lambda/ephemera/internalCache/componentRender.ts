@@ -1,18 +1,19 @@
 import { ComponentMeta, ComponentMetaData, ComponentMetaFromId } from './componentMeta'
 import { DeferredCache } from './deferredCache'
-import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency, EphemeraMapRoom } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
+import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency, EphemeraMapRoom, EphemeraBookmarkAppearance } from '../cacheAsset/baseClasses'
+import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent, BookmarkDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
-import { componentAppearanceReduce } from '../perception/components';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import AssetState, { EvaluateCodeAddress, EvaluateCodeData, StateItemId } from './assetState';
 import {
+    EphemeraBookmarkId,
     EphemeraCharacterId,
     EphemeraComputedId,
     EphemeraFeatureId,
     EphemeraMapId,
     EphemeraRoomId,
     EphemeraVariableId,
+    isEphemeraBookmarkId,
     isEphemeraComputedId,
     isEphemeraFeatureId,
     isEphemeraMapId,
@@ -22,7 +23,8 @@ import {
 import CacheRoomCharacterLists, { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { RoomCharacterListItem } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
-import { filterAppearances } from '../perception/utils';
+import { FlattenTaggedMessageContentOptions } from '@tonylb/mtw-interfaces/dist/messages';
+import { splitType } from '@tonylb/mtw-utilities/dist/types';
 
 export type ComponentMetaRoomItem = {
     EphemeraId: EphemeraRoomId;
@@ -39,18 +41,175 @@ export type ComponentMetaMapItem = {
     assetId: string;
     appearances: EphemeraMapAppearance[];
 }
-export type ComponentDescriptionItem = RoomDescribeData | FeatureDescribeData | MapDescribeData
+export type ComponentDescriptionItem = RoomDescribeData | FeatureDescribeData | MapDescribeData | BookmarkDescribeData
 
 type ComponentDescriptionCache = {
     dependencies: StateItemId[];
     description: ComponentDescriptionItem;
 }
 
-const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId) => (`${CharacterId}::${EphemeraId}`)
+const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId | EphemeraBookmarkId) => (`${CharacterId}::${EphemeraId}`)
+
+export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) => Promise<any>) => async <T extends { conditions: EphemeraCondition[] }>(possibleAppearances: T[]): Promise<T[]> => {
+    //
+    // TODO: Aggregate and also return a dependencies map of source and mappings, so that the cache can search
+    // for dependencies upon a certain evaluation code and invalidate the render when that evaluation has been
+    // invalidated
+    //
+    const allPromises = possibleAppearances
+        .map(async (appearance): Promise<T | undefined> => {
+            const conditionsPassList = await Promise.all(appearance.conditions.map(async ({ if: source, not, dependencies }) => {
+                const evaluated = await evaluateCode({
+                    source,
+                    mapping: dependencies
+                        .reduce<Record<string, EphemeraComputedId | EphemeraVariableId>>((previous, { EphemeraId, key }) => (
+                            (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
+                                ? { ...previous, [key]: EphemeraId }
+                                : previous
+                            ), {})
+                })
+                if (not) {
+                    return !Boolean(evaluated)
+                }
+                else {
+                    return Boolean(evaluated)
+                }
+            }))
+            const allConditionsPass = conditionsPassList.reduce<boolean>((previous, value) => (previous && Boolean(value)), true)
+            if (allConditionsPass) {
+                return appearance
+            }
+            else {
+                return undefined
+            }
+        })
+    const allMappedAppearances = await Promise.all(allPromises) as (T | undefined)[]
+    return allMappedAppearances.filter((value: T | undefined): value is T => (Boolean(value)))
+}
+
+type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters'>
+type RenderFeatureOutput = Omit<FeatureDescribeData, 'FeatureId'>
+type RenderBookmarkOutput = Omit<BookmarkDescribeData, 'BookmarkId'>
+
+const isEphemeraRoomAppearance = (value: EphemeraFeatureAppearance[] | EphemeraRoomAppearance[] | EphemeraBookmarkAppearance[]): value is EphemeraRoomAppearance[] => (value.length === 0 || 'exits' in value[0])
+const isEphemeraFeatureAppearance = (value: EphemeraFeatureAppearance[] | EphemeraRoomAppearance[] | EphemeraBookmarkAppearance[]): value is EphemeraFeatureAppearance[] => (value.length === 0 || (!('exits' in value[0]) && 'name' in value[0]))
+
+const joinMessageItems = function * (render: TaggedMessageContentFlat[] = []): Generator<TaggedMessageContentFlat> {
+    if (render.length > 0) {
+        //
+        // Use spread-operator to clear the read-only tags that Immer can apply
+        //
+        let currentItem: TaggedMessageContentFlat = { ...render[0] }
+        for (const renderItem of (render.slice(1) || [])) {
+            switch(renderItem.tag) {
+                case 'String':
+                    switch(currentItem.tag) {
+                        case 'String':
+                            currentItem.value = `${currentItem.value}${renderItem.value}`
+                            break
+                        case 'Link':
+                        case 'LineBreak':
+                            yield currentItem
+                            currentItem = { ...renderItem }
+                            break
+                    }
+                    break
+                case 'Link':
+                case 'LineBreak':
+                    yield currentItem
+                    currentItem = { ...renderItem }
+                    break
+            }
+        }
+        yield currentItem
+    }
+}
+
+export async function componentAppearanceReduce (options: FlattenTaggedMessageContentOptions, ...renderList: EphemeraFeatureAppearance[]): Promise<RenderFeatureOutput>
+export async function componentAppearanceReduce (options: FlattenTaggedMessageContentOptions, ...renderList: EphemeraBookmarkAppearance[]): Promise<RenderBookmarkOutput>
+export async function componentAppearanceReduce (options: FlattenTaggedMessageContentOptions, ...renderList: EphemeraRoomAppearance[]): Promise<RenderRoomOutput>
+export async function componentAppearanceReduce (options: FlattenTaggedMessageContentOptions, ...renderList: (EphemeraRoomAppearance[] | EphemeraFeatureAppearance[] | EphemeraBookmarkAppearance[])): Promise<RenderRoomOutput | RenderFeatureOutput | RenderBookmarkOutput> {
+    if (renderList.length === 0) {
+        return {
+            Name: [],
+            Description: [],
+            Exits: []
+        }
+    }
+    if (isEphemeraRoomAppearance(renderList)) {
+        const flattenedList = await Promise.all(
+            renderList.map(({ render, name, exits, ...rest }) => (
+                Promise.all([
+                    flattenTaggedMessageContent(render, options),
+                    flattenTaggedMessageContent(name, options),
+                    filterAppearances(async (address) => {
+                        if (options.evaluateConditional) {
+                            return await options.evaluateConditional(address.source, Object.entries(address.mapping).map(([key, EphemeraId]) => ({ key, EphemeraId })))
+                        }
+                        else {
+                            return address.source === 'true'
+                        }
+                    })(exits)
+                ]).then(([render, name, exits]) => ({ render, name, exits, ...rest }))
+            ))
+        )
+        const joinedList = flattenedList.reduce<RenderRoomOutput>((previous, current) => ({
+            Description: [ ...joinMessageItems([
+                ...(previous.Description || []),
+                ...(current.render || [])
+            ])],
+            Name: [ ...joinMessageItems([...previous.Name, ...current.name]) ],
+            Exits: [
+                ...(previous.Exits || []),
+                ...(current.exits.map(({ name, to }) => ({ Name: name, RoomId: to, Visibility: "Private" as "Private" })) || [])
+            ],
+        }), { Description: [], Name: [], Exits: [] })
+        return joinedList
+    }
+    else if (isEphemeraFeatureAppearance(renderList)) {
+        const flattenedList = await Promise.all(
+            renderList.map(({ render, name, ...rest }) => (
+                Promise.all([
+                    flattenTaggedMessageContent(render, options),
+                    flattenTaggedMessageContent(name, options)
+                ]).then(([render, name]) => ({ render, name, ...rest }))
+            ))
+        )
+        const joinedList = flattenedList.reduce<RenderFeatureOutput>((previous, current) => ({
+            Description: [ ...joinMessageItems([
+                ...(previous.Description || []),
+                ...(current.render || [])
+            ])],
+            Name: [ ...joinMessageItems([...previous.Name, ...current.name])]
+        }), { Description: [], Name: [] })
+        return joinedList
+    }
+    else {
+        console.log(`RenderList: ${JSON.stringify(renderList, null, 4)}`)
+        const flattenedList = await Promise.all(
+            renderList.map(
+                ({ render, ...rest }) => (
+                    flattenTaggedMessageContent(render, options).then((render) => ({ render, ...rest }))
+                )
+            )
+        )
+        const joinedList = flattenedList.reduce<RenderBookmarkOutput>((previous, current) => ({
+            Description: [ ...joinMessageItems([
+                ...(previous.Description || []),
+                ...(current.render || [])
+            ])],
+        }), { Description: [] })
+        return joinedList
+    }
+}
+
+export const isComponentTag = (tag) => (['Room', 'Feature', 'Bookmark'].includes(tag))
+
+export const isComponentKey = (key) => (['ROOM', 'FEATURE', 'BOOKMARK'].includes(splitType(key)[0]))
 
 export class ComponentRenderData {
     _evaluateCode: (address: EvaluateCodeAddress) => Promise<any>;
-    _componentMeta: <T extends EphemeraFeatureId | EphemeraRoomId | EphemeraMapId>(EphemeraId: T, assetList: string[]) => Promise<Record<string, ComponentMetaFromId<T>>>;
+    _componentMeta: <T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId>(EphemeraId: T, assetList: string[]) => Promise<Record<string, ComponentMetaFromId<T>>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
     _getAssets: () => Promise<string[]>;
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
@@ -123,12 +282,27 @@ export class ComponentRenderData {
 
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData }>
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId): Promise<{ dependencies: StateItemId[]; description: FeatureDescribeData }>
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraBookmarkId): Promise<{ dependencies: StateItemId[]; description: BookmarkDescribeData }>
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: MapDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | MapDescribeData }> {
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | BookmarkDescribeData | MapDescribeData }> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
             this._getAssets(),
             this._characterMeta(CharacterId)
         ])
+        const options: FlattenTaggedMessageContentOptions = {
+            evaluateConditional: (source, dependencies) => (
+                this._evaluateCode({
+                    source,
+                    mapping: dependencies.reduce<EvaluateCodeAddress["mapping"]>((previous, { key, EphemeraId }) => ((isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)) ?
+                        {
+                            ...previous,
+                            [key]: EphemeraId
+                        }
+                        : previous ), {})
+                })
+            ),
+            renderBookmark: (bookmarkId) => (this.get(CharacterId, bookmarkId).then(({ Description }) => (Description)))
+        }
         const appearancesByAsset = await this._componentMeta(EphemeraId, unique(globalAssets || [], characterAssets) as string[])
         const aggregateDependencies = unique(...(Object.values(appearancesByAsset) as (ComponentMetaMapItem | ComponentMetaRoomItem | ComponentMetaFeatureItem)[])
             .map(({ appearances }) => (
@@ -149,7 +323,7 @@ export class ComponentRenderData {
                 this._roomCharacterList(EphemeraId),
                 filterAppearances(this._evaluateCode)(possibleRoomAppearances)
             ]))
-            const renderRoom = await componentAppearanceReduce(...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters'>
+            const renderRoom = await componentAppearanceReduce(options, ...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters'>
             return {
                 dependencies: aggregateDependencies,
                 description: {
@@ -164,11 +338,25 @@ export class ComponentRenderData {
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraFeatureAppearance[]))
                 .reduce<EphemeraFeatureAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderFeatureAppearances = await filterAppearances(this._evaluateCode)(possibleFeatureAppearances)
-            const renderFeature = await componentAppearanceReduce(...renderFeatureAppearances)
+            const renderFeature = await componentAppearanceReduce(options, ...renderFeatureAppearances)
             return {
                 dependencies: aggregateDependencies,
                 description: {
                     FeatureId: EphemeraId,
+                    ...renderFeature
+                }
+            }
+        }
+        if (isEphemeraBookmarkId(EphemeraId)) {
+            const possibleBookmarkAppearances = [...(globalAssets || []), ...characterAssets]
+                .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraBookmarkAppearance[]))
+                .reduce<EphemeraBookmarkAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
+            const renderFeatureAppearances = await filterAppearances(this._evaluateCode)(possibleBookmarkAppearances)
+            const renderFeature = await componentAppearanceReduce(options, ...renderFeatureAppearances)
+            return {
+                dependencies: aggregateDependencies,
+                description: {
+                    BookmarkId: EphemeraId,
                     ...renderFeature
                 }
             }
@@ -240,9 +428,10 @@ export class ComponentRenderData {
 
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId): Promise<RoomDescribeData>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId): Promise<FeatureDescribeData>
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraBookmarkId): Promise<BookmarkDescribeData>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<MapDescribeData>
-    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem>
-    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem> {
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem>
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem> {
         const cacheKey = generateCacheKey(CharacterId, EphemeraId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -266,6 +455,22 @@ export class ComponentRenderData {
                 })
             }
             if (isEphemeraFeatureId(EphemeraId)) {
+                this._Cache.add({
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    requiredKeys: [cacheKey],
+                    transform: (fetch) => {
+                        if (typeof fetch === 'undefined') {
+                            return {}
+                        }
+                        else {
+                            return {
+                                [cacheKey]: fetch
+                            }
+                        }
+                    }
+                })
+            }
+            if (isEphemeraBookmarkId(EphemeraId)) {
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
                     requiredKeys: [cacheKey],

@@ -131,7 +131,7 @@ export const validateTaggedMessageList = (items: any): items is TaggedMessageCon
     ), true)
 }
 
-type FlattenTaggedMessageContentOptions = {
+export type FlattenTaggedMessageContentOptions = {
     evaluateConditional?: (ifTest: string, dependencies: TaggedConditionalItemDependency[]) => Promise<boolean>;
     renderBookmark?: (bookmark: EphemeraBookmarkId) => Promise<TaggedMessageContent[]>;
 }
@@ -183,13 +183,13 @@ const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], op
 }
 
 export const flattenTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions = {}): Promise<TaggedMessageContentFlat[]> => {
-    if (messages.length === 0) {
-        return []
-    }
     //
     // Recursively evaluated all conditionals
     //
     const evaluatedMessages = await evaluateTaggedMessageContent(messages, options)
+    if (evaluatedMessages.length === 0) {
+        return []
+    }
 
     //
     // Initialize local state
@@ -341,6 +341,11 @@ const validateRoomCharacterList = (items: any) => {
             && checkTypes(roomItem, { Name: 'string', CharacterId: 'string' })
             && isEphemeraCharacterId(roomItem.CharacterId)
     ), true)
+}
+
+export type BookmarkDescribeData = {
+    Description: TaggedMessageContentFlat[];
+    BookmarkId: EphemeraBookmarkId;
 }
 
 export type RoomDescribeData = {
