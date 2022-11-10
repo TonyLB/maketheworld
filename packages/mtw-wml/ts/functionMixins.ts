@@ -3,12 +3,12 @@
 // of (particularly) translation functions in WML parsing and schema creation.
 //
 
-type ConverterArgument<A extends any, T extends { tag: string; }> = {
+type ConverterArgument<A extends any, T extends {}> = {
     typeGuard: (value: any) => value is A;
     convert: (value: A) => T;
 }
 
-type AnyConverterArgument = ConverterArgument<any, { tag: string }>
+type AnyConverterArgument = ConverterArgument<any, {}>
 
 //
 // The following dark art adopted from: https://stackoverflow.com/questions/50374908/transform-union-type-to-intersection-type/50375286#50375286
@@ -16,7 +16,7 @@ type AnyConverterArgument = ConverterArgument<any, { tag: string }>
 type UnionToIntersection<U> = 
   (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never
 
-const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyConverterArgument>(fallback: F, ...args: A[]): UnionToIntersection<A["convert"]> & F => {
+export const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyConverterArgument>(fallback: F, ...args: A[]): UnionToIntersection<A["convert"]> & F => {
     const returnValue = args.reduce((previous, { typeGuard, convert }) => {
         const wrapperFunc = (wrappedFunc: (...args: any) => any) => (value: Parameters<typeof convert>[0]) => {
             if (typeGuard(value)) {
@@ -31,42 +31,46 @@ const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyC
     return returnValue as UnionToIntersection<A["convert"]> & F
 }
 
-const composeConverters = <A extends AnyConverterArgument>(...args: A[]): UnionToIntersection<A["convert"]> & (() => never) => (
+export const composeConverters = <A extends AnyConverterArgument>(...args: A[]): UnionToIntersection<A["convert"]> & (() => never) => (
     composeConvertersHelper(() => { throw new Error('Functon composition failure') }, ...args)
 )
 
-type TagString = {
-    tag: 'String';
-    value: string;
-}
 
-const isString = (value: any): value is string => (typeof value === 'string')
+// EXAMPLE:  This is the way that composeConverters can be used
 
-const convertToTagString = (value: string): TagString => ({
-    tag: 'String',
-    value
-})
+// type TagString = {
+//     tag: 'String';
+//     value: string;
+// }
 
-type TagNumber = {
-    tag: 'Number';
-    value: number;
-}
+// const isString = (value: any): value is string => (typeof value === 'string')
 
-const isNumber = (value: any): value is number => (typeof value === 'number')
+// const convertToTagString = (value: string): TagString => ({
+//     tag: 'String',
+//     value
+// })
 
-const convertToTagNumber = (value: number): TagNumber => ({
-    tag: 'Number',
-    value
-})
+// type TagNumber = {
+//     tag: 'Number';
+//     value: number;
+// }
 
-const composedConverters = composeConverters(
-    { typeGuard: isString, convert: convertToTagString },
-    { typeGuard: isNumber, convert: convertToTagNumber }
-)
+// const isNumber = (value: any): value is number => (typeof value === 'number')
 
-//
-// Note that each converter is correctly typecast based on incoming arguments
-//
-const convertStringTest = composedConverters('Test')
-const convertNumberTest = composedConverters(5)
-//const convertBooleanTest = composedConverters(false)
+// const convertToTagNumber = (value: number): TagNumber => ({
+//     tag: 'Number',
+//     value
+// })
+
+// const composedConverters = composeConverters(
+//     { typeGuard: isString, convert: convertToTagString },
+//     { typeGuard: isNumber, convert: convertToTagNumber }
+// )
+
+// //
+// // Note that each converter is correctly typecast based on incoming arguments, and
+// // invalid arguments are tagged statically as errors
+// //
+// const convertStringTest = composedConverters('Test')
+// const convertNumberTest = composedConverters(5)
+// const convertBooleanTest = composedConverters(false)
