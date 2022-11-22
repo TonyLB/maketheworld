@@ -74,35 +74,39 @@ const wrapConditionalContext = (props: ParseTagFactoryProps) => {
     }
 }
 
-const isTypedParseTagOpen = <T extends ParseTag["tag"] | 'Character'>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T> => (props.open.tag === tag)
+const isTypedParseTagOpen = <T>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
 
-const convertTagInfo: [ParseTag["tag"] | 'Character', ParseTagFactory<ParseTag>][] = [
-    ['Character', parseCharacterFactory],
-    ['Pronouns', parsePronounsFactory],
-    ['Outfit', parseOutfitFactory],
-    ['OneCoolThing', parseOneCoolThingFactory],
-    ['Image', parseImageFactory],
-    ['Asset', parseAssetFactory],
-    ['Story', parseStoryFactory],
-    ['Room', parseRoomFactory],
-    ['Feature', parseFeatureFactory],
-    ['If', wrapConditionalContext],
-    ['ElseIf', wrapConditionalContext],
-    ['Else', wrapConditionalContext],
-    ['Link', parseLinkFactory],
-    ['Bookmark', parseBookmarkFactory],
-    ['br', parseLineBreakFactory],
-    ['Space', parseSpacerFactory],
-    ['Description', parseDescriptionFactory],
-    ['Exit', parseExitFactory],
-    ['Map', parseMapFactory],
-    ['Use', parseUseFactory],
-    ['Import', parseImportFactory],
-    ['Variable', parseVariableFactory],
-    ['Computed', parseComputedFactory],
-    ['Action', parseActionFactory],
-    ['Name', parseNameFactory]
-]
+// const convertTagMap = {
+//     Character: parseCharacterFactory,
+//     Pronouns: parsePronounsFactory,
+//     Outfit: parseOutfitFactory,
+//     OneCoolThing: parseOneCoolThingFactory,
+//     Image: parseImageFactory,
+//     Asset: parseAssetFactory,
+//     Story: parseStoryFactory,
+//     Room: parseRoomFactory,
+//     Feature: parseFeatureFactory,
+//     If: wrapConditionalContext,
+//     ElseIf: wrapConditionalContext,
+//     Else: wrapConditionalContext,
+//     Link: parseLinkFactory,
+//     Bookmark: parseBookmarkFactory,
+//     br: parseLineBreakFactory,
+//     Space: parseSpacerFactory,
+//     Description: parseDescriptionFactory,
+//     Exit: parseExitFactory,
+//     Map: parseMapFactory,
+//     Use: parseUseFactory,
+//     Import: parseImportFactory,
+//     Variable: parseVariableFactory,
+//     Computed: parseComputedFactory,
+//     Action: parseActionFactory,
+//     Name: parseNameFactory
+// }
+
+// type ConvertParserTupleFromKey<K extends keyof typeof convertTagMap> = [K, (typeof convertTagMap)[K] extends (value: any) => {} ? (typeof convertTagMap)[K] : never]
+
+// const convertTagTuples = (Object.entries(convertTagMap) as [keyof typeof convertTagMap, (value: any) => {}][]).map(([key, convert]) => ([key, convert] as ConvertParserTupleFromKey<typeof key>))
 
 const createParseTag = composeConvertersHelper(
     (props) => ({
@@ -113,10 +117,106 @@ const createParseTag = composeConvertersHelper(
             endTagToken: props.endTagToken
         }
     } as ParseStackTagEntry<ParseCommentTag>),
-    ...convertTagInfo.map(([key, convert]) => ({
-        typeGuard: isTypedParseTagOpen(key),
-        convert
-    }))
+    {
+        typeGuard: isTypedParseTagOpen('Character' as 'Character'),
+        convert: parseCharacterFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Pronouns' as 'Pronouns'),
+        convert: parsePronounsFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Outfit' as 'Outfit'),
+        convert: parseOutfitFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('OneCoolThing' as 'OneCoolThing'),
+        convert: parseOneCoolThingFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Image' as 'Image'),
+        convert: parseImageFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Asset' as 'Asset'),
+        convert: parseAssetFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Story' as 'Story'),
+        convert: parseStoryFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Room' as 'Room'),
+        convert: parseRoomFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Feature' as 'Feature'),
+        convert: parseFeatureFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('If' as 'If'),
+        convert: wrapConditionalContext
+    },
+    {
+        typeGuard: isTypedParseTagOpen('ElseIf' as 'ElseIf'),
+        convert: wrapConditionalContext
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Else' as 'Else'),
+        convert: wrapConditionalContext
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Link' as 'Link'),
+        convert: parseLinkFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Bookmark' as 'Bookmark'),
+        convert: parseBookmarkFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('br' as 'br'),
+        convert: parseLineBreakFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Space' as 'Space'),
+        convert: parseSpacerFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Description' as 'Description'),
+        convert: parseDescriptionFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Exit' as 'Exit'),
+        convert: parseExitFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Map' as 'Map'),
+        convert: parseMapFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Use' as 'Use'),
+        convert: parseUseFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Import' as 'Import'),
+        convert: parseImportFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Variable' as 'Variable'),
+        convert: parseVariableFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Computed' as 'Computed'),
+        convert: parseComputedFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Action' as 'Action'),
+        convert: parseActionFactory
+    },
+    {
+        typeGuard: isTypedParseTagOpen('Name' as 'Name'),
+        convert: parseNameFactory
+    },
 )
 
 export const parse = (tokens: Token[]): ParseTag[] => {

@@ -10,13 +10,15 @@ type ConverterArgument<A extends any, T extends {}> = {
 
 type AnyConverterArgument = ConverterArgument<any, {}>
 
+type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuard"] extends (x: any) => x is infer T ? (value: T) => ReturnType<A["convert"]> : never : never
+
 //
 // The following dark art adopted from: https://stackoverflow.com/questions/50374908/transform-union-type-to-intersection-type/50375286#50375286
 //
 type UnionToIntersection<U> = 
   (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never
 
-export const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyConverterArgument>(fallback: F, ...args: A[]): UnionToIntersection<A["convert"]> & F => {
+export const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyConverterArgument>(fallback: F, ...args: A[]): UnionToIntersection<ConverterTypeFromArgument<A>> & F => {
     const returnValue = args.reduce((previous, { typeGuard, convert }) => {
         const wrapperFunc = (wrappedFunc: (...args: any) => any) => (value: Parameters<typeof convert>[0]) => {
             if (typeGuard(value)) {
@@ -31,7 +33,7 @@ export const composeConvertersHelper = <F extends (...args: any) => any, A exten
     return returnValue as UnionToIntersection<A["convert"]> & F
 }
 
-export const composeConverters = <A extends AnyConverterArgument>(...args: A[]): UnionToIntersection<A["convert"]> & (() => never) => (
+export const composeConverters = <A extends AnyConverterArgument>(...args: A[]): UnionToIntersection<ConverterTypeFromArgument<A>> & (() => never) => (
     composeConvertersHelper(() => { throw new Error('Functon composition failure') }, ...args)
 )
 
@@ -45,7 +47,7 @@ export const composeConverters = <A extends AnyConverterArgument>(...args: A[]):
 
 // const isString = (value: any): value is string => (typeof value === 'string')
 
-// const convertToTagString = (value: string): TagString => ({
+// const convertToTagString = (value: any): TagString => ({
 //     tag: 'String',
 //     value
 // })
