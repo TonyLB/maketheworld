@@ -109,49 +109,44 @@ class BaseConverter {
 
 type Constructor<T = {}> = new (...args: any[]) => T;
 
-function TagStringConverter<T extends Constructor<BaseConverter>>(Base: T) {
-    return class TagStringConverter extends Base {
-        override convert(value: Parameters<InstanceType<T>["convert"]>[0]): ReturnType<InstanceType<T>["convert"]>
-        override convert(value: string): TagString
-        override convert(value: Parameters<InstanceType<T>["convert"]>[0] | string): ReturnType<InstanceType<T>["convert"]> | TagString {
-            if (typeof value === 'string') {
-                return {
-                    tag: 'String',
-                    value
-                }    
+type ConverterMixinFactoryProps<T, G> = {
+    typeGuard: (value: unknown) => value is T;
+    convert: (value: T) => G;
+}
+
+const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {
+    return class TagNumberConverter extends Base {
+        override convert(value: T): G
+        override convert(value: Parameters<InstanceType<C>["convert"]>[0] | T): G | ReturnType<InstanceType<C>["convert"]> {
+            if (args.typeGuard(value)) {
+                return args.convert(value)
             }
             else {
                 const returnValue = super.convert(value)
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
-                return returnValue as ReturnType<InstanceType<T>["convert"]>
+                return returnValue as ReturnType<InstanceType<C>["convert"]>
             }
         }
     }
 }
 
-function TagNumberConverter<T extends Constructor<BaseConverter>>(Base: T) {
-    return class TagNumberConverter extends Base {
-        override convert(value: Parameters<InstanceType<T>["convert"]>[0]): ReturnType<InstanceType<T>["convert"]>
-        override convert(value: number): TagNumber
-        override convert(value: Parameters<InstanceType<T>["convert"]>[0] | number): ReturnType<InstanceType<T>["convert"]> | TagNumber {
-            if (typeof value === 'number') {
-                return {
-                    tag: 'Number',
-                    value
-                }    
-            }
-            else {
-                const returnValue = super.convert(value)
-                if (!Boolean(returnValue)) {
-                    throw new Error('Invalid parameter')
-                }
-                return returnValue as ReturnType<InstanceType<T>["convert"]>
-            }
-        }
-    }
-}
+const TagNumberConverter = ConverterMixinFactory({
+    typeGuard: (value: unknown): value is number => (typeof value === 'number'),
+    convert: (value: number): TagNumber => ({
+        tag: 'Number',
+        value
+    })
+})
+
+const TagStringConverter = ConverterMixinFactory({
+    typeGuard: (value: unknown): value is string => (typeof value === 'string'),
+    convert: (value: string): TagString => ({
+        tag: 'String',
+        value
+    })
+})
 
 export class ComposedConverter extends TagNumberConverter(TagStringConverter(BaseConverter)) {}
 
