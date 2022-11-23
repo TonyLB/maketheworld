@@ -93,45 +93,67 @@ export const composeConverters = <A extends AnyConverterArgument>(...args: A[]):
 
 // EXAMPLE TWO: This is a class mixin implementation of composeConverters which may prove more elegant
 
-// type TagString = {
-//     tag: 'String';
-//     value: string;
-// }
+type TagString = {
+    tag: 'String';
+    value: string;
+}
 
-// type TagNumber = {
-//     tag: 'Number';
-//     value: number;
-// }
+type TagNumber = {
+    tag: 'Number';
+    value: number;
+}
 
-// class BaseConverter {
-//     convert(value: never) {}
-// }
+class BaseConverter {
+    convert(...args: [never]) {}
+}
 
-// type Constructor<T = {}> = new (...args: any[]) => T;
+type Constructor<T = {}> = new (...args: any[]) => T;
 
-// function TagStringConverter<T extends Constructor<BaseConverter>>(Base: T) {
-//     return class TagStringConverter extends Base {
-//         override convert(value: string): TagString {
-//             return {
-//                 tag: 'String',
-//                 value
-//             }
-//         }
-//     }
-// }
+function TagStringConverter<T extends Constructor<BaseConverter>>(Base: T) {
+    return class TagStringConverter extends Base {
+        override convert(value: Parameters<InstanceType<T>["convert"]>[0]): ReturnType<InstanceType<T>["convert"]>
+        override convert(value: string): TagString
+        override convert(value: Parameters<InstanceType<T>["convert"]>[0] | string): ReturnType<InstanceType<T>["convert"]> | TagString {
+            if (typeof value === 'string') {
+                return {
+                    tag: 'String',
+                    value
+                }    
+            }
+            else {
+                const returnValue = super.convert(value)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as ReturnType<InstanceType<T>["convert"]>
+            }
+        }
+    }
+}
 
-// function TagNumberConverter<T extends Constructor<BaseConverter>>(Base: T) {
-//     return class TagNumberConverter extends Base {
-//         override convert(value: number): TagNumber {
-//             return {
-//                 tag: 'Number',
-//                 value
-//             }
-//         }
-//     }
-// }
+function TagNumberConverter<T extends Constructor<BaseConverter>>(Base: T) {
+    return class TagNumberConverter extends Base {
+        override convert(value: Parameters<InstanceType<T>["convert"]>[0]): ReturnType<InstanceType<T>["convert"]>
+        override convert(value: number): TagNumber
+        override convert(value: Parameters<InstanceType<T>["convert"]>[0] | number): ReturnType<InstanceType<T>["convert"]> | TagNumber {
+            if (typeof value === 'number') {
+                return {
+                    tag: 'Number',
+                    value
+                }    
+            }
+            else {
+                const returnValue = super.convert(value)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as ReturnType<InstanceType<T>["convert"]>
+            }
+        }
+    }
+}
 
-// class ComposedConverter extends TagNumberConverter(TagStringConverter(BaseConverter)) {}
+export class ComposedConverter extends TagNumberConverter(TagStringConverter(BaseConverter)) {}
 
 // const converter = new ComposedConverter()
 
