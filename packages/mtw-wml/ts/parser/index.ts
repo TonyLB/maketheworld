@@ -76,47 +76,17 @@ const wrapConditionalContext = (props: ParseTagFactoryProps) => {
 
 const isTypedParseTagOpen = <T>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
 
-// const convertTagMap = {
-//     Character: parseCharacterFactory,
-//     Pronouns: parsePronounsFactory,
-//     Outfit: parseOutfitFactory,
-//     OneCoolThing: parseOneCoolThingFactory,
-//     Image: parseImageFactory,
-//     Asset: parseAssetFactory,
-//     Story: parseStoryFactory,
-//     Room: parseRoomFactory,
-//     Feature: parseFeatureFactory,
-//     If: wrapConditionalContext,
-//     ElseIf: wrapConditionalContext,
-//     Else: wrapConditionalContext,
-//     Link: parseLinkFactory,
-//     Bookmark: parseBookmarkFactory,
-//     br: parseLineBreakFactory,
-//     Space: parseSpacerFactory,
-//     Description: parseDescriptionFactory,
-//     Exit: parseExitFactory,
-//     Map: parseMapFactory,
-//     Use: parseUseFactory,
-//     Import: parseImportFactory,
-//     Variable: parseVariableFactory,
-//     Computed: parseComputedFactory,
-//     Action: parseActionFactory,
-//     Name: parseNameFactory
-// }
-
-// type ConvertParserTupleFromKey<K extends keyof typeof convertTagMap> = [K, (typeof convertTagMap)[K] extends (value: any) => {} ? (typeof convertTagMap)[K] : never]
-
-// const convertTagTuples = (Object.entries(convertTagMap) as [keyof typeof convertTagMap, (value: any) => {}][]).map(([key, convert]) => ([key, convert] as ConvertParserTupleFromKey<typeof key>))
-
 const createParseTag = composeConvertersHelper(
-    (props) => ({
-        type: 'Tag',
-        tag: {
-            tag: 'Comment',
-            startTagToken: props.open.startTagToken,
-            endTagToken: props.endTagToken
-        }
-    } as ParseStackTagEntry<ParseCommentTag>),
+    {
+        fallback: (props) => ({
+            type: 'Tag',
+            tag: {
+                tag: 'Comment',
+                startTagToken: props.open.startTagToken,
+                endTagToken: props.endTagToken
+            }
+        } as ParseStackTagEntry<ParseCommentTag>)
+    },
     {
         typeGuard: isTypedParseTagOpen('Character' as 'Character'),
         convert: parseCharacterFactory

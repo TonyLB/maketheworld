@@ -1,4 +1,5 @@
 import { stringify } from "uuid"
+import { composeConvertersHelper } from "../functionMixins"
 import {
     isParseExit,
     isParseRoom,
@@ -6,6 +7,7 @@ import {
     ParseActionTag,
     ParseAssetTag,
     ParseCharacterTag,
+    ParseCommentTag,
     ParseComputedTag,
     ParseConditionTag,
     ParseDescriptionTag,
@@ -86,6 +88,114 @@ type SchemaFromParseItemOptions = {
     failedConditions: SchemaConditionMixin["conditions"];
     setFailedConditions: (value: SchemaConditionMixin["conditions"]) => void;
 }
+
+// const schemaFromParseItem = composeConvertersHelper(
+//     (props) => ({
+//         tag: 'String',
+//         value: '',
+//         parse: props as ParseCommentTag
+//     } as SchemaStringTag),
+//     {
+//         typeGuard: isTypedParseTagOpen('Character' as 'Character'),
+//         convert: parseCharacterFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Pronouns' as 'Pronouns'),
+//         convert: parsePronounsFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Outfit' as 'Outfit'),
+//         convert: parseOutfitFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('OneCoolThing' as 'OneCoolThing'),
+//         convert: parseOneCoolThingFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Image' as 'Image'),
+//         convert: parseImageFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Asset' as 'Asset'),
+//         convert: parseAssetFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Story' as 'Story'),
+//         convert: parseStoryFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Room' as 'Room'),
+//         convert: parseRoomFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Feature' as 'Feature'),
+//         convert: parseFeatureFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('If' as 'If'),
+//         convert: wrapConditionalContext
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('ElseIf' as 'ElseIf'),
+//         convert: wrapConditionalContext
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Else' as 'Else'),
+//         convert: wrapConditionalContext
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Link' as 'Link'),
+//         convert: parseLinkFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Bookmark' as 'Bookmark'),
+//         convert: parseBookmarkFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('br' as 'br'),
+//         convert: parseLineBreakFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Space' as 'Space'),
+//         convert: parseSpacerFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Description' as 'Description'),
+//         convert: parseDescriptionFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Exit' as 'Exit'),
+//         convert: parseExitFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Map' as 'Map'),
+//         convert: parseMapFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Use' as 'Use'),
+//         convert: parseUseFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Import' as 'Import'),
+//         convert: parseImportFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Variable' as 'Variable'),
+//         convert: parseVariableFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Computed' as 'Computed'),
+//         convert: parseComputedFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Action' as 'Action'),
+//         convert: parseActionFactory
+//     },
+//     {
+//         typeGuard: isTypedParseTagOpen('Name' as 'Name'),
+//         convert: parseNameFactory
+//     },
+// )
 
 function schemaFromParseItem(item: ParseAssetTag, options: SchemaFromParseItemOptions): SchemaAssetTag
 function schemaFromParseItem(item: ParseStoryTag, options: SchemaFromParseItemOptions): SchemaStoryTag

@@ -18,7 +18,7 @@ type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuar
 type UnionToIntersection<U> = 
   (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never
 
-export const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyConverterArgument>(fallback: F, ...args: A[]): UnionToIntersection<ConverterTypeFromArgument<A>> & F => {
+export const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyConverterArgument>(options: { fallback: F }, ...args: A[]): UnionToIntersection<ConverterTypeFromArgument<A>> & F => {
     const returnValue = args.reduce((previous, { typeGuard, convert }) => {
         const wrapperFunc = (wrappedFunc: (...args: any) => any) => (value: Parameters<typeof convert>[0]) => {
             if (typeGuard(value)) {
@@ -29,12 +29,12 @@ export const composeConvertersHelper = <F extends (...args: any) => any, A exten
             }
         }
         return wrapperFunc(previous)
-    }, fallback)
+    }, options.fallback)
     return returnValue as UnionToIntersection<A["convert"]> & F
 }
 
 export const composeConverters = <A extends AnyConverterArgument>(...args: A[]): UnionToIntersection<ConverterTypeFromArgument<A>> & (() => never) => (
-    composeConvertersHelper(() => { throw new Error('Functon composition failure') }, ...args)
+    composeConvertersHelper({ fallback: () => { throw new Error('Functon composition failure') } }, ...args)
 )
 
 
