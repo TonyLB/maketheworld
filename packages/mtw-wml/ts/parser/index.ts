@@ -74,7 +74,7 @@ const wrapConditionalContext = (props: ParseTagFactoryProps) => {
     }
 }
 
-const isTypedParseTagOpen = <T>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
+const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
 
 const createParseTag = composeConvertersHelper(
     {
@@ -88,103 +88,103 @@ const createParseTag = composeConvertersHelper(
         } as ParseStackTagEntry<ParseCommentTag>)
     },
     {
-        typeGuard: isTypedParseTagOpen('Character' as 'Character'),
+        typeGuard: isTypedParseTagOpen('Character'),
         convert: parseCharacterFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Pronouns' as 'Pronouns'),
+        typeGuard: isTypedParseTagOpen('Pronouns'),
         convert: parsePronounsFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Outfit' as 'Outfit'),
+        typeGuard: isTypedParseTagOpen('Outfit'),
         convert: parseOutfitFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('OneCoolThing' as 'OneCoolThing'),
+        typeGuard: isTypedParseTagOpen('OneCoolThing'),
         convert: parseOneCoolThingFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Image' as 'Image'),
+        typeGuard: isTypedParseTagOpen('Image'),
         convert: parseImageFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Asset' as 'Asset'),
+        typeGuard: isTypedParseTagOpen('Asset'),
         convert: parseAssetFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Story' as 'Story'),
+        typeGuard: isTypedParseTagOpen('Story'),
         convert: parseStoryFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Room' as 'Room'),
+        typeGuard: isTypedParseTagOpen('Room'),
         convert: parseRoomFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Feature' as 'Feature'),
+        typeGuard: isTypedParseTagOpen('Feature'),
         convert: parseFeatureFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('If' as 'If'),
+        typeGuard: isTypedParseTagOpen('If'),
         convert: wrapConditionalContext
     },
     {
-        typeGuard: isTypedParseTagOpen('ElseIf' as 'ElseIf'),
+        typeGuard: isTypedParseTagOpen('ElseIf'),
         convert: wrapConditionalContext
     },
     {
-        typeGuard: isTypedParseTagOpen('Else' as 'Else'),
+        typeGuard: isTypedParseTagOpen('Else'),
         convert: wrapConditionalContext
     },
     {
-        typeGuard: isTypedParseTagOpen('Link' as 'Link'),
+        typeGuard: isTypedParseTagOpen('Link'),
         convert: parseLinkFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Bookmark' as 'Bookmark'),
+        typeGuard: isTypedParseTagOpen('Bookmark'),
         convert: parseBookmarkFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('br' as 'br'),
+        typeGuard: isTypedParseTagOpen('br'),
         convert: parseLineBreakFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Space' as 'Space'),
+        typeGuard: isTypedParseTagOpen('Space'),
         convert: parseSpacerFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Description' as 'Description'),
+        typeGuard: isTypedParseTagOpen('Description'),
         convert: parseDescriptionFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Exit' as 'Exit'),
+        typeGuard: isTypedParseTagOpen('Exit'),
         convert: parseExitFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Map' as 'Map'),
+        typeGuard: isTypedParseTagOpen('Map'),
         convert: parseMapFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Use' as 'Use'),
+        typeGuard: isTypedParseTagOpen('Use'),
         convert: parseUseFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Import' as 'Import'),
+        typeGuard: isTypedParseTagOpen('Import'),
         convert: parseImportFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Variable' as 'Variable'),
+        typeGuard: isTypedParseTagOpen('Variable'),
         convert: parseVariableFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Computed' as 'Computed'),
+        typeGuard: isTypedParseTagOpen('Computed'),
         convert: parseComputedFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Action' as 'Action'),
+        typeGuard: isTypedParseTagOpen('Action'),
         convert: parseActionFactory
     },
     {
-        typeGuard: isTypedParseTagOpen('Name' as 'Name'),
+        typeGuard: isTypedParseTagOpen('Name'),
         convert: parseNameFactory
     },
 )
