@@ -88,3 +88,53 @@ export const composeConverters = <A extends AnyConverterArgument>(...args: A[]):
 // const convertStringTest = composedConverters('Test')
 // const convertNumberTest = composedConverters(5)
 // const convertBooleanTest = composedConverters(false)
+
+
+
+// EXAMPLE TWO: This is a class mixin implementation of composeConverters which may prove more elegant
+
+// type TagString = {
+//     tag: 'String';
+//     value: string;
+// }
+
+// type TagNumber = {
+//     tag: 'Number';
+//     value: number;
+// }
+
+// class BaseConverter {
+//     convert(value: never) {}
+// }
+
+// type Constructor<T = {}> = new (...args: any[]) => T;
+
+// function TagStringConverter<T extends Constructor<BaseConverter>>(Base: T) {
+//     return class TagStringConverter extends Base {
+//         override convert(value: string): TagString {
+//             return {
+//                 tag: 'String',
+//                 value
+//             }
+//         }
+//     }
+// }
+
+// function TagNumberConverter<T extends Constructor<BaseConverter>>(Base: T) {
+//     return class TagNumberConverter extends Base {
+//         override convert(value: number): TagNumber {
+//             return {
+//                 tag: 'Number',
+//                 value
+//             }
+//         }
+//     }
+// }
+
+// class ComposedConverter extends TagNumberConverter(TagStringConverter(BaseConverter)) {}
+
+// const converter = new ComposedConverter()
+
+// const convertStringTestTwo = converter.convert('Test')
+// const convertNumberTestTwo = converter.convert(5)
+// const convertBooleanTestTwo = converter.convert(false)
