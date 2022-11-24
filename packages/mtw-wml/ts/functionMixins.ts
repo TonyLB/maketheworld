@@ -3,6 +3,8 @@
 // of (particularly) translation functions in WML parsing and schema creation.
 //
 
+import { ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "./parser/baseClasses";
+
 type ConverterArgument<A extends any, T extends {}> = {
     typeGuard: (value: any) => value is A;
     convert: (value: A) => T;
@@ -103,18 +105,18 @@ type TagNumber = {
     value: number;
 }
 
-class BaseConverter {
+export class BaseConverter {
     convert(...args: [never]) {}
 }
 
-type Constructor<T = {}> = new (...args: any[]) => T;
+export type Constructor<T = {}> = new (...args: any[]) => T;
 
 type ConverterMixinFactoryProps<T, G> = {
     typeGuard: (value: unknown) => value is T;
     convert: (value: T) => G;
 }
 
-const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {
+export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {
     return class TagNumberConverter extends Base {
         override convert(value: T): G
         override convert(value: Parameters<InstanceType<C>["convert"]>[0] | T): G | ReturnType<InstanceType<C>["convert"]> {
@@ -155,3 +157,5 @@ export class ComposedConverter extends TagNumberConverter(TagStringConverter(Bas
 // const convertStringTestTwo = converter.convert('Test')
 // const convertNumberTestTwo = converter.convert(5)
 // const convertBooleanTestTwo = converter.convert(false)
+
+export const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)

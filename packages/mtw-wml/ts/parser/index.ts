@@ -29,27 +29,27 @@ import {
 } from './baseClasses'
 
 import parseAssetFactory, { parseStoryFactory } from './asset'
-import parseRoomFactory from './room'
-import parseFeatureFactory from './feature'
-import parseMapFactory from './map'
+import { ParseRoomMixin } from './room'
+import { ParseFeatureMixin } from './feature'
+import { ParseMapMixin } from './map'
 import parseConditionFactory from './condition'
-import parseLinkFactory from './link'
-import parseLineBreakFactory from './lineBreak'
-import parseSpacerFactory from './spacer'
+import { ParseLinkMixin } from './link'
+import { ParseLineBreakMixin } from './lineBreak'
+import { ParseSpaceMixin } from './spacer'
 import parseDescriptionFactory from './description'
-import parseExitFactory from './exit'
-import parseUseFactory from './use'
-import parseImportFactory from './import'
-import parseVariableFactory from './variable'
-import parseComputedFactory from './computed'
-import parseActionFactory from './action'
+import { ParseExitMixin } from './exit'
+import { ParseUseMixin } from './use'
+import { ParseImportMixin } from './import'
+import { ParseVariableMixin } from './variable'
+import { ParseComputedMixin } from './computed'
+import { ParseActionMixin } from './action'
 import parseNameFactory from './name'
-import parseCharacterFactory, { parsePronounsFactory, parseOutfitFactory, parseOneCoolThingFactory } from './character'
-import parseImageFactory from './image'
+import { ParseCharacterMixin } from './character'
+import { ParseImageMixin } from './image'
 import parseElseFactory from './else'
 import parseElseIfFactory from './elseif'
 import parseBookmarkFactory from './bookmark'
-import { composeConvertersHelper } from '../functionMixins'
+import { BaseConverter, composeConvertersHelper } from '../functionMixins'
 
 const wrapConditionalContext = (props: ParseTagFactoryProps) => {
     //
@@ -76,6 +76,26 @@ const wrapConditionalContext = (props: ParseTagFactoryProps) => {
 
 const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
 
+class ParseConverter extends
+    ParseCharacterMixin(
+    ParseImageMixin(
+    ParseRoomMixin(
+    ParseFeatureMixin(
+    ParseLinkMixin(
+    ParseLineBreakMixin(
+    ParseSpaceMixin(
+    ParseExitMixin(
+    ParseMapMixin(
+    ParseImportMixin(
+    ParseUseMixin(
+    ParseActionMixin(
+    ParseComputedMixin(
+    ParseVariableMixin(
+        BaseConverter
+    )))))))))))))) {}
+
+const parseConverter = new ParseConverter()
+
 const createParseTag = composeConvertersHelper(
     {
         fallback: (props) => ({
@@ -89,23 +109,23 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('Character'),
-        convert: parseCharacterFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Pronouns'),
-        convert: parsePronounsFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Outfit'),
-        convert: parseOutfitFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('OneCoolThing'),
-        convert: parseOneCoolThingFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Image'),
-        convert: parseImageFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Asset'),
@@ -117,11 +137,11 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('Room'),
-        convert: parseRoomFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Feature'),
-        convert: parseFeatureFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('If'),
@@ -137,7 +157,7 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('Link'),
-        convert: parseLinkFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Bookmark'),
@@ -145,11 +165,11 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('br'),
-        convert: parseLineBreakFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Space'),
-        convert: parseSpacerFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Description'),
@@ -157,31 +177,31 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('Exit'),
-        convert: parseExitFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Map'),
-        convert: parseMapFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Use'),
-        convert: parseUseFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Import'),
-        convert: parseImportFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Variable'),
-        convert: parseVariableFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Computed'),
-        convert: parseComputedFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Action'),
-        convert: parseActionFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Name'),
