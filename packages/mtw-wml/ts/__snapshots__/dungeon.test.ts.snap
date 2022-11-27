@@ -7995,8 +7995,6 @@ Array [
         "key": "VORTEX",
         "startTagToken": 14,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -8369,8 +8367,6 @@ Array [
         "key": "cave",
         "startTagToken": 291,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -8405,8 +8401,6 @@ Array [
         "key": "curvingPassage",
         "startTagToken": 305,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -8441,8 +8435,6 @@ Array [
         "key": "intersection",
         "startTagToken": 319,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -10118,8 +10110,6 @@ Array [
         "key": "well",
         "startTagToken": 1021,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -10494,8 +10484,6 @@ Array [
         "key": "fireCatGrotto",
         "startTagToken": 1185,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -10578,8 +10566,6 @@ Array [
         "key": "orchard",
         "startTagToken": 1204,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -10604,8 +10590,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 1237,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -10655,8 +10639,6 @@ Array [
             "key": "orchard",
             "startTagToken": 1255,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -10725,8 +10707,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 1270,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -10771,8 +10751,6 @@ Array [
                 "key": "orchard",
                 "startTagToken": 1301,
                 "tag": "Room",
-                "x": undefined,
-                "y": undefined,
               },
             ],
             "contextTag": "Asset",
@@ -10836,8 +10814,6 @@ Array [
             "key": "orchard",
             "startTagToken": 1325,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -10882,8 +10858,6 @@ Array [
                 "key": "orchard",
                 "startTagToken": 1347,
                 "tag": "Room",
-                "x": undefined,
-                "y": undefined,
               },
             ],
             "contextTag": "Asset",
@@ -10973,8 +10947,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 1371,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -11043,8 +11015,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 1403,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -11095,8 +11065,6 @@ Array [
             "key": "orchard",
             "startTagToken": 1433,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -11149,8 +11117,6 @@ Array [
         "key": "fireCatGrotto",
         "startTagToken": 1449,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -11826,8 +11792,6 @@ Array [
         "key": "forest",
         "startTagToken": 1710,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -11961,8 +11925,6 @@ Array [
         "key": "foundry",
         "startTagToken": 1738,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -12084,8 +12046,6 @@ Array [
             "key": "foundry",
             "startTagToken": 1819,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -12123,8 +12083,6 @@ Array [
             "key": "forest",
             "startTagToken": 1834,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -12226,8 +12184,6 @@ Array [
             "key": "foundry",
             "startTagToken": 1870,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -12279,8 +12235,6 @@ Array [
             "key": "forest",
             "startTagToken": 1892,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -12542,8 +12496,6 @@ Array [
         "key": "statueChamber",
         "startTagToken": 1981,
         "tag": "Room",
-        "x": undefined,
-        "y": undefined,
       },
       Object {
         "contents": Array [
@@ -13328,8 +13280,6 @@ Array [
             "key": "statueChamber",
             "startTagToken": 2314,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13373,8 +13323,6 @@ Array [
             "key": "orchard",
             "startTagToken": 2330,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13418,8 +13366,6 @@ Array [
             "key": "forest",
             "startTagToken": 2346,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13463,8 +13409,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 2362,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13508,8 +13452,6 @@ Array [
             "key": "foundry",
             "startTagToken": 2378,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13553,8 +13495,6 @@ Array [
             "key": "intersection",
             "startTagToken": 2394,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13598,8 +13538,6 @@ Array [
             "key": "well",
             "startTagToken": 2410,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -13655,8 +13593,6 @@ Array [
             "key": "statueChamber",
             "startTagToken": 2431,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13699,8 +13635,6 @@ Array [
             "key": "foundry",
             "startTagToken": 2447,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13743,8 +13677,6 @@ Array [
             "key": "forest",
             "startTagToken": 2463,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13787,8 +13719,6 @@ Array [
             "key": "orchard",
             "startTagToken": 2479,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13831,8 +13761,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 2495,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13875,8 +13803,6 @@ Array [
             "key": "intersection",
             "startTagToken": 2511,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -13919,8 +13845,6 @@ Array [
             "key": "well",
             "startTagToken": 2527,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -13977,8 +13901,6 @@ Array [
             "key": "statueChamber",
             "startTagToken": 2548,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14021,8 +13943,6 @@ Array [
             "key": "foundry",
             "startTagToken": 2564,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14065,8 +13985,6 @@ Array [
             "key": "forest",
             "startTagToken": 2580,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14109,8 +14027,6 @@ Array [
             "key": "orchard",
             "startTagToken": 2596,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14153,8 +14069,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 2612,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14197,8 +14111,6 @@ Array [
             "key": "intersection",
             "startTagToken": 2628,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14241,8 +14153,6 @@ Array [
             "key": "well",
             "startTagToken": 2644,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -14299,8 +14209,6 @@ Array [
             "key": "statueChamber",
             "startTagToken": 2665,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14343,8 +14251,6 @@ Array [
             "key": "foundry",
             "startTagToken": 2681,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14387,8 +14293,6 @@ Array [
             "key": "forest",
             "startTagToken": 2697,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14431,8 +14335,6 @@ Array [
             "key": "orchard",
             "startTagToken": 2713,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14475,8 +14377,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 2729,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14519,8 +14419,6 @@ Array [
             "key": "intersection",
             "startTagToken": 2745,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14563,8 +14461,6 @@ Array [
             "key": "well",
             "startTagToken": 2761,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",
@@ -14621,8 +14517,6 @@ Array [
             "key": "statueChamber",
             "startTagToken": 2782,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14665,8 +14559,6 @@ Array [
             "key": "foundry",
             "startTagToken": 2798,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14709,8 +14601,6 @@ Array [
             "key": "forest",
             "startTagToken": 2814,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14753,8 +14643,6 @@ Array [
             "key": "orchard",
             "startTagToken": 2830,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14797,8 +14685,6 @@ Array [
             "key": "fireCatGrotto",
             "startTagToken": 2846,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14841,8 +14727,6 @@ Array [
             "key": "intersection",
             "startTagToken": 2862,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
           Object {
             "contents": Array [
@@ -14885,8 +14769,6 @@ Array [
             "key": "well",
             "startTagToken": 2878,
             "tag": "Room",
-            "x": undefined,
-            "y": undefined,
           },
         ],
         "contextTag": "Asset",

@@ -3,7 +3,7 @@
 // of (particularly) translation functions in WML parsing and schema creation.
 //
 
-import { ParseCommentTag, ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
+import { ParseCommentTag, ParseStackTagOpenEntry, ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
 import { ExtractProperties, ForceStringType, validateContents, validateProperties, ValidatePropertiesItem } from "./utils";
 
 type ConverterArgument<A extends any, T extends {}> = {
@@ -127,7 +127,7 @@ export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, 
 
 export const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
 
-type ConverterArgumentWithContextEvaluator<T> = T | ((context: ParseTag["tag"][]) => T)
+type ConverterArgumentWithContextEvaluator<T> = T | ((context: ParseStackTagOpenEntry[]) => T)
 
 const isBaseArgument = <T>(arg: ConverterArgumentWithContextEvaluator<T>): arg is T => (!(typeof arg === 'function'))
 
@@ -142,7 +142,7 @@ type SimpleParseConverterMixinFactoryProps<T extends ParseTag, C extends ParseTa
         ignore: ConverterArgumentWithContextEvaluator<ParseTag["tag"][]>;
     };
     postProcess?: (props: {
-        context: ParseTag["tag"][];
+        context: ParseStackTagOpenEntry[];
         properties: ForceStringType<ExtractProperties<T, never>>;
         contents?: C[];
         startTagToken: number;

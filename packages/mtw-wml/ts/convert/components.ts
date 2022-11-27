@@ -56,32 +56,46 @@ const ParseFeatureMixin = SimpleParseConverterMixinFactory<ParseFeatureTag, Pars
 const ParseRoomMixin = SimpleParseConverterMixinFactory<ParseRoomTag, ParseRoomLegalContents>({
     tag: 'Room',
     properties: {
-        required: {
-            key: ['key']
+        required: (context) => {
+            if (context.map(({ tag }) => (tag)).includes('Map')) {
+                return {
+                    key: ['key'],
+                    x: ['literal'],
+                    y: ['literal']
+                }
+            }
+            else {
+                return {
+                    key: ['key']
+                }
+            }
         },
         optional: {
-            global: ['boolean'],
-            x: ['literal'],
-            y: ['literal']
+            global: ['boolean']
         }
     },
     contents: {
         legal: ['Description', 'Name', 'Feature', 'Exit', 'If', 'Else', 'ElseIf'],
         ignore: ['Whitespace', 'Comment']
     },
-    postProcess: ({ properties, contents, startTagToken, endTagToken }) => {
-        const x = properties.x ? parseInt(properties.x) : undefined
-        const y = properties.y ? parseInt(properties.y) : undefined
-        if (properties.x && Number.isNaN(x)) {
-            throw new ParseException(`Property 'x' in Room tag must be a number`, startTagToken, endTagToken)
+    postProcess: ({ context, properties, contents, startTagToken, endTagToken }) => {
+        if (context.map(({ tag }) => (tag)).includes('Map')) {
+            const x = properties.x ? parseInt(properties.x) : undefined
+            const y = properties.y ? parseInt(properties.y) : undefined
+            if (properties.x && Number.isNaN(x)) {
+                throw new ParseException(`Property 'x' in Room tag must be a number`, startTagToken, endTagToken)
+            }
+            if (properties.y && Number.isNaN(y)) {
+                throw new ParseException(`Property 'y' in Room tag must be a number`, startTagToken, endTagToken)
+            }
+            return {
+                x,
+                y,
+                contents
+            }
         }
-        if (properties.y && Number.isNaN(y)) {
-            throw new ParseException(`Property 'y' in Room tag must be a number`, startTagToken, endTagToken)
-        }
-        return {
-            x,
-            y,
-            contents
+        else {
+            return { contents }
         }
     }
 })
