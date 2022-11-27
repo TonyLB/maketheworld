@@ -1,5 +1,5 @@
 import { stringify } from "uuid"
-import { composeConvertersHelper } from "../functionMixins"
+import { composeConvertersHelper } from "../convert/functionMixins"
 import {
     isParseExit,
     isParseRoom,

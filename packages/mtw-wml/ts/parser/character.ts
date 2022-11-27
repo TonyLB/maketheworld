@@ -1,4 +1,4 @@
-import { BaseConverter, Constructor, ConverterMixinFactory, isTypedParseTagOpen } from "../functionMixins"
+import { BaseConverter, Constructor, ConverterMixinFactory, isTypedParseTagOpen } from "../convert/functionMixins"
 import { ParseTagFactory, ParseCharacterTag, ParsePronounsTag, ParseNameTag, ParseOutfitTag, ParseOneCoolThingTag, ParseImageTag, ParseStringTag, ParseCommentTag } from "./baseClasses"
 import { validateProperties, validateContents, ExtractProperties } from "./utils"
 

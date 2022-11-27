@@ -49,7 +49,7 @@ import { ParseImageMixin } from './image'
 import parseElseFactory from './else'
 import parseElseIfFactory from './elseif'
 import parseBookmarkFactory from './bookmark'
-import { BaseConverter, composeConvertersHelper } from '../functionMixins'
+import { BaseConverter, composeConvertersHelper } from '../convert/functionMixins'
 
 const wrapConditionalContext = (props: ParseTagFactoryProps) => {
     //

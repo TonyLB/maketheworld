@@ -3,7 +3,7 @@
 // of (particularly) translation functions in WML parsing and schema creation.
 //
 
-import { ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "./parser/baseClasses";
+import { ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
 
 type ConverterArgument<A extends any, T extends {}> = {
     typeGuard: (value: any) => value is A;
