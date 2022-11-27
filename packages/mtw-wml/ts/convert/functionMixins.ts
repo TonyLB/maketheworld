@@ -127,39 +127,52 @@ export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, 
 
 export const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
 
+type ConverterArgumentWithContextEvaluator<T> = T | ((context: ParseTag["tag"][]) => T)
+
+const isBaseArgument = <T>(arg: ConverterArgumentWithContextEvaluator<T>): arg is T => (!(typeof arg === 'function'))
+
 type SimpleParseConverterMixinFactoryProps<T extends ParseTag, C extends ParseTag> = {
     tag: T["tag"];
     properties: {
-        required: ValidatePropertiesItem;
-        optional: ValidatePropertiesItem;
+        required: ConverterArgumentWithContextEvaluator<ValidatePropertiesItem>;
+        optional: ConverterArgumentWithContextEvaluator<ValidatePropertiesItem>;
     };
     contents?: {
-        legal: ParseTag["tag"][];
-        ignore: ParseTag["tag"][];
+        legal: ConverterArgumentWithContextEvaluator<ParseTag["tag"][]>;
+        ignore: ConverterArgumentWithContextEvaluator<ParseTag["tag"][]>;
     };
     postProcess?: (props: {
-        properties: ForceStringType<ExtractProperties<T, never>>,
-        contents?: C[],
-        startTagToken: number,
-        endTagToken: number
+        context: ParseTag["tag"][];
+        properties: ForceStringType<ExtractProperties<T, never>>;
+        contents?: C[];
+        startTagToken: number;
+        endTagToken: number;
     }) => Partial<T>
 }
 
+//
+// TODO: Allow functions as a possible type on properties: required/optional, and on contents: legal/ignore,
+// and if a function is present evaluate it with the context array as an argument
+//
 export const SimpleParseConverterMixinFactory = <T extends ParseTag, C extends ParseTag>(props: SimpleParseConverterMixinFactoryProps<T, C>) => (
     ConverterMixinFactory({
         typeGuard: isTypedParseTagOpen(props.tag),
-        convert: ({ open, contents, endTagToken }) => {
+        convert: ({ open, contents, context, endTagToken }) => {
+            const required = isBaseArgument(props.properties.required) ? props.properties.required : props.properties.required(context)
+            const optional = isBaseArgument(props.properties.optional) ? props.properties.optional : props.properties.optional(context)
             const validate = validateProperties<ExtractProperties<T, never>>({
                 open,
                 endTagToken,
-                required: props.properties.required,
-                optional: props.properties.optional
+                required,
+                optional
             })
             if (props.contents) {
+                const legalTags = isBaseArgument(props.contents.legal) ? props.contents.legal : props.contents.legal(context)
+                const ignoreTags = isBaseArgument(props.contents.ignore) ? props.contents.ignore : props.contents.ignore(context)
                 const parseContents = validateContents<C>({
                     contents,
-                    legalTags: props.contents.legal,
-                    ignoreTags: props.contents.ignore
+                    legalTags,
+                    ignoreTags
                 })
                 return {
                     type: 'Tag',
@@ -168,6 +181,7 @@ export const SimpleParseConverterMixinFactory = <T extends ParseTag, C extends P
                         ...(props.postProcess ?? (({ contents }) => ({ contents })))({
                             properties: validate,
                             contents: parseContents,
+                            context,
                             startTagToken: open.startTagToken,
                             endTagToken
                         }),
@@ -189,6 +203,7 @@ export const SimpleParseConverterMixinFactory = <T extends ParseTag, C extends P
                         ...validate,
                         ...(props.postProcess?.({
                             properties: validate,
+                            context,
                             startTagToken: open.startTagToken,
                             endTagToken
                         }) || {}),
