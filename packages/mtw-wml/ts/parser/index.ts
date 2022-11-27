@@ -28,13 +28,9 @@ import {
 } from './baseClasses'
 
 import parseAssetFactory, { parseStoryFactory } from './asset'
-import { ParseMapMixin } from './map'
 import parseConditionFactory from './condition'
-import parseDescriptionFactory from './description'
-import parseNameFactory from './name'
 import parseElseFactory from './else'
 import parseElseIfFactory from './elseif'
-import parseBookmarkFactory from './bookmark'
 import { BaseConverter, composeConvertersHelper } from '../convert/functionMixins'
 import ParseMiscellaneousMixin from '../convert/miscellaneous'
 import ParseCharacterMixin from '../convert/character'
@@ -145,7 +141,7 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('Bookmark'),
-        convert: parseBookmarkFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('br'),
@@ -157,7 +153,7 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('Description'),
-        convert: parseDescriptionFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Exit'),
@@ -189,7 +185,7 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('Name'),
-        convert: parseNameFactory
+        convert: (props) => (parseConverter.convert(props))
     },
 )
 

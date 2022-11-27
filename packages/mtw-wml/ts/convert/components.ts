@@ -1,5 +1,41 @@
-import { ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseRoomLegalContents, ParseRoomTag } from "../parser/baseClasses";
+import { ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
 import { BaseConverter, Constructor, SimpleParseConverterMixinFactory } from "./functionMixins";
+
+const ParseNameMixin = SimpleParseConverterMixinFactory<ParseNameTag, ParseTaggedMessageLegalContents>({
+    tag: 'Name',
+    properties: {
+        required: {},
+        optional: {}
+    },
+    contents: {
+        legal: ['Whitespace', 'String', 'Space'],
+        ignore: ['Comment']
+    }
+})
+
+const ParseDescriptionMixin = SimpleParseConverterMixinFactory<ParseDescriptionTag, ParseTaggedMessageLegalContents>({
+    tag: 'Description',
+    properties: {
+        required: {},
+        optional: {}
+    },
+    contents: {
+        legal: ['Whitespace', 'String', 'Link', 'Bookmark', 'br', 'Space', 'If', 'Else', 'ElseIf'],
+        ignore: ['Comment']
+    }
+})
+
+const ParseBookmarkMixin = SimpleParseConverterMixinFactory<ParseBookmarkTag, ParseTaggedMessageLegalContents>({
+    tag: 'Bookmark',
+    properties: {
+        required: { key: ['key'] },
+        optional: {}
+    },
+    contents: {
+        legal: ['Whitespace', 'String', 'Link', 'Bookmark', 'br', 'Space', 'If', 'Else', 'ElseIf'],
+        ignore: ['Comment']
+    }
+})
 
 const ParseFeatureMixin = SimpleParseConverterMixinFactory<ParseFeatureTag, ParseFeatureLegalContents>({
     tag: 'Feature',
@@ -65,11 +101,14 @@ const ParseMapMixin = SimpleParseConverterMixinFactory<ParseMapTag, ParseMapLega
 })
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => (
-    ParseFeatureMixin(
-    ParseRoomMixin(
     ParseMapMixin(
+    ParseRoomMixin(
+    ParseFeatureMixin(
+    ParseBookmarkMixin(
+    ParseDescriptionMixin(
+    ParseNameMixin(
         Base
-    )))
+    ))))))
 )
 
 export default ParseComponentsMixin
