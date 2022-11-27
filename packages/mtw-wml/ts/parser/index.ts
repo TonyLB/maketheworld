@@ -14,7 +14,6 @@ import {
 
 import {
     ParseTag,
-    ParseTagFactory,
     ParseStackEntry,
     ParseException,
     isParseStackTagOpenEntry,
@@ -29,27 +28,20 @@ import {
 } from './baseClasses'
 
 import parseAssetFactory, { parseStoryFactory } from './asset'
-import { ParseRoomMixin } from './room'
-import { ParseFeatureMixin } from './feature'
 import { ParseMapMixin } from './map'
 import parseConditionFactory from './condition'
-import { ParseLinkMixin } from './link'
-import { ParseLineBreakMixin } from './lineBreak'
-import { ParseSpaceMixin } from './spacer'
 import parseDescriptionFactory from './description'
-import { ParseExitMixin } from './exit'
-import { ParseUseMixin } from './use'
-import { ParseImportMixin } from './import'
-import { ParseVariableMixin } from './variable'
-import { ParseComputedMixin } from './computed'
-import { ParseActionMixin } from './action'
 import parseNameFactory from './name'
-import { ParseCharacterMixin } from './character'
-import { ParseImageMixin } from './image'
 import parseElseFactory from './else'
 import parseElseIfFactory from './elseif'
 import parseBookmarkFactory from './bookmark'
 import { BaseConverter, composeConvertersHelper } from '../convert/functionMixins'
+import ParseMiscellaneousMixin from '../convert/miscellaneous'
+import ParseCharacterMixin from '../convert/character'
+import ParseTaggedMessageMixin from '../convert/taggedMessage'
+import ParseStateMixin from '../convert/state'
+import ParseImportMixin from '../convert/import'
+import ParseComponentsMixin from '../convert/components'
 
 const wrapConditionalContext = (props: ParseTagFactoryProps) => {
     //
@@ -78,21 +70,13 @@ const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactor
 
 class ParseConverter extends
     ParseCharacterMixin(
-    ParseImageMixin(
-    ParseRoomMixin(
-    ParseFeatureMixin(
-    ParseLinkMixin(
-    ParseLineBreakMixin(
-    ParseSpaceMixin(
-    ParseExitMixin(
-    ParseMapMixin(
+    ParseMiscellaneousMixin(
     ParseImportMixin(
-    ParseUseMixin(
-    ParseActionMixin(
-    ParseComputedMixin(
-    ParseVariableMixin(
+    ParseStateMixin(
+    ParseComponentsMixin(
+    ParseTaggedMessageMixin(
         BaseConverter
-    )))))))))))))) {}
+    )))))) {}
 
 const parseConverter = new ParseConverter()
 

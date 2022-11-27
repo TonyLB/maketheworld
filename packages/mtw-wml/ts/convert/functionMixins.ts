@@ -3,7 +3,8 @@
 // of (particularly) translation functions in WML parsing and schema creation.
 //
 
-import { ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
+import { ParseCommentTag, ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
+import { ExtractProperties, ForceStringType, validateContents, validateProperties, ValidatePropertiesItem } from "./utils";
 
 type ConverterArgument<A extends any, T extends {}> = {
     typeGuard: (value: any) => value is A;
@@ -95,16 +96,6 @@ export const composeConverters = <A extends AnyConverterArgument>(...args: A[]):
 
 // EXAMPLE TWO: This is a class mixin implementation of composeConverters which may prove more elegant
 
-type TagString = {
-    tag: 'String';
-    value: string;
-}
-
-type TagNumber = {
-    tag: 'Number';
-    value: number;
-}
-
 export class BaseConverter {
     convert(...args: [never]) {}
 }
@@ -117,7 +108,7 @@ type ConverterMixinFactoryProps<T, G> = {
 }
 
 export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {
-    return class TagNumberConverter extends Base {
+    return class FactoryMixin extends Base {
         override convert(value: T): G
         override convert(value: Parameters<InstanceType<C>["convert"]>[0] | T): G | ReturnType<InstanceType<C>["convert"]> {
             if (args.typeGuard(value)) {
@@ -134,28 +125,80 @@ export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, 
     }
 }
 
-const TagNumberConverter = ConverterMixinFactory({
-    typeGuard: (value: unknown): value is number => (typeof value === 'number'),
-    convert: (value: number): TagNumber => ({
-        tag: 'Number',
-        value
-    })
-})
-
-const TagStringConverter = ConverterMixinFactory({
-    typeGuard: (value: unknown): value is string => (typeof value === 'string'),
-    convert: (value: string): TagString => ({
-        tag: 'String',
-        value
-    })
-})
-
-export class ComposedConverter extends TagNumberConverter(TagStringConverter(BaseConverter)) {}
-
-// const converter = new ComposedConverter()
-
-// const convertStringTestTwo = converter.convert('Test')
-// const convertNumberTestTwo = converter.convert(5)
-// const convertBooleanTestTwo = converter.convert(false)
-
 export const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
+
+type SimpleParseConverterMixinFactoryProps<T extends ParseTag, C extends ParseTag> = {
+    tag: T["tag"];
+    properties: {
+        required: ValidatePropertiesItem;
+        optional: ValidatePropertiesItem;
+    };
+    contents?: {
+        legal: ParseTag["tag"][];
+        ignore: ParseTag["tag"][];
+    };
+    postProcess?: (props: {
+        properties: ForceStringType<ExtractProperties<T, never>>,
+        contents?: C[],
+        startTagToken: number,
+        endTagToken: number
+    }) => Partial<T>
+}
+
+export const SimpleParseConverterMixinFactory = <T extends ParseTag, C extends ParseTag>(props: SimpleParseConverterMixinFactoryProps<T, C>) => (
+    ConverterMixinFactory({
+        typeGuard: isTypedParseTagOpen(props.tag),
+        convert: ({ open, contents, endTagToken }) => {
+            const validate = validateProperties<ExtractProperties<T, never>>({
+                open,
+                endTagToken,
+                required: props.properties.required,
+                optional: props.properties.optional
+            })
+            if (props.contents) {
+                const parseContents = validateContents<C>({
+                    contents,
+                    legalTags: props.contents.legal,
+                    ignoreTags: props.contents.ignore
+                })
+                return {
+                    type: 'Tag',
+                    tag: {
+                        ...validate,
+                        ...(props.postProcess ?? (({ contents }) => ({ contents })))({
+                            properties: validate,
+                            contents: parseContents,
+                            startTagToken: open.startTagToken,
+                            endTagToken
+                        }),
+                        tag: props.tag,
+                        startTagToken: open.startTagToken,
+                        endTagToken
+                    } as T
+                }
+            }
+            else {
+                validateContents<ParseCommentTag>({
+                    contents,
+                    legalTags: [],
+                    ignoreTags: ['Whitespace', 'Comment']
+                })
+                return {
+                    type: 'Tag',
+                    tag: {
+                        ...validate,
+                        ...(props.postProcess?.({
+                            properties: validate,
+                            startTagToken: open.startTagToken,
+                            endTagToken
+                        }) || {}),
+                        tag: props.tag,
+                        startTagToken: open.startTagToken,
+                        endTagToken
+                    } as T
+                }        
+            }
+        }
+    })
+)
+
