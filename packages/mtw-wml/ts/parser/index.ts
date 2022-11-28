@@ -19,16 +19,13 @@ import {
     isParseStackTagOpenEntry,
     parseTagDefaultProps,
     isParseLegalTag,
-    ParseConditionTag,
-    isLegalParseConditionContextTag,
     ParseTagFactoryProps,
     ParseTagFactoryPropsLimited,
     ParseCommentTag,
     ParseStackTagEntry
 } from './baseClasses'
 
-import parseAssetFactory, { parseStoryFactory } from './asset'
-import { BaseConverter, composeConvertersHelper } from '../convert/functionMixins'
+import { BaseConverter, composeConvertersHelper, Constructor } from '../convert/functionMixins'
 import ParseMiscellaneousMixin from '../convert/miscellaneous'
 import ParseCharacterMixin from '../convert/character'
 import ParseTaggedMessageMixin from '../convert/taggedMessage'
@@ -36,14 +33,35 @@ import ParseStateMixin from '../convert/state'
 import ParseImportMixin from '../convert/import'
 import ParseComponentsMixin from '../convert/components'
 import ParseConditionsMixin from '../convert/conditions'
+import ParseAssetsMixin from '../convert/assets'
 
 const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
+
+export const FallbackMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
+    return class FallbackMixin extends Base {
+        override convert(value: any): ParseStackTagEntry<ParseCommentTag> {
+            return {
+                type: 'Tag',
+                tag: {
+                    tag: 'Comment',
+                    startTagToken: value?.props?.open?.startTagToken,
+                    endTagToken: value?.props?.endTagToken
+                }
+            } as ParseStackTagEntry<ParseCommentTag>
+        }
+    }
+}
+
 
 // @ts-ignore
 //
 // TypeScript thinks this is at risk of being infinitely deep, but in actuality it's just _very_ deep.
 //
+// TODO: Figure out how to refactor with compute-immediately techniques (see ts-toolbelt codebase for examples)
+// to maintain type consistency with this depth of mixins.
+//
 class ParseConverter extends
+    ParseAssetsMixin(
     ParseCharacterMixin(
     ParseConditionsMixin(
     ParseMiscellaneousMixin(
@@ -51,8 +69,9 @@ class ParseConverter extends
     ParseStateMixin(
     ParseComponentsMixin(
     ParseTaggedMessageMixin(
+    FallbackMixin(
         BaseConverter
-    ))))))) {}
+    ))))))))) {}
 
 const parseConverter = new ParseConverter()
 
@@ -89,11 +108,11 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('Asset'),
-        convert: parseAssetFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Story'),
-        convert: parseStoryFactory
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Room'),

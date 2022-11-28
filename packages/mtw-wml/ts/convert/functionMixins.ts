@@ -3,7 +3,7 @@
 // of (particularly) translation functions in WML parsing and schema creation.
 //
 
-import { ParseCommentTag, ParseStackTagOpenEntry, ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
+import { ParseCommentTag, ParseStackTagEntry, ParseStackTagOpenEntry, ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
 import { ExtractProperties, ForceStringType, validateContents, validateProperties, ValidatePropertiesItem } from "./utils";
 
 type ConverterArgument<A extends any, T extends {}> = {
@@ -107,19 +107,22 @@ type ConverterMixinFactoryProps<T, G> = {
     convert: (value: T) => G;
 }
 
+type MixinInheritedParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["convert"]>[0] extends infer R ? R : never
+type MixinInheritedReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["convert"]> extends infer R ? R : never
+
 export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {
     return class FactoryMixin extends Base {
         override convert(value: T): G
-        override convert(value: Parameters<InstanceType<C>["convert"]>[0] | T): G | ReturnType<InstanceType<C>["convert"]> {
+        override convert(value: MixinInheritedParameters<C> | T): G | MixinInheritedReturn<C> {
             if (args.typeGuard(value)) {
                 return args.convert(value)
             }
             else {
-                const returnValue = super.convert(value)
+                const returnValue = (super.convert as any)(value)
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
-                return returnValue as ReturnType<InstanceType<C>["convert"]>
+                return returnValue as MixinInheritedReturn<C>
             }
         }
     }
@@ -151,7 +154,7 @@ type SimpleParseConverterMixinFactoryProps<T extends ParseTag, C extends ParseTa
 }
 
 export const SimpleParseConverterMixinFactory = <T extends ParseTag, C extends ParseTag>(props: SimpleParseConverterMixinFactoryProps<T, C>) => (
-    ConverterMixinFactory({
+    ConverterMixinFactory<ParseTagFactoryPropsLimited<T["tag"]>, ParseStackTagEntry<T>>({
         typeGuard: isTypedParseTagOpen(props.tag),
         convert: ({ open, contents, context, endTagToken }) => {
             const required = isBaseArgument(props.properties.required) ? props.properties.required : props.properties.required(context)
