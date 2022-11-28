@@ -150,10 +150,6 @@ type SimpleParseConverterMixinFactoryProps<T extends ParseTag, C extends ParseTa
     }) => Partial<T>
 }
 
-//
-// TODO: Allow functions as a possible type on properties: required/optional, and on contents: legal/ignore,
-// and if a function is present evaluate it with the context array as an argument
-//
 export const SimpleParseConverterMixinFactory = <T extends ParseTag, C extends ParseTag>(props: SimpleParseConverterMixinFactoryProps<T, C>) => (
     ConverterMixinFactory({
         typeGuard: isTypedParseTagOpen(props.tag),

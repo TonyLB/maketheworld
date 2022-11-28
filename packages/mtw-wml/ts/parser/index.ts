@@ -28,9 +28,6 @@ import {
 } from './baseClasses'
 
 import parseAssetFactory, { parseStoryFactory } from './asset'
-import parseConditionFactory from './condition'
-import parseElseFactory from './else'
-import parseElseIfFactory from './elseif'
 import { BaseConverter, composeConvertersHelper } from '../convert/functionMixins'
 import ParseMiscellaneousMixin from '../convert/miscellaneous'
 import ParseCharacterMixin from '../convert/character'
@@ -38,41 +35,24 @@ import ParseTaggedMessageMixin from '../convert/taggedMessage'
 import ParseStateMixin from '../convert/state'
 import ParseImportMixin from '../convert/import'
 import ParseComponentsMixin from '../convert/components'
-
-const wrapConditionalContext = (props: ParseTagFactoryProps) => {
-    //
-    // Provide context so that Conditionals can parse different legal contents depending upon what
-    // is legal for the tag they are nested inside
-    //
-    const contextTagRaw = props.context.reduce<ParseConditionTag["contextTag"]>((previous, item) => {
-        const tag = item.tag
-        if (isLegalParseConditionContextTag(tag)) {
-            return tag
-        }
-        return previous
-    }, undefined)
-    const contextTag = contextTagRaw === 'Bookmark' ? 'Description' : contextTagRaw
-    switch(props.open.tag) {
-        case 'If':
-            return parseConditionFactory(contextTag)(props)
-        case 'Else':
-            return parseElseFactory(contextTag)(props)
-        case 'ElseIf':
-            return parseElseIfFactory(contextTag)(props)
-    }
-}
+import ParseConditionsMixin from '../convert/conditions'
 
 const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
 
+// @ts-ignore
+//
+// TypeScript thinks this is at risk of being infinitely deep, but in actuality it's just _very_ deep.
+//
 class ParseConverter extends
     ParseCharacterMixin(
+    ParseConditionsMixin(
     ParseMiscellaneousMixin(
     ParseImportMixin(
     ParseStateMixin(
     ParseComponentsMixin(
     ParseTaggedMessageMixin(
         BaseConverter
-    )))))) {}
+    ))))))) {}
 
 const parseConverter = new ParseConverter()
 
@@ -125,15 +105,15 @@ const createParseTag = composeConvertersHelper(
     },
     {
         typeGuard: isTypedParseTagOpen('If'),
-        convert: wrapConditionalContext
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('ElseIf'),
-        convert: wrapConditionalContext
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Else'),
-        convert: wrapConditionalContext
+        convert: (props) => (parseConverter.convert(props))
     },
     {
         typeGuard: isTypedParseTagOpen('Link'),
