@@ -75,119 +75,6 @@ class ParseConverter extends
 
 const parseConverter = new ParseConverter()
 
-const createParseTag = composeConvertersHelper(
-    {
-        fallback: (props) => ({
-            type: 'Tag',
-            tag: {
-                tag: 'Comment',
-                startTagToken: props.open.startTagToken,
-                endTagToken: props.endTagToken
-            }
-        } as ParseStackTagEntry<ParseCommentTag>)
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Character'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Pronouns'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Outfit'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('OneCoolThing'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Image'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Asset'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Story'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Room'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Feature'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('If'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('ElseIf'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Else'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Link'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Bookmark'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('br'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Space'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Description'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Exit'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Map'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Use'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Import'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Variable'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Computed'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Action'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-    {
-        typeGuard: isTypedParseTagOpen('Name'),
-        convert: (props) => (parseConverter.convert(props))
-    },
-)
-
 export const parse = (tokens: Token[]): ParseTag[] => {
     let returnValue: ParseTag[] = []
     let stack: ParseStackEntry[] = []
@@ -255,7 +142,8 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                             throw new ParseException(`Illegal parse tag: ${tag}`, stackItem.startTagToken, stackItem.startTagToken)
                         }
                         if (token.selfClosing) {
-                            const stackTag = createParseTag({
+                            // @ts-ignore
+                            const stackTag = parseConverter.convert({
                                 open: {
                                     type: 'TagOpen',
                                     tag,
@@ -324,7 +212,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                         continue
                     }
                     if (stackItem.type === 'TagOpen') {
-                        const stackTag = createParseTag({
+                        const stackTag = parseConverter.convert({
                             open: stackItem,
                             context: stack.filter(isParseStackTagOpenEntry),
                             contents,
