@@ -1,7 +1,19 @@
-import { isLegalParseConditionContextTag, ParseConditionLegalContextTag, ParseConditionTag, ParseConditionTypeFromContextTag, parseDifferentiatingTags, ParseElseTag, ParseStackTagEntry, ParseStackTagOpenEntry, ParseTagFactory, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
+import {
+    isLegalParseConditionContextTag,
+    ParseConditionLegalContextTag,
+    ParseConditionTag,
+    ParseConditionTypeFromContextTag,
+    parseDifferentiatingTags,
+    ParseElseIfTag,
+    ParseElseTag,
+    ParseStackTagEntry,
+    ParseStackTagOpenEntry,
+    ParseTagFactory,
+    ParseTagFactoryPropsLimited
+} from "../parser/baseClasses"
 import { ArrayContents } from "../types"
-import { BaseConverter, Constructor, ConverterMixinFactory, isTypedParseTagOpen, SimpleParseConverterMixinFactory } from "./functionMixins"
-import { extractDependenciesFromJS, ExtractProperties, ForceStringType, validateContents, validateProperties } from "./utils"
+import { BaseConverter, Constructor, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins"
+import { extractDependenciesFromJS, ExtractProperties, validateContents, validateProperties } from "./utils"
 
 const extractContextTag = (context: ParseStackTagOpenEntry[]): ParseConditionLegalContextTag => {
     const contextTagRaw = context.reduce<ParseConditionLegalContextTag>((previous, item) => {
@@ -42,14 +54,6 @@ export const parseConditionFactory = <T extends ParseConditionTag["contextTag"]>
     } as ParseStackTagEntry<ParseConditionTypeFromContextTag<'If', T>>
 }
 
-const ParseIfMixin = ConverterMixinFactory({
-    typeGuard: isTypedParseTagOpen('If'),
-    convert: (props: ParseTagFactoryPropsLimited<'If'>) => {
-        const contextTag = extractContextTag(props.context)
-        return parseConditionFactory(contextTag)(props)
-    }
-})
-
 export const parseElseIfFactory = <T extends ParseConditionTag["contextTag"]>(contextTag: T): ParseTagFactory<ParseConditionTypeFromContextTag<'ElseIf', T>> => ({ open, contents, endTagToken }) => {
     const validate = validateProperties<ExtractProperties<ParseConditionTag, 'dependencies'>>({
         open,
@@ -78,14 +82,6 @@ export const parseElseIfFactory = <T extends ParseConditionTag["contextTag"]>(co
     } as ParseStackTagEntry<ParseConditionTypeFromContextTag<'ElseIf', T>>
 }
 
-const ParseElseIfMixin = ConverterMixinFactory({
-    typeGuard: isTypedParseTagOpen('ElseIf'),
-    convert: (props: ParseTagFactoryPropsLimited<'ElseIf'>) => {
-        const contextTag = extractContextTag(props.context)
-        return parseElseIfFactory(contextTag)(props)
-    }
-})
-
 export const parseElseFactory = <T extends ParseConditionTag["contextTag"]>(contextTag: T): ParseTagFactory<ParseConditionTypeFromContextTag<'Else', T>> => ({ open, contents, endTagToken }) => {
     const validate = validateProperties<ExtractProperties<ParseConditionTag, 'dependencies'>>({
         open,
@@ -111,20 +107,50 @@ export const parseElseFactory = <T extends ParseConditionTag["contextTag"]>(cont
     } as ParseStackTagEntry<ParseConditionTypeFromContextTag<'Else', T>>
 }
 
-const ParseElseMixin = ConverterMixinFactory({
-    typeGuard: isTypedParseTagOpen('Else'),
-    convert: (props: ParseTagFactoryPropsLimited<'Else'>) => {
-        const contextTag = extractContextTag(props.context)
-        return parseElseFactory(contextTag)(props)
+export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
+    return class ParseConditionsMixin extends Base {
+        override convert(value: ParseTagFactoryPropsLimited<'If'>): ParseStackTagEntry<ParseConditionTag>
+        override convert(value: ParseTagFactoryPropsLimited<'ElseIf'>): ParseStackTagEntry<ParseElseIfTag>
+        override convert(value: ParseTagFactoryPropsLimited<'Else'>): ParseStackTagEntry<ParseElseTag>
+        override convert(value: MixinInheritedParameters<C>
+            | ParseTagFactoryPropsLimited<'If'>
+            | ParseTagFactoryPropsLimited<'ElseIf'>
+            | ParseTagFactoryPropsLimited<'Else'>
+            ): MixinInheritedReturn<C>
+            | ParseStackTagEntry<ParseConditionTag>
+            | ParseStackTagEntry<ParseElseIfTag>
+            | ParseStackTagEntry<ParseElseTag>
+            {
+            //
+            // Convert If tag-opens
+            //
+            if (isTypedParseTagOpen('If')(value)) {
+                const contextTag = extractContextTag(value.context)
+                return parseConditionFactory(contextTag)(value)
+            }
+            //
+            // Convert ElseIf tag-opens
+            //
+            if (isTypedParseTagOpen('ElseIf')(value)) {
+                const contextTag = extractContextTag(value.context)
+                return parseElseIfFactory(contextTag)(value)
+            }
+            //
+            // Convert Else tag-opens
+            //
+            if (isTypedParseTagOpen('Else')(value)) {
+                const contextTag = extractContextTag(value.context)
+                return parseElseFactory(contextTag)(value)
+            }
+            else {
+                const returnValue = (super.convert as any)(value)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedReturn<C>
+            }
+        }
     }
-})
-
-export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base: C) => (
-    ParseIfMixin(
-    ParseElseIfMixin(
-    ParseElseMixin(
-        Base
-    )))
-)
+}
 
 export default ParseConditionsMixin

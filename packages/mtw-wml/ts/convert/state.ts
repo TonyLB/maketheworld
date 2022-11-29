@@ -1,50 +1,79 @@
-import { ParseActionTag, ParseComputedTag, ParseVariableTag } from "../parser/baseClasses";
-import { BaseConverter, Constructor, SimpleParseConverterMixinFactory } from "./functionMixins";
+import { ParseActionTag, ParseComputedTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseVariableTag } from "../parser/baseClasses";
+import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
 import { extractDependenciesFromJS } from "./utils";
 
-const ParseVariableMixin = SimpleParseConverterMixinFactory<ParseVariableTag, never>({
-    tag: 'Variable',
-    properties: {
-        required: {
-            key: ['key'],
-        },
-        optional: {
-            default: ['expression']
+export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
+    return class ParseStateMixin extends Base {
+        override convert(value: ParseTagFactoryPropsLimited<'Action'>): ParseStackTagEntry<ParseActionTag>
+        override convert(value: ParseTagFactoryPropsLimited<'Variable'>): ParseStackTagEntry<ParseVariableTag>
+        override convert(value: ParseTagFactoryPropsLimited<'Computed'>): ParseStackTagEntry<ParseComputedTag>
+        override convert(value: MixinInheritedParameters<C>
+            | ParseTagFactoryPropsLimited<'Action'>
+            | ParseTagFactoryPropsLimited<'Variable'>
+            | ParseTagFactoryPropsLimited<'Computed'>
+            ): MixinInheritedReturn<C>
+            | ParseStackTagEntry<ParseActionTag>
+            | ParseStackTagEntry<ParseVariableTag>
+            | ParseStackTagEntry<ParseComputedTag>
+            {
+            //
+            // Convert Action tag-opens
+            //
+            if (isTypedParseTagOpen('Action')(value)) {
+                return converterMixin<ParseActionTag, never>({
+                    tag: 'Action',
+                    properties: {
+                        required: {
+                            key: ['key'],
+                            src: ['expression']
+                        },
+                        optional: {}
+                    }
+                })(value)
+            }
+            //
+            // Convert Variable tag-opens
+            //
+            else if (isTypedParseTagOpen('Variable')(value)) {
+                return converterMixin<ParseVariableTag, never>({
+                    tag: 'Variable',
+                    properties: {
+                        required: {
+                            key: ['key'],
+                        },
+                        optional: {
+                            default: ['expression']
+                        }
+                    }
+                })(value)
+            }
+            //
+            // Convert Computed tag-opens
+            //
+            else if (isTypedParseTagOpen('Computed')(value)) {
+                return converterMixin<ParseComputedTag, never>({
+                    tag: 'Computed',
+                    properties: {
+                        required: {
+                            key: ['key'],
+                            src: ['expression']
+                        },
+                        optional: {}
+                    },
+                    postProcess: ({ properties }) => ({
+                        dependencies: extractDependenciesFromJS(properties.src)
+                    })
+                })(value)
+            }
+            else {
+                const returnValue = (super.convert as any)(value)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedReturn<C>
+            }
         }
     }
-})
-
-const ParseComputedMixin = SimpleParseConverterMixinFactory<ParseComputedTag, never>({
-    tag: 'Computed',
-    properties: {
-        required: {
-            key: ['key'],
-            src: ['expression']
-        },
-        optional: {}
-    },
-    postProcess: ({ properties }) => ({
-        dependencies: extractDependenciesFromJS(properties.src)
-    })
-})
-
-const ParseActionMixin = SimpleParseConverterMixinFactory<ParseActionTag, never>({
-    tag: 'Action',
-    properties: {
-        required: {
-            key: ['key'],
-            src: ['expression']
-        },
-        optional: {}
-    }
-})
-
-export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) => (
-    ParseVariableMixin(
-    ParseComputedMixin(
-    ParseActionMixin(
-        Base
-    )))
-)
+}
 
 export default ParseStateMixin

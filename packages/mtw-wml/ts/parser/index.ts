@@ -25,7 +25,7 @@ import {
     ParseStackTagEntry
 } from './baseClasses'
 
-import { BaseConverter, composeConvertersHelper, Constructor } from '../convert/functionMixins'
+import { BaseConverter, Constructor } from '../convert/functionMixins'
 import ParseMiscellaneousMixin from '../convert/miscellaneous'
 import ParseCharacterMixin from '../convert/character'
 import ParseTaggedMessageMixin from '../convert/taggedMessage'
@@ -53,7 +53,6 @@ export const FallbackMixin = <C extends Constructor<BaseConverter>>(Base: C) => 
 }
 
 
-// @ts-ignore
 //
 // TypeScript thinks this is at risk of being infinitely deep, but in actuality it's just _very_ deep.
 //
@@ -142,7 +141,6 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                             throw new ParseException(`Illegal parse tag: ${tag}`, stackItem.startTagToken, stackItem.startTagToken)
                         }
                         if (token.selfClosing) {
-                            // @ts-ignore
                             const stackTag = parseConverter.convert({
                                 open: {
                                     type: 'TagOpen',
@@ -151,7 +149,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                                     properties
                                 },
                                 context: stack.filter(isParseStackTagOpenEntry),
-                                contents: [],
+                                contents: [] as ParseTag[],
                                 endTagToken: index
                             })
                             if (stack.length > 0) {

@@ -18,39 +18,39 @@ type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuar
 //
 // The following dark art adopted from: https://stackoverflow.com/questions/50374908/transform-union-type-to-intersection-type/50375286#50375286
 //
-type UnionToIntersection<U> = 
-  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never
+// type UnionToIntersection<U> = 
+//   (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never
 
-export const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyConverterArgument>(
-        {
-            beforeConvert = () => {},
-            fallback
-        }: {
-            beforeConvert?: (value: Parameters<UnionToIntersection<A["convert"]> & F>) => void,
-            fallback: F,
-        },
-        ...args: A[]
-): UnionToIntersection<ConverterTypeFromArgument<A>> & F => {
-    const returnValue = args.reduce((previous, { typeGuard, convert }) => {
-        const wrapperFunc = (wrappedFunc: (...args: any) => any) => (value: Parameters<typeof convert>[0]) => {
-            if (typeGuard(value)) {
-                return convert(value)
-            }
-            else {
-                return wrappedFunc(value)
-            }
-        }
-        return wrapperFunc(previous)
-    }, fallback)
-    return ((props) => {
-        beforeConvert(props)
-        return returnValue(props)
-    }) as UnionToIntersection<A["convert"]> & F
-}
+// export const composeConvertersHelper = <F extends (...args: any) => any, A extends AnyConverterArgument>(
+//         {
+//             beforeConvert = () => {},
+//             fallback
+//         }: {
+//             beforeConvert?: (value: Parameters<UnionToIntersection<A["convert"]> & F>) => void,
+//             fallback: F,
+//         },
+//         ...args: A[]
+// ): UnionToIntersection<ConverterTypeFromArgument<A>> & F => {
+//     const returnValue = args.reduce((previous, { typeGuard, convert }) => {
+//         const wrapperFunc = (wrappedFunc: (...args: any) => any) => (value: Parameters<typeof convert>[0]) => {
+//             if (typeGuard(value)) {
+//                 return convert(value)
+//             }
+//             else {
+//                 return wrappedFunc(value)
+//             }
+//         }
+//         return wrapperFunc(previous)
+//     }, fallback)
+//     return ((props) => {
+//         beforeConvert(props)
+//         return returnValue(props)
+//     }) as UnionToIntersection<A["convert"]> & F
+// }
 
-export const composeConverters = <A extends AnyConverterArgument>(...args: A[]): UnionToIntersection<ConverterTypeFromArgument<A>> & (() => never) => (
-    composeConvertersHelper({ fallback: () => { throw new Error('Functon composition failure') } }, ...args)
-)
+// export const composeConverters = <A extends AnyConverterArgument>(...args: A[]): UnionToIntersection<ConverterTypeFromArgument<A>> & (() => never) => (
+//     composeConvertersHelper({ fallback: () => { throw new Error('Functon composition failure') } }, ...args)
+// )
 
 
 // EXAMPLE:  This is the way that composeConverters can be used
@@ -107,8 +107,8 @@ type ConverterMixinFactoryProps<T, G> = {
     convert: (value: T) => G;
 }
 
-type MixinInheritedParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["convert"]>[0] extends infer R ? R : never
-type MixinInheritedReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["convert"]> extends infer R ? R : never
+export type MixinInheritedParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["convert"]>[0] extends infer R ? R : never
+export type MixinInheritedReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["convert"]> extends infer R ? R : never
 
 export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {
     return class FactoryMixin extends Base {
@@ -128,13 +128,13 @@ export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, 
     }
 }
 
-export const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
+export const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps | {}): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => ("open" in props && props.open?.tag === tag)
 
 type ConverterArgumentWithContextEvaluator<T> = T | ((context: ParseStackTagOpenEntry[]) => T)
 
 const isBaseArgument = <T>(arg: ConverterArgumentWithContextEvaluator<T>): arg is T => (!(typeof arg === 'function'))
 
-type SimpleParseConverterMixinFactoryProps<T extends ParseTag, C extends ParseTag> = {
+type ConverterMixinProps<T extends ParseTag, C extends ParseTag> = {
     tag: T["tag"];
     properties: {
         required: ConverterArgumentWithContextEvaluator<ValidatePropertiesItem>;
@@ -153,66 +153,60 @@ type SimpleParseConverterMixinFactoryProps<T extends ParseTag, C extends ParseTa
     }) => Partial<T>
 }
 
-export const SimpleParseConverterMixinFactory = <T extends ParseTag, C extends ParseTag>(props: SimpleParseConverterMixinFactoryProps<T, C>) => (
-    ConverterMixinFactory<ParseTagFactoryPropsLimited<T["tag"]>, ParseStackTagEntry<T>>({
-        typeGuard: isTypedParseTagOpen(props.tag),
-        convert: ({ open, contents, context, endTagToken }) => {
-            const required = isBaseArgument(props.properties.required) ? props.properties.required : props.properties.required(context)
-            const optional = isBaseArgument(props.properties.optional) ? props.properties.optional : props.properties.optional(context)
-            const validate = validateProperties<ExtractProperties<T, never>>({
-                open,
-                endTagToken,
-                required,
-                optional
-            })
-            if (props.contents) {
-                const legalTags = isBaseArgument(props.contents.legal) ? props.contents.legal : props.contents.legal(context)
-                const ignoreTags = isBaseArgument(props.contents.ignore) ? props.contents.ignore : props.contents.ignore(context)
-                const parseContents = validateContents<C>({
-                    contents,
-                    legalTags,
-                    ignoreTags
-                })
-                return {
-                    type: 'Tag',
-                    tag: {
-                        ...validate,
-                        ...(props.postProcess ?? (({ contents }) => ({ contents })))({
-                            properties: validate,
-                            contents: parseContents,
-                            context,
-                            startTagToken: open.startTagToken,
-                            endTagToken
-                        }),
-                        tag: props.tag,
-                        startTagToken: open.startTagToken,
-                        endTagToken
-                    } as T
-                }
-            }
-            else {
-                validateContents<ParseCommentTag>({
-                    contents,
-                    legalTags: [],
-                    ignoreTags: ['Whitespace', 'Comment']
-                })
-                return {
-                    type: 'Tag',
-                    tag: {
-                        ...validate,
-                        ...(props.postProcess?.({
-                            properties: validate,
-                            context,
-                            startTagToken: open.startTagToken,
-                            endTagToken
-                        }) || {}),
-                        tag: props.tag,
-                        startTagToken: open.startTagToken,
-                        endTagToken
-                    } as T
-                }        
-            }
-        }
+export const converterMixin = <T extends ParseTag, C extends ParseTag>(props: ConverterMixinProps<T, C>) => ({ open, contents, context, endTagToken }) => {
+    const required = isBaseArgument(props.properties.required) ? props.properties.required : props.properties.required(context)
+    const optional = isBaseArgument(props.properties.optional) ? props.properties.optional : props.properties.optional(context)
+    const validate = validateProperties<ExtractProperties<T, never>>({
+        open,
+        endTagToken,
+        required,
+        optional
     })
-)
-
+    if (props.contents) {
+        const legalTags = isBaseArgument(props.contents.legal) ? props.contents.legal : props.contents.legal(context)
+        const ignoreTags = isBaseArgument(props.contents.ignore) ? props.contents.ignore : props.contents.ignore(context)
+        const parseContents = validateContents<C>({
+            contents,
+            legalTags,
+            ignoreTags
+        })
+        return {
+            type: 'Tag' as 'Tag',
+            tag: {
+                ...validate,
+                ...(props.postProcess ?? (({ contents }) => ({ contents })))({
+                    properties: validate,
+                    contents: parseContents,
+                    context,
+                    startTagToken: open.startTagToken,
+                    endTagToken
+                }),
+                tag: props.tag,
+                startTagToken: open.startTagToken,
+                endTagToken
+            } as T
+        }
+    }
+    else {
+        validateContents<ParseCommentTag>({
+            contents,
+            legalTags: [],
+            ignoreTags: ['Whitespace', 'Comment']
+        })
+        return {
+            type: 'Tag' as 'Tag',
+            tag: {
+                ...validate,
+                ...(props.postProcess?.({
+                    properties: validate,
+                    context,
+                    startTagToken: open.startTagToken,
+                    endTagToken
+                }) || {}),
+                tag: props.tag,
+                startTagToken: open.startTagToken,
+                endTagToken
+            } as T
+        }        
+    }
+}
