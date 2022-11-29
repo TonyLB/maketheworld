@@ -39,7 +39,7 @@ const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactor
 
 export const FallbackMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class FallbackMixin extends Base {
-        override convert(value: any): ParseStackTagEntry<ParseCommentTag> {
+        override parseConvert(value: any): ParseStackTagEntry<ParseCommentTag> {
             return {
                 type: 'Tag',
                 tag: {
@@ -141,7 +141,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                             throw new ParseException(`Illegal parse tag: ${tag}`, stackItem.startTagToken, stackItem.startTagToken)
                         }
                         if (token.selfClosing) {
-                            const stackTag = parseConverter.convert({
+                            const stackTag = parseConverter.parseConvert({
                                 open: {
                                     type: 'TagOpen',
                                     tag,
@@ -210,7 +210,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                         continue
                     }
                     if (stackItem.type === 'TagOpen') {
-                        const stackTag = parseConverter.convert({
+                        const stackTag = parseConverter.parseConvert({
                             open: stackItem,
                             context: stack.filter(isParseStackTagOpenEntry),
                             contents,

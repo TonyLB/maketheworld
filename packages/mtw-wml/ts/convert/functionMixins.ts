@@ -3,7 +3,7 @@
 // of (particularly) translation functions in WML parsing and schema creation.
 //
 
-import { ParseCommentTag, ParseStackTagEntry, ParseStackTagOpenEntry, ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
+import { ParseCommentTag, ParseStackTagOpenEntry, ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
 import { ExtractProperties, ForceStringType, validateContents, validateProperties, ValidatePropertiesItem } from "./utils";
 
 type ConverterArgument<A extends any, T extends {}> = {
@@ -97,28 +97,28 @@ type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuar
 // EXAMPLE TWO: This is a class mixin implementation of composeConverters which may prove more elegant
 
 export class BaseConverter {
-    convert(...args: [never]) {}
+    parseConvert(...args: [never]) {}
 }
 
 export type Constructor<T = {}> = new (...args: any[]) => T;
 
 type ConverterMixinFactoryProps<T, G> = {
     typeGuard: (value: unknown) => value is T;
-    convert: (value: T) => G;
+    parseConvert: (value: T) => G;
 }
 
-export type MixinInheritedParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["convert"]>[0] extends infer R ? R : never
-export type MixinInheritedReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["convert"]> extends infer R ? R : never
+export type MixinInheritedParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["parseConvert"]>[0] extends infer R ? R : never
+export type MixinInheritedReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["parseConvert"]> extends infer R ? R : never
 
 export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {
     return class FactoryMixin extends Base {
-        override convert(value: T): G
-        override convert(value: MixinInheritedParameters<C> | T): G | MixinInheritedReturn<C> {
+        override parseConvert(value: T): G
+        override parseConvert(value: MixinInheritedParameters<C> | T): G | MixinInheritedReturn<C> {
             if (args.typeGuard(value)) {
-                return args.convert(value)
+                return args.parseConvert(value)
             }
             else {
-                const returnValue = (super.convert as any)(value)
+                const returnValue = (super.parseConvert as any)(value)
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }

@@ -109,10 +109,10 @@ export const parseElseFactory = <T extends ParseConditionTag["contextTag"]>(cont
 
 export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseConditionsMixin extends Base {
-        override convert(value: ParseTagFactoryPropsLimited<'If'>): ParseStackTagEntry<ParseConditionTag>
-        override convert(value: ParseTagFactoryPropsLimited<'ElseIf'>): ParseStackTagEntry<ParseElseIfTag>
-        override convert(value: ParseTagFactoryPropsLimited<'Else'>): ParseStackTagEntry<ParseElseTag>
-        override convert(value: MixinInheritedParameters<C>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'If'>): ParseStackTagEntry<ParseConditionTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'ElseIf'>): ParseStackTagEntry<ParseElseIfTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Else'>): ParseStackTagEntry<ParseElseTag>
+        override parseConvert(value: MixinInheritedParameters<C>
             | ParseTagFactoryPropsLimited<'If'>
             | ParseTagFactoryPropsLimited<'ElseIf'>
             | ParseTagFactoryPropsLimited<'Else'>
@@ -143,7 +143,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                 return parseElseFactory(contextTag)(value)
             }
             else {
-                const returnValue = (super.convert as any)(value)
+                const returnValue = (super.parseConvert as any)(value)
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }

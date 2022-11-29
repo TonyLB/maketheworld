@@ -12,7 +12,7 @@ type TagNumber = {
 
 const TagNumberConverter = ConverterMixinFactory({
     typeGuard: (value: unknown): value is number => (typeof value === 'number'),
-    convert: (value: number): TagNumber => ({
+    parseConvert: (value: number): TagNumber => ({
         tag: 'Number',
         value
     })
@@ -20,7 +20,7 @@ const TagNumberConverter = ConverterMixinFactory({
 
 const TagStringConverter = ConverterMixinFactory({
     typeGuard: (value: unknown): value is string => (typeof value === 'string'),
-    convert: (value: string): TagString => ({
+    parseConvert: (value: string): TagString => ({
         tag: 'String',
         value
     })
@@ -38,7 +38,7 @@ describe('functionMixins', () => {
     describe('ComposedConverter', () => {
         it('should correctly convert string', () => {
             const converter = new ComposedConverter()
-            expect(converter.convert('Test')).toEqual({
+            expect(converter.parseConvert('Test')).toEqual({
                 tag: 'String',
                 value: 'Test'
             })
@@ -46,7 +46,7 @@ describe('functionMixins', () => {
 
         it('should correctly convert number', () => {
             const converter = new ComposedConverter()
-            expect(converter.convert(5)).toEqual({
+            expect(converter.parseConvert(5)).toEqual({
                 tag: 'Number',
                 value: 5
             })

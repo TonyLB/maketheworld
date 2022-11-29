@@ -8,11 +8,11 @@ const stringLiteralPostProcess = ({ contents = [] }) => ({
 
 export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseCharacterMixin extends Base {
-        override convert(value: ParseTagFactoryPropsLimited<'Character'>): ParseStackTagEntry<ParseCharacterTag>
-        override convert(value: ParseTagFactoryPropsLimited<'Pronouns'>): ParseStackTagEntry<ParsePronounsTag>
-        override convert(value: ParseTagFactoryPropsLimited<'OneCoolThing'>): ParseStackTagEntry<ParseOneCoolThingTag>
-        override convert(value: ParseTagFactoryPropsLimited<'Outfit'>): ParseStackTagEntry<ParseOutfitTag>
-        override convert(value: MixinInheritedParameters<C>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Character'>): ParseStackTagEntry<ParseCharacterTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Pronouns'>): ParseStackTagEntry<ParsePronounsTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'OneCoolThing'>): ParseStackTagEntry<ParseOneCoolThingTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Outfit'>): ParseStackTagEntry<ParseOutfitTag>
+        override parseConvert(value: MixinInheritedParameters<C>
                 | ParseTagFactoryPropsLimited<'Character'>
                 | ParseTagFactoryPropsLimited<'Pronouns'>
                 | ParseTagFactoryPropsLimited<'OneCoolThing'>
@@ -99,7 +99,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                 })(value)
             }
             else {
-                const returnValue = (super.convert as any)(value)
+                const returnValue = (super.parseConvert as any)(value)
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }

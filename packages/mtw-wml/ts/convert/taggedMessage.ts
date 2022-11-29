@@ -3,10 +3,10 @@ import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinI
 
 export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseTaggedMessageMixin extends Base {
-        override convert(value: ParseTagFactoryPropsLimited<'br'>): ParseStackTagEntry<ParseLineBreakTag>
-        override convert(value: ParseTagFactoryPropsLimited<'Space'>): ParseStackTagEntry<ParseSpacerTag>
-        override convert(value: ParseTagFactoryPropsLimited<'Link'>): ParseStackTagEntry<ParseLinkTag>
-        override convert(value: MixinInheritedParameters<C>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'br'>): ParseStackTagEntry<ParseLineBreakTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Space'>): ParseStackTagEntry<ParseSpacerTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Link'>): ParseStackTagEntry<ParseLinkTag>
+        override parseConvert(value: MixinInheritedParameters<C>
             | ParseTagFactoryPropsLimited<'br'>
             | ParseTagFactoryPropsLimited<'Space'>
             | ParseTagFactoryPropsLimited<'Link'>
@@ -58,7 +58,7 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
                 })(value)
             }
             else {
-                const returnValue = (super.convert as any)(value)
+                const returnValue = (super.parseConvert as any)(value)
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }

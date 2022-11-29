@@ -4,10 +4,10 @@ import { extractDependenciesFromJS } from "./utils";
 
 export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseStateMixin extends Base {
-        override convert(value: ParseTagFactoryPropsLimited<'Action'>): ParseStackTagEntry<ParseActionTag>
-        override convert(value: ParseTagFactoryPropsLimited<'Variable'>): ParseStackTagEntry<ParseVariableTag>
-        override convert(value: ParseTagFactoryPropsLimited<'Computed'>): ParseStackTagEntry<ParseComputedTag>
-        override convert(value: MixinInheritedParameters<C>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Action'>): ParseStackTagEntry<ParseActionTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Variable'>): ParseStackTagEntry<ParseVariableTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Computed'>): ParseStackTagEntry<ParseComputedTag>
+        override parseConvert(value: MixinInheritedParameters<C>
             | ParseTagFactoryPropsLimited<'Action'>
             | ParseTagFactoryPropsLimited<'Variable'>
             | ParseTagFactoryPropsLimited<'Computed'>
@@ -66,7 +66,7 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
                 })(value)
             }
             else {
-                const returnValue = (super.convert as any)(value)
+                const returnValue = (super.parseConvert as any)(value)
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
