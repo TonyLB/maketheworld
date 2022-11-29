@@ -1,3 +1,4 @@
+import WMLConverter from "../convert"
 import {
     isParseExit,
     isParseRoom,
@@ -5,7 +6,6 @@ import {
     ParseActionTag,
     ParseAssetTag,
     ParseCharacterTag,
-    ParseCommentTag,
     ParseComputedTag,
     ParseConditionTag,
     ParseDescriptionTag,
@@ -68,9 +68,7 @@ import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing,
 import schemaFromComputed from "./computed"
 import schemaFromCondition, { SchemaConditionTagFromParse, schemaFromElse, schemaFromElseIf } from "./condition"
 import schemaFromDescription from "./description"
-import schemaFromExit from "./exit"
 import schemaFromFeature from "./feature"
-import schemaFromImage from "./image"
 import schemaFromImport from "./import"
 import schemaFromLink from "./link"
 import schemaFromMap from "./map"
@@ -86,6 +84,8 @@ type SchemaFromParseItemOptions = {
     failedConditions: SchemaConditionMixin["conditions"];
     setFailedConditions: (value: SchemaConditionMixin["conditions"]) => void;
 }
+
+const schemaConvert = new WMLConverter()
 
 function schemaFromParseItem(item: ParseAssetTag, options: SchemaFromParseItemOptions): SchemaAssetTag
 function schemaFromParseItem(item: ParseStoryTag, options: SchemaFromParseItemOptions): SchemaStoryTag
@@ -135,7 +135,7 @@ function schemaFromParseItem(item: ParseTag, options: SchemaFromParseItemOptions
         case 'Use':
             return schemaFromUse(item)
         case 'Exit':
-            return schemaFromExit(item, schemaContents as SchemaLiteralLegalContents[])
+            return schemaConvert.schemaConvert(item, schemaContents)
         case 'Room':
             return schemaFromRoom(item, schemaContents as SchemaRoomLegalContents[])
         case 'String':
@@ -180,7 +180,7 @@ function schemaFromParseItem(item: ParseTag, options: SchemaFromParseItemOptions
         case 'Computed':
             return schemaFromComputed(item)
         case 'Image':
-            return schemaFromImage(item)
+            return schemaConvert.schemaConvert(item, schemaContents)
         case 'Variable':
             return schemaFromVariable(item)
         case 'Pronouns':

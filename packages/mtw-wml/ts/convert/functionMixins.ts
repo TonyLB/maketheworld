@@ -98,7 +98,7 @@ type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuar
 
 export class BaseConverter {
     parseConvert(...args: [never]) {};
-    schemaConvert(...args: [never]) {};
+    schemaConvert(value: never, contents: never) {};
 }
 
 export type Constructor<T = {}> = new (...args: any[]) => T;
@@ -111,6 +111,7 @@ type ConverterMixinFactoryProps<T, G> = {
 export type MixinInheritedParseParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["parseConvert"]>[0] extends infer R ? R : never
 export type MixinInheritedParseReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["parseConvert"]> extends infer R ? R : never
 export type MixinInheritedSchemaParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["schemaConvert"]>[0] extends infer R ? R : never
+export type MixinInheritedSchemaContents<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["schemaConvert"]>[1] extends infer R ? R : never
 export type MixinInheritedSchemaReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["schemaConvert"]> extends infer R ? R : never
 
 export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {

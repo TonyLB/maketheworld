@@ -1,5 +1,6 @@
-import { ParseException, ParseExitTag, ParseImageTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins";
+import { isParseExit, isParseImage, ParseException, ParseExitTag, ParseImageTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
+import { SchemaExitTag, SchemaImageTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn, MixinInheritedSchemaContents } from "./functionMixins";
 
 export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseAssetsMixin extends Base {
@@ -51,6 +52,41 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
                 return returnValue as MixinInheritedParseReturn<C>
             }
         }
+
+        override schemaConvert(value: ParseImageTag, contents: SchemaTag[]): SchemaImageTag
+        override schemaConvert(value: ParseExitTag, contents: SchemaTag[]): SchemaExitTag
+        override schemaConvert(
+                value: MixinInheritedSchemaParameters<C> | ParseImageTag | ParseExitTag,
+                contents: MixinInheritedSchemaContents<C> | SchemaStringTag[] | any[]
+            ): MixinInheritedSchemaReturn<C> | SchemaImageTag | SchemaExitTag {
+            if (isParseImage(value)) {
+                return {
+                    tag: 'Image',
+                    key: value.key,
+                    fileURL: value.fileURL,
+                    parse: value
+                }            
+            }
+            else if (isParseExit(value)) {
+                return {
+                    tag: 'Exit',
+                    name: (contents as SchemaStringTag[]).map(({ value }) => (value)).join(''),
+                    key: value.key,
+                    from: value.from,
+                    to: value.to,
+                    parse: value,
+                    contents: contents as SchemaStringTag[]
+                }            
+            }
+            else {
+                const returnValue = (super.schemaConvert as any)(value)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
     }
 }
 
