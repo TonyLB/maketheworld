@@ -1,5 +1,5 @@
 import { ParseCharacterTag, ParseImageTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins"
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins"
 
 const stringLiteralPostProcess = ({ contents = [] }) => ({
     contents,
@@ -12,12 +12,12 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
         override parseConvert(value: ParseTagFactoryPropsLimited<'Pronouns'>): ParseStackTagEntry<ParsePronounsTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'OneCoolThing'>): ParseStackTagEntry<ParseOneCoolThingTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Outfit'>): ParseStackTagEntry<ParseOutfitTag>
-        override parseConvert(value: MixinInheritedParameters<C>
+        override parseConvert(value: MixinInheritedParseParameters<C>
                 | ParseTagFactoryPropsLimited<'Character'>
                 | ParseTagFactoryPropsLimited<'Pronouns'>
                 | ParseTagFactoryPropsLimited<'OneCoolThing'>
                 | ParseTagFactoryPropsLimited<'Outfit'>
-                ): MixinInheritedReturn<C>
+                ): MixinInheritedParseReturn<C>
                 | ParseStackTagEntry<ParseCharacterTag>
                 | ParseStackTagEntry<ParsePronounsTag>
                 | ParseStackTagEntry<ParseOneCoolThingTag>
@@ -103,7 +103,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
-                return returnValue as MixinInheritedReturn<C>
+                return returnValue as MixinInheritedParseReturn<C>
             }
         }
     }

@@ -12,7 +12,7 @@ import {
     ParseTagFactoryPropsLimited
 } from "../parser/baseClasses"
 import { ArrayContents } from "../types"
-import { BaseConverter, Constructor, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins"
+import { BaseConverter, Constructor, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins"
 import { extractDependenciesFromJS, ExtractProperties, validateContents, validateProperties } from "./utils"
 
 const extractContextTag = (context: ParseStackTagOpenEntry[]): ParseConditionLegalContextTag => {
@@ -112,11 +112,11 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
         override parseConvert(value: ParseTagFactoryPropsLimited<'If'>): ParseStackTagEntry<ParseConditionTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'ElseIf'>): ParseStackTagEntry<ParseElseIfTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Else'>): ParseStackTagEntry<ParseElseTag>
-        override parseConvert(value: MixinInheritedParameters<C>
+        override parseConvert(value: MixinInheritedParseParameters<C>
             | ParseTagFactoryPropsLimited<'If'>
             | ParseTagFactoryPropsLimited<'ElseIf'>
             | ParseTagFactoryPropsLimited<'Else'>
-            ): MixinInheritedReturn<C>
+            ): MixinInheritedParseReturn<C>
             | ParseStackTagEntry<ParseConditionTag>
             | ParseStackTagEntry<ParseElseIfTag>
             | ParseStackTagEntry<ParseElseTag>
@@ -147,7 +147,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
-                return returnValue as MixinInheritedReturn<C>
+                return returnValue as MixinInheritedParseReturn<C>
             }
         }
     }

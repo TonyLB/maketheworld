@@ -97,7 +97,8 @@ type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuar
 // EXAMPLE TWO: This is a class mixin implementation of composeConverters which may prove more elegant
 
 export class BaseConverter {
-    parseConvert(...args: [never]) {}
+    parseConvert(...args: [never]) {};
+    schemaConvert(...args: [never]) {};
 }
 
 export type Constructor<T = {}> = new (...args: any[]) => T;
@@ -107,13 +108,15 @@ type ConverterMixinFactoryProps<T, G> = {
     parseConvert: (value: T) => G;
 }
 
-export type MixinInheritedParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["parseConvert"]>[0] extends infer R ? R : never
-export type MixinInheritedReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["parseConvert"]> extends infer R ? R : never
+export type MixinInheritedParseParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["parseConvert"]>[0] extends infer R ? R : never
+export type MixinInheritedParseReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["parseConvert"]> extends infer R ? R : never
+export type MixinInheritedSchemaParameters<C extends Constructor<BaseConverter>> = Parameters<InstanceType<C>["schemaConvert"]>[0] extends infer R ? R : never
+export type MixinInheritedSchemaReturn<C extends Constructor<BaseConverter>> = ReturnType<InstanceType<C>["schemaConvert"]> extends infer R ? R : never
 
 export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, G>) => <C extends Constructor<BaseConverter>>(Base: C) => {
     return class FactoryMixin extends Base {
         override parseConvert(value: T): G
-        override parseConvert(value: MixinInheritedParameters<C> | T): G | MixinInheritedReturn<C> {
+        override parseConvert(value: MixinInheritedParseParameters<C> | T): G | MixinInheritedParseReturn<C> {
             if (args.typeGuard(value)) {
                 return args.parseConvert(value)
             }
@@ -122,7 +125,7 @@ export const ConverterMixinFactory = <T, G>(args: ConverterMixinFactoryProps<T, 
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
-                return returnValue as MixinInheritedReturn<C>
+                return returnValue as MixinInheritedParseReturn<C>
             }
         }
     }

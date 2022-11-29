@@ -1,5 +1,5 @@
 import { ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins";
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseComponentsMixin extends Base {
@@ -9,14 +9,14 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
         override parseConvert(value: ParseTagFactoryPropsLimited<'Feature'>): ParseStackTagEntry<ParseFeatureTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Map'>): ParseStackTagEntry<ParseMapTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Bookmark'>): ParseStackTagEntry<ParseBookmarkTag>
-        override parseConvert(value: MixinInheritedParameters<C>
+        override parseConvert(value: MixinInheritedParseParameters<C>
             | ParseTagFactoryPropsLimited<'Description'>
             | ParseTagFactoryPropsLimited<'Name'>
             | ParseTagFactoryPropsLimited<'Room'>
             | ParseTagFactoryPropsLimited<'Feature'>
             | ParseTagFactoryPropsLimited<'Map'>
             | ParseTagFactoryPropsLimited<'Bookmark'>
-            ): MixinInheritedReturn<C>
+            ): MixinInheritedParseReturn<C>
             | ParseStackTagEntry<ParseDescriptionTag>
             | ParseStackTagEntry<ParseNameTag>
             | ParseStackTagEntry<ParseRoomTag>
@@ -166,7 +166,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
-                return returnValue as MixinInheritedReturn<C>
+                return returnValue as MixinInheritedParseReturn<C>
             }
         }
     }

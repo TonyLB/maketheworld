@@ -1,16 +1,16 @@
 import { ParseLineBreakTag, ParseLinkLegalContents, ParseLinkTag, ParseSpacerTag, ParseStackTagEntry, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins";
 
 export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseTaggedMessageMixin extends Base {
         override parseConvert(value: ParseTagFactoryPropsLimited<'br'>): ParseStackTagEntry<ParseLineBreakTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Space'>): ParseStackTagEntry<ParseSpacerTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Link'>): ParseStackTagEntry<ParseLinkTag>
-        override parseConvert(value: MixinInheritedParameters<C>
+        override parseConvert(value: MixinInheritedParseParameters<C>
             | ParseTagFactoryPropsLimited<'br'>
             | ParseTagFactoryPropsLimited<'Space'>
             | ParseTagFactoryPropsLimited<'Link'>
-            ): MixinInheritedReturn<C>
+            ): MixinInheritedParseReturn<C>
             | ParseStackTagEntry<ParseLineBreakTag>
             | ParseStackTagEntry<ParseSpacerTag>
             | ParseStackTagEntry<ParseLinkTag>
@@ -62,7 +62,7 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
-                return returnValue as MixinInheritedReturn<C>
+                return returnValue as MixinInheritedParseReturn<C>
             }
         }
     }

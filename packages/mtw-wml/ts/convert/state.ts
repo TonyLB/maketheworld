@@ -1,5 +1,5 @@
 import { ParseActionTag, ParseComputedTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseVariableTag } from "../parser/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins";
 import { extractDependenciesFromJS } from "./utils";
 
 export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
@@ -7,11 +7,11 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
         override parseConvert(value: ParseTagFactoryPropsLimited<'Action'>): ParseStackTagEntry<ParseActionTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Variable'>): ParseStackTagEntry<ParseVariableTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Computed'>): ParseStackTagEntry<ParseComputedTag>
-        override parseConvert(value: MixinInheritedParameters<C>
+        override parseConvert(value: MixinInheritedParseParameters<C>
             | ParseTagFactoryPropsLimited<'Action'>
             | ParseTagFactoryPropsLimited<'Variable'>
             | ParseTagFactoryPropsLimited<'Computed'>
-            ): MixinInheritedReturn<C>
+            ): MixinInheritedParseReturn<C>
             | ParseStackTagEntry<ParseActionTag>
             | ParseStackTagEntry<ParseVariableTag>
             | ParseStackTagEntry<ParseComputedTag>
@@ -70,7 +70,7 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }
-                return returnValue as MixinInheritedReturn<C>
+                return returnValue as MixinInheritedParseReturn<C>
             }
         }
     }
