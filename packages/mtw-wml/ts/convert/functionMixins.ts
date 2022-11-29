@@ -98,7 +98,7 @@ type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuar
 
 export class BaseConverter {
     parseConvert(...args: [never]) {};
-    schemaConvert(value: never, contents: never) {};
+    schemaConvert(value: never, siblings: never, contents: never) {};
 }
 
 export type Constructor<T = {}> = new (...args: any[]) => T;

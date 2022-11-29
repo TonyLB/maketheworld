@@ -53,10 +53,11 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             }
         }
 
-        override schemaConvert(value: ParseImageTag, contents: SchemaTag[]): SchemaImageTag
-        override schemaConvert(value: ParseExitTag, contents: SchemaTag[]): SchemaExitTag
+        override schemaConvert(value: ParseImageTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaImageTag
+        override schemaConvert(value: ParseExitTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaExitTag
         override schemaConvert(
                 value: MixinInheritedSchemaParameters<C> | ParseImageTag | ParseExitTag,
+                siblings: SchemaTag[],
                 contents: MixinInheritedSchemaContents<C> | SchemaStringTag[] | any[]
             ): MixinInheritedSchemaReturn<C> | SchemaImageTag | SchemaExitTag {
             if (isParseImage(value)) {
@@ -79,7 +80,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
                 }            
             }
             else {
-                const returnValue = (super.schemaConvert as any)(value)
+                const returnValue = (super.schemaConvert as any)(value, siblings, contents)
                 if (!Boolean(returnValue)) {
                     throw new Error('Invalid parameter')
                 }

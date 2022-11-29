@@ -5,6 +5,7 @@ import {
     TokenLiteralValue,
     ParseStackTokenEntry
 } from './tokenizer/baseClasses'
+import keyValueTokenizer from './tokenizer/key';
 
 type ParseTagBase = {
     startTagToken: number;
@@ -377,10 +378,15 @@ export class ParseException extends Error {
 export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseElseTag | ParseLinkTag | ParseBookmarkTag | ParseMapTag | ParseExitTag | ParseNameTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag) => (
     ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Else', 'ElseIf', 'Link', 'Bookmark', 'Map', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
-export const isParseExit = (value: ParseTag | {}): value is ParseExitTag => ("tag" in value && value.tag === 'Exit')
+
+export const isParseTypeFromTag = <T extends ParseTag>(tag: T["tag"]) => (item: ParseTag | {}): item is T => ("tag" in item && item.tag === tag)
+export const isParseExit = isParseTypeFromTag<ParseExitTag>('Exit')
+export const isParseImage = isParseTypeFromTag<ParseImageTag>('Image')
+export const isParseCondition = isParseTypeFromTag<ParseConditionTag>('If')
+export const isParseElseIf = isParseTypeFromTag<ParseElseIfTag>('ElseIf')
+export const isParseElse = isParseTypeFromTag<ParseElseTag>('Else')
 export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
 export const isParseString = (value: ParseTag): value is ParseStringTag => (value.tag === 'String')
-export const isParseImage = (value: ParseTag | {}): value is ParseImageTag => ("tag" in value && value.tag === 'Image')
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 

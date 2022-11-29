@@ -1,5 +1,9 @@
 import {
     isLegalParseConditionContextTag,
+    isParseCondition,
+    isParseConditionTagDescriptionContext,
+    isParseElse,
+    isParseElseIf,
     ParseConditionLegalContextTag,
     ParseConditionTag,
     ParseConditionTypeFromContextTag,
@@ -11,8 +15,11 @@ import {
     ParseTagFactory,
     ParseTagFactoryPropsLimited
 } from "../parser/baseClasses"
+import { isSchemaCondition, isSchemaWhitespace, SchemaConditionTag, SchemaException, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
+import { SchemaConditionTagFromParse } from "../schema/condition"
+import { translateTaggedMessageContents } from "../schema/taggedMessage"
 import { ArrayContents } from "../types"
-import { BaseConverter, Constructor, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins"
+import { BaseConverter, Constructor, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaContents, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn } from "./functionMixins"
 import { extractDependenciesFromJS, ExtractProperties, validateContents, validateProperties } from "./utils"
 
 const extractContextTag = (context: ParseStackTagOpenEntry[]): ParseConditionLegalContextTag => {
@@ -148,6 +155,78 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                     throw new Error('Invalid parameter')
                 }
                 return returnValue as MixinInheritedParseReturn<C>
+            }
+        }
+
+        override schemaConvert(value: ParseConditionTag | ParseElseIfTag | ParseElseTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaConditionTag
+        override schemaConvert(
+                value: MixinInheritedSchemaParameters<C> | ParseConditionTag | ParseElseIfTag | ParseElseTag,
+                siblings: SchemaTag[],
+                contents: MixinInheritedSchemaContents<C> | SchemaTag[]
+            ): MixinInheritedSchemaReturn<C> | SchemaConditionTag {
+            if (isParseCondition(value)) {
+                return {
+                    tag: 'If',
+                    contextTag: value.contextTag,
+                    conditions: [{
+                        if: value.if,
+                        dependencies: value.dependencies,    
+                    }],
+                    contents: (isParseConditionTagDescriptionContext(value))
+                        ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+                        : contents,
+                    parse: value
+                } as unknown as SchemaConditionTagFromParse<typeof value>
+            }
+            else if (isParseElseIf(value) || isParseElse(value)) {
+                const closestConditional = siblings.reduceRight<SchemaConditionTag | undefined>((previous, sibling) => {
+                    if (previous) {
+                        return previous
+                    }
+                    if (isSchemaWhitespace(sibling)) {
+                        return previous
+                    }
+                    if (isSchemaCondition(sibling)) {
+                        return sibling
+                    }
+                    throw new SchemaException('Else and ElseIf tags must follow conditional', value)
+                }, undefined)
+                const closestConditions = closestConditional.conditions.map((condition) => ({ ...condition, not: true }))
+                if (isParseElseIf(value)) {
+                    return {
+                        tag: 'If',
+                        contextTag: value.contextTag,
+                        conditions: [
+                            ...closestConditions,
+                            {
+                                if: value.if,
+                                dependencies: value.dependencies
+                            }
+                        ],
+                        contents: (isParseConditionTagDescriptionContext({ ...value, tag: 'If', if: '', dependencies: [] }))
+                            ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+                            : contents,
+                        parse: value
+                    } as unknown as SchemaConditionTagFromParse<Omit<typeof value, 'tag'> & { tag: 'If' }>
+                }
+                else {
+                    return {
+                        tag: 'If',
+                        contextTag: value.contextTag,
+                        conditions: closestConditions,
+                        contents: (isParseConditionTagDescriptionContext({ ...value, tag: 'If', if: '', dependencies: [] }))
+                            ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+                            : contents,
+                        parse: value
+                    } as unknown as SchemaConditionTagFromParse<Omit<typeof value, 'tag'> & { tag: 'If'; if: string; dependencies: string[] }>
+                }
+            }
+            else {
+                const returnValue = (super.schemaConvert as any)(value, siblings, contents)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedSchemaReturn<C>
             }
         }
     }
