@@ -1,5 +1,5 @@
 import { ParseCharacterTag, ParseImageTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
-import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins"
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins"
 
 const stringLiteralPostProcess = ({ contents = [] }) => ({
     contents,
@@ -27,7 +27,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
             // Convert Character tag-opens
             //
             if (isTypedParseTagOpen('Character')(value)) {
-                return converterMixin<ParseCharacterTag, ParseNameTag | ParsePronounsTag | ParseOutfitTag | ParseOneCoolThingTag | ParseImageTag>({
+                return parseConverterMixin<ParseCharacterTag, ParseNameTag | ParsePronounsTag | ParseOutfitTag | ParseOneCoolThingTag | ParseImageTag>({
                     tag: 'Character',
                     properties: {
                         required: {
@@ -50,7 +50,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
             // Convert Pronouns tag-opens
             //
             else if (isTypedParseTagOpen('Pronouns')(value)) {
-                return converterMixin<ParsePronounsTag, never>({
+                return parseConverterMixin<ParsePronounsTag, never>({
                     tag: 'Pronouns',
                     properties: {
                         required: {
@@ -68,7 +68,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
             // Convert OneCoolThing tag-opens
             //
             else if (isTypedParseTagOpen('OneCoolThing')(value)) {
-                return converterMixin<ParseOneCoolThingTag, ParseStringTag>({
+                return parseConverterMixin<ParseOneCoolThingTag, ParseStringTag>({
                     tag: 'OneCoolThing',
                     properties: {
                         required: {},
@@ -85,7 +85,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
             // Convert Outfit tag-opens
             //
             else if (isTypedParseTagOpen('Outfit')(value)) {
-                return converterMixin<ParseOutfitTag, ParseStringTag>({
+                return parseConverterMixin<ParseOutfitTag, ParseStringTag>({
                     tag: 'Outfit',
                     properties: {
                         required: {},

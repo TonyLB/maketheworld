@@ -134,7 +134,7 @@ type ConverterArgumentWithContextEvaluator<T> = T | ((context: ParseStackTagOpen
 
 const isBaseArgument = <T>(arg: ConverterArgumentWithContextEvaluator<T>): arg is T => (!(typeof arg === 'function'))
 
-type ConverterMixinProps<T extends ParseTag, C extends ParseTag> = {
+type ParseConverterMixinProps<T extends ParseTag, C extends ParseTag> = {
     tag: T["tag"];
     properties: {
         required: ConverterArgumentWithContextEvaluator<ValidatePropertiesItem>;
@@ -153,7 +153,7 @@ type ConverterMixinProps<T extends ParseTag, C extends ParseTag> = {
     }) => Partial<T>
 }
 
-export const converterMixin = <T extends ParseTag, C extends ParseTag>(props: ConverterMixinProps<T, C>) => ({ open, contents, context, endTagToken }) => {
+export const parseConverterMixin = <T extends ParseTag, C extends ParseTag>(props: ParseConverterMixinProps<T, C>) => ({ open, contents, context, endTagToken }) => {
     const required = isBaseArgument(props.properties.required) ? props.properties.required : props.properties.required(context)
     const optional = isBaseArgument(props.properties.optional) ? props.properties.optional : props.properties.optional(context)
     const validate = validateProperties<ExtractProperties<T, never>>({

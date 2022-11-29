@@ -1,5 +1,5 @@
 import { ParseException, ParseExitTag, ParseImageTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
 
 export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseAssetsMixin extends Base {
@@ -10,7 +10,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             // Convert Exit tag-opens
             //
             if (isTypedParseTagOpen('Exit')(value)) {
-                return converterMixin<ParseExitTag, ParseStringTag>({
+                return parseConverterMixin<ParseExitTag, ParseStringTag>({
                     tag: 'Exit',
                     properties: {
                         required: {},
@@ -35,7 +35,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             // Convert Image tag-opens
             //
             else if (isTypedParseTagOpen('Image')(value)) {
-                return converterMixin<ParseImageTag, never>({
+                return parseConverterMixin<ParseImageTag, never>({
                     tag: 'Image',
                     properties: {
                         required: { key: ['key'] },

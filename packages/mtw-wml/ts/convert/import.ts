@@ -1,5 +1,5 @@
 import { ParseImportTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseUseTag } from "../parser/baseClasses";
-import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
 
 export const ParseImportMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseImportsMixin extends Base {
@@ -10,7 +10,7 @@ export const ParseImportMixin = <C extends Constructor<BaseConverter>>(Base: C) 
             // Convert Import tag-opens
             //
             if (isTypedParseTagOpen('Import')(value)) {
-                return converterMixin<ParseImportTag, ParseUseTag>({
+                return parseConverterMixin<ParseImportTag, ParseUseTag>({
                     tag: 'Import',
                     properties: {
                         required: { from: ['key'] },
@@ -26,7 +26,7 @@ export const ParseImportMixin = <C extends Constructor<BaseConverter>>(Base: C) 
             // Convert Use tag-opens
             //
             else if (isTypedParseTagOpen('Use')(value)) {
-                return converterMixin<ParseUseTag, never>({
+                return parseConverterMixin<ParseUseTag, never>({
                     tag: 'Use',
                     properties: {
                         required: { key: ['key'] },

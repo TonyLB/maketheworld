@@ -1,5 +1,5 @@
 import { ParseActionTag, ParseComputedTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseVariableTag } from "../parser/baseClasses";
-import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
 import { extractDependenciesFromJS } from "./utils";
 
 export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
@@ -20,7 +20,7 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
             // Convert Action tag-opens
             //
             if (isTypedParseTagOpen('Action')(value)) {
-                return converterMixin<ParseActionTag, never>({
+                return parseConverterMixin<ParseActionTag, never>({
                     tag: 'Action',
                     properties: {
                         required: {
@@ -35,7 +35,7 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
             // Convert Variable tag-opens
             //
             else if (isTypedParseTagOpen('Variable')(value)) {
-                return converterMixin<ParseVariableTag, never>({
+                return parseConverterMixin<ParseVariableTag, never>({
                     tag: 'Variable',
                     properties: {
                         required: {
@@ -51,7 +51,7 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
             // Convert Computed tag-opens
             //
             else if (isTypedParseTagOpen('Computed')(value)) {
-                return converterMixin<ParseComputedTag, never>({
+                return parseConverterMixin<ParseComputedTag, never>({
                     tag: 'Computed',
                     properties: {
                         required: {

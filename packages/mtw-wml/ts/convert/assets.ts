@@ -1,5 +1,5 @@
 import { ParseAssetLegalContents, ParseAssetTag, ParseStackTagEntry, ParseStoryTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
 
 export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseAssetsMixin extends Base {
@@ -10,7 +10,7 @@ export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) 
             // Convert Asset tag-opens
             //
             if (isTypedParseTagOpen('Asset')(value)) {
-                return converterMixin<ParseAssetTag, ParseAssetLegalContents>({
+                return parseConverterMixin<ParseAssetTag, ParseAssetLegalContents>({
                     tag: 'Asset',
                     properties: {
                         required: {
@@ -33,7 +33,7 @@ export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) 
             // Convert Story tag-opens
             //
             else if (isTypedParseTagOpen('Story')(value)) {
-                return converterMixin<ParseStoryTag, ParseAssetLegalContents>({
+                return parseConverterMixin<ParseStoryTag, ParseAssetLegalContents>({
                     tag: 'Story',
                     properties: {
                         required: {

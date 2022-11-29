@@ -1,5 +1,5 @@
 import { ParseLineBreakTag, ParseLinkLegalContents, ParseLinkTag, ParseSpacerTag, ParseStackTagEntry, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
 
 export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseTaggedMessageMixin extends Base {
@@ -19,7 +19,7 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
             // Convert LineBreak tag-opens
             //
             if (isTypedParseTagOpen('br')(value)) {
-                return converterMixin<ParseLineBreakTag, never>({
+                return parseConverterMixin<ParseLineBreakTag, never>({
                     tag: 'br',
                     properties: {
                         required: {},
@@ -31,7 +31,7 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
             // Convert Spacer tag-opens
             //
             else if (isTypedParseTagOpen('Space')(value)) {
-                return converterMixin<ParseSpacerTag, never>({
+                return parseConverterMixin<ParseSpacerTag, never>({
                     tag: 'Space',
                     properties: {
                         required: {},
@@ -43,7 +43,7 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
             // Convert Link tag-opens
             //
             else if (isTypedParseTagOpen('Link')(value)) {
-                return converterMixin<ParseLinkTag, ParseLinkLegalContents>({
+                return parseConverterMixin<ParseLinkTag, ParseLinkLegalContents>({
                     tag: 'Link',
                     properties: {
                         required: {

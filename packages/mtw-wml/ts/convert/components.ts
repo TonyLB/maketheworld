@@ -1,5 +1,5 @@
 import { ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
-import { BaseConverter, Constructor, converterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParameters, MixinInheritedReturn } from "./functionMixins";
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseComponentsMixin extends Base {
@@ -28,7 +28,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             // Convert Description tag-opens
             //
             if (isTypedParseTagOpen('Description')(value)) {
-                return converterMixin<ParseDescriptionTag, ParseTaggedMessageLegalContents>({
+                return parseConverterMixin<ParseDescriptionTag, ParseTaggedMessageLegalContents>({
                     tag: 'Description',
                     properties: {
                         required: {},
@@ -44,7 +44,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             // Convert Name tag-opens
             //
             else if (isTypedParseTagOpen('Name')(value)) {
-                return converterMixin<ParseNameTag, ParseTaggedMessageLegalContents>({
+                return parseConverterMixin<ParseNameTag, ParseTaggedMessageLegalContents>({
                     tag: 'Name',
                     properties: {
                         required: {},
@@ -60,7 +60,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             // Convert Room tag-opens
             //
             else if (isTypedParseTagOpen('Room')(value)) {
-                return converterMixin<ParseRoomTag, ParseRoomLegalContents>({
+                return parseConverterMixin<ParseRoomTag, ParseRoomLegalContents>({
                     tag: 'Room',
                     properties: {
                         required: (context) => {
@@ -111,7 +111,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             // Convert Feature tag-opens
             //
             else if (isTypedParseTagOpen('Feature')(value)) {
-                return converterMixin<ParseFeatureTag, ParseFeatureLegalContents>({
+                return parseConverterMixin<ParseFeatureTag, ParseFeatureLegalContents>({
                     tag: 'Feature',
                     properties: {
                         required: {
@@ -131,7 +131,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             // Convert Map tag-opens
             //
             else if (isTypedParseTagOpen('Map')(value)) {
-                return converterMixin<ParseMapTag, ParseMapLegalContents>({
+                return parseConverterMixin<ParseMapTag, ParseMapLegalContents>({
                     tag: 'Map',
                     properties: {
                         required: {
@@ -149,7 +149,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             // Convert Bookmark tag-opens
             //
             else if (isTypedParseTagOpen('Bookmark')(value)) {
-                return converterMixin<ParseBookmarkTag, ParseTaggedMessageLegalContents>({
+                return parseConverterMixin<ParseBookmarkTag, ParseTaggedMessageLegalContents>({
                     tag: 'Bookmark',
                     properties: {
                         required: { key: ['key'] },
