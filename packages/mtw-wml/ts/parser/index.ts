@@ -18,61 +18,12 @@ import {
     ParseException,
     isParseStackTagOpenEntry,
     parseTagDefaultProps,
-    isParseLegalTag,
-    ParseTagFactoryProps,
-    ParseTagFactoryPropsLimited,
-    ParseCommentTag,
-    ParseStackTagEntry
+    isParseLegalTag
 } from './baseClasses'
 
-import { BaseConverter, Constructor } from '../convert/functionMixins'
-import ParseMiscellaneousMixin from '../convert/miscellaneous'
-import ParseCharacterMixin from '../convert/character'
-import ParseTaggedMessageMixin from '../convert/taggedMessage'
-import ParseStateMixin from '../convert/state'
-import ParseImportMixin from '../convert/import'
-import ParseComponentsMixin from '../convert/components'
-import ParseConditionsMixin from '../convert/conditions'
-import ParseAssetsMixin from '../convert/assets'
+import WMLConverter from '../convert'
 
-const isTypedParseTagOpen = <T extends string>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T extends ParseTag["tag"] | 'Character' ? T : never> => (props.open.tag === tag)
-
-export const FallbackMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
-    return class FallbackMixin extends Base {
-        override parseConvert(value: any): ParseStackTagEntry<ParseCommentTag> {
-            return {
-                type: 'Tag',
-                tag: {
-                    tag: 'Comment',
-                    startTagToken: value?.props?.open?.startTagToken,
-                    endTagToken: value?.props?.endTagToken
-                }
-            } as ParseStackTagEntry<ParseCommentTag>
-        }
-    }
-}
-
-
-//
-// TypeScript thinks this is at risk of being infinitely deep, but in actuality it's just _very_ deep.
-//
-// TODO: Figure out how to refactor with compute-immediately techniques (see ts-toolbelt codebase for examples)
-// to maintain type consistency with this depth of mixins.
-//
-class ParseConverter extends
-    ParseAssetsMixin(
-    ParseCharacterMixin(
-    ParseConditionsMixin(
-    ParseMiscellaneousMixin(
-    ParseImportMixin(
-    ParseStateMixin(
-    ParseComponentsMixin(
-    ParseTaggedMessageMixin(
-    FallbackMixin(
-        BaseConverter
-    ))))))))) {}
-
-const parseConverter = new ParseConverter()
+const parseConverter = new WMLConverter()
 
 export const parse = (tokens: Token[]): ParseTag[] => {
     let returnValue: ParseTag[] = []
