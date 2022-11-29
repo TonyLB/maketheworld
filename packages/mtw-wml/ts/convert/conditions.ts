@@ -6,6 +6,8 @@ import {
     isParseElseIf,
     ParseConditionLegalContextTag,
     ParseConditionTag,
+    ParseConditionTagAssetContext,
+    ParseConditionTagMapContext,
     ParseConditionTypeFromContextTag,
     parseDifferentiatingTags,
     ParseElseIfTag,
@@ -15,12 +17,21 @@ import {
     ParseTagFactory,
     ParseTagFactoryPropsLimited
 } from "../parser/baseClasses"
-import { isSchemaCondition, isSchemaWhitespace, SchemaConditionTag, SchemaException, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
-import { SchemaConditionTagFromParse } from "../schema/condition"
+import { isSchemaCondition, isSchemaWhitespace, SchemaConditionTag, SchemaConditionTagAssetContext, SchemaConditionTagDescriptionContext, SchemaConditionTagMapContext, SchemaException, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
 import { translateTaggedMessageContents } from "../schema/taggedMessage"
 import { ArrayContents } from "../types"
 import { BaseConverter, Constructor, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaContents, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn } from "./functionMixins"
 import { extractDependenciesFromJS, ExtractProperties, validateContents, validateProperties } from "./utils"
+
+//
+// TODO: Refactor SchemaCondition to be as generalizable as ParseCondition
+//
+export type SchemaConditionTagFromParse<T extends ParseConditionTag> =
+    T extends ParseConditionTagAssetContext
+        ? SchemaConditionTagAssetContext
+        : T extends ParseConditionTagMapContext
+            ? SchemaConditionTagMapContext
+            : SchemaConditionTagDescriptionContext
 
 const extractContextTag = (context: ParseStackTagOpenEntry[]): ParseConditionLegalContextTag => {
     const contextTagRaw = context.reduce<ParseConditionLegalContextTag>((previous, item) => {
