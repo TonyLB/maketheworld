@@ -68,15 +68,12 @@ import schemaFromComputed from "./computed"
 import schemaFromDescription from "./description"
 import schemaFromFeature from "./feature"
 import schemaFromImport from "./import"
-import schemaFromLink from "./link"
 import schemaFromMap from "./map"
 import schemaFromName from "./name"
 import schemaFromRoom from "./room"
-import schemaFromString from "./string"
 import schemaFromUse from "./use"
 import { transformWithContext, TransformWithContextCallback } from "./utils"
 import schemaFromVariable from "./variable"
-import { schemaFromLineBreak, schemaFromSpacer, schemaFromWhitespace } from "./whiteSpace"
 
 const schemaConvert = new WMLConverter()
 
@@ -127,7 +124,7 @@ function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
         case 'Room':
             return schemaFromRoom(item, schemaContents as SchemaRoomLegalContents[])
         case 'String':
-            return schemaFromString(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Name':
             return schemaFromName(item, schemaContents as SchemaLiteralLegalContents[])
         case 'Description':
@@ -137,7 +134,7 @@ function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
         case 'Feature':
             return schemaFromFeature(item, schemaContents as SchemaFeatureLegalContents[])
         case 'Link':
-            return schemaFromLink(item, schemaContents as SchemaStringTag[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'If':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Else':
@@ -163,11 +160,11 @@ function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
         case 'Character':
             return schemaFromCharacter(item, schemaContents as SchemaCharacterLegalContents[])
         case 'Whitespace':
-            return schemaFromWhitespace(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'br':
-            return schemaFromLineBreak(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Space':
-            return schemaFromSpacer(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         default:
             return {
                 tag: 'String',

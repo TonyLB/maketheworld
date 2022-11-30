@@ -385,8 +385,12 @@ export const isParseImage = isParseTypeFromTag<ParseImageTag>('Image')
 export const isParseCondition = isParseTypeFromTag<ParseConditionTag>('If')
 export const isParseElseIf = isParseTypeFromTag<ParseElseIfTag>('ElseIf')
 export const isParseElse = isParseTypeFromTag<ParseElseTag>('Else')
+export const isParseString = isParseTypeFromTag<ParseStringTag>('String')
+export const isParseWhitespace = isParseTypeFromTag<ParseWhitespaceTag>('Whitespace')
+export const isParseLineBreak = isParseTypeFromTag<ParseLineBreakTag>('br')
+export const isParseSpacer = isParseTypeFromTag<ParseSpacerTag>('Space')
+export const isParseLink = isParseTypeFromTag<ParseLinkTag>('Link')
 export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
-export const isParseString = (value: ParseTag): value is ParseStringTag => (value.tag === 'String')
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 

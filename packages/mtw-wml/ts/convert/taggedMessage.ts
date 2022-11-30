@@ -1,5 +1,6 @@
-import { ParseLineBreakTag, ParseLinkLegalContents, ParseLinkTag, ParseSpacerTag, ParseStackTagEntry, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins";
+import { isParseLineBreak, isParseLink, isParseSpacer, isParseString, isParseWhitespace, ParseLineBreakTag, ParseLinkLegalContents, ParseLinkTag, ParseSpacerTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited, ParseWhitespaceTag } from "../parser/baseClasses";
+import { SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaWhitespaceTag } from "../schema/baseClasses";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins";
 
 export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseTaggedMessageMixin extends Base {
@@ -63,6 +64,58 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
                     throw new Error('Invalid parameter')
                 }
                 return returnValue as MixinInheritedParseReturn<C>
+            }
+        }
+
+        override schemaConvert(value: ParseStringTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaStringTag
+        override schemaConvert(value: ParseWhitespaceTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaWhitespaceTag
+        override schemaConvert(value: ParseSpacerTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaSpacerTag
+        override schemaConvert(value: ParseLineBreakTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaLineBreakTag
+        override schemaConvert(value: ParseLinkTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaLinkTag
+        override schemaConvert(
+                value: MixinInheritedSchemaParameters<C> | ParseStringTag | ParseWhitespaceTag | ParseSpacerTag | ParseLineBreakTag | ParseLinkTag,
+                siblings: SchemaTag[],
+                contents: MixinInheritedSchemaContents<C> | SchemaTag[] | any[]
+            ): MixinInheritedSchemaReturn<C> | SchemaStringTag | SchemaWhitespaceTag | SchemaSpacerTag | SchemaLineBreakTag | SchemaLinkTag {
+            if (isParseWhitespace(value)) {
+                return {
+                    tag: 'Whitespace',
+                    parse: value
+                }
+            }
+            if (isParseSpacer(value)) {
+                return {
+                    tag: 'Space',
+                    parse: value
+                }
+            }
+            if (isParseLineBreak(value)) {
+                return {
+                    tag: 'br',
+                    parse: value
+                }
+            }
+            if (isParseString(value)) {
+                return {
+                    tag: 'String',
+                    value: value.value,
+                    parse: value
+                }
+            }
+            if (isParseLink(value)) {
+                return {
+                    tag: 'Link',
+                    to: value.to,
+                    text: (contents as SchemaTag[]).filter((item): item is SchemaStringTag => (item.tag === 'String')).map(({ value }) => (value)).join(''),
+                    parse: value
+                }
+            }
+            else {
+                const returnValue = (super.schemaConvert as any)(value, siblings, contents)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedSchemaReturn<C>
             }
         }
     }
