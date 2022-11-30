@@ -395,6 +395,9 @@ export const isParseAction = isParseTypeFromTag<ParseActionTag>('Action')
 export const isParseVariable = isParseTypeFromTag<ParseVariableTag>('Variable')
 export const isParseComputed = isParseTypeFromTag<ParseComputedTag>('Computed')
 
+export const isParseImport = isParseTypeFromTag<ParseImportTag>('Import')
+export const isParseUse = isParseTypeFromTag<ParseUseTag>('Use')
+
 export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>

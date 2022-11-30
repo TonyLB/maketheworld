@@ -65,11 +65,9 @@ import schemaFromBookmark from "./bookmark"
 import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit, schemaFromPronouns } from "./character"
 import schemaFromDescription from "./description"
 import schemaFromFeature from "./feature"
-import schemaFromImport from "./import"
 import schemaFromMap from "./map"
 import schemaFromName from "./name"
 import schemaFromRoom from "./room"
-import schemaFromUse from "./use"
 import { transformWithContext, TransformWithContextCallback } from "./utils"
 
 const schemaConvert = new WMLConverter()
@@ -113,9 +111,9 @@ function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
         case 'Map':
             return schemaFromMap(item, schemaContents as SchemaMapLegalContents[])
         case 'Import':
-            return schemaFromImport(item, schemaContents as SchemaUseTag[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Use':
-            return schemaFromUse(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Exit':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Room':
