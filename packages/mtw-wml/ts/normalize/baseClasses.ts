@@ -13,7 +13,8 @@ type TagType = 'Asset' |
     'Variable' |
     'Computed' |
     'Action' |
-    'Character'
+    'Character' |
+    'Message'
 
 export type NormalReference = {
     key: string;
@@ -204,6 +205,21 @@ export type NormalAction = {
     appearances: BaseAppearance[];
 } & NormalBase
 
+export type MessageAppearanceRoom = {
+    key: string;
+    location: number[];
+} & NormalConditionMixin
+
+export type MessageAppearance = {
+    render: ComponentRenderItem[];
+    rooms: MessageAppearanceRoom[];
+} & BaseAppearance
+
+export type NormalMessage = {
+    tag: 'Message';
+    appearances: MessageAppearance[];
+} & NormalBase
+
 export type NormalItem = NormalAsset |
     NormalComponent |
     NormalBookmark |
@@ -215,7 +231,8 @@ export type NormalItem = NormalAsset |
     NormalComputed |
     NormalAction |
     NormalCondition |
-    NormalCharacter
+    NormalCharacter |
+    NormalMessage
 
 export type NormalForm = Record<string, NormalItem>
 
