@@ -1,5 +1,6 @@
-import { ParseAssetLegalContents, ParseAssetTag, ParseStackTagEntry, ParseStoryTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins";
+import { isParseAsset, isParseStory, ParseAssetLegalContents, ParseAssetTag, ParseStackTagEntry, ParseStoryTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
+import { SchemaAssetLegalContents, SchemaAssetTag, SchemaStoryTag, SchemaTag } from "../schema/baseClasses";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins";
 
 export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseAssetsMixin extends Base {
@@ -61,6 +62,50 @@ export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                 return returnValue as MixinInheritedParseReturn<C>
             }
         }
+
+        override schemaConvert(item: ParseAssetTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaAssetTag
+        override schemaConvert(item: ParseStoryTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaStoryTag
+        override schemaConvert(
+                item: MixinInheritedSchemaParameters<C> | ParseAssetTag | ParseStoryTag,
+                siblings: SchemaTag[],
+                contents: MixinInheritedSchemaContents<C> | SchemaTag[]
+            ): MixinInheritedSchemaReturn<C> | SchemaAssetTag | SchemaStoryTag {
+            if (isParseAsset(item)) {
+                return {
+                    tag: 'Asset',
+                    Story: undefined,
+                    key: item.key,
+                    contents: contents as SchemaAssetLegalContents[],
+                    fileName: item.fileName,
+                    zone: item.zone,
+                    subFolder: item.subFolder,
+                    player: item.player,
+                    parse: item
+                }            
+            }
+            else if (isParseStory(item)) {
+                return {
+                    tag: 'Story',
+                    Story: true,
+                    key: item.key,
+                    contents: contents as SchemaAssetLegalContents[],
+                    fileName: item.fileName,
+                    zone: item.zone,
+                    subFolder: item.subFolder,
+                    player: item.player,
+                    instance: item.instance,
+                    parse: item
+                }            
+            }
+            else {
+                const returnValue = (super.schemaConvert as any)(item, siblings, contents)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
     }
 }
 

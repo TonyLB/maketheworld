@@ -1,5 +1,6 @@
 import WMLConverter from "../convert"
 import {
+    isParseComment,
     isParseExit,
     isParseRoom,
     isParseTagNesting,
@@ -27,10 +28,8 @@ import {
     ParseUseTag,
     ParseVariableTag
 } from "../parser/baseClasses"
-import schemaFromAsset, { schemaFromStory } from "./asset"
 import {
     SchemaActionTag,
-    SchemaAssetLegalContents,
     SchemaAssetTag,
     SchemaCharacterTag,
     SchemaComputedTag,
@@ -83,77 +82,16 @@ function schemaFromParseItem(item: ParseOutfitTag, siblings: SchemaTag[]): Schem
 function schemaFromParseItem(item: ParseCharacterTag, siblings: SchemaTag[]): SchemaCharacterTag
 function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag
 function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
-    let schemaContents: SchemaTag[] = []
-    if (isParseTagNesting(item)) {
-        schemaContents = (item.contents as any).reduce((previous, item) => ([
-            ...previous,
-            schemaFromParseItem(item, previous)
-        ]), [] as SchemaTag[])
-    }
-    switch(item.tag) {
-        case 'Asset':
-            return schemaFromAsset(item, schemaContents as SchemaAssetLegalContents[])
-        case 'Story':
-            return schemaFromStory(item, schemaContents as SchemaAssetLegalContents[])
-        case 'Map':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Import':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Use':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Exit':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Room':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'String':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Name':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Description':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Bookmark':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Feature':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Link':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'If':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Else':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'ElseIf':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Action':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Computed':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Image':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Variable':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Pronouns':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'FirstImpression':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'OneCoolThing':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Outfit':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Character':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Whitespace':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'br':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        case 'Space':
-            return schemaConvert.schemaConvert(item, siblings, schemaContents)
-        default:
-            return {
-                tag: 'String',
-                value: '',
-                parse: item
-            }
-    }
+    return schemaConvert.schemaConvert(
+        item,
+        siblings,
+        isParseTagNesting(item)
+            ? (item.contents as any).reduce((previous, item) => ([
+                ...previous,
+                schemaFromParseItem(item, previous)
+            ]), [] as SchemaTag[])
+            : []
+    )
 }
 
 const exitContextCallback: TransformWithContextCallback = ((item: ParseTag, context: ParseTag[]): ParseTag => {

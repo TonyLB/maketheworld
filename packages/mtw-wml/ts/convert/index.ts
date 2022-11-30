@@ -1,4 +1,5 @@
 import { ParseCommentTag, ParseStackTagEntry } from "../parser/baseClasses";
+import { SchemaStringTag } from "../schema/baseClasses";
 import ParseAssetsMixin from "./assets";
 import ParseCharacterMixin from "./character";
 import ParseComponentsMixin from "./components";
@@ -20,6 +21,14 @@ export const FallbackMixin = <C extends Constructor<BaseConverter>>(Base: C) => 
                     endTagToken: value?.props?.endTagToken
                 }
             } as ParseStackTagEntry<ParseCommentTag>
+        }
+
+        override schemaConvert(value: any, siblings: any, contents: any): SchemaStringTag {
+            return {
+                tag: 'String',
+                value: '',
+                parse: value
+            }
         }
     }
 }
