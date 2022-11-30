@@ -32,22 +32,17 @@ import {
     SchemaActionTag,
     SchemaAssetLegalContents,
     SchemaAssetTag,
-    SchemaCharacterLegalContents,
     SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
-    SchemaTaggedMessageLegalContents,
     SchemaDescriptionTag,
     SchemaException,
     SchemaExitTag,
-    SchemaFeatureLegalContents,
     SchemaFeatureTag,
     SchemaFirstImpressionTag,
     SchemaImageTag,
     SchemaImportTag,
     SchemaLinkTag,
-    SchemaLiteralLegalContents,
-    SchemaMapLegalContents,
     SchemaMapTag,
     SchemaNameTag,
     SchemaOneCoolThingTag,
@@ -60,7 +55,6 @@ import {
     SchemaUseTag,
     SchemaVariableTag,
 } from "./baseClasses"
-import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit, schemaFromPronouns } from "./character"
 import { transformWithContext, TransformWithContextCallback } from "./utils"
 
 const schemaConvert = new WMLConverter()
@@ -138,15 +132,15 @@ function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
         case 'Variable':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Pronouns':
-            return schemaFromPronouns(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'FirstImpression':
-            return schemaFromFirstImpression(item, schemaContents as SchemaLiteralLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'OneCoolThing':
-            return schemaFromOneCoolThing(item, schemaContents as SchemaLiteralLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Outfit':
-            return schemaFromOutfit(item, schemaContents as SchemaLiteralLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Character':
-            return schemaFromCharacter(item, schemaContents as SchemaCharacterLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Whitespace':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'br':

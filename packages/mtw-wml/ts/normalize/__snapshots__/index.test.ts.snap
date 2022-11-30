@@ -950,7 +950,7 @@ Object {
 exports[`WML normalize should normalize a character 1`] = `
 Object {
   "Tess": Object {
-    "FirstImpression": undefined,
+    "FirstImpression": "Frumpy goth",
     "Name": "Tess",
     "OneCoolThing": "Fuchsia eyes",
     "Outfit": "A battered frock-coat",

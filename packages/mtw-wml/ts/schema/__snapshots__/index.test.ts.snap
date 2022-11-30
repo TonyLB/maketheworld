@@ -1198,7 +1198,7 @@ Array [
 exports[`schemaFromParse should make a schema for a character correctly 1`] = `
 Array [
   Object {
-    "FirstImpression": undefined,
+    "FirstImpression": "Frumpy Goth",
     "Name": "Tess",
     "OneCoolThing": "Fuchsia eyes",
     "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
@@ -1237,6 +1237,36 @@ Array [
           "tag": "Name",
         },
         "tag": "Name",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 17,
+              "startTagToken": 17,
+              "tag": "String",
+              "value": "Frumpy Goth",
+            },
+            "tag": "String",
+            "value": "Frumpy Goth",
+          },
+        ],
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 17,
+              "startTagToken": 17,
+              "tag": "String",
+              "value": "Frumpy Goth",
+            },
+          ],
+          "endTagToken": 18,
+          "startTagToken": 15,
+          "tag": "FirstImpression",
+          "value": "Frumpy Goth",
+        },
+        "tag": "FirstImpression",
+        "value": "Frumpy Goth",
       },
       Object {
         "contents": Array [
@@ -1346,6 +1376,20 @@ Array [
           "endTagToken": 14,
           "startTagToken": 11,
           "tag": "Name",
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 17,
+              "startTagToken": 17,
+              "tag": "String",
+              "value": "Frumpy Goth",
+            },
+          ],
+          "endTagToken": 18,
+          "startTagToken": 15,
+          "tag": "FirstImpression",
+          "value": "Frumpy Goth",
         },
         Object {
           "contents": Array [

@@ -1,5 +1,6 @@
-import { ParseCharacterTag, ParseImageTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins"
+import { isParseCharacter, isParseFirstImpression, isParseOneCoolThing, isParseOutfit, isParsePronouns, ParseCharacterTag, ParseFirstImpressionTag, ParseImageTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
+import { isSchemaFirstImpression, isSchemaImage, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaLiteralLegalContents, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses"
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins"
 
 const stringLiteralPostProcess = ({ contents = [] }) => ({
     contents,
@@ -10,16 +11,19 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
     return class ParseCharacterMixin extends Base {
         override parseConvert(value: ParseTagFactoryPropsLimited<'Character'>): ParseStackTagEntry<ParseCharacterTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Pronouns'>): ParseStackTagEntry<ParsePronounsTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'FirstImpression'>): ParseStackTagEntry<ParseFirstImpressionTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'OneCoolThing'>): ParseStackTagEntry<ParseOneCoolThingTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Outfit'>): ParseStackTagEntry<ParseOutfitTag>
         override parseConvert(value: MixinInheritedParseParameters<C>
                 | ParseTagFactoryPropsLimited<'Character'>
                 | ParseTagFactoryPropsLimited<'Pronouns'>
+                | ParseTagFactoryPropsLimited<'FirstImpression'>
                 | ParseTagFactoryPropsLimited<'OneCoolThing'>
                 | ParseTagFactoryPropsLimited<'Outfit'>
                 ): MixinInheritedParseReturn<C>
                 | ParseStackTagEntry<ParseCharacterTag>
                 | ParseStackTagEntry<ParsePronounsTag>
+                | ParseStackTagEntry<ParseFirstImpressionTag>
                 | ParseStackTagEntry<ParseOneCoolThingTag>
                 | ParseStackTagEntry<ParseOutfitTag>
                 {
@@ -41,7 +45,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                         }
                     },
                     contents: {
-                        legal: ['Name', 'Pronouns', 'Outfit', 'OneCoolThing', 'Image'],
+                        legal: ['Name', 'Pronouns', 'Outfit', 'OneCoolThing', 'Image', 'FirstImpression'],
                         ignore: ['Whitespace', 'Comment']
                     }
                 })(value)
@@ -62,6 +66,23 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                         },
                         optional: {}
                     }
+                })(value)
+            }
+            //
+            // Convert OneCoolThing tag-opens
+            //
+            else if (isTypedParseTagOpen('FirstImpression')(value)) {
+                return parseConverterMixin<ParseFirstImpressionTag, ParseStringTag>({
+                    tag: 'FirstImpression',
+                    properties: {
+                        required: {},
+                        optional: {}
+                    },
+                    contents: {
+                        legal: ['String'],
+                        ignore: ['Whitespace', 'Comment']
+                    },
+                    postProcess: stringLiteralPostProcess
                 })(value)
             }
             //
@@ -106,6 +127,103 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                 return returnValue as MixinInheritedParseReturn<C>
             }
         }
+
+        override schemaConvert(item: ParsePronounsTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaPronounsTag
+        override schemaConvert(item: ParseFirstImpressionTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaFirstImpressionTag
+        override schemaConvert(item: ParseOneCoolThingTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaOneCoolThingTag
+        override schemaConvert(item: ParseOutfitTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaOutfitTag
+        override schemaConvert(item: ParseCharacterTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaCharacterTag
+        override schemaConvert(
+                item: MixinInheritedSchemaParameters<C>
+                    | ParsePronounsTag
+                    | ParseFirstImpressionTag
+                    | ParseOneCoolThingTag
+                    | ParseOutfitTag
+                    | ParseCharacterTag,
+                siblings: SchemaTag[],
+                contents: MixinInheritedSchemaContents<C> | SchemaTag[]
+            ): MixinInheritedSchemaReturn<C>
+                | SchemaPronounsTag
+                | SchemaFirstImpressionTag
+                | SchemaOneCoolThingTag
+                | SchemaOutfitTag
+                | SchemaCharacterTag {
+            if (isParsePronouns(item)) {
+                return {
+                    tag: 'Pronouns',
+                    subject: item.subject,
+                    object: item.object,
+                    possessive: item.possessive,
+                    adjective: item.adjective,
+                    reflexive: item.reflexive,
+                    parse: item
+                }            
+            }
+            else if (isParseFirstImpression(item)) {
+                return {
+                    tag: 'FirstImpression',
+                    value: item.value,
+                    parse: item,
+                    contents: contents as SchemaLiteralLegalContents[]
+                }            
+            }
+            else if (isParseOneCoolThing(item)) {
+                return {
+                    tag: 'OneCoolThing',
+                    value: item.value,
+                    parse: item,
+                    contents: contents as SchemaLiteralLegalContents[]
+                }            
+            }
+            else if (isParseOutfit(item)) {
+                return {
+                    tag: 'Outfit',
+                    value: item.value,
+                    parse: item,
+                    contents: contents as SchemaLiteralLegalContents[]
+                }            
+            }
+            else if (isParseCharacter(item)) {
+                return {
+                    tag: 'Character',
+                    key: item.key,
+                    fileName: item.fileName,
+                    zone: item.zone,
+                    subFolder: item.subFolder,
+                    player: item.player,
+                    //
+                    // TODO: Extend Character Name to render more complicated TaggedMessage predicates
+                    //
+                    Name: (contents as SchemaTag[]).filter(isSchemaName)
+                        .map(({ contents }) => (contents))
+                        .reduce((previous, item) => ([ ...previous, ...item ]), [])
+                        .filter((item): item is SchemaStringTag => (item.tag === 'String'))
+                        .map(({ value }) => (value))
+                        .join(''),
+                    Pronouns: (contents as SchemaTag[]).filter(isSchemaPronouns).reduce((previous, { tag, parse, ...rest }) => (rest), {
+                        subject: 'they',
+                        object: 'them',
+                        possessive: 'theirs',
+                        adjective: 'their',
+                        reflexive: 'themself'
+                    }),
+                    FirstImpression: (contents as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
+                    OneCoolThing: (contents as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
+                    Outfit: (contents as SchemaTag[]).filter(isSchemaOutfit).length ? (contents as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
+                    fileURL: (contents as SchemaTag[]).filter(isSchemaImage).reduce<string | undefined>((previous, { fileURL }) => (fileURL), undefined),
+                    contents: contents as SchemaCharacterLegalContents[],
+                    parse: item
+                } as SchemaCharacterTag
+            }
+            else {
+                const returnValue = (super.schemaConvert as any)(item, siblings, contents)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
     }
 }
 

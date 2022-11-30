@@ -405,6 +405,12 @@ export const isParseFeature = isParseTypeFromTag<ParseFeatureTag>('Feature')
 export const isParseBookmark = isParseTypeFromTag<ParseBookmarkTag>('Bookmark')
 export const isParseMap = isParseTypeFromTag<ParseMapTag>('Map')
 
+export const isParsePronouns = isParseTypeFromTag<ParsePronounsTag>('Pronouns')
+export const isParseFirstImpression = isParseTypeFromTag<ParseFirstImpressionTag>('FirstImpression')
+export const isParseOneCoolThing = isParseTypeFromTag<ParseOneCoolThingTag>('OneCoolThing')
+export const isParseOutfit = isParseTypeFromTag<ParseOutfitTag>('Outfit')
+export const isParseCharacter = isParseTypeFromTag<ParseCharacterTag>('Character')
+
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 
 export const isParseStackTagOpenEntry = (value: ParseStackEntry): value is ParseStackTagOpenEntry => (value.type === 'TagOpen')
