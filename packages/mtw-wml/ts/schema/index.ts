@@ -53,7 +53,6 @@ import {
     SchemaOneCoolThingTag,
     SchemaOutfitTag,
     SchemaPronounsTag,
-    SchemaRoomLegalContents,
     SchemaRoomTag,
     SchemaStoryTag,
     SchemaStringTag,
@@ -61,13 +60,7 @@ import {
     SchemaUseTag,
     SchemaVariableTag,
 } from "./baseClasses"
-import schemaFromBookmark from "./bookmark"
 import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit, schemaFromPronouns } from "./character"
-import schemaFromDescription from "./description"
-import schemaFromFeature from "./feature"
-import schemaFromMap from "./map"
-import schemaFromName from "./name"
-import schemaFromRoom from "./room"
 import { transformWithContext, TransformWithContextCallback } from "./utils"
 
 const schemaConvert = new WMLConverter()
@@ -109,7 +102,7 @@ function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
         case 'Story':
             return schemaFromStory(item, schemaContents as SchemaAssetLegalContents[])
         case 'Map':
-            return schemaFromMap(item, schemaContents as SchemaMapLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Import':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Use':
@@ -117,17 +110,17 @@ function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
         case 'Exit':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Room':
-            return schemaFromRoom(item, schemaContents as SchemaRoomLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'String':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Name':
-            return schemaFromName(item, schemaContents as SchemaLiteralLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Description':
-            return schemaFromDescription(item, schemaContents as SchemaTaggedMessageLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Bookmark':
-            return schemaFromBookmark(item, schemaContents as SchemaTaggedMessageLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Feature':
-            return schemaFromFeature(item, schemaContents as SchemaFeatureLegalContents[])
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Link':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'If':

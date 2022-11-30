@@ -1,5 +1,8 @@
-import { ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins";
+import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseName, isParseRoom, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
+import { isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMapContents, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
+import { translateTaggedMessageContents } from "../schema/taggedMessage";
+import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins";
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseComponentsMixin extends Base {
@@ -169,18 +172,110 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 return returnValue as MixinInheritedParseReturn<C>
             }
         }
+
+        override schemaConvert(item: ParseDescriptionTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaDescriptionTag
+        override schemaConvert(item: ParseNameTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaNameTag
+        override schemaConvert(item: ParseRoomTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaRoomTag
+        override schemaConvert(item: ParseFeatureTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaFeatureTag
+        override schemaConvert(item: ParseBookmarkTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaBookmarkTag
+        override schemaConvert(item: ParseMapTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaMapTag
+        override schemaConvert(
+                item: MixinInheritedSchemaParameters<C>
+                    | ParseDescriptionTag
+                    | ParseNameTag
+                    | ParseRoomTag
+                    | ParseFeatureTag
+                    | ParseBookmarkTag
+                    | ParseMapTag,
+                siblings: SchemaTag[],
+                contents: MixinInheritedSchemaContents<C>
+                    | SchemaTag[]
+            ): MixinInheritedSchemaReturn<C>
+                | SchemaDescriptionTag
+                | SchemaNameTag
+                | SchemaRoomTag
+                | SchemaFeatureTag
+                | SchemaBookmarkTag
+                | SchemaMapTag {
+            if (isParseDescription(item)) {
+                return {
+                    tag: 'Description',
+                    display: item.display,
+                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[]),
+                    parse: item
+                }            
+            }
+            else if (isParseName(item)) {
+                return {
+                    tag: 'Name',
+                    parse: item,
+                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[]),
+                }            
+            }
+            else if (isParseRoom(item)) {
+                const componentContents = (contents as SchemaTag[]).filter(isSchemaRoomContents)
+                const translatedContents = (contents as SchemaTag[]).filter(isSchemaRoomIncomingContents)
+                return {
+                    tag: 'Room',
+                    key: item.key,
+                    global: item.global,
+                    display: item.display,
+                    x: item.x,
+                    y: item.y,
+                    name: extractNameFromContents(translatedContents),
+                    render: extractDescriptionFromContents(translatedContents),
+                    contents: componentContents,
+                    parse: item
+                }            
+            }
+            else if (isParseFeature(item)) {
+                const componentContents = (contents as SchemaTag[]).filter(isSchemaFeatureContents)
+                const translatedContents = (contents as SchemaTag[]).filter(isSchemaFeatureIncomingContents)
+                return {
+                    tag: 'Feature',
+                    key: item.key,
+                    global: item.global,
+                    name: extractNameFromContents(translatedContents),
+                    render: extractDescriptionFromContents(translatedContents),
+                    contents: componentContents,
+                    parse: item
+                }            
+            }
+            else if (isParseBookmark(item)) {
+                return {
+                    tag: 'Bookmark',
+                    key: item.key,
+                    display: item.display,
+                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[]),
+                    parse: item
+                }            
+            }
+            else if (isParseMap(item)) {
+                const componentContents = (contents as SchemaTag[]).filter(isSchemaMapContents)
+                return {
+                    tag: 'Map',
+                    key: item.key,
+                    name: extractNameFromContents(contents as SchemaMapLegalContents[]),
+                    contents: componentContents,
+                    rooms: extractConditionedItemFromContents({
+                        contents: contents as SchemaMapLegalContents[],
+                        typeGuard: isSchemaRoom,
+                        transform: ({ key, x, y }, index) => ({ conditions: [], key, x, y, index })
+                    }),
+                    images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key)),
+                    parse: item
+                }
+            }
+            else {
+                const returnValue = (super.schemaConvert as any)(item, siblings, contents)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
     }
 }
-
-// export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => (
-//     ParseMapMixin(
-//     ParseRoomMixin(
-//     ParseFeatureMixin(
-//     ParseBookmarkMixin(
-//     ParseDescriptionMixin(
-//     ParseNameMixin(
-//         Base
-//     ))))))
-// )
 
 export default ParseComponentsMixin
