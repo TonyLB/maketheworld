@@ -25,7 +25,11 @@ import {
     SchemaVariableTag,
     SchemaWithKey,
     isSchemaConditionTagDescriptionContext,
-    SchemaBookmarkTag
+    SchemaBookmarkTag,
+    SchemaMessageTag,
+    isSchemaTaggedMessageLegalContents,
+    isSchemaRoom,
+    SchemaMessageRoom
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -45,6 +49,7 @@ import {
     NormalizeKeyMismatchError,
     NormalizeTagMismatchError,
     NormalMap,
+    NormalMessage,
     NormalReference,
     NormalRoom,
     NormalVariable
@@ -67,7 +72,7 @@ type NormalizeAddReturnValue = {
     siblings: NormalReference[];
 }
 
-type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character">
+type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character" | "Message">
 
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
     if (renderItem.tag === 'If' && isSchemaConditionTagDescriptionContext(renderItem)) {
@@ -414,6 +419,9 @@ export class Normalizer {
                                     },
                                     updatedContext
                                 ).children[0]
+                        //
+                        // TODO: Add import for Bookmarks
+                        //
                         default:
                             throw new NormalizeTagMismatchError(`"${type}" tag not allowed in import`)
                     }
@@ -532,6 +540,7 @@ export class Normalizer {
     _translate(appearance: BaseAppearance, node: SchemaRoomTag): NormalRoom
     _translate(appearance: BaseAppearance, node: SchemaFeatureTag): NormalFeature
     _translate(appearance: BaseAppearance, node: SchemaBookmarkTag): NormalBookmark
+    _translate(appearance: BaseAppearance, node: SchemaMessageTag): NormalMessage
     _translate(appearance: BaseAppearance, node: SchemaMapTag): NormalMap
     _translate(appearance: BaseAppearance, node: SchemaCharacterTag): NormalCharacter
     _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem
@@ -621,6 +630,21 @@ export class Normalizer {
                     appearances: [{
                         ...appearance,
                         render: node.contents.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value))
+                    }]
+                }
+            case 'Message':
+                return {
+                    key: node.key,
+                    tag: node.tag,
+                    appearances: [{
+                        ...appearance,
+                        render: node.contents.filter(isSchemaTaggedMessageLegalContents).map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
+                        rooms: node.contents.reduce((previous, item, index) => (isSchemaRoom(item) ? [
+                            ...previous,
+                            {
+                                key: item.key,
+                                index
+                            }]: previous), [])
                     }]
                 }
             case 'Map':

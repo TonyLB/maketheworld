@@ -42,4 +42,7 @@ export const isEphemeraComputedId = isEphemeraTaggedId<'COMPUTED'>('COMPUTED')
 export type EphemeraBookmarkId = EphemeraWrappedId<'BOOKMARK'>
 export const isEphemeraBookmarkId = isEphemeraTaggedId<'BOOKMARK'>('BOOKMARK')
 
+export type EphemeraMessageId = EphemeraWrappedId<'MESSAGE'>
+export const isEphemeraMessageId = isEphemeraTaggedId<'MESSAGE'>('MESSAGE')
+
 export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'

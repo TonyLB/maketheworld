@@ -273,6 +273,21 @@ export type SchemaMapTag = {
     images: string[];
 } & SchemaBase
 
+export type SchemaMessageRoom = {
+    key: string;
+    index: number;
+} & SchemaConditionMixin
+
+export type SchemaMessageLegalContents = SchemaRoomTag | SchemaTaggedMessageLegalContents
+
+export type SchemaMessageTag = {
+    tag: 'Message';
+    key: string;
+    render: SchemaTaggedMessageLegalContents[];
+    contents: SchemaMessageLegalContents[];
+    rooms: SchemaMessageRoom[];
+} & SchemaBase
+
 export type SchemaStringTag = {
     tag: 'String';
     value: string;
@@ -307,7 +322,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaFeatureTag |
     SchemaMapTag |
     SchemaStringTag |
-    SchemaWhitespaceTag
+    SchemaWhitespaceTag |
+    SchemaMessageTag
 
 export type SchemaWithContents = SchemaAssetTag |
     SchemaStoryTag |
@@ -322,7 +338,8 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaNameTag |
     SchemaFirstImpressionTag |
     SchemaOneCoolThingTag |
-    SchemaOutfitTag
+    SchemaOutfitTag |
+    SchemaMessageTag
 
 export class SchemaException extends Error {
     parseTag: ParseTag;
@@ -365,9 +382,13 @@ export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithConte
     ['Asset', 'Story', 'If', 'Room', 'Feature', 'Description', 'Exit', 'Character', 'Map', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 
-export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaBookmarkTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag
+export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaBookmarkTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag | SchemaMessageTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Asset', 'Story', 'Room', 'Feature', 'Bookmark', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit'].includes(value.tag)
+    ['Asset', 'Story', 'Room', 'Feature', 'Bookmark', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit', 'Message'].includes(value.tag)
+)
+
+export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
+    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If'].includes(value.tag)
 )
 
 export const isSchemaTag = (value: any): value is SchemaTag => {
@@ -396,6 +417,7 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
             'Room',
             'Feature',
             'Bookmark',
+            'Message',
             'Map',
             'String',
             'Whitespace']
