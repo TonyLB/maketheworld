@@ -27,7 +27,6 @@ import {
     ParseUseTag,
     ParseVariableTag
 } from "../parser/baseClasses"
-import schemaFromAction from "./action"
 import schemaFromAsset, { schemaFromStory } from "./asset"
 import {
     SchemaActionTag,
@@ -64,7 +63,6 @@ import {
 } from "./baseClasses"
 import schemaFromBookmark from "./bookmark"
 import schemaFromCharacter, { schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit, schemaFromPronouns } from "./character"
-import schemaFromComputed from "./computed"
 import schemaFromDescription from "./description"
 import schemaFromFeature from "./feature"
 import schemaFromImport from "./import"
@@ -73,7 +71,6 @@ import schemaFromName from "./name"
 import schemaFromRoom from "./room"
 import schemaFromUse from "./use"
 import { transformWithContext, TransformWithContextCallback } from "./utils"
-import schemaFromVariable from "./variable"
 
 const schemaConvert = new WMLConverter()
 
@@ -142,13 +139,13 @@ function schemaFromParseItem(item: ParseTag, siblings: SchemaTag[]): SchemaTag {
         case 'ElseIf':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Action':
-            return schemaFromAction(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Computed':
-            return schemaFromComputed(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Image':
             return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Variable':
-            return schemaFromVariable(item)
+            return schemaConvert.schemaConvert(item, siblings, schemaContents)
         case 'Pronouns':
             return schemaFromPronouns(item)
         case 'FirstImpression':

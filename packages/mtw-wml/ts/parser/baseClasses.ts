@@ -390,6 +390,11 @@ export const isParseWhitespace = isParseTypeFromTag<ParseWhitespaceTag>('Whitesp
 export const isParseLineBreak = isParseTypeFromTag<ParseLineBreakTag>('br')
 export const isParseSpacer = isParseTypeFromTag<ParseSpacerTag>('Space')
 export const isParseLink = isParseTypeFromTag<ParseLinkTag>('Link')
+
+export const isParseAction = isParseTypeFromTag<ParseActionTag>('Action')
+export const isParseVariable = isParseTypeFromTag<ParseVariableTag>('Variable')
+export const isParseComputed = isParseTypeFromTag<ParseComputedTag>('Computed')
+
 export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>

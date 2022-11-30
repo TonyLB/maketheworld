@@ -1,5 +1,6 @@
-import { ParseActionTag, ParseComputedTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseVariableTag } from "../parser/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn } from "./functionMixins";
+import { isParseAction, isParseComputed, isParseVariable, ParseActionTag, ParseComputedTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseVariableTag } from "../parser/baseClasses";
+import { SchemaActionTag, SchemaComputedTag, SchemaTag, SchemaVariableTag } from "../schema/baseClasses";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins";
 import { extractDependenciesFromJS } from "./utils";
 
 export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
@@ -73,6 +74,49 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
                 return returnValue as MixinInheritedParseReturn<C>
             }
         }
+
+        override schemaConvert(value: ParseActionTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaActionTag
+        override schemaConvert(value: ParseVariableTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaVariableTag
+        override schemaConvert(value: ParseComputedTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaComputedTag
+        override schemaConvert(
+                value: MixinInheritedSchemaParameters<C> | ParseActionTag | ParseVariableTag | ParseComputedTag,
+                siblings: SchemaTag[],
+                contents: MixinInheritedSchemaContents<C> | SchemaTag[]
+            ): MixinInheritedSchemaReturn<C> | SchemaActionTag | SchemaVariableTag | SchemaComputedTag {
+            if (isParseAction(value)) {
+                return {
+                    tag: 'Action',
+                    key: value.key,
+                    src: value.src,
+                    parse: value            
+                }
+            }
+            else if (isParseVariable(value)) {
+                return {
+                    tag: 'Variable',
+                    key: value.key,
+                    default: value.default,
+                    parse: value
+                }
+            }
+            else if (isParseComputed(value)) {
+                return {
+                    tag: 'Computed',
+                    key: value.key,
+                    src: value.src,
+                    dependencies: value.dependencies,
+                    parse: value
+                }
+            }
+            else {
+                const returnValue = (super.schemaConvert as any)(value, siblings, contents)
+                if (!Boolean(returnValue)) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
     }
 }
 
