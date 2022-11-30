@@ -31,7 +31,7 @@ Array [
 exports[`newWMLQuery selector should correctly select root node 1`] = `
 Array [
   Object {
-    "FirstImpression": undefined,
+    "FirstImpression": "Frumpy Goth",
     "Name": "Tess",
     "OneCoolThing": "Fuchsia eyes",
     "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
@@ -59,6 +59,16 @@ Array [
         "reflexive": "herself",
         "subject": "she",
         "tag": "Pronouns",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "Frumpy Goth",
+          },
+        ],
+        "tag": "FirstImpression",
+        "value": "Frumpy Goth",
       },
       Object {
         "contents": Array [
@@ -443,7 +453,7 @@ Array [
 exports[`newWMLQuery selector should select root node when passed empty string 1`] = `
 Array [
   Object {
-    "FirstImpression": undefined,
+    "FirstImpression": "Frumpy Goth",
     "Name": "Tess",
     "OneCoolThing": "Fuchsia eyes",
     "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
@@ -471,6 +481,16 @@ Array [
         "reflexive": "herself",
         "subject": "she",
         "tag": "Pronouns",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "Frumpy Goth",
+          },
+        ],
+        "tag": "FirstImpression",
+        "value": "Frumpy Goth",
       },
       Object {
         "contents": Array [

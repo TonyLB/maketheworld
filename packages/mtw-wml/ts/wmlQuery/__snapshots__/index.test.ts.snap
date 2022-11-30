@@ -510,8 +510,6 @@ Array [
       "key": "VORTEX",
       "startTagToken": 5,
       "tag": "Room",
-      "x": undefined,
-      "y": undefined,
     },
     "render": Array [
       Object {

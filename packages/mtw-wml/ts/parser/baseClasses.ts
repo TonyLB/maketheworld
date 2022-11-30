@@ -5,6 +5,7 @@ import {
     TokenLiteralValue,
     ParseStackTokenEntry
 } from './tokenizer/baseClasses'
+import keyValueTokenizer from './tokenizer/key';
 
 type ParseTagBase = {
     startTagToken: number;
@@ -377,9 +378,43 @@ export class ParseException extends Error {
 export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseElseTag | ParseLinkTag | ParseBookmarkTag | ParseMapTag | ParseExitTag | ParseNameTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag) => (
     ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Else', 'ElseIf', 'Link', 'Bookmark', 'Map', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
-export const isParseExit = (value: ParseTag): value is ParseExitTag => (value.tag === 'Exit')
-export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
-export const isParseString = (value: ParseTag): value is ParseStringTag => (value.tag === 'String')
+
+export const isParseTypeFromTag = <T extends ParseTag>(tag: T["tag"]) => (item: ParseTag | {}): item is T => ("tag" in item && item.tag === tag)
+export const isParseExit = isParseTypeFromTag<ParseExitTag>('Exit')
+export const isParseImage = isParseTypeFromTag<ParseImageTag>('Image')
+export const isParseCondition = isParseTypeFromTag<ParseConditionTag>('If')
+export const isParseElseIf = isParseTypeFromTag<ParseElseIfTag>('ElseIf')
+export const isParseElse = isParseTypeFromTag<ParseElseTag>('Else')
+export const isParseString = isParseTypeFromTag<ParseStringTag>('String')
+export const isParseWhitespace = isParseTypeFromTag<ParseWhitespaceTag>('Whitespace')
+export const isParseLineBreak = isParseTypeFromTag<ParseLineBreakTag>('br')
+export const isParseSpacer = isParseTypeFromTag<ParseSpacerTag>('Space')
+export const isParseLink = isParseTypeFromTag<ParseLinkTag>('Link')
+
+export const isParseAction = isParseTypeFromTag<ParseActionTag>('Action')
+export const isParseVariable = isParseTypeFromTag<ParseVariableTag>('Variable')
+export const isParseComputed = isParseTypeFromTag<ParseComputedTag>('Computed')
+
+export const isParseImport = isParseTypeFromTag<ParseImportTag>('Import')
+export const isParseUse = isParseTypeFromTag<ParseUseTag>('Use')
+
+export const isParseDescription = isParseTypeFromTag<ParseDescriptionTag>('Description')
+export const isParseName = isParseTypeFromTag<ParseNameTag>('Name')
+export const isParseRoom = isParseTypeFromTag<ParseRoomTag>('Room')
+export const isParseFeature = isParseTypeFromTag<ParseFeatureTag>('Feature')
+export const isParseBookmark = isParseTypeFromTag<ParseBookmarkTag>('Bookmark')
+export const isParseMap = isParseTypeFromTag<ParseMapTag>('Map')
+
+export const isParsePronouns = isParseTypeFromTag<ParsePronounsTag>('Pronouns')
+export const isParseFirstImpression = isParseTypeFromTag<ParseFirstImpressionTag>('FirstImpression')
+export const isParseOneCoolThing = isParseTypeFromTag<ParseOneCoolThingTag>('OneCoolThing')
+export const isParseOutfit = isParseTypeFromTag<ParseOutfitTag>('Outfit')
+export const isParseCharacter = isParseTypeFromTag<ParseCharacterTag>('Character')
+
+export const isParseAsset = isParseTypeFromTag<ParseAssetTag>('Asset')
+export const isParseStory = isParseTypeFromTag<ParseStoryTag>('Story')
+
+export const isParseComment = isParseTypeFromTag<ParseCommentTag>('Comment')
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 

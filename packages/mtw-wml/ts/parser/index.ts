@@ -14,110 +14,16 @@ import {
 
 import {
     ParseTag,
-    ParseTagFactory,
     ParseStackEntry,
     ParseException,
     isParseStackTagOpenEntry,
     parseTagDefaultProps,
-    isParseLegalTag,
-    ParseConditionTag,
-    isLegalParseConditionContextTag,
-    ParseTagFactoryProps,
-    ParseTagFactoryPropsLimited,
-    ParseCommentTag,
-    ParseStackTagEntry
+    isParseLegalTag
 } from './baseClasses'
 
-import parseAssetFactory, { parseStoryFactory } from './asset'
-import parseRoomFactory from './room'
-import parseFeatureFactory from './feature'
-import parseMapFactory from './map'
-import parseConditionFactory from './condition'
-import parseLinkFactory from './link'
-import parseLineBreakFactory from './lineBreak'
-import parseSpacerFactory from './spacer'
-import parseDescriptionFactory from './description'
-import parseExitFactory from './exit'
-import parseUseFactory from './use'
-import parseImportFactory from './import'
-import parseVariableFactory from './variable'
-import parseComputedFactory from './computed'
-import parseActionFactory from './action'
-import parseNameFactory from './name'
-import parseCharacterFactory, { parsePronounsFactory, parseOutfitFactory, parseOneCoolThingFactory } from './character'
-import parseImageFactory from './image'
-import parseElseFactory from './else'
-import parseElseIfFactory from './elseif'
-import parseBookmarkFactory from './bookmark'
-import { composeConvertersHelper } from '../functionMixins'
+import WMLConverter from '../convert'
 
-const wrapConditionalContext = (props: ParseTagFactoryProps) => {
-    //
-    // Provide context so that Conditionals can parse different legal contents depending upon what
-    // is legal for the tag they are nested inside
-    //
-    const contextTagRaw = props.context.reduce<ParseConditionTag["contextTag"]>((previous, item) => {
-        const tag = item.tag
-        if (isLegalParseConditionContextTag(tag)) {
-            return tag
-        }
-        return previous
-    }, undefined)
-    const contextTag = contextTagRaw === 'Bookmark' ? 'Description' : contextTagRaw
-    switch(props.open.tag) {
-        case 'If':
-            return parseConditionFactory(contextTag)(props)
-        case 'Else':
-            return parseElseFactory(contextTag)(props)
-        case 'ElseIf':
-            return parseElseIfFactory(contextTag)(props)
-    }
-}
-
-const isTypedParseTagOpen = <T extends ParseTag["tag"] | 'Character'>(tag: T) => (props: ParseTagFactoryProps): props is ParseTagFactoryPropsLimited<T> => (props.open.tag === tag)
-
-const convertTagInfo: [ParseTag["tag"] | 'Character', ParseTagFactory<ParseTag>][] = [
-    ['Character', parseCharacterFactory],
-    ['Pronouns', parsePronounsFactory],
-    ['Outfit', parseOutfitFactory],
-    ['OneCoolThing', parseOneCoolThingFactory],
-    ['Image', parseImageFactory],
-    ['Asset', parseAssetFactory],
-    ['Story', parseStoryFactory],
-    ['Room', parseRoomFactory],
-    ['Feature', parseFeatureFactory],
-    ['If', wrapConditionalContext],
-    ['ElseIf', wrapConditionalContext],
-    ['Else', wrapConditionalContext],
-    ['Link', parseLinkFactory],
-    ['Bookmark', parseBookmarkFactory],
-    ['br', parseLineBreakFactory],
-    ['Space', parseSpacerFactory],
-    ['Description', parseDescriptionFactory],
-    ['Exit', parseExitFactory],
-    ['Map', parseMapFactory],
-    ['Use', parseUseFactory],
-    ['Import', parseImportFactory],
-    ['Variable', parseVariableFactory],
-    ['Computed', parseComputedFactory],
-    ['Action', parseActionFactory],
-    ['Name', parseNameFactory]
-]
-
-const createParseTag = composeConvertersHelper(
-    (props) => ({
-        type: 'Tag',
-        tag: {
-            tag: 'Comment',
-            startTagToken: props.open.startTagToken,
-            endTagToken: props.endTagToken
-        }
-    } as ParseStackTagEntry<ParseCommentTag>),
-    ...convertTagInfo.map(([key, convert]) => ({
-        typeGuard: isTypedParseTagOpen(key),
-        convert
-    }))
-)
+const parseConverter = new WMLConverter()
 
 export const parse = (tokens: Token[]): ParseTag[] => {
     let returnValue: ParseTag[] = []
@@ -186,7 +92,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                             throw new ParseException(`Illegal parse tag: ${tag}`, stackItem.startTagToken, stackItem.startTagToken)
                         }
                         if (token.selfClosing) {
-                            const stackTag = createParseTag({
+                            const stackTag = parseConverter.parseConvert({
                                 open: {
                                     type: 'TagOpen',
                                     tag,
@@ -194,7 +100,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                                     properties
                                 },
                                 context: stack.filter(isParseStackTagOpenEntry),
-                                contents: [],
+                                contents: [] as ParseTag[],
                                 endTagToken: index
                             })
                             if (stack.length > 0) {
@@ -255,7 +161,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                         continue
                     }
                     if (stackItem.type === 'TagOpen') {
-                        const stackTag = createParseTag({
+                        const stackTag = parseConverter.parseConvert({
                             open: stackItem,
                             context: stack.filter(isParseStackTagOpenEntry),
                             contents,
