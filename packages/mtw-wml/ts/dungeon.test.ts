@@ -8,7 +8,6 @@ import { schemaFromParse } from './schema'
 import Normalizer from './normalize/'
 
 const file = path.join(__dirname, "./", "dungeon.wml")
-const fdr = fs.readFileSync(file, "utf8")
 
 const dungeonSource = fs.readFileSync(file, "utf8")
 
