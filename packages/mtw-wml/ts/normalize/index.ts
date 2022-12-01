@@ -639,18 +639,10 @@ export class Normalizer {
                     appearances: [{
                         ...appearance,
                         render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
-                        contents: node.contents.reduce((previous, item, index) => (isSchemaRoom(item) ? [
-                            ...previous,
-                            {
-                                key: item.key,
-                                index
-                            }]: previous), []),
-                        rooms: node.contents.reduce((previous, item, index) => (isSchemaRoom(item) ? [
-                            ...previous,
-                            {
-                                key: item.key,
-                                index
-                            }]: previous), [])
+                        rooms: node.rooms.map(({ index, ...room }) => ({
+                            ...room,
+                            location: [...appearance.location, index]
+                        }))
                     }]
                 }
             case 'Map':

@@ -1212,6 +1212,28 @@ Object {
         "x": 200,
         "y": 150,
       },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "activate",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          8,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
     ],
     "global": false,
     "key": "a123",
@@ -1222,8 +1244,9 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 0,
+            "index": 2,
             "key": "a123",
+            "tag": "Room",
           },
         ],
         "contextStack": Array [
@@ -1245,8 +1268,12 @@ Object {
         ],
         "rooms": Array [
           Object {
-            "index": 0,
             "key": "a123",
+            "location": Array [
+              0,
+              8,
+              0,
+            ],
           },
         ],
       },
