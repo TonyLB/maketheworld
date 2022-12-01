@@ -1,5 +1,5 @@
-import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseName, isParseRoom, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
-import { isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMapContents, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
+import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseMessage, isParseName, isParseRoom, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
+import { isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMapContents, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
 import { translateTaggedMessageContents } from "../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins";
@@ -19,6 +19,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             | ParseTagFactoryPropsLimited<'Feature'>
             | ParseTagFactoryPropsLimited<'Map'>
             | ParseTagFactoryPropsLimited<'Bookmark'>
+            | ParseTagFactoryPropsLimited<'Message'>
             ): MixinInheritedParseReturn<C>
             | ParseStackTagEntry<ParseDescriptionTag>
             | ParseStackTagEntry<ParseNameTag>
@@ -26,6 +27,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             | ParseStackTagEntry<ParseFeatureTag>
             | ParseStackTagEntry<ParseMapTag>
             | ParseStackTagEntry<ParseBookmarkTag>
+            | ParseStackTagEntry<ParseMessageTag>
             {
             //
             // Convert Description tag-opens
@@ -164,6 +166,22 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     }
                 })(value)
             }
+            //
+            // Convert Message tag-opens
+            //
+            else if (isTypedParseTagOpen('Message')(value)) {
+                return parseConverterMixin<ParseMessageTag, ParseTaggedMessageLegalContents | ParseRoomTag>({
+                    tag: 'Message',
+                    properties: {
+                        required: { key: ['key'] },
+                        optional: {}
+                    },
+                    contents: {
+                        legal: ['Whitespace', 'String', 'Link', 'Bookmark', 'br', 'Space', 'If', 'Else', 'ElseIf', 'Room'],
+                        ignore: ['Comment']
+                    }
+                })(value)
+            }
             else {
                 const returnValue = (super.parseConvert as any)(value)
                 if (!Boolean(returnValue)) {
@@ -179,6 +197,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
         override schemaConvert(item: ParseFeatureTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaFeatureTag
         override schemaConvert(item: ParseBookmarkTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaBookmarkTag
         override schemaConvert(item: ParseMapTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaMapTag
+        override schemaConvert(item: ParseMessageTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaMessageTag
         override schemaConvert(
                 item: MixinInheritedSchemaParameters<C>
                     | ParseDescriptionTag
@@ -186,7 +205,8 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     | ParseRoomTag
                     | ParseFeatureTag
                     | ParseBookmarkTag
-                    | ParseMapTag,
+                    | ParseMapTag
+                    | ParseMessageTag,
                 siblings: SchemaTag[],
                 contents: MixinInheritedSchemaContents<C>
                     | SchemaTag[]
@@ -196,7 +216,8 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 | SchemaRoomTag
                 | SchemaFeatureTag
                 | SchemaBookmarkTag
-                | SchemaMapTag {
+                | SchemaMapTag
+                | SchemaMessageTag {
             if (isParseDescription(item)) {
                 return {
                     tag: 'Description',
@@ -263,6 +284,27 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         transform: ({ key, x, y }, index) => ({ conditions: [], key, x, y, index })
                     }),
                     images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key)),
+                    parse: item
+                }
+            }
+            else if (isParseMessage(item)) {
+                const componentContents = (contents as SchemaTag[]).filter(isSchemaRoom)
+                return {
+                    tag: 'Message',
+                    key: item.key,
+                    render: (contents as SchemaTag[]).filter(isSchemaTaggedMessageLegalContents),
+                    contents: componentContents,
+                    rooms: (contents as SchemaTag[]).reduce((previous, room, index) => (
+                        isSchemaRoom(room)
+                            ? [
+                                ...previous,
+                                {
+                                    key: room.key,
+                                    index
+                                }
+                            ]
+                            : previous
+                    ), []),
                     parse: item
                 }
             }

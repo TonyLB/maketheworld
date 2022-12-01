@@ -638,7 +638,13 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...appearance,
-                        render: node.contents.filter(isSchemaTaggedMessageLegalContents).map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
+                        render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
+                        contents: node.contents.reduce((previous, item, index) => (isSchemaRoom(item) ? [
+                            ...previous,
+                            {
+                                key: item.key,
+                                index
+                            }]: previous), []),
                         rooms: node.contents.reduce((previous, item, index) => (isSchemaRoom(item) ? [
                             ...previous,
                             {
