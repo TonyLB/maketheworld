@@ -6,6 +6,7 @@ import {
     EphemeraComputedId,
     EphemeraFeatureId,
     EphemeraMapId,
+    EphemeraMessageId,
     EphemeraRoomId,
     EphemeraVariableId
 } from "@tonylb/mtw-interfaces/dist/baseClasses";
@@ -79,6 +80,16 @@ export type EphemeraMapAppearance = {
     rooms: EphemeraMapRoom[];
 } & EphemeraConditionMixin
 
+//
+// EphemeraMessage and EphemeraBookmark use the same appearance type
+//
+export type EphemeraMessage = {
+    EphemeraId: EphemeraMessageId;
+    key: string;
+    appearances: EphemeraBookmarkAppearance[];
+}
+
+
 export type EphemeraMap = {
     EphemeraId: EphemeraMapId;
     key: string;
@@ -120,11 +131,11 @@ export type EphemeraComputed = {
     dependencies: EphemeraItemDependency[];
 }
 
-export type EphemeraItem = EphemeraFeature | EphemeraBookmark | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
+export type EphemeraItem = EphemeraFeature | EphemeraBookmark | EphemeraMessage | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
 
 type LegalEphemeraTag = 'Asset' | (EphemeraItem['EphemeraId'] extends `${infer T}#${string}` ? Capitalize<Lowercase<T>> : never)
 
-const isLegalEphemeraTag = (tag: string): tag is LegalEphemeraTag => (['Asset', 'Room', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(tag))
+const isLegalEphemeraTag = (tag: string): tag is LegalEphemeraTag => (['Asset', 'Room', 'Map', 'Character', 'Action', 'Variable', 'Computed', 'Message'].includes(tag))
 
 export const tagFromEphemeraWrappedId = (EphemeraId: string): LegalEphemeraTag => {
     const [upperTag] = splitType(EphemeraId)

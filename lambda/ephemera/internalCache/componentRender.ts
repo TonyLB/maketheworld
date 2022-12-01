@@ -1,7 +1,7 @@
 import { ComponentMeta, ComponentMetaData, ComponentMetaFromId } from './componentMeta'
 import { DeferredCache } from './deferredCache'
 import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency, EphemeraMapRoom, EphemeraBookmarkAppearance } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent, BookmarkDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
+import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent, BookmarkDescribeData, MessageDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import AssetState, { EvaluateCodeAddress, EvaluateCodeData, StateItemId } from './assetState';
@@ -11,12 +11,14 @@ import {
     EphemeraComputedId,
     EphemeraFeatureId,
     EphemeraMapId,
+    EphemeraMessageId,
     EphemeraRoomId,
     EphemeraVariableId,
     isEphemeraBookmarkId,
     isEphemeraComputedId,
     isEphemeraFeatureId,
     isEphemeraMapId,
+    isEphemeraMessageId,
     isEphemeraRoomId,
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/dist/baseClasses';
@@ -41,14 +43,14 @@ export type ComponentMetaMapItem = {
     assetId: string;
     appearances: EphemeraMapAppearance[];
 }
-export type ComponentDescriptionItem = RoomDescribeData | FeatureDescribeData | MapDescribeData | BookmarkDescribeData
+export type ComponentDescriptionItem = RoomDescribeData | FeatureDescribeData | MapDescribeData | BookmarkDescribeData | MessageDescribeData
 
 type ComponentDescriptionCache = {
     dependencies: StateItemId[];
     description: ComponentDescriptionItem;
 }
 
-const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId | EphemeraBookmarkId) => (`${CharacterId}::${EphemeraId}`)
+const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId | EphemeraBookmarkId | EphemeraMessageId) => (`${CharacterId}::${EphemeraId}`)
 
 export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) => Promise<any>) => async <T extends { conditions: EphemeraCondition[] }>(possibleAppearances: T[]): Promise<T[]> => {
     //
@@ -185,7 +187,6 @@ export async function componentAppearanceReduce (options: FlattenTaggedMessageCo
         return joinedList
     }
     else {
-        console.log(`RenderList: ${JSON.stringify(renderList, null, 4)}`)
         const flattenedList = await Promise.all(
             renderList.map(
                 ({ render, ...rest }) => (
@@ -209,7 +210,7 @@ export const isComponentKey = (key) => (['ROOM', 'FEATURE', 'BOOKMARK'].includes
 
 export class ComponentRenderData {
     _evaluateCode: (address: EvaluateCodeAddress) => Promise<any>;
-    _componentMeta: <T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId>(EphemeraId: T, assetList: string[]) => Promise<Record<string, ComponentMetaFromId<T>>>;
+    _componentMeta: <T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId>(EphemeraId: T, assetList: string[]) => Promise<Record<string, ComponentMetaFromId<T>>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
     _getAssets: () => Promise<string[]>;
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
@@ -283,8 +284,9 @@ export class ComponentRenderData {
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData }>
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId): Promise<{ dependencies: StateItemId[]; description: FeatureDescribeData }>
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraBookmarkId): Promise<{ dependencies: StateItemId[]; description: BookmarkDescribeData }>
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMessageId): Promise<{ dependencies: StateItemId[]; description: MessageDescribeData }>
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: MapDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | BookmarkDescribeData | MapDescribeData }> {
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMessageId | EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | BookmarkDescribeData | MessageDescribeData | MapDescribeData }> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
             this._getAssets(),
             this._characterMeta(CharacterId)
@@ -347,17 +349,28 @@ export class ComponentRenderData {
                 }
             }
         }
-        if (isEphemeraBookmarkId(EphemeraId)) {
+        if (isEphemeraBookmarkId(EphemeraId) || isEphemeraMessageId(EphemeraId)) {
             const possibleBookmarkAppearances = [...(globalAssets || []), ...characterAssets]
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraBookmarkAppearance[]))
                 .reduce<EphemeraBookmarkAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderFeatureAppearances = await filterAppearances(this._evaluateCode)(possibleBookmarkAppearances)
             const renderFeature = await componentAppearanceReduce(options, ...renderFeatureAppearances)
-            return {
-                dependencies: aggregateDependencies,
-                description: {
-                    BookmarkId: EphemeraId,
-                    ...renderFeature
+            if (isEphemeraBookmarkId(EphemeraId)) {
+                return {
+                    dependencies: aggregateDependencies,
+                    description: {
+                        BookmarkId: EphemeraId,
+                        ...renderFeature
+                    }
+                }
+            }
+            else {
+                return {
+                    dependencies: aggregateDependencies,
+                    description: {
+                        MessageId: EphemeraId,
+                        ...renderFeature
+                    }
                 }
             }
         }
@@ -430,8 +443,9 @@ export class ComponentRenderData {
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId): Promise<FeatureDescribeData>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraBookmarkId): Promise<BookmarkDescribeData>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<MapDescribeData>
-    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem>
-    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem> {
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMessageId): Promise<MessageDescribeData>
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId): Promise<ComponentDescriptionItem>
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId): Promise<ComponentDescriptionItem> {
         const cacheKey = generateCacheKey(CharacterId, EphemeraId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -471,6 +485,22 @@ export class ComponentRenderData {
                 })
             }
             if (isEphemeraBookmarkId(EphemeraId)) {
+                this._Cache.add({
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    requiredKeys: [cacheKey],
+                    transform: (fetch) => {
+                        if (typeof fetch === 'undefined') {
+                            return {}
+                        }
+                        else {
+                            return {
+                                [cacheKey]: fetch
+                            }
+                        }
+                    }
+                })
+            }
+            if (isEphemeraMessageId(EphemeraId)) {
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
                     requiredKeys: [cacheKey],

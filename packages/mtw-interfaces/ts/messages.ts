@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraActionId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraMessageId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -346,6 +346,11 @@ const validateRoomCharacterList = (items: any) => {
 export type BookmarkDescribeData = {
     Description: TaggedMessageContentFlat[];
     BookmarkId: EphemeraBookmarkId;
+}
+
+export type MessageDescribeData = {
+    Description: TaggedMessageContentFlat[];
+    MessageId: EphemeraMessageId;
 }
 
 export type RoomDescribeData = {
