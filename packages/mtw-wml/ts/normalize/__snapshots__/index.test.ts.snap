@@ -1099,6 +1099,11 @@ Object {
             "key": "postFix",
             "tag": "Bookmark",
           },
+          Object {
+            "index": 0,
+            "key": "activate",
+            "tag": "Message",
+          },
         ],
         "contextStack": Array [],
         "location": Array [
@@ -1211,6 +1216,43 @@ Object {
     "global": false,
     "key": "a123",
     "tag": "Room",
+  },
+  "activate": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          8,
+        ],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "It activates!",
+          },
+        ],
+        "rooms": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+          },
+        ],
+      },
+    ],
+    "key": "activate",
+    "tag": "Message",
   },
   "active": Object {
     "appearances": Array [

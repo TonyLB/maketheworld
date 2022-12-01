@@ -488,6 +488,27 @@
     <Variable key=(hearthActive) default={false} />
     <Variable key=(catsInOrchard) default={true} />
     <Variable key=(birdsInOrchard) default={false} />
+    <Message key=(purrFades)>
+        The loud low purr echoing through the halls fades away.
+        <Room key=(orchard) />
+        <Room key=(forest) />
+        <Room key=(fireCatGrotto) />
+        <Room key=(well) />
+        <Room key=(statueChamber) />
+        <Room key=(intersection) />
+        <Room key=(curvingPassage) />
+    </Message>
+    <Message key=(birdsFade)>
+        The sound of bird-song fades away.
+        <Room key=(orchard) />
+        <Room key=(forest) />
+        <Room key=(fireCatGrotto) />
+        <Room key=(well) />
+        <Room key=(statueChamber) />
+        <Room key=(intersection) />
+        <Room key=(curvingPassage) />
+        <Room key=(foundry) />
+    </Message>
     <Action
         key=(toggleBellowsRunning)
         src={
@@ -496,7 +517,7 @@
                 me.narrate(`${me.Name} grips the handled wheel and slows it to a stop.`)
                 if (hearthActive) {
                     here.message('The flames in the hearth die, and the noise of its low purr fades.')
-                    allRooms.forEach((room) => { room.message('The loud low purr echoing through the halls fades away.') })
+                    purrFades.show()
                     hearthActive = false
                 }
                 else {
@@ -530,8 +551,7 @@
                 }
                 if (birdsInOrchard) {
                     orchard.message('The birds startle at the sudden hissing, and flee back into the trees.')
-                    allRooms.message('The sound of bird-song fades away.')
-                    foundry.message('The sound of bird-song fades away.')
+                    birdsFade.show()
                     birdsInOrchard = false
                 }
                 bellowsRunning = true

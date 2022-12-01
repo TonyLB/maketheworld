@@ -191,7 +191,7 @@ export const isParseElseIfTagFeatureContext = (value: ParseElseIfTag): value is 
 export const isParseElseIfTagMapContext = (value: ParseElseIfTag): value is ParseElseIfTagMapContext => (value.contextTag === 'Map')
 
 export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
-    Asset: ['Exit', 'Feature', 'Room', 'If', 'Else', 'ElseIf', 'Image', 'Map'],
+    Asset: ['Exit', 'Feature', 'Room', 'If', 'Else', 'ElseIf', 'Image', 'Map', 'Message'],
     Description: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'Bookmark', 'br', 'Whitespace'],
     Bookmark: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'Bookmark',  'br', 'Whitespace'],
     Room: ['If', 'Else', 'ElseIf', 'Description', 'Name', 'Exit'],
@@ -269,6 +269,13 @@ export type ParseMapTag = {
     contents: ParseMapLegalContents[];
 } & ParseTagBase
 
+export type ParseMessageLegalContents = ParseTaggedMessageLegalContents | ParseRoomTag
+export type ParseMessageTag = {
+    tag: 'Message';
+    key: string;
+    contents: ParseMessageLegalContents[];
+} & ParseTagBase
+
 export type ParseStringTag = {
     tag: 'String';
     value: string;
@@ -307,6 +314,7 @@ export type ParseTag = ParseAssetTag |
     ParseRoomTag |
     ParseFeatureTag |
     ParseMapTag |
+    ParseMessageTag |
     ParseStringTag |
     ParseWhitespaceTag |
     ParseSpacerTag |
@@ -340,6 +348,7 @@ export const isParseLegalTag = (tag: string): tag is ParseLegalTag => ([
     'Feature',
     'Map',
     'Bookmark',
+    'Message',
     'String',
     'Whitespace',
     'Space',
@@ -376,7 +385,7 @@ export class ParseException extends Error {
 }
 
 export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseElseTag | ParseLinkTag | ParseBookmarkTag | ParseMapTag | ParseExitTag | ParseNameTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag) => (
-    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Else', 'ElseIf', 'Link', 'Bookmark', 'Map', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
+    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Else', 'ElseIf', 'Link', 'Bookmark', 'Map', 'Message', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 
 export const isParseTypeFromTag = <T extends ParseTag>(tag: T["tag"]) => (item: ParseTag | {}): item is T => ("tag" in item && item.tag === tag)
@@ -404,6 +413,7 @@ export const isParseRoom = isParseTypeFromTag<ParseRoomTag>('Room')
 export const isParseFeature = isParseTypeFromTag<ParseFeatureTag>('Feature')
 export const isParseBookmark = isParseTypeFromTag<ParseBookmarkTag>('Bookmark')
 export const isParseMap = isParseTypeFromTag<ParseMapTag>('Map')
+export const isParseMessage = isParseTypeFromTag<ParseMessageTag>('Message')
 
 export const isParsePronouns = isParseTypeFromTag<ParsePronounsTag>('Pronouns')
 export const isParseFirstImpression = isParseTypeFromTag<ParseFirstImpressionTag>('FirstImpression')
