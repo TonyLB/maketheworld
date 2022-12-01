@@ -368,12 +368,12 @@ Object {
             "tag": "Feature",
           },
           Object {
-            "index": 1,
+            "index": 3,
             "key": "forest",
             "tag": "Room",
           },
           Object {
-            "index": 1,
+            "index": 2,
             "key": "foundry",
             "tag": "Room",
           },
@@ -418,7 +418,7 @@ Object {
             "tag": "Action",
           },
           Object {
-            "index": 1,
+            "index": 3,
             "key": "statueChamber",
             "tag": "Room",
           },
@@ -1080,12 +1080,12 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 2,
+            "index": 3,
             "key": "foundry",
             "tag": "Room",
           },
           Object {
-            "index": 2,
+            "index": 4,
             "key": "forest",
             "tag": "Room",
           },
@@ -1149,12 +1149,12 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 3,
+            "index": 4,
             "key": "foundry",
             "tag": "Room",
           },
           Object {
-            "index": 3,
+            "index": 5,
             "key": "forest",
             "tag": "Room",
           },
@@ -1256,37 +1256,37 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 2,
+            "index": 4,
             "key": "statueChamber",
             "tag": "Room",
           },
           Object {
-            "index": 7,
+            "index": 9,
             "key": "orchard",
             "tag": "Room",
           },
           Object {
-            "index": 4,
+            "index": 6,
             "key": "forest",
             "tag": "Room",
           },
           Object {
-            "index": 7,
+            "index": 9,
             "key": "fireCatGrotto",
             "tag": "Room",
           },
           Object {
-            "index": 4,
+            "index": 5,
             "key": "foundry",
             "tag": "Room",
           },
           Object {
-            "index": 2,
+            "index": 4,
             "key": "intersection",
             "tag": "Room",
           },
           Object {
-            "index": 2,
+            "index": 4,
             "key": "well",
             "tag": "Room",
           },
@@ -1321,37 +1321,37 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 3,
+            "index": 5,
             "key": "statueChamber",
             "tag": "Room",
           },
           Object {
-            "index": 5,
+            "index": 6,
             "key": "foundry",
             "tag": "Room",
           },
           Object {
-            "index": 5,
+            "index": 7,
             "key": "forest",
             "tag": "Room",
           },
           Object {
-            "index": 8,
+            "index": 10,
             "key": "orchard",
             "tag": "Room",
           },
           Object {
-            "index": 8,
+            "index": 10,
             "key": "fireCatGrotto",
             "tag": "Room",
           },
           Object {
-            "index": 3,
+            "index": 5,
             "key": "intersection",
             "tag": "Room",
           },
           Object {
-            "index": 3,
+            "index": 5,
             "key": "well",
             "tag": "Room",
           },
@@ -1387,37 +1387,37 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 4,
+            "index": 6,
             "key": "statueChamber",
             "tag": "Room",
           },
           Object {
-            "index": 6,
+            "index": 7,
             "key": "foundry",
             "tag": "Room",
           },
           Object {
-            "index": 6,
+            "index": 8,
             "key": "forest",
             "tag": "Room",
           },
           Object {
-            "index": 9,
+            "index": 11,
             "key": "orchard",
             "tag": "Room",
           },
           Object {
-            "index": 9,
+            "index": 11,
             "key": "fireCatGrotto",
             "tag": "Room",
           },
           Object {
-            "index": 4,
+            "index": 6,
             "key": "intersection",
             "tag": "Room",
           },
           Object {
-            "index": 4,
+            "index": 6,
             "key": "well",
             "tag": "Room",
           },
@@ -1453,37 +1453,37 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 5,
+            "index": 7,
             "key": "statueChamber",
             "tag": "Room",
           },
           Object {
-            "index": 7,
+            "index": 8,
             "key": "foundry",
             "tag": "Room",
           },
           Object {
-            "index": 7,
+            "index": 9,
             "key": "forest",
             "tag": "Room",
           },
           Object {
-            "index": 10,
+            "index": 12,
             "key": "orchard",
             "tag": "Room",
           },
           Object {
-            "index": 10,
+            "index": 12,
             "key": "fireCatGrotto",
             "tag": "Room",
           },
           Object {
-            "index": 5,
+            "index": 7,
             "key": "intersection",
             "tag": "Room",
           },
           Object {
-            "index": 5,
+            "index": 7,
             "key": "well",
             "tag": "Room",
           },
@@ -1519,37 +1519,37 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 6,
+            "index": 8,
             "key": "statueChamber",
             "tag": "Room",
           },
           Object {
-            "index": 8,
+            "index": 9,
             "key": "foundry",
             "tag": "Room",
           },
           Object {
-            "index": 8,
+            "index": 10,
             "key": "forest",
             "tag": "Room",
           },
           Object {
-            "index": 11,
+            "index": 13,
             "key": "orchard",
             "tag": "Room",
           },
           Object {
-            "index": 11,
+            "index": 13,
             "key": "fireCatGrotto",
             "tag": "Room",
           },
           Object {
-            "index": 6,
+            "index": 8,
             "key": "intersection",
             "tag": "Room",
           },
           Object {
-            "index": 6,
+            "index": 8,
             "key": "well",
             "tag": "Room",
           },
@@ -2138,36 +2138,44 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 0,
+            "index": 8,
             "key": "orchard",
-          },
-          Object {
-            "index": 1,
-            "key": "forest",
+            "tag": "Room",
           },
           Object {
             "index": 2,
+            "key": "forest",
+            "tag": "Room",
+          },
+          Object {
+            "index": 8,
             "key": "fireCatGrotto",
+            "tag": "Room",
           },
           Object {
             "index": 3,
             "key": "well",
+            "tag": "Room",
           },
           Object {
-            "index": 4,
+            "index": 2,
             "key": "statueChamber",
+            "tag": "Room",
           },
           Object {
-            "index": 5,
+            "index": 3,
             "key": "intersection",
+            "tag": "Room",
           },
           Object {
-            "index": 6,
+            "index": 3,
             "key": "curvingPassage",
+            "tag": "Room",
           },
           Object {
-            "index": 7,
+            "index": 1,
             "key": "foundry",
+            "tag": "Room",
           },
         ],
         "contextStack": Array [
@@ -2190,36 +2198,68 @@ Object {
         ],
         "rooms": Array [
           Object {
-            "index": 0,
             "key": "orchard",
+            "location": Array [
+              0,
+              62,
+              2,
+            ],
           },
           Object {
-            "index": 1,
             "key": "forest",
+            "location": Array [
+              0,
+              62,
+              3,
+            ],
           },
           Object {
-            "index": 2,
             "key": "fireCatGrotto",
+            "location": Array [
+              0,
+              62,
+              4,
+            ],
           },
           Object {
-            "index": 3,
             "key": "well",
+            "location": Array [
+              0,
+              62,
+              5,
+            ],
           },
           Object {
-            "index": 4,
             "key": "statueChamber",
+            "location": Array [
+              0,
+              62,
+              6,
+            ],
           },
           Object {
-            "index": 5,
             "key": "intersection",
+            "location": Array [
+              0,
+              62,
+              7,
+            ],
           },
           Object {
-            "index": 6,
             "key": "curvingPassage",
+            "location": Array [
+              0,
+              62,
+              8,
+            ],
           },
           Object {
-            "index": 7,
             "key": "foundry",
+            "location": Array [
+              0,
+              62,
+              9,
+            ],
           },
         ],
       },
@@ -2769,6 +2809,50 @@ Object {
             "value": "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
           },
         ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "purrFades",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          61,
+          6,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "birdsFade",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          62,
+          6,
+        ],
+        "name": Array [],
+        "render": Array [],
       },
     ],
     "global": false,
@@ -3770,6 +3854,50 @@ Object {
           },
           Object {
             "index": 0,
+            "key": "purrFades",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          61,
+          2,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "birdsFade",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          62,
+          2,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
             "key": "If-24",
             "tag": "If",
           },
@@ -4017,6 +4145,50 @@ Object {
         "render": Array [],
         "x": -50,
         "y": -200,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "purrFades",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          61,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "birdsFade",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          62,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [],
       },
       Object {
         "contents": Array [],
@@ -4299,7 +4471,7 @@ Object {
             "tag": "If",
           },
           Object {
-            "index": 3,
+            "index": 5,
             "key": "forest",
             "tag": "Room",
           },
@@ -4384,6 +4556,28 @@ Object {
         "render": Array [],
         "x": -200,
         "y": -150,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "birdsFade",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          62,
+          7,
+        ],
+        "name": Array [],
+        "render": Array [],
       },
       Object {
         "contents": Array [],
@@ -4684,7 +4878,7 @@ Object {
             "tag": "If",
           },
           Object {
-            "index": 3,
+            "index": 4,
             "key": "foundry",
             "tag": "Room",
           },
@@ -5246,6 +5440,50 @@ Object {
             "value": "Passages lead south toward a gently curving passage, east toward a large open chamber with carved columns, and north toward what looks like some sort of workspace.",
           },
         ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "purrFades",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          61,
+          5,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "birdsFade",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          62,
+          5,
+        ],
+        "name": Array [],
+        "render": Array [],
       },
       Object {
         "contents": Array [],
@@ -5924,6 +6162,50 @@ Object {
           },
           Object {
             "index": 0,
+            "key": "purrFades",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          61,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "birdsFade",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          62,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
             "key": "If-24",
             "tag": "If",
           },
@@ -6145,32 +6427,39 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 0,
+            "index": 7,
             "key": "orchard",
+            "tag": "Room",
           },
           Object {
             "index": 1,
             "key": "forest",
+            "tag": "Room",
+          },
+          Object {
+            "index": 7,
+            "key": "fireCatGrotto",
+            "tag": "Room",
           },
           Object {
             "index": 2,
-            "key": "fireCatGrotto",
-          },
-          Object {
-            "index": 3,
             "key": "well",
+            "tag": "Room",
           },
           Object {
-            "index": 4,
+            "index": 1,
             "key": "statueChamber",
+            "tag": "Room",
           },
           Object {
-            "index": 5,
+            "index": 2,
             "key": "intersection",
+            "tag": "Room",
           },
           Object {
-            "index": 6,
+            "index": 2,
             "key": "curvingPassage",
+            "tag": "Room",
           },
         ],
         "contextStack": Array [
@@ -6193,32 +6482,60 @@ Object {
         ],
         "rooms": Array [
           Object {
-            "index": 0,
             "key": "orchard",
+            "location": Array [
+              0,
+              61,
+              2,
+            ],
           },
           Object {
-            "index": 1,
             "key": "forest",
+            "location": Array [
+              0,
+              61,
+              3,
+            ],
           },
           Object {
-            "index": 2,
             "key": "fireCatGrotto",
+            "location": Array [
+              0,
+              61,
+              4,
+            ],
           },
           Object {
-            "index": 3,
             "key": "well",
+            "location": Array [
+              0,
+              61,
+              5,
+            ],
           },
           Object {
-            "index": 4,
             "key": "statueChamber",
+            "location": Array [
+              0,
+              61,
+              6,
+            ],
           },
           Object {
-            "index": 5,
             "key": "intersection",
+            "location": Array [
+              0,
+              61,
+              7,
+            ],
           },
           Object {
-            "index": 6,
             "key": "curvingPassage",
+            "location": Array [
+              0,
+              61,
+              8,
+            ],
           },
         ],
       },
@@ -6736,6 +7053,50 @@ Object {
         "render": Array [],
         "x": 0,
         "y": 0,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "purrFades",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          61,
+          4,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "birdsFade",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          62,
+          4,
+        ],
+        "name": Array [],
+        "render": Array [],
       },
       Object {
         "contents": Array [],
@@ -7614,6 +7975,50 @@ Object {
             "to": "waterDescription",
           },
         ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "purrFades",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          61,
+          3,
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Dungeon",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "birdsFade",
+            "tag": "Message",
+          },
+        ],
+        "location": Array [
+          0,
+          62,
+          3,
+        ],
+        "name": Array [],
+        "render": Array [],
       },
       Object {
         "contents": Array [],
