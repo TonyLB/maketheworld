@@ -80,15 +80,16 @@ export type EphemeraMapAppearance = {
     rooms: EphemeraMapRoom[];
 } & EphemeraConditionMixin
 
-//
-// EphemeraMessage and EphemeraBookmark use the same appearance type
-//
+export type EphemeraMessageAppearance = {
+    render: TaggedMessageContent[];
+    rooms: EphemeraRoomId[];
+} & EphemeraConditionMixin
+
 export type EphemeraMessage = {
     EphemeraId: EphemeraMessageId;
     key: string;
-    appearances: EphemeraBookmarkAppearance[];
+    appearances: EphemeraMessageAppearance[];
 }
-
 
 export type EphemeraMap = {
     EphemeraId: EphemeraMapId;

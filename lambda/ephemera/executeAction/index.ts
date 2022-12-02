@@ -3,8 +3,8 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey, RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
-import { ExecuteActionMessage, MessageBus, PublishMessage } from "../messageBus/baseClasses"
-import { LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { ExecuteActionMessage, MessageBus, PerceptionShowMessage, PublishMessage } from "../messageBus/baseClasses"
+import { EphemeraMessageId, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
 import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
@@ -29,13 +29,25 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
     if (!rootAsset || !src) {
         return
     }
-    const [roomFetch, characterMeta, assetMap] = await Promise.all([
+    const [roomFetch, messageFetch, characterMeta, assetMap] = await Promise.all([
         ephemeraDB.query<{ EphemeraId: EphemeraRoomId; key: string; }[]>({
             IndexName: 'DataCategoryIndex',
             DataCategory: AssetKey(rootAsset),
             KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
             ExpressionAttributeValues: {
                 ':ephemeraPrefix': 'ROOM'
+            },
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ProjectionFields: ['EphemeraId', '#key']
+        }),
+        ephemeraDB.query<{ EphemeraId: EphemeraMessageId; key: string; }[]>({
+            IndexName: 'DataCategoryIndex',
+            DataCategory: AssetKey(rootAsset),
+            KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
+            ExpressionAttributeValues: {
+                ':ephemeraPrefix': 'MESSAGE'
             },
             ExpressionAttributeNames: {
                 '#key': 'key'
@@ -49,7 +61,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
     await exponentialBackoffWrapper(async () => {
         const assetState = await internalCache.AssetState.get(assetMap)
 
-        let executeMessageQueue: PublishMessage[] = []
+        let executeMessageQueue: (PublishMessage | PerceptionShowMessage)[] = []
         const capitalize = (value) => ([value.slice(0, 1).toUppercase, value.slice(1)].join(''))
         const executionOutput = produce({
                 ...assetState,
@@ -63,6 +75,19 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                                     targets: [EphemeraId],
                                     displayProtocol: 'WorldMessage',
                                     message: [{ tag: 'String', value: message }]
+                                })
+                            }
+                        }    
+                    }
+                }), {} as Partial<{ EphemeraId: string; key: string }>)),
+                ...(messageFetch.reduce((previous, { EphemeraId, key }) => ({
+                    ...previous,
+                    [key]: {
+                        show: () => {
+                            if (EphemeraId) {
+                                executeMessageQueue.push({
+                                    type: 'Perception',
+                                    ephemeraId: EphemeraId
                                 })
                             }
                         }    
