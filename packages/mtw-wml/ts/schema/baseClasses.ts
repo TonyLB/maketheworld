@@ -288,6 +288,12 @@ export type SchemaMessageTag = {
     rooms: SchemaMessageRoom[];
 } & SchemaBase
 
+export type SchemaMomentTag = {
+    tag: 'Moment';
+    key: string;
+    contents: SchemaMessageTag[];
+} & SchemaBase
+
 export type SchemaStringTag = {
     tag: 'String';
     value: string;
@@ -323,7 +329,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaMapTag |
     SchemaStringTag |
     SchemaWhitespaceTag |
-    SchemaMessageTag
+    SchemaMessageTag |
+    SchemaMomentTag
 
 export type SchemaWithContents = SchemaAssetTag |
     SchemaStoryTag |
@@ -339,7 +346,8 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaFirstImpressionTag |
     SchemaOneCoolThingTag |
     SchemaOutfitTag |
-    SchemaMessageTag
+    SchemaMessageTag |
+    SchemaMomentTag
 
 export class SchemaException extends Error {
     parseTag: ParseTag;
@@ -379,12 +387,12 @@ export const isSchemaCondition = (value: SchemaTag): value is SchemaConditionTag
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
-    ['Asset', 'Story', 'If', 'Room', 'Feature', 'Description', 'Exit', 'Character', 'Map', 'Message', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
+    ['Asset', 'Story', 'If', 'Room', 'Feature', 'Description', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 
-export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaBookmarkTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag | SchemaMessageTag
+export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaBookmarkTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag | SchemaMessageTag | SchemaMomentTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Asset', 'Story', 'Room', 'Feature', 'Bookmark', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit', 'Message'].includes(value.tag)
+    ['Asset', 'Story', 'Room', 'Feature', 'Bookmark', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit', 'Message', 'Moment'].includes(value.tag)
 )
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
@@ -418,6 +426,7 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
             'Feature',
             'Bookmark',
             'Message',
+            'Moment',
             'Map',
             'String',
             'Whitespace']

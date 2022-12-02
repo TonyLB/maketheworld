@@ -72,7 +72,7 @@ type NormalizeAddReturnValue = {
     siblings: NormalReference[];
 }
 
-type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character" | "Message">
+type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character" | "Message" | "Moment">
 
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
     if (renderItem.tag === 'If' && isSchemaConditionTagDescriptionContext(renderItem)) {
@@ -643,6 +643,15 @@ export class Normalizer {
                             ...room,
                             location: [...appearance.location, index]
                         }))
+                    }]
+                }
+            case 'Moment':
+                return {
+                    key: node.key,
+                    tag: node.tag,
+                    appearances: [{
+                        ...appearance,
+                        messages: node.contents.map(({ key }) => (key))
                     }]
                 }
             case 'Map':
