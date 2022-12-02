@@ -36,8 +36,11 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
 
             }
             else {
-                const characterMeta = await internalCache.CharacterMeta.get(characterId)
-                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, characterMeta.assets)
+                const [characterMeta, globalAssets] = await Promise.all([
+                    internalCache.CharacterMeta.get(characterId),
+                    internalCache.Global.get('assets')
+                ])
+                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ])
                 const roomsForMessage = Object.values(messageMetaForCharacter).reduce<EphemeraRoomId[]>((previous, { appearances }) => (
                     appearances.reduce<EphemeraRoomId[]>((accumulator, { rooms }) => ([ ...accumulator, ...rooms ]), previous)
                 ), [])
