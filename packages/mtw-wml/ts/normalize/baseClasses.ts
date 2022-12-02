@@ -14,7 +14,8 @@ type TagType = 'Asset' |
     'Computed' |
     'Action' |
     'Character' |
-    'Message'
+    'Message' |
+    'Moment'
 
 export type NormalReference = {
     key: string;
@@ -220,6 +221,15 @@ export type NormalMessage = {
     appearances: MessageAppearance[];
 } & NormalBase
 
+export type MomentAppearance = {
+    messages: string[];
+} & BaseAppearance
+
+export type NormalMoment = {
+    tag: 'Moment';
+    appearances: MomentAppearance[];
+} & NormalBase
+
 export type NormalItem = NormalAsset |
     NormalComponent |
     NormalBookmark |
@@ -232,7 +242,8 @@ export type NormalItem = NormalAsset |
     NormalAction |
     NormalCondition |
     NormalCharacter |
-    NormalMessage
+    NormalMessage |
+    NormalMoment
 
 export type NormalForm = Record<string, NormalItem>
 
@@ -264,6 +275,7 @@ export const isNormalRoom = (arg: NormalItem): arg is NormalRoom => (arg?.tag ==
 export const isNormalFeature = (arg: NormalItem): arg is NormalFeature => (arg?.tag === 'Feature')
 export const isNormalBookmark = (arg: NormalItem): arg is NormalBookmark => (arg?.tag === 'Bookmark')
 export const isNormalMessage = (arg: NormalItem): arg is NormalMessage => (arg?.tag === 'Message')
+export const isNormalMoment = (arg: NormalItem): arg is NormalMoment => (arg?.tag === 'Moment')
 export const isNormalMap = (arg: NormalItem): arg is NormalMap => (arg?.tag === 'Map')
 export function isNormalAsset(arg: NormalItem): arg is NormalAsset {
     return arg?.tag === 'Asset'
