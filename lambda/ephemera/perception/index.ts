@@ -45,8 +45,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     appearances.reduce<EphemeraRoomId[]>((accumulator, { rooms }) => ([ ...accumulator, ...rooms ]), previous)
                 ), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
-                    const { Description: messageRender } = await internalCache.ComponentRender.get(characterId, ephemeraId)
-                    if (messageRender.find((item) => (isTaggedLink(item) || (isTaggedText(item) && item.value)))) {
+                    const { Description: messageRender, rooms: roomsRendered } = await internalCache.ComponentRender.get(characterId, ephemeraId)
+                    if (messageRender.find((item) => (isTaggedLink(item) || (isTaggedText(item) && item.value))) && roomsRendered.includes(characterMeta.RoomId)) {
                         messageBus.send({
                             type: 'PublishMessage',
                             targets: [characterId],
