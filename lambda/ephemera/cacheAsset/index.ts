@@ -16,7 +16,8 @@ import {
     isNormalImage,
     NormalReference,
     isNormalCondition,
-    isNormalBookmark
+    isNormalBookmark,
+    isNormalMessage
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
@@ -32,7 +33,7 @@ import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
-import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 
 //
@@ -229,6 +230,18 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 .map((appearance) => ({
                     conditions: conditionsTransform(appearance.contextStack),
                     render: (appearance.render || []).map(renderTranslate),
+                }))
+        }
+    }
+    if (isEphemeraMessageId(EphemeraId) && isNormalMessage(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            appearances: item.appearances
+                .map((appearance) => ({
+                    conditions: conditionsTransform(appearance.contextStack),
+                    render: (appearance.render || []).map(renderTranslate),
+                    rooms: (appearance.rooms || []).map(({ key }) => (key))
                 }))
         }
     }

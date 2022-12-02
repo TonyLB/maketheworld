@@ -263,6 +263,7 @@ export const isNormalComponent = (arg: NormalItem): arg is NormalComponent => ([
 export const isNormalRoom = (arg: NormalItem): arg is NormalRoom => (arg?.tag === 'Room')
 export const isNormalFeature = (arg: NormalItem): arg is NormalFeature => (arg?.tag === 'Feature')
 export const isNormalBookmark = (arg: NormalItem): arg is NormalBookmark => (arg?.tag === 'Bookmark')
+export const isNormalMessage = (arg: NormalItem): arg is NormalMessage => (arg?.tag === 'Message')
 export const isNormalMap = (arg: NormalItem): arg is NormalMap => (arg?.tag === 'Map')
 export function isNormalAsset(arg: NormalItem): arg is NormalAsset {
     return arg?.tag === 'Asset'
