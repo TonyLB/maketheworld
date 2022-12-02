@@ -89,7 +89,8 @@ describe('Perception message', () => {
                     tag: 'String',
                     value: 'Test Message'
                 }],
-                MessageId: 'MESSAGE#Test'
+                MessageId: 'MESSAGE#Test',
+                rooms: ['ROOM#VORTEX', 'ROOM#ABC']
             })
             await perceptionMessage({ payloads: [
                 {
@@ -163,14 +164,57 @@ describe('Perception message', () => {
                             tag: 'String',
                             value: 'Test Message'
                         }],
-                        rooms: ['ROOM#ABC'],
+                        rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
                         conditions: []
                     }]
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
                 Description: [],
-                MessageId: 'MESSAGE#Test'
+                MessageId: 'MESSAGE#Test',
+                rooms: ['ROOM#VORTEX', 'ROOM#ABC']
+            })
+            await perceptionMessage({ payloads: [
+                {
+                    type: 'Perception',
+                    characterId: 'CHARACTER#TESS',
+                    ephemeraId: 'MESSAGE#Test'
+                }
+            ], messageBus: messageBusMock })
+            expect(messageBusMock.send).toHaveBeenCalledTimes(1)
+        })
+
+        it('should not render when room is not in evaluated conditions', async () => {
+            cacheMock.Global.get.mockResolvedValue(['Base'])
+            cacheMock.CharacterMeta.get.mockResolvedValue({
+                EphemeraId: 'CHARACTER#TESS',
+                Name: 'Tess',
+                assets: ['Personal'],
+                RoomId: 'ROOM#VORTEX',
+                HomeId: 'ROOM#VORTEX',
+                Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+            })
+            cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
+                Base: {
+                    EphemeraId: 'MESSAGE#Test',
+                    assetId: 'Base',
+                    appearances: [{
+                        render: [{
+                            tag: 'String',
+                            value: 'Test Message'
+                        }],
+                        rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
+                        conditions: []
+                    }]
+                }
+            })
+            cacheMock.ComponentRender.get.mockResolvedValue({
+                Description: [{
+                    tag: 'String',
+                    value: 'Test Message'
+                }],
+                MessageId: 'MESSAGE#Test',
+                rooms: ['ROOM#ABC']
             })
             await perceptionMessage({ payloads: [
                 {

@@ -348,11 +348,6 @@ export type BookmarkDescribeData = {
     BookmarkId: EphemeraBookmarkId;
 }
 
-export type MessageDescribeData = {
-    Description: TaggedMessageContentFlat[];
-    MessageId: EphemeraMessageId;
-}
-
 export type RoomDescribeData = {
     Description: TaggedMessageContentFlat[];
     Name: TaggedMessageContentFlat[];
