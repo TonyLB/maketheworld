@@ -2,10 +2,9 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { TaggedMessageContent, FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat } from "@tonylb/mtw-interfaces/dist/messages"
-import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat } from "@tonylb/mtw-interfaces/dist/messages"
+import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
-import { EphemeraExit } from "../cacheAsset/baseClasses"
 import {
     EphemeraCharacterId,
     EphemeraFeatureId,
@@ -159,7 +158,7 @@ export type FetchImportDefaultsMessage = {
     assetId: string;
 }
 
-export type PerceptionNonMapMessage = {
+export type PerceptionComponentMessage = {
     type: 'Perception';
     characterId: EphemeraCharacterId;
     ephemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraCharacterId;
@@ -172,9 +171,17 @@ export type PerceptionMapMessage = {
     mustIncludeRoomId?: EphemeraRoomId;
 }
 
-export type PerceptionMessage = PerceptionNonMapMessage | PerceptionMapMessage
+export type PerceptionShowMessage = {
+    type: 'Perception';
+    characterId?: EphemeraCharacterId;
+    ephemeraId: EphemeraMessageId;
+}
 
+export type PerceptionMessage = PerceptionComponentMessage | PerceptionMapMessage | PerceptionShowMessage
+
+export const isPerceptionComponentMessage = (message: PerceptionMessage): message is PerceptionComponentMessage => (isEphemeraRoomId(message.ephemeraId) || isEphemeraFeatureId(message.ephemeraId) || isEphemeraCharacterId(message.ephemeraId))
 export const isPerceptionMapMessage = (message: PerceptionMessage): message is PerceptionMapMessage => (isEphemeraMapId(message.ephemeraId))
+export const isPerceptionShowMessage = (message: PerceptionMessage): message is PerceptionShowMessage => (isEphemeraMessageId(message.ephemeraId))
 
 export type MoveCharacterMessage = {
     type: 'MoveCharacter';

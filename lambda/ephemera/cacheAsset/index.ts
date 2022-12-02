@@ -241,7 +241,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 .map((appearance) => ({
                     conditions: conditionsTransform(appearance.contextStack),
                     render: (appearance.render || []).map(renderTranslate),
-                    rooms: (appearance.rooms || []).map(({ key }) => (key))
+                    rooms: (appearance.rooms || []).map(({ key }) => (namespaceMap[key])).filter((value) => (value)).filter(isEphemeraRoomId)
                 }))
         }
     }
