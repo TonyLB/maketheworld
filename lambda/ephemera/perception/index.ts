@@ -37,7 +37,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                             messageBus.send({
                                 type: 'Perception',
                                 ephemeraId,
-                                characterId
+                                characterId: EphemeraId
                             })
                         })
                     )))

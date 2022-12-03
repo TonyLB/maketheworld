@@ -3,8 +3,8 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey, RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
-import { ExecuteActionMessage, MessageBus, PerceptionShowMessage, PublishMessage } from "../messageBus/baseClasses"
-import { EphemeraMessageId, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { ExecuteActionMessage, MessageBus, PerceptionShowMessage, PerceptionShowMoment, PublishMessage } from "../messageBus/baseClasses"
+import { EphemeraMessageId, EphemeraMomentId, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
 import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
@@ -29,7 +29,12 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
     if (!rootAsset || !src) {
         return
     }
-    const [roomFetch, messageFetch, characterMeta, assetMap] = await Promise.all([
+    const [roomFetch, messageFetch, momentFetch, characterMeta, assetMap] = await Promise.all([
+        //
+        // TODO: Add acorn-derived dependencies to actions, and use them to limit
+        // the references that get loaded (rather than running queries for every possible
+        // thing)
+        //
         ephemeraDB.query<{ EphemeraId: EphemeraRoomId; key: string; }[]>({
             IndexName: 'DataCategoryIndex',
             DataCategory: AssetKey(rootAsset),
@@ -54,6 +59,18 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
             },
             ProjectionFields: ['EphemeraId', '#key']
         }),
+        ephemeraDB.query<{ EphemeraId: EphemeraMomentId; key: string; }[]>({
+            IndexName: 'DataCategoryIndex',
+            DataCategory: AssetKey(rootAsset),
+            KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
+            ExpressionAttributeValues: {
+                ':ephemeraPrefix': 'MOMENT'
+            },
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ProjectionFields: ['EphemeraId', '#key']
+        }),
         internalCache.CharacterMeta.get(payload.characterId),
         internalCache.AssetMap.get(AssetKey(rootAsset))
     ])
@@ -61,7 +78,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
     await exponentialBackoffWrapper(async () => {
         const assetState = await internalCache.AssetState.get(assetMap)
 
-        let executeMessageQueue: (PublishMessage | PerceptionShowMessage)[] = []
+        let executeMessageQueue: (PublishMessage | PerceptionShowMessage | PerceptionShowMoment)[] = []
         const capitalize = (value) => ([value.slice(0, 1).toUppercase, value.slice(1)].join(''))
         const executionOutput = produce({
                 ...assetState,
@@ -81,6 +98,19 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                     }
                 }), {} as Partial<{ EphemeraId: string; key: string }>)),
                 ...(messageFetch.reduce((previous, { EphemeraId, key }) => ({
+                    ...previous,
+                    [key]: {
+                        show: () => {
+                            if (EphemeraId) {
+                                executeMessageQueue.push({
+                                    type: 'Perception',
+                                    ephemeraId: EphemeraId
+                                })
+                            }
+                        }    
+                    }
+                }), {} as Partial<{ EphemeraId: string; key: string }>)),
+                ...(momentFetch.reduce((previous, { EphemeraId, key }) => ({
                     ...previous,
                     [key]: {
                         show: () => {
