@@ -18,6 +18,7 @@ import {
     ParseLinkTag,
     ParseMapTag,
     ParseMessageTag,
+    ParseMomentTag,
     ParseNameTag,
     ParseOneCoolThingTag,
     ParseOutfitTag,
@@ -45,6 +46,7 @@ import {
     SchemaLinkTag,
     SchemaMapTag,
     SchemaMessageTag,
+    SchemaMomentTag,
     SchemaNameTag,
     SchemaOneCoolThingTag,
     SchemaOutfitTag,
@@ -72,6 +74,7 @@ function schemaFromParseItem(item: ParseStringTag, siblings: SchemaTag[]): Schem
 function schemaFromParseItem(item: ParseDescriptionTag, siblings: SchemaTag[]): SchemaDescriptionTag
 function schemaFromParseItem(item: ParseFeatureTag, siblings: SchemaTag[]): SchemaFeatureTag
 function schemaFromParseItem(item: ParseMessageTag, siblings: SchemaTag[]): SchemaMessageTag
+function schemaFromParseItem(item: ParseMomentTag, siblings: SchemaTag[]): SchemaMomentTag
 function schemaFromParseItem(item: ParseLinkTag, siblings: SchemaTag[]): SchemaLinkTag
 function schemaFromParseItem(item: ParseConditionTag, siblings: SchemaTag[]): SchemaConditionTag
 function schemaFromParseItem(item: ParseActionTag, siblings: SchemaTag[]): SchemaActionTag

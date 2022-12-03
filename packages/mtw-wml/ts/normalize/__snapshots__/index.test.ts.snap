@@ -1101,8 +1101,8 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "activate",
-            "tag": "Message",
+            "key": "activateMoment",
+            "tag": "Moment",
           },
         ],
         "contextStack": Array [],
@@ -1222,6 +1222,11 @@ Object {
           },
           Object {
             "index": 0,
+            "key": "activateMoment",
+            "tag": "Moment",
+          },
+          Object {
+            "index": 0,
             "key": "activate",
             "tag": "Message",
           },
@@ -1229,6 +1234,7 @@ Object {
         "location": Array [
           0,
           8,
+          0,
           0,
         ],
         "name": Array [],
@@ -1255,10 +1261,16 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
+          Object {
+            "index": 0,
+            "key": "activateMoment",
+            "tag": "Moment",
+          },
         ],
         "location": Array [
           0,
           8,
+          0,
         ],
         "render": Array [
           Object {
@@ -1273,6 +1285,7 @@ Object {
               0,
               8,
               0,
+              0,
             ],
           },
         ],
@@ -1280,6 +1293,35 @@ Object {
     ],
     "key": "activate",
     "tag": "Message",
+  },
+  "activateMoment": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "activate",
+            "tag": "Message",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          8,
+        ],
+        "messages": Array [
+          "activate",
+        ],
+      },
+    ],
+    "key": "activateMoment",
+    "tag": "Moment",
   },
   "active": Object {
     "appearances": Array [
