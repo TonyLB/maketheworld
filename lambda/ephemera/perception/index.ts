@@ -1,10 +1,11 @@
-import { PerceptionMessage, MessageBus, isPerceptionMapMessage, PerceptionShowMessage, isPerceptionShowMessage } from "../messageBus/baseClasses"
+import { PerceptionMessage, MessageBus, isPerceptionMapMessage, PerceptionShowMessage, isPerceptionShowMessage, isPerceptionShowMoment } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { EphemeraCharacter } from "../cacheAsset/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import {
+    EphemeraMessageId,
     EphemeraRoomId,
-    isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId
+    isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { isTaggedLink, isTaggedText } from "@tonylb/mtw-interfaces/dist/messages"
 
@@ -15,7 +16,7 @@ type EphemeraCharacterDescription = {
 export const perceptionMessage = async ({ payloads, messageBus }: { payloads: PerceptionMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async (payload) => {
         if (isPerceptionShowMessage(payload)) {
-            const { characterId, ephemeraId } = payload
+            const { characterId, ephemeraId, onlyForAssets } = payload
 
             if (!characterId) {
                 const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId)
@@ -24,16 +25,23 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 ), [])
                 const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
 
-                roomCharacterLists.forEach((characters) => {
-                    characters.forEach(({ EphemeraId: characterId }) => {
-                        messageBus.send({
-                            type: 'Perception',
-                            ephemeraId,
-                            characterId
+                await Promise.all(
+                    roomCharacterLists.map((characters) => (Promise.all(
+                        characters.map(async ({ EphemeraId }) => {
+                            if (onlyForAssets) {
+                                const { assets } = await internalCache.CharacterMeta.get(EphemeraId)
+                                if (!assets.find((asset) => (onlyForAssets.includes(asset)))) {
+                                    return
+                                }
+                            }
+                            messageBus.send({
+                                type: 'Perception',
+                                ephemeraId,
+                                characterId
+                            })
                         })
-                    })
-                })
-
+                    )))
+                )
             }
             else {
                 const [characterMeta, globalAssets] = await Promise.all([
@@ -56,6 +64,41 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     }
                 }
             }
+        }
+        else if (isPerceptionShowMoment(payload)) {
+            const { ephemeraId } = payload
+
+            const [momentMetaByAsset, globalAssets = []] = await Promise.all([
+                internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId),
+                internalCache.Global.get('assets')
+            ])
+            const assetsByMessageId = Object.entries(momentMetaByAsset).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { appearances }]) => (
+                appearances.reduce<Record<EphemeraMessageId, string[]>>((accumulator, { messages }) => (
+                    messages.reduce<Record<EphemeraMessageId, string[]>>((innerAccumulator, messageId) => ({
+                        ...innerAccumulator,
+                        [messageId]: [
+                            ...(innerAccumulator[messageId] || []),
+                            key
+                        ]
+                    }), accumulator)
+                ), previous)
+            ), {})
+            const allMessages = Object.keys(assetsByMessageId) as EphemeraMessageId[]
+            allMessages.forEach((messageId) => {
+                if (assetsByMessageId[messageId].find((asset) => (globalAssets.includes(asset)))) {
+                    messageBus.send({
+                        type: 'Perception',
+                        ephemeraId: messageId
+                    })
+                }
+                else {
+                    messageBus.send({
+                        type: 'Perception',
+                        ephemeraId: messageId,
+                        onlyForAssets: assetsByMessageId[messageId]
+                    })
+                }
+            })
         }
         else {
             const { characterId, ephemeraId } = payload
