@@ -17,7 +17,8 @@ import {
     NormalReference,
     isNormalCondition,
     isNormalBookmark,
-    isNormalMessage
+    isNormalMessage,
+    isNormalMoment
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
@@ -26,6 +27,7 @@ import {
     EphemeraExit,
     EphemeraItem,
     EphemeraItemDependency,
+    EphemeraMoment,
     EphemeraPushArgs
 } from './baseClasses'
 import { conditionsFromContext } from './utilities'
@@ -33,7 +35,7 @@ import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
-import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 
 //
@@ -242,6 +244,17 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                     conditions: conditionsTransform(appearance.contextStack),
                     render: (appearance.render || []).map(renderTranslate),
                     rooms: (appearance.rooms || []).map(({ key }) => (namespaceMap[key])).filter((value) => (value)).filter(isEphemeraRoomId)
+                }))
+        }
+    }
+    if (isEphemeraMomentId(EphemeraId) && isNormalMoment(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            appearances: item.appearances
+                .map((appearance) => ({
+                    conditions: conditionsTransform(appearance.contextStack),
+                    messages: (appearance.messages || []).map((key) => (namespaceMap[key])).filter((value) => (value)).filter(isEphemeraMessageId)
                 }))
         }
     }
