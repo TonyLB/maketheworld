@@ -2,17 +2,19 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types';
 import { CacheConstructor } from './baseClasses'
 import { DeferredCache } from './deferredCache'
-import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraBookmarkAppearance, EphemeraMessageAppearance } from '../cacheAsset/baseClasses'
+import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraBookmarkAppearance, EphemeraMessageAppearance, EphemeraMomentAppearance } from '../cacheAsset/baseClasses'
 import {
     EphemeraBookmarkId,
     EphemeraFeatureId,
     EphemeraMapId,
     EphemeraMessageId,
+    EphemeraMomentId,
     EphemeraRoomId,
     isEphemeraBookmarkId,
     isEphemeraFeatureId,
     isEphemeraMapId,
     isEphemeraMessageId,
+    isEphemeraMomentId,
     isEphemeraRoomId
 } from '@tonylb/mtw-interfaces/dist/baseClasses';
 
@@ -41,9 +43,14 @@ export type ComponentMetaMessageItem = {
     assetId: string;
     appearances: EphemeraMessageAppearance[];
 }
-export type ComponentMetaItem = ComponentMetaRoomItem | ComponentMetaFeatureItem | ComponentMetaBookmarkItem | ComponentMetaMapItem | ComponentMetaMessageItem
+export type ComponentMetaMomentItem = {
+    EphemeraId: EphemeraMomentId;
+    assetId: string;
+    appearances: EphemeraMomentAppearance[];
+}
+export type ComponentMetaItem = ComponentMetaRoomItem | ComponentMetaFeatureItem | ComponentMetaBookmarkItem | ComponentMetaMapItem | ComponentMetaMessageItem | ComponentMetaMomentItem
 
-export type ComponentMetaFromId<T extends EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId> =
+export type ComponentMetaFromId<T extends EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId> =
     T extends EphemeraRoomId
         ? ComponentMetaRoomItem
         : T extends EphemeraFeatureId
@@ -54,7 +61,9 @@ export type ComponentMetaFromId<T extends EphemeraRoomId | EphemeraFeatureId | E
                     ? ComponentMetaMapItem
                     : T extends EphemeraMessageId
                         ? ComponentMetaMessageItem
-                        : never
+                        : T extends EphemeraMomentId
+                            ? ComponentMetaMomentItem
+                            : never
 
 const generateCacheKey = (EphemeraId, assetId) => (`${assetId}::${EphemeraId}`)
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: string, assetId: string } => {
@@ -102,7 +111,7 @@ export class ComponentMetaData {
         this._Store[key] = value
     }
 
-    async _getPromiseFactory<T extends EphemeraRoomAppearance | EphemeraFeatureAppearance | EphemeraBookmarkAppearance | EphemeraMapAppearance>(EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId, assetId: string): Promise<{ appearances: T[] } | undefined> {
+    async _getPromiseFactory<T extends EphemeraRoomAppearance | EphemeraFeatureAppearance | EphemeraBookmarkAppearance | EphemeraMapAppearance | EphemeraMomentAppearance>(EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId, assetId: string): Promise<{ appearances: T[] } | undefined> {
         return ephemeraDB.getItem<{ appearances: T[] }>({
             EphemeraId,
             DataCategory: AssetKey(assetId),
@@ -110,7 +119,7 @@ export class ComponentMetaData {
         })
     }
 
-    async get<T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId>(EphemeraId: T, assetId: string): Promise<ComponentMetaFromId<T>> {
+    async get<T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId>(EphemeraId: T, assetId: string): Promise<ComponentMetaFromId<T>> {
         const cacheKey = generateCacheKey(EphemeraId, assetId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -197,6 +206,26 @@ export class ComponentMetaData {
                     }
                 })
             }
+            if (isEphemeraMomentId(EphemeraId)) {
+                this._Cache.add({
+                    promiseFactory: () => (this._getPromiseFactory<EphemeraMomentAppearance>(EphemeraId, assetId)),
+                    requiredKeys: [cacheKey],
+                    transform: (fetch) => {
+                        if (typeof fetch === 'undefined') {
+                            return {}
+                        }
+                        else {
+                            return {
+                                [cacheKey]: {
+                                    EphemeraId,
+                                    assetId,
+                                    appearances: fetch.appearances
+                                }
+                            }
+                        }
+                    }
+                })
+            }
             if (isEphemeraMapId(EphemeraId)) {
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory<EphemeraMapAppearance>(EphemeraId, assetId)),
@@ -222,7 +251,7 @@ export class ComponentMetaData {
         return this._Store[cacheKey] as ComponentMetaFromId<T>
     }
 
-    async getAcrossAssets<T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId>(EphemeraId: T, assetList: string[]): Promise<Record<string, ComponentMetaFromId<T>>> {
+    async getAcrossAssets<T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId>(EphemeraId: T, assetList: string[]): Promise<Record<string, ComponentMetaFromId<T>>> {
         if (isEphemeraRoomId(EphemeraId)) {
             this._Cache.add({
                 promiseFactory: (cacheKeys: string[]) => {
@@ -353,6 +382,38 @@ export class ComponentMetaData {
                 [item.assetId]: item
             }), {})
         }
+        if (isEphemeraMomentId(EphemeraId)) {
+            this._Cache.add({
+                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraMomentAppearance[] }>({
+                    Items: cacheKeys
+                        .map(cacheKeyComponents)
+                        .map(({ assetId }) => ({
+                            EphemeraId,
+                            DataCategory: AssetKey(assetId)
+                        })),
+                    ProjectionFields: ['DataCategory', 'appearances']
+                })),
+                requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
+                transform: (fetchList) => {
+                    return fetchList.reduce<Record<string, ComponentMetaItem>>((previous, fetch) => {
+                        const assetId = splitType(fetch.DataCategory)[1]
+                        return {
+                            ...previous,
+                            [generateCacheKey(EphemeraId, assetId)]: {
+                                EphemeraId,
+                                assetId,
+                                appearances: fetch.appearances
+                            }
+                        }
+                    }, {})
+                }
+            })
+            const individualMetas = await Promise.all(assetList.map((assetId) => (this.get(EphemeraId, assetId))))
+            return individualMetas.reduce<Record<string, ComponentMetaFromId<T>>>((previous, item) => ({
+                ...previous,
+                [item.assetId]: item
+            }), {})
+        }
         if (isEphemeraMapId(EphemeraId)) {
             this._Cache.add({
                 promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraMapAppearance[] }>({
@@ -388,7 +449,7 @@ export class ComponentMetaData {
         throw new Error()
     }
 
-    async getAcrossAllAssets<T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId>(EphemeraId: T): Promise<Record<string, ComponentMetaFromId<T>>> {
+    async getAcrossAllAssets<T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId>(EphemeraId: T): Promise<Record<string, ComponentMetaFromId<T>>> {
         const type = splitType(EphemeraId)[0]
         const DataCategory = `Meta::${type[0]}${type.slice(1).toLocaleLowerCase()}`
         const assetListFetch = await ephemeraDB.getItem<{ cached: string[] }>({
