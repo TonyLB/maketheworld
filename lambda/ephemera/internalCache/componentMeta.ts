@@ -389,15 +389,14 @@ export class ComponentMetaData {
     }
 
     async getAcrossAllAssets<T extends EphemeraFeatureId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId>(EphemeraId: T): Promise<Record<string, ComponentMetaFromId<T>>> {
-        const assetListFetch = await ephemeraDB.query<{ DataCategory: string }[]>({
+        const type = splitType(EphemeraId)[0]
+        const DataCategory = `Meta::${type[0]}${type.slice(1).toLocaleLowerCase()}`
+        const assetListFetch = await ephemeraDB.getItem<{ cached: string[] }>({
             EphemeraId,
-            KeyConditionExpression: "begins_with(DataCategory, :dcPrefix)",
-            ExpressionAttributeValues: {
-                ':dcPrefix': 'ASSET'
-            },
-            ProjectionFields: ['DataCategory']
+            DataCategory,
+            ProjectionFields: ['cached']
         })
-        return await this.getAcrossAssets(EphemeraId, assetListFetch.map(({ DataCategory }) => (splitType(DataCategory)[1])))
+        return await this.getAcrossAssets(EphemeraId, assetListFetch?.cached || [])
     }
 
     invalidate(EphemeraId: string, assetId: string) {
