@@ -51,10 +51,12 @@ describe('wml parser', () => {
                 <Variable key=(open) default={false} />
                 <Action key=(toggleOpen) src={open = !open} />
                 <Computed key=(closed) src={!open} />
-                <Message key=(openDoor)>
-                    The door opens!
-                    <Room key=(ABC) />
-                </Message>
+                <Moment key=(openDoorMoment)>
+                    <Message key=(openDoor)>
+                        The door opens!
+                        <Room key=(ABC) />
+                    </Message>
+                </Moment>
             </Asset>
         `))
         expect(parse(testTokens)).toMatchSnapshot()

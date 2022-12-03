@@ -40,10 +40,12 @@ describe('WML normalize', () => {
             <Computed key=(inactive) src={!active} />
             <Action key=(toggleActive) src={active = !active} />
             <Bookmark key=(postFix)><Space />Inactive</Bookmark>
-            <Message key=(activate)>
-                <Room key=(a123) />
-                It activates!
-            </Message>
+            <Moment key=(activateMoment)>
+                <Message key=(activate)>
+                    <Room key=(a123) />
+                    It activates!
+                </Message>
+            </Moment>
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
