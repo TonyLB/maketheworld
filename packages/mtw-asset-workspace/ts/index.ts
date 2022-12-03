@@ -5,7 +5,7 @@ import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
 import parser from '@tonylb/mtw-wml/dist/parser/index'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalMap, NormalMessage, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 
 import { AssetWorkspaceException } from "./errors"
@@ -96,7 +96,7 @@ export type NamespaceMapping = {
     [name: string]: string
 }
 
-const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage) => (['Room', 'Feature', 'Bookmark', 'Message', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
+const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage | NormalMoment) => (['Room', 'Feature', 'Bookmark', 'Message', 'Moment', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
 
 export class AssetWorkspace {
     address: AssetWorkspaceAddress;

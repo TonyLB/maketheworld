@@ -7,6 +7,7 @@ import {
     EphemeraFeatureId,
     EphemeraMapId,
     EphemeraMessageId,
+    EphemeraMomentId,
     EphemeraRoomId,
     EphemeraVariableId
 } from "@tonylb/mtw-interfaces/dist/baseClasses";
@@ -91,6 +92,16 @@ export type EphemeraMessage = {
     appearances: EphemeraMessageAppearance[];
 }
 
+export type EphemeraMomentAppearance = {
+    messages: EphemeraMessageId[];
+} & EphemeraConditionMixin
+
+export type EphemeraMoment = {
+    EphemeraId: EphemeraMomentId;
+    key: string;
+    appearances: EphemeraMomentAppearance[];
+}
+
 export type EphemeraMap = {
     EphemeraId: EphemeraMapId;
     key: string;
@@ -132,7 +143,7 @@ export type EphemeraComputed = {
     dependencies: EphemeraItemDependency[];
 }
 
-export type EphemeraItem = EphemeraFeature | EphemeraBookmark | EphemeraMessage | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
+export type EphemeraItem = EphemeraFeature | EphemeraBookmark | EphemeraMessage | EphemeraMoment | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
 
 type LegalEphemeraTag = 'Asset' | (EphemeraItem['EphemeraId'] extends `${infer T}#${string}` ? Capitalize<Lowercase<T>> : never)
 

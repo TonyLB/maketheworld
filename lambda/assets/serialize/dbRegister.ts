@@ -124,7 +124,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 items: asset.instance
                     ? []
                     : Object.values(assets)
-                        .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
+                        .filter(({ tag }) => (['Room', 'Feature', 'Map', 'Bookmark', 'Message', 'Moment'].includes(tag)))
                         .map(itemRegistry(assets)),
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
@@ -148,6 +148,15 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                             break
                         case 'Map':
                             prefix = 'MAP'
+                            break
+                        case 'Bookmark':
+                            prefix = 'BOOKMARK'
+                            break
+                        case 'Message':
+                            prefix = 'MESSAGE'
+                            break
+                        case 'Moment':
+                            prefix = 'MOMENT'
                             break
                         default:
                             prefix = 'ROOM'
