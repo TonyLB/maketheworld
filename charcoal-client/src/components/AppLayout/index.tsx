@@ -45,6 +45,7 @@ import EditAsset from '../Library/Edit/EditAsset'
 
 import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 import EditCharacter from '../Library/Edit/EditCharacter'
+import Notifications from '../Notifications'
 
 
 const a11yProps = (index: number) => {
@@ -216,6 +217,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Maps/*" element={<MapHome />} />
                         <Route path="/Help/" element={<HelpPage />} />
                         <Route path="/Who/" element={whoPanel} />
+                        <Route path="/Notifications/" element={<Notifications />} />
                         <Route path="/" element={homePanel} />
                     </Routes>
                 </Box>
