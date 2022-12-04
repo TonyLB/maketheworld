@@ -106,7 +106,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
         setSelectedLibraryIndex(undefined)
         setLibraryPreviewItem(undefined)
     }
-    useAutoPin({ href: `/Library/`, label: `Library`})
+    useAutoPin({ href: `/Library/`, label: `Library`, iconName: 'Library' })
     const navigate = useNavigate()
     const Characters = useSelector(getMyCharacters)
     const Assets = useSelector(getMyAssets)
