@@ -24,6 +24,7 @@
     "@tonylb/mtw-wml": "file:./mtw-wml",
     "acorn": "^8.8.1",
     "acorn-walk": "^8.2.0",
+    "esbuild": "^0.15.17",
     "immer": "^9.0.12",
     "ohm-js": "^16.0.0",
     "sharp": "^0.30.3",
@@ -39,7 +40,6 @@
   "devDependencies": {
     "@ohm-js/cli": "^1.1.0",
     "@types/jest": "^28.1.4",
-    "esbuild": "^0.14.46",
     "jest": "^28.1.2",
     "madge": "^5.0.1",
     "ts-jest": "^28.0.5",

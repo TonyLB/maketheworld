@@ -610,6 +610,40 @@ Resources:
                   - HEAD
                 AllowedHeaders:
                   - "*"
+  UploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+          BucketName: !Sub '${TablePrefix}-uploads'
+          CorsConfiguration:
+            CorsRules:
+              -
+                AllowedOrigins:
+                  - "*"
+                AllowedMethods:
+                  - POST
+                  - GET
+                  - PUT
+                  - DELETE
+                  - HEAD
+                AllowedHeaders:
+                  - "*"
+  ImageBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+          BucketName: !Sub '${TablePrefix}-images'
+          CorsConfiguration:
+            CorsRules:
+              -
+                AllowedOrigins:
+                  - "*"
+                AllowedMethods:
+                  - POST
+                  - GET
+                  - PUT
+                  - DELETE
+                  - HEAD
+                AllowedHeaders:
+                  - "*"
   CloudFrontAccessIdentity:
       Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
       Properties:
@@ -650,6 +684,67 @@ Resources:
                   AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontAccessIdentity}"
                 Resource: !Sub "arn:aws:s3:::${AssetBucket}/images/*"
             Version: "2012-10-17"
+  ImagesFunction:
+      Type: AWS::Serverless::Function
+      Metadata:
+        BuildMethod: esbuild
+        BuildProperties:
+          Minify: true
+          Target: "es2020"
+          Sourcemap: true
+          EntryPoints: 
+            - app.ts
+          #
+          # Sharp requires special handling by esbuild, because it uses dynamic loading of libraries to
+          # deal with binaries for different operating systems
+          #
+          # External:
+          #   - sharp
+      Properties:
+          CodeUri: lambda/images/
+          Handler: app.handler
+          MemorySize: 512
+          Runtime: nodejs18.x
+          Timeout: 10
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+                  UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
+                  IMAGES_BUCKET: !Sub '${TablePrefix}-images'
+                  EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+          Policies:
+            - Statement:
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - events:PutEvents  
+            - Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource:
+                  Fn::Sub:
+                      - "arn:aws:s3:::${UploadBucket}/*"
+                      - AssetBucket: !Sub '${TablePrefix}-uploads'
+            - Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  Fn::Sub:
+                      - "arn:aws:s3:::${ImageBucket}/*"
+                      - AssetBucket: !Sub '${TablePrefix}-images'
+          Events:
+            FormatImage:
+              Type: CloudWatchEvent
+              Properties:
+                EventBusName: !Sub ${TablePrefix}-bus
+                Pattern:
+                  source:
+                    - mtw.coordination
+                  detail-type:
+                    - Format Image
   AssetsFunction:
       Type: AWS::Serverless::Function
       Metadata:
