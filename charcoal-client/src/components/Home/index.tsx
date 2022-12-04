@@ -12,6 +12,7 @@ import Grid from '@mui/material/Grid'
 import Stack from '@mui/material/Stack'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import AddIcon from '@mui/icons-material/Add'
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import MapIcon from '@mui/icons-material/Explore'
@@ -159,7 +160,7 @@ export const Home: FunctionComponent<HomeProps> = ({
             </Grid>
             {[
                 {
-                    icon: null,
+                    icon: <NotificationsActiveIcon />,
                     title: 'Notifications',
                     href: '/Notifications/'
                 },

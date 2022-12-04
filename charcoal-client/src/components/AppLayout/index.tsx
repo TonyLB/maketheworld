@@ -31,6 +31,8 @@ import ForumIcon from '@mui/icons-material/Forum'
 import MapIcon from '@mui/icons-material/Explore'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
+import LibraryIcon from '@mui/icons-material/ArtTrack'
 
 import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
@@ -59,6 +61,10 @@ const IconDispatcher = ({ iconName = 'Forum' }) => {
     switch(iconName) {
         case 'Map':
             return <MapIcon />
+        case 'Notifications':
+            return <NotificationsActiveIcon />
+        case 'Library':
+            return <LibraryIcon />
         default:
             return <ForumIcon />
     }

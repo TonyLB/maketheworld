@@ -14,8 +14,6 @@ import {
     ListSubheader
 } from '@mui/material'
 
-import AssetIcon from '@mui/icons-material/Landscape'
-
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 
 interface NotificationsProps {
@@ -24,7 +22,7 @@ interface NotificationsProps {
 
 export const Notifications: FunctionComponent<NotificationsProps> = () => {
     const dispatch = useDispatch()
-    useAutoPin({ href: `/Library/`, label: `Library`})
+    useAutoPin({ href: `/Notifications/`, label: `Notify`, iconName: 'Notifications' })
     const navigate = useNavigate()
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
