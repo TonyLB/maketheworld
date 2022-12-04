@@ -694,12 +694,6 @@ Resources:
           Sourcemap: true
           EntryPoints: 
             - app.ts
-          #
-          # Sharp requires special handling by esbuild, because it uses dynamic loading of libraries to
-          # deal with binaries for different operating systems
-          #
-          # External:
-          #   - sharp
       Properties:
           CodeUri: lambda/images/
           Handler: app.handler

@@ -11,7 +11,8 @@
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.223.0",
     "@aws-sdk/client-s3": "^3.223.0",
-    "esbuild": "^0.15.17"
+    "esbuild": "^0.15.17",
+    "jimp": "^0.16.2"
   },
   "devDependencies": {
     "@types/jest": "^29.2.3",
