@@ -160,6 +160,11 @@ export const Home: FunctionComponent<HomeProps> = ({
             {[
                 {
                     icon: null,
+                    title: 'Notifications',
+                    href: '/Notifications/'
+                },
+                {
+                    icon: null,
                     title: 'Logout',
                     onClick: () => {
                         signOut()
