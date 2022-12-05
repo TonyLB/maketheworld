@@ -701,6 +701,14 @@ Resources:
                   AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontAccessIdentity}"
                 Resource: !Sub "arn:aws:s3:::${AssetBucket}/images/*"
             Version: "2012-10-17"
+  DeployClientSource:
+      Type: AWS::Serverless::LayerVersion
+      Properties:
+          LayerName: deploy-client-source
+          Description: Layer providing access to client build
+          ContentUri: charcoal-client/build/
+          CompatibleRuntimes:
+              - nodejs18.x
   InitializeFunction:
       Type: AWS::Serverless::Function
       Metadata:
@@ -716,6 +724,8 @@ Resources:
           Runtime: nodejs18.x
           Handler: app.handler
           Timeout: 600
+          Layers:
+              - !Ref DeployClientSource
           Environment:
               Variables:
                   CLIENT_BUCKET: !Sub '${TablePrefix}-client'
@@ -741,8 +751,6 @@ Resources:
   #         Acl: 'public-read'
   #         CacheControlMaxAge: 60
 
-  #
-  # TODO: Iteration 1:  Create a file in the Client S3 bucket
   #
   # TODO: Iteration 2:  Use a Lambda layer to import the contents of charcoal-client/build into the /opt/
   # directory in the Lambda function, read those contents, and populate them into the Client directory.
