@@ -610,6 +610,23 @@ Resources:
                   - HEAD
                 AllowedHeaders:
                   - "*"
+  ClientBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+          BucketName: !Sub '${TablePrefix}-client'
+          CorsConfiguration:
+            CorsRules:
+              -
+                AllowedOrigins:
+                  - "*"
+                AllowedMethods:
+                  - POST
+                  - GET
+                  - PUT
+                  - DELETE
+                  - HEAD
+                AllowedHeaders:
+                  - "*"
   UploadBucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -684,6 +701,64 @@ Resources:
                   AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontAccessIdentity}"
                 Resource: !Sub "arn:aws:s3:::${AssetBucket}/images/*"
             Version: "2012-10-17"
+  DeployClientSource:
+      Type: AWS::Serverless::LayerVersion
+      Properties:
+          LayerName: deploy-client-source
+          Description: Layer providing access to client build
+          ContentUri: charcoal-client/build/
+          CompatibleRuntimes:
+              - nodejs18.x
+  InitializeFunction:
+      Type: AWS::Serverless::Function
+      Metadata:
+        BuildMethod: esbuild
+        BuildProperties:
+          Minify: true
+          Target: "es2020"
+          Sourcemap: true
+          EntryPoints: 
+            - app.ts
+      Properties:
+          CodeUri: lambda/initialize/
+          Runtime: nodejs18.x
+          Handler: app.handler
+          Timeout: 600
+          Layers:
+              - !Ref DeployClientSource
+          Environment:
+              Variables:
+                  CLIENT_BUCKET: !Sub '${TablePrefix}-client'
+          Policies:
+              - S3FullAccessPolicy:
+                  BucketName: !Ref ClientBucket
+          Events:
+            Initialize:
+              Type: CloudWatchEvent
+              Properties:
+                EventBusName: !Sub ${TablePrefix}-bus
+                Pattern:
+                  source:
+                    - mtw.diagnostics
+                  detail-type:
+                    - Initialize
+  # DeployClientSource:
+  #     Type: Custom:DeployClientToS3
+  #     Properties:
+  #         ServiceToken: !GetAtt ClientSource.Arn
+  #         Version: !Ref "ClientSource.Version"
+  #         TargetBucket: !Ref ClientBucket
+  #         Acl: 'public-read'
+  #         CacheControlMaxAge: 60
+
+  #
+  # TODO: Iteration 3:  As part of the initialize lambda function, build the config.json file into the
+  # bundle as you upload it, to populate the relevant data directly from CloudFormation properties
+  # passed into the lambda.
+  #
+  # TODO: Iteration 4:  Use the lambda function to back a CustomResource that runs when the Stack
+  # is populated.
+  #
   AssetsFunction:
       Type: AWS::Serverless::Function
       Metadata:
