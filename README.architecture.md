@@ -15,6 +15,9 @@ the theoretical blueprints, and how they have been changed by player actions.  W
 needs to know *"What is the state of this place right now?" the Ephemera Manager is tasked
 with having that information on hand, and when a player does something to change the world,
 the Ephemera Manager is there to calculate all the consequences.
+- ***Image Manager***: A simple utility Lambda function and associated *upload* and *images*
+S3 buckets.  Image Manager accepts EventBridge commands to process a file in the *upload*
+bucket, resize and reformat it, and place it in the *images* bucket, then delete the original.
 - ***ExternalBus***:  An EventBridge bus for the different subsystems to communicate with
 each other within the AWS ecosystem.  When Ephemera Manager needs to request a blueprint
 from the Asset Manager, or Asset Manager needs to pass on changes and updates, the EventBus

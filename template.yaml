@@ -119,7 +119,7 @@ Resources:
       CodeUri: lambda/ephemera/
       Handler: app.handler
       MemorySize: 512
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Timeout: 20
       Environment:
         Variables:
@@ -610,6 +610,40 @@ Resources:
                   - HEAD
                 AllowedHeaders:
                   - "*"
+  UploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+          BucketName: !Sub '${TablePrefix}-uploads'
+          CorsConfiguration:
+            CorsRules:
+              -
+                AllowedOrigins:
+                  - "*"
+                AllowedMethods:
+                  - POST
+                  - GET
+                  - PUT
+                  - DELETE
+                  - HEAD
+                AllowedHeaders:
+                  - "*"
+  ImageBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+          BucketName: !Sub '${TablePrefix}-images'
+          CorsConfiguration:
+            CorsRules:
+              -
+                AllowedOrigins:
+                  - "*"
+                AllowedMethods:
+                  - POST
+                  - GET
+                  - PUT
+                  - DELETE
+                  - HEAD
+                AllowedHeaders:
+                  - "*"
   CloudFrontAccessIdentity:
       Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
       Properties:
@@ -660,22 +694,18 @@ Resources:
           Sourcemap: true
           EntryPoints: 
             - app.ts
-          #
-          # Sharp requires special handling by esbuild, because it uses dynamic loading of libraries to
-          # deal with binaries for different operating systems
-          #
-          # External:
-          #   - sharp
       Properties:
           CodeUri: lambda/assets/
           Handler: app.handler
-          MemorySize: 512
-          Runtime: nodejs14.x
+          MemorySize: 1024
+          Runtime: nodejs18.x
           Timeout: 30
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
                   S3_BUCKET: !Sub '${TablePrefix}-assets'
+                  UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
+                  IMAGES_BUCKET: !Sub '${TablePrefix}-images'
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
                   COGNITO_POOL_ID: !Ref UserPool
                   EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
@@ -708,6 +738,23 @@ Resources:
             - Statement:
               - Effect: Allow
                 Action:
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource:
+                  Fn::Sub:
+                      - "arn:aws:s3:::${UploadBucket}/*"
+                      - AssetBucket: !Sub '${TablePrefix}-uploads'
+            - Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  Fn::Sub:
+                      - "arn:aws:s3:::${ImageBucket}/*"
+                      - AssetBucket: !Sub '${TablePrefix}-images'
+            - Statement:
+              - Effect: Allow
+                Action:
                   - cognito-idp:ListUsers
                 Resource:
                   Fn::Sub:
@@ -724,6 +771,15 @@ Resources:
                   detail-type:
                     - Heal Asset
                     - Heal Player
+            FormatImage:
+              Type: CloudWatchEvent
+              Properties:
+                EventBusName: !Sub ${TablePrefix}-bus
+                Pattern:
+                  source:
+                    - mtw.coordination
+                  detail-type:
+                    - Format Image
 
 Outputs:
   UserPoolClient:
