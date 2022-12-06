@@ -34,6 +34,7 @@ src/aws-exports.js
 src/config.json
 src/rawConfig.json
 src/models
+public/config.json
 awsconfiguration.json
 amplifyconfiguration.json
 amplify-build-config.json

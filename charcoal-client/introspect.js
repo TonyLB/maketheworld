@@ -14,7 +14,7 @@ const argument = args[0]
 // For some reason, running the command through node results in UTF-8 output, while running it at the command line results in UTF-16LE.
 // Not gonna complain!
 //
-const command = `aws cloudformation describe-stacks --output json --query "Stacks[0].Outputs" --stack-name ${argument} > src/config.json`
+const command = `aws cloudformation describe-stacks --output json --query "Stacks[0].Outputs" --stack-name ${argument} > public/config.json`
 
 exec(command, (error) => {
     if (error) {
