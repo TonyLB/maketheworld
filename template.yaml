@@ -672,17 +672,39 @@ Resources:
           DistributionConfig:
               Enabled: True
               Origins:
+                #
+                # TODO: Redirect image origin to ImageBucket and use CloudFront Functions to transform the incoming
+                # request to remove the "images/" subdirectory
+                #
+                #
+                # TODO: Refactor CloudFront with Origin Access Control to S3 REST API in order to get static
+                # website-serving behavior out of CloudFront
+                #
                 - DomainName: !GetAtt AssetBucket.RegionalDomainName
                   Id: !Sub "S3-origin-${AssetBucket}"
-                  OriginPath: /images
+                  S3OriginConfig:
+                      OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontAccessIdentity}"
+                - DomainName: !GetAtt ClientBucket.RegionalDomainName
+                  Id: !Sub "S3-origin-${ClientBucket}"
                   S3OriginConfig:
                       OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontAccessIdentity}"
               PriceClass: PriceClass_100
-              DefaultCacheBehavior:
+              CacheBehaviors:
+                - PathPattern: images/*
                   AllowedMethods:
                   - GET
                   - HEAD
                   TargetOriginId: !Sub "S3-origin-${AssetBucket}"
+                  ForwardedValues:
+                    QueryString: 'false'
+                    Cookies:
+                      Forward: none
+                  ViewerProtocolPolicy: allow-all
+              DefaultCacheBehavior:
+                  AllowedMethods:
+                  - GET
+                  - HEAD
+                  TargetOriginId: !Sub "S3-origin-${ClientBucket}"
                   ForwardedValues:
                     QueryString: 'false'
                     Cookies:
@@ -700,6 +722,19 @@ Resources:
                 Principal:
                   AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontAccessIdentity}"
                 Resource: !Sub "arn:aws:s3:::${AssetBucket}/images/*"
+            Version: "2012-10-17"
+  ClientHostingPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+          Bucket: !Ref ClientBucket
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - "s3:GetObject"
+                Effect: Allow
+                Principal:
+                  AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontAccessIdentity}"
+                Resource: !Sub "arn:aws:s3:::${ClientBucket}/*"
             Version: "2012-10-17"
   DeployClientSource:
       Type: AWS::Serverless::LayerVersion
