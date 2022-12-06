@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Provider } from 'react-redux'
+import React, { useEffect, useState } from 'react'
+import { Provider, useDispatch, useSelector } from 'react-redux'
 import { Amplify } from 'aws-amplify'
 import {
   Authenticator,
@@ -19,25 +19,22 @@ import '@mui/styles'
 
 import { store } from './store/index'
 import AppController from './components/AppController'
-import { AuthConfig } from './config'
 import './App.css';
+import { getConfiguration, getConfigurationError, loadConfiguration } from './slices/configuration'
+import Spinner from './components/Spinner'
 
 declare module '@mui/styles' {
   interface DefaultTheme extends Theme {}
 }
-
-Amplify.configure(AuthConfig)
 
 const theme = createTheme();
 
 export const App = ({ signOut }: { signOut: () => void }) => (
   <StyledEngineProvider injectFirst>
     <ThemeProvider theme={theme}>
-      <Provider store={store}>
-        <CssBaseline />
-        <AppController signOut={signOut} />
-        {/* <Chat /> */}
-      </Provider>
+      <CssBaseline />
+      <AppController signOut={signOut} />
+      {/* <Chat /> */}
     </ThemeProvider>
   </StyledEngineProvider>
 )
@@ -47,7 +44,7 @@ export const App = ({ signOut }: { signOut: () => void }) => (
 // the wrapped component as default) in a Redux API request to secure the config
 // JSON by asynchronous fetch.
 //
-export default (withAuthenticator as any)(App, {
+const AuthenticatedApp = (withAuthenticator as any)(App, {
   signUpAttributes: ['email'],
   signUpConfig: {
     hiddenDefaults: ['phone_number']
@@ -105,3 +102,56 @@ export default (withAuthenticator as any)(App, {
     },
   }
 })
+
+const ConfiguredApp = () => {
+  const error = useSelector(getConfigurationError)
+  const configuration = useSelector(getConfiguration)
+  const dispatch = useDispatch()
+  useEffect(() => {
+    if (!error) {
+      if (configuration.UserPoolClient && configuration.UserPoolId && configuration.WebSocketURI) {
+        Amplify.configure({
+          aws_project_region: "us-east-1",
+          aws_appsync_region: "us-east-1",
+          aws_appsync_authenticationType: "AMAZON_COGNITO_USER_POOLS",
+          Auth: {
+              // REQUIRED - Amazon Cognito Region
+              region: 'us-east-1',
+      
+              // OPTIONAL - Amazon Cognito User Pool ID
+              userPoolId: configuration.UserPoolId,
+      
+              // OPTIONAL - Amazon Cognito Web Client ID (26-char alphanumeric string)
+              userPoolWebClientId: configuration.UserPoolClient,
+      
+              // OPTIONAL - Enforce user authentication prior to accessing AWS resources or not
+              mandatorySignIn: true,
+      
+              // OPTIONAL - Manually set the authentication flow type. Default is 'USER_SRP_AUTH'
+              authenticationFlowType: 'USER_SRP_AUTH',
+      
+          }      
+        })
+      }
+      else {
+        dispatch(loadConfiguration)
+      }
+    }
+  }, [configuration, error])
+  if (error) {
+    return <div>Error loading MTW configuration</div>
+  }
+  else if (configuration.UserPoolClient && configuration.UserPoolId && configuration.WebSocketURI) {
+    return <AuthenticatedApp />
+  }
+  else {
+    return <Spinner size={150} border={10} />
+  }
+}
+
+export const FinalApp = () => (
+  <Provider store={store}>
+    <ConfiguredApp />
+  </Provider>
+)
+export default FinalApp

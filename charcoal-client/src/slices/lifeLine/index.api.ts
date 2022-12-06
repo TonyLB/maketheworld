@@ -3,11 +3,9 @@ import { Auth } from 'aws-amplify'
 import { AnyAction } from 'redux'
 import { ThunkAction } from 'redux-thunk'
 
-import { WSS_ADDRESS } from '../../config'
 import {
     LifeLineAction,
     LifeLineReturn,
-    ParseCommandModes,
     ParseCommandProps
 } from './baseClasses'
 import { AppDispatch, AppGetState, RootState } from '../../store'
@@ -23,6 +21,7 @@ import { EphemeraAPIMessage, isEphemeraClientMessage } from '@tonylb/mtw-interfa
 import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/dist/asset'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
+import { getConfiguration } from '../configuration'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -102,14 +101,15 @@ export function socketDispatch(payload: EphemeraAPIMessage | AssetAPIMessage | {
     }
 }
 
-export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, actions: { internalStateChange }}) => async (dispatch) => {
+export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, actions: { internalStateChange }}) => async (dispatch, getState) => {
     //
     // Pull a Cognito authentication token in order to connect to the webSocket
     //
+    const { WebSocketURI } = getConfiguration(getState())
     return Auth.currentSession()
         .then((session) => (session.getIdToken().getJwtToken()))
         .then((token) => (new Promise<LifeLineReturn>((resolve, reject) => {
-            let setupSocket = new WebSocket(`${WSS_ADDRESS}?Authorization=${token}`)
+            let setupSocket = new WebSocket(`${WebSocketURI}?Authorization=${token}`)
             setupSocket.onopen = () => {
                 //
                 // Make sure that any previous websocket is disconnected.

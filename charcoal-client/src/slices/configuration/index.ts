@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { stringify } from 'uuid';
 
 interface ConfigurationData {
     UserPoolId?: string;
@@ -16,7 +17,10 @@ const configurationSlice = createSlice({
     initialState,
     reducers: {
         receiveConfiguration(state, action: PayloadAction<ConfigurationData>) {
-            state = action.payload
+            state.UserPoolClient = action.payload.UserPoolClient
+            state.UserPoolId = action.payload.UserPoolId
+            state.WebSocketURI = action.payload.WebSocketURI
+            state.error = action.payload.error
         },
         receiveConfigurationError(state) {
             state.error = true
@@ -28,11 +32,27 @@ export const getConfiguration = (state: any): Omit<ConfigurationData, 'error'> =
 export const getConfigurationError = (state: any): boolean => (state.configuration.error)
 
 export const loadConfiguration = async (dispatch: any) => {
-    const jsonContents = await fetch('public/config.json')
-    const configuration = await jsonContents.json()
-    if (typeof configuration !== 'object') {
+    const jsonContents = await fetch('config.json')
+    console.log(`JSON Contents: ${jsonContents}`)
+    const configurationRaw = await jsonContents.json()
+    if (!Array.isArray(configurationRaw)) {
         dispatch(receiveConfigurationError())
     }
+    const configuration = (configurationRaw as any[]).reduce<Record<string, string>>((previous, item) => {
+        if (typeof item === 'object') {
+            if ('OutputKey' in item && 'OutputValue' in item) {
+                const { OutputKey, OutputValue } = item
+                if (typeof OutputKey === 'string' && typeof OutputValue === 'string') {
+                    return {
+                        ...previous,
+                        [OutputKey]: OutputValue
+                    }
+                }
+            }
+        }
+        return previous
+    }, {})
+    console.log(`Configuration: ${JSON.stringify(configuration, null, 4)}`)
     if (!(configuration.UserPoolId && configuration.UserPoolClient && configuration.WebSocketURI)) {
         dispatch(receiveConfigurationError())
     }
