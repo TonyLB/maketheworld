@@ -317,7 +317,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, Expression
     if (newState === state) {
         return {}
     }
-    if (state && newState && Object.keys(state || {}).length) {
+    if (typeof state === 'object' && typeof newState === 'object' && Object.keys(state || {}).length) {
         //
         // Updating an existing record
         //
@@ -337,7 +337,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, Expression
         return produce(startingDraft, (draft) => {
             updateKeys.forEach((key, index) => {
                 const translatedKey = (ExpressionAttributeNames && key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
-                if (state && translatedKey in state && (typeof state[translatedKey] !== 'undefined')) {
+                if (typeof state === 'object' && translatedKey in state && (typeof state[translatedKey] !== 'undefined')) {
                     if (newState?.[translatedKey] === undefined) {
                         //
                         // Remove existing item
@@ -349,7 +349,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, Expression
                             draft.ExpressionAttributeNames[key] = translatedKey
                         }
                     }
-                    if (newState && translatedKey in newState && newState[translatedKey] !== undefined && newState[translatedKey] !== state[translatedKey]) {
+                    if (typeof newState === 'object' && translatedKey in newState && (typeof newState[translatedKey] !== 'undefined') && newState[translatedKey] !== state[translatedKey]) {
                         //
                         // Update existing item to new value
                         //
