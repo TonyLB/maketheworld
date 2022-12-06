@@ -28,12 +28,14 @@ const initializeClientData = async (subDir: string = ''): Promise<void> => {
                 await initializeClientData(`${subDir}/${item}`)
             }
             else {
-                const data = await readFile(`${baseDir}/${item}`)
-                await s3Client.send(new PutObjectCommand({
-                    Bucket: process.env.CLIENT_BUCKET,
-                    Key: subDir ? `${subDir.slice(1)}/${item}` : item,
-                    Body: data
-                }))
+                if (subDir || !(item === 'config.json')) {
+                    const data = await readFile(`${baseDir}/${item}`)
+                    await s3Client.send(new PutObjectCommand({
+                        Bucket: process.env.CLIENT_BUCKET,
+                        Key: subDir ? `${subDir.slice(1)}/${item}` : item,
+                        Body: data
+                    }))
+                }
             }
         })
     )
@@ -46,7 +48,21 @@ export const handler = async (event, context) => {
         if (event["detail-type"] === 'Initialize') {
             console.log(`Initializer called`)
             await clearClientBucket()
-            await initializeClientData()
+            await Promise.all([
+                initializeClientData(),
+                s3Client.send(new PutObjectCommand({
+                    Bucket: process.env.CLIENT_BUCKET,
+                    Key: 'config.json',
+                    Body: JSON.stringify(Object.entries({
+                        UserPoolClient: process.env.USER_POOL_CLIENT,
+                        UserPoolId: process.env.USER_POOL_ID,
+                        WebSocketApiId: process.env.WEB_SOCKET_API_ID
+                    }).map(([key, value]) => ({
+                        OutputKey: key,
+                        OutputValue: value
+                    })), null, 4)
+                }))
+            ])
             return JSON.stringify(`Success`)
         }
     }

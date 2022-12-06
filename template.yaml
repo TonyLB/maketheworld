@@ -729,6 +729,9 @@ Resources:
           Environment:
               Variables:
                   CLIENT_BUCKET: !Sub '${TablePrefix}-client'
+                  USER_POOL_CLIENT: !Ref UserPoolClient
+                  USER_POOL_ID: !Ref UserPool
+                  WEB_SOCKET_API_ID: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
           Policies:
               - S3FullAccessPolicy:
                   BucketName: !Ref ClientBucket
@@ -742,21 +745,8 @@ Resources:
                     - mtw.diagnostics
                   detail-type:
                     - Initialize
-  # DeployClientSource:
-  #     Type: Custom:DeployClientToS3
-  #     Properties:
-  #         ServiceToken: !GetAtt ClientSource.Arn
-  #         Version: !Ref "ClientSource.Version"
-  #         TargetBucket: !Ref ClientBucket
-  #         Acl: 'public-read'
-  #         CacheControlMaxAge: 60
-
   #
-  # TODO: Iteration 3:  As part of the initialize lambda function, build the config.json file into the
-  # bundle as you upload it, to populate the relevant data directly from CloudFormation properties
-  # passed into the lambda.
-  #
-  # TODO: Iteration 4:  Use the lambda function to back a CustomResource that runs when the Stack
+  # TODO: Iteration 4:  Use the initialize lambda function to back a CustomResource that runs when the Stack
   # is populated.
   #
   AssetsFunction:
