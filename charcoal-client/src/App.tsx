@@ -42,6 +42,11 @@ export const App = ({ signOut }: { signOut: () => void }) => (
   </StyledEngineProvider>
 )
 
+//
+// TODO: Refactor below as AuthenticatedApp, then wrap that further (and export
+// the wrapped component as default) in a Redux API request to secure the config
+// JSON by asynchronous fetch.
+//
 export default (withAuthenticator as any)(App, {
   signUpAttributes: ['email'],
   signUpConfig: {
