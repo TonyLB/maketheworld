@@ -28,12 +28,14 @@ const initializeClientData = async (subDir: string = ''): Promise<void> => {
                 await initializeClientData(`${subDir}/${item}`)
             }
             else {
-                const data = await readFile(`${baseDir}/${item}`)
-                await s3Client.send(new PutObjectCommand({
-                    Bucket: process.env.CLIENT_BUCKET,
-                    Key: subDir ? `${subDir.slice(1)}/${item}` : item,
-                    Body: data
-                }))
+                if (subDir || !(item === 'config.json')) {
+                    const data = await readFile(`${baseDir}/${item}`)
+                    await s3Client.send(new PutObjectCommand({
+                        Bucket: process.env.CLIENT_BUCKET,
+                        Key: subDir ? `${subDir.slice(1)}/${item}` : item,
+                        Body: data
+                    }))
+                }
             }
         })
     )
