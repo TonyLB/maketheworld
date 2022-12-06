@@ -89,7 +89,8 @@ export const handler = async (event, context) => {
                     await s3Client.send(new PutObjectCommand({
                         Bucket: process.env.IMAGES_BUCKET,
                         Key: `${toFileName}.png`,
-                        Body: afterBuffer
+                        Body: afterBuffer,
+                        ContentType: 'image/png'
                     }))
 
                 }
