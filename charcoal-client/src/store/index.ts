@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import thunk from 'redux-thunk'
 
+import configuration from '../slices/configuration'
 import uiReducer from '../slices/UI'
 import settings from '../slices/settings'
 import messages from '../slices/messages'
@@ -14,6 +15,7 @@ import personalAssets from '../slices/personalAssets'
 
 export const store = configureStore({
     reducer: {
+        configuration,
         activeCharacters,
         lifeLine,
         ephemera,
