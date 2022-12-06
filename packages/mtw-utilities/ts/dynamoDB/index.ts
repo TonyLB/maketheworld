@@ -367,7 +367,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, Expression
                     if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
                         draft.ExpressionAttributeNames[key] = translatedKey
                     }
-                    if (newState && translatedKey in newState && newState[translatedKey] !== undefined) {
+                    if (typeof newState === 'object' && translatedKey in newState && newState[translatedKey] !== undefined) {
                         //
                         // Add new item
                         //
