@@ -48,7 +48,21 @@ export const handler = async (event, context) => {
         if (event["detail-type"] === 'Initialize') {
             console.log(`Initializer called`)
             await clearClientBucket()
-            await initializeClientData()
+            await Promise.all([
+                initializeClientData(),
+                s3Client.send(new PutObjectCommand({
+                    Bucket: process.env.CLIENT_BUCKET,
+                    Key: 'config.json',
+                    Body: JSON.stringify(Object.entries({
+                        UserPoolClient: process.env.USER_POOL_CLIENT,
+                        UserPoolId: process.env.USER_POOL_ID,
+                        WebSocketApiId: process.env.WEB_SOCKET_API_ID
+                    }).map(([key, value]) => ({
+                        OutputKey: key,
+                        OutputValue: value
+                    })), null, 4)
+                }))
+            ])
             return JSON.stringify(`Success`)
         }
     }
