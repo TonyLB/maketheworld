@@ -33,35 +33,37 @@ export const getConfigurationError = (state: any): boolean => (state.configurati
 
 export const loadConfiguration = async (dispatch: any) => {
     const jsonContents = await fetch('config.json')
-    console.log(`JSON Contents: ${jsonContents}`)
     const configurationRaw = await jsonContents.json()
     if (!Array.isArray(configurationRaw)) {
         dispatch(receiveConfigurationError())
     }
-    const configuration = (configurationRaw as any[]).reduce<Record<string, string>>((previous, item) => {
-        if (typeof item === 'object') {
-            if ('OutputKey' in item && 'OutputValue' in item) {
-                const { OutputKey, OutputValue } = item
-                if (typeof OutputKey === 'string' && typeof OutputValue === 'string') {
-                    return {
-                        ...previous,
-                        [OutputKey]: OutputValue
+    else {
+        const configuration = (configurationRaw as any[]).reduce<Record<string, string>>((previous, item) => {
+            if (typeof item === 'object') {
+                if ('OutputKey' in item && 'OutputValue' in item) {
+                    const { OutputKey, OutputValue } = item
+                    if (typeof OutputKey === 'string' && typeof OutputValue === 'string') {
+                        return {
+                            ...previous,
+                            [OutputKey]: OutputValue
+                        }
                     }
                 }
             }
+            return previous
+        }, {})
+        if (!(configuration.UserPoolId && configuration.UserPoolClient && configuration.WebSocketURI)) {
+            dispatch(receiveConfigurationError())
         }
-        return previous
-    }, {})
-    console.log(`Configuration: ${JSON.stringify(configuration, null, 4)}`)
-    if (!(configuration.UserPoolId && configuration.UserPoolClient && configuration.WebSocketURI)) {
-        dispatch(receiveConfigurationError())
+        else {
+            dispatch(receiveConfiguration({
+                UserPoolId: configuration.UserPoolId,
+                UserPoolClient: configuration.UserPoolClient,
+                WebSocketURI: configuration.WebSocketURI,
+                error: false
+            }))
+        }
     }
-    dispatch(receiveConfiguration({
-        UserPoolId: configuration.UserPoolId,
-        UserPoolClient: configuration.UserPoolClient,
-        WebSocketURI: configuration.WebSocketURI,
-        error: false
-    }))
 }
 
 export const { receiveConfiguration, receiveConfigurationError } = configurationSlice.actions

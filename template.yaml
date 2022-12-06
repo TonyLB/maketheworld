@@ -766,7 +766,7 @@ Resources:
                   CLIENT_BUCKET: !Sub '${TablePrefix}-client'
                   USER_POOL_CLIENT: !Ref UserPoolClient
                   USER_POOL_ID: !Ref UserPool
-                  WEB_SOCKET_API_ID: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
+                  WEB_SOCKET_URI: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
           Policies:
               - S3FullAccessPolicy:
                   BucketName: !Ref ClientBucket
