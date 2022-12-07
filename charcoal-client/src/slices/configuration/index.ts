@@ -32,7 +32,7 @@ export const getConfiguration = (state: any): Omit<ConfigurationData, 'error'> =
 export const getConfigurationError = (state: any): boolean => (state.configuration.error)
 
 export const loadConfiguration = async (dispatch: any) => {
-    const jsonContents = await fetch('config.json')
+    const jsonContents = await fetch('/config.json')
     const configurationRaw = await jsonContents.json()
     if (!Array.isArray(configurationRaw)) {
         dispatch(receiveConfigurationError())
