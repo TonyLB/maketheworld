@@ -1,6 +1,6 @@
 import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
-import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
+import { isMapDescribeData, isMessage, isNotification, MapDescribeData, Message, Notification } from "./messages"
 import { checkAll, checkTypes } from "./utils";
 
 export type RegisterCharacterAPIMessage = {
@@ -311,6 +311,12 @@ export type EphemeraClientMessagePublishMessages = {
     messages: Message[];
 }
 
+export type EphemeraClientMessagePublishNotifications = {
+    messageType: 'Notifications';
+    RequestId?: string;
+    notifications: Notification[];
+}
+
 export type EphemeraClientMessageRegisterMessage = {
     messageType: 'Registration';
     RequestId?: string;
@@ -324,6 +330,7 @@ export type EphemeraClientMessageSubscribeToMapsMessage = {
 
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessagePublishMessages |
+    EphemeraClientMessagePublishNotifications |
     EphemeraClientMessageRegisterMessage |
     EphemeraClientMessageSubscribeToMapsMessage
 
@@ -361,6 +368,17 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             }            
             return messages.reduce<boolean>((previous, subMessage) => (
                 previous && isMessage(subMessage)
+            ), true)
+        case 'Notifications':
+            if (!('notifications' in message)) {
+                return false
+            }
+            const notifications = message.notifications
+            if (!Array.isArray(notifications)) {
+                return false
+            }            
+            return notifications.reduce<boolean>((previous, subMessage) => (
+                previous && isNotification(subMessage)
             ), true)
         default: return false
     }

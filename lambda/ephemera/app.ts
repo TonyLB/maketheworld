@@ -143,6 +143,18 @@ export const handler = async (event: any, context: any) => {
                     }
                 }
                 break
+            case 'Publish Notification':
+                if (event.detail.player && event.detail.message) {
+                    messageBus.send({
+                        type: 'PublishNotification',
+                        targets: [event.detail.player],
+                        displayProtocol: 'Information',
+                        message: [{
+                            tag: 'String',
+                            value: event.detail.message
+                        }]
+                    })
+                }
         }
     }
     else if (routeKey === '$connect') {

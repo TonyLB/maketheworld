@@ -2,7 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat } from "@tonylb/mtw-interfaces/dist/messages"
+import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/dist/messages"
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
@@ -90,6 +90,18 @@ export type PublishMessage = PublishWorldMessage |
     PublishFeatureDescriptionMessage |
     PublishRoomDescriptionMessage |
     PublishCharacterDescriptionMessage
+
+export type PublishNotificationBase = {
+    type: 'PublishNotification';
+    targets: string[];
+}
+    
+export type PublishInformationNotification = {
+    displayProtocol: 'Information';
+    message: TaggedNotificationContent[];
+} & PublishNotificationBase
+
+export type PublishNotification = PublishInformationNotification
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -258,6 +270,7 @@ export type MapUpdateMessage = {
 }
 
 export type MessageType = PublishMessage |
+    PublishNotification |
     ReturnValueMessage |
     DisconnectMessage |
     ConnectMessage |
@@ -289,6 +302,9 @@ export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is Publis
 export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is PublishRoomDescriptionMessage => (prop.displayProtocol === 'RoomDescription')
 export const isFeatureDescriptionPublishMessage = (prop: PublishMessage): prop is PublishFeatureDescriptionMessage => (prop.displayProtocol === 'FeatureDescription')
 export const isCharacterDescriptionPublishMessage = (prop: PublishMessage): prop is PublishCharacterDescriptionMessage => (prop.displayProtocol === 'CharacterDescription')
+
+export const isPublishNotification = (prop: MessageType): prop is PublishNotification => (prop.type === 'PublishNotification')
+export const isInformationNotification = (prop: PublishNotification): prop is PublishInformationNotification => (prop.displayProtocol === 'Information')
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')
