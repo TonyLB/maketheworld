@@ -11,8 +11,6 @@ import {
     isSyncResponse,
     isRegisterCharacterMessage,
     isFetchPlayerEphemera,
-    isImportDefaults,
-    isFetchImportDefaults,
     isPerception,
     isMoveCharacter,
     isDecacheAsset,
@@ -24,7 +22,8 @@ import {
     isDependencyCascadeMessage,
     isExecuteActionMessage,
     isMapSubscription,
-    isMapUpdateMessage
+    isMapUpdateMessage,
+    isPublishNotification
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -46,6 +45,7 @@ import dependencyCascadeMessage from '../dependentMessages/dependencyCascade'
 import executeActionMessage from '../executeAction'
 import mapSubscriptionMessage from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
+import publishNotification from '../publishNotification'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -53,6 +53,12 @@ messageBus.subscribe({
     priority: 15,
     filter: isPublishMessage,
     callback: publishMessage
+})
+messageBus.subscribe({
+    tag: 'PublishNotification',
+    priority: 15,
+    filter: isPublishNotification,
+    callback: publishNotification
 })
 messageBus.subscribe({
     tag: 'EphemeraUpdate',
