@@ -710,6 +710,14 @@ Resources:
                     Cookies:
                       Forward: none
                   ViewerProtocolPolicy: allow-all
+              DefaultRootObject: index.html
+              #
+              # Since charcoal-client is an SPA, we defer all routing to the root page
+              #
+              CustomErrorResponses:
+                - ErrorCode: '403'
+                  ResponseCode: '200'
+                  ResponsePagePath: "/index.html"
   ImageHostingPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:

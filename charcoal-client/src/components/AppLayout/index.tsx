@@ -224,6 +224,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Help/" element={<HelpPage />} />
                         <Route path="/Who/" element={whoPanel} />
                         <Route path="/Notifications/" element={<Notifications />} />
+                        <Route path="/index.html" element={homePanel} />
                         <Route path="/" element={homePanel} />
                     </Routes>
                 </Box>
