@@ -113,14 +113,29 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
     }
 }
 
+export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
+
+export type TaggedNotificationContent = TaggedText | TaggedLineBreak;
+
+export const isTaggedNotificationContent = (notification: any): notification is TaggedNotificationContent => {
+    if (typeof notification !== 'object') {
+        return false
+    }
+    switch(notification.tag) {
+        case 'String':
+            return checkTypes(notification, { value: 'string' })
+        case 'LineBreak':
+            return true
+        default: return false
+    }
+}
+
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
 export const isTaggedBookmark = (item: TaggedMessageContent): item is TaggedBookmark => (item.tag === 'Bookmark')
-export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted): item is TaggedText => (item.tag === 'String')
-export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
+export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUnrestricted | TaggedNotificationContent): item is TaggedText => (item.tag === 'String')
+export const isTaggedLineBreak = (item: TaggedMessageContent | TaggedNotificationContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
 export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedConditional => (item.tag === 'Condition')
-
-export const isTaggedMessageContentFlat = (message: any): message is TaggedMessageContentFlat => (isTaggedMessageContent(message) && !isTaggedSpacer(message))
 
 export const validateTaggedMessageList = (items: any): items is TaggedMessageContentFlat[] => {
     if (!Array.isArray(items)) {
@@ -128,6 +143,15 @@ export const validateTaggedMessageList = (items: any): items is TaggedMessageCon
     }
     return items.reduce<boolean>((previous, item) => (
         previous && isTaggedMessageContentFlat(item)
+    ), true)
+}
+
+export const validateTaggedNotificationList = (items: any): items is TaggedNotificationContent[] => {
+    if (!Array.isArray(items)) {
+        return false
+    }
+    return items.reduce<boolean>((previous, item) => (
+        previous && isTaggedNotificationContent(item)
     ), true)
 }
 
@@ -537,6 +561,33 @@ export const isMessage = (message: any): message is Message => {
                     reflexive: 'string'
                 })
             ) && isEphemeraCharacterId(message.CharacterId)
+        default: return false
+    }
+}
+
+export type NotificationAddressing = {
+    NotificationId: string;
+    CreatedTime: number;
+    Target: string;
+}
+
+export type InformationNotification = {
+    DisplayProtocol: 'Information';
+    Message: TaggedNotificationContent[];
+} & NotificationAddressing
+
+export type Notification = InformationNotification
+
+export const isNotification = (notification: any): notification is Notification => {
+    if (typeof notification !== 'object') {
+        return false
+    }
+    if (!checkTypes(notification, { NotificationId: 'string', CreatedTime: 'number', Target: 'string' })) {
+        return false
+    }
+    switch(notification.DisplayProtocol) {
+        case 'Information':
+            return validateTaggedNotificationList(notification.Message)
         default: return false
     }
 }
