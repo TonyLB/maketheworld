@@ -936,11 +936,11 @@ export const messageDeltaQuery = async ({
     return await asyncSuppressExceptions(async () => {
         const { Items = [], LastEvaluatedKey } = await dbClient.send(new QueryCommand({
             TableName: deltaTable,
-            KeyConditionExpression: 'Target = :Target and DeltaId >= :Start',
-            ExpressionAttributeValues: marshall({
+            KeyConditionExpression: StartingAt ? 'Target = :Target and DeltaId >= :Start' : 'Target = :Target',
+            ExpressionAttributeValues: marshall(StartingAt ? {
                 ':Target': Target,
                 ':Start': `${StartingAt}`
-            }),
+            } : { ':Target': Target }),
             ExpressionAttributeNames,
             ...(ExclusiveStartKey ? { ExclusiveStartKey } : {}),
             Limit
