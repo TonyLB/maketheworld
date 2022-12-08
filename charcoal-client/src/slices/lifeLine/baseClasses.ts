@@ -7,6 +7,7 @@ export interface LifeLineInternal {
     pingInterval: IntervalType | null;
     refreshTimeout: TimeoutType | null;
     messageSubscription: string | null;
+    notificationSubscription: string | null;
     incrementalBackoff: number;
 }
 

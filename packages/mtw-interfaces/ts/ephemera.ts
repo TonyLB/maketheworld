@@ -24,6 +24,12 @@ export type SyncAPIMessage = {
     limit?: number;
 }
 
+export type SyncNotificationAPIMessage = {
+    message: 'syncNotification';
+    startingAt?: number;
+    limit?: number;
+}
+
 export type MapSubscribeAPIMessage = {
     message: 'subscribeToMaps';
     CharacterId: string;
@@ -100,6 +106,7 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     FetchEphemeraAPIMessage |
     WhoAmIAPIMessage |
     SyncAPIMessage |
+    SyncNotificationAPIMessage |
     MapSubscribeAPIMessage |
     ActionAPIMessage |
     LinkAPIMessage |
@@ -110,6 +117,7 @@ export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): mess
 export const isFetchEphemeraAPIMessage = (message: EphemeraAPIMessage): message is FetchEphemeraAPIMessage => (message.message === 'fetchEphemera')
 export const isWhoAmIAPIMessage = (message: EphemeraAPIMessage): message is WhoAmIAPIMessage => (message.message === 'whoAmI')
 export const isSyncAPIMessage = (message: EphemeraAPIMessage): message is SyncAPIMessage => (message.message === 'sync')
+export const isSyncNotificationAPIMessage = (message: EphemeraAPIMessage): message is SyncNotificationAPIMessage => (message.message === 'syncNotification')
 export const isMapSubscribeAPIMessage = (message: EphemeraAPIMessage): message is MapSubscribeAPIMessage => (message.message === 'subscribeToMaps')
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
@@ -139,6 +147,11 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                 && typeof message.CharacterId === 'string'
                 /* && isEphemeraCharacterId(message.CharacterId)*/
                 && (typeof (message.startingAt ?? 0) === 'number')
+                && (typeof (message.limit ?? 0) === 'number')
+            )
+        case 'syncNotification':
+            return Boolean(
+                (typeof (message.startingAt ?? 0) === 'number')
                 && (typeof (message.limit ?? 0) === 'number')
             )
         case 'link':

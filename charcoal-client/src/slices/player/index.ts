@@ -1,6 +1,7 @@
 import { PlayerNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
+    fetchNotifications,
     lifelineCondition,
     subscribeAction,
     syncAction,
@@ -67,6 +68,12 @@ export const {
             SUBSCRIBE: {
                 stateType: 'ATTEMPT',
                 action: subscribeAction,
+                resolve: 'FETCHNOTIFICATIONS',
+                reject: 'ERROR'
+            },
+            FETCHNOTIFICATIONS: {
+                stateType: 'ATTEMPT',
+                action: fetchNotifications,
                 resolve: 'SYNCHRONIZE',
                 reject: 'ERROR'
             },

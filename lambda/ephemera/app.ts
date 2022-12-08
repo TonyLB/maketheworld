@@ -14,7 +14,8 @@ import {
     isLinkAPIMessage,
     isCommandAPIMessage,
     isMapSubscribeAPIMessage,
-    isEphemeraAPIMessage
+    isEphemeraAPIMessage,
+    isSyncNotificationAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
@@ -217,6 +218,13 @@ export const handler = async (event: any, context: any) => {
                 else {
                     console.log(`Invalid CharacterId on SyncAPI`)
                 }
+            }
+            if (isSyncNotificationAPIMessage(request)) {
+                messageBus.send({
+                    type: 'SyncNotification',
+                    startingAt: request.startingAt,
+                    limit: request.limit
+                })
             }
             if (isMapSubscribeAPIMessage(request)) {
                 const characterId = request.CharacterId
