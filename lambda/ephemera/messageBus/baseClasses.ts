@@ -131,9 +131,23 @@ export type SyncRequest = {
     loopCount?: number;
 }
 
+export type SyncNotificationRequest = {
+    type: 'SyncNotification';
+    LastEvaluatedKey?: Record<string, AttributeValue>;
+    startingAt?: number;
+    limit?: number;
+    loopCount?: number;
+}
+
 export type SyncResponse = {
     type: 'SyncResponse',
     messages: any[];
+    lastSync?: number;
+}
+
+export type SyncNotificationResponse = {
+    type: 'SyncNotificationResponse';
+    notifications: any[];
     lastSync?: number;
 }
 
@@ -277,6 +291,8 @@ export type MessageType = PublishMessage |
     WhoAmIMessage |
     SyncRequest |
     SyncResponse |
+    SyncNotificationRequest |
+    SyncNotificationResponse |
     RegisterCharacterMessage |
     EphemeraUpdateMessage |
     FetchPlayerEphemeraMessage |
@@ -313,6 +329,8 @@ export const isWhoAmIMessage = (prop: MessageType): prop is WhoAmIMessage => (pr
 
 export const isSyncRequest = (prop: MessageType): prop is SyncRequest => (prop.type === 'Sync')
 export const isSyncResponse = (prop: MessageType): prop is SyncResponse => (prop.type === 'SyncResponse')
+export const isSyncNotificationRequest = (prop: MessageType): prop is SyncNotificationRequest => (prop.type === 'SyncNotification')
+export const isSyncNotificationResponse = (prop: MessageType): prop is SyncNotificationResponse => (prop.type === 'SyncNotificationResponse')
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
 
 export const isEphemeraUpdate = (prop: MessageType): prop is EphemeraUpdateMessage => (prop.type === 'EphemeraUpdate')

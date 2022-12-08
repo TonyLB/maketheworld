@@ -23,7 +23,9 @@ import {
     isExecuteActionMessage,
     isMapSubscription,
     isMapUpdateMessage,
-    isPublishNotification
+    isPublishNotification,
+    isSyncNotificationRequest,
+    isSyncNotificationResponse
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -31,7 +33,7 @@ import ephemeraUpdate from '../ephemeraUpdate'
 import disconnectMessage from '../disconnectMessage'
 import connectMessage from '../connectMessage'
 import whoAmIMessage from '../whoAmI'
-import { syncRequest, syncResponse } from '../syncHandler'
+import { syncNotificationRequest, syncNotificationResponse, syncRequest, syncResponse } from '../syncHandler'
 import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
@@ -95,6 +97,18 @@ messageBus.subscribe({
     priority: 3,
     filter: isSyncRequest,
     callback: syncRequest
+})
+messageBus.subscribe({
+    tag: 'SyncNotificationResponse',
+    priority: 2,
+    filter: isSyncNotificationResponse,
+    callback: syncNotificationResponse
+})
+messageBus.subscribe({
+    tag: 'SyncNotificationRequest',
+    priority: 3,
+    filter: isSyncNotificationRequest,
+    callback: syncNotificationRequest
 })
 messageBus.subscribe({
     tag: 'RegisterCharacter',
