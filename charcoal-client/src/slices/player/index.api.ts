@@ -22,6 +22,11 @@ export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) =>
     return { internalData: { subscription: lifeLineSubscription } }
 }
 
+export const fetchNotifications: PlayerAction = () => async (dispatch) => {
+    await dispatch(socketDispatchPromise({ message: 'syncNotification' }))
+    return {}
+}
+
 export const syncAction: PlayerAction = () => async (dispatch) => {
     //
     // TODO: Update values based on return value of socketDispatchPromise, rather

@@ -16,6 +16,7 @@ export type PlayerCondition = ISSMHoldCondition<PlayerInternal, PlayerPublic>
 export interface PlayerNodes {
     INITIAL: ISSMHoldNode<PlayerInternal, PlayerPublic>;
     SUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
+    FETCHNOTIFICATIONS: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     SYNCHRONIZE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     CONNECTED: ISSMChoiceNode;
     UNSUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
