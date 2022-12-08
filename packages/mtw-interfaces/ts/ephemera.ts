@@ -149,6 +149,11 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                 && (typeof (message.startingAt ?? 0) === 'number')
                 && (typeof (message.limit ?? 0) === 'number')
             )
+        case 'syncNotification':
+            return Boolean(
+                (typeof (message.startingAt ?? 0) === 'number')
+                && (typeof (message.limit ?? 0) === 'number')
+            )
         case 'link':
             return Boolean(
                 checkTypes(message, { CharacterId: 'string', to: 'string' })

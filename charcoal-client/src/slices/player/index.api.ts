@@ -22,6 +22,10 @@ export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) =>
     return { internalData: { subscription: lifeLineSubscription } }
 }
 
+//
+// TODO: Once fetchNotification is working consistently, combine into syncAction
+// to run the two in parallel with a Promise.all
+//
 export const fetchNotifications: PlayerAction = () => async (dispatch) => {
     await dispatch(socketDispatchPromise({ message: 'syncNotification' }))
     return {}

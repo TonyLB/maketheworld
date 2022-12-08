@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import cacheDB, { LastSyncType } from '../../cacheDB'
 import { Notification } from '@tonylb/mtw-interfaces/dist/messages'
 
-const initialState = {} as Notification[]
+const initialState = { notifications: [] as Notification[] }
 
 //
 // To efficiently insert Messages into the sorted state array, it helps to take advantage of its
@@ -45,22 +45,22 @@ const notificationsSlice = createSlice({
     reducers: {
         receiveNotifications(state: any, action: PayloadAction<Notification[]>) {
             action.payload.forEach((notification) => {
-                if (state[notification.Target]) {
-                    const { exactMatch, index } = binarySearch(state[notification.Target], notification.CreatedTime, notification.NotificationId)
+                if (state.notifications) {
+                    const { exactMatch, index } = binarySearch(state.notifications, notification.CreatedTime, notification.NotificationId)
                     if (exactMatch) {
-                        state[notification.Target][index] = notification
+                        state.notifications[index] = notification
                     }
                     else {
-                        if (index >= state[notification.Target].length) {
-                            state[notification.Target].push(notification)
+                        if (index >= state.notifications.length) {
+                            state.notifications.push(notification)
                         }
                         else {
-                            state[notification.Target].splice(index, 0, notification)
+                            state.notifications.splice(index, 0, notification)
                         }
                     }    
                 }
                 else {
-                    state[notification.Target] = [notification]
+                    state.notifications = [notification]
                 }
             })
         }

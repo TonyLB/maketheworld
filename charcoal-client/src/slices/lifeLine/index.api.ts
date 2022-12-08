@@ -22,6 +22,7 @@ import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/di
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
 import { getConfiguration } from '../configuration'
+import { cacheNotifications } from '../notifications'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -67,9 +68,16 @@ const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
     }
 }
 
+const receiveNotifications = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
+    if (payload.messageType === 'Notifications') {
+        dispatch(cacheNotifications(payload.notifications))
+    }
+}
+
 export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
     const messageSubscription = LifeLinePubSub.subscribe(receiveMessages(dispatch))
-    return { internalData: { messageSubscription }}
+    const notificationSubscription = LifeLinePubSub.subscribe(receiveNotifications(dispatch))
+    return { internalData: { messageSubscription, notificationSubscription }}
 }
 
 //
