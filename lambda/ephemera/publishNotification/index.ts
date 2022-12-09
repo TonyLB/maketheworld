@@ -36,17 +36,14 @@ const batchNotifications = (notifications: Notification[] = []): Notification[][
     return currentBatch.length ? [...batchedNotifications, currentBatch] : batchedNotifications
 }
 
-const publishNotificationDynamoDB = async <T extends { NotificationId: string; CreatedTime: number; Targets: string[] }>({ NotificationId, CreatedTime, Targets, ...rest }: T): Promise<void> => {
-    await Promise.all(
-        Targets
-            .map(async (target) => (messageDeltaDB.putItem({
-                Target: target,
-                DeltaId: `${CreatedTime}::${NotificationId}`,
-                RowId: NotificationId,
-                CreatedTime,
-                ...rest
-            })))
-    )
+const publishNotificationDynamoDB = async <T extends { NotificationId: string; CreatedTime: number; Target: string }>({ NotificationId, CreatedTime, Target, ...rest }: T): Promise<void> => {
+    await messageDeltaDB.putItem({
+        Target,
+        DeltaId: `${CreatedTime}::${NotificationId}`,
+        RowId: NotificationId,
+        CreatedTime,
+        ...rest
+    })
 }
 
 export const publishNotification = async ({ payloads }: { payloads: PublishNotification[], messageBus?: MessageBus }): Promise<void> => {
@@ -55,29 +52,22 @@ export const publishNotification = async ({ payloads }: { payloads: PublishNotif
     let dbPromises: Promise<void>[] = []
     let notificationsByConnectionId: Record<string, (Notification & { CreatedTime: number; NotificationId: string; })[]> = {}
 
-    const pushToQueues = async <T extends Omit<Notification, 'Target'> & { Targets: string[]; CreatedTime: number; NotificationId: string; }>({ Targets, ...rest }: T): Promise<void> => {
-        dbPromises.push(publishNotificationDynamoDB({
-            Targets,
-            ...rest
-        }))
-        await Promise.all(Targets.map(async (target) => {
-            const connections = (await internalCache.PlayerConnections.get(target)) || []
-            connections.forEach((connectionId) => {
-                if (!(connectionId in notificationsByConnectionId)) {
-                    notificationsByConnectionId[connectionId] = []
-                }
-                notificationsByConnectionId[connectionId].push({
-                    Target: target,
-                    ...rest
-                })
-            })
-        }))
+    const pushToQueues = async <T extends Notification & { CreatedTime: number; NotificationId: string; }>(notification: T): Promise<void> => {
+        const connections = (await internalCache.PlayerConnections.get(notification.Target)) || []
+        dbPromises.push(publishNotificationDynamoDB(notification))
+        connections.forEach((connectionId) => {
+            if (!(connectionId in notificationsByConnectionId)) {
+                notificationsByConnectionId[connectionId] = []
+            }
+            notificationsByConnectionId[connectionId].push(notification)
+        })
     }
 
     await Promise.all(payloads.map(async (payload, index) => {
         if (isInformationNotification(payload)) {
             await pushToQueues({
-                Targets: payload.targets,
+                Target: payload.target,
+                Subject: payload.subject,
                 NotificationId: `NOTIFICATION#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
                 Message: payload.message,

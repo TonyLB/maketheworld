@@ -93,7 +93,8 @@ export type PublishMessage = PublishWorldMessage |
 
 export type PublishNotificationBase = {
     type: 'PublishNotification';
-    targets: string[];
+    target: string;
+    subject: string;
 }
     
 export type PublishInformationNotification = {
