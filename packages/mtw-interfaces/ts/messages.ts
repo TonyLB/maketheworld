@@ -565,16 +565,17 @@ export const isMessage = (message: any): message is Message => {
     }
 }
 
-export type NotificationAddressing = {
+export type NotificationBase = {
     NotificationId: string;
     CreatedTime: number;
     Target: string;
+    Subject: string;
 }
 
 export type InformationNotification = {
     DisplayProtocol: 'Information';
     Message: TaggedNotificationContent[];
-} & NotificationAddressing
+} & NotificationBase
 
 export type Notification = InformationNotification
 
@@ -582,7 +583,7 @@ export const isNotification = (notification: any): notification is Notification 
     if (typeof notification !== 'object') {
         return false
     }
-    if (!checkTypes(notification, { NotificationId: 'string', CreatedTime: 'number', Target: 'string' })) {
+    if (!checkTypes(notification, { NotificationId: 'string', CreatedTime: 'number', Target: 'string', Subject: 'string' })) {
         return false
     }
     switch(notification.DisplayProtocol) {

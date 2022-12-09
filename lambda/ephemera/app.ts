@@ -145,10 +145,11 @@ export const handler = async (event: any, context: any) => {
                 }
                 break
             case 'Publish Notification':
-                if (event.detail.player && event.detail.message) {
+                if (event.detail.player && event.detail.message && event.detail.subject) {
                     messageBus.send({
                         type: 'PublishNotification',
-                        targets: [event.detail.player],
+                        target: event.detail.player,
+                        subject: event.detail.subject,
                         displayProtocol: 'Information',
                         message: [{
                             tag: 'String',
