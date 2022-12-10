@@ -102,7 +102,14 @@ export type PublishInformationNotification = {
     message: TaggedNotificationContent[];
 } & PublishNotificationBase
 
-export type PublishNotification = PublishInformationNotification
+export type PublishUpdateMarksNotification = {
+    displayProtocol: 'UpdateMarks';
+    notificationId: `NOTIFICATION#${string}`;
+    read: boolean;
+    archived: boolean;
+} & PublishNotificationBase
+
+export type PublishNotification = PublishInformationNotification | PublishUpdateMarksNotification
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';

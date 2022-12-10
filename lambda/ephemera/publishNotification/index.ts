@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, PublishNotification, isInformationNotification } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, PublishNotification, isInformationNotification, PublishUpdateMarksNotification } from "../messageBus/baseClasses"
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
-import { messageDB, messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { messageDB, messageDeltaDB, messageDeltaUpdate } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { RoomCharacterListItem } from '../internalCache/baseClasses'
 import { apiClient } from '../apiClient'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { Notification } from '@tonylb/mtw-interfaces/dist/messages'
+import { InformationNotification, isUpdateMarksNotification, Notification, UpdateMarksNotification } from '@tonylb/mtw-interfaces/dist/messages'
 
 const batchNotifications = (notifications: Notification[] = []): Notification[][]  => {
     //
@@ -36,14 +36,36 @@ const batchNotifications = (notifications: Notification[] = []): Notification[][
     return currentBatch.length ? [...batchedNotifications, currentBatch] : batchedNotifications
 }
 
-const publishNotificationDynamoDB = async <T extends { NotificationId: string; CreatedTime: number; Target: string }>({ NotificationId, CreatedTime, Target, ...rest }: T): Promise<void> => {
-    await messageDeltaDB.putItem({
-        Target,
-        DeltaId: `${CreatedTime}::${NotificationId}`,
-        RowId: NotificationId,
-        CreatedTime,
-        ...rest
-    })
+//
+// TODO: Modify publishNotificationDynamoDB to use mergeDeltaUpdate on Update type notifications
+//
+const publishNotificationDynamoDB = async (notification: Notification): Promise<void> => {
+    if (isUpdateMarksNotification(notification)) {
+        const { NotificationId, UpdateTime, Target, DisplayProtocol, ...rest } = notification
+        await messageDeltaUpdate({
+            Target,
+            RowId: NotificationId,
+            UpdateTime,
+            transform: (previous: Omit<InformationNotification, 'NotificationId'> & { RowId: string; DeltaId: string; }) => {
+                return {
+                    ...previous,
+                    read: rest.read,
+                    archived: rest.archived,
+                    DeltaId: `${UpdateTime}::${NotificationId}`
+                }
+            }
+        })
+    }
+    else {
+        const { NotificationId, CreatedTime, Target, DisplayProtocol, ...rest } = notification
+        await messageDeltaDB.putItem({
+            Target,
+            DeltaId: `${CreatedTime}::${NotificationId}`,
+            RowId: NotificationId,
+            CreatedTime,
+            ...rest
+        })
+    }
 }
 
 export const publishNotification = async ({ payloads }: { payloads: PublishNotification[], messageBus?: MessageBus }): Promise<void> => {
@@ -72,6 +94,16 @@ export const publishNotification = async ({ payloads }: { payloads: PublishNotif
                 CreatedTime: CreatedTime + index,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
+            })
+        }
+        if (((value: PublishNotification): value is PublishUpdateMarksNotification => (value.displayProtocol === 'UpdateMarks'))(payload)) {
+            await pushToQueues({
+                Target: payload.target,
+                NotificationId: payload.notificationId,
+                UpdateTime: CreatedTime + index,
+                read: payload.read,
+                archived: payload.archived,
+                DisplayProtocol: payload.displayProtocol
             })
         }
     }))

@@ -570,25 +570,44 @@ export type NotificationBase = {
     CreatedTime: number;
     Target: string;
     Subject: string;
+    read?: boolean;
+    archived?: boolean;
 }
 
 export type InformationNotification = {
     DisplayProtocol: 'Information';
     Message: TaggedNotificationContent[];
+    read?: boolean;
+    archived?: boolean;
 } & NotificationBase
 
-export type Notification = InformationNotification
+export type UpdateMarksNotification = {
+    DisplayProtocol: 'UpdateMarks';
+    NotificationId: string;
+    Target: string;
+    UpdateTime: number;
+    read?: boolean;
+    archived?: boolean;
+}
+
+export type Notification = UpdateMarksNotification |
+    InformationNotification
 
 export const isNotification = (notification: any): notification is Notification => {
     if (typeof notification !== 'object') {
         return false
     }
-    if (!checkTypes(notification, { NotificationId: 'string', CreatedTime: 'number', Target: 'string', Subject: 'string' })) {
+    if (!checkTypes(notification, { NotificationId: 'string', Target: 'string' })) {
         return false
     }
     switch(notification.DisplayProtocol) {
+        case 'UpdateMarks':
+            return true
         case 'Information':
-            return validateTaggedNotificationList(notification.Message)
+            return checkTypes(notification, { CreatedTime: 'number', Subject: 'string' }) &&
+                validateTaggedNotificationList(notification.Message)
         default: return false
     }
 }
+
+export const isUpdateMarksNotification = (value: Notification): value is UpdateMarksNotification => (value.DisplayProtocol === 'UpdateMarks')
