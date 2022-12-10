@@ -952,4 +952,36 @@ export const messageDeltaQuery = async ({
     }, async () => ({ Items: [] as any[] })) as { Items: any[], LastEvaluatedKey?: Record<string, AttributeValue> }
 }
 
+export const messageDeltaUpdate = async <T extends { Target: string }>(args: {
+    Target?: string;
+    RowId: string;
+    UpdateTime: number;
+    transform: (current: T) => T;
+}) => {
+    const { Target, RowId, UpdateTime, transform } = args
+    const { Items } = await dbClient.send(new QueryCommand({
+        TableName: deltaTable,
+        IndexName: 'RowIdIndex',
+        KeyConditionExpression: 'RowId = :RowId',
+        ExpressionAttributeValues: marshall({
+            ':RowId': RowId
+        }),
+        ScanIndexForward: false
+    }))
+    if (Items) {
+        const deltaQuery = Items.map((item) => (unmarshall(item))) as T[]
+        const mostRecentTargettedItem = deltaQuery.find(({ Target: checkTarget }) => (checkTarget === Target))
+        if (mostRecentTargettedItem) {
+            const putValue = transform(mostRecentTargettedItem)
+            await dbClient.send(new PutItemCommand({
+                TableName: deltaTable,
+                Item: marshall({
+                    ...putValue,
+                    DeltaId: `${UpdateTime}::${RowId}`
+                })
+            }))
+        }
+    }
+}
+
 export const messageDelete = abstractDeleteItem(messageTable)
