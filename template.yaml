@@ -185,6 +185,7 @@ Resources:
                 - Calculate Cascade
                 - Execute Action
                 - Publish Notification
+                - Update Notification
         Diagnostics:
           Type: CloudWatchEvent
           Properties:

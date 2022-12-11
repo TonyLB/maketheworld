@@ -36,13 +36,11 @@ const batchNotifications = (notifications: Notification[] = []): Notification[][
     return currentBatch.length ? [...batchedNotifications, currentBatch] : batchedNotifications
 }
 
-//
-// TODO: Modify publishNotificationDynamoDB to use mergeDeltaUpdate on Update type notifications
-//
-const publishNotificationDynamoDB = async (notification: Notification): Promise<void> => {
+const publishNotificationDynamoDB = async (notification: Notification): Promise<InformationNotification | undefined> => {
+    let returnValue: (InformationNotification & { CreatedTime: number }) | undefined
     if (isUpdateMarksNotification(notification)) {
         const { NotificationId, UpdateTime, Target, DisplayProtocol, ...rest } = notification
-        await messageDeltaUpdate({
+        const deltaUpdateValue = await messageDeltaUpdate<Omit<InformationNotification, 'NotificationId'> & { RowId: string; DeltaId: string }>({
             Target,
             RowId: NotificationId,
             UpdateTime,
@@ -55,34 +53,55 @@ const publishNotificationDynamoDB = async (notification: Notification): Promise<
                 }
             }
         })
+        if (deltaUpdateValue) {
+            const { RowId, DeltaId, ...deltaRest } = deltaUpdateValue
+            returnValue = {
+                ...deltaRest,
+                NotificationId: RowId
+            }
+        }
     }
     else {
         const { NotificationId, CreatedTime, Target, DisplayProtocol, ...rest } = notification
-        await messageDeltaDB.putItem({
+        returnValue = {
             Target,
-            DeltaId: `${CreatedTime}::${NotificationId}`,
-            RowId: NotificationId,
+            NotificationId,
             CreatedTime,
+            DisplayProtocol,
             ...rest
+        }
+        await messageDeltaDB.putItem({
+            ...returnValue,
+            NotificationId: undefined,
+            RowId: NotificationId,
+            DeltaId: `${CreatedTime}::${NotificationId}`,
         })
     }
+    return returnValue
 }
 
 export const publishNotification = async ({ payloads }: { payloads: PublishNotification[], messageBus?: MessageBus }): Promise<void> => {
     const CreatedTime = Date.now()
 
     let dbPromises: Promise<void>[] = []
-    let notificationsByConnectionId: Record<string, (Notification & { CreatedTime: number; NotificationId: string; })[]> = {}
+    let notificationsByConnectionId: Record<string, InformationNotification[]> = {}
 
-    const pushToQueues = async <T extends Notification & { CreatedTime: number; NotificationId: string; }>(notification: T): Promise<void> => {
+    const pushToQueues = async (notification: Notification): Promise<void> => {
         const connections = (await internalCache.PlayerConnections.get(notification.Target)) || []
-        dbPromises.push(publishNotificationDynamoDB(notification))
-        connections.forEach((connectionId) => {
-            if (!(connectionId in notificationsByConnectionId)) {
-                notificationsByConnectionId[connectionId] = []
-            }
-            notificationsByConnectionId[connectionId].push(notification)
-        })
+        dbPromises.push(
+            publishNotificationDynamoDB(notification)
+                .then(async (translatedNotification) => {
+                    if (translatedNotification) {
+                        const connections = (await internalCache.PlayerConnections.get(translatedNotification.Target)) || []
+                        connections.forEach((connectionId) => {
+                            if (!(connectionId in notificationsByConnectionId)) {
+                                notificationsByConnectionId[connectionId] = []
+                            }
+                            notificationsByConnectionId[connectionId].push(translatedNotification)
+                        })
+                    }
+                })
+        )
     }
 
     await Promise.all(payloads.map(async (payload, index) => {
@@ -108,9 +127,9 @@ export const publishNotification = async ({ payloads }: { payloads: PublishNotif
         }
     }))
 
-    await Promise.all([
-        ...dbPromises,
-        ...(Object.entries(notificationsByConnectionId)
+    await Promise.all(dbPromises)
+    await Promise.all(
+        Object.entries(notificationsByConnectionId)
             .map(async ([ConnectionId, notificationList]) => {
                 const sortedNotifications = notificationList
                     .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
@@ -127,8 +146,7 @@ export const publishNotification = async ({ payloads }: { payloads: PublishNotif
                     : []
                 )
             })
-        )
-    ])
+    )
 }
 
 export default publishNotification

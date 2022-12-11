@@ -103,11 +103,13 @@ export type PublishInformationNotification = {
 } & PublishNotificationBase
 
 export type PublishUpdateMarksNotification = {
+    type: 'PublishNotification';
     displayProtocol: 'UpdateMarks';
+    target: string;
     notificationId: `NOTIFICATION#${string}`;
     read: boolean;
     archived: boolean;
-} & PublishNotificationBase
+}
 
 export type PublishNotification = PublishInformationNotification | PublishUpdateMarksNotification
 

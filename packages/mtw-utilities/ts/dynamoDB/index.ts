@@ -957,7 +957,7 @@ export const messageDeltaUpdate = async <T extends { Target: string, DeltaId: st
     RowId: string;
     UpdateTime: number;
     transform: (current: T) => T;
-}) => {
+}): Promise<T | undefined> => {
     const { Target, RowId, UpdateTime, transform } = args
     const { Items } = await dbClient.send(new QueryCommand({
         TableName: deltaTable,
@@ -980,15 +980,16 @@ export const messageDeltaUpdate = async <T extends { Target: string, DeltaId: st
                 })
             }))
             if (fetchRecent.Item) {
-                const fetchedValue: T = fetchRecent.Item as unknown as T
+                const fetchedValue: T = unmarshall(fetchRecent.Item) as T
                 const putValue = transform(fetchedValue)
                 await dbClient.send(new PutItemCommand({
                     TableName: deltaTable,
                     Item: marshall({
                         ...putValue,
                         DeltaId: `${UpdateTime}::${RowId}`
-                    })
+                    }, { removeUndefinedValues: true })
                 }))
+                return putValue
             }
         }
     }
