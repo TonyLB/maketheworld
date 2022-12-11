@@ -1,30 +1,23 @@
-import React, { FunctionComponent, useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { FunctionComponent, useState } from 'react'
 
 import {
-    Avatar,
     Box,
     Divider,
     Grid,
-    List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
-    ListSubheader
 } from '@mui/material'
 
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { NotificationList } from './NotificationList'
+import { EphemeraNotificationId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { NotificationDetail } from './NotificationDetail'
 
 interface NotificationsProps {
 
 }
 
 export const Notifications: FunctionComponent<NotificationsProps> = () => {
-    const dispatch = useDispatch()
     useAutoPin({ href: `/Notifications/`, label: `Notify`, iconName: 'Notifications' })
-    const navigate = useNavigate()
+    const [selectedNotificationId, setSelectedNotificationId] = useState<EphemeraNotificationId | undefined>()
 
     return <Box sx={{ flexGrow: 1, padding: "10px", height: "100%", display: 'flex', flexDirection: 'column' }}>
         <div style={{ textAlign: "center" }}>
@@ -41,9 +34,10 @@ export const Notifications: FunctionComponent<NotificationsProps> = () => {
             spacing={3}
         >
             <Grid item xs={6} sx={{ height: "100%" }}>
-                <NotificationList />
+                <NotificationList selected={selectedNotificationId} setSelected={setSelectedNotificationId} />
             </Grid>
             <Grid item xs={6} sx={{ height: "100%" }}>
+                { selectedNotificationId && <NotificationDetail NotificationId={selectedNotificationId} /> }
             </Grid>
         </Grid>
     </Box>

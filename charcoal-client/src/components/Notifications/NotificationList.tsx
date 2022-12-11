@@ -5,10 +5,14 @@ import { useSelector } from "react-redux"
 import { getNotifications } from "../../slices/notifications"
 import AnnouncementIcon from '@mui/icons-material/Announcement'
 import Badge from "@mui/material/Badge"
+import { EphemeraNotificationId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
-type NotificationListProps = {}
+type NotificationListProps = {
+    selected?: EphemeraNotificationId;
+    setSelected: (value: EphemeraNotificationId) => void;
+}
 
-export const NotificationList: FunctionComponent<NotificationListProps> = () => {
+export const NotificationList: FunctionComponent<NotificationListProps> = ({ selected, setSelected }) => {
     const notifications = useSelector(getNotifications)
     const [page, setPage] = useState(0)
     const [rowsPerPage, setRowsPerPage] = useState(50)
@@ -33,8 +37,8 @@ export const NotificationList: FunctionComponent<NotificationListProps> = () => 
                     notifications.map(({ Subject, NotificationId, read }) => (
                         <ListItemButton
                             key={NotificationId}
-                            // selected={selectedIndex === index}
-                            // onClick={(event) => handleListItemClick(event, index)}
+                            selected={NotificationId === selected}
+                            onClick={() => { setSelected(NotificationId) }}
                         >
                             <ListItemIcon>
                                 { read
