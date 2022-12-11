@@ -1,15 +1,15 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import cacheDB, { LastSyncType } from '../../cacheDB'
-import { Notification } from '@tonylb/mtw-interfaces/dist/messages'
+import { InformationNotification } from '@tonylb/mtw-interfaces/dist/messages'
 
-const initialState = { notifications: [] as Notification[] }
+const initialState = { notifications: [] as InformationNotification[] }
 
 //
 // To efficiently insert Messages into the sorted state array, it helps to take advantage of its
 // sorted nature in deducing the correct insert location
 //
-export const binarySearch = (arr: Notification[], createdTime: number, notificationId: string): { exactMatch: boolean; index: number } => {
+export const binarySearch = (arr: InformationNotification[], createdTime: number, notificationId: string): { exactMatch: boolean; index: number } => {
     let bottom = 0
     let top = arr.length - 1
     while (top >= bottom) {
@@ -43,7 +43,7 @@ const notificationsSlice = createSlice({
     name: 'notifications',
     initialState,
     reducers: {
-        receiveNotifications(state: any, action: PayloadAction<Notification[]>) {
+        receiveNotifications(state: any, action: PayloadAction<InformationNotification[]>) {
             action.payload.forEach((notification) => {
                 if (state.notifications) {
                     const { exactMatch, index } = binarySearch(state.notifications, notification.CreatedTime, notification.NotificationId)
@@ -69,7 +69,7 @@ const notificationsSlice = createSlice({
 
 export const { receiveNotifications } = notificationsSlice.actions
 
-export const cacheNotifications = (notifications: Notification[]) => async (dispatch: any) => {
+export const cacheNotifications = (notifications: InformationNotification[]) => async (dispatch: any) => {
     //
     // Update LastSync data, and push messages to cacheDB
     //

@@ -23,6 +23,7 @@ import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/dist/coordination'
 import { getConfiguration } from '../configuration'
 import { cacheNotifications } from '../notifications'
+import { Notification, InformationNotification } from '@tonylb/mtw-interfaces/dist/messages'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -70,7 +71,7 @@ const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
 
 const receiveNotifications = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
     if (payload.messageType === 'Notifications') {
-        dispatch(cacheNotifications(payload.notifications))
+        dispatch(cacheNotifications(payload.notifications.filter((value: Notification): value is InformationNotification => (value.DisplayProtocol === 'Information'))))
     }
 }
 
