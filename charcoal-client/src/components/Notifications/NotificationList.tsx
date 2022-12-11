@@ -1,8 +1,10 @@
 import { TableCell } from "@aws-amplify/ui-react"
-import { Box, List, ListItem, ListItemButton, ListItemText, Paper, Table, TableBody, TableContainer, TableHead, TablePagination, TableRow } from "@mui/material"
+import { Avatar, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Paper, Table, TableBody, TableContainer, TableHead, TablePagination, TableRow } from "@mui/material"
 import { FunctionComponent, useCallback, useState } from "react"
 import { useSelector } from "react-redux"
 import { getNotifications } from "../../slices/notifications"
+import AnnouncementIcon from '@mui/icons-material/Announcement'
+import Badge from "@mui/material/Badge"
 
 type NotificationListProps = {}
 
@@ -28,12 +30,24 @@ export const NotificationList: FunctionComponent<NotificationListProps> = () => 
         <Box sx={{ flexGrow: 1, width: "100%", overflowY: 'auto' }}>
             <List component="nav" aria-label="notification list">
                 {
-                    notifications.map(({ Subject, NotificationId }) => (
+                    notifications.map(({ Subject, NotificationId, read }) => (
                         <ListItemButton
                             key={NotificationId}
                             // selected={selectedIndex === index}
                             // onClick={(event) => handleListItemClick(event, index)}
                         >
+                            <ListItemIcon>
+                                { read
+                                    ? <Avatar variant="rounded">
+                                        <AnnouncementIcon />
+                                    </Avatar>
+                                    : <Badge variant="dot" color="primary" anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+                                        <Avatar variant="rounded">
+                                            <AnnouncementIcon />
+                                        </Avatar>
+                                    </Badge>
+                                }
+                            </ListItemIcon>
                             <ListItemText primary={ Subject } />
                         </ListItemButton>
                     ))
