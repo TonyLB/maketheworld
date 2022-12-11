@@ -952,4 +952,47 @@ export const messageDeltaQuery = async ({
     }, async () => ({ Items: [] as any[] })) as { Items: any[], LastEvaluatedKey?: Record<string, AttributeValue> }
 }
 
+export const messageDeltaUpdate = async <T extends { Target: string, DeltaId: string }>(args: {
+    Target?: string;
+    RowId: string;
+    UpdateTime: number;
+    transform: (current: T) => T;
+}): Promise<T | undefined> => {
+    const { Target, RowId, UpdateTime, transform } = args
+    const { Items } = await dbClient.send(new QueryCommand({
+        TableName: deltaTable,
+        IndexName: 'RowIdIndex',
+        KeyConditionExpression: 'RowId = :RowId',
+        ExpressionAttributeValues: marshall({
+            ':RowId': RowId
+        }),
+        ScanIndexForward: false
+    }))
+    if (Items) {
+        const deltaQuery = Items.map((item) => (unmarshall(item))) as T[]
+        const mostRecentTargettedItem = deltaQuery.map(({ DeltaId }) => (DeltaId)).reduce<string>((previous, DeltaId) => ((!previous || (DeltaId.localeCompare(previous) > 0)) ? DeltaId : previous), '')
+        if (mostRecentTargettedItem) {
+            const fetchRecent = await dbClient.send(new GetItemCommand({
+                TableName: deltaTable,
+                Key: marshall({
+                    Target,
+                    DeltaId: mostRecentTargettedItem
+                })
+            }))
+            if (fetchRecent.Item) {
+                const fetchedValue: T = unmarshall(fetchRecent.Item) as T
+                const putValue = transform(fetchedValue)
+                await dbClient.send(new PutItemCommand({
+                    TableName: deltaTable,
+                    Item: marshall({
+                        ...putValue,
+                        DeltaId: `${UpdateTime}::${RowId}`
+                    }, { removeUndefinedValues: true })
+                }))
+                return putValue
+            }
+        }
+    }
+}
+
 export const messageDelete = abstractDeleteItem(messageTable)

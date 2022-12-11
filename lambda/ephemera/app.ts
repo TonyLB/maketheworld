@@ -157,6 +157,17 @@ export const handler = async (event: any, context: any) => {
                         }]
                     })
                 }
+            case 'Update Notification':
+                if (event.detail.player && event.detail.notificationId && (typeof event.detail.read === 'boolean') && (typeof event.detail.archived === 'boolean')) {
+                    messageBus.send({
+                        type: 'PublishNotification',
+                        target: event.detail.player,
+                        displayProtocol: 'UpdateMarks',
+                        notificationId: event.detail.notificationId,
+                        read: event.detail.read,
+                        archived: event.detail.archived
+                    })
+                }
         }
     }
     else if (routeKey === '$connect') {

@@ -185,6 +185,7 @@ Resources:
                 - Calculate Cascade
                 - Execute Action
                 - Publish Notification
+                - Update Notification
         Diagnostics:
           Type: CloudWatchEvent
           Properties:
@@ -591,6 +592,8 @@ Resources:
             KeySchema:
               - AttributeName: RowId
                 KeyType: HASH
+              - AttributeName: Target
+                KeyType: RANGE
             Projection:
               ProjectionType: KEYS_ONLY
         TableName: !Sub '${TablePrefix}_message_delta'
