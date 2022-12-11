@@ -15,7 +15,8 @@ import {
     isCommandAPIMessage,
     isMapSubscribeAPIMessage,
     isEphemeraAPIMessage,
-    isSyncNotificationAPIMessage
+    isSyncNotificationAPIMessage,
+    isUpdateNotificationsAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
@@ -237,6 +238,25 @@ export const handler = async (event: any, context: any) => {
                     startingAt: request.startingAt,
                     limit: request.limit
                 })
+            }
+            if (isUpdateNotificationsAPIMessage(request)) {
+                const player = await internalCache.Global.get('player')
+                if (player) {
+                    request.updates.forEach(({ notificationId, read, archived }) => {
+                        messageBus.send({
+                            type: 'PublishNotification',
+                            target: player,
+                            displayProtocol: 'UpdateMarks',
+                            notificationId: notificationId,
+                            read: read ?? false,
+                            archived: archived ?? false
+                        })
+                    })
+                    messageBus.send({
+                        type: 'ReturnValue',
+                        body: { message: 'Success' }
+                    })
+                }
             }
             if (isMapSubscribeAPIMessage(request)) {
                 const characterId = request.CharacterId
