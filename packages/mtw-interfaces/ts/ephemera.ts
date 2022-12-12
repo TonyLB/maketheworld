@@ -31,14 +31,14 @@ export type SyncNotificationAPIMessage = {
 }
 
 type UpdateNotificationsSingleUpdate = {
-    target: string;
     notificationId: EphemeraNotificationId;
+    target?: string;
     read?: boolean;
     archived?: boolean;
 }
 
 const isValidNotificationUpdate = (value: any): value is UpdateNotificationsSingleUpdate => {
-    if (checkTypes(value, { target: 'string', notificationId: 'string' }) && isEphemeraNotificationId(value.notificationId)) {
+    if (checkTypes(value, { notificationId: 'string' }) && isEphemeraNotificationId(value.notificationId) && (!('target' in value) || checkTypes(value, { target: 'string' }))) {
         if ('read' in value && typeof value.read !== 'boolean') {
             return false
         }
@@ -182,7 +182,7 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                 && (typeof (message.limit ?? 0) === 'number')
             )
         case 'updateNotifications':
-                return checkAll(message.notifications.map(isValidNotificationUpdate))
+                return checkAll(message.updates.map(isValidNotificationUpdate))
         case 'link':
             return Boolean(
                 checkTypes(message, { CharacterId: 'string', to: 'string' })

@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraMessageId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraActionId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraMessageId, EphemeraNotificationId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -566,7 +566,7 @@ export const isMessage = (message: any): message is Message => {
 }
 
 export type NotificationBase = {
-    NotificationId: string;
+    NotificationId: EphemeraNotificationId;
     CreatedTime: number;
     Target: string;
     Subject: string;
@@ -577,8 +577,6 @@ export type NotificationBase = {
 export type InformationNotification = {
     DisplayProtocol: 'Information';
     Message: TaggedNotificationContent[];
-    read?: boolean;
-    archived?: boolean;
 } & NotificationBase
 
 export type UpdateMarksNotification = {
