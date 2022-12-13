@@ -26,9 +26,10 @@ import TaggedMessageContent from './TaggedMessageContent'
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
     children?: ReactChild | ReactChildren;
+    header?: boolean;
 }
 
-export const RoomDescription = ({ message }: RoomDescriptionProps) => {
+export const RoomDescription = ({ message, header }: RoomDescriptionProps) => {
     const { Description, Name, Characters = [], Exits = [] } = message
     return <MessageComponent
             sx={{
@@ -55,7 +56,14 @@ export const RoomDescription = ({ message }: RoomDescriptionProps) => {
                     <Typography variant='h5' align='left'>
                         { Name.filter(isTaggedText).map(({ value }) => (value)).join('') }
                     </Typography>
-                    <TaggedMessageContent list={Description} />
+                    <Box sx={header ? {
+                        WebkitBoxOrient: 'vertical',
+                        WebkitLineClamp: 4,
+                        display: '-webkit-box',
+                        overflow: 'hidden'
+                    }: {}}>
+                        <TaggedMessageContent list={Description} />
+                    </Box>
                     <Divider />
                 </Box>
                 <Box css={css`
