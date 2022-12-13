@@ -9,16 +9,19 @@ const legalTags: SearchTokenTagLegal[] = [
     'Exit',
     'Feature',
     'Map',
+    'Bookmark',
     'Name',
+    'FirstImpression',
     'OneCoolThing',
     'Outfit',
     'Pronouns',
     'Room',
+    'Message',
+    'Moment',
     'Story',
     'Action',
     'Variable',
     'Computed',
-    'If'
 ]
 
 const isLegalTagString = (value: string): value is SearchTokenTagLegal => ((legalTags as string[]).includes(value))
