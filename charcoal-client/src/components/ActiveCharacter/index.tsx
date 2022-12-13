@@ -33,7 +33,7 @@
 //
 
 import React, { useContext, ReactChild, ReactChildren, FunctionComponent } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 //
 // TODO:  Rewrite activeCharacters selectors to refer to SSMs
@@ -45,12 +45,18 @@ import { getCharactersInPlay } from '../../slices/ephemera'
 import { EphemeraCharacterInPlay } from '../../slices/ephemera/baseClasses'
 import { MessageRoomBreakdown } from '../../slices/messages/selectors'
 import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { ParseCommandModes } from '../../slices/lifeLine/baseClasses'
+import { getLineEntry, getLineEntryMode, setCurrentMode, setEntry } from '../../slices/UI/lineEntry'
 
 type ActiveCharacterContextType = {
     CharacterId: EphemeraCharacterId;
     messageBreakdown: MessageRoomBreakdown;
     info?: EphemeraCharacterInPlay;
-    maps: Record<EphemeraMapId, ActiveCharacterMap>
+    maps: Record<EphemeraMapId, ActiveCharacterMap>;
+    lineEntry: string;
+    entryMode: ParseCommandModes | 'Options';
+    setLineEntry: (value: string) => void;
+    setEntryMode: (value: ParseCommandModes | 'Options') => void;
 }
 
 const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
@@ -59,7 +65,11 @@ const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
     messageBreakdown: {
         Messages: [],
         Groups: []
-    }
+    },
+    lineEntry: '',
+    entryMode: 'Command',
+    setLineEntry: () => {},
+    setEntryMode: () => {}
 })
 
 type ActiveCharacterProps = {
@@ -73,12 +83,21 @@ export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ Chara
     const maps = useSelector(getActiveCharacterMaps(CharacterId))
     const messageBreakdown = useSelector(getMessagesByRoom(CharacterId))
     const info = useSelector(getCharactersInPlay)[CharacterId]
+    const lineEntry = useSelector(getLineEntry(CharacterId))
+    const entryMode = useSelector(getLineEntryMode(CharacterId))
+    const dispatch = useDispatch()
+    const setLineEntry = (entry: string) => { dispatch(setEntry({ characterId: CharacterId, entry }))}
+    const setEntryMode = (mode: ParseCommandModes | 'Options') => { dispatch(setCurrentMode({ characterId: CharacterId, mode }))}
     return (
         <ActiveCharacterContext.Provider value={{
             CharacterId,
             messageBreakdown,
             info,
             maps,
+            lineEntry,
+            entryMode,
+            setLineEntry,
+            setEntryMode,
             ...characterState
         }}>
             {children}
