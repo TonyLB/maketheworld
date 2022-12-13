@@ -38,7 +38,7 @@ export const OOCBubble: FunctionComponent<OOCBubbleProps> = ({ variant, tailOffs
                     position: 'relative',
                     marginRight: '10px',
                     marginLeft: '10px',
-                    '&::after': {
+                    '&::before': {
                         content: '""',
                         position: 'absolute',
                         borderStyle: 'solid',
@@ -49,16 +49,35 @@ export const OOCBubble: FunctionComponent<OOCBubbleProps> = ({ variant, tailOffs
                         borderRightColor: 'extras.midPale',
                         borderLeftColor: 'extras.midPale'
                     },
+                    '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        borderStyle: 'solid',
+                        bottom: tailOffset,
+                        borderWidth: '1px',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        borderRightColor: 'white',
+                        borderLeftColor: 'white'
+                    },
                 },
                 variant === 'right' && {
-                    '&::after': {
+                    '&::before': {
                         right: '-15px',
+                        borderWidth: '10px 0 10px 15px',
+                    },
+                    '&::after': {
+                        right: '-13px',
                         borderWidth: '10px 0 10px 15px',
                     }
                 },
                 variant === 'left' && {
-                    '&::after': {
+                    '&::before': {
                         left: '-15px',
+                        borderWidth: '10px 15px 10px 0',
+                    },
+                    '&::after': {
+                        left: '-13px',
                         borderWidth: '10px 15px 10px 0',
                     }
                 }
