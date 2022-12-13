@@ -1,11 +1,11 @@
-import { PerceptionMessage, MessageBus, isPerceptionMapMessage, PerceptionShowMessage, isPerceptionShowMessage, isPerceptionShowMoment } from "../messageBus/baseClasses"
+import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { EphemeraCharacter } from "../cacheAsset/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import {
     EphemeraMessageId,
     EphemeraRoomId,
-    isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId
+    isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { isTaggedLink, isTaggedText } from "@tonylb/mtw-interfaces/dist/messages"
 
@@ -124,12 +124,12 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 })
             }
             else {
-                if (isEphemeraRoomId(ephemeraId)) {
+                if (isPerceptionRoomMessage(payload) && isEphemeraRoomId(ephemeraId)) {
                     const roomDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     messageBus.send({
                         type: 'PublishMessage',
                         targets: [characterId],
-                        displayProtocol: 'RoomDescription',
+                        displayProtocol: payload.header ? 'RoomHeader' : 'RoomDescription',
                         ...roomDescribe,
                     })
                 }

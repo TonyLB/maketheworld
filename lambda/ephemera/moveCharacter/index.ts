@@ -98,7 +98,8 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             messageBus.send({
                 type: 'Perception',
                 characterId: payload.characterId,
-                ephemeraId: payload.roomId
+                ephemeraId: payload.roomId,
+                header: true
             })
 
             messageBus.send({
