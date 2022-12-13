@@ -16,10 +16,13 @@ export type SearchTokenTagLegal = "Asset" |
     "Description" |
     "Room" |
     "Feature" |
+    "Bookmark" |
     "Map" |
     "Action" |
     "Computed" |
     "Variable" |
+    "Message" |
+    "Moment" |
     "If"
 
 export type SearchTokenTag = {
