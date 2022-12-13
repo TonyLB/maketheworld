@@ -27,7 +27,7 @@ import { NarrateBubble } from '../Message/NarrateMessage'
 import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
-import { getLineEntry, getLineEntryMode, setCurrentMode, setEntry } from '../../slices/UI/lineEntry'
+import { getLineEntryMode, setCurrentMode, setEntry } from '../../slices/UI/lineEntry'
 
 type LineEntryMode = ParseCommandModes | 'Options'
 
@@ -38,10 +38,12 @@ interface EntryFieldProps {
 }
 
 const EntryField = React.forwardRef<any, EntryFieldProps>(({ defaultValue, placeholder, callback }, ref) => {
-    const value = useSelector(getLineEntry)
-    const mode = useSelector(getLineEntryMode)
+    const activeCharacter = useActiveCharacter()
+    const value = activeCharacter.lineEntry
+    const mode = activeCharacter.entryMode
+    const setCurrentMode = activeCharacter.setEntryMode
     const dispatch = useDispatch()
-    const onChange = (value: string) => { dispatch(setEntry(value)) }
+    const onChange = activeCharacter.setLineEntry
     const { TextEntryLines } = useSelector(getClientSettings)
     const empty = value === '' || value === defaultValue
     return <TextField
@@ -58,26 +60,26 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ defaultValue, place
                     const callbackResult = callback({ entry: (value || ''), mode })
                     if (callbackResult) {
                         onChange(defaultValue)
-                        dispatch(setCurrentMode('Command'))
+                        setCurrentMode('Command')
                     }
                 }
             }
             if (empty) {
                 if (mode !== 'SayMessage' && (event.key === '"' || event.key === "'")) {
                     event.preventDefault()
-                    dispatch(setCurrentMode('SayMessage'))
+                    setCurrentMode('SayMessage')
                 }
                 if (mode !== 'NarrateMessage' && (event.key === ':' || event.key === ";")) {
                     event.preventDefault()
-                    dispatch(setCurrentMode('NarrateMessage'))
+                    setCurrentMode('NarrateMessage')
                 }
                 if (mode !== 'OOCMessage' && (event.key === '\\' || event.key === "|")) {
                     event.preventDefault()
-                    dispatch(setCurrentMode('OOCMessage'))
+                    setCurrentMode('OOCMessage')
                 }
                 if (mode !== 'Command' && (event.key === '/' || event.key === '?')) {
                     event.preventDefault()
-                    dispatch(setCurrentMode('Command'))
+                    setCurrentMode('Command')
                 }
             }
         }}
@@ -91,8 +93,9 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ defaultValue, place
 interface EntryModeSpeedDialProps {}
 
 const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = () => {
-    const dispatch = useDispatch()
-    const mode = useSelector(getLineEntryMode)
+    const activeCharacter = useActiveCharacter()
+    const mode = activeCharacter.entryMode
+    const setMode = activeCharacter.setEntryMode
     const icons: Record<LineEntryMode, ReactElement> = {
         Options: <OptionsIcon sx={{ width: "30px", height: "30px" }} />,
         SayMessage: <SayMessageIcon sx={{ width: "30px", height: "30px" }} />,
@@ -100,7 +103,6 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = () => {
         OOCMessage: <OOCMessageIcon sx={{ width: "30px", height: "30px" }} />,
         Command: <CommandIcon sx={{ width: "30px", height: "30px" }} />,
     }
-    const setMode = (newMode: ParseCommandModes | 'Options') => { dispatch(setCurrentMode(newMode)) }
     return <SpeedDial
         ariaLabel="Text entry mode"
         sx={{ position: 'absolute', bottom: '10px', right: '10px' }}
@@ -143,10 +145,9 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = () => {
 type EntryDispatcherProps = EntryFieldProps & EntryModeSpeedDialProps
 
 const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>((props, ref) => {
-    const { CharacterId } = useActiveCharacter()
+    const { CharacterId, entryMode } = useActiveCharacter()
     const navigate = useNavigate()
-    const mode = useSelector(getLineEntryMode)
-    switch(mode) {
+    switch(entryMode) {
         case 'Options':
             return <Box sx={{
                     background: (theme: any) => (theme.palette.extras.paleGradient),
@@ -196,7 +197,7 @@ interface LineEntryProps {
 
 export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => (true) }) => {
     const ref = useRef<HTMLInputElement>(null)
-    const mode = useSelector(getLineEntryMode)
+    const { entryMode: mode } = useActiveCharacter()
 
     useEffect(() => {
         ref.current?.focus()
