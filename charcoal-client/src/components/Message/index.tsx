@@ -31,8 +31,9 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'WorldMessage':
             return <WorldMessage message={message} {...rest} />
         case 'RoomDescription':
-        case 'RoomHeader':
             return <RoomDescription message={message} {...rest} />
+        case 'RoomHeader':
+            return <RoomDescription message={message} {...rest} header />
         case 'FeatureDescription':
             return <FeatureDescription message={message} {...rest} />
         case 'CharacterDescription':
