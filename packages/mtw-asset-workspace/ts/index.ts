@@ -1,4 +1,4 @@
-import { NotFound } from "@aws-sdk/client-s3"
+import { GetObjectCommand, NotFound } from "@aws-sdk/client-s3"
 import { v4 as uuidv4 } from 'uuid'
 
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
@@ -10,8 +10,11 @@ import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { ParseException } from "@tonylb/mtw-wml/dist/parser/baseClasses"
 import { deepEqual } from "./objects"
+
+const { S3_BUCKET = 'Test' } = process.env;
 
 type AssetWorkspaceConstructorBase = {
     fileName: string;
@@ -131,6 +134,16 @@ export class AssetWorkspace {
 
     get fileName(): string {
         return this.address.fileName
+    }
+
+    async presignedURL(): Promise<string> {
+        const getCommand = new GetObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: `${this.fileNameBase}.wml`
+        })
+        const presignedOutput = await getSignedUrl(s3Client.internalClient, getCommand, { expiresIn: 60 })
+        return presignedOutput
+    
     }
 
     async loadJSON() {

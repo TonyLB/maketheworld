@@ -11,7 +11,8 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.154.0",
+    "@aws-sdk/client-s3": "^3.229.0",
+    "@aws-sdk/s3-request-presigner": "^3.229.0",
     "@tonylb/mtw-wml": "^1.0.0"
   },
   "devDependencies": {
