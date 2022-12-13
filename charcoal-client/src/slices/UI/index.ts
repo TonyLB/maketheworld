@@ -3,12 +3,14 @@ import characterEdit from './characterEdit'
 import feedback from './feedback'
 import choiceDialog from './choiceDialog'
 import navigationTabs from './navigationTabs'
+import lineEntry from './lineEntry'
 
 export const reducer = combineReducers({
     feedback,
     characterEdit,
     choiceDialog,
-    navigationTabs
+    navigationTabs,
+    lineEntry
 })
 
 export default reducer
