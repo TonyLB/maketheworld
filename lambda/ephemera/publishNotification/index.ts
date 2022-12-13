@@ -5,7 +5,7 @@ import internalCache from '../internalCache'
 import { messageDB, messageDeltaDB, messageDeltaUpdate } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { RoomCharacterListItem } from '../internalCache/baseClasses'
 import { apiClient } from '../apiClient'
-import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId, EphemeraNotificationId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { InformationNotification, isUpdateMarksNotification, Notification, UpdateMarksNotification } from '@tonylb/mtw-interfaces/dist/messages'
 
 const batchNotifications = (notifications: Notification[] = []): Notification[][]  => {
@@ -57,7 +57,7 @@ const publishNotificationDynamoDB = async (notification: Notification): Promise<
             const { RowId, DeltaId, ...deltaRest } = deltaUpdateValue
             returnValue = {
                 ...deltaRest,
-                NotificationId: RowId
+                NotificationId: RowId as EphemeraNotificationId
             }
         }
     }

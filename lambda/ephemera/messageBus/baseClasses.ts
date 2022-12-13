@@ -75,7 +75,7 @@ export type PublishFeatureDescriptionMessage = Omit<FeatureDescription, 'Display
 } & PublishMessageBase
 
 export type PublishRoomDescriptionMessage = Omit<RoomDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
-    displayProtocol: 'RoomDescription';
+    displayProtocol: 'RoomDescription' | 'RoomHeader';
 } & PublishMessageBase
 
 export type PublishCharacterDescriptionMessage = Omit<CharacterDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
@@ -194,10 +194,17 @@ export type FetchImportDefaultsMessage = {
     assetId: string;
 }
 
+export type PerceptionRoomMessage = {
+    type: 'Perception';
+    characterId: EphemeraCharacterId;
+    ephemeraId: EphemeraRoomId;
+    header?: boolean;
+}
+
 export type PerceptionComponentMessage = {
     type: 'Perception';
     characterId: EphemeraCharacterId;
-    ephemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraCharacterId;
+    ephemeraId: EphemeraFeatureId | EphemeraCharacterId;
 }
 
 export type PerceptionMapMessage = {
@@ -219,9 +226,10 @@ export type PerceptionShowMoment = {
     ephemeraId: EphemeraMomentId;
 }
 
-export type PerceptionMessage = PerceptionComponentMessage | PerceptionMapMessage | PerceptionShowMessage | PerceptionShowMoment
+export type PerceptionMessage = PerceptionRoomMessage | PerceptionComponentMessage | PerceptionMapMessage | PerceptionShowMessage | PerceptionShowMoment
 
-export const isPerceptionComponentMessage = (message: PerceptionMessage): message is PerceptionComponentMessage => (isEphemeraRoomId(message.ephemeraId) || isEphemeraFeatureId(message.ephemeraId) || isEphemeraCharacterId(message.ephemeraId))
+export const isPerceptionRoomMessage = (message: PerceptionMessage): message is PerceptionRoomMessage => (isEphemeraRoomId(message.ephemeraId))
+export const isPerceptionComponentMessage = (message: PerceptionMessage): message is PerceptionComponentMessage => (isEphemeraFeatureId(message.ephemeraId) || isEphemeraCharacterId(message.ephemeraId))
 export const isPerceptionMapMessage = (message: PerceptionMessage): message is PerceptionMapMessage => (isEphemeraMapId(message.ephemeraId))
 export const isPerceptionShowMessage = (message: PerceptionMessage): message is PerceptionShowMessage => (isEphemeraMessageId(message.ephemeraId))
 export const isPerceptionShowMoment = (message: PerceptionMessage): message is PerceptionShowMoment => (isEphemeraMomentId(message.ephemeraId))
@@ -325,7 +333,7 @@ export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
 export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is PublishRoomUpdateMessage => (prop.displayProtocol === 'RoomUpdate')
-export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is PublishRoomDescriptionMessage => (prop.displayProtocol === 'RoomDescription')
+export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is PublishRoomDescriptionMessage => (['RoomDescription', 'RoomHeader'].includes(prop.displayProtocol))
 export const isFeatureDescriptionPublishMessage = (prop: PublishMessage): prop is PublishFeatureDescriptionMessage => (prop.displayProtocol === 'FeatureDescription')
 export const isCharacterDescriptionPublishMessage = (prop: PublishMessage): prop is PublishCharacterDescriptionMessage => (prop.displayProtocol === 'CharacterDescription')
 
