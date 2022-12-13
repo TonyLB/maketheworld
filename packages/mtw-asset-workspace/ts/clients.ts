@@ -28,5 +28,7 @@ export const s3Client = {
             Key,
             Body
         }))
-    }
+    },
+
+    internalClient: internalS3Client
 }

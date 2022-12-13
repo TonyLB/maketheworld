@@ -5,6 +5,8 @@ import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { FetchAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { MessageBus } from "../messageBus/baseClasses"
+import { stringify } from "uuid"
+import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 
 const { S3_BUCKET } = process.env;
 
@@ -33,14 +35,15 @@ const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId
                 ExpressionAttributeValues: {
                     ':dc': DataCategory
                 },
-                ProjectionFields: ['fileName', '#zone', 'player', 'subFolder'],
-                ExpressionAttributeNames: {
-                    '#zone': 'zone'
-                }
+                ProjectionFields: ['address']
             })
-            const { fileName: fetchFileName, zone, subFolder, player } = queryOutput[0] || {}
-            if (zone === 'Personal' && player === PlayerName) {
-                derivedFileName = `Personal/${PlayerName}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.wml`
+            const { address } = queryOutput[0] || {}
+            if (address) {
+                const assetWorkspace = new AssetWorkspace(address)
+                return await assetWorkspace.presignedURL()
+            }
+            else {
+                return undefined
             }
         }
     }
