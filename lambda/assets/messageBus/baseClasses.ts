@@ -38,6 +38,15 @@ export type UploadImageURLMessage = {
     uploadRequestId: string;
 }
 
+export type FormatImageMessage = {
+    type: 'FormatImage';
+    fileName: string;
+    width: number;
+    height: number;
+    AssetId: string;
+    imageKey: string;
+}
+
 export type MoveAssetMessage = {
     type: 'MoveAsset';
     from: AssetWorkspaceAddress;
@@ -70,6 +79,7 @@ export type MessageType = ReturnValueMessage |
     FetchAssetMessage |
     UploadURLMessage |
     UploadImageURLMessage |
+    FormatImageMessage |
     ParseWMLMessage |
     MoveAssetMessage |
     MoveByAssetIdMessage |

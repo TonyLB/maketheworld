@@ -33,7 +33,8 @@ includes a `fileName` property.
 
 ## Outlets
 
-- ***setImageURL***: Accepts an AssetID, image scopedID, and fileURL.  Updates the
-properties in the Asset JSON file to associate the image with the fileURL.
+- ***Format Image***: Accepts an AssetID, image scopedID, incoming fileURL, width and
+height.  Scales the image, loads it into an output file, and updates the properties in
+the Asset JSON file to associate the image with the scaled fileURL.
 
 ---
