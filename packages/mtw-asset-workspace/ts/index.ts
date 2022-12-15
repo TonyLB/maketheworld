@@ -168,16 +168,18 @@ export class AssetWorkspace {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code) || err instanceof NotFound) {
                 this.normal = {}
                 this.namespaceIdToDB = {}
+                this.properties = {}
                 this.status.json = 'Clean'
                 return
             }
             throw err
         }
         
-        const { namespaceIdToDB = {}, normal = {} } = JSON.parse(contents)
+        const { namespaceIdToDB = {}, normal = {}, properties = {} } = JSON.parse(contents)
 
         this.normal = normal as NormalForm
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
+        this.properties = properties as WorkspaceProperties
         this.status.json = 'Clean'
     }
 

@@ -92,6 +92,7 @@ export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibrar
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
 export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
 export const isUploadImageURLMessage = (prop: MessageType): prop is UploadImageURLMessage => (prop.type === 'UploadImageURL')
+export const isFormatImageMessage = (prop: MessageType): prop is FormatImageMessage => (prop.type === 'FormatImage')
 export const isParseWMLMessage = (prop: MessageType): prop is ParseWMLMessage => (prop.type === 'ParseWML')
 export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')

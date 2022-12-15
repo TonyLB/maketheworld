@@ -3,6 +3,8 @@ import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import internalCache from "../internalCache"
 import type { Readable } from "stream"
 import { FormatImageMessage, MessageBus } from "../messageBus/baseClasses"
+import { v4 as uuidv4 } from "uuid"
+import { assetWorkspaceFromAssetId } from "../utilities/assets"
 
 const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
     const chunks: Buffer[] = []
@@ -13,24 +15,24 @@ const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
 }
 
 export const formatImageMessage = async ({ payloads, messageBus }: { payloads: FormatImageMessage[], messageBus: MessageBus }): Promise<void> => {
-    //
-    // TODO: Translate the Format Image eventBridge item from app.ts
-    //
 
-    //
-    // TODO: Use assetWorkspace to look up the JSON file of the passed AssetId
-    //
-
-    //
-    // TODO: Modify the properties value of the JSON file and pushJSON
-    //
     const s3Client = await internalCache.Connection.get('s3Client')
     if (!s3Client) {
         return
     }
     await Promise.all(payloads.map(async (payload) => {
-        const { fileName: fromFileName, width, height } = payload
-        if (fromFileName && width && height) {
+        const toFileName = `IMAGE-${uuidv4()}`
+        const { fileName: fromFileName, width, height, AssetId, imageKey } = payload
+        if (fromFileName && width && height && AssetId) {
+            //
+            // TODO: Run assetWorkspace lookups in parallel with image handling, rather
+            // than sequentially.
+            //
+            const assetWorkspace = await assetWorkspaceFromAssetId(AssetId)
+            if (!assetWorkspace) {
+                return
+            }
+
             const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
                 Bucket: process.env.UPLOAD_BUCKET,
                 Key: fromFileName
@@ -59,6 +61,12 @@ export const formatImageMessage = async ({ payloads, messageBus }: { payloads: F
                     Body: afterBuffer,
                     ContentType: 'image/png'
                 }))
+                await assetWorkspace.loadJSON()
+                //
+                // TODO: Validate that the imageKey is in the assetWorkspace, and identifies an Image item
+                //
+                assetWorkspace.properties[imageKey] = { fileName: toFileName }
+                await assetWorkspace.pushJSON()
     
             }
             catch {
