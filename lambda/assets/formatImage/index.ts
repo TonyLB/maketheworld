@@ -67,6 +67,10 @@ export const formatImageMessage = async ({ payloads, messageBus }: { payloads: F
                 //
                 assetWorkspace.properties[imageKey] = { fileName: toFileName }
                 await assetWorkspace.pushJSON()
+
+                //
+                // TODO: Delete upload file
+                //
     
             }
             catch {

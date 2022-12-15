@@ -62,44 +62,22 @@ export const handler = async (event, context) => {
     }
     if (event?.source === 'mtw.coordination') {
         if (event["detail-type"] === 'Format Image') {
-            const { fromFileName, width, height, toFileName } = event.detail
-            if (fromFileName && toFileName && width && height) {
-                const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
-                    Bucket: process.env.UPLOAD_BUCKET,
-                    Key: fromFileName
-                }))
-                const contents = await streamToBuffer(contentStream as Readable)
-            
-                try {
-                    //
-                    // Quick monkey-patch to get around meaningless deprecation warning delivered by the Jimp library
-                    //
-                    const origWarning = process.emitWarning;
-                    process.emitWarning = function(...args) {
-                        if (args[2] !== 'DEP0005') {
-                            // pass any other warnings through normally
-                            return origWarning.apply(process, args as any);
-                        } else {
-                            // do nothing, eat the warning
-                        }
-                    }
-                    const beforeBuffer = await jimp.read(contents)
-                    const afterBuffer = await beforeBuffer.resize(width, height, jimp.RESIZE_BEZIER).deflateLevel(5).getBufferAsync(jimp.MIME_PNG)
-                    process.emitWarning = origWarning
-                    await s3Client.send(new PutObjectCommand({
-                        Bucket: process.env.IMAGES_BUCKET,
-                        Key: `${toFileName}.png`,
-                        Body: afterBuffer,
-                        ContentType: 'image/png'
-                    }))
-
-                }
-                catch {
-                    console.log(`ERROR`)
-                }
-                return JSON.stringify('Success', null, 4)
+            const { fileName, width, height, AssetId, imageKey } = event.detail
+            if (fileName && AssetId && imageKey && width && height) {
+                messageBus.send({
+                    type: 'FormatImage',
+                    fileName,
+                    AssetId,
+                    imageKey,
+                    width,
+                    height
+                })
+                await messageBus.flush()
+                return await extractReturnValue(messageBus)
             }
-            return JSON.stringify(`Invalid arguments specified for Format Image event`)
+            else {
+                return JSON.stringify(`Invalid arguments specified for Format Image event`)
+            }
         }
     }
     
