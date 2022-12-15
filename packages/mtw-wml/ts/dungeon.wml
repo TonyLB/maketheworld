@@ -11,10 +11,7 @@
         <Name>Cave entrance</Name>
     </Room>
     <Map key=(dungeonMap)>
-        <Image
-            key=(dungeonImage)
-            fileURL="https://d1f7dzls5mhmwq.cloudfront.net/DungeonTestD.png"
-        />
+        <Image key=(dungeonImage) />
         <Room key=(VORTEX) x="0" y="250" />
         <Room key=(cave) x="0" y="150">
             <Exit to=(curvingPassage)>passage</Exit>

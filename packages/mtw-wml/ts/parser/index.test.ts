@@ -70,7 +70,7 @@ describe('wml parser', () => {
     it('should parse a character tag correctly', () => {
         const testTokens = tokenizer(new SourceStream(`
             <Character key=(Tess) fileName="Tess" player="testy" zone="Library">
-                <Image key=(icon) fileURL="testIcon.png" />
+                <Image key=(icon) />
                 <Name>Tess</Name>
                 <Pronouns
                     subject="she"
@@ -101,7 +101,7 @@ describe('wml parser', () => {
             <Story key=(Test) instance fileName="test">
                 <Map key=(TestMap)>
                     <Name>Test Map</Name>
-                    <Image key=(ImageTest) fileURL="https://test.com/imageTest.png" />
+                    <Image key=(ImageTest) />
                     <Room key=(ABC) x="200" y="150" />
                 </Map>
             </Story>

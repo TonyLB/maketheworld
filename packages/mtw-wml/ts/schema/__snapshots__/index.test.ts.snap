@@ -1347,11 +1347,9 @@ Array [
         "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
       },
       Object {
-        "fileURL": "https://musique.opus-31.fr/images/aaa.png",
         "key": "testIcon",
         "parse": Object {
-          "endTagToken": 54,
-          "fileURL": "https://musique.opus-31.fr/images/aaa.png",
+          "endTagToken": 51,
           "key": "testIcon",
           "startTagToken": 46,
           "tag": "Image",
@@ -1360,7 +1358,6 @@ Array [
       },
     ],
     "fileName": "Tess",
-    "fileURL": "https://musique.opus-31.fr/images/aaa.png",
     "key": "TESS",
     "parse": Object {
       "contents": Array [
@@ -1430,14 +1427,13 @@ Array [
           "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
         },
         Object {
-          "endTagToken": 54,
-          "fileURL": "https://musique.opus-31.fr/images/aaa.png",
+          "endTagToken": 51,
           "key": "testIcon",
           "startTagToken": 46,
           "tag": "Image",
         },
       ],
-      "endTagToken": 55,
+      "endTagToken": 52,
       "fileName": "Tess",
       "key": "TESS",
       "player": "TonyLB",

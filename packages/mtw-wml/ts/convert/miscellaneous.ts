@@ -40,7 +40,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
                     tag: 'Image',
                     properties: {
                         required: { key: ['key'] },
-                        optional: { fileURL: ['literal'] }
+                        optional: {}
                     }
                 })(value)
             }
@@ -64,7 +64,6 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
                 return {
                     tag: 'Image',
                     key: value.key,
-                    fileURL: value.fileURL,
                     parse: value
                 }            
             }

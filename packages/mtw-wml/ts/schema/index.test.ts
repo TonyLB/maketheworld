@@ -96,7 +96,7 @@ describe('schemaFromParse', () => {
             reflexive="herself"
         ></Pronouns>
         <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
-        <Image key=(testIcon) fileURL="https://musique.opus-31.fr/images/aaa.png" />
+        <Image key=(testIcon) />
     </Character>
     `)))
         expect(schemaFromParse(testParse)).toMatchSnapshot()
