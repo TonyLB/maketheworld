@@ -99,6 +99,16 @@ export type NamespaceMapping = {
     [name: string]: string
 }
 
+export type WorkspaceImageProperty = {
+    fileName: string;
+}
+
+export type WorkspacePropertyItem = WorkspaceImageProperty
+
+export type WorkspaceProperties = {
+    [name: string]: WorkspacePropertyItem;
+}
+
 const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage | NormalMoment) => (['Room', 'Feature', 'Bookmark', 'Message', 'Moment', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
 
 export class AssetWorkspace {
@@ -109,6 +119,7 @@ export class AssetWorkspace {
     };
     normal?: NormalForm;
     namespaceIdToDB: NamespaceMapping = {};
+    properties: WorkspaceProperties = {};
     wml?: string;
     
     constructor(args: AssetWorkspaceAddress) {
@@ -157,16 +168,18 @@ export class AssetWorkspace {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code) || err instanceof NotFound) {
                 this.normal = {}
                 this.namespaceIdToDB = {}
+                this.properties = {}
                 this.status.json = 'Clean'
                 return
             }
             throw err
         }
         
-        const { namespaceIdToDB = {}, normal = {} } = JSON.parse(contents)
+        const { namespaceIdToDB = {}, normal = {}, properties = {} } = JSON.parse(contents)
 
         this.normal = normal as NormalForm
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
+        this.properties = properties as WorkspaceProperties
         this.status.json = 'Clean'
     }
 
@@ -251,7 +264,8 @@ export class AssetWorkspace {
         const filePath = `${this.fileNameBase}.json`
         const contents = JSON.stringify({
             namespaceIdToDB: this.namespaceIdToDB,
-            normal: this.normal || {}
+            normal: this.normal || {},
+            properties: this.properties
         }, null, 4)
         await s3Client.put({
             Key: filePath,

@@ -9,7 +9,8 @@ import {
     isLibrarySubscribeMessage,
     isParseWMLMessage,
     isPlayerLibraryUpdateMessage,
-    isLibraryUpdateMessage
+    isLibraryUpdateMessage,
+    isFormatImageMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
@@ -18,6 +19,7 @@ import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
 import { librarySubscribeMessage } from "../subscribe"
 import playerLibraryUpdateMessage from "../playerLibraryUpdate"
 import libraryUpdateMessage from "../libraryUpdate"
+import formatImageMessage from "../formatImage"
 
 export const messageBus = new MessageBus()
 
@@ -50,6 +52,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isUploadImageURLMessage,
     callback: uploadImageURLMessage
+})
+messageBus.subscribe({
+    tag: 'FormatImage',
+    priority: 10,
+    filter: isFormatImageMessage,
+    callback: formatImageMessage
 })
 messageBus.subscribe({
     tag: 'ParseWML',
