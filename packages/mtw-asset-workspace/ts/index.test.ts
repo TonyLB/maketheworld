@@ -101,7 +101,7 @@ describe('AssetWorkspace', () => {
     
         it('should return empty on no JSON file', async () => {
             s3ClientMock.get.mockImplementation(() => {
-                throw new NotFound({ $metadata: {} })
+                throw new NotFound({ $metadata: {} } as any)
             })
     
             const testWorkspace = new AssetWorkspace({
@@ -193,7 +193,8 @@ describe('AssetWorkspace', () => {
             "fileName": "Test",
             "appearances": []
         }
-    }
+    },
+    "properties": {}
 }`
             })
         })
@@ -226,7 +227,8 @@ describe('AssetWorkspace', () => {
             "fileName": "Test",
             "appearances": []
         }
-    }
+    },
+    "properties": {}
 }`
             })
         })
