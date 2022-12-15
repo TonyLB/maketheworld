@@ -1003,7 +1003,6 @@ Object {
         ],
       },
     ],
-    "fileURL": "https://test.com/imageTest.png",
     "key": "ImageTest",
     "tag": "Image",
   },

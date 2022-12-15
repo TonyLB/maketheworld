@@ -210,7 +210,6 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                     FirstImpression: (contents as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
                     OneCoolThing: (contents as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
                     Outfit: (contents as SchemaTag[]).filter(isSchemaOutfit).length ? (contents as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
-                    fileURL: (contents as SchemaTag[]).filter(isSchemaImage).reduce<string | undefined>((previous, { fileURL }) => (fileURL), undefined),
                     contents: contents as SchemaCharacterLegalContents[],
                     parse: item
                 } as SchemaCharacterTag

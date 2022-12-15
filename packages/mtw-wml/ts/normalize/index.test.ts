@@ -30,7 +30,7 @@ describe('WML normalize', () => {
                 <Feature key=(clockTower) />
             </Room>
             <Map key=(TestMap)>
-                <Image key=(ImageTest) fileURL="https://test.com/imageTest.png" />
+                <Image key=(ImageTest) />
                 <Room key=(a123) x="200" y="150" />
             </Map>
             <Feature key=(clockTower)>

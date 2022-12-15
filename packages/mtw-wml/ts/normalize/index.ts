@@ -570,7 +570,6 @@ export class Normalizer {
                 return {
                     key: node.key,
                     tag: 'Image',
-                    fileURL: node.fileURL,
                     appearances: [appearance]
                 }
             case 'Variable':

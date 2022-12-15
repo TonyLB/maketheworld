@@ -80,7 +80,6 @@ export type ParseOutfitTag = {
 export type ParseImageTag = {
     tag: 'Image';
     key: string;
-    fileURL?: string;
 } & ParseTagBase
 
 export type ParseCharacterLegalContents = ParseNameTag | ParsePronounsTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag | ParseImageTag
