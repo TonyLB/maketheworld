@@ -29,7 +29,8 @@ import {
     SchemaMessageTag,
     isSchemaTaggedMessageLegalContents,
     isSchemaRoom,
-    SchemaMessageRoom
+    SchemaMessageRoom,
+    isSchemaImage
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -685,7 +686,7 @@ export class Normalizer {
                     OneCoolThing: node.OneCoolThing,
                     Outfit: node.Outfit,
                     fileName: node.fileName,
-                    fileURL: node.fileURL,
+                    images: node.contents.filter(isSchemaImage).map(({ key }) => (key)),
                     appearances: [appearance]
                 }
             // default:

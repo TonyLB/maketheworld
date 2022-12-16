@@ -88,7 +88,6 @@ export type SchemaCharacterTag = {
     FirstImpression?: string;
     OneCoolThing?: string;
     Outfit?: string;
-    fileURL: string;
     contents: SchemaCharacterLegalContents[];
 } & SchemaBase
 

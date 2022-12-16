@@ -50,6 +50,8 @@ export type NormalCharacterPronouns = {
     adjective: string;
 }
 
+export type CharacterImage = string
+
 export type NormalCharacter = {
     tag: 'Character';
     Name: string;
@@ -58,7 +60,7 @@ export type NormalCharacter = {
     OneCoolThing: string;
     Outfit: string;
     fileName?: string;
-    fileURL?: string;
+    images: CharacterImage[];
     appearances: BaseAppearance[];
 } & NormalBase
 
