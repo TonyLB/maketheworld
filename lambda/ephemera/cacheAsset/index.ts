@@ -169,7 +169,7 @@ const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: Norm
 }
 
 const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
-    const { namespaceIdToDB: namespaceMap, normal = {} } = assetWorkspace
+    const { namespaceIdToDB: namespaceMap, normal = {}, properties = {} } = assetWorkspace
     const conditionsTransform = conditionsFromContext(assetWorkspace)
     const conditionsRemap = (conditions: { if: string; not?: boolean; dependencies: string[] }[]): EphemeraCondition[] => {
         return conditions.map((condition) => {
@@ -265,7 +265,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             appearances: item.appearances
                 .map((appearance) => {
                     const image = appearance.images.length > 0 && normal[appearance.images.slice(-1)[0]]
-                    const fileURL = (image && isNormalImage(image) && image.fileURL) || ''
+                    const fileURL = (image && isNormalImage(image) && assetWorkspace.properties[image.key] && assetWorkspace.properties[image.key].fileName) || ''
                     return {
                         conditions: conditionsTransform(appearance.contextStack),
                         name: (appearance.name ?? []).map(renderTranslate),
@@ -281,6 +281,8 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
         }
     }
     if (isEphemeraCharacterId(EphemeraId) && isNormalCharacter(item)) {
+        const image = item.images.length > 0 && normal[item.images.slice(-1)[0]]
+        const fileURL = (image && isNormalImage(image) && assetWorkspace.properties[image.key] && assetWorkspace.properties[image.key].fileName) || ''
         return {
             key: item.key,
             EphemeraId,
@@ -291,7 +293,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             OneCoolThing: item.OneCoolThing,
             Outfit: item.Outfit,
             Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,
-            fileURL: item.fileURL,
+            fileURL,
             Connected: false,
             ConnectionIds: [],
             RoomId: 'VORTEX'

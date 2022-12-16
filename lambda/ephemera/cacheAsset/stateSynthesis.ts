@@ -13,6 +13,7 @@ import {
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import { MessageBus } from '../messageBus/baseClasses.js'
 import { TaggedMessageContentUnrestricted } from '@tonylb/mtw-interfaces/dist/messages.js'
+import { WorkspaceProperties } from '@tonylb/mtw-asset-workspace'
 
 const extractDependenciesFromTaggedContent = (values: TaggedMessageContentUnrestricted[]): string[] => {
     const returnValue = values.reduce<string[]>((previous, item) => {
@@ -52,11 +53,13 @@ export class StateSynthesizer extends Object {
     assetId: string;
     namespaceIdToDB: NamespaceMapping;
     normalForm: NormalForm;
+    properties: WorkspaceProperties;
     messageBus: MessageBus;
     constructor(assetWorkspace: AssetWorkspace, messageBus: MessageBus) {
         super()
         this.namespaceIdToDB = assetWorkspace.namespaceIdToDB
         this.normalForm = assetWorkspace.normal || {}
+        this.properties = assetWorkspace.properties
         this.assetId = (Object.values(this.normalForm).find(({ tag }) => (tag === 'Asset')) || { key: '' }).key
         this.messageBus = messageBus
     }

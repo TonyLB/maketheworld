@@ -971,7 +971,7 @@ Object {
       },
     ],
     "fileName": "test",
-    "fileURL": undefined,
+    "images": Array [],
     "key": "Tess",
     "tag": "Character",
   },
