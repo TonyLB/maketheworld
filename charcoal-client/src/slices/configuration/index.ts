@@ -2,6 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { stringify } from 'uuid';
 
 interface ConfigurationData {
+    AppBaseURL?: string;
     UserPoolId?: string;
     UserPoolClient?: string;
     WebSocketURI?: string;
@@ -17,6 +18,7 @@ const configurationSlice = createSlice({
     initialState,
     reducers: {
         receiveConfiguration(state, action: PayloadAction<ConfigurationData>) {
+            state.AppBaseURL = action.payload.AppBaseURL
             state.UserPoolClient = action.payload.UserPoolClient
             state.UserPoolId = action.payload.UserPoolId
             state.WebSocketURI = action.payload.WebSocketURI
@@ -57,6 +59,7 @@ export const loadConfiguration = async (dispatch: any) => {
         }
         else {
             dispatch(receiveConfiguration({
+                AppBaseURL: configuration.AppBaseURL,
                 UserPoolId: configuration.UserPoolId,
                 UserPoolClient: configuration.UserPoolClient,
                 WebSocketURI: configuration.WebSocketURI,

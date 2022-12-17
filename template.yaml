@@ -684,8 +684,8 @@ Resources:
                 # TODO: Refactor CloudFront with Origin Access Control to S3 REST API in order to get static
                 # website-serving behavior out of CloudFront
                 #
-                - DomainName: !GetAtt AssetBucket.RegionalDomainName
-                  Id: !Sub "S3-origin-${AssetBucket}"
+                - DomainName: !GetAtt ImageBucket.RegionalDomainName
+                  Id: !Sub "S3-origin-${ImageBucket}"
                   S3OriginConfig:
                       OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontAccessIdentity}"
                 - DomainName: !GetAtt ClientBucket.RegionalDomainName
@@ -698,7 +698,7 @@ Resources:
                   AllowedMethods:
                   - GET
                   - HEAD
-                  TargetOriginId: !Sub "S3-origin-${AssetBucket}"
+                  TargetOriginId: !Sub "S3-origin-${ImageBucket}"
                   ForwardedValues:
                     QueryString: 'false'
                     Cookies:
@@ -725,7 +725,7 @@ Resources:
   ImageHostingPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
-          Bucket: !Ref AssetBucket
+          Bucket: !Ref ImageBucket
           PolicyDocument:
             Statement:
               - Action:
@@ -733,7 +733,7 @@ Resources:
                 Effect: Allow
                 Principal:
                   AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontAccessIdentity}"
-                Resource: !Sub "arn:aws:s3:::${AssetBucket}/images/*"
+                Resource: !Sub "arn:aws:s3:::${ImageBucket}/*"
             Version: "2012-10-17"
   ClientHostingPolicy:
       Type: AWS::S3::BucketPolicy
@@ -909,3 +909,7 @@ Outputs:
   WebSocketApiId:
       Description: "The ID of the API for realtime controll"
       Value: !Ref RealTimeWebSocket
+
+  AppBaseURL:
+      Description: "The base URL of the CloudFront distribution of the app"
+      Value: !GetAtt ImageCloudFrontDistribution.DomainName

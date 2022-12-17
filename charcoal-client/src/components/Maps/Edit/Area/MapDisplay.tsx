@@ -18,6 +18,8 @@ import { RoomGestures } from './MapGestures'
 import ToolSelectContext from './ToolSelectContext'
 import { produce } from 'immer'
 import HighlightCircle from './HighlightCircle'
+import { getConfiguration } from '../../../../slices/configuration'
+import { useSelector } from 'react-redux'
 
 interface MapDisplayProps extends VisibleMapItems {
     mapDispatch: MapAreaDispatch;
@@ -46,6 +48,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
         decoratorExits = [],
         fileURL = ''
     }) => {
+    const { AppBaseURL = '' } = useSelector(getConfiguration)
     const localClasses = useMapStyles()
     const [scale, setScale] = useState(0)
     const [windowDetails, setWindowDetails] = useState({
@@ -143,6 +146,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         }
                     }, previous)
                 ), [])
+            const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
             return <div style={{ width: Math.max(width, MAP_WIDTH * scale), height: Math.max(height, MAP_HEIGHT * scale), backgroundColor: "#aaaaaa" }} {...bind()}>
                 <div style={{
                     position: "absolute",
@@ -191,7 +195,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                             </marker>
                             { fileURL &&
                                 <pattern id="backgroundImg" patternUnits="userSpaceOnUse" x="0" y="0" width={MAP_WIDTH} height={MAP_HEIGHT}>
-                                    <image xlinkHref={fileURL} width={MAP_WIDTH} height={MAP_HEIGHT} />
+                                    <image xlinkHref={`${appBaseURL}/images/${fileURL}.png`} width={MAP_WIDTH} height={MAP_HEIGHT} />
                                 </pattern>
                             }
                         </defs>
