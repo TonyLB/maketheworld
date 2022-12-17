@@ -1,6 +1,5 @@
-import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset';
+import { AssetClientFetchURL, AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
-import { InheritedExit, InheritedComponent } from './inheritedData';
 
 export interface PersonalAssetsInternal {
     id?: string;
@@ -15,7 +14,8 @@ export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
-    importDefaults: AssetClientImportDefaults["defaultsByKey"]
+    importDefaults: AssetClientImportDefaults["defaultsByKey"];
+    properties: AssetClientFetchURL["properties"];
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>
