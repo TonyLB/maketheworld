@@ -10,6 +10,7 @@ import { Chip, Avatar } from '@mui/material'
 import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { getConfiguration } from '../../slices/configuration'
 
 type CharacterChipProps = {
     CharacterId: EphemeraCharacterId;
@@ -18,6 +19,8 @@ type CharacterChipProps = {
 }
 
 export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ CharacterId, Name, onClick }) => {
+    const { AppBaseURL = '' } = useSelector(getConfiguration)
+    const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
     const charactersInPlay = useSelector(getCharactersInPlay)
     const { Name: defaultName, fileURL } = charactersInPlay[CharacterId]
     return (
@@ -26,7 +29,7 @@ export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ Character
                 label={Name || defaultName}
                 onClick={onClick}
                 avatar={fileURL
-                    ? <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name} src={fileURL}>
+                    ? <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name} src={fileURL && `${appBaseURL}/images/${fileURL}.png`}>
                         { (Name || '')[0].toUpperCase() }
                     </Avatar>
                     : undefined

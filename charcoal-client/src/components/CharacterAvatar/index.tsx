@@ -8,6 +8,7 @@ import {
 import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { getConfiguration } from '../../slices/configuration'
 
 interface CharacterAvatarDirectProps {
     CharacterId: EphemeraCharacterId;
@@ -18,8 +19,10 @@ interface CharacterAvatarDirectProps {
 }
 
 export const CharacterAvatarDirect: FunctionComponent<CharacterAvatarDirectProps> = ({ CharacterId, Name, fileURL, width, height }) => {
+    const { AppBaseURL = '' } = useSelector(getConfiguration)
+    const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
     return <CharacterStyleWrapper key={CharacterId} CharacterId={CharacterId}>
-        <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid", width, height } : { bgcolor: 'primary.main', width, height }} alt={Name} src={fileURL}>
+        <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid", width, height } : { bgcolor: 'primary.main', width, height }} alt={Name} src={fileURL && `${appBaseURL}/images/${fileURL}.png`}>
             { Name[0].toUpperCase() }
         </Avatar>
     </CharacterStyleWrapper>

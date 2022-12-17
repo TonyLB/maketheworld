@@ -17,6 +17,8 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import MapIcon from '@mui/icons-material/Explore'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
+import { getConfiguration } from '../../slices/configuration'
+import { useSelector } from 'react-redux'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -38,6 +40,8 @@ export const Home: FunctionComponent<HomeProps> = ({
     const medium = useMediaQuery('(min-width: 600px)')
     const large = useMediaQuery('(min-width: 1200px)')
     const iconSize = large ? 80 : medium ? 60 : 40
+    const { AppBaseURL = '' } = useSelector(getConfiguration)
+    const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>
@@ -111,7 +115,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                         <Avatar
                             sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
                             alt={Name || '???'}
-                            src={fileURL}
+                            src={fileURL && `${appBaseURL}/images/${fileURL}.png`}
                         >
                             {Name[0] ? Name[0].toUpperCase() : '?'}
                         </Avatar>

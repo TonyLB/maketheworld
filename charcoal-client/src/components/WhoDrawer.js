@@ -26,7 +26,7 @@ export const WhoDrawer = () => {
             </TableHead>
             <TableBody>
                 {
-                    whoIsActive.map(({ CharacterId, Name, fileURL }) => {
+                    whoIsActive.map(({ CharacterId, Name }) => {
                         //
                         // TODO: Figure out how to present a workable room/area name using the new WML Asset
                         // system.
