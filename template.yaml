@@ -670,6 +670,25 @@ Resources:
       Properties:
           CloudFrontOriginAccessIdentityConfig:
               Comment: Cloudfront Origin identity for MakeTheWorld
+  RemoveImagesCloudfrontFunction:
+      Type: AWS::CloudFront::Function
+      Properties:
+        AutoPublish: true
+        FunctionCode: !Sub |
+            function handler(event) {
+                var request = event.request;
+                var uri = request.uri;
+
+                // Check whether the URI starts with images (it should)
+                if (uri.startsWith('/images/')) {
+                    request.uri = request.uri.slice(7);
+                }
+                return request;
+            }
+        FunctionConfig:
+          Comment: !Sub 'Remove images/ from start of URI'
+          Runtime: cloudfront-js-1.0
+        Name: !Sub "${AWS::StackName}-removeImagesFunction"
   ImageCloudFrontDistribution:
       Type: AWS::CloudFront::Distribution
       Properties:
@@ -704,6 +723,9 @@ Resources:
                     Cookies:
                       Forward: none
                   ViewerProtocolPolicy: allow-all
+                  FunctionAssociations:
+                      - EventType: viewer-request
+                        FunctionARN: !GetAtt RemoveImagesCloudfrontFunction.FunctionMetadata.FunctionARN
               DefaultCacheBehavior:
                   AllowedMethods:
                   - GET
