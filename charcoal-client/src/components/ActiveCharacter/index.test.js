@@ -23,7 +23,14 @@ const store = mockStore({
         }
     },
     messages: [],
-    characters: {}
+    characters: {},
+    UI: {
+        lineEntry: {
+            'CHARACTER#TESS': {
+                entry: ''
+            }
+        }
+    }
 })
 
 const TestComponent = () => {
