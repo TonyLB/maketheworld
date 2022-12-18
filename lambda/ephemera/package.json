@@ -25,7 +25,6 @@
     "acorn": "^8.8.1",
     "acorn-walk": "^8.2.0",
     "aws-xray-sdk": "^3.3.3",
-    "esbuild": "^0.15.17",
     "immer": "^9.0.12",
     "node-fetch": "^3.2.0",
     "node-jose": "^2.0.0",

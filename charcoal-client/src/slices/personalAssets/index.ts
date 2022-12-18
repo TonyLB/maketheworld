@@ -28,7 +28,8 @@ export const {
             incrementalBackoff: 0.5
         },
         publicData: {
-            importDefaults: {}
+            importDefaults: {},
+            properties: {}
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -44,7 +45,8 @@ export const {
                 incrementalBackoff: 0.5
             },
             publicData: {
-                importDefaults: {}
+                importDefaults: {},
+                properties: {}
             }
         },
         states: {
