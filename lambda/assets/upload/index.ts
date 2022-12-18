@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
 // import sharp from "sharp"
 
-import { streamToBuffer, streamToString } from '@tonylb/mtw-utilities/dist/stream'
+import { streamToBuffer, streamToString } from '../utilities/stream'
 
 import { dbRegister } from '../serialize/dbRegister'
 
