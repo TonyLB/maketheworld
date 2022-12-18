@@ -26,7 +26,7 @@ import {
     getWMLQuery
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
@@ -46,6 +46,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
     const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
+    const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const addAsset = useCallback((tag: string) => (componentId: string) => {
         wmlQuery.search('Asset, Story').addElement(`<${tag} key=(${componentId}) />`, { position: 'after' })
@@ -101,6 +102,16 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     : null
                 }
                 <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
+                <ListSubheader>Images</ListSubheader>
+                { features.length
+                    ? images.map((image) => (<WMLComponentHeader
+                            key={image.key}
+                            ItemId={image.key}
+                            onClick={() => {}}
+                        />))
+                    : null
+                }
+                <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
             </List>
         </Box>
         <Button onClick={save}>Save</Button>
