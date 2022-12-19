@@ -16,6 +16,7 @@ export interface PersonalAssetsPublic {
     draftWML?: string;
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
     properties: AssetClientFetchURL["properties"];
+    loadedImages: Record<string, File>;
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>
