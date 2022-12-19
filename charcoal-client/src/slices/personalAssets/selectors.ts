@@ -1,7 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 
 import { PersonalAssetsPublic } from './baseClasses'
-import { InheritedExit, InheritedComponent } from './inheritedData'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache';
@@ -11,6 +10,7 @@ export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
     getNormalized: (state: PersonalAssetsPublic & { key: string }) => NormalForm;
     getWMLQuery: (state: PersonalAssetsPublic & { key: string }) => WMLQuery;
+    getLoadedImages: (state: PersonalAssetsPublic) => Record<string, File>;
     getImportDefaults: (state: PersonalAssetsPublic) => AssetClientImportDefaults["defaultsByKey"]
 }
 
@@ -28,9 +28,12 @@ const getNormalized = createSelector(getWMLQuery, getWMLSource, (wmlQuery) => (w
 
 const getImportDefaults = (state: PersonalAssetsPublic) => (state.importDefaults)
 
+export const getLoadedImages = (state: PersonalAssetsPublic) => ( state.loadedImages )
+
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
     getWMLQuery,
     getNormalized,
-    getImportDefaults
+    getImportDefaults,
+    getLoadedImages
 }
