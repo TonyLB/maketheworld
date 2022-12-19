@@ -156,6 +156,7 @@ export const { addItem, setIntent } = personalAssetsSlice.actions
 export const {
     setCurrentWML,
     setDraftWML,
+    setLoadedImage
 } = publicActions
 export const {
     getStatus,
