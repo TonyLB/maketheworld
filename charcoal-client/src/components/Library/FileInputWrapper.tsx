@@ -1,20 +1,23 @@
-import React, { DragEvent, FunctionComponent, ReactChild, ReactChildren, useCallback, useContext, useState } from 'react'
+import React, { DragEvent, FunctionComponent, ReactChild, ReactChildren, useCallback, useContext, useRef, useState } from 'react'
 
 type FileWrapperContextType = {
     dragActive: boolean;
+    openUpload: (event: React.MouseEvent<HTMLElement | SVGSVGElement>) => void;
 }
 
 const FileWrapperContext = React.createContext<FileWrapperContextType>({
     dragActive: false,
+    openUpload: () => {}
 })
 
 type FileWrapperProps = {
     fileTypes: string[];
-    onDrop?: (file: File) => void;
+    onFile?: (file: File) => void;
     children?: ReactChild | ReactChildren;
 }
 
-export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onDrop= () => {}, fileTypes, children }) => {
+export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onFile: onDrop= () => {}, fileTypes, children }) => {
+    const ref = useRef<HTMLInputElement>(null)
     const [dragActive, setDragActive] = useState<boolean>(false)
 
     const handleDrag = useCallback((event: DragEvent) => {
@@ -34,8 +37,23 @@ export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onDrop= () =>
         }
     }, [setDragActive, onDrop])
 
+    const handleChange = useCallback((event) => {
+        if (event.currentTarget.files && fileTypes.includes(event.currentTarget.files[0]?.type)) {
+            onDrop(event.currentTarget.files[0])
+        }
+    }, [onDrop])
+
+    const openUpload = useCallback((event: React.MouseEvent<HTMLElement | SVGSVGElement>) => {
+        event.preventDefault()
+        event.stopPropagation()
+        if (ref.current) {
+            ref.current.click()
+        }
+    }, [ref])
+
     return <FileWrapperContext.Provider value={{
-        dragActive
+        dragActive,
+        openUpload
     }}>
         <form
             id="loadImage"
@@ -47,7 +65,18 @@ export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onDrop= () =>
             onDragOver={handleDrag}
             onDrop={handleDrag}
         >
-            <input type="file" id="image-load-input" style={{ display: 'none' }} />
+            <input
+                type="file"
+                id="image-load-input"
+                accept={fileTypes.join(', ')}
+                onChange={handleChange}
+                style={{ display: 'none' }}
+                ref={ref}
+                onClick={(event) => {
+                    console.log(`onClick`)
+                    event.stopPropagation()
+                }}
+            />
             <label
                 id="image-load-label"
                 htmlFor="image-load-input"
