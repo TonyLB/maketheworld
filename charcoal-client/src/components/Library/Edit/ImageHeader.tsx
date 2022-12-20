@@ -1,6 +1,7 @@
 import { FunctionComponent, useCallback } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
+import UploadIcon from '@mui/icons-material/Upload'
 import { Box, SxProps } from '@mui/material'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
@@ -22,7 +23,7 @@ const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onCl
     const primary = useCallback(primaryBase, [])
     const secondaryBase: AssetDataHeaderRenderFunction = ({ item }) => (loadedImages[item.key]?.type)
     const secondary = useCallback(secondaryBase, [loadedImages])
-    const { dragActive } = useFileWrapper()
+    const { dragActive, openUpload } = useFileWrapper()
     return <Box sx={dragActive
         ? {
             borderRadius: '5px',
@@ -35,7 +36,7 @@ const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onCl
         }}>
         <AssetDataHeader
             ItemId={ItemId}
-            icon={<HomeIcon />}
+            icon={<UploadIcon onClick={openUpload} />}
             primary={primary}
             secondary={secondary}
             onClick={onClick}
@@ -54,7 +55,7 @@ export const ImageHeader: FunctionComponent<ImageHeaderProps> = (props) => {
     }, [dispatch, props.ItemId])
     return <FileWrapper
         fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
-        onDrop={onDrop}
+        onFile={onDrop}
     >
         <ImageHeaderInterior {...props} />
     </FileWrapper>
