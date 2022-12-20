@@ -10,6 +10,6 @@ export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction
     state.draftWML = newDraft.payload.value
 }
 
-export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ key: string; file: File }>) => {
-    state.loadedImages[action.payload.key] = action.payload.file
+export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ itemId: string; file: File }>) => {
+    state.loadedImages[action.payload.itemId] = action.payload.file
 }

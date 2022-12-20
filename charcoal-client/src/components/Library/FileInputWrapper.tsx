@@ -9,10 +9,12 @@ const FileWrapperContext = React.createContext<FileWrapperContextType>({
 })
 
 type FileWrapperProps = {
+    fileTypes: string[];
+    onDrop?: (file: File) => void;
     children?: ReactChild | ReactChildren;
 }
 
-export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ children }) => {
+export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onDrop= () => {}, fileTypes, children }) => {
     const [dragActive, setDragActive] = useState<boolean>(false)
 
     const handleDrag = useCallback((event: DragEvent) => {
@@ -24,7 +26,13 @@ export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ children }) =
         else if (event.type === "dragleave") {
             setDragActive(false)
         }
-    }, [setDragActive])
+        else if (event.type === "drop") {
+            setDragActive(false)
+            if (event.dataTransfer?.files && fileTypes.includes(event.dataTransfer.files[0]?.type)) {
+                onDrop(event.dataTransfer.files[0])
+            }
+        }
+    }, [setDragActive, onDrop])
 
     return <FileWrapperContext.Provider value={{
         dragActive
@@ -37,6 +45,7 @@ export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ children }) =
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
+            onDrop={handleDrag}
         >
             <input type="file" id="image-load-input" style={{ display: 'none' }} />
             <label

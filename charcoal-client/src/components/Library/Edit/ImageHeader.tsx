@@ -5,6 +5,9 @@ import { Box, SxProps } from '@mui/material'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper';
+import { useLibraryAsset } from './LibraryAsset';
+import { useDispatch } from 'react-redux';
+import { setLoadedImage } from '../../../slices/personalAssets';
 
 interface ImageHeaderProps {
     ItemId: string;
@@ -14,8 +17,11 @@ interface ImageHeaderProps {
 }
 
 const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
+    const { loadedImages } = useLibraryAsset()
     const primaryBase: AssetDataHeaderRenderFunction = ({ item }) => (item.key)
     const primary = useCallback(primaryBase, [])
+    const secondaryBase: AssetDataHeaderRenderFunction = ({ item }) => (loadedImages[item.key]?.type)
+    const secondary = useCallback(secondaryBase, [loadedImages])
     const { dragActive } = useFileWrapper()
     return <Box sx={dragActive
         ? {
@@ -31,6 +37,7 @@ const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onCl
             ItemId={ItemId}
             icon={<HomeIcon />}
             primary={primary}
+            secondary={secondary}
             onClick={onClick}
             sx={sx}
             selected={selected}
@@ -39,7 +46,16 @@ const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onCl
 }
 
 export const ImageHeader: FunctionComponent<ImageHeaderProps> = (props) => {
-    return <FileWrapper>
+    const { AssetId } = useLibraryAsset()
+    const dispatch = useDispatch()
+    const onDrop = useCallback((file: File) => {
+        console.log(`Dropping type: ${JSON.stringify(file.type)}`)
+        dispatch(setLoadedImage(AssetId)({ itemId: props.ItemId, file }))
+    }, [dispatch, props.ItemId])
+    return <FileWrapper
+        fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
+        onDrop={onDrop}
+    >
         <ImageHeaderInterior {...props} />
     </FileWrapper>
 }
