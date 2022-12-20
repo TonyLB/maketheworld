@@ -22,6 +22,7 @@ import {
     getImportDefaults,
     getNormalized,
     getWMLQuery,
+    getLoadedImages,
     setCurrentWML,
     setIntent
 } from '../../../slices/personalAssets'
@@ -39,6 +40,7 @@ type LibraryAssetContextType = {
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
     wmlQuery: WMLQuery;
     updateWML: (value: string, options?: { prettyPrint?: boolean }) => void;
+    loadedImages: Record<string, File>;
     components: Record<string, AssetComponent>;
     rooms: Record<string, AssetComponent>;
     exits: Record<string, NormalExit>;
@@ -54,6 +56,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     importDefaults: {},
     wmlQuery: new WMLQuery(''),
     updateWML: () => {},
+    loadedImages: {},
     components: {},
     rooms: {},
     exits: {},
@@ -118,6 +121,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const normalForm = useSelector(getNormalized(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))
     const importDefaults = useSelector(getImportDefaults(AssetId))
+    const loadedImages = useSelector(getLoadedImages(AssetId))
     const dispatch = useDispatch()
     const updateWML = (value: string, options?: { prettyPrint?: boolean }) => {
         const { prettyPrint = true } = options || {}
@@ -134,6 +138,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
     const exits = useMemo<Record<string, NormalExit>>(() => ( objectFilter(normalForm, isNormalExit) ), [components])
     const features = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Feature')) ), [components])
+    const images = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Image')) ), [components])
     const save = useCallback(() => {
         dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
         dispatch(heartbeat)
@@ -148,6 +153,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             importDefaults,
             wmlQuery,
             updateWML,
+            loadedImages,
             components,
             rooms,
             exits,

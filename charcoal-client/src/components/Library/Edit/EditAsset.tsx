@@ -36,6 +36,7 @@ import AddWMLComponent from './AddWMLComponent'
 import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
+import ImageHeader from './ImageHeader'
 
 type AssetEditFormProps = {}
 
@@ -103,8 +104,8 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 }
                 <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
                 <ListSubheader>Images</ListSubheader>
-                { features.length
-                    ? images.map((image) => (<WMLComponentHeader
+                { images.length
+                    ? images.map((image) => (<ImageHeader
                             key={image.key}
                             ItemId={image.key}
                             onClick={() => {}}

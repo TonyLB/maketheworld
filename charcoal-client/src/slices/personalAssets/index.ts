@@ -12,7 +12,7 @@ import {
     parseWML
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
-import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer } from './reducers'
+import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, setLoadedImage as setLoadedImageReducer } from './reducers'
 
 export const {
     slice: personalAssetsSlice,
@@ -36,7 +36,8 @@ export const {
     sliceSelector: ({ personalAssets }) => (personalAssets),
     publicReducers: {
         setCurrentWML: setCurrentWMLReducer,
-        setDraftWML: setDraftWMLReducer
+        setDraftWML: setDraftWMLReducer,
+        setLoadedImage: setLoadedImageReducer
     },
     publicSelectors,
     template: {
@@ -163,7 +164,8 @@ export const {
     getCurrentWML,
     getNormalized,
     getWMLQuery,
-    getImportDefaults
+    getImportDefaults,
+    getLoadedImages
 } = selectors
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
