@@ -46,6 +46,19 @@ export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ children }) =
             >
                 { children }
             </label>
+            { dragActive && <div
+                style={{
+                    width: "100%",
+                    height: "100%",
+                    top: "0px",
+                    bottom: "0px",
+                    right: "0px",
+                    left: "0px"
+                }}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+            />}
         </form>
     </FileWrapperContext.Provider>
 }
