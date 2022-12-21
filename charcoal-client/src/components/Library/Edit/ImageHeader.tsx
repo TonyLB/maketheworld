@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback } from 'react'
+import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
 import UploadIcon from '@mui/icons-material/Upload'
@@ -7,8 +7,9 @@ import { Box, SxProps } from '@mui/material'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper';
 import { useLibraryAsset } from './LibraryAsset';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setLoadedImage } from '../../../slices/personalAssets';
+import { getConfiguration } from '../../../slices/configuration'
 
 interface ImageHeaderProps {
     ItemId: string;
@@ -17,13 +18,44 @@ interface ImageHeaderProps {
     selected?: boolean;
 }
 
+type ImageHeaderSyntheticURL = {
+    loadId: string;
+    fileURL: string;
+}
+
 const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
-    const { loadedImages } = useLibraryAsset()
+    const { loadedImages, properties } = useLibraryAsset()
+    const { AppBaseURL = '' } = useSelector(getConfiguration)
+    const [syntheticURL, setSyntheticURL] = useState<ImageHeaderSyntheticURL | undefined>()
     const primaryBase: AssetDataHeaderRenderFunction = ({ item }) => (item.key)
     const primary = useCallback(primaryBase, [])
-    const secondaryBase: AssetDataHeaderRenderFunction = ({ item }) => (loadedImages[item.key]?.type)
-    const secondary = useCallback(secondaryBase, [loadedImages])
     const { dragActive, openUpload } = useFileWrapper()
+
+    const loadedImage = useMemo(() => (
+        loadedImages[ItemId]
+    ), [loadedImages, ItemId])
+
+    useEffect(() => {
+        if (loadedImage?.loadId !== syntheticURL?.loadId) {
+            if (syntheticURL) {
+                URL.revokeObjectURL(syntheticURL.fileURL)
+            }
+            setSyntheticURL({
+                loadId: loadedImage.loadId,
+                fileURL: URL.createObjectURL(loadedImage.file)
+            })
+        }
+        return () => {
+            if (syntheticURL) {
+                URL.revokeObjectURL(syntheticURL.fileURL)
+            }
+        }
+    }, [syntheticURL, loadedImage])
+
+    const fileURL = useMemo(() => {
+        const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+        return syntheticURL ? syntheticURL.fileURL : properties[ItemId] ? `${appBaseURL}/images/${properties[ItemId].fileName}.png` : ''
+    }, [syntheticURL, properties, ItemId])
     return <Box sx={dragActive
         ? {
             borderRadius: '5px',
@@ -36,9 +68,13 @@ const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onCl
         }}>
         <AssetDataHeader
             ItemId={ItemId}
-            icon={<UploadIcon onClick={openUpload} />}
+            icon={
+                <Box>
+                    {fileURL && <img style={{ maxWidth: '3em', height: 'auto' }} src={fileURL} />}
+                    <UploadIcon onClick={openUpload} />
+                </Box>
+            }
             primary={primary}
-            secondary={secondary}
             onClick={onClick}
             sx={sx}
             selected={selected}
@@ -50,7 +86,6 @@ export const ImageHeader: FunctionComponent<ImageHeaderProps> = (props) => {
     const { AssetId } = useLibraryAsset()
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
-        console.log(`Dropping type: ${JSON.stringify(file.type)}`)
         dispatch(setLoadedImage(AssetId)({ itemId: props.ItemId, file }))
     }, [dispatch, props.ItemId])
     return <FileWrapper

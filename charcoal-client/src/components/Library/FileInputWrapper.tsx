@@ -73,7 +73,6 @@ export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onFile: onDro
                 style={{ display: 'none' }}
                 ref={ref}
                 onClick={(event) => {
-                    console.log(`onClick`)
                     event.stopPropagation()
                 }}
             />

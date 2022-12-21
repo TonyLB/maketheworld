@@ -10,13 +10,18 @@ export interface PersonalAssetsInternal {
     uploadRequestId?: string;
 }
 
+export type PersonalAssetsLoadedImage = {
+    loadId: string;
+    file: File;
+}
+
 export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
     properties: AssetClientFetchURL["properties"];
-    loadedImages: Record<string, File>;
+    loadedImages: Record<string, PersonalAssetsLoadedImage>;
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>
