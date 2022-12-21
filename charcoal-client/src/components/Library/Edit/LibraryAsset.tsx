@@ -24,13 +24,15 @@ import {
     getWMLQuery,
     getLoadedImages,
     setCurrentWML,
-    setIntent
+    setIntent,
+    getProperties
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
 import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
+import { PersonalAssetsLoadedImage } from '../../../slices/personalAssets/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -40,7 +42,8 @@ type LibraryAssetContextType = {
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
     wmlQuery: WMLQuery;
     updateWML: (value: string, options?: { prettyPrint?: boolean }) => void;
-    loadedImages: Record<string, File>;
+    loadedImages: Record<string, PersonalAssetsLoadedImage>;
+    properties: Record<string, { fileName: string }>;
     components: Record<string, AssetComponent>;
     rooms: Record<string, AssetComponent>;
     exits: Record<string, NormalExit>;
@@ -56,6 +59,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     importDefaults: {},
     wmlQuery: new WMLQuery(''),
     updateWML: () => {},
+    properties: {},
     loadedImages: {},
     components: {},
     rooms: {},
@@ -122,6 +126,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const wmlQuery = useSelector(getWMLQuery(AssetId))
     const importDefaults = useSelector(getImportDefaults(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
+    const properties = useSelector(getProperties(AssetId))
     const dispatch = useDispatch()
     const updateWML = (value: string, options?: { prettyPrint?: boolean }) => {
         const { prettyPrint = true } = options || {}
@@ -153,6 +158,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             importDefaults,
             wmlQuery,
             updateWML,
+            properties,
             loadedImages,
             components,
             rooms,

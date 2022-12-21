@@ -165,6 +165,7 @@ export const {
     getNormalized,
     getWMLQuery,
     getImportDefaults,
+    getProperties,
     getLoadedImages
 } = selectors
 
