@@ -27,6 +27,7 @@ export type AssetDataHeaderRenderFunction = {
 interface AssetDataHeaderProps {
     ItemId: string;
     icon: ReactChild;
+    actions?: ReactChild;
     primary?: AssetDataHeaderRenderFunction;
     secondary?: AssetDataHeaderRenderFunction;
     onClick?: () => void;
@@ -34,7 +35,7 @@ interface AssetDataHeaderProps {
     selected?: boolean;
 }
 
-export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, primary, secondary, ItemId, onClick, sx, selected }) => {
+export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, actions = null, primary, secondary, ItemId, onClick, sx, selected }) => {
     const { normalForm, importDefaults, rooms } = useLibraryAsset()
 
     const props = {
@@ -47,12 +48,14 @@ export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon,
     const primaryOutput = primary?.(props) || null
     const secondaryOutput = secondary?.(props) || null
     if (onClick) {
-        return <ListItemButton onClick={onClick} sx={sx} selected={selected}>
-            <ListItemIcon>
-                { icon }
-            </ListItemIcon>
-            <ListItemText primary={primaryOutput} secondary={secondaryOutput} />
-        </ListItemButton>
+        return <ListItem sx={sx} secondaryAction={actions}>
+            <ListItemButton onClick={onClick} selected={selected}>
+                <ListItemIcon>
+                    { icon }
+                </ListItemIcon>
+                <ListItemText primary={primaryOutput} secondary={secondaryOutput} />
+            </ListItemButton>
+        </ListItem>
     }
     else {
         return <ListItem sx={sx}>
