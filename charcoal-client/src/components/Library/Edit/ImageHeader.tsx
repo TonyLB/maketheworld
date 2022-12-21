@@ -2,7 +2,7 @@ import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 're
 
 import HomeIcon from '@mui/icons-material/Home'
 import UploadIcon from '@mui/icons-material/Upload'
-import { Box, SxProps } from '@mui/material'
+import { Box, IconButton, ListItemIcon, SxProps } from '@mui/material'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper';
@@ -71,13 +71,13 @@ const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onCl
             icon={
                 <Box>
                     {fileURL && <img style={{ maxWidth: '3em', height: 'auto' }} src={fileURL} />}
-                    <UploadIcon onClick={openUpload} />
                 </Box>
             }
             primary={primary}
             onClick={onClick}
             sx={sx}
             selected={selected}
+            actions={<IconButton onClick={openUpload}><UploadIcon /></IconButton>}
         />
     </Box>
 }
