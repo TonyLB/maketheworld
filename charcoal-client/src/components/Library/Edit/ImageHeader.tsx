@@ -6,7 +6,7 @@ import { Box, IconButton, ListItemIcon, SxProps } from '@mui/material'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper';
-import { useLibraryAsset } from './LibraryAsset';
+import { useLibraryAsset, useLibraryImageURL } from './LibraryAsset';
 import { useDispatch, useSelector } from 'react-redux';
 import { setLoadedImage } from '../../../slices/personalAssets';
 import { getConfiguration } from '../../../slices/configuration'
@@ -18,44 +18,13 @@ interface ImageHeaderProps {
     selected?: boolean;
 }
 
-type ImageHeaderSyntheticURL = {
-    loadId: string;
-    fileURL: string;
-}
-
 const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
-    const { loadedImages, properties } = useLibraryAsset()
-    const { AppBaseURL = '' } = useSelector(getConfiguration)
-    const [syntheticURL, setSyntheticURL] = useState<ImageHeaderSyntheticURL | undefined>()
     const primaryBase: AssetDataHeaderRenderFunction = ({ item }) => (item.key)
     const primary = useCallback(primaryBase, [])
     const { dragActive, openUpload } = useFileWrapper()
 
-    const loadedImage = useMemo(() => (
-        loadedImages[ItemId]
-    ), [loadedImages, ItemId])
+    const fileURL = useLibraryImageURL(ItemId)
 
-    useEffect(() => {
-        if (loadedImage?.loadId !== syntheticURL?.loadId) {
-            if (syntheticURL) {
-                URL.revokeObjectURL(syntheticURL.fileURL)
-            }
-            setSyntheticURL({
-                loadId: loadedImage.loadId,
-                fileURL: URL.createObjectURL(loadedImage.file)
-            })
-        }
-        return () => {
-            if (syntheticURL) {
-                URL.revokeObjectURL(syntheticURL.fileURL)
-            }
-        }
-    }, [syntheticURL, loadedImage])
-
-    const fileURL = useMemo(() => {
-        const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
-        return syntheticURL ? syntheticURL.fileURL : properties[ItemId] ? `${appBaseURL}/images/${properties[ItemId].fileName}.png` : ''
-    }, [syntheticURL, properties, ItemId])
     return <Box sx={dragActive
         ? {
             borderRadius: '5px',

@@ -36,6 +36,7 @@ import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import useDebounce from '../../../hooks/useDebounce'
+import { CharacterAvatarDirect } from '../../CharacterAvatar'
 
 type ReplaceLiteralTagProps = {
     wmlQuery: WMLQuery;
@@ -338,16 +339,26 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             ]}
         />
         <Stack sx={{ margin: '1em' }} spacing={2}>
-            <LiteralTagField
-                required
-                tag='Name'
-                label="Name"
-            />
-            <LiteralTagField
-                required
-                tag="FirstImpression"
-                label="First Impression"
-            />
+            <Stack spacing={2} direction="row">
+                <CharacterAvatarDirect
+                    CharacterId={`CHARACTER#${character?.key || '123'}`}
+                    Name={character?.Name ?? ''}
+                    width="6em"
+                    height="6em"
+                />
+                <Stack spacing={2} sx={{ flexGrow: 1 }}>
+                    <LiteralTagField
+                        required
+                        tag='Name'
+                        label="Name"
+                    />
+                    <LiteralTagField
+                        required
+                        tag="FirstImpression"
+                        label="First Impression"
+                    />
+                </Stack>
+            </Stack>
             <CharacterEditPronouns
                 selectValue={selectValue}
                 onSelectChange={onSelectChangeHandler}
