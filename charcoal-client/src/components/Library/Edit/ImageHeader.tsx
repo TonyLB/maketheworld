@@ -1,15 +1,13 @@
-import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react'
+import { FunctionComponent, useCallback } from 'react'
 
-import HomeIcon from '@mui/icons-material/Home'
 import UploadIcon from '@mui/icons-material/Upload'
-import { Box, IconButton, ListItemIcon, SxProps } from '@mui/material'
+import { Box, IconButton, SxProps } from '@mui/material'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper';
 import { useLibraryAsset, useLibraryImageURL } from './LibraryAsset';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { setLoadedImage } from '../../../slices/personalAssets';
-import { getConfiguration } from '../../../slices/configuration'
 
 interface ImageHeaderProps {
     ItemId: string;

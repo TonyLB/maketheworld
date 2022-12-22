@@ -14,6 +14,7 @@ import {
     SelectChangeEvent,
     MenuItem
 } from '@mui/material'
+import UploadIcon from '@mui/icons-material/Upload'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import {
     Routes,
@@ -26,7 +27,8 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
     getStatus,
-    getWMLQuery
+    getWMLQuery,
+    setLoadedImage
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -34,9 +36,10 @@ import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'
-import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
+import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsset'
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
+import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
 
 type ReplaceLiteralTagProps = {
     wmlQuery: WMLQuery;
@@ -276,10 +279,47 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, ta
 
 }
 
+interface ImageHeaderProps {
+    ItemId: `CHARACTER#${string}`;
+    Name: string;
+    characterKey: string;
+}
+
+const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name, characterKey }) => {
+    const { dragActive, openUpload } = useFileWrapper()
+    const iconURL = useLibraryImageURL(`${characterKey}Icon`)
+
+    return <Box sx={dragActive
+        ? {
+            borderRadius: '5px',
+            borderStyle: 'dashed',
+            borderWidth: '2px',
+            borderColor: 'lightGrey',
+        }
+        : {
+            padding: '2px'
+        }}>
+        <Stack direction="row">
+            <CharacterAvatarDirect
+                CharacterId={ItemId}
+                Name={Name ?? ''}
+                width="6em"
+                height="6em"
+                fileURL={iconURL}
+            />
+            <Stack>
+                <Box sx={{ flexGrow:1 }} />
+                <IconButton onClick={openUpload}><UploadIcon /></IconButton>
+                <Box sx={{ flexGrow:1 }} />
+            </Stack>
+        </Stack>
+    </Box>
+}
+
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { normalForm, wmlQuery, updateWML, save } = useLibraryAsset()
+    const { normalForm, wmlQuery, updateWML, save, AssetId } = useLibraryAsset()
     const navigate = useNavigate()
 
     const character = Object.values(normalForm || {}).find(({ tag }) => (['Character'].includes(tag))) as NormalCharacter | undefined
@@ -320,6 +360,13 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
         updateWML(wmlQuery.source)
     }, [wmlQuery, updateWML, debouncedPronouns])
 
+    const dispatch = useDispatch()
+    const onDrop = useCallback((file: File) => {
+        if (character?.key) {
+            dispatch(setLoadedImage(AssetId)({ itemId: `${character.key}Icon`, file }))
+        }
+    }, [dispatch, character?.key])
+
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
             primary={character?.Name || 'Unnamed'}
@@ -340,12 +387,12 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
         />
         <Stack sx={{ margin: '1em' }} spacing={2}>
             <Stack spacing={2} direction="row">
-                <CharacterAvatarDirect
-                    CharacterId={`CHARACTER#${character?.key || '123'}`}
-                    Name={character?.Name ?? ''}
-                    width="6em"
-                    height="6em"
-                />
+                <FileWrapper
+                    fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
+                    onFile={onDrop}
+                >
+                    <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={character?.Name ?? ''} characterKey={character?.key ?? ''} />
+                </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
                     <LiteralTagField
                         required
