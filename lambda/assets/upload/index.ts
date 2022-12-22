@@ -16,7 +16,7 @@ import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 
-const { S3_BUCKET } = process.env;
+const { S3_BUCKET, UPLOAD_BUCKET } = process.env;
 
 //
 // TODO: Add a tag verification step in upload handling, to prevent people from (e.g.) asking for a character
@@ -28,16 +28,13 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
     if (s3Client) {
         await Promise.all(
             //
-            // TODO: Redirect uploads to upload S3 Bucket.
-            //
-            //
             // TODO: Tag S3 keys with assetType, so CHARACTER-${uuidv4()} or ASSET-${uuidv4()}, so
             // that the upload procedure can verify that the correct upload type was delivered.
             //
             payloads.map(async (payload) => {
-                const s3Object = `upload/${uuidv4()}.wml`
+                const s3Object = `${uuidv4()}.wml`
                 const putCommand = new PutObjectCommand({
-                    Bucket: S3_BUCKET,
+                    Bucket: UPLOAD_BUCKET,
                     Key: s3Object,
                     ContentType: 'text/plain'
                 })
@@ -144,7 +141,7 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                 const assetWorkspace = new AssetWorkspace(extractAddressFromParseWMLMessage(payload))
             
                 await assetWorkspace.loadJSON()
-                await assetWorkspace.loadWMLFrom(payload.uploadName)
+                await assetWorkspace.loadWMLFrom(payload.uploadName, true)
                 if (assetWorkspace.status.json !== 'Clean') {
                     await Promise.all([
                         assetWorkspace.pushJSON(),
@@ -158,7 +155,7 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
 
                 try {
                     await s3Client.send(new DeleteObjectCommand({
-                        Bucket: S3_BUCKET,
+                        Bucket: UPLOAD_BUCKET,
                         Key: payload.uploadName
                     }))  
                 }
