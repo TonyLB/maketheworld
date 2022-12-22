@@ -14,7 +14,7 @@
 //   - AssetId
 //
 
-import React, { useContext, ReactChild, ReactChildren, FunctionComponent, useMemo, useCallback } from 'react'
+import React, { useContext, ReactChild, ReactChildren, FunctionComponent, useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
@@ -33,6 +33,7 @@ import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalE
 import { objectFilter } from '../../../lib/objects'
 import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
 import { PersonalAssetsLoadedImage } from '../../../slices/personalAssets/baseClasses'
+import { getConfiguration } from '../../../slices/configuration'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -172,5 +173,45 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
 }
 
 export const useLibraryAsset = () => (useContext(LibraryAssetContext))
+
+type ImageHeaderSyntheticURL = {
+    loadId: string;
+    fileURL: string;
+}
+
+export const useLibraryImageURL = (key: string): string => {    
+    const { loadedImages, properties } = useLibraryAsset()
+    const { AppBaseURL = '' } = useSelector(getConfiguration)
+    const [syntheticURL, setSyntheticURL] = useState<ImageHeaderSyntheticURL | undefined>()
+
+    const loadedImage = useMemo(() => (
+        loadedImages[key]
+    ), [loadedImages, key])
+
+    useEffect(() => {
+        if (loadedImage?.loadId !== syntheticURL?.loadId) {
+            if (syntheticURL) {
+                URL.revokeObjectURL(syntheticURL.fileURL)
+            }
+            setSyntheticURL({
+                loadId: loadedImage.loadId,
+                fileURL: URL.createObjectURL(loadedImage.file)
+            })
+        }
+        return () => {
+            if (syntheticURL) {
+                URL.revokeObjectURL(syntheticURL.fileURL)
+            }
+        }
+    }, [syntheticURL, loadedImage])
+
+    const fileURL = useMemo(() => {
+        const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+        return syntheticURL ? syntheticURL.fileURL : properties[key] ? `${appBaseURL}/images/${properties[key].fileName}.png` : ''
+    }, [syntheticURL, properties, key])
+
+    return fileURL
+
+}
 
 export default LibraryAsset
