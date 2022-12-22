@@ -24,6 +24,8 @@ export type FetchAssetMessage = {
 
 export type UploadURLMessage = {
     type: 'UploadURL';
+    assetType: 'Character' | 'Asset';
+    imageKeys: string[];
 }
 
 export type ParseWMLMessage = {

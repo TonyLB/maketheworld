@@ -9,7 +9,7 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "fileURL": "testIcon.png",
+  "images": undefined,
   "scopedId": "TESS",
 }
 `;

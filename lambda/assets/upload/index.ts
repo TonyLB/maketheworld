@@ -27,6 +27,13 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
     const s3Client = await internalCache.Connection.get('s3Client')
     if (s3Client) {
         await Promise.all(
+            //
+            // TODO: Redirect uploads to upload S3 Bucket.
+            //
+            //
+            // TODO: Tag S3 keys with assetType, so CHARACTER-${uuidv4()} or ASSET-${uuidv4()}, so
+            // that the upload procedure can verify that the correct upload type was delivered.
+            //
             payloads.map(async (payload) => {
                 const s3Object = `upload/${uuidv4()}.wml`
                 const putCommand = new PutObjectCommand({
@@ -48,6 +55,9 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
     }
 }
 
+//
+// TODO: Deprecate separate uploadImageURLMessage
+//
 export const uploadImageURLMessage = async ({ payloads, messageBus }: { payloads: UploadImageURLMessage[], messageBus: MessageBus }): Promise<void> => {
     const player = await internalCache.Connection.get('player')
     const s3Client = await internalCache.Connection.get('s3Client')
@@ -87,51 +97,6 @@ export const uploadImageURLMessage = async ({ payloads, messageBus }: { payloads
             })
         )
     }
-}
-
-export const handleImageUpload = ({ s3Client, messageBus }: { s3Client: S3Client, messageBus: MessageBus }) => async({ bucket, key }) => {
-    const { dir: directory, name: fileName } = path.parse(key)
-    const lastDirectory = directory.split('/').slice(-1)
-
-    const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
-        Bucket: bucket,
-        Key: key
-    }))
-    const contents = await streamToBuffer(contentStream)
-    
-    const { width, height } = (lastDirectory && lastDirectory.length > 0 && lastDirectory[0] === 'Characters') ? { width: 200, height: 200 } : { width: 800, height: 600 }
-
-    try {
-        // const imageBuffer = await sharp(contents)
-        //     .resize({ width, height, fit: sharp.strategy.fill })
-        //     .toFormat('png')
-        //     .toBuffer()
-        // await s3Client.send(new PutObjectCommand({
-        //     Bucket: bucket,
-        //     Key: `images/${fileName}.png`,
-        //     Body: imageBuffer
-        // }))
-        // await Promise.all([
-        //     uploadResponse({
-        //         uploadId: key,
-        //         messageType: 'Success',
-        //         operation: 'Upload'
-        //     })
-        // ])
-
-    }
-    catch {
-        // messageBus.send({
-        //     type: 'UploadResponse',
-        //     uploadId: key,
-        //     messageType: 'Error'
-        // })
-    }
-    await s3Client.send(new DeleteObjectCommand({
-        Bucket: bucket,
-        Key: key
-    }))  
-    return {}
 }
 
 const extractAddressFromParseWMLMessage = (value: ParseWMLMessage): AssetWorkspaceAddress => {

@@ -8,7 +8,7 @@ jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
-jest.mock('@tonylb/mtw-utilities/dist/stream')
+jest.mock('../utilities/stream')
 import { streamToString } from '../utilities/stream'
 
 const mockSetWML = jest.fn()
