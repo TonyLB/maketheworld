@@ -1,5 +1,35 @@
 jest.mock('@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient')
 import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
+jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
+    return jest.fn().mockImplementation((address: any) => {
+        return {
+            status: {
+                json: 'Clean'
+            },
+            address,
+            get fileNameBase() {
+                if (address.zone === 'Personal') {
+                    return 'Personal/Test/Test'
+                }
+                else {
+                    return 'Library/Test'
+                }
+            },
+            loadJSON: jest.fn(),
+            normal: {
+                'Import-0': {
+                    tag: 'Import',
+                },
+                Test: {
+                    tag: 'Asset'
+                }
+            },
+            namespaceIdToDB: {
+                VORTEX: 'VORTEX'
+            }
+        }
+    })
+})
 
 jest.mock('../internalCache')
 import internalCache from "../internalCache"

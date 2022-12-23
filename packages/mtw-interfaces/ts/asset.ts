@@ -140,6 +140,11 @@ export type AssetClientUploadURL = {
     RequestId?: string;
     url: string;
     s3Object: string;
+    images: {
+        key: string;
+        url: string;
+        s3Object: string;
+    }[];
 }
 
 export type AssetClientImportDefaultsRoom = {
@@ -158,7 +163,9 @@ export type AssetClientImportDefaults = {
 
 export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientLibraryMessage |
-    AssetClientFetchURL
+    AssetClientFetchURL |
+    AssetClientUploadURL |
+    AssetClientImportDefaults
 
 export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {
@@ -267,7 +274,8 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
             const properties = message.properties
             return (typeof properties === 'object') && Object.values(properties).reduce<boolean>((previous, property) => (previous && checkTypes(property, { fileName: 'string' })), true)
         case 'UploadURL':
-            return checkTypes(message, { url: 'string', s3Object: 'string' }, { RequestId: 'string' })
+            return checkTypes(message, { url: 'string', s3Object: 'string' }, { RequestId: 'string' }) &&
+                ("images" in message && Array.isArray(message.images) && message.images.map((item) => (checkTypes(item, { key: 'string', url: 'string', s3Object: 'string' }))))
         case 'ImportDefaults':
             return checkAll(
                 checkTypes(message, { assetId: 'string' }),

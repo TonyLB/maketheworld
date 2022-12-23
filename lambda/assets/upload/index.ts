@@ -55,7 +55,8 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
                     body: {
                         messageType: 'UploadURL',
                         url: presignedOutput,
-                        s3Object
+                        s3Object,
+                        images: []
                     }
                 })
             })
