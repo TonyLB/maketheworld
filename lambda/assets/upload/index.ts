@@ -18,6 +18,20 @@ import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 
 const { S3_BUCKET, UPLOAD_BUCKET } = process.env;
 
+const presignedUploadURL = async ({ s3Client, prefix, contentType }: { s3Client: S3Client, prefix: string, contentType: string }): Promise<{ s3Object: string; presignedOutput: string }> => {
+    const s3Object = `${prefix}-${uuidv4()}.wml`
+    const putCommand = new PutObjectCommand({
+        Bucket: UPLOAD_BUCKET,
+        Key: s3Object,
+        ContentType: contentType
+    })
+    const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
+    return {
+        s3Object,
+        presignedOutput
+    }
+}
+
 //
 // TODO: Add a tag verification step in upload handling, to prevent people from (e.g.) asking for a character
 // link and uploading an Asset
@@ -28,17 +42,14 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
     if (s3Client) {
         await Promise.all(
             //
-            // TODO: Tag S3 keys with assetType, so CHARACTER-${uuidv4()} or ASSET-${uuidv4()}, so
-            // that the upload procedure can verify that the correct upload type was delivered.
+            // TODO: Add presignedURLs for images that need to be uploaded along with the changed WML
             //
             payloads.map(async (payload) => {
-                const s3Object = `${uuidv4()}.wml`
-                const putCommand = new PutObjectCommand({
-                    Bucket: UPLOAD_BUCKET,
-                    Key: s3Object,
-                    ContentType: 'text/plain'
+                const { s3Object, presignedOutput } = await presignedUploadURL({
+                    s3Client,
+                    prefix: payload.assetType === 'Asset' ? 'ASSET' : 'CHARACTER',
+                    contentType: 'text/plain'
                 })
-                const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {

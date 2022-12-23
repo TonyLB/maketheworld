@@ -101,7 +101,7 @@ describe('parseWMLMessage', () => {
                 test: 'ROOM#123'
             }
         })
-        expect(mockLoadWMLFrom).toHaveBeenCalledWith(`upload/TestABC.wml`)
+        expect(mockLoadWMLFrom).toHaveBeenCalledWith(`upload/TestABC.wml`, true)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
