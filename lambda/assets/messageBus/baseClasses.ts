@@ -22,10 +22,15 @@ export type FetchAssetMessage = {
     fileName?: string;
 }
 
+type UploadURLMessageImage = {
+    key: string;
+    contentType: string;
+}
+
 export type UploadURLMessage = {
     type: 'UploadURL';
     assetType: 'Character' | 'Asset';
-    imageKeys: string[];
+    images: UploadURLMessageImage[];
 }
 
 export type ParseWMLMessage = {
