@@ -24,6 +24,7 @@
     "@tonylb/mtw-wml": "file:./mtw-wml",
     "acorn": "^8.8.1",
     "acorn-walk": "^8.2.0",
+    "esbuild": "^0.16.10",
     "immer": "^9.0.12",
     "jimp": "^0.16.2",
     "uuid": "^8.3.2"

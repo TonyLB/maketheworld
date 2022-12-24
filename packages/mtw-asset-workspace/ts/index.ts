@@ -1,4 +1,4 @@
-import { GetObjectCommand, NotFound } from "@aws-sdk/client-s3"
+import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { v4 as uuidv4 } from 'uuid'
 
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
@@ -14,7 +14,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { ParseException } from "@tonylb/mtw-wml/dist/parser/baseClasses"
 import { deepEqual } from "./objects"
 
-const { S3_BUCKET = 'Test' } = process.env;
+const { S3_BUCKET = 'Test', UPLOAD_BUCKET = 'Test' } = process.env;
 
 type AssetWorkspaceConstructorBase = {
     fileName: string;
@@ -165,7 +165,7 @@ export class AssetWorkspace {
             contents = await s3Client.get({ Key: filePath })
         }
         catch(err: any) {
-            if (['NoSuchKey', 'AccessDenied'].includes(err.Code) || err instanceof NotFound) {
+            if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.normal = {}
                 this.namespaceIdToDB = {}
                 this.properties = {}
@@ -231,8 +231,8 @@ export class AssetWorkspace {
         try {
             contents = await s3Client.get({ Key: filePath })
         }
-        catch(err) {
-            if (err instanceof NotFound) {
+        catch(err: any) {
+            if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.status.wml = 'Error'
                 return
             }
@@ -243,13 +243,13 @@ export class AssetWorkspace {
         this.status.wml = 'Clean'
     }
 
-    async loadWMLFrom(filePath: string): Promise<void> {
+    async loadWMLFrom(filePath: string, upload?: boolean): Promise<void> {
         let contents = ''
         try {
-            contents = await s3Client.get({ Key: filePath })
+            contents = await s3Client.get({ Key: filePath, upload })
         }
-        catch(err) {
-            if (err instanceof NotFound) {
+        catch(err: any) {
+            if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.status.wml = 'Error'
                 return
             }

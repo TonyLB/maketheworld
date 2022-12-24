@@ -3,7 +3,6 @@ import {
     isFetchLibraryAPIMessage,
     isFetchAssetAPIMessage,
     isUploadURLMessage,
-    isUploadImageURLMessage,
     isMoveAssetMessage,
     isMoveByAssetIdMessage,
     isLibrarySubscribeMessage,
@@ -14,7 +13,7 @@ import {
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
-import { uploadURLMessage, uploadImageURLMessage, parseWMLMessage } from "../upload"
+import { uploadURLMessage, parseWMLMessage } from "../upload"
 import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
 import { librarySubscribeMessage } from "../subscribe"
 import playerLibraryUpdateMessage from "../playerLibraryUpdate"
@@ -46,12 +45,6 @@ messageBus.subscribe({
     priority: 5,
     filter: isUploadURLMessage,
     callback: uploadURLMessage
-})
-messageBus.subscribe({
-    tag: 'UploadImageURL',
-    priority: 5,
-    filter: isUploadImageURLMessage,
-    callback: uploadImageURLMessage
 })
 messageBus.subscribe({
     tag: 'FormatImage',

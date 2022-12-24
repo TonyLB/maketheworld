@@ -1,5 +1,35 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
+    return jest.fn().mockImplementation((address: any) => {
+        return {
+            status: {
+                json: 'Clean'
+            },
+            address,
+            get fileNameBase() {
+                if (address.zone === 'Personal') {
+                    return 'Personal/Test/Test'
+                }
+                else {
+                    return 'Library/Test'
+                }
+            },
+            loadJSON: jest.fn(),
+            normal: {
+                'Import-0': {
+                    tag: 'Import',
+                },
+                Test: {
+                    tag: 'Asset'
+                }
+            },
+            namespaceIdToDB: {
+                VORTEX: 'VORTEX'
+            }
+        }
+    })
+})
 
 import { CacheBase } from './baseClasses'
 import { CacheConnection } from '.'

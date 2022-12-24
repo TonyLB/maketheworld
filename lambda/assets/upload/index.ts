@@ -1,137 +1,82 @@
-import { DeleteObjectCommand, PutObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { v4 as uuidv4 } from 'uuid'
-import path from 'path'
-// import sharp from "sharp"
-
-import { streamToBuffer, streamToString } from '../utilities/stream'
 
 import { dbRegister } from '../serialize/dbRegister'
 
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
-
-import { MessageBus, UploadURLMessage, UploadImageURLMessage, ParseWMLMessage } from "../messageBus/baseClasses"
+import { MessageBus, UploadURLMessage, ParseWMLMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 
-const { S3_BUCKET } = process.env;
+const { UPLOAD_BUCKET } = process.env;
+
+const presignedUploadURL = async ({ key, s3Client, prefix, contentType, fileExtension }: { key?: string; s3Client: S3Client, prefix: string, contentType: string, fileExtension: string }): Promise<{ key?: string; s3Object: string; presignedOutput: string }> => {
+    const s3Object = `${prefix}-${uuidv4()}.${fileExtension}`
+    const putCommand = new PutObjectCommand({
+        Bucket: UPLOAD_BUCKET,
+        Key: s3Object,
+        ContentType: contentType
+    })
+    const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
+    return {
+        key,
+        s3Object,
+        presignedOutput
+    }
+}
 
 //
 // TODO: Add a tag verification step in upload handling, to prevent people from (e.g.) asking for a character
 // link and uploading an Asset
 //
 export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: UploadURLMessage[], messageBus: MessageBus }): Promise<void> => {
-    const player = await internalCache.Connection.get('player')
     const s3Client = await internalCache.Connection.get('s3Client')
     if (s3Client) {
         await Promise.all(
             payloads.map(async (payload) => {
-                const s3Object = `upload/${uuidv4()}.wml`
-                const putCommand = new PutObjectCommand({
-                    Bucket: S3_BUCKET,
-                    Key: s3Object,
-                    ContentType: 'text/plain'
-                })
-                const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
+                const [{ s3Object, presignedOutput }, ...images] = await Promise.all([
+                    presignedUploadURL({
+                        s3Client,
+                        prefix: payload.assetType === 'Asset' ? 'ASSET' : 'CHARACTER',
+                        fileExtension: 'wml',
+                        contentType: 'text/plain'
+                    }),
+                    ...(payload.images
+                        .map(({ contentType, ...rest }) => {
+                            switch(contentType) {
+                                case 'image/jpeg':
+                                case 'image/jpe':
+                                case 'image/jpg':
+                                case 'image/gif':
+                                case 'image/png':
+                                case 'image/bmp':
+                                case 'image/tiff':
+                                case 'image/tif':
+                                    return {
+                                        contentType,
+                                        fileExtension: contentType.slice(6),
+                                        ...rest
+                                    }
+                                default: return { contentType, fileExtension: undefined, ...rest }
+                            }
+                        }))
+                        .filter(({ fileExtension }) => (fileExtension))
+                        .map(({ key, contentType, fileExtension = '' }) => (presignedUploadURL({ s3Client, prefix: 'IMAGE', key, contentType, fileExtension })))
+                ])
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
                         messageType: 'UploadURL',
                         url: presignedOutput,
-                        s3Object
+                        s3Object,
+                        images: images.filter(({ key }) => (key))
                     }
                 })
             })
         )
     }
-}
-
-export const uploadImageURLMessage = async ({ payloads, messageBus }: { payloads: UploadImageURLMessage[], messageBus: MessageBus }): Promise<void> => {
-    const player = await internalCache.Connection.get('player')
-    const s3Client = await internalCache.Connection.get('s3Client')
-    if (s3Client) {
-        await Promise.all(
-            payloads.map(async (payload) => {
-                if (!['jpg', 'jpeg', 'jpe', 'gif', 'png'].includes(payload.fileExtension)) {
-                    return
-                }
-                let contentType = 'image/png'
-                switch(payload.fileExtension) {
-                    case 'jpg':
-                    case 'jpe':
-                    case 'jpeg':
-                        contentType = 'image/jpeg'
-                        break
-                    case 'gif':
-                        contentType = 'image/gif'
-                        break
-                }
-                const fileName = `${uuidv4()}.${payload.fileExtension}`
-                const s3Object = `upload/images/${player}/${payload.tag}s/${fileName}`
-                const putCommand = new PutObjectCommand({
-                    Bucket: S3_BUCKET,
-                    Key: s3Object,
-                    ContentType: contentType
-                })
-                const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
-                messageBus.send({
-                    type: 'ReturnValue',
-                    body: {
-                        messageType: 'UploadURL',
-                        url: presignedOutput,
-                        s3Object
-                    }
-                })
-            })
-        )
-    }
-}
-
-export const handleImageUpload = ({ s3Client, messageBus }: { s3Client: S3Client, messageBus: MessageBus }) => async({ bucket, key }) => {
-    const { dir: directory, name: fileName } = path.parse(key)
-    const lastDirectory = directory.split('/').slice(-1)
-
-    const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
-        Bucket: bucket,
-        Key: key
-    }))
-    const contents = await streamToBuffer(contentStream)
-    
-    const { width, height } = (lastDirectory && lastDirectory.length > 0 && lastDirectory[0] === 'Characters') ? { width: 200, height: 200 } : { width: 800, height: 600 }
-
-    try {
-        // const imageBuffer = await sharp(contents)
-        //     .resize({ width, height, fit: sharp.strategy.fill })
-        //     .toFormat('png')
-        //     .toBuffer()
-        // await s3Client.send(new PutObjectCommand({
-        //     Bucket: bucket,
-        //     Key: `images/${fileName}.png`,
-        //     Body: imageBuffer
-        // }))
-        // await Promise.all([
-        //     uploadResponse({
-        //         uploadId: key,
-        //         messageType: 'Success',
-        //         operation: 'Upload'
-        //     })
-        // ])
-
-    }
-    catch {
-        // messageBus.send({
-        //     type: 'UploadResponse',
-        //     uploadId: key,
-        //     messageType: 'Error'
-        // })
-    }
-    await s3Client.send(new DeleteObjectCommand({
-        Bucket: bucket,
-        Key: key
-    }))  
-    return {}
 }
 
 const extractAddressFromParseWMLMessage = (value: ParseWMLMessage): AssetWorkspaceAddress => {
@@ -179,7 +124,7 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                 const assetWorkspace = new AssetWorkspace(extractAddressFromParseWMLMessage(payload))
             
                 await assetWorkspace.loadJSON()
-                await assetWorkspace.loadWMLFrom(payload.uploadName)
+                await assetWorkspace.loadWMLFrom(payload.uploadName, true)
                 if (assetWorkspace.status.json !== 'Clean') {
                     await Promise.all([
                         assetWorkspace.pushJSON(),
@@ -193,7 +138,7 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
 
                 try {
                     await s3Client.send(new DeleteObjectCommand({
-                        Bucket: S3_BUCKET,
+                        Bucket: UPLOAD_BUCKET,
                         Key: payload.uploadName
                     }))  
                 }

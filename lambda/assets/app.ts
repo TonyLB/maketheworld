@@ -109,14 +109,10 @@ export const handler = async (event, context) => {
             })
         }
         if (isUploadAssetLinkAPIMessage(request)) {
-            messageBus.send({ type: 'UploadURL' })
-        }
-        if (isUploadImageLinkAPIMessage(request)) {
             messageBus.send({
-                type: 'UploadImageURL',
-                fileExtension: request.fileExtension,
-                tag: request.tag,
-                uploadRequestId: request.uploadRequestId
+                type: 'UploadURL',
+                assetType: request.tag,
+                images: request.images
             })
         }
         if (isParseWMLAPIMessage(request)) {
