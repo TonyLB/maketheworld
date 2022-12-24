@@ -4,13 +4,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { dbRegister } from '../serialize/dbRegister'
 
-import { MessageBus, UploadURLMessage, UploadImageURLMessage, ParseWMLMessage } from "../messageBus/baseClasses"
+import { MessageBus, UploadURLMessage, ParseWMLMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 
-const { S3_BUCKET, UPLOAD_BUCKET } = process.env;
+const { UPLOAD_BUCKET } = process.env;
 
 const presignedUploadURL = async ({ key, s3Client, prefix, contentType, fileExtension }: { key?: string; s3Client: S3Client, prefix: string, contentType: string, fileExtension: string }): Promise<{ key?: string; s3Object: string; presignedOutput: string }> => {
     const s3Object = `${prefix}-${uuidv4()}.${fileExtension}`
@@ -72,50 +72,6 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
                         url: presignedOutput,
                         s3Object,
                         images: images.filter(({ key }) => (key))
-                    }
-                })
-            })
-        )
-    }
-}
-
-//
-// TODO: Deprecate separate uploadImageURLMessage
-//
-export const uploadImageURLMessage = async ({ payloads, messageBus }: { payloads: UploadImageURLMessage[], messageBus: MessageBus }): Promise<void> => {
-    const player = await internalCache.Connection.get('player')
-    const s3Client = await internalCache.Connection.get('s3Client')
-    if (s3Client) {
-        await Promise.all(
-            payloads.map(async (payload) => {
-                if (!['jpg', 'jpeg', 'jpe', 'gif', 'png'].includes(payload.fileExtension)) {
-                    return
-                }
-                let contentType = 'image/png'
-                switch(payload.fileExtension) {
-                    case 'jpg':
-                    case 'jpe':
-                    case 'jpeg':
-                        contentType = 'image/jpeg'
-                        break
-                    case 'gif':
-                        contentType = 'image/gif'
-                        break
-                }
-                const fileName = `${uuidv4()}.${payload.fileExtension}`
-                const s3Object = `upload/images/${player}/${payload.tag}s/${fileName}`
-                const putCommand = new PutObjectCommand({
-                    Bucket: S3_BUCKET,
-                    Key: s3Object,
-                    ContentType: contentType
-                })
-                const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
-                messageBus.send({
-                    type: 'ReturnValue',
-                    body: {
-                        messageType: 'UploadURL',
-                        url: presignedOutput,
-                        s3Object
                     }
                 })
             })

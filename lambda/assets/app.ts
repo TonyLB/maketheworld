@@ -115,14 +115,6 @@ export const handler = async (event, context) => {
                 images: request.images
             })
         }
-        if (isUploadImageLinkAPIMessage(request)) {
-            messageBus.send({
-                type: 'UploadImageURL',
-                fileExtension: request.fileExtension,
-                tag: request.tag,
-                uploadRequestId: request.uploadRequestId
-            })
-        }
         if (isParseWMLAPIMessage(request)) {
             if (request.zone === 'Personal') {
                 const player = await internalCache.Connection.get('player')
