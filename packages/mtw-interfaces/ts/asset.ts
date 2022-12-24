@@ -31,13 +31,6 @@ export type UploadAssetLinkAPIMessage = {
     images: UploadAssetLinkAPIImage[];
 }
 
-export type UploadImageLinkAPIMessage = {
-    message: 'uploadImage';
-    uploadRequestId: string;
-    tag: 'Character' | 'Map';
-    fileExtension: string;
-}
-
 type ParseWMLAPIMessagePersonal = {
     message: 'parseWML';
     uploadName: string;
@@ -76,7 +69,6 @@ export type AssetAPIMessage = { RequestId?: string } & (
     FetchImportDefaultsAPIMessage |
     FetchAssetAPIMessage |
     UploadAssetLinkAPIMessage |
-    UploadImageLinkAPIMessage |
     ParseWMLAPIMessage |
     AssetCheckinAPIMessage |
     AssetCheckoutAPIMessage |
@@ -87,7 +79,6 @@ export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is F
 export const isFetchImportDefaultsAPIMessage = (message: AssetAPIMessage): message is FetchImportDefaultsAPIMessage => (message.message === 'fetchImportDefaults')
 export const isFetchAssetAPIMessage = (message: AssetAPIMessage): message is FetchAssetAPIMessage => (message.message === 'fetch')
 export const isUploadAssetLinkAPIMessage = (message: AssetAPIMessage): message is UploadAssetLinkAPIMessage => (message.message === 'upload')
-export const isUploadImageLinkAPIMessage = (message: AssetAPIMessage): message is UploadImageLinkAPIMessage => (message.message === 'uploadImage')
 export const isParseWMLAPIMessage = (message: AssetAPIMessage): message is ParseWMLAPIMessage => (message.message === 'parseWML')
 export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
 export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
