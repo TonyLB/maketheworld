@@ -19,11 +19,16 @@ export type FetchAssetAPIMessage = {
     fileName?: string;
 }
 
+type UploadAssetLinkAPIImage = {
+    key: string;
+    contentType: string;
+}
+
 export type UploadAssetLinkAPIMessage = {
     message: 'upload';
     uploadRequestId: string;
     tag: 'Asset' | 'Character';
-    fileName: string;
+    images: UploadAssetLinkAPIImage[];
 }
 
 export type UploadImageLinkAPIMessage = {
