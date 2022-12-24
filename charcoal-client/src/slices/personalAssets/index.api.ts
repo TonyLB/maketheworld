@@ -3,7 +3,6 @@ import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 import { PersonalAssetsCondition, PersonalAssetsAction } from './baseClasses'
 import {
     socketDispatchPromise,
-    apiDispatchPromise,
     getStatus
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
@@ -11,7 +10,7 @@ import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache'
 import { TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
-import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
+import { AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -109,15 +108,14 @@ export const getSaveURL: PersonalAssetsAction = ({ internalData: { id } }) => as
     if (id) {
         const uploadRequestId = uuidv4()
         const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Character' : 'Asset'
-        const assetKey = id?.split('#').slice(1).join('#')
-        const { url, s3Object } = await dispatch(socketDispatchPromise({
+        const { url, s3Object, images: saveImages } = (await dispatch(socketDispatchPromise({
             message: 'upload',
-            fileName: `${assetKey}.wml`,
             tag: assetType,
+            images: [],
             uploadRequestId
-        }, { service: 'asset' }))
+        }, { service: 'asset' }))) as AssetClientUploadURL
     
-        return { internalData: { saveURL: url, uploadRequestId, s3Object } }
+        return { internalData: { saveURL: url, uploadRequestId, s3Object, saveImages } }
     }
     throw new Error()
 }
@@ -131,13 +129,13 @@ export const saveWML: PersonalAssetsAction = ({
         currentWML
     }
 }) => async (dispatch, getState) => {
-    if (!currentWML || !saveURL || !uploadRequestId) {
-        throw new Error()
-    }
-    await fetch(saveURL, {
-        method: 'PUT',
-        body: currentWML
-    })
+    // if (!currentWML || !saveURL || !uploadRequestId) {
+    //     throw new Error()
+    // }
+    // await fetch(saveURL, {
+    //     method: 'PUT',
+    //     body: currentWML
+    // })
     return {}
 }
 
@@ -147,18 +145,18 @@ export const parseWML: PersonalAssetsAction = ({
         s3Object
     }
 }) => async (dispatch, getState) => {
-    if (!s3Object || !id) {
-        throw new Error()
-    }
-    const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Characters' : 'Assets'
-    const assetKey = id?.split('#').slice(1).join('#')
-    await dispatch(socketDispatchPromise({
-        message: 'parseWML',
-        zone: 'Personal',
-        fileName: assetKey,
-        subFolder: assetType,
-        uploadName: s3Object
-    }, { service: 'asset' }))
+    // if (!s3Object || !id) {
+    //     throw new Error()
+    // }
+    // const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Characters' : 'Assets'
+    // const assetKey = id?.split('#').slice(1).join('#')
+    // await dispatch(socketDispatchPromise({
+    //     message: 'parseWML',
+    //     zone: 'Personal',
+    //     fileName: assetKey,
+    //     subFolder: assetType,
+    //     uploadName: s3Object
+    // }, { service: 'asset' }))
     return {}
 }
 
