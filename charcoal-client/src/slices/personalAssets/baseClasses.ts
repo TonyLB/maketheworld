@@ -1,4 +1,4 @@
-import { AssetClientFetchURL, AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset';
+import { AssetClientFetchURL, AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
 export interface PersonalAssetsInternal {
@@ -7,6 +7,7 @@ export interface PersonalAssetsInternal {
     fetchURL?: string;
     saveURL?: string;
     s3Object?: string;
+    saveImages?: AssetClientUploadURL["images"];
     uploadRequestId?: string;
 }
 

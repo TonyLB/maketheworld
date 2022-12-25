@@ -153,6 +153,7 @@ export type AssetClientImportDefaultsFeature = {
 
 export type AssetClientImportDefaults = {
     messageType: 'ImportDefaults';
+    RequestId?: string;
     assetId: `ASSET#${string}`;
     defaultsByKey: Record<string, AssetClientImportDefaultsRoom | AssetClientImportDefaultsFeature>;
 }

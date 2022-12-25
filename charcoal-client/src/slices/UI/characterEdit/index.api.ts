@@ -58,9 +58,9 @@ export const getPostURL: CharacterEditAction = ({ internalData: { id } }) => asy
     const fileName = character.fileName.split('/').slice(-1)[0].split('.')[0]
     const { url } = await dispatch(socketDispatchPromise({
         message: 'upload',
-        fileName: `${fileName}.wml`,
         tag: 'Character',
-        uploadRequestId
+        uploadRequestId,
+        images: []
     }, { service: 'asset' }))
 
     return { internalData: {

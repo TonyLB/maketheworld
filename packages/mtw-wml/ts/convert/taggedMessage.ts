@@ -1,6 +1,6 @@
 import { isParseLineBreak, isParseLink, isParseSpacer, isParseString, isParseWhitespace, ParseLineBreakTag, ParseLinkLegalContents, ParseLinkTag, ParseSpacerTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited, ParseWhitespaceTag } from "../parser/baseClasses";
-import { SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaWhitespaceTag } from "../schema/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins";
+import { isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaWhitespaceTag } from "../schema/baseClasses";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
 
 export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseTaggedMessageMixin extends Base {
@@ -116,6 +116,19 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
                     throw new Error('Invalid parameter')
                 }
                 return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
+        override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            if (isSchemaString(value)) {
+
+            }
+            else {
+                const returnValue = (super.schemaToWML as any)(value, options)
+                if (!(typeof returnValue === 'string')) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue
             }
         }
     }
