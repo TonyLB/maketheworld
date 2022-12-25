@@ -4,6 +4,7 @@
 //
 
 import { ParseCommentTag, ParseStackTagOpenEntry, ParseTag, ParseTagFactoryProps, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
+import { SchemaTag } from "../schema/baseClasses";
 import { ExtractProperties, ForceStringType, validateContents, validateProperties, ValidatePropertiesItem } from "./utils";
 
 type ConverterArgument<A extends any, T extends {}> = {
@@ -104,7 +105,7 @@ export type SchemaToWMLOptions = {
 export class BaseConverter {
     parseConvert(...args: [never]) {};
     schemaConvert(value: never, siblings: never, contents: never) {};
-    schemaToWML(value: never, options: never): string { return '' }
+    schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string { return '' }
 }
 
 export type Constructor<T = {}> = new (...args: any[]) => T;
