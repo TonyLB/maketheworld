@@ -1,10 +1,10 @@
 import { ParseCommentTag, ParseStackTagEntry } from "../parser/baseClasses";
-import { SchemaStringTag } from "../schema/baseClasses";
+import { SchemaStringTag, SchemaTag } from "../schema/baseClasses";
 import ParseAssetsMixin from "./assets";
 import ParseCharacterMixin from "./character";
 import ParseComponentsMixin from "./components";
 import ParseConditionsMixin from "./conditions";
-import { BaseConverter, Constructor } from "./functionMixins";
+import { BaseConverter, Constructor, SchemaToWMLOptions } from "./functionMixins";
 import ParseImportMixin from "./import";
 import ParseMiscellaneousMixin from "./miscellaneous";
 import ParseStateMixin from "./state";
@@ -29,6 +29,10 @@ export const FallbackMixin = <C extends Constructor<BaseConverter>>(Base: C) => 
                 value: '',
                 parse: value
             }
+        }
+
+        override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            return ''
         }
     }
 }

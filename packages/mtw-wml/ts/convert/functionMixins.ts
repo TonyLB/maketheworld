@@ -96,9 +96,15 @@ type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuar
 
 // EXAMPLE TWO: This is a class mixin implementation of composeConverters which may prove more elegant
 
+export type SchemaToWMLOptions = {
+    indent: number;
+    forceNest?: boolean;
+}
+
 export class BaseConverter {
     parseConvert(...args: [never]) {};
     schemaConvert(value: never, siblings: never, contents: never) {};
+    schemaToWML(value: never, options: never): string { return '' }
 }
 
 export type Constructor<T = {}> = new (...args: any[]) => T;

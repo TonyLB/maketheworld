@@ -107,3 +107,6 @@ export const extractDependenciesFromJS = (src: string): string[] => {
     return [...(new Set(identifiedGlobals.filter((item) => (!definedLocals.includes(item)))))]
 }
 
+export const indentSpacing = (indent: number): string => {
+    return '    '.repeat(indent)
+}
