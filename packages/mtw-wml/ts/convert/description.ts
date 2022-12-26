@@ -1,11 +1,8 @@
 import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTaggedMessageLegalContents } from "../schema/baseClasses"
 import { BaseConverter, SchemaToWMLOptions } from "./functionMixins"
-import { indentSpacing } from "./utils"
+import { indentSpacing, lineLengthAfterIndent } from "./utils"
 
 const areAdjacent = (a: SchemaTaggedMessageLegalContents, b: SchemaTaggedMessageLegalContents) => {
-    console.log(`A: ${JSON.stringify(a, null, 4)}`)
-    console.log(`B: ${JSON.stringify(b, null, 4)}`)
-    
     const spaces = Boolean(
         (isSchemaString(a) && a.value.match(/\s$/)) ||
         (isSchemaString(b) && b.value.match(/^\s/)) ||
@@ -14,7 +11,6 @@ const areAdjacent = (a: SchemaTaggedMessageLegalContents, b: SchemaTaggedMessage
         isSchemaLineBreak(b) ||
         isSchemaSpacer(b)
     )
-    console.log(`Spaces: ${spaces}`)
     return !spaces
 }
 
@@ -22,9 +18,7 @@ export const wordWrapString = (value: string, options: SchemaToWMLOptions & { pa
     return [value]
 }
 
-const lineLengthAfterIndent = (indent: number): number => (Math.max(40, 80 - indent * 4))
-
-const naivePrint = <C extends BaseConverter>(convert: C) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string => (tags.map((tag) => (convert.schemaToWML(tag, options))).join('').trim())
+const naivePrint = <C extends BaseConverter>(convert: C) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string => (tags.map((tag) => (convert.schemaToWML(tag, { ...options, forceNest: false }))).join('').trim())
 
 type BreakTagsReturn = {
     outputLines: string[];

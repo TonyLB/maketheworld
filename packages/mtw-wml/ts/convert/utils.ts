@@ -110,3 +110,16 @@ export const extractDependenciesFromJS = (src: string): string[] => {
 export const indentSpacing = (indent: number): string => {
     return '    '.repeat(indent)
 }
+
+export const lineLengthAfterIndent = (indent: number): number => (Math.max(40, 80 - indent * 4))
+
+export const maybeNestedRender = ({ indent, forceNest, tagOpen, contents, tagClose }: { indent: number, forceNest?: boolean, tagOpen: string, contents: string[]; tagClose: string }): string => {
+    const naive = `${tagOpen}${contents.join('')}${tagClose}`
+    const nested = `${[tagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`
+    if (typeof forceNest === 'undefined') {
+        return (naive.length > lineLengthAfterIndent(indent)) ? nested : naive
+    }
+    else {
+        return forceNest ? nested : naive
+    }
+}
