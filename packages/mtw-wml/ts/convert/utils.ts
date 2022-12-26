@@ -1,6 +1,7 @@
 import { ParseStackTagOpenEntry, ParseTag, ParseException } from "../parser/baseClasses"
 import { parse as acornParse} from "acorn"
 import { simple as simpleWalk } from "acorn-walk"
+import { SchemaTag } from "../schema/baseClasses"
 
 type ValidatePropertiesValueType = 'boolean' | 'key' | 'expression' | 'literal'
 
@@ -129,11 +130,11 @@ export const tagRender = ({ indent, forceNest, tag, properties, contents }: { in
             case 'boolean':
                 return property.value ? `${property.key}` : ''
             case 'expression':
-                return `${property.key}={${property.value}}`
+                return property.value ? `${property.key}={${property.value}}` : ''
             case 'key':
-                return `${property.key}=(${property.value})`
+                return property.value ? `${property.key}=(${property.value})` : ''
             case 'literal':
-                return `${property.key}="${property.value}"`
+                return property.value ? `${property.key}="${property.value}"` : ''
         }
     }).filter((value) => (value))
     const tagOpen = `<${[tag, ...propertyRender].join(' ')}>`
@@ -146,4 +147,15 @@ export const tagRender = ({ indent, forceNest, tag, properties, contents }: { in
     else {
         return forceNest ? nested : naive
     }
+}
+
+export const makeSchemaTag = <T extends Omit<SchemaTag, 'parse'>>(tag: T): SchemaTag => {
+    return {
+        ...tag,
+        parse: {
+            tag: 'Space',
+            startTagToken: 0,
+            endTagToken: 0
+        }
+    } as SchemaTag
 }

@@ -1,10 +1,10 @@
 import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseMessage, isParseMoment, isParseName, isParseRoom, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
-import { isSchemaDescription, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMapContents, isSchemaMessage, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
+import { isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMapContents, isSchemaMessage, isSchemaName, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
 import { translateTaggedMessageContents } from "../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
 import { schemaDescriptionToWML } from "./description";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
-import { tagRender } from "./utils";
+import { makeSchemaTag, tagRender } from "./utils";
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseComponentsMixin extends Base {
@@ -360,13 +360,56 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     contents: [schemaDescriptionToWML(this)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
                 })
             }
+            if (isSchemaName(value)) {
+                return tagRender({
+                    ...options,
+                    tag: 'Name',
+                    properties: [],
+                    contents: [schemaDescriptionToWML(this)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
+                })
+            }
             if (isSchemaRoom(value)) {
+                const roomContents: SchemaTag[] = [
+                    ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
+                    ...(value.render ? [makeSchemaTag({ tag: 'Description' as 'Description', contents: value.render })] : []),
+                    ...value.contents
+                ]
                 return tagRender({
                     ...options,
                     tag: 'Room',
-                    properties: [],
-                    // tagOpen: `<Room key=(${value.key}) ${value.global ? 'global ' : ''}${value.display ? `display="${value.display}" ` : ''}>`,
-                    contents: [],
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                        { key: 'global', type: 'boolean', value: value.global },
+                        { key: 'x', type: 'literal', value: typeof value.x !== 'undefined' ? `${value.x}` : '' },
+                        { key: 'y', type: 'literal', value: typeof value.y !== 'undefined' ? `${value.y}` : '' }
+                    ],
+                    contents: roomContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
+                })
+            }
+            if (isSchemaFeature(value)) {
+                const featureContents: SchemaTag[] = [
+                    ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
+                    ...(value.render ? [makeSchemaTag({ tag: 'Description' as 'Description', contents: value.render })] : []),
+                    ...value.contents
+                ]
+                return tagRender({
+                    ...options,
+                    tag: 'Feature',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                        { key: 'global', type: 'boolean', value: value.global },
+                    ],
+                    contents: featureContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
+                })
+            }
+            if (isSchemaBookmark(value)) {
+                return tagRender({
+                    ...options,
+                    tag: 'Bookmark',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                    ],
+                    contents: value.contents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
                 })
             }
             else {
