@@ -1,4 +1,4 @@
-import { extractDependenciesFromJS } from './utils'
+import { extractDependenciesFromJS } from '.'
 
 describe('parser utilities', () => {
     describe('extractDependenciesFromJS', () => {
