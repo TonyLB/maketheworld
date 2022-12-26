@@ -1,7 +1,7 @@
-import { ParseStackTagOpenEntry, ParseTag, ParseException } from "../parser/baseClasses"
+import { ParseStackTagOpenEntry, ParseTag, ParseException } from "../../parser/baseClasses"
 import { parse as acornParse} from "acorn"
 import { simple as simpleWalk } from "acorn-walk"
-import { SchemaTag } from "../schema/baseClasses"
+import { SchemaTag } from "../../schema/baseClasses"
 
 type ValidatePropertiesValueType = 'boolean' | 'key' | 'expression' | 'literal'
 
