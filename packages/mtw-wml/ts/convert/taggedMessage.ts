@@ -1,6 +1,7 @@
 import { isParseLineBreak, isParseLink, isParseSpacer, isParseString, isParseWhitespace, ParseLineBreakTag, ParseLinkLegalContents, ParseLinkTag, ParseSpacerTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited, ParseWhitespaceTag } from "../parser/baseClasses";
-import { isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaWhitespaceTag } from "../schema/baseClasses";
+import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, isSchemaWhitespace, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaWhitespaceTag } from "../schema/baseClasses";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
+import { indentSpacing } from "./utils";
 
 export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseTaggedMessageMixin extends Base {
@@ -121,7 +122,20 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
 
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
             if (isSchemaString(value)) {
-
+                return value.value
+            }
+            else if (isSchemaLink(value)) {
+                const textLayout = `${options.forceNest ? `\n${indentSpacing(options.indent + 1)}`: ''}${value.text}${options.forceNest ? '\n': ''}`
+                return `<Link to=(${value.to})>${textLayout}</Link>`
+            }
+            else if (isSchemaLineBreak(value)) {
+                return `<br />`
+            }
+            else if (isSchemaWhitespace(value)) {
+                return ' '
+            }
+            else if (isSchemaSpacer(value)) {
+                return '<Space />'
             }
             else {
                 const returnValue = (super.schemaToWML as any)(value, options)

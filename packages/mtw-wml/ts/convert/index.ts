@@ -31,9 +31,6 @@ export const FallbackMixin = <C extends Constructor<BaseConverter>>(Base: C) => 
             }
         }
 
-        override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
-            return ''
-        }
     }
 }
 
