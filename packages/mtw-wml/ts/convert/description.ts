@@ -3,7 +3,10 @@ import { BaseConverter, SchemaToWMLOptions } from "./functionMixins"
 import { indentSpacing } from "./utils"
 
 const areAdjacent = (a: SchemaTaggedMessageLegalContents, b: SchemaTaggedMessageLegalContents) => {
-    return !(
+    console.log(`A: ${JSON.stringify(a, null, 4)}`)
+    console.log(`B: ${JSON.stringify(b, null, 4)}`)
+    
+    const spaces = Boolean(
         (isSchemaString(a) && a.value.match(/\s$/)) ||
         (isSchemaString(b) && b.value.match(/^\s/)) ||
         isSchemaLineBreak(a) ||
@@ -11,6 +14,8 @@ const areAdjacent = (a: SchemaTaggedMessageLegalContents, b: SchemaTaggedMessage
         isSchemaLineBreak(b) ||
         isSchemaSpacer(b)
     )
+    console.log(`Spaces: ${spaces}`)
+    return !spaces
 }
 
 export const wordWrapString = (value: string, options: SchemaToWMLOptions & { padding: number }): string[] => {
@@ -59,14 +64,14 @@ const breakTagsOnFirstStringWhitespace = <C extends BaseConverter>(convert: C) =
             remainingTags: tags
         }
     }
-    const outputLine = `${outputBeforeString}${firstBreakableString.value.slice(0, splitIndex)}`
+    const outputLine = `${outputBeforeString}${firstBreakableString.value.slice(0, splitIndex)}`.trim()
     const remainderLine = firstBreakableString.value.slice(splitIndex + 1)
     const remainingTags = [
         ...(remainderLine ? [{ tag: 'String' as 'String', value: remainderLine, parse: { tag: 'Space' as 'Space', startTagToken: 0, endTagToken: 0 }}] : []),
         ...tags.slice(indexOfFirstBreakableString + 1)
     ]
     return {
-        outputLines: [outputLine],
+        outputLines: [outputLine.trim()],
         remainingTags
     }
 }
@@ -100,7 +105,7 @@ const printQueuedTags = <C extends BaseConverter>(convert: C) => (tags: SchemaTa
         }
     })
     if (tagsBeingConsidered.length) {
-        outputLines.push(`${prefix}${naivePrint(convert)(tagsBeingConsidered, { indent: 0 })}`)
+        outputLines.push(`${prefix}${naivePrint(convert)(tagsBeingConsidered, { indent: 0 })}`.trim())
     }
     return outputLines
 }
@@ -126,8 +131,8 @@ export const schemaDescriptionToWML = <C extends BaseConverter>(convert: C) => (
                     // and start again breaking up into separate lines where possible
                     //
                     if (!multiLine) {
-                        const provisionalPrint = printQueuedTags(convert)(queue, { indent })[0]
-                        if (padding + provisionalPrint.length > Math.max(40, 80 - indent * 4)) {
+                        const provisionalPrint = naivePrint(convert)(queue, { indent })
+                        if (padding + provisionalPrint.length > lineLengthAfterIndent(indent)) {
                             forceNestedRerun = true
                         }
                     }
