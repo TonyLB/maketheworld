@@ -68,7 +68,7 @@ describe('description schemaToWML', () => {
         },
         {
             tag: 'String',
-            value: "tags directly adjacent.",
+            value: "tags directly adjacent. Finally a long text section to make sure that wrapping still works when the text is adjacent after a nested tag.",
             parse: fakeParse
         }]
         expect(schemaDescriptionToWML(convert)(testSchema, { indent: 0, padding: 0 })).toMatchSnapshot()

@@ -9,5 +9,10 @@ eighty characters is a lot more than you might
 think<Link to=(clockTower)>clockTower</Link>and then a third section also
 snuggled up to the link, to test that wrapping functionality doesn't separate
 no-space connections. Then a section with
-two<Link to=(clockTower)>clockTower</Link><Link to=(clockTower)>clockTower</Link>tags directly adjacent."
+two<Link to=(clockTower)>
+    clockTower
+</Link><Link to=(clockTower)>
+    clockTower
+</Link>tags directly adjacent. Finally a long text section to make sure that
+wrapping still works when the text is adjacent after a nested tag."
 `;

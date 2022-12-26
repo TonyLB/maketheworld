@@ -1,4 +1,4 @@
-import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, isSchemaTaggedMessageLegalContents, SchemaTaggedMessageLegalContents } from "../schema/baseClasses"
+import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTaggedMessageLegalContents } from "../schema/baseClasses"
 import { BaseConverter, SchemaToWMLOptions } from "./functionMixins"
 import { indentSpacing } from "./utils"
 
@@ -76,6 +76,15 @@ const breakTagsOnFirstStringWhitespace = <C extends BaseConverter>(convert: C) =
     }
 }
 
+const breakTagsByNesting = <C extends BaseConverter>(convert: C) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): BreakTagsReturn => {
+    const { indent } = options
+    const tagsRender = tags.map((tag) => (convert.schemaToWML(tag, { indent, forceNest: true }))).join('').split('\n')
+    return {
+        outputLines: tagsRender,
+        remainingTags: []
+    }
+}
+
 const printQueuedTags = <C extends BaseConverter>(convert: C) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
     const { indent } = options
     let outputLines: string[] = []
@@ -97,10 +106,23 @@ const printQueuedTags = <C extends BaseConverter>(convert: C) => (tags: SchemaTa
                 prefix = ''
             }
             //
-            // TODO: See if you can force tags to nest, to break across multiple lines
+            // If that fails, try to force tags to nest
             //
             else {
-                break
+                const { outputLines: nestedLines } = breakTagsByNesting(convert)(tagsBeingConsidered, { indent })
+                console.log(`NestedLines: ${JSON.stringify(nestedLines, null, 4)}`)
+                if (nestedLines.length > 1) {
+                    outputLines = [...outputLines, `${prefix}${nestedLines[0]}`, ...(nestedLines.slice(1, -1))]
+                    prefix = nestedLines.slice(-1)[0]
+                    tagsBeingConsidered = []
+                }
+                //
+                // Otherwise deliver the oversize line
+                //
+                else {
+                    break
+                }
+
             }
         }
     })
