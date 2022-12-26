@@ -2,7 +2,9 @@ import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isPars
 import { isSchemaDescription, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMapContents, isSchemaMessage, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
 import { translateTaggedMessageContents } from "../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
+import { schemaDescriptionToWML } from "./description";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
+import { tagRender } from "./utils";
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseComponentsMixin extends Base {
@@ -351,7 +353,21 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
 
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
             if (isSchemaDescription(value)) {
-                return ''
+                return tagRender({
+                    ...options,
+                    tag: 'Description',
+                    properties: [],
+                    contents: [schemaDescriptionToWML(this)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
+                })
+            }
+            if (isSchemaRoom(value)) {
+                return tagRender({
+                    ...options,
+                    tag: 'Room',
+                    properties: [],
+                    // tagOpen: `<Room key=(${value.key}) ${value.global ? 'global ' : ''}${value.display ? `display="${value.display}" ` : ''}>`,
+                    contents: [],
+                })
             }
             else {
                 const returnValue = (super.schemaToWML as any)(value, options)

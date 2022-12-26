@@ -104,7 +104,6 @@ const printQueuedTags = <C extends BaseConverter>(convert: C) => (tags: SchemaTa
             //
             else {
                 const { outputLines: nestedLines } = breakTagsByNesting(convert)(tagsBeingConsidered, { indent })
-                console.log(`NestedLines: ${JSON.stringify(nestedLines, null, 4)}`)
                 if (nestedLines.length > 1) {
                     outputLines = [...outputLines, `${prefix}${nestedLines[0]}`, ...(nestedLines.slice(1, -1))]
                     prefix = nestedLines.slice(-1)[0]
