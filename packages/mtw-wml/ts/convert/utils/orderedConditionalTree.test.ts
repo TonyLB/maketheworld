@@ -113,5 +113,27 @@ describe('orderedConditionalTree', () => {
             expect(unflattenOrderedConditionalTree(testList)).toMatchSnapshot()
         })
 
+        it('should collapse deep and unbranching conditional paths', () => {
+            const condition1 = {
+                if: 'test',
+                dependencies: ['test']
+            }
+            const condition2 = {
+                if: 'test2',
+                dependencies: ['test2']
+            }
+            const condition3 = {
+                if: 'test3',
+                dependencies: ['test3']
+            }
+            const testList: FlattenedConditionalNode[] = [
+                { conditions: [condition1, condition2, condition3], contents: [makeSchemaTag({ tag: 'String', value: 'TestA' }), makeSchemaTag({ tag: 'String', value: 'TestB' })] },
+                { conditions: [condition1, condition2], contents: [makeSchemaTag({ tag: 'String', value: 'TestC' })] },
+                { conditions: [condition1, condition2, condition3], contents: [makeSchemaTag({ tag: 'String', value: 'TestD' })] },
+                { conditions: [], contents: [makeSchemaTag({ tag: 'String', value: 'TestE' })] }
+            ]
+            expect(unflattenOrderedConditionalTree(testList)).toMatchSnapshot()
+        })
+
     })
 })

@@ -114,6 +114,32 @@ const unflattenOrderedConditionalTreeReducer = (previous: OrderedConditionalTree
     }
 }
 
+const maybeCollapseNode = (node: OrderedConditionalNode): OrderedConditionalNode => {
+    if (isConditionNode(node)) {
+        if (isConditionNode(node) && node.contents.length === 1 && isConditionNode(node.contents[0])) {
+            const collapsedSubNode = maybeCollapseNode(node.contents[0])
+            return {
+                conditions: [
+                    ...node.conditions,
+                    ...collapsedSubNode.conditions
+                ],
+                contents: collapsedSubNode.contents
+            }
+        }
+        else {
+            return {
+                conditions: node.conditions,
+                contents: node.contents.map(maybeCollapseNode)
+            }
+        }
+    }
+    else {
+        return node
+    }
+}
+
 export const unflattenOrderedConditionalTree = (list: FlattenedConditionalNode[]): OrderedConditionalTree => {
-    return list.reduce<OrderedConditionalTree>(unflattenOrderedConditionalTreeReducer, [])
+    return list
+        .reduce<OrderedConditionalTree>(unflattenOrderedConditionalTreeReducer, [])
+        .map(maybeCollapseNode)
 }
