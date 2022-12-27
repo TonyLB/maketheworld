@@ -1,6 +1,5 @@
-import { flattenOrderedConditionalTree, OrderedConditionalTree } from './orderedConditionalTree'
+import { FlattenedConditionalNode, flattenOrderedConditionalTree, OrderedConditionalTree, unflattenOrderedConditionalTree } from './orderedConditionalTree'
 import { makeSchemaTag } from './index'
-import { SchemaTag } from '../../schema/baseClasses'
 
 describe('orderedConditionalTree', () => {
     describe('flattenOrderedConditionalTree', () => {
@@ -82,6 +81,36 @@ describe('orderedConditionalTree', () => {
                 }
             ]
             expect(flattenOrderedConditionalTree(testTree)).toMatchSnapshot()
+        })
+
+    })
+
+    describe('unflattenOrderedConditionalTree', () => {
+        it('should return an empty tree from an empty list', () => {
+            expect(unflattenOrderedConditionalTree([])).toEqual([])
+        })
+
+        it('should unflatten a list', () => {
+            const condition1 = {
+                if: 'test',
+                dependencies: ['test']
+            }
+            const condition2 = {
+                if: 'test2',
+                dependencies: ['test2']
+            }
+            const condition3 = {
+                if: 'test3',
+                dependencies: ['test3']
+            }
+            const testList: FlattenedConditionalNode[] = [
+                { conditions: [condition1, condition2], contents: [makeSchemaTag({ tag: 'String', value: 'TestA' }), makeSchemaTag({ tag: 'String', value: 'TestB' })] },
+                { conditions: [condition1, condition2], contents: [makeSchemaTag({ tag: 'String', value: 'TestC' })] },
+                { conditions: [condition1, condition2, condition3], contents: [makeSchemaTag({ tag: 'String', value: 'TestD' })] },
+                { conditions: [condition1, condition3], contents: [makeSchemaTag({ tag: 'String', value: 'TestE'})] },
+                { conditions: [], contents: [makeSchemaTag({ tag: 'String', value: 'TestF' })] }
+            ]
+            expect(unflattenOrderedConditionalTree(testList)).toMatchSnapshot()
         })
 
     })

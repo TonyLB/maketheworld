@@ -71,7 +71,7 @@ export const flattenOrderedConditionalTree = (tree: OrderedConditionalTree): Fla
 // unflattenOrderedConditionalTreeReducer creates a first pass by joining all conditionals in a tree where
 // each conditional node has only a single condition
 //
-export const unflattenOrderedConditionalTreeReducer = (previous: OrderedConditionalTree, item: FlattenedConditionalNode): OrderedConditionalTree => {
+const unflattenOrderedConditionalTreeReducer = (previous: OrderedConditionalTree, item: FlattenedConditionalNode): OrderedConditionalTree => {
     //
     // For an unconditioned item, add SchemaTag contents directly to the tree
     //
@@ -89,10 +89,10 @@ export const unflattenOrderedConditionalTreeReducer = (previous: OrderedConditio
         const previousNode = previous.length > 0 ? previous.slice(-1)[0] : undefined
         if (previousNode && isConditionNode(previousNode) && deepEqual(previousNode.conditions[0], item.conditions[0])) {
             //
-            // Recurse further into the structure rather than branching from here
+            // Recurse further into the structure of the most recent node rather than creating a new branch here
             //
             return [
-                ...previous.slice(-1),
+                ...previous.slice(0, -1),
                 {
                     conditions: previousNode.conditions,
                     contents: unflattenOrderedConditionalTreeReducer(previousNode.contents, { ...item, conditions: item.conditions.slice(1) })
@@ -114,6 +114,6 @@ export const unflattenOrderedConditionalTreeReducer = (previous: OrderedConditio
     }
 }
 
-const unflattenOrderedConditionalTree = (list: FlattenedConditionalNode[]): OrderedConditionalTree => {
-    return list.reduce<OrderedConditionalTree>(unflattenOrderedConditionalTree, [])
+export const unflattenOrderedConditionalTree = (list: FlattenedConditionalNode[]): OrderedConditionalTree => {
+    return list.reduce<OrderedConditionalTree>(unflattenOrderedConditionalTreeReducer, [])
 }
