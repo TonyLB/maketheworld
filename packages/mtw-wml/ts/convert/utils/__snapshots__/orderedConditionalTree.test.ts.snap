@@ -144,3 +144,202 @@ Array [
   },
 ]
 `;
+
+exports[`orderedConditionalTree unflattenOrderedConditionalTree should collapse deep and unbranching conditional paths 1`] = `
+Array [
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+      Object {
+        "dependencies": Array [
+          "test2",
+        ],
+        "if": "test2",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "test3",
+            ],
+            "if": "test3",
+          },
+        ],
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestA",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestB",
+          },
+        ],
+      },
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestC",
+      },
+      Object {
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "test3",
+            ],
+            "if": "test3",
+          },
+        ],
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestD",
+          },
+        ],
+      },
+    ],
+  },
+  Object {
+    "parse": Object {
+      "endTagToken": 0,
+      "startTagToken": 0,
+      "tag": "Space",
+    },
+    "tag": "String",
+    "value": "TestE",
+  },
+]
+`;
+
+exports[`orderedConditionalTree unflattenOrderedConditionalTree should unflatten a list 1`] = `
+Array [
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "test2",
+            ],
+            "if": "test2",
+          },
+        ],
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestA",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestB",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestC",
+          },
+          Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [
+                  "test3",
+                ],
+                "if": "test3",
+              },
+            ],
+            "contents": Array [
+              Object {
+                "parse": Object {
+                  "endTagToken": 0,
+                  "startTagToken": 0,
+                  "tag": "Space",
+                },
+                "tag": "String",
+                "value": "TestD",
+              },
+            ],
+          },
+        ],
+      },
+      Object {
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "test3",
+            ],
+            "if": "test3",
+          },
+        ],
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestE",
+          },
+        ],
+      },
+    ],
+  },
+  Object {
+    "parse": Object {
+      "endTagToken": 0,
+      "startTagToken": 0,
+      "tag": "Space",
+    },
+    "tag": "String",
+    "value": "TestF",
+  },
+]
+`;
