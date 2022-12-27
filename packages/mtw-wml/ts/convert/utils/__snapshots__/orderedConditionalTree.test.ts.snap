@@ -1,0 +1,146 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`orderedConditionalTree flattenOrderedConditionalTree should flatten a nested tree 1`] = `
+Array [
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+      Object {
+        "dependencies": Array [
+          "test3",
+        ],
+        "if": "test3",
+        "not": true,
+      },
+      Object {
+        "dependencies": Array [
+          "test2",
+        ],
+        "if": "test2",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "key": "NestedWithThreeConditions",
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+      },
+    ],
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "key": "NestedWithOneCondition",
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+      },
+    ],
+  },
+  Object {
+    "conditions": Array [],
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "NotNested",
+      },
+    ],
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test4",
+        ],
+        "if": "test4",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "key": "SecondNestedWithOneCondition",
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+      },
+    ],
+  },
+]
+`;
+
+exports[`orderedConditionalTree flattenOrderedConditionalTree should merge adjacent items with similar conditions 1`] = `
+Array [
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+      Object {
+        "dependencies": Array [
+          "test2",
+        ],
+        "if": "test2",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "key": "TestOne",
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+      },
+      Object {
+        "key": "TestTwo",
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+      },
+      Object {
+        "key": "TestThree",
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+      },
+    ],
+  },
+]
+`;
