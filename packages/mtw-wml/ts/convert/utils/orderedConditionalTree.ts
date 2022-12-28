@@ -177,7 +177,7 @@ type NavigationSequenceReducerOutput = {
 }
 const navigationSequenceReducer = (previous: number[][], to: number[] ): number[][] => {
     let returnSequence = [...previous]
-    let currentSequence = returnSequence.slice(-1)[0]
+    let currentSequence = [...returnSequence.slice(-1)[0]]
     //
     // First navigate up the sequence to the common branching point
     //
@@ -189,14 +189,14 @@ const navigationSequenceReducer = (previous: number[][], to: number[] ): number[
     }, -1)
     while(lastCommonIndex + 1 < currentSequence.length) {
         currentSequence.pop()
-        returnSequence.push(currentSequence)
+        returnSequence.push([...currentSequence])
     }
     //
     // Then navigate back down to the new point
     //
     while(to.length > currentSequence.length) {
         currentSequence.push(to[currentSequence.length])
-        returnSequence.push(currentSequence)
+        returnSequence.push([...currentSequence])
     }
     return returnSequence
 }
