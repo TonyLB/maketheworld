@@ -1,6 +1,7 @@
 import { deepEqual } from "../../lib/objects";
 import { NormalConditionStatement } from "../../normalize/baseClasses"
 import { SchemaTag } from "../../schema/baseClasses"
+import IndexSubstitution from "./indexSubstitution"
 
 export type OrderedConditionalNode = {
     conditions: NormalConditionStatement[];
@@ -11,6 +12,11 @@ export type OrderedConditionalTree = (SchemaTag | OrderedConditionalNode)[]
 
 export type FlattenedConditionalNode = {
     conditions: NormalConditionStatement[];
+    contents: SchemaTag[];
+}
+
+export type FlattenedIndexedConditionalNode = {
+    conditionIndices: number[];
     contents: SchemaTag[];
 }
 
@@ -142,4 +148,18 @@ export const unflattenOrderedConditionalTree = (list: FlattenedConditionalNode[]
     return list
         .reduce<OrderedConditionalTree>(unflattenOrderedConditionalTreeReducer, [])
         .map(maybeCollapseNode)
+}
+
+const indexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<NormalConditionStatement>) => (list: FlattenedConditionalNode[]): FlattenedIndexedConditionalNode[] => {
+    return list.map(({ conditions, contents }) => ({
+        conditionIndices: conditions.map((condition) => (indexSubstitution.toIndex(condition))),
+        contents
+    }))
+}
+
+const deindexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<NormalConditionStatement>) => (list: FlattenedIndexedConditionalNode[]): FlattenedConditionalNode[] => {
+    return list.map(({ conditionIndices, contents }) => ({
+        conditions: conditionIndices.map((index) => (indexSubstitution.fromIndex(index))),
+        contents
+    }))
 }
