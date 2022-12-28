@@ -1,3 +1,4 @@
+import { current } from "immer"
 import { deepEqual } from "../../lib/objects"
 import { NormalConditionStatement } from "../../normalize/baseClasses"
 import { SchemaTag } from "../../schema/baseClasses"
@@ -211,7 +212,7 @@ export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree |
     //
     // For each tree in the list, indexedTrees replaces the list of explicit conditions with numeric conditionIndices that can be
     // equality tested, and can be used as a key into the treeConditionSubstitutions object to return the original explicit
-    // conditions when they are needed after sorting and merging.
+    // conditions when they are needed again after sorting and merging.
     //
     const treeConditionSubstitutions = new IndexSubstitution<NormalConditionStatement>(deepEqual)
     const indexedTrees = flattenedTrees.map((tree) => (indexFlattenedConditionalNodes(treeConditionSubstitutions)(tree)))
@@ -224,7 +225,7 @@ export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree |
     const navigationIndexedTrees = indexedTrees.map((tree) => (tree.map(({ conditionIndices, contents }) => ({ conditionSequence: navigationSequenceSubstitutions.toIndex(conditionIndices), contents }))))
     //
     // Now we return to the indexed conditions (which still have tree-hierarchy information) in order to calculate the navigation sequences
-    // that define the structure.
+    // that define the structure, and add them to the equality-testable mapping in navigationSequenceSubstitutions.
     //
     const navigationSequencedTrees = indexedTrees.map((tree) => (navigationSequence(tree.map(({ conditionIndices }) => (conditionIndices))).map((sequence) => (navigationSequenceSubstitutions.toIndex(sequence)))))
     const commonNavigationSequence = navigationSequencedTrees.reduce<number[]>((previous, next) => (shortestCommonSupersequence(previous, next)), [])
@@ -233,6 +234,22 @@ export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree |
     // and as navigationIndexes in the supersequence match each tree, add the deindexed data into the
     // final merged output
     //
-
-    return []
+    const flattenedOutput: FlattenedConditionalNode[] = []
+    const currentPositions: number[] = Array(trees.length).fill(0)
+    commonNavigationSequence.forEach((currentSequence) => {
+        for(let whichTree=0; whichTree < trees.length; whichTree++) {
+            const currentNavigationTree = navigationIndexedTrees[whichTree]
+            while(currentPositions[whichTree] < currentNavigationTree.length && currentNavigationTree[currentPositions[whichTree]].conditionSequence === currentSequence) {
+                flattenedOutput.push({
+                    conditions: navigationSequenceSubstitutions.fromIndex(currentSequence).map((index) => (treeConditionSubstitutions.fromIndex(index))),
+                    contents: currentNavigationTree[currentPositions[whichTree]].contents
+                })
+                currentPositions[whichTree]++
+            }
+        }
+    })
+    if (currentPositions.find((finalIndex, whichTree) => (finalIndex < navigationIndexedTrees[whichTree].length))) {
+        throw new Error('mergeOrderedConditionalTree error:  Navigation Supersequence failed to contain all sub-entries')
+    }
+    return unflattenOrderedConditionalTree(flattenedOutput)
 }
