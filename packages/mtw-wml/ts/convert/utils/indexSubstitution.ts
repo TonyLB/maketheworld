@@ -13,10 +13,24 @@ export class IndexSubstitution<T> {
     }
 
     //
-    // toIndex returns the index of the item in the mapping table if it is present, -1 otherwise
+    // findIndex returns the index of the item in the mapping table, -1 otherwise
+    //
+    findIndex(item: T): number {
+        return this._mappingTable.findIndex((check) => (this._compare(check, item)))
+    }
+
+    //
+    // toIndex returns the index of the item in the mapping table, adding it if necessary
     //
     toIndex(item: T): number {
-        return this._mappingTable.findIndex((check) => (this._compare(check, item)))
+        const index = this.findIndex(item)
+        if (index === -1) {
+            this._mappingTable.push(item)
+            return this._mappingTable.length - 1
+        }
+        else {
+            return index
+        }
     }
 
     fromIndex(index: number): T | undefined {
@@ -28,14 +42,10 @@ export class IndexSubstitution<T> {
         }
     }
 
-    add(list: T[]): void {
-        list.forEach((item) => {
-            const index = this.toIndex(item)
-            if (index === -1) {
-                this._mappingTable.push(item)
-            }
-        })
+    add(list: T[]): number[] {
+        return list.map(this.toIndex.bind(this))
     }
+
 }
 
 export default IndexSubstitution

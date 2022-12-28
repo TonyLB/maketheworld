@@ -2,7 +2,7 @@ import IndexSubstitution from './indexSubstitution'
 
 describe('IndexSubstitution', () => {
     const compare = (A: { value: string }, B: { value: string }): boolean => (A.value === B.value)
-    it('should merge two sets', () => {
+    it('should merge two sets with add', () => {
         const indexSub = new IndexSubstitution(compare)
         indexSub.add([
             { value: 'TestA' },
@@ -18,5 +18,15 @@ describe('IndexSubstitution', () => {
         expect(indexSub.toIndex({ value: 'TestB' })).toEqual(1)
         expect(indexSub.toIndex({ value: 'TestC' })).toEqual(2)
         expect(indexSub.toIndex({ value: 'TestD' })).toEqual(3)
+    })
+
+    it('should add items with toIndex', () => {
+        const indexSub = new IndexSubstitution(compare)
+        expect(indexSub.toIndex({ value: 'TestA' })).toEqual(0)
+        expect(indexSub.toIndex({ value: 'TestB' })).toEqual(1)
+        expect(indexSub.toIndex({ value: 'TestA' })).toEqual(0)
+        expect(indexSub.toIndex({ value: 'TestC' })).toEqual(2)
+        expect(indexSub.toIndex({ value: 'TestD' })).toEqual(3)
+        expect(indexSub.toIndex({ value: 'TestB' })).toEqual(1)        
     })
 })
