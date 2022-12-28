@@ -205,29 +205,34 @@ export const navigationSequence = (tree: number[][]): number[][] => {
     return returnSequence
 }
 
-//
-// TODO: Extend mergeOrderedConditionalTrees to (a) accept unlimited trees as arguments and reduce sequentially, (b) remove repetition of TreeA, TreeB
-//
-export const mergeOrderedConditionalTrees = (treeA: OrderedConditionalTree | FlattenedConditionalNode[], treeB: OrderedConditionalTree | FlattenedConditionalNode[]): OrderedConditionalTree => {
+export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree | FlattenedConditionalNode[])[]): OrderedConditionalTree => {
     const isFlattened = (tree: OrderedConditionalTree | FlattenedConditionalNode[]): tree is FlattenedConditionalNode[] => (!Boolean(tree.find((node) => (isConditionNode(node)))))
-    const flattenedTreeA = isFlattened(treeA) ? treeA : flattenOrderedConditionalTree(treeA)
-    const flattenedTreeB = isFlattened(treeB) ? treeB : flattenOrderedConditionalTree(treeB)
+    const flattenedTrees = trees.map((tree) => (isFlattened(tree) ? tree : flattenOrderedConditionalTree(tree)))
+    //
+    // For each tree in the list, indexedTrees replaces the list of explicit conditions with numeric conditionIndices that can be
+    // equality tested, and can be used as a key into the treeConditionSubstitutions object to return the original explicit
+    // conditions when they are needed after sorting and merging.
+    //
     const treeConditionSubstitutions = new IndexSubstitution<NormalConditionStatement>(deepEqual)
-    const indexedTreeA = indexFlattenedConditionalNodes(treeConditionSubstitutions)(flattenedTreeA)
-    const indexedTreeB = indexFlattenedConditionalNodes(treeConditionSubstitutions)(flattenedTreeB)
+    const indexedTrees = flattenedTrees.map((tree) => (indexFlattenedConditionalNodes(treeConditionSubstitutions)(tree)))
+    //
+    // For each tree in the list, navigationIndexedTrees replaces the list of conditionIndices with a single key from the navigationSequenceSubstitutions.
+    // This is too _little_ information to do a proper mapping of the trees together (since it loses the relation of branches to each other), but is
+    // enough to match against the commonNavigationSequence that will be created later.
+    //
     const navigationSequenceSubstitutions = new IndexSubstitution<number[]>(deepEqual)
-    const navigationTreeA = navigationSequence(indexedTreeA.map(({ conditionIndices }) => (conditionIndices))).map((sequence) => (navigationSequenceSubstitutions.toIndex(sequence)))
-    const navigationTreeB = navigationSequence(indexedTreeB.map(({ conditionIndices }) => (conditionIndices))).map((sequence) => (navigationSequenceSubstitutions.toIndex(sequence)))
-    const commonNavigationSequence = shortestCommonSupersequence(navigationTreeA, navigationTreeB)
+    const navigationIndexedTrees = indexedTrees.map((tree) => (tree.map(({ conditionIndices, contents }) => ({ conditionSequence: navigationSequenceSubstitutions.toIndex(conditionIndices), contents }))))
     //
-    // TODO: Parse through the common supersequence, and keep a pointer into each of the two existing trees,
-    // and map back the navigation sequences to their appearance in each list, in order to pull the tree data
-    // into a combined tree
+    // Now we return to the indexed conditions (which still have tree-hierarchy information) in order to calculate the navigation sequences
+    // that define the structure.
     //
-    let indexA = 0, indexB = 0
-    const combinedIndexedTree = commonNavigationSequence.reduce<FlattenedIndexedConditionalNode[]>((previous, navigationIndex) => {
-        return previous
-    }, [])
+    const navigationSequencedTrees = indexedTrees.map((tree) => (navigationSequence(tree.map(({ conditionIndices }) => (conditionIndices))).map((sequence) => (navigationSequenceSubstitutions.toIndex(sequence)))))
+    const commonNavigationSequence = navigationSequencedTrees.reduce<number[]>((previous, next) => (shortestCommonSupersequence(previous, next)), [])
+    //
+    // TODO: Parse through the common supersequence, and keep a pointer into each of the existing trees,
+    // and as navigationIndexes in the supersequence match each tree, add the deindexed data into the
+    // final merged output
+    //
 
     return []
 }
