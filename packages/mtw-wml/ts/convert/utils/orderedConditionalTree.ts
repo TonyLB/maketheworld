@@ -1,7 +1,8 @@
-import { deepEqual } from "../../lib/objects";
+import { deepEqual } from "../../lib/objects"
 import { NormalConditionStatement } from "../../normalize/baseClasses"
 import { SchemaTag } from "../../schema/baseClasses"
 import IndexSubstitution from "./indexSubstitution"
+import shortestCommonSupersequence from "./shortestCommonSupersequence"
 
 export type OrderedConditionalNode = {
     conditions: NormalConditionStatement[];
@@ -162,4 +163,71 @@ const deindexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<N
         conditions: conditionIndices.map((index) => (indexSubstitution.fromIndex(index))),
         contents
     }))
+}
+
+//
+// navigationSequence turns a list of tree-locations (as defined by a list of numeric values) into a sequence of navigation
+// points, starting from the root (empty list) and showing each node traversal (as a tree-location) moving up and down
+// the tree from one point to another, including a final traversal back up the tree to root at the end.
+//
+type NavigationSequenceReducerOutput = {
+    from: number[];
+    returnSequence: number[][]
+}
+const navigationSequenceReducer = (previous: number[][], to: number[] ): number[][] => {
+    let returnSequence = [...previous]
+    let currentSequence = returnSequence.slice(-1)[0]
+    //
+    // First navigate up the sequence to the common branching point
+    //
+    const lastCommonIndex = currentSequence.reduce((output, value, index) => {
+        if (output === index - 1 && to.length > index && to[index] === value) {
+            return index
+        }
+        return output
+    }, -1)
+    while(lastCommonIndex + 1 < currentSequence.length) {
+        currentSequence.pop()
+        returnSequence.push(currentSequence)
+    }
+    //
+    // Then navigate back down to the new point
+    //
+    while(to.length > currentSequence.length) {
+        currentSequence.push(to[currentSequence.length])
+        returnSequence.push(currentSequence)
+    }
+    return returnSequence
+}
+
+export const navigationSequence = (tree: number[][]): number[][] => {
+    const returnSequence = [...tree, []].reduce<number[][]>(navigationSequenceReducer, [[]])
+    return returnSequence
+}
+
+//
+// TODO: Extend mergeOrderedConditionalTrees to (a) accept unlimited trees as arguments and reduce sequentially, (b) remove repetition of TreeA, TreeB
+//
+export const mergeOrderedConditionalTrees = (treeA: OrderedConditionalTree | FlattenedConditionalNode[], treeB: OrderedConditionalTree | FlattenedConditionalNode[]): OrderedConditionalTree => {
+    const isFlattened = (tree: OrderedConditionalTree | FlattenedConditionalNode[]): tree is FlattenedConditionalNode[] => (!Boolean(tree.find((node) => (isConditionNode(node)))))
+    const flattenedTreeA = isFlattened(treeA) ? treeA : flattenOrderedConditionalTree(treeA)
+    const flattenedTreeB = isFlattened(treeB) ? treeB : flattenOrderedConditionalTree(treeB)
+    const treeConditionSubstitutions = new IndexSubstitution<NormalConditionStatement>(deepEqual)
+    const indexedTreeA = indexFlattenedConditionalNodes(treeConditionSubstitutions)(flattenedTreeA)
+    const indexedTreeB = indexFlattenedConditionalNodes(treeConditionSubstitutions)(flattenedTreeB)
+    const navigationSequenceSubstitutions = new IndexSubstitution<number[]>(deepEqual)
+    const navigationTreeA = navigationSequence(indexedTreeA.map(({ conditionIndices }) => (conditionIndices))).map((sequence) => (navigationSequenceSubstitutions.toIndex(sequence)))
+    const navigationTreeB = navigationSequence(indexedTreeB.map(({ conditionIndices }) => (conditionIndices))).map((sequence) => (navigationSequenceSubstitutions.toIndex(sequence)))
+    const commonNavigationSequence = shortestCommonSupersequence(navigationTreeA, navigationTreeB)
+    //
+    // TODO: Parse through the common supersequence, and keep a pointer into each of the two existing trees,
+    // and map back the navigation sequences to their appearance in each list, in order to pull the tree data
+    // into a combined tree
+    //
+    let indexA = 0, indexB = 0
+    const combinedIndexedTree = commonNavigationSequence.reduce<FlattenedIndexedConditionalNode[]>((previous, navigationIndex) => {
+        return previous
+    }, [])
+
+    return []
 }
