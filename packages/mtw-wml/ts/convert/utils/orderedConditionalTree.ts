@@ -156,3 +156,10 @@ const indexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<Nor
         contents
     }))
 }
+
+const deindexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<NormalConditionStatement>) => (list: FlattenedIndexedConditionalNode[]): FlattenedConditionalNode[] => {
+    return list.map(({ conditionIndices, contents }) => ({
+        conditions: conditionIndices.map((index) => (indexSubstitution.fromIndex(index))),
+        contents
+    }))
+}
