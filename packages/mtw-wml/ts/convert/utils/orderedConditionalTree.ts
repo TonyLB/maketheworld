@@ -180,7 +180,7 @@ const navigationSequenceReducer = (previous: number[][], to: number[] ): number[
     let returnSequence = [...previous]
     let currentSequence = [...returnSequence.slice(-1)[0]]
     //
-    // First navigate up the sequence to the common branching point
+    // First navigate up the sequence to one level *below* the common branching point
     //
     const lastCommonIndex = currentSequence.reduce((output, value, index) => {
         if (output === index - 1 && to.length > index && to[index] === value) {
@@ -188,15 +188,47 @@ const navigationSequenceReducer = (previous: number[][], to: number[] ): number[
         }
         return output
     }, -1)
-    while(lastCommonIndex + 1 < currentSequence.length) {
-        currentSequence.pop()
+    enum navigationSequenceDirection {
+        up,
+        down,
+        sibling
+    }
+    const navigate = (direction: navigationSequenceDirection): void => {
+        switch(direction) {
+            case navigationSequenceDirection.up:
+                currentSequence.pop()
+                break
+            case navigationSequenceDirection.sibling:
+                currentSequence.pop()
+            case navigationSequenceDirection.down:
+                currentSequence.push(to[currentSequence.length])
+        }
+    }
+    while(lastCommonIndex + 2 < currentSequence.length) {
+        navigate(navigationSequenceDirection.up)
         returnSequence.push([...currentSequence])
     }
     //
-    // Then navigate back down to the new point
+    // If the navigation requires both navigating up *and* down than execute the one sibling-step
+    // sideways as a single step rather than "double-charge" sibling adjacency in a way that
+    // would discourage grouping sibling records
+    //
+    if (lastCommonIndex + 1 < currentSequence.length) {
+        if (to.length > lastCommonIndex + 1) {
+            navigate(navigationSequenceDirection.sibling)
+            returnSequence.push([...currentSequence])
+        }
+        else {
+            navigate(navigationSequenceDirection.up)
+            returnSequence.push([...currentSequence])
+        }
+    }
+
+    //
+    // Then (if needed) navigate back down to the new point
     //
     while(to.length > currentSequence.length) {
-        currentSequence.push(to[currentSequence.length])
+        navigate(navigationSequenceDirection.down)
         returnSequence.push([...currentSequence])
     }
     return returnSequence

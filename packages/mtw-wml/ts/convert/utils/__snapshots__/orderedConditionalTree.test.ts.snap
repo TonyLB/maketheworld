@@ -306,33 +306,6 @@ Array [
     "conditions": Array [
       Object {
         "dependencies": Array [
-          "test2",
-        ],
-        "if": "test2",
-      },
-      Object {
-        "dependencies": Array [
-          "test3",
-        ],
-        "if": "test3",
-      },
-    ],
-    "contents": Array [
-      Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
-        "tag": "String",
-        "value": "TestFive",
-      },
-    ],
-  },
-  Object {
-    "conditions": Array [
-      Object {
-        "dependencies": Array [
           "test",
         ],
         "if": "test",
@@ -358,40 +331,67 @@ Array [
         ],
         "if": "test2",
       },
-      Object {
-        "dependencies": Array [
-          "test",
-        ],
-        "if": "test",
-      },
     ],
     "contents": Array [
       Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
-        "tag": "String",
-        "value": "TestSix",
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "test3",
+            ],
+            "if": "test3",
+          },
+        ],
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestFive",
+          },
+        ],
       },
       Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
-        "tag": "String",
-        "value": "TestTwo",
-      },
-      Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
-        "tag": "String",
-        "value": "TestThree",
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "test",
+            ],
+            "if": "test",
+          },
+        ],
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestSix",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestTwo",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestThree",
+          },
+        ],
       },
     ],
   },
