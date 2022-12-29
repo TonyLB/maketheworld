@@ -50,7 +50,7 @@ export const flattenOrderedConditionalTreeReducer = (previous: FlattenedConditio
             const previousItem = lastNode(accumulator)
             if (previousItem && deepEqual(previousItem.conditions, context)) {
                 return [
-                    ...(previous.slice(0, -1)),
+                    ...(accumulator.slice(0, -1)),
                     {
                         conditions: context,
                         contents: [
@@ -171,10 +171,6 @@ const deindexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<N
 // points, starting from the root (empty list) and showing each node traversal (as a tree-location) moving up and down
 // the tree from one point to another, including a final traversal back up the tree to root at the end.
 //
-type NavigationSequenceReducerOutput = {
-    from: number[];
-    returnSequence: number[][]
-}
 const navigationSequenceReducer = (previous: number[][], to: number[] ): number[][] => {
     let returnSequence = [...previous]
     let currentSequence = [...returnSequence.slice(-1)[0]]
@@ -207,7 +203,15 @@ export const navigationSequence = (tree: number[][]): number[][] => {
 }
 
 export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree | FlattenedConditionalNode[])[]): OrderedConditionalTree => {
-    const isFlattened = (tree: OrderedConditionalTree | FlattenedConditionalNode[]): tree is FlattenedConditionalNode[] => (!Boolean(tree.find((node) => (isConditionNode(node)))))
+    const isFlattened = (tree: OrderedConditionalTree | FlattenedConditionalNode[]): tree is FlattenedConditionalNode[] => {
+        const returnValue = tree.find(
+            (node: OrderedConditionalNode | SchemaTag | FlattenedConditionalNode) => (
+                'tag' in node ||
+                ('contents' in node && node.contents.find((subNode) => (!('tag' in subNode))))
+            )
+        )
+        return !Boolean(returnValue)
+    }
     const flattenedTrees = trees.map((tree) => (isFlattened(tree) ? tree : flattenOrderedConditionalTree(tree)))
     //
     // For each tree in the list, indexedTrees replaces the list of explicit conditions with numeric conditionIndices that can be
@@ -230,7 +234,7 @@ export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree |
     const navigationSequencedTrees = indexedTrees.map((tree) => (navigationSequence(tree.map(({ conditionIndices }) => (conditionIndices))).map((sequence) => (navigationSequenceSubstitutions.toIndex(sequence)))))
     const commonNavigationSequence = navigationSequencedTrees.reduce<number[]>((previous, next) => (shortestCommonSupersequence(previous, next)), [])
     //
-    // TODO: Parse through the common supersequence, and keep a pointer into each of the existing trees,
+    // Parse through the common supersequence, and keep a pointer into each of the existing trees,
     // and as navigationIndexes in the supersequence match each tree, add the deindexed data into the
     // final merged output
     //

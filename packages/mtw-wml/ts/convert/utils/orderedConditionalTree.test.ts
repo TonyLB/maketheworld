@@ -143,35 +143,28 @@ describe('orderedConditionalTree', () => {
         })
     })
 
-    xdescribe('mergeOrderedConditionalTrees', () => {
+    describe('mergeOrderedConditionalTrees', () => {
         it('should return unchanged on merger with empty tree', () => {
             const testTree: OrderedConditionalTree = [
+                makeSchemaTag({ tag: 'String', key: 'TestZero'}),
                 {
                     conditions: [{
                         if: 'test',
                         dependencies: ['test'],
                     }],
-                    contents: [
-                        {
-                            conditions: [{
-                                if: 'test2',
-                                dependencies: ['test2']
-                            }],
-                            contents: [makeSchemaTag({
-                                tag: 'String',
-                                key: 'TestOne'
-                            })]
-                        }
-                    ]
+                    contents: [makeSchemaTag({
+                        tag: 'String',
+                        key: 'TestOne'
+                    })]
                 },
                 {
                     conditions: [{
-                        if: 'test',
-                        dependencies: ['test']
-                    },
-                    {
                         if: 'test2',
                         dependencies: ['test2']
+                    },
+                    {
+                        if: 'test',
+                        dependencies: ['test']
                     }],
                     contents: [
                         makeSchemaTag({ tag: 'String', key: 'TestTwo'}),
