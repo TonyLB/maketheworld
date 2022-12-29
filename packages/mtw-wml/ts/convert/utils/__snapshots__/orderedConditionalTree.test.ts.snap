@@ -145,6 +145,280 @@ Array [
 ]
 `;
 
+exports[`orderedConditionalTree mergeOrderedConditionalTrees should merge differently ordered trees 1`] = `
+Array [
+  Object {
+    "key": "TestZero",
+    "parse": Object {
+      "endTagToken": 0,
+      "startTagToken": 0,
+      "tag": "Space",
+    },
+    "tag": "String",
+  },
+  Object {
+    "parse": Object {
+      "endTagToken": 0,
+      "startTagToken": 0,
+      "tag": "Space",
+    },
+    "tag": "String",
+    "value": "TestFour",
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestOne",
+      },
+    ],
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test2",
+        ],
+        "if": "test2",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "test3",
+            ],
+            "if": "test3",
+          },
+        ],
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestFive",
+          },
+        ],
+      },
+      Object {
+        "conditions": Array [
+          Object {
+            "dependencies": Array [
+              "test",
+            ],
+            "if": "test",
+          },
+        ],
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestTwo",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestThree",
+          },
+          Object {
+            "parse": Object {
+              "endTagToken": 0,
+              "startTagToken": 0,
+              "tag": "Space",
+            },
+            "tag": "String",
+            "value": "TestSix",
+          },
+        ],
+      },
+    ],
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestSeven",
+      },
+    ],
+  },
+]
+`;
+
+exports[`orderedConditionalTree mergeOrderedConditionalTrees should merge differently ordered trees 2`] = `
+Array [
+  Object {
+    "parse": Object {
+      "endTagToken": 0,
+      "startTagToken": 0,
+      "tag": "Space",
+    },
+    "tag": "String",
+    "value": "TestFour",
+  },
+  Object {
+    "key": "TestZero",
+    "parse": Object {
+      "endTagToken": 0,
+      "startTagToken": 0,
+      "tag": "Space",
+    },
+    "tag": "String",
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test2",
+        ],
+        "if": "test2",
+      },
+      Object {
+        "dependencies": Array [
+          "test3",
+        ],
+        "if": "test3",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestFive",
+      },
+    ],
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestOne",
+      },
+    ],
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test2",
+        ],
+        "if": "test2",
+      },
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestSix",
+      },
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestTwo",
+      },
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestThree",
+      },
+    ],
+  },
+  Object {
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "test",
+        ],
+        "if": "test",
+      },
+    ],
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 0,
+          "startTagToken": 0,
+          "tag": "Space",
+        },
+        "tag": "String",
+        "value": "TestSeven",
+      },
+    ],
+  },
+]
+`;
+
 exports[`orderedConditionalTree unflattenOrderedConditionalTree should collapse deep and unbranching conditional paths 1`] = `
 Array [
   Object {

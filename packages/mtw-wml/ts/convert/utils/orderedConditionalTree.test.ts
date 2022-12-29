@@ -1,4 +1,4 @@
-import { FlattenedConditionalNode, flattenOrderedConditionalTree, OrderedConditionalTree, unflattenOrderedConditionalTree } from './orderedConditionalTree'
+import { FlattenedConditionalNode, flattenOrderedConditionalTree, mergeOrderedConditionalTrees, navigationSequence, OrderedConditionalTree, unflattenOrderedConditionalTree } from './orderedConditionalTree'
 import { makeSchemaTag } from './index'
 
 describe('orderedConditionalTree', () => {
@@ -133,6 +133,113 @@ describe('orderedConditionalTree', () => {
                 { conditions: [], contents: [makeSchemaTag({ tag: 'String', value: 'TestE' })] }
             ]
             expect(unflattenOrderedConditionalTree(testList)).toMatchSnapshot()
+        })
+
+    })
+
+    describe('navigationSequence', () => {
+        it('should return a traverse down and up on a single location', () => {
+            expect(navigationSequence([[1, 2, 3]])).toEqual([[], [1], [1, 2], [1, 2, 3], [1, 2], [1], []])
+        })
+    })
+
+    describe('mergeOrderedConditionalTrees', () => {
+        it('should return unchanged on merger with empty tree', () => {
+            const testTree: OrderedConditionalTree = [
+                makeSchemaTag({ tag: 'String', key: 'TestZero'}),
+                {
+                    conditions: [{
+                        if: 'test',
+                        dependencies: ['test'],
+                    }],
+                    contents: [makeSchemaTag({
+                        tag: 'String',
+                        key: 'TestOne'
+                    })]
+                },
+                {
+                    conditions: [{
+                        if: 'test2',
+                        dependencies: ['test2']
+                    },
+                    {
+                        if: 'test',
+                        dependencies: ['test']
+                    }],
+                    contents: [
+                        makeSchemaTag({ tag: 'String', key: 'TestTwo'}),
+                        makeSchemaTag({ tag: 'String', key: 'TestThree'})
+                    ]
+                }
+            ]
+            expect(mergeOrderedConditionalTrees(testTree, [])).toEqual(testTree)
+            expect(mergeOrderedConditionalTrees([], testTree)).toEqual(testTree)
+        })
+
+        it('should merge differently ordered trees', () => {
+            const testTreeOne: OrderedConditionalTree = [
+                makeSchemaTag({ tag: 'String', key: 'TestZero'}),
+                {
+                    conditions: [{
+                        if: 'test',
+                        dependencies: ['test'],
+                    }],
+                    contents: [makeSchemaTag({
+                        tag: 'String',
+                        value: 'TestOne'
+                    })]
+                },
+                {
+                    conditions: [{
+                        if: 'test2',
+                        dependencies: ['test2']
+                    },
+                    {
+                        if: 'test',
+                        dependencies: ['test']
+                    }],
+                    contents: [
+                        makeSchemaTag({ tag: 'String', value: 'TestTwo'}),
+                        makeSchemaTag({ tag: 'String', value: 'TestThree'})
+                    ]
+                }
+            ]
+            const testTreeTwo: OrderedConditionalTree = [
+                makeSchemaTag({ tag: 'String', value: 'TestFour'}),
+                {
+                    conditions: [{
+                        if: 'test2',
+                        dependencies: ['test2']
+                    }],
+                    contents: [{
+                        conditions: [{
+                            if: 'test3',
+                            dependencies: ['test3']
+                        }],
+                        contents: [makeSchemaTag({ tag: 'String', value: 'TestFive'})]
+                    },
+                    {
+                        conditions: [{
+                            if: 'test',
+                            dependencies: ['test']
+                        }],
+                        contents: [makeSchemaTag({ tag: 'String', value: 'TestSix'})]
+
+                    }]
+                },
+                {
+                    conditions: [{
+                        if: 'test',
+                        dependencies: ['test'],
+                    }],
+                    contents: [makeSchemaTag({
+                        tag: 'String',
+                        value: 'TestSeven'
+                    })]
+                }
+            ]
+            expect(mergeOrderedConditionalTrees(testTreeOne, testTreeTwo)).toMatchSnapshot()
+            expect(mergeOrderedConditionalTrees(testTreeTwo, testTreeOne)).toMatchSnapshot()
         })
 
     })
