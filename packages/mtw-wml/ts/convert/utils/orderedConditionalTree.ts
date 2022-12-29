@@ -167,6 +167,11 @@ const deindexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<N
 }
 
 //
+// TODO: Sibling adjacency is not counted intuitively by navigationSequence (it counts a sibling traversal as being two steps,
+// one up and one down).  See if there are other navigationSequence metrics that return more natural results
+//
+
+//
 // navigationSequence turns a list of tree-locations (as defined by a list of numeric values) into a sequence of navigation
 // points, starting from the root (empty list) and showing each node traversal (as a tree-location) moving up and down
 // the tree from one point to another, including a final traversal back up the tree to root at the end.
