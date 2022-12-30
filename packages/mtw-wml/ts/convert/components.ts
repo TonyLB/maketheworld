@@ -1,11 +1,11 @@
 import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseMessage, isParseMoment, isParseName, isParseRoom, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
-import { isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaName, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
+import { isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaName, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
 import { translateTaggedMessageContents } from "../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
 import { schemaDescriptionToWML } from "./description";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
 import { makeSchemaTag, tagRender } from "./utils";
-import { mergeOrderedConditionalTrees, orderedConditionalTreeToSchema } from "./utils/orderedConditionalTree";
+import { mergeOrderedConditionalTrees } from "./utils/orderedConditionalTree";
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseComponentsMixin extends Base {
@@ -414,13 +414,14 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 })
             }
             else if (isSchemaMap(value)) {
-                const mapContents: SchemaTag[] = orderedConditionalTreeToSchema(
-                    mergeOrderedConditionalTrees(
+                const mapContents: SchemaTag[] = mergeOrderedConditionalTrees('Map')(
                         [
                             ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
                             ...((value.images || []).map((key) => (makeSchemaTag({ tag: 'Image' as 'Image', key,  contents: []})))),
                         ],
-                        value.rooms.map((room) => ({
+                        value.rooms.map((room) => (makeSchemaTag({
+                            tag: 'If',
+                            contextTag: 'Description',
                             conditions: room.conditions,
                             contents: [makeSchemaTag({
                                 tag: 'Room',
@@ -429,8 +430,8 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                                 y: room.y,
                                 contents: []
                             })]
-                        }))
-                    ), 'Map')
+                        }))) as SchemaConditionTag[]
+                    )
                 return tagRender({
                     ...options,
                     tag: 'Map',

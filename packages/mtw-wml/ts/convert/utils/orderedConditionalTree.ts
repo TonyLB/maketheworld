@@ -5,60 +5,13 @@ import { isSchemaCondition, SchemaConditionTag, SchemaTag } from "../../schema/b
 import IndexSubstitution from "./indexSubstitution"
 import shortestCommonSupersequence from "./shortestCommonSupersequence"
 
-//
-// TODO: Evaluate whether OrderedConditionalNode is meaningfully different from
-// SchemaTag (given that SchemaCondition is one of the possible options for a SchemaTag)
-//
-export type OrderedConditionalNode = {
-    conditions: NormalConditionStatement[];
-    contents: OrderedConditionalTree;
-}
-
-export type OrderedConditionalTree = (SchemaTag | OrderedConditionalNode)[]
-
-export type FlattenedConditionalNode = {
-    conditions: NormalConditionStatement[];
-    contents: SchemaTag[];
-}
-
 export type FlattenedIndexedConditionalNode = {
+    contextTag: SchemaConditionTag["contextTag"];
     conditionIndices: number[];
     contents: SchemaTag[];
 }
 
-export const schemaToOrderedConditionalTree = (nodes: SchemaTag[]): OrderedConditionalTree => {
-    return nodes.map((node) => {
-        if (isSchemaCondition(node)) {
-            return {
-                conditions: node.conditions,
-                contents: schemaToOrderedConditionalTree(node.contents)
-            }
-        }
-        else {
-            return node
-        }
-    })
-}
-
-const isConditionNode = (value: SchemaTag | OrderedConditionalNode): value is OrderedConditionalNode => (!('tag' in value))
-
-export const orderedConditionalTreeToSchema = (tree: OrderedConditionalTree, contextTag: SchemaConditionTag["contextTag"]): SchemaTag[] => {
-    return tree.map((node) => {
-        if (isConditionNode(node)) {
-            return makeSchemaTag({
-                tag: 'If',
-                conditions: node.conditions,
-                contents: node.contents,
-                contextTag
-            })
-        }
-        else {
-            return node
-        }
-    })
-}
-
-const lastNode = (list: FlattenedConditionalNode[]): FlattenedConditionalNode | undefined => {
+const lastNode = (list: SchemaConditionTag[]): SchemaConditionTag | undefined => {
     if (list.length === 0) {
         return undefined
     }
@@ -68,13 +21,13 @@ const lastNode = (list: FlattenedConditionalNode[]): FlattenedConditionalNode | 
 }
 
 //
-// flattenOrderedConditionalTree transforms an OrderedConditionalTree to a functionally equivalent FlattenedConditionalNode
-// by depth-first walking the tree and outputting each different set of conditions as its own FlattenedConditionalNode in order
+// flattenOrderedConditionalTree transforms an OrderedConditionalTree to a functionally equivalent SchemaConditionTag list
+// by depth-first walking the tree and outputting each different set of conditions as its own one-level SchemaConditionTag in order
 //
-export const flattenOrderedConditionalTreeReducer = (previous: FlattenedConditionalNode[], context: NormalConditionStatement[], tree: OrderedConditionalTree): FlattenedConditionalNode[] => {
-    return tree.reduce<FlattenedConditionalNode[]>((accumulator, node) => {
-        if (isConditionNode(node)) {
-            return flattenOrderedConditionalTreeReducer(
+export const flattenOrderedConditionalTreeReducer = (contextTag: SchemaConditionTag["contextTag"]) => (previous: SchemaConditionTag[], context: NormalConditionStatement[], tree: SchemaTag[]): SchemaConditionTag[] => {
+    return (tree as any[]).reduce<SchemaConditionTag[]>((accumulator: SchemaConditionTag[], node: SchemaTag): SchemaConditionTag[] => {
+        if (isSchemaCondition(node) && node.contextTag === contextTag) {
+            return flattenOrderedConditionalTreeReducer(contextTag)(
                 accumulator,
                 [ ...context, ...node.conditions ],
                 node.contents
@@ -85,35 +38,39 @@ export const flattenOrderedConditionalTreeReducer = (previous: FlattenedConditio
             if (previousItem && deepEqual(previousItem.conditions, context)) {
                 return [
                     ...(accumulator.slice(0, -1)),
-                    {
+                    makeSchemaTag({
+                        tag: 'If',
+                        contextTag,
                         conditions: context,
                         contents: [
                             ...previousItem.contents,
                             node
                         ]
-                    }
+                    }) as SchemaConditionTag
                 ]
             }
             else {
                 return [
                     ...accumulator,
-                    {
+                    makeSchemaTag({
+                        tag: 'If',
+                        contextTag,
                         conditions: context,
                         contents: [node]
-                    }
+                    }) as SchemaConditionTag
                 ]
             }
         }
     }, previous)
 }
 
-export const flattenOrderedConditionalTree = (tree: OrderedConditionalTree): FlattenedConditionalNode[] => (flattenOrderedConditionalTreeReducer([], [], tree))
+export const flattenOrderedConditionalTree = (contextTag: SchemaConditionTag["contextTag"]) => (tree: SchemaTag[]): SchemaConditionTag[] => (flattenOrderedConditionalTreeReducer(contextTag)([], [], tree))
 
 //
 // unflattenOrderedConditionalTreeReducer creates a first pass by joining all conditionals in a tree where
 // each conditional node has only a single condition
 //
-const unflattenOrderedConditionalTreeReducer = (previous: OrderedConditionalTree, item: FlattenedConditionalNode): OrderedConditionalTree => {
+const unflattenOrderedConditionalTreeReducer = (previous: SchemaTag[], item: SchemaConditionTag): SchemaTag[] => {
     //
     // For an unconditioned item, add SchemaTag contents directly to the tree
     //
@@ -129,16 +86,18 @@ const unflattenOrderedConditionalTreeReducer = (previous: OrderedConditionalTree
     //
     else {
         const previousNode = previous.length > 0 ? previous.slice(-1)[0] : undefined
-        if (previousNode && isConditionNode(previousNode) && deepEqual(previousNode.conditions[0], item.conditions[0])) {
+        if (previousNode && isSchemaCondition(previousNode) && deepEqual(previousNode.conditions[0], item.conditions[0])) {
             //
             // Recurse further into the structure of the most recent node rather than creating a new branch here
             //
             return [
                 ...previous.slice(0, -1),
-                {
+                makeSchemaTag({
+                    tag: 'If',
+                    contextTag: previousNode.contextTag,
                     conditions: previousNode.conditions,
                     contents: unflattenOrderedConditionalTreeReducer(previousNode.contents, { ...item, conditions: item.conditions.slice(1) })
-                }
+                })
             ]
         }
         else {
@@ -147,31 +106,37 @@ const unflattenOrderedConditionalTreeReducer = (previous: OrderedConditionalTree
             //
             return [
                 ...previous,
-                {
+                makeSchemaTag({
+                    tag: 'If',
+                    contextTag: item.contextTag,
                     conditions: [item.conditions[0]],
                     contents: unflattenOrderedConditionalTreeReducer([], { ...item, conditions: item.conditions.slice(1) })
-                }
+                })
             ]
         }
     }
 }
 
-const maybeCollapseNode = (node: OrderedConditionalNode): OrderedConditionalNode => {
-    if (isConditionNode(node)) {
-        if (isConditionNode(node) && node.contents.length === 1 && isConditionNode(node.contents[0])) {
+function maybeCollapseNode (node: SchemaConditionTag): SchemaConditionTag
+function maybeCollapseNode (node: SchemaTag): SchemaTag
+function maybeCollapseNode (node: SchemaTag): SchemaTag {
+    if (isSchemaCondition(node)) {
+        if (node.contents.length === 1 && isSchemaCondition(node.contents[0])) {
             const collapsedSubNode = maybeCollapseNode(node.contents[0])
             return {
+                ...node,
                 conditions: [
                     ...node.conditions,
                     ...collapsedSubNode.conditions
                 ],
-                contents: collapsedSubNode.contents
+                contents: collapsedSubNode.contents as any
             }
         }
         else {
             return {
+                ...node,
                 conditions: node.conditions,
-                contents: node.contents.map(maybeCollapseNode)
+                contents: node.contents.map(maybeCollapseNode) as any
             }
         }
     }
@@ -180,30 +145,19 @@ const maybeCollapseNode = (node: OrderedConditionalNode): OrderedConditionalNode
     }
 }
 
-export const unflattenOrderedConditionalTree = (list: FlattenedConditionalNode[]): OrderedConditionalTree => {
+export const unflattenOrderedConditionalTree = (list: SchemaConditionTag[]): SchemaTag[] => {
     return list
-        .reduce<OrderedConditionalTree>(unflattenOrderedConditionalTreeReducer, [])
+        .reduce<SchemaTag[]>(unflattenOrderedConditionalTreeReducer, [])
         .map(maybeCollapseNode)
 }
 
-const indexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<NormalConditionStatement>) => (list: FlattenedConditionalNode[]): FlattenedIndexedConditionalNode[] => {
-    return list.map(({ conditions, contents }) => ({
+const indexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<NormalConditionStatement>) => (list: SchemaConditionTag[]): FlattenedIndexedConditionalNode[] => {
+    return list.map(({ contextTag, conditions, contents }) => ({
+        contextTag,
         conditionIndices: conditions.map((condition) => (indexSubstitution.toIndex(condition))),
         contents
     }))
 }
-
-const deindexFlattenedConditionalNodes = (indexSubstitution: IndexSubstitution<NormalConditionStatement>) => (list: FlattenedIndexedConditionalNode[]): FlattenedConditionalNode[] => {
-    return list.map(({ conditionIndices, contents }) => ({
-        conditions: conditionIndices.map((index) => (indexSubstitution.fromIndex(index))),
-        contents
-    }))
-}
-
-//
-// TODO: Sibling adjacency is not counted intuitively by navigationSequence (it counts a sibling traversal as being two steps,
-// one up and one down).  See if there are other navigationSequence metrics that return more natural results
-//
 
 //
 // navigationSequence turns a list of tree-locations (as defined by a list of numeric values) into a sequence of navigation
@@ -273,17 +227,17 @@ export const navigationSequence = (tree: number[][]): number[][] => {
     return returnSequence
 }
 
-export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree | FlattenedConditionalNode[])[]): OrderedConditionalTree => {
-    const isFlattened = (tree: OrderedConditionalTree | FlattenedConditionalNode[]): tree is FlattenedConditionalNode[] => {
+export const mergeOrderedConditionalTrees = (contextTag: SchemaConditionTag["contextTag"]) => (...trees: SchemaTag[][]): SchemaTag[] => {
+    const isFlattened = (tree: SchemaTag[]): tree is SchemaConditionTag[] => {
         const returnValue = tree.find(
-            (node: OrderedConditionalNode | SchemaTag | FlattenedConditionalNode) => (
-                'tag' in node ||
-                ('contents' in node && node.contents.find((subNode) => (!('tag' in subNode))))
+            (node: SchemaTag) => (
+                !(isSchemaCondition(node)) ||
+                ((node.contents as SchemaTag[]).find((subNode) => (isSchemaCondition(subNode))))
             )
         )
         return !Boolean(returnValue)
     }
-    const flattenedTrees = trees.map((tree) => (isFlattened(tree) ? tree : flattenOrderedConditionalTree(tree)))
+    const flattenedTrees = trees.map((tree) => (isFlattened(tree) ? tree : flattenOrderedConditionalTree(contextTag)(tree)))
     //
     // For each tree in the list, indexedTrees replaces the list of explicit conditions with numeric conditionIndices that can be
     // equality tested, and can be used as a key into the treeConditionSubstitutions object to return the original explicit
@@ -297,7 +251,7 @@ export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree |
     // enough to match against the commonNavigationSequence that will be created later.
     //
     const navigationSequenceSubstitutions = new IndexSubstitution<number[]>(deepEqual)
-    const navigationIndexedTrees = indexedTrees.map((tree) => (tree.map(({ conditionIndices, contents }) => ({ conditionSequence: navigationSequenceSubstitutions.toIndex(conditionIndices), contents }))))
+    const navigationIndexedTrees = indexedTrees.map((tree) => (tree.map(({ contextTag, conditionIndices, contents }) => ({ contextTag, conditionSequence: navigationSequenceSubstitutions.toIndex(conditionIndices), contents }))))
     //
     // Now we return to the indexed conditions (which still have tree-hierarchy information) in order to calculate the navigation sequences
     // that define the structure, and add them to the equality-testable mapping in navigationSequenceSubstitutions.
@@ -309,16 +263,18 @@ export const mergeOrderedConditionalTrees = (...trees: (OrderedConditionalTree |
     // and as navigationIndexes in the supersequence match each tree, add the deindexed data into the
     // final merged output
     //
-    const flattenedOutput: FlattenedConditionalNode[] = []
+    const flattenedOutput: SchemaConditionTag[] = []
     const currentPositions: number[] = Array(trees.length).fill(0)
     commonNavigationSequence.forEach((currentSequence) => {
         for(let whichTree=0; whichTree < trees.length; whichTree++) {
             const currentNavigationTree = navigationIndexedTrees[whichTree]
             while(currentPositions[whichTree] < currentNavigationTree.length && currentNavigationTree[currentPositions[whichTree]].conditionSequence === currentSequence) {
-                flattenedOutput.push({
+                flattenedOutput.push(makeSchemaTag({
+                    tag: 'If',
+                    contextTag: currentNavigationTree[currentPositions[whichTree]].contextTag,
                     conditions: navigationSequenceSubstitutions.fromIndex(currentSequence).map((index) => (treeConditionSubstitutions.fromIndex(index))),
                     contents: currentNavigationTree[currentPositions[whichTree]].contents
-                })
+                }) as SchemaConditionTag)
                 currentPositions[whichTree]++
             }
         }
