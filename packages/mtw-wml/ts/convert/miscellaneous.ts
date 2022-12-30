@@ -1,6 +1,7 @@
 import { isParseExit, isParseImage, ParseException, ParseExitTag, ParseImageTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { SchemaExitTag, SchemaImageTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn, MixinInheritedSchemaContents } from "./functionMixins";
+import { isSchemaExit, isSchemaImage, SchemaExitTag, SchemaImageTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn, MixinInheritedSchemaContents, SchemaToWMLOptions } from "./functionMixins";
+import { tagRender } from "./utils";
 
 export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseAssetsMixin extends Base {
@@ -87,6 +88,38 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             }
         }
 
+        override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            if (isSchemaImage(value)) {
+                return tagRender({
+                    ...options,
+                    tag: 'Image',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                    ],
+                    contents: [],
+                })
+            }
+            else if (isSchemaExit(value)) {
+                return tagRender({
+                    ...options,
+                    tag: 'Exit',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                        { key: 'from', type: 'key', value: value.from },
+                        { key: 'to', type: 'key', value: value.to },
+                    ],
+                    contents: value.name ? [value.name] : [],
+                })
+
+            }
+            else {
+                const returnValue = (super.schemaToWML as any)(value, options)
+                if (!(typeof returnValue === 'string')) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue
+            }
+        }
     }
 }
 
