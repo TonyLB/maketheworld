@@ -148,14 +148,3 @@ export const tagRender = ({ indent, forceNest, tag, properties, contents }: { in
         return forceNest ? nested : naive
     }
 }
-
-export const makeSchemaTag = <T extends Omit<SchemaTag, 'parse'>>(tag: T): SchemaTag => {
-    return {
-        ...tag,
-        parse: {
-            tag: 'Space',
-            startTagToken: 0,
-            endTagToken: 0
-        }
-    } as SchemaTag
-}
