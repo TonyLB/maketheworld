@@ -1,5 +1,5 @@
 import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseMessage, isParseMoment, isParseName, isParseRoom, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
-import { isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaName, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
+import { isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
 import { translateTaggedMessageContents } from "../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
 import { schemaDescriptionToWML } from "./description";
@@ -444,7 +444,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             else if (isSchemaMessage(value)) {
                 return tagRender({
                     ...options,
-                    tag: 'Description',
+                    tag: 'Message',
                     properties: [
                         { key: 'key', type: 'key', value: value.key }
                     ],
@@ -452,6 +452,16 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         schemaDescriptionToWML(this)(value.render, { ...options, indent: options.indent + 1, padding: 0 }),
                         ...(value.rooms.map(({ key }) => (this.schemaToWML(makeSchemaTag({ tag: 'Room', key, contents: [] }), { indent: options.indent + 1 }))))
                     ],
+                })
+            }
+            else if (isSchemaMoment(value)) {
+                return tagRender({
+                    ...options,
+                    tag: 'Moment',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                    ],
+                    contents: value.contents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
                 })
             }
             else {
