@@ -1,10 +1,14 @@
-import { current } from "immer"
+import { makeSchemaTag } from "."
 import { deepEqual } from "../../lib/objects"
 import { NormalConditionStatement } from "../../normalize/baseClasses"
-import { SchemaTag } from "../../schema/baseClasses"
+import { isSchemaCondition, SchemaConditionTag, SchemaTag } from "../../schema/baseClasses"
 import IndexSubstitution from "./indexSubstitution"
 import shortestCommonSupersequence from "./shortestCommonSupersequence"
 
+//
+// TODO: Evaluate whether OrderedConditionalNode is meaningfully different from
+// SchemaTag (given that SchemaCondition is one of the possible options for a SchemaTag)
+//
 export type OrderedConditionalNode = {
     conditions: NormalConditionStatement[];
     contents: OrderedConditionalTree;
@@ -22,7 +26,37 @@ export type FlattenedIndexedConditionalNode = {
     contents: SchemaTag[];
 }
 
+const schemaToOrderedConditionalTree = (nodes: SchemaTag[]): OrderedConditionalTree => {
+    return nodes.map((node) => {
+        if (isSchemaCondition(node)) {
+            return {
+                conditions: node.conditions,
+                contents: schemaToOrderedConditionalTree(node.contents)
+            }
+        }
+        else {
+            return node
+        }
+    })
+}
+
 const isConditionNode = (value: SchemaTag | OrderedConditionalNode): value is OrderedConditionalNode => (!('tag' in value))
+
+const orderedConditionalTreeToSchema = (tree: OrderedConditionalTree, contextTag: SchemaConditionTag["contextTag"]): SchemaTag[] => {
+    return tree.map((node) => {
+        if (isConditionNode(node)) {
+            return makeSchemaTag({
+                tag: 'If',
+                conditions: node.conditions,
+                contents: node.contents,
+                contextTag
+            })
+        }
+        else {
+            return node
+        }
+    })
+}
 
 const lastNode = (list: FlattenedConditionalNode[]): FlattenedConditionalNode | undefined => {
     if (list.length === 0) {
