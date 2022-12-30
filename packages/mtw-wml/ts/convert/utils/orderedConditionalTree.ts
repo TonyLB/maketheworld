@@ -26,7 +26,7 @@ export type FlattenedIndexedConditionalNode = {
     contents: SchemaTag[];
 }
 
-const schemaToOrderedConditionalTree = (nodes: SchemaTag[]): OrderedConditionalTree => {
+export const schemaToOrderedConditionalTree = (nodes: SchemaTag[]): OrderedConditionalTree => {
     return nodes.map((node) => {
         if (isSchemaCondition(node)) {
             return {
@@ -42,7 +42,7 @@ const schemaToOrderedConditionalTree = (nodes: SchemaTag[]): OrderedConditionalT
 
 const isConditionNode = (value: SchemaTag | OrderedConditionalNode): value is OrderedConditionalNode => (!('tag' in value))
 
-const orderedConditionalTreeToSchema = (tree: OrderedConditionalTree, contextTag: SchemaConditionTag["contextTag"]): SchemaTag[] => {
+export const orderedConditionalTreeToSchema = (tree: OrderedConditionalTree, contextTag: SchemaConditionTag["contextTag"]): SchemaTag[] => {
     return tree.map((node) => {
         if (isConditionNode(node)) {
             return makeSchemaTag({

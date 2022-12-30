@@ -5,6 +5,7 @@ import { extractConditionedItemFromContents, extractDescriptionFromContents, ext
 import { schemaDescriptionToWML } from "./description";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
 import { makeSchemaTag, tagRender } from "./utils";
+import { mergeOrderedConditionalTrees, orderedConditionalTreeToSchema } from "./utils/orderedConditionalTree";
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseComponentsMixin extends Base {
@@ -413,15 +414,23 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 })
             }
             else if (isSchemaMap(value)) {
-                //
-                // TODO: Add SchemaTag -> OrderedConditionalTags and back converters to utilis/orderedConditionalTree and
-                // use it here to create a merged listing out of the contents already specified, and a conversion of the
-                // rooms property
-                //
-                const mapContents: SchemaTag[] = [
-                    ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
-                    ...((value.images || []).map((key) => (makeSchemaTag({ tag: 'Image' as 'Image', key,  contents: []})))),
-                ]
+                const mapContents: SchemaTag[] = orderedConditionalTreeToSchema(
+                    mergeOrderedConditionalTrees(
+                        [
+                            ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
+                            ...((value.images || []).map((key) => (makeSchemaTag({ tag: 'Image' as 'Image', key,  contents: []})))),
+                        ],
+                        value.rooms.map((room) => ({
+                            conditions: room.conditions,
+                            contents: [makeSchemaTag({
+                                tag: 'Room',
+                                key: room.key,
+                                x: room.x,
+                                y: room.y,
+                                contents: []
+                            })]
+                        }))
+                    ), 'Map')
                 return tagRender({
                     ...options,
                     tag: 'Map',
