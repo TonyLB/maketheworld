@@ -3,8 +3,12 @@ import { ParseTag } from "../parser/baseClasses"
 export type SchemaAssetLegalContents = SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
 
+//
+// TODO: Optional parse property is only needed for comparison in WMLQuery.  When schemaToWML functionality
+// makes WMLQuery obsolete, remove the parse property entirely.
+//
 type SchemaBase = {
-    parse: ParseTag
+    parse?: ParseTag
 }
 
 export type SchemaConditionMixin = {
