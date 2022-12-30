@@ -1,4 +1,4 @@
-import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag, isSchemaBookmark, SchemaBookmarkTag } from "./baseClasses";
+import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag, isSchemaBookmark, SchemaBookmarkTag, SchemaConditionTagDescriptionContext } from "./baseClasses";
 
 //
 // Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values
@@ -63,7 +63,7 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
             currentToken = {
                 ...item,
                 contents: translateTaggedMessageContents(item.contents)
-            }
+            } as SchemaConditionTagDescriptionContext
         }
         if (isSchemaLink(item) || isSchemaBookmark(item)) {
             if (currentToken) {
@@ -85,7 +85,7 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
             returnValue.push({
                 ...currentToken,
                 contents: translateTaggedMessageContents(currentToken.contents)
-            })
+            }  as SchemaConditionTagDescriptionContext)
         }
         else {
             returnValue.push(currentToken)

@@ -466,11 +466,11 @@ export const extractNameFromContents = <T extends SchemaFeatureLegalContents | S
             if (isSchemaConditionTagRoomContext(item)) {
                 const contents = extractNameFromContents(item.contents)
                 if (contents.length) {
-                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                    const conditionGroup = {
                         ...item,
                         contextTag: 'Name',
                         contents
-                    }
+                    } as SchemaTaggedMessageLegalContents
                     return [
                         ...previous,
                         conditionGroup
@@ -480,11 +480,11 @@ export const extractNameFromContents = <T extends SchemaFeatureLegalContents | S
             if (isSchemaConditionTagFeatureContext(item)) {
                 const contents = extractNameFromContents(item.contents)
                 if (contents.length) {
-                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                    const conditionGroup = {
                         ...item,
                         contextTag: 'Name',
                         contents
-                    }
+                    } as SchemaTaggedMessageLegalContents
                     return [
                         ...previous,
                         conditionGroup
@@ -494,11 +494,11 @@ export const extractNameFromContents = <T extends SchemaFeatureLegalContents | S
             if (isSchemaConditionTagMapContext(item)) {
                 const contents = extractNameFromContents(item.contents)
                 if (contents.length) {
-                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                    const conditionGroup = {
                         ...item,
                         contextTag: 'Name',
                         contents
-                    }
+                    } as SchemaTaggedMessageLegalContents
                     return [
                         ...previous,
                         conditionGroup
@@ -522,11 +522,11 @@ export const extractDescriptionFromContents = <T extends SchemaFeatureLegalConte
             if (isSchemaConditionTagRoomContext(item)) {
                 const contents = extractDescriptionFromContents(item.contents)
                 if (contents.length) {
-                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                    const conditionGroup = {
                         ...item,
                         contextTag: 'Description',
                         contents
-                    }
+                    } as SchemaTaggedMessageLegalContents
                     return [
                         ...previous,
                         conditionGroup
@@ -536,11 +536,11 @@ export const extractDescriptionFromContents = <T extends SchemaFeatureLegalConte
             if (isSchemaConditionTagFeatureContext(item)) {
                 const contents = extractDescriptionFromContents(item.contents)
                 if (contents.length) {
-                    const conditionGroup: SchemaTaggedMessageLegalContents = {
+                    const conditionGroup = {
                         ...item,
                         contextTag: 'Description',
                         contents
-                    }
+                    } as SchemaTaggedMessageLegalContents
                     return [
                         ...previous,
                         conditionGroup

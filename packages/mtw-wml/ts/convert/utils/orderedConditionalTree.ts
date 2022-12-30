@@ -1,4 +1,3 @@
-import { makeSchemaTag } from "."
 import { deepEqual } from "../../lib/objects"
 import { NormalConditionStatement } from "../../normalize/baseClasses"
 import { isSchemaCondition, SchemaConditionTag, SchemaTag } from "../../schema/baseClasses"
@@ -38,7 +37,7 @@ export const flattenOrderedConditionalTreeReducer = (contextTag: SchemaCondition
             if (previousItem && deepEqual(previousItem.conditions, context)) {
                 return [
                     ...(accumulator.slice(0, -1)),
-                    makeSchemaTag({
+                    {
                         tag: 'If',
                         contextTag,
                         conditions: context,
@@ -46,18 +45,18 @@ export const flattenOrderedConditionalTreeReducer = (contextTag: SchemaCondition
                             ...previousItem.contents,
                             node
                         ]
-                    }) as SchemaConditionTag
+                    } as SchemaConditionTag
                 ]
             }
             else {
                 return [
                     ...accumulator,
-                    makeSchemaTag({
+                    {
                         tag: 'If',
                         contextTag,
                         conditions: context,
                         contents: [node]
-                    }) as SchemaConditionTag
+                    } as SchemaConditionTag
                 ]
             }
         }
@@ -92,12 +91,12 @@ const unflattenOrderedConditionalTreeReducer = (previous: SchemaTag[], item: Sch
             //
             return [
                 ...previous.slice(0, -1),
-                makeSchemaTag({
+                {
                     tag: 'If',
                     contextTag: previousNode.contextTag,
                     conditions: previousNode.conditions,
                     contents: unflattenOrderedConditionalTreeReducer(previousNode.contents, { ...item, conditions: item.conditions.slice(1) })
-                })
+                } as SchemaConditionTag
             ]
         }
         else {
@@ -106,12 +105,12 @@ const unflattenOrderedConditionalTreeReducer = (previous: SchemaTag[], item: Sch
             //
             return [
                 ...previous,
-                makeSchemaTag({
+                {
                     tag: 'If',
                     contextTag: item.contextTag,
                     conditions: [item.conditions[0]],
                     contents: unflattenOrderedConditionalTreeReducer([], { ...item, conditions: item.conditions.slice(1) })
-                })
+                } as SchemaConditionTag
             ]
         }
     }
@@ -269,12 +268,12 @@ export const mergeOrderedConditionalTrees = (contextTag: SchemaConditionTag["con
         for(let whichTree=0; whichTree < trees.length; whichTree++) {
             const currentNavigationTree = navigationIndexedTrees[whichTree]
             while(currentPositions[whichTree] < currentNavigationTree.length && currentNavigationTree[currentPositions[whichTree]].conditionSequence === currentSequence) {
-                flattenedOutput.push(makeSchemaTag({
+                flattenedOutput.push({
                     tag: 'If',
                     contextTag: currentNavigationTree[currentPositions[whichTree]].contextTag,
                     conditions: navigationSequenceSubstitutions.fromIndex(currentSequence).map((index) => (treeConditionSubstitutions.fromIndex(index))),
                     contents: currentNavigationTree[currentPositions[whichTree]].contents
-                }) as SchemaConditionTag)
+                } as SchemaConditionTag)
                 currentPositions[whichTree]++
             }
         }

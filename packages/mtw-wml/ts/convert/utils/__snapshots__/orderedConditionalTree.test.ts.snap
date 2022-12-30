@@ -26,21 +26,11 @@ Array [
     ],
     "contents": Array [
       Object {
-        "key": "NestedWithThreeConditions",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
+        "value": "NestedWithThreeConditions",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
@@ -54,42 +44,22 @@ Array [
     ],
     "contents": Array [
       Object {
-        "key": "NestedWithOneCondition",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
+        "value": "NestedWithOneCondition",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
     "conditions": Array [],
     "contents": Array [
       Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
         "value": "NotNested",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
@@ -103,21 +73,11 @@ Array [
     ],
     "contents": Array [
       Object {
-        "key": "SecondNestedWithOneCondition",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
+        "value": "SecondNestedWithOneCondition",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
 ]
@@ -142,39 +102,19 @@ Array [
     ],
     "contents": Array [
       Object {
-        "key": "TestOne",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
+        "value": "TestOne",
       },
       Object {
-        "key": "TestTwo",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
+        "value": "TestTwo",
       },
       Object {
-        "key": "TestThree",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
+        "value": "TestThree",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
 ]
@@ -183,20 +123,10 @@ Array [
 exports[`orderedConditionalTree mergeOrderedConditionalTrees should merge differently ordered trees 1`] = `
 Array [
   Object {
-    "key": "TestZero",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "String",
+    "value": "TestZero",
   },
   Object {
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "String",
     "value": "TestFour",
   },
@@ -211,21 +141,11 @@ Array [
     ],
     "contents": Array [
       Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
         "value": "TestOne",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
@@ -249,21 +169,11 @@ Array [
         ],
         "contents": Array [
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestFive",
           },
         ],
         "contextTag": "Description",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "If",
       },
       Object {
@@ -277,48 +187,23 @@ Array [
         ],
         "contents": Array [
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestTwo",
           },
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestThree",
           },
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestSix",
           },
         ],
         "contextTag": "Description",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "If",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
@@ -332,21 +217,11 @@ Array [
     ],
     "contents": Array [
       Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
         "value": "TestSeven",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
 ]
@@ -355,22 +230,12 @@ Array [
 exports[`orderedConditionalTree mergeOrderedConditionalTrees should merge differently ordered trees 2`] = `
 Array [
   Object {
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "String",
     "value": "TestFour",
   },
   Object {
-    "key": "TestZero",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "String",
+    "value": "TestZero",
   },
   Object {
     "conditions": Array [
@@ -383,21 +248,11 @@ Array [
     ],
     "contents": Array [
       Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
         "value": "TestOne",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
@@ -421,21 +276,11 @@ Array [
         ],
         "contents": Array [
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestFive",
           },
         ],
         "contextTag": "Description",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "If",
       },
       Object {
@@ -449,48 +294,23 @@ Array [
         ],
         "contents": Array [
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestSix",
           },
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestTwo",
           },
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestThree",
           },
         ],
         "contextTag": "Description",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "If",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
@@ -504,21 +324,11 @@ Array [
     ],
     "contents": Array [
       Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
         "value": "TestSeven",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
 ]
@@ -553,38 +363,18 @@ Array [
         ],
         "contents": Array [
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestA",
           },
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestB",
           },
         ],
         "contextTag": "Description",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "If",
       },
       Object {
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "String",
         "value": "TestC",
       },
@@ -599,38 +389,18 @@ Array [
         ],
         "contents": Array [
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestD",
           },
         ],
         "contextTag": "Description",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "If",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "String",
     "value": "TestE",
   },
@@ -660,29 +430,14 @@ Array [
         ],
         "contents": Array [
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestA",
           },
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestB",
           },
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestC",
           },
@@ -697,30 +452,15 @@ Array [
             ],
             "contents": Array [
               Object {
-                "parse": Object {
-                  "endTagToken": 0,
-                  "startTagToken": 0,
-                  "tag": "Space",
-                },
                 "tag": "String",
                 "value": "TestD",
               },
             ],
             "contextTag": "Description",
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "If",
           },
         ],
         "contextTag": "Description",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "If",
       },
       Object {
@@ -734,38 +474,18 @@ Array [
         ],
         "contents": Array [
           Object {
-            "parse": Object {
-              "endTagToken": 0,
-              "startTagToken": 0,
-              "tag": "Space",
-            },
             "tag": "String",
             "value": "TestE",
           },
         ],
         "contextTag": "Description",
-        "parse": Object {
-          "endTagToken": 0,
-          "startTagToken": 0,
-          "tag": "Space",
-        },
         "tag": "If",
       },
     ],
     "contextTag": "Description",
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "If",
   },
   Object {
-    "parse": Object {
-      "endTagToken": 0,
-      "startTagToken": 0,
-      "tag": "Space",
-    },
     "tag": "String",
     "value": "TestF",
   },

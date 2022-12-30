@@ -1,5 +1,4 @@
 import { flattenOrderedConditionalTree, mergeOrderedConditionalTrees, navigationSequence, unflattenOrderedConditionalTree } from './orderedConditionalTree'
-import { makeSchemaTag } from './index'
 import { SchemaConditionTag, SchemaTag } from '../../schema/baseClasses'
 
 describe('orderedConditionalTree', () => {
@@ -10,7 +9,7 @@ describe('orderedConditionalTree', () => {
 
         it('should flatten a nested tree', () => {
             const testTree: SchemaTag[] = [
-                makeSchemaTag({
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
@@ -18,7 +17,7 @@ describe('orderedConditionalTree', () => {
                         dependencies: ['test'],
                     }],
                     contents: [
-                        makeSchemaTag({
+                        {
                             tag: 'If',
                             contextTag: 'Description',        
                             conditions: [{
@@ -30,31 +29,31 @@ describe('orderedConditionalTree', () => {
                                 if: 'test2',
                                 dependencies: ['test2']
                             }],
-                            contents: [makeSchemaTag({
+                            contents: [{
                                 tag: 'String',
-                                key: 'NestedWithThreeConditions'
-                            })]
-                        }),
-                        makeSchemaTag({ tag: 'String' as 'String', key: 'NestedWithOneCondition' })
+                                value: 'NestedWithThreeConditions'
+                            }]
+                        },
+                        { tag: 'String' as 'String', value: 'NestedWithOneCondition' }
                     ]
-                }),
-                makeSchemaTag({ tag: 'String', value: 'NotNested'}),
-                makeSchemaTag({
+                },
+                { tag: 'String', value: 'NotNested'},
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
                         if: 'test4',
                         dependencies: ['test4']
                     }],
-                    contents: [makeSchemaTag({ tag: 'String', key: 'SecondNestedWithOneCondition'})]
-                })
+                    contents: [{ tag: 'String', value: 'SecondNestedWithOneCondition'}]
+                }
             ]
             expect(flattenOrderedConditionalTree('Description')(testTree)).toMatchSnapshot()
         })
 
         it('should merge adjacent items with similar conditions', () => {
             const testTree: SchemaTag[] = [
-                makeSchemaTag({
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
@@ -62,21 +61,21 @@ describe('orderedConditionalTree', () => {
                         dependencies: ['test'],
                     }],
                     contents: [
-                        makeSchemaTag({
+                        {
                             tag: 'If',
                             contextTag: 'Description',        
                             conditions: [{
                                 if: 'test2',
                                 dependencies: ['test2']
                             }],
-                            contents: [makeSchemaTag({
+                            contents: [{
                                 tag: 'String',
-                                key: 'TestOne'
-                            })]
-                        })
+                                value: 'TestOne'
+                            }]
+                        }
                     ]
-                }),
-                makeSchemaTag({
+                },
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
@@ -88,10 +87,10 @@ describe('orderedConditionalTree', () => {
                         dependencies: ['test2']
                     }],
                     contents: [
-                        makeSchemaTag({ tag: 'String', key: 'TestTwo'}),
-                        makeSchemaTag({ tag: 'String', key: 'TestThree'})
+                        { tag: 'String', value: 'TestTwo'},
+                        { tag: 'String', value: 'TestThree'}
                     ]
-                })
+                }
             ]
             expect(flattenOrderedConditionalTree('Description')(testTree)).toMatchSnapshot()
         })
@@ -117,11 +116,11 @@ describe('orderedConditionalTree', () => {
                 dependencies: ['test3']
             }
             const testList: SchemaConditionTag[] = [
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [condition1, condition2], contents: [makeSchemaTag({ tag: 'String', value: 'TestA' }), makeSchemaTag({ tag: 'String', value: 'TestB' })] }),
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [condition1, condition2], contents: [makeSchemaTag({ tag: 'String', value: 'TestC' })] }),
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [condition1, condition2, condition3], contents: [makeSchemaTag({ tag: 'String', value: 'TestD' })] }),
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [condition1, condition3], contents: [makeSchemaTag({ tag: 'String', value: 'TestE'})] }),
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [], contents: [makeSchemaTag({ tag: 'String', value: 'TestF' })] })
+                { tag: 'If', contextTag: 'Description', conditions: [condition1, condition2], contents: [{ tag: 'String', value: 'TestA' }, { tag: 'String', value: 'TestB' }] },
+                { tag: 'If', contextTag: 'Description', conditions: [condition1, condition2], contents: [{ tag: 'String', value: 'TestC' }] },
+                { tag: 'If', contextTag: 'Description', conditions: [condition1, condition2, condition3], contents: [{ tag: 'String', value: 'TestD' }] },
+                { tag: 'If', contextTag: 'Description', conditions: [condition1, condition3], contents: [{ tag: 'String', value: 'TestE'}] },
+                { tag: 'If', contextTag: 'Description', conditions: [], contents: [{ tag: 'String', value: 'TestF' }] }
             ] as SchemaConditionTag[]
             expect(unflattenOrderedConditionalTree(testList)).toMatchSnapshot()
         })
@@ -140,10 +139,10 @@ describe('orderedConditionalTree', () => {
                 dependencies: ['test3']
             }
             const testList = [
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [condition1, condition2, condition3], contents: [makeSchemaTag({ tag: 'String', value: 'TestA' }), makeSchemaTag({ tag: 'String', value: 'TestB' })] }),
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [condition1, condition2], contents: [makeSchemaTag({ tag: 'String', value: 'TestC' })] }),
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [condition1, condition2, condition3], contents: [makeSchemaTag({ tag: 'String', value: 'TestD' })] }),
-                makeSchemaTag({ tag: 'If', contextTag: 'Description', conditions: [], contents: [makeSchemaTag({ tag: 'String', value: 'TestE' })] })
+                { tag: 'If', contextTag: 'Description', conditions: [condition1, condition2, condition3], contents: [{ tag: 'String', value: 'TestA' }, { tag: 'String', value: 'TestB' }] },
+                { tag: 'If', contextTag: 'Description', conditions: [condition1, condition2], contents: [{ tag: 'String', value: 'TestC' }] },
+                { tag: 'If', contextTag: 'Description', conditions: [condition1, condition2, condition3], contents: [{ tag: 'String', value: 'TestD' }] },
+                { tag: 'If', contextTag: 'Description', conditions: [], contents: [{ tag: 'String', value: 'TestE' }] }
             ] as SchemaConditionTag[]
             expect(unflattenOrderedConditionalTree(testList)).toMatchSnapshot()
         })
@@ -159,20 +158,20 @@ describe('orderedConditionalTree', () => {
     describe('mergeOrderedConditionalTrees', () => {
         it('should return unchanged on merger with empty tree', () => {
             const testTree: SchemaTag[] = [
-                makeSchemaTag({ tag: 'String', key: 'TestZero'}),
-                makeSchemaTag({
+                { tag: 'String', value: 'TestZero'},
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
                         if: 'test',
                         dependencies: ['test'],
                     }],
-                    contents: [makeSchemaTag({
+                    contents: [{
                         tag: 'String',
-                        key: 'TestOne'
-                    })]
-                }),
-                makeSchemaTag({
+                        value: 'TestOne'
+                    }]
+                },
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
@@ -184,10 +183,10 @@ describe('orderedConditionalTree', () => {
                         dependencies: ['test']
                     }],
                     contents: [
-                        makeSchemaTag({ tag: 'String', key: 'TestTwo'}),
-                        makeSchemaTag({ tag: 'String', key: 'TestThree'})
+                        { tag: 'String', value: 'TestTwo'},
+                        { tag: 'String', value: 'TestThree'}
                     ]
-                })
+                }
             ]
             expect(mergeOrderedConditionalTrees('Description')(testTree, [])).toEqual(testTree)
             expect(mergeOrderedConditionalTrees('Description')([], testTree)).toEqual(testTree)
@@ -195,20 +194,20 @@ describe('orderedConditionalTree', () => {
 
         it('should merge differently ordered trees', () => {
             const testTreeOne: SchemaTag[] = [
-                makeSchemaTag({ tag: 'String', key: 'TestZero'}),
-                makeSchemaTag({
+                { tag: 'String', value: 'TestZero'},
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
                         if: 'test',
                         dependencies: ['test'],
                     }],
-                    contents: [makeSchemaTag({
+                    contents: [{
                         tag: 'String',
                         value: 'TestOne'
-                    })]
-                }),
-                makeSchemaTag({
+                    }]
+                },
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
@@ -220,21 +219,21 @@ describe('orderedConditionalTree', () => {
                         dependencies: ['test']
                     }],
                     contents: [
-                        makeSchemaTag({ tag: 'String', value: 'TestTwo'}),
-                        makeSchemaTag({ tag: 'String', value: 'TestThree'})
+                        { tag: 'String', value: 'TestTwo'},
+                        { tag: 'String', value: 'TestThree'}
                     ]
-                })
+                }
             ]
             const testTreeTwo: SchemaTag[] = [
-                makeSchemaTag({ tag: 'String', value: 'TestFour'}),
-                makeSchemaTag({
+                { tag: 'String', value: 'TestFour'},
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
                         if: 'test2',
                         dependencies: ['test2']
                     }],
-                    contents: [makeSchemaTag({
+                    contents: [{
                         tag: 'If',
                         contextTag: 'Description',
     
@@ -242,31 +241,31 @@ describe('orderedConditionalTree', () => {
                             if: 'test3',
                             dependencies: ['test3']
                         }],
-                        contents: [makeSchemaTag({ tag: 'String', value: 'TestFive'})]
-                    }),
-                    makeSchemaTag({
+                        contents: [{ tag: 'String', value: 'TestFive'}]
+                    },
+                    {
                         tag: 'If',
                         contextTag: 'Description',
                             conditions: [{
                             if: 'test',
                             dependencies: ['test']
                         }],
-                        contents: [makeSchemaTag({ tag: 'String', value: 'TestSix'})]
+                        contents: [{ tag: 'String', value: 'TestSix'}]
 
-                    })]
-                }),
-                makeSchemaTag({
+                    }]
+                },
+                {
                     tag: 'If',
                     contextTag: 'Description',
                     conditions: [{
                         if: 'test',
                         dependencies: ['test'],
                     }],
-                    contents: [makeSchemaTag({
+                    contents: [{
                         tag: 'String',
                         value: 'TestSeven'
-                    })]
-                })
+                    }]
+                }
             ]
             expect(mergeOrderedConditionalTrees('Description')(testTreeOne, testTreeTwo)).toMatchSnapshot()
             expect(mergeOrderedConditionalTrees('Description')(testTreeTwo, testTreeOne)).toMatchSnapshot()

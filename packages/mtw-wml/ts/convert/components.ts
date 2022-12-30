@@ -4,7 +4,7 @@ import { translateTaggedMessageContents } from "../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
 import { schemaDescriptionToWML } from "./description";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
-import { makeSchemaTag, tagRender } from "./utils";
+import { tagRender } from "./utils";
 import { mergeOrderedConditionalTrees } from "./utils/orderedConditionalTree";
 
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
@@ -371,8 +371,8 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             }
             else if (isSchemaRoom(value)) {
                 const roomContents: SchemaTag[] = [
-                    ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
-                    ...(value.render ? [makeSchemaTag({ tag: 'Description' as 'Description', contents: value.render })] : []),
+                    ...(value.name ? [{ tag: 'Name' as 'Name', contents: value.name}] : []),
+                    ...(value.render ? [{ tag: 'Description' as 'Description', contents: value.render }] : []),
                     ...value.contents
                 ]
                 return tagRender({
@@ -389,8 +389,8 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             }
             else if (isSchemaFeature(value)) {
                 const featureContents: SchemaTag[] = [
-                    ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
-                    ...(value.render ? [makeSchemaTag({ tag: 'Description' as 'Description', contents: value.render })] : []),
+                    ...(value.name ? [{ tag: 'Name' as 'Name', contents: value.name}] : []),
+                    ...(value.render ? [{ tag: 'Description' as 'Description', contents: value.render }] : []),
                     ...value.contents
                 ]
                 return tagRender({
@@ -416,21 +416,21 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             else if (isSchemaMap(value)) {
                 const mapContents: SchemaTag[] = mergeOrderedConditionalTrees('Map')(
                         [
-                            ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
-                            ...((value.images || []).map((key) => (makeSchemaTag({ tag: 'Image' as 'Image', key,  contents: []})))),
+                            ...(value.name ? [{ tag: 'Name' as 'Name', contents: value.name}] : []),
+                            ...((value.images || []).map((key) => ({ tag: 'Image' as 'Image', key,  contents: []}))),
                         ],
-                        value.rooms.map((room) => (makeSchemaTag({
+                        value.rooms.map((room) => ({
                             tag: 'If',
-                            contextTag: 'Description',
+                            contextTag: 'Map',
                             conditions: room.conditions,
-                            contents: [makeSchemaTag({
+                            contents: [{
                                 tag: 'Room',
                                 key: room.key,
                                 x: room.x,
                                 y: room.y,
                                 contents: []
-                            })]
-                        }))) as SchemaConditionTag[]
+                            }]
+                        })) as SchemaConditionTag[]
                     )
                 return tagRender({
                     ...options,
@@ -450,7 +450,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     ],
                     contents: [
                         schemaDescriptionToWML(this)(value.render, { ...options, indent: options.indent + 1, padding: 0 }),
-                        ...(value.rooms.map(({ key }) => (this.schemaToWML(makeSchemaTag({ tag: 'Room', key, contents: [] }), { indent: options.indent + 1 }))))
+                        ...(value.rooms.map(({ key }) => (this.schemaToWML({ tag: 'Room', key, name: [], render: [], global: false, contents: [] }, { indent: options.indent + 1 }))))
                     ],
                 })
             }

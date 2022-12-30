@@ -30,7 +30,8 @@ import {
     isSchemaTaggedMessageLegalContents,
     isSchemaRoom,
     SchemaMessageRoom,
-    isSchemaImage
+    isSchemaImage,
+    SchemaTaggedMessageIncomingContents
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -75,7 +76,7 @@ type NormalizeAddReturnValue = {
 
 type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character" | "Message" | "Moment">
 
-const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
+const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
     if (renderItem.tag === 'If' && isSchemaConditionTagDescriptionContext(renderItem)) {
         return {
             tag: 'Condition',
@@ -118,6 +119,12 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
         return {
             tag: 'String' as 'String',
             value: renderItem.value
+        }
+    }
+    else if (renderItem.tag === 'Whitespace') {
+        return {
+            tag: 'String' as 'String',
+            value: ' '
         }
     }
 }
