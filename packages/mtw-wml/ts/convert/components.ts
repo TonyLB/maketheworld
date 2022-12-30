@@ -1,5 +1,5 @@
 import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseMessage, isParseMoment, isParseName, isParseRoom, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses";
-import { isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMapContents, isSchemaMessage, isSchemaName, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
+import { isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaName, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses";
 import { translateTaggedMessageContents } from "../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
 import { schemaDescriptionToWML } from "./description";
@@ -360,7 +360,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     contents: [schemaDescriptionToWML(this)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
                 })
             }
-            if (isSchemaName(value)) {
+            else if (isSchemaName(value)) {
                 return tagRender({
                     ...options,
                     tag: 'Name',
@@ -368,7 +368,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     contents: [schemaDescriptionToWML(this)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
                 })
             }
-            if (isSchemaRoom(value)) {
+            else if (isSchemaRoom(value)) {
                 const roomContents: SchemaTag[] = [
                     ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
                     ...(value.render ? [makeSchemaTag({ tag: 'Description' as 'Description', contents: value.render })] : []),
@@ -386,7 +386,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     contents: roomContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
                 })
             }
-            if (isSchemaFeature(value)) {
+            else if (isSchemaFeature(value)) {
                 const featureContents: SchemaTag[] = [
                     ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
                     ...(value.render ? [makeSchemaTag({ tag: 'Description' as 'Description', contents: value.render })] : []),
@@ -402,7 +402,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     contents: featureContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
                 })
             }
-            if (isSchemaBookmark(value)) {
+            else if (isSchemaBookmark(value)) {
                 return tagRender({
                     ...options,
                     tag: 'Bookmark',
@@ -410,6 +410,25 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         { key: 'key', type: 'key', value: value.key },
                     ],
                     contents: value.contents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
+                })
+            }
+            else if (isSchemaMap(value)) {
+                //
+                // TODO: Add SchemaTag -> OrderedConditionalTags and back converters to utilis/orderedConditionalTree and
+                // use it here to create a merged listing out of the contents already specified, and a conversion of the
+                // rooms property
+                //
+                const mapContents: SchemaTag[] = [
+                    ...(value.name ? [makeSchemaTag({ tag: 'Name' as 'Name', contents: value.name})] : []),
+                    ...((value.images || []).map((key) => (makeSchemaTag({ tag: 'Image' as 'Image', key,  contents: []})))),
+                ]
+                return tagRender({
+                    ...options,
+                    tag: 'Map',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                    ],
+                    contents: mapContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
                 })
             }
             else {
