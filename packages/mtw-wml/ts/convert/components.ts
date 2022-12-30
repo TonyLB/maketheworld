@@ -441,6 +441,19 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     contents: mapContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
                 })
             }
+            else if (isSchemaMessage(value)) {
+                return tagRender({
+                    ...options,
+                    tag: 'Description',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key }
+                    ],
+                    contents: [
+                        schemaDescriptionToWML(this)(value.render, { ...options, indent: options.indent + 1, padding: 0 }),
+                        ...(value.rooms.map(({ key }) => (this.schemaToWML(makeSchemaTag({ tag: 'Room', key, contents: [] }), { indent: options.indent + 1 }))))
+                    ],
+                })
+            }
             else {
                 const returnValue = (super.schemaToWML as any)(value, options)
                 if (!(typeof returnValue === 'string')) {
