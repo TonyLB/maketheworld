@@ -33,7 +33,7 @@ export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, con
             return {
                 returnValue: [
                     ...previous.returnValue,
-                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent, forceNest, padding: 0 })] : []),
+                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0 })] : []),
                     tag
                 ],
                 taggedMessageStack: []
@@ -44,7 +44,7 @@ export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, con
                 return {
                     returnValue: [
                         ...previous.returnValue,
-                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent, forceNest, padding: 0 })
+                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, forceNest, padding: 0 })
                     ],
                     taggedMessageStack: []
                 }
@@ -60,8 +60,8 @@ export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, con
             return {
                 returnValue: [
                     ...previous.returnValue,
-                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent, forceNest, padding: 0 })] : []),
-                    schemaToWML(tag, { indent, forceNest })
+                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0 })] : []),
+                    schemaToWML(tag, { indent: indent + 1, forceNest })
                 ],
                 taggedMessageStack: []
             }

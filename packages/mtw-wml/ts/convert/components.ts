@@ -360,7 +360,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     schemaToWML,
                     tag: 'Description',
                     properties: [],
-                    contents: [schemaDescriptionToWML(schemaToWML)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
+                    contents: value.contents,
                 })
             }
             else if (isSchemaName(value)) {
@@ -369,7 +369,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     schemaToWML,
                     tag: 'Name',
                     properties: [],
-                    contents: [schemaDescriptionToWML(schemaToWML)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
+                    contents: value.contents,
                 })
             }
             else if (isSchemaRoom(value)) {
@@ -388,7 +388,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         { key: 'x', type: 'literal', value: typeof value.x !== 'undefined' ? `${value.x}` : '' },
                         { key: 'y', type: 'literal', value: typeof value.y !== 'undefined' ? `${value.y}` : '' }
                     ],
-                    contents: roomContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
+                    contents: roomContents,
                 })
             }
             else if (isSchemaFeature(value)) {
@@ -405,7 +405,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         { key: 'key', type: 'key', value: value.key },
                         { key: 'global', type: 'boolean', value: value.global },
                     ],
-                    contents: featureContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
+                    contents: featureContents,
                 })
             }
             else if (isSchemaBookmark(value)) {
@@ -416,7 +416,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
                     ],
-                    contents: value.contents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
+                    contents: value.contents,
                 })
             }
             else if (isSchemaMap(value)) {
@@ -445,7 +445,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
                     ],
-                    contents: mapContents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
+                    contents: mapContents,
                 })
             }
             else if (isSchemaMessage(value)) {
@@ -457,8 +457,8 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         { key: 'key', type: 'key', value: value.key }
                     ],
                     contents: [
-                        schemaDescriptionToWML(schemaToWML)(value.render, { ...options, indent: options.indent + 1, padding: 0 }),
-                        ...(value.rooms.map(({ key }) => (this.schemaToWML({ tag: 'Room', key, name: [], render: [], global: false, contents: [] }, { indent: options.indent + 1 }))))
+                        ...value.render,
+                        ...(value.rooms.map(({ key }) => ({ tag: 'Room' as 'Room', key, name: [], render: [], global: false, contents: [] })))
                     ],
                 })
             }
@@ -470,7 +470,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
                     ],
-                    contents: value.contents.map((tag) => (this.schemaToWML(tag, { indent: options.indent + 1 }))),
+                    contents: value.contents,
                 })
             }
             else {
