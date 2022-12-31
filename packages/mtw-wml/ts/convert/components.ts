@@ -356,6 +356,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             if (isSchemaDescription(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Description',
                     properties: [],
                     contents: [schemaDescriptionToWML(this)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
@@ -364,6 +365,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             else if (isSchemaName(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Name',
                     properties: [],
                     contents: [schemaDescriptionToWML(this)(value.contents, { ...options, indent: options.indent + 1, padding: 0 })],
@@ -377,6 +379,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 ]
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Room',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
@@ -395,6 +398,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 ]
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Feature',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
@@ -406,6 +410,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             else if (isSchemaBookmark(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Bookmark',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
@@ -434,6 +439,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     )
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Map',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
@@ -444,6 +450,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             else if (isSchemaMessage(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Message',
                     properties: [
                         { key: 'key', type: 'key', value: value.key }
@@ -457,6 +464,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             else if (isSchemaMoment(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Moment',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },

@@ -1,4 +1,5 @@
 import { lineLengthAfterIndent, indentSpacing } from "."
+import { SchemaTag } from "../../schema/baseClasses";
 
 type TagRenderProperty = {
     key: string;
@@ -10,7 +11,7 @@ type TagRenderProperty = {
     value: boolean;
 }
 
-export const tagRender = ({ indent, forceNest, tag, properties, contents }: { indent: number, forceNest?: boolean, tag: string, properties: TagRenderProperty[]; contents: string[]; }): string => {
+export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, contents }: { schemaToWML: (value: SchemaTag) => string; indent: number, forceNest?: boolean, tag: string, properties: TagRenderProperty[]; contents: string[]; }): string => {
     const propertyRender = properties.map((property) => {
         switch(property.type) {
             case 'boolean':

@@ -127,6 +127,7 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
             else if (isSchemaLink(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Link',
                     properties: [{ key: 'to', type: 'key', value: value.to }],
                     contents: [value.text],

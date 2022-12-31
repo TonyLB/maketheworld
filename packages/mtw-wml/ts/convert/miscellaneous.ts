@@ -92,6 +92,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             if (isSchemaImage(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: this.schemaToWML.bind(this),
                     tag: 'Image',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
@@ -102,6 +103,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             else if (isSchemaExit(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: this.schemaToWML.bind(this),
                     tag: 'Exit',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
