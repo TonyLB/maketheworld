@@ -1,7 +1,7 @@
-import { isParseExit, isParseImage, ParseException, ParseExitTag, ParseImageTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { isSchemaExit, isSchemaImage, SchemaExitTag, SchemaImageTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn, MixinInheritedSchemaContents, SchemaToWMLOptions } from "./functionMixins";
-import { tagRender } from "./utils";
+import { isParseExit, isParseImage, ParseException, ParseExitTag, ParseImageTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
+import { isSchemaExit, isSchemaImage, SchemaExitTag, SchemaImageTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses"
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn, MixinInheritedSchemaContents, SchemaToWMLOptions } from "./functionMixins"
+import { tagRender } from "./utils/tagRender"
 
 export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseAssetsMixin extends Base {
@@ -92,6 +92,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             if (isSchemaImage(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: this.schemaToWML.bind(this),
                     tag: 'Image',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
@@ -102,6 +103,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             else if (isSchemaExit(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: this.schemaToWML.bind(this),
                     tag: 'Exit',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },

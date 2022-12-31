@@ -1,7 +1,7 @@
 import { isParseLineBreak, isParseLink, isParseSpacer, isParseString, isParseWhitespace, ParseLineBreakTag, ParseLinkLegalContents, ParseLinkTag, ParseSpacerTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited, ParseWhitespaceTag } from "../parser/baseClasses";
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, isSchemaWhitespace, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaWhitespaceTag } from "../schema/baseClasses";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
-import { indentSpacing, tagRender } from "./utils";
+import { tagRender } from "./utils/tagRender"
 
 export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseTaggedMessageMixin extends Base {
@@ -127,6 +127,7 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
             else if (isSchemaLink(value)) {
                 return tagRender({
                     ...options,
+                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
                     tag: 'Link',
                     properties: [{ key: 'to', type: 'key', value: value.to }],
                     contents: [value.text],
