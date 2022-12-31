@@ -1,5 +1,7 @@
 import { lineLengthAfterIndent, indentSpacing } from "."
-import { SchemaTag } from "../../schema/baseClasses";
+import { isSchemaTaggedMessageLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "../../schema/baseClasses";
+import { schemaDescriptionToWML } from "../description";
+import { BaseConverter, SchemaToWMLOptions } from "../functionMixins";
 
 type TagRenderProperty = {
     key: string;
@@ -11,7 +13,7 @@ type TagRenderProperty = {
     value: boolean;
 }
 
-export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, contents }: { schemaToWML: (value: SchemaTag) => string; indent: number, forceNest?: boolean, tag: string, properties: TagRenderProperty[]; contents: string[]; }): string => {
+export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, contents }: { schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string; indent: number, forceNest?: boolean, tag: string, properties: TagRenderProperty[]; contents: (string | SchemaTag)[]; }): string => {
     const propertyRender = properties.map((property) => {
         switch(property.type) {
             case 'boolean':
@@ -26,8 +28,47 @@ export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, con
     }).filter((value) => (value))
     const tagOpen = `<${[tag, ...propertyRender].join(' ')}>`
     const tagClose = `</${tag}>`
-    const naive = `${tagOpen}${contents.join('')}${tagClose}`
-    const nested = `${[tagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`
+    const { returnValue: mappedContents } = contents.reduce<{ returnValue: string[]; taggedMessageStack: SchemaTaggedMessageLegalContents[] }>((previous, tag, index) => {
+        if (typeof tag === 'string') {
+            return {
+                returnValue: [
+                    ...previous.returnValue,
+                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent, forceNest, padding: 0 })] : []),
+                    tag
+                ],
+                taggedMessageStack: []
+            }
+        }
+        if (isSchemaTaggedMessageLegalContents(tag)) {
+            if (index === contents.length - 1) {
+                return {
+                    returnValue: [
+                        ...previous.returnValue,
+                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent, forceNest, padding: 0 })
+                    ],
+                    taggedMessageStack: []
+                }
+            }
+            else {
+                return {
+                    returnValue: previous.returnValue,
+                    taggedMessageStack: [ ...previous.taggedMessageStack, tag ]
+                }
+            }
+        }
+        else {
+            return {
+                returnValue: [
+                    ...previous.returnValue,
+                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent, forceNest, padding: 0 })] : []),
+                    schemaToWML(tag, { indent, forceNest })
+                ],
+                taggedMessageStack: []
+            }
+        }
+    }, { returnValue: [], taggedMessageStack: [] })
+    const naive = `${tagOpen}${mappedContents.join('')}${tagClose}`
+    const nested = `${[tagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`
     if (typeof forceNest === 'undefined') {
         return (naive.length > lineLengthAfterIndent(indent)) ? nested : naive
     }
