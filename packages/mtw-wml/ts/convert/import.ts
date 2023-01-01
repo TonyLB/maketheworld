@@ -105,7 +105,7 @@ export const ParseImportMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                     })),
                 })
             }
-            if (isSchemaUse(value)) {
+            else if (isSchemaUse(value)) {
                 return tagRender({
                     ...options,
                     schemaToWML,
