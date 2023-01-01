@@ -1,3 +1,4 @@
+import { current } from "immer"
 import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag, SchemaTaggedMessageLegalContents } from "../schema/baseClasses"
 import { BaseConverter, SchemaToWMLOptions } from "./functionMixins"
 import { indentSpacing, lineLengthAfterIndent } from "./utils"
@@ -18,7 +19,23 @@ export const wordWrapString = (value: string, options: SchemaToWMLOptions & { pa
     return [value]
 }
 
-const naivePrint = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string => (tags.map((tag) => (schemaToWML(tag, { ...options, forceNest: false }))).join('').trim())
+const mapTagRender = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
+    const { returnValue } = tags.reduce<{ returnValue: string[], siblings: SchemaTag[] }>(
+        (previous, tag) => ({
+            returnValue: [
+                ...previous.returnValue,
+                schemaToWML(tag, { ...options, siblings: previous.siblings })
+            ],
+            siblings: [...previous.siblings, tag ]
+        }),
+        { returnValue: [], siblings: options.siblings ?? [] }
+    )
+    return returnValue
+}
+
+const naivePrint = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string => (
+    mapTagRender(schemaToWML)(tags, { ...options, forceNest: false }).join('').trim()
+)
 
 type BreakTagsReturn = {
     outputLines: string[];
@@ -32,7 +49,7 @@ type BreakTagsReturn = {
 const breakTagsOnFirstStringWhitespace = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions & { padding: number }): BreakTagsReturn => {
     const { indent, padding } = options
     const indexOfFirstBreakableString = tags.findIndex((tag) => (isSchemaString(tag) && (tag.value.includes(' '))))
-    const outputBeforeString = indexOfFirstBreakableString > 0 ? naivePrint(schemaToWML)(tags.slice(0, indexOfFirstBreakableString), { indent: 0 }) : ''
+    const outputBeforeString = indexOfFirstBreakableString > 0 ? naivePrint(schemaToWML)(tags.slice(0, indexOfFirstBreakableString), { indent: 0, siblings: options.siblings }) : ''
     if (indexOfFirstBreakableString === -1 || (padding + outputBeforeString.length > lineLengthAfterIndent(indent))) {
         return {
             outputLines: [],
@@ -72,7 +89,7 @@ const breakTagsOnFirstStringWhitespace = (schemaToWML: (value: SchemaTag, option
 
 const breakTagsByNesting = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): BreakTagsReturn => {
     const { indent } = options
-    const tagsRender = tags.map((tag) => (schemaToWML(tag, { indent, forceNest: true }))).join('').split('\n')
+    const tagsRender = mapTagRender(schemaToWML)(tags, { indent, forceNest: true, siblings: options.siblings }).join('').split('\n')
     return {
         outputLines: tagsRender,
         remainingTags: []
@@ -80,7 +97,8 @@ const breakTagsByNesting = (schemaToWML: (value: SchemaTag, options: SchemaToWML
 }
 
 const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
-    const { indent } = options
+    const { indent, siblings } = options
+    let currentSiblings = [...siblings ?? []]
     let outputLines: string[] = []
     let tagsBeingConsidered: SchemaTaggedMessageLegalContents[] = []
     let prefix: string = ''
@@ -89,13 +107,14 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
         //
         // Keep pushing tags until you get to the point of needing to break over multiple lines
         //
-        while(prefix.length + naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0 }).length > lineLengthAfterIndent(indent)) {
+        while(prefix.length + naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0, siblings: currentSiblings }).length > lineLengthAfterIndent(indent)) {
             //
             // First, see if you can break strings to extract some lines, while keeping other tags un-nested
             //
-            const { outputLines: extractedOutputLines, remainingTags } = breakTagsOnFirstStringWhitespace(schemaToWML)(tagsBeingConsidered, { indent, padding: prefix.length })
+            const { outputLines: extractedOutputLines, remainingTags } = breakTagsOnFirstStringWhitespace(schemaToWML)(tagsBeingConsidered, { indent, siblings: currentSiblings, padding: prefix.length })
             if (extractedOutputLines.length) {
                 outputLines = [...outputLines, `${prefix}${extractedOutputLines[0]}`, ...(extractedOutputLines.slice(1))]
+                currentSiblings = [...currentSiblings, ...tagsBeingConsidered.slice(0, -remainingTags.length)]
                 tagsBeingConsidered = remainingTags
                 prefix = ''
             }
@@ -103,10 +122,11 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
             // If that fails, try to force tags to nest
             //
             else {
-                const { outputLines: nestedLines } = breakTagsByNesting(schemaToWML)(tagsBeingConsidered, { indent })
+                const { outputLines: nestedLines } = breakTagsByNesting(schemaToWML)(tagsBeingConsidered, { indent, siblings: currentSiblings })
                 if (nestedLines.length > 1) {
                     outputLines = [...outputLines, `${prefix}${nestedLines[0]}`, ...(nestedLines.slice(1, -1))]
                     prefix = nestedLines.slice(-1)[0]
+                    currentSiblings = [...currentSiblings, ...tagsBeingConsidered]
                     tagsBeingConsidered = []
                 }
                 //
@@ -126,7 +146,8 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
 }
 
 export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions & { padding: number }): string => {
-    const { indent, forceNest, padding } = options
+    const { indent, forceNest, padding, siblings } = options
+    let currentSiblings = [...siblings ?? []]
     let outputLines: string[] = []
     let queue: SchemaTaggedMessageLegalContents[] = []
     let multiLine = forceNest ?? false
@@ -146,14 +167,15 @@ export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: 
                     // and start again breaking up into separate lines where possible
                     //
                     if (!multiLine) {
-                        const provisionalPrint = naivePrint(schemaToWML)(queue, { indent })
+                        const provisionalPrint = naivePrint(schemaToWML)(queue, { indent, siblings: currentSiblings })
                         if (padding + provisionalPrint.length > lineLengthAfterIndent(indent)) {
                             forceNestedRerun = true
                         }
                     }
                 }
                 else {
-                    outputLines = [...outputLines, ...printQueuedTags(schemaToWML)(queue, options)]
+                    outputLines = [...outputLines, ...printQueuedTags(schemaToWML)(queue, { ...options, siblings: currentSiblings })]
+                    currentSiblings = [...currentSiblings, ...queue]
                     queue = [tag]
                 }
             }
