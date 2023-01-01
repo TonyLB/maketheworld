@@ -389,6 +389,10 @@ export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag
 export const isSchemaSpacer = (value: SchemaTag): value is SchemaSpacerTag => (value.tag === 'Space')
 export const isSchemaCondition = (value: SchemaTag): value is SchemaConditionTag => (value.tag === 'If')
 
+export const isSchemaAction = (value: SchemaTag): value is SchemaActionTag => (value.tag === 'Action')
+export const isSchemaVariable = (value: SchemaTag): value is SchemaVariableTag => (value.tag === 'Variable')
+export const isSchemaComputed = (value: SchemaTag): value is SchemaComputedTag => (value.tag === 'Computed')
+
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
