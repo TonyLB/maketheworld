@@ -1,6 +1,7 @@
 import { isParseImport, isParseUse, ParseImportTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseUseTag } from "../parser/baseClasses";
-import { SchemaImportTag, SchemaTag, SchemaUseTag } from "../schema/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins";
+import { isSchemaImport, isSchemaUse, SchemaImportTag, SchemaTag, SchemaUseTag } from "../schema/baseClasses";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
+import { tagRender } from "./utils/tagRender";
 
 export const ParseImportMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseImportsMixin extends Base {
@@ -85,6 +86,47 @@ export const ParseImportMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                 return returnValue as MixinInheritedSchemaReturn<C>
             }
         }
+
+        override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 }))
+            if (isSchemaImport(value)) {
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'Import',
+                    properties: [
+                        { key: 'from', type: 'key', value: value.from },
+                    ],
+                    contents: Object.entries(value.mapping).map(([as, { key, type }]): SchemaUseTag => ({
+                        tag: 'Use',
+                        as: (as !== key) ? as : undefined,
+                        key,
+                        type
+                    })),
+                })
+            }
+            if (isSchemaUse(value)) {
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'Use',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                        { key: 'as', type: 'key', value: value.as },
+                        { key: 'type', type: 'literal', value: value.type }
+                    ],
+                    contents: [],
+                })
+            }
+            else {
+                const returnValue = (super.schemaToWML as any)(value, options)
+                if (!(typeof returnValue === 'string')) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue
+            }
+        }
+
     }
 }
 
