@@ -1,6 +1,7 @@
 import { isParseAsset, isParseStory, ParseAssetLegalContents, ParseAssetTag, ParseStackTagEntry, ParseStoryTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses";
-import { SchemaAssetLegalContents, SchemaAssetTag, SchemaStoryTag, SchemaTag } from "../schema/baseClasses";
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins";
+import { isSchemaAsset, SchemaAssetLegalContents, SchemaAssetTag, SchemaStoryTag, SchemaTag } from "../schema/baseClasses";
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
+import { tagRender } from "./utils/tagRender";
 
 export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseAssetsMixin extends Base {
@@ -103,6 +104,29 @@ export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                     throw new Error('Invalid parameter')
                 }
                 return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
+        override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 }))
+            if (isSchemaAsset(value)) {
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'Asset',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key },
+                        { key: 'Story', type: 'boolean', value: value.Story }
+                    ],
+                    contents: value.contents,
+                })
+            }
+            else {
+                const returnValue = (super.schemaToWML as any)(value, options)
+                if (!(typeof returnValue === 'string')) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue
             }
         }
 
