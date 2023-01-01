@@ -28,7 +28,12 @@ export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, con
     }).filter((value) => (value))
     const tagOpen = `<${[tag, ...propertyRender].join(' ')}>`
     const tagClose = `</${tag}>`
-    const { returnValue: mappedContents } = contents.reduce<{ returnValue: string[]; taggedMessageStack: SchemaTaggedMessageLegalContents[] }>((previous, tag, index) => {
+    //
+    // TODO: Add taggedMessageSiblingBase to reduce returns, in order to keep the starting point of
+    // sibling tags for schemaDescriptionToWML, and then use that to equip schemaDescriptionToWML with
+    // sibling processing as well
+    //
+    const { returnValue: mappedContents } = contents.reduce<{ returnValue: string[]; siblings: SchemaTag[]; taggedMessageStack: SchemaTaggedMessageLegalContents[] }>((previous, tag, index) => {
         if (typeof tag === 'string') {
             return {
                 returnValue: [
@@ -36,6 +41,7 @@ export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, con
                     ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0 })] : []),
                     tag
                 ],
+                siblings: previous.siblings,
                 taggedMessageStack: []
             }
         }
@@ -46,12 +52,14 @@ export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, con
                         ...previous.returnValue,
                         schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, forceNest, padding: 0 })
                     ],
+                    siblings: [ ...previous.siblings, tag],
                     taggedMessageStack: []
                 }
             }
             else {
                 return {
                     returnValue: previous.returnValue,
+                    siblings: [ ...previous.siblings, tag],
                     taggedMessageStack: [ ...previous.taggedMessageStack, tag ]
                 }
             }
@@ -61,12 +69,13 @@ export const tagRender = ({ schemaToWML, indent, forceNest, tag, properties, con
                 returnValue: [
                     ...previous.returnValue,
                     ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0 })] : []),
-                    schemaToWML(tag, { indent: indent + 1, forceNest })
+                    schemaToWML(tag, { indent: indent + 1, forceNest, siblings: previous.siblings })
                 ],
+                siblings: [ ...previous.siblings, tag],
                 taggedMessageStack: []
             }
         }
-    }, { returnValue: [], taggedMessageStack: [] })
+    }, { returnValue: [], siblings: [], taggedMessageStack: [] })
     const naive = `${tagOpen}${mappedContents.join('')}${tagClose}`
     const nested = `${[tagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`
     if (typeof forceNest === 'undefined') {
