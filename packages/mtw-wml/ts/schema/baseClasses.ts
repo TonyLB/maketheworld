@@ -393,6 +393,9 @@ export const isSchemaAction = (value: SchemaTag): value is SchemaActionTag => (v
 export const isSchemaVariable = (value: SchemaTag): value is SchemaVariableTag => (value.tag === 'Variable')
 export const isSchemaComputed = (value: SchemaTag): value is SchemaComputedTag => (value.tag === 'Computed')
 
+export const isSchemaImport = (value: SchemaTag): value is SchemaImportTag => (value.tag === 'Import')
+export const isSchemaUse = (value: SchemaTag): value is SchemaUseTag => (value.tag === 'Use')
+
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
