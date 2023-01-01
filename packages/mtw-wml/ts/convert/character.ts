@@ -1,6 +1,7 @@
 import { isParseCharacter, isParseFirstImpression, isParseOneCoolThing, isParseOutfit, isParsePronouns, ParseCharacterTag, ParseFirstImpressionTag, ParseImageTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
-import { isSchemaFirstImpression, isSchemaImage, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaLiteralLegalContents, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses"
-import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn } from "./functionMixins"
+import { isSchemaCharacter, isSchemaFirstImpression, isSchemaImage, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaLiteralLegalContents, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses"
+import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins"
+import { tagRender } from "./utils/tagRender"
 
 const stringLiteralPostProcess = ({ contents = [] }) => ({
     contents,
@@ -220,6 +221,77 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                     throw new Error('Invalid parameter')
                 }
                 return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
+        override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            const stringToLiteral = (value: string | undefined, tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing'): SchemaTag[] => (
+                value ? [{ tag, value, contents: [{ tag: 'String' as 'String', value }] }] : []
+            )
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 }))
+            const tagRenderLiteral = (tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing', value: string, options: SchemaToWMLOptions): string => (
+                tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag,
+                    properties: [],
+                    contents: [{ tag: 'String' as 'String', value }]
+                })
+            )
+            if (isSchemaCharacter(value)) {
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'Character',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key }
+                    ],
+                    contents: [
+                        ...(value.Name ? [{ tag: 'Name' as 'Name', contents: [{ tag: 'String' as 'String', value: value.Name }] }] : []),
+                        ...(value.Pronouns ? [{
+                            ...value.Pronouns,
+                            tag: 'Pronouns' as 'Pronouns'
+                        }] : []),
+                        ...stringToLiteral(value.FirstImpression, 'FirstImpression'),
+                        ...stringToLiteral(value.Outfit, 'Outfit'),
+                        ...stringToLiteral(value.OneCoolThing, 'OneCoolThing'),
+                        //
+                        // TODO: Refactor how Character WML stores image, and write out
+                        // an Image element here if needed
+                        //
+                    ],
+                })
+            }
+            else if (isSchemaFirstImpression(value)) {
+                return tagRenderLiteral('FirstImpression', value.value, options)
+            }
+            else if (isSchemaOutfit(value)) {
+                return tagRenderLiteral('Outfit', value.value, options)
+            }
+            else if (isSchemaOneCoolThing(value)) {
+                return tagRenderLiteral('OneCoolThing', value.value, options)
+            }
+            else if (isSchemaPronouns(value)) {
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'Pronouns',
+                    properties: [
+                        { key: 'subject', type: 'literal', value: value.subject},
+                        { key: 'object', type: 'literal', value: value.object},
+                        { key: 'possessive', type: 'literal', value: value.possessive},
+                        { key: 'adjective', type: 'literal', value: value.adjective},
+                        { key: 'reflexive', type: 'literal', value: value.reflexive}
+                    ],
+                    contents: []
+                })
+            }
+            else {
+                const returnValue = (super.schemaToWML as any)(value, options)
+                if (!(typeof returnValue === 'string')) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue
             }
         }
 
