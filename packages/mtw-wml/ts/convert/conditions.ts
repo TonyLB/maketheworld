@@ -1,3 +1,5 @@
+import { deepEqual } from "../lib/objects"
+import { NormalConditionStatement } from "../normalize/baseClasses"
 import {
     isLegalParseConditionContextTag,
     isParseCondition,
@@ -20,8 +22,9 @@ import {
 import { isSchemaCondition, isSchemaWhitespace, SchemaConditionTag, SchemaConditionTagAssetContext, SchemaConditionTagDescriptionContext, SchemaConditionTagMapContext, SchemaException, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
 import { translateTaggedMessageContents } from "../schema/taggedMessage"
 import { ArrayContents } from "../types"
-import { BaseConverter, Constructor, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaContents, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn } from "./functionMixins"
+import { BaseConverter, Constructor, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaContents, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins"
 import { extractDependenciesFromJS, ExtractProperties, validateContents, validateProperties } from "./utils"
+import { tagRender } from "./utils/tagRender"
 
 //
 // TODO: Refactor SchemaCondition to be as generalizable as ParseCondition
@@ -238,6 +241,72 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                     throw new Error('Invalid parameter')
                 }
                 return returnValue as MixinInheritedSchemaReturn<C>
+            }
+        }
+
+        override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 }))
+            if (isSchemaCondition(value)) {
+                const { siblings = [] } = options
+                const closestSibling: SchemaTag | undefined = siblings.length ? siblings.slice(-1)[0] : undefined
+                const conditionsToSrc = (conditions: NormalConditionStatement[]): string => {
+                    if (!conditions.length) { return '' }
+                    if (conditions.length > 1) {
+                        return conditions.map((condition) => (condition.not ? `!(${condition.if})` : `(${condition.if})`)).join(' && ')
+                    }
+                    else {
+                        const condition = conditions[0]
+                        return condition.not ? `!(${condition.if})` : condition.if
+                    }
+                }
+                //
+                // TODO: Evaluate whether closestSibling is a SchemaConditionTag, all of whose conditions
+                // are replicated (with not flags) in the value we're currently examining, and if so
+                // parse out whether it should be an ElseIf tag or an Else tag.
+                //
+                if (closestSibling &&
+                    isSchemaCondition(closestSibling) &&
+                    (value.conditions.length >= closestSibling.conditions.length) &&
+                    deepEqual(closestSibling.conditions.map((condition) => ({ ...condition, not: true })), value.conditions)
+                ) {
+                    const remainingConditions = value.conditions.slice(closestSibling.conditions.length)
+                    if (remainingConditions.length) {
+                        return tagRender({
+                            ...options,
+                            schemaToWML,
+                            tag: 'ElseIf',
+                            properties: [
+                                { key: 'src', type: 'expression', value: conditionsToSrc(remainingConditions) }
+                            ],
+                            contents: value.contents,
+                        })
+                    }
+                    else {
+                        return tagRender({
+                            ...options,
+                            schemaToWML,
+                            tag: 'Else',
+                            properties: [],
+                            contents: value.contents,
+                        })
+                    }
+                }
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'If',
+                    properties: [
+                        { key: 'src', type: 'expression', value: conditionsToSrc(value.conditions) }
+                    ],
+                    contents: value.contents,
+                })
+            }
+            else {
+                const returnValue = (super.schemaToWML as any)(value, options)
+                if (!(typeof returnValue === 'string')) {
+                    throw new Error('Invalid parameter')
+                }
+                return returnValue
             }
         }
     }
