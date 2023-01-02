@@ -119,7 +119,7 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
         }
 
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
-            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 }))
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1, context: [ ...options.context, value ] }))
             if (isSchemaVariable(value)) {
                 return tagRender({
                     ...options,

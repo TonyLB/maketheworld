@@ -22,7 +22,7 @@ describe('description schemaToWML', () => {
                 to: 'Test',
                 text: 'Test'
             }],
-            { indent: 0, padding: 0 }
+            { indent: 0, padding: 0, context: [] }
         )).toEqual('Test<Link to=(Test)>Test</Link>')
     })
     it('should word wrap descriptions', () => {
@@ -62,7 +62,7 @@ describe('description schemaToWML', () => {
             tag: 'String',
             value: "tags directly adjacent. Finally a long text section to make sure that wrapping still works when the text is adjacent after a nested tag."
         }]
-        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0 })).toMatchSnapshot()
+        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })).toMatchSnapshot()
     })
 
 })

@@ -121,13 +121,14 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
         }
 
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1, context: [ ...options.context, value ] }))
             if (isSchemaString(value)) {
                 return value.value
             }
             else if (isSchemaLink(value)) {
                 return tagRender({
                     ...options,
-                    schemaToWML: (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 })),
+                    schemaToWML,
                     tag: 'Link',
                     properties: [{ key: 'to', type: 'key', value: value.to }],
                     contents: [value.text],

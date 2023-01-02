@@ -134,7 +134,7 @@ export const schemaToWML = (tags: SchemaTag[]): string => {
         return {
             returnValue: [
                 ...previous.returnValue,
-                schemaConvert.schemaToWML(tag, { indent: 0, siblings: previous.siblings })
+                schemaConvert.schemaToWML(tag, { indent: 0, siblings: previous.siblings, context: [] })
             ],
             siblings: [
                 ...previous.siblings,
