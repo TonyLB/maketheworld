@@ -89,10 +89,11 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
         }
 
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1, context: [ ...options.context, value ] }))
             if (isSchemaImage(value)) {
                 return tagRender({
                     ...options,
-                    schemaToWML: this.schemaToWML.bind(this),
+                    schemaToWML,
                     tag: 'Image',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
@@ -103,7 +104,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             else if (isSchemaExit(value)) {
                 return tagRender({
                     ...options,
-                    schemaToWML: this.schemaToWML.bind(this),
+                    schemaToWML,
                     tag: 'Exit',
                     properties: [
                         { key: 'from', type: 'key', value: value.from },

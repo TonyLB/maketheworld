@@ -228,7 +228,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
             const stringToLiteral = (value: string | undefined, tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing'): SchemaTag[] => (
                 value ? [{ tag, value, contents: [{ tag: 'String' as 'String', value }] }] : []
             )
-            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 }))
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1, context: [ ...options.context, value ] }))
             const tagRenderLiteral = (tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing', value: string, options: SchemaToWMLOptions): string => (
                 tagRender({
                     ...options,

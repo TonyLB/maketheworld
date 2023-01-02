@@ -245,7 +245,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
         }
 
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
-            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1 }))
+            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1, context: [ ...options.context, value ] }))
             if (isSchemaCondition(value)) {
                 const { siblings = [] } = options
                 const closestSibling: SchemaTag | undefined = siblings.length ? siblings.slice(-1)[0] : undefined

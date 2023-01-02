@@ -24,7 +24,7 @@ const mapTagRender = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOption
         (previous, tag) => ({
             returnValue: [
                 ...previous.returnValue,
-                schemaToWML(tag, { ...options, siblings: previous.siblings })
+                schemaToWML(tag, { ...options, siblings: previous.siblings, context: [ ...options.context, tag ] })
             ],
             siblings: [...previous.siblings, tag ]
         }),
@@ -49,7 +49,7 @@ type BreakTagsReturn = {
 const breakTagsOnFirstStringWhitespace = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions & { padding: number }): BreakTagsReturn => {
     const { indent, padding } = options
     const indexOfFirstBreakableString = tags.findIndex((tag) => (isSchemaString(tag) && (tag.value.includes(' '))))
-    const outputBeforeString = indexOfFirstBreakableString > 0 ? naivePrint(schemaToWML)(tags.slice(0, indexOfFirstBreakableString), { indent: 0, siblings: options.siblings }) : ''
+    const outputBeforeString = indexOfFirstBreakableString > 0 ? naivePrint(schemaToWML)(tags.slice(0, indexOfFirstBreakableString), { indent: 0, siblings: options.siblings, context: options.context }) : ''
     if (indexOfFirstBreakableString === -1 || (padding + outputBeforeString.length > lineLengthAfterIndent(indent))) {
         return {
             outputLines: [],
@@ -89,7 +89,7 @@ const breakTagsOnFirstStringWhitespace = (schemaToWML: (value: SchemaTag, option
 
 const breakTagsByNesting = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): BreakTagsReturn => {
     const { indent } = options
-    const tagsRender = mapTagRender(schemaToWML)(tags, { indent, forceNest: true, siblings: options.siblings }).join('').split('\n')
+    const tagsRender = mapTagRender(schemaToWML)(tags, { indent, forceNest: true, siblings: options.siblings, context: options.context }).join('').split('\n')
     return {
         outputLines: tagsRender,
         remainingTags: []
@@ -107,11 +107,11 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
         //
         // Keep pushing tags until you get to the point of needing to break over multiple lines
         //
-        while(prefix.length + naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0, siblings: currentSiblings }).length > lineLengthAfterIndent(indent)) {
+        while(prefix.length + naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0, siblings: currentSiblings, context: options.context }).length > lineLengthAfterIndent(indent)) {
             //
             // First, see if you can break strings to extract some lines, while keeping other tags un-nested
             //
-            const { outputLines: extractedOutputLines, remainingTags } = breakTagsOnFirstStringWhitespace(schemaToWML)(tagsBeingConsidered, { indent, siblings: currentSiblings, padding: prefix.length })
+            const { outputLines: extractedOutputLines, remainingTags } = breakTagsOnFirstStringWhitespace(schemaToWML)(tagsBeingConsidered, { indent, siblings: currentSiblings, context: options.context, padding: prefix.length })
             if (extractedOutputLines.length) {
                 outputLines = [...outputLines, `${prefix}${extractedOutputLines[0]}`, ...(extractedOutputLines.slice(1))]
                 currentSiblings = [...currentSiblings, ...tagsBeingConsidered.slice(0, -remainingTags.length)]
@@ -122,7 +122,7 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
             // If that fails, try to force tags to nest
             //
             else {
-                const { outputLines: nestedLines } = breakTagsByNesting(schemaToWML)(tagsBeingConsidered, { indent, siblings: currentSiblings })
+                const { outputLines: nestedLines } = breakTagsByNesting(schemaToWML)(tagsBeingConsidered, { indent, siblings: currentSiblings, context: options.context })
                 if (nestedLines.length > 1) {
                     outputLines = [...outputLines, `${prefix}${nestedLines[0]}`, ...(nestedLines.slice(1, -1))]
                     prefix = nestedLines.slice(-1)[0]
@@ -140,7 +140,7 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
         }
     })
     if (tagsBeingConsidered.length) {
-        outputLines.push(`${prefix}${naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0 })}`.trim())
+        outputLines.push(`${prefix}${naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0, context: options.context })}`.trim())
     }
     return outputLines
 }
@@ -167,7 +167,7 @@ export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: 
                     // and start again breaking up into separate lines where possible
                     //
                     if (!multiLine) {
-                        const provisionalPrint = naivePrint(schemaToWML)(queue, { indent, siblings: currentSiblings })
+                        const provisionalPrint = naivePrint(schemaToWML)(queue, { indent, siblings: currentSiblings, context: options.context })
                         if (padding + provisionalPrint.length > lineLengthAfterIndent(indent)) {
                             forceNestedRerun = true
                         }
