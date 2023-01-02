@@ -128,3 +128,19 @@ export const schemaFromParse = (tags: ParseTag[]): SchemaTag[] => {
     const firstPass = transformWithContext(tags, exitContextCallback)
     return firstPass.map((item) => (schemaFromParseItem(item, [])))
 }
+
+export const schemaToWML = (tags: SchemaTag[]): string => {
+    const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: SchemaTag[] }>((previous, tag) => {
+        return {
+            returnValue: [
+                ...previous.returnValue,
+                schemaConvert.schemaToWML(tag, { indent: 0, siblings: previous.siblings })
+            ],
+            siblings: [
+                ...previous.siblings,
+                tag
+            ]
+        }
+    }, { returnValue: [], siblings: [] })
+    return returnValue.join('\n')
+}

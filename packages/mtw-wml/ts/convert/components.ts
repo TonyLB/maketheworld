@@ -374,8 +374,8 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             }
             else if (isSchemaRoom(value)) {
                 const roomContents: SchemaTag[] = [
-                    ...(value.name ? [{ tag: 'Name' as 'Name', contents: value.name}] : []),
-                    ...(value.render ? [{ tag: 'Description' as 'Description', contents: value.render }] : []),
+                    ...(value.name.length ? [{ tag: 'Name' as 'Name', contents: value.name}] : []),
+                    ...(value.render.length ? [{ tag: 'Description' as 'Description', contents: value.render }] : []),
                     ...value.contents
                 ]
                 return tagRender({

@@ -3,7 +3,7 @@ import { ParseException } from '../parser/baseClasses'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 
-import { schemaFromParse } from '.'
+import { schemaFromParse, schemaToWML } from '.'
 
 describe('schemaFromParse', () => {
     beforeEach(() => {
@@ -135,4 +135,16 @@ describe('schemaFromParse', () => {
 
     })
 
+})
+
+//
+// NOTE: Unit testing of schemaToWML contains a fair number of round-trip integration tests
+// that confirm that you can take a standard WML string, parse and schematize it, then use
+// schemaToWML to return the original standard form
+//
+describe('schemaToWML', () => {
+    it('should correctly round-trip the simplest asset', () => {
+        const testWML = `<Asset key=(Test)><Room key=(VORTEX) global></Room></Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
 })
