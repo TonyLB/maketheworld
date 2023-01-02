@@ -1,5 +1,5 @@
 import { isParseExit, isParseImage, ParseException, ParseExitTag, ParseImageTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
-import { isSchemaExit, isSchemaImage, SchemaExitTag, SchemaImageTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses"
+import { isSchemaExit, isSchemaImage, isSchemaRoom, SchemaExitTag, SchemaImageTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses"
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaReturn, MixinInheritedSchemaContents, SchemaToWMLOptions } from "./functionMixins"
 import { tagRender } from "./utils/tagRender"
 
@@ -102,13 +102,15 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
                 })
             }
             else if (isSchemaExit(value)) {
+                const roomsContextList = options.context.filter(isSchemaRoom)
+                const roomContext: SchemaTag | undefined = roomsContextList.length > 0 ? roomsContextList.slice(-1)[0] : undefined
                 return tagRender({
                     ...options,
                     schemaToWML,
                     tag: 'Exit',
                     properties: [
-                        { key: 'from', type: 'key', value: value.from },
-                        { key: 'to', type: 'key', value: value.to },
+                        ...((!value.from || (roomContext && roomContext.key === value.from)) ? [] : [{ key: 'from', type: 'key' as 'key', value: value.from }]),
+                        ...((!value.to || (roomContext && roomContext.key === value.to)) ? [] : [{ key: 'to', type: 'key' as 'key', value: value.to }]),
                     ],
                     contents: value.name ? [value.name] : [],
                 })
