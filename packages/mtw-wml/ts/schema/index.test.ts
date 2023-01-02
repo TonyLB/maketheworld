@@ -3,7 +3,7 @@ import { ParseException } from '../parser/baseClasses'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 
-import { schemaFromParse } from '.'
+import { schemaFromParse, schemaToWML } from '.'
 
 describe('schemaFromParse', () => {
     beforeEach(() => {
@@ -135,4 +135,44 @@ describe('schemaFromParse', () => {
 
     })
 
+})
+
+//
+// NOTE: Unit testing of schemaToWML contains a fair number of round-trip integration tests
+// that confirm that you can take a standard WML string, parse and schematize it, then use
+// schemaToWML to return the original standard form
+//
+describe('schemaToWML', () => {
+    it('should correctly round-trip the simplest asset', () => {
+        const testWML = `<Asset key=(Test)><Room key=(VORTEX) global></Room></Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly rount-trip complicate rooms', () => {
+        const testWML = `<Asset key=(Test)>
+    <Room key=(VORTEX) global>
+        <Name>Vortex</Name>
+        <Description>
+            You float in a swirling mass of energy and debris.
+            <Link to=(doors)>Doors</Link>
+            to other realms drift around you.
+        </Description>
+        <Exit to=(welcome)>Welcome room</Exit>
+    </Room>
+    <Feature key=(doors)>
+        <Name>Drifting doors</Name>
+        <Description>Doors drifting in space</Description>
+    </Feature>
+    <Room key=(welcome)>
+        <Name>Welcome room</Name>
+        <Description>
+            A clean and sterile welcome room. The lights are
+            <If {lights}>on</If><Else>off</Else>.
+        </Description>
+        <Exit to=(VORTEX)>vortex</Exit>
+    </Room>
+    <Variable key=(lights) default={true} />
+</Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
 })
