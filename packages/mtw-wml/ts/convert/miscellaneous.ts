@@ -106,7 +106,6 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
                     schemaToWML: this.schemaToWML.bind(this),
                     tag: 'Exit',
                     properties: [
-                        { key: 'key', type: 'key', value: value.key },
                         { key: 'from', type: 'key', value: value.from },
                         { key: 'to', type: 'key', value: value.to },
                     ],

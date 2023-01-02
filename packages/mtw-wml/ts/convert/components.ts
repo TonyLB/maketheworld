@@ -376,7 +376,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 const roomContents: SchemaTag[] = [
                     ...(value.name.length ? [{ tag: 'Name' as 'Name', contents: value.name}] : []),
                     ...(value.render.length ? [{ tag: 'Description' as 'Description', contents: value.render }] : []),
-                    ...value.contents
+                    ...value.contents.filter((tag) => (!(isSchemaName(tag) || isSchemaDescription(tag))))
                 ]
                 return tagRender({
                     ...options,
@@ -395,7 +395,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 const featureContents: SchemaTag[] = [
                     ...(value.name ? [{ tag: 'Name' as 'Name', contents: value.name}] : []),
                     ...(value.render ? [{ tag: 'Description' as 'Description', contents: value.render }] : []),
-                    ...value.contents
+                    ...value.contents.filter((tag) => (!(isSchemaName(tag) || isSchemaDescription(tag))))
                 ]
                 return tagRender({
                     ...options,

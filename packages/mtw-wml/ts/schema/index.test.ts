@@ -147,4 +147,32 @@ describe('schemaToWML', () => {
         const testWML = `<Asset key=(Test)><Room key=(VORTEX) global></Room></Asset>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
+
+    it('should correctly rount-trip complicate rooms', () => {
+        const testWML = `<Asset key=(Test)>
+    <Room key=(VORTEX) global>
+        <Name>Vortex</Name>
+        <Description>
+            You float in a swirling mass of energy and debris.
+            <Link to=(doors)>Doors</Link>
+            to other realms drift around you.
+        </Description>
+        <Exit to=(welcome)>Welcome room</Exit>
+    </Room>
+    <Feature key=(doors)>
+        <Name>Drifting doors</Name>
+        <Description>Doors drifting in space</Description>
+    </Feature>
+    <Room key=(welcome)>
+        <Name>Welcome room</Name>
+        <Description>
+            A clean and sterile welcome room. The lights are
+            <If {lights}>on</If><Else>off</Else>.
+        </Description>
+        <Exit to=(VORTEX)>vortex</Exit>
+    </Room>
+    <Variable key=(lights) default={true} />
+</Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
 })
