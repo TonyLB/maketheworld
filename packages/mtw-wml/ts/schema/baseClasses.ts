@@ -121,10 +121,12 @@ export type SchemaUseTag = {
     type?: string;
 } & SchemaBase
 
-type SchemaImportMapping = {
+export type SchemaImportMapping = {
     key: string;
     type: 'Room' | 'Feature' | 'Variable' | 'Computed' | 'Action' | 'Map'
 }
+
+export const isSchemaImportMappingType = (value: string): value is SchemaImportMapping["type"] => (['Room', 'Feature', 'Variable', 'Computed', 'Action','Map'].includes(value))
 
 export type SchemaImportTag = {
     tag: 'Import';
