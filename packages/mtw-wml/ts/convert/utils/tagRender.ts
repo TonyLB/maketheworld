@@ -4,7 +4,7 @@ import { schemaDescriptionToWML } from "../description";
 import { BaseConverter, SchemaToWMLOptions } from "../functionMixins";
 
 type TagRenderProperty = {
-    key: string;
+    key?: string;
     type: 'key' | 'expression' | 'literal';
     value: string;
 } | {
@@ -15,15 +15,16 @@ type TagRenderProperty = {
 
 export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, properties, contents }: { schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string; indent: number, forceNest?: boolean, tag: string, context: SchemaTag[], properties: TagRenderProperty[]; contents: (string | SchemaTag)[]; }): string => {
     const propertyRender = properties.map((property) => {
+        const propertyKeyLead = `${property.key ? `${property.key}=` : '' }`
         switch(property.type) {
             case 'boolean':
                 return property.value ? `${property.key}` : ''
             case 'expression':
-                return property.value ? `${property.key}={${property.value}}` : ''
+                return property.value ? `${propertyKeyLead}{${property.value}}` : ''
             case 'key':
-                return property.value ? `${property.key}=(${property.value})` : ''
+                return property.value ? `${propertyKeyLead}(${property.value})` : ''
             case 'literal':
-                return property.value ? `${property.key}="${property.value}"` : ''
+                return property.value ? `${propertyKeyLead}"${property.value}"` : ''
         }
     }).filter((value) => (value))
     //

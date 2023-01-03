@@ -278,7 +278,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                             schemaToWML,
                             tag: 'ElseIf',
                             properties: [
-                                { key: 'src', type: 'expression', value: conditionsToSrc(remainingConditions) }
+                                { type: 'expression', value: conditionsToSrc(remainingConditions) }
                             ],
                             contents: value.contents,
                         })
@@ -298,7 +298,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                     schemaToWML,
                     tag: 'If',
                     properties: [
-                        { key: 'src', type: 'expression', value: conditionsToSrc(value.conditions) }
+                        { type: 'expression', value: conditionsToSrc(value.conditions) }
                     ],
                     contents: value.contents,
                 })
