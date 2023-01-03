@@ -22,8 +22,6 @@ export const wordWrapString = (value: string, options: SchemaToWMLOptions & { pa
 const mapTagRender = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
     const { returnValue } = tags.reduce<{ returnValue: string[], siblings: SchemaTag[] }>(
         (previous, tag) => {
-            console.log(`mapTagRender-Tag: ${JSON.stringify(tag, null, 4)}`)
-            console.log(`mapTagRender-Siblings: ${JSON.stringify(previous.siblings, null, 4)}`)
             return {
                 returnValue: [
                     ...previous.returnValue,
@@ -101,7 +99,6 @@ const breakTagsByNesting = (schemaToWML: (value: SchemaTag, options: SchemaToWML
 }
 
 const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
-    console.log(`PrintQueuedTags: ${JSON.stringify(tags, null, 4)}`)
     const { indent, siblings } = options
     let currentSiblings = [...(siblings ?? [])]
     let outputLines: string[] = []
@@ -158,8 +155,6 @@ export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: 
     let multiLine = forceNest ?? false
     let forceNestedRerun = false
     tags.forEach((tag) => {
-        console.log(`Tag: ${JSON.stringify(tag, null, 4)}`)
-        console.log(`Siblings: ${JSON.stringify(currentSiblings, null, 4)}`)
         if (!forceNestedRerun) {
             if (queue.length) {
                 //

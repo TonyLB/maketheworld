@@ -89,7 +89,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
         }
 
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
-            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1, context: [ ...options.context, value ] }))
+            const schemaToWML = (value: SchemaTag, passedOptions: SchemaToWMLOptions) => (this.schemaToWML(value, { ...passedOptions, indent: options.indent + 1, context: [ ...options.context, value ] }))
             if (isSchemaImage(value)) {
                 return tagRender({
                     ...options,

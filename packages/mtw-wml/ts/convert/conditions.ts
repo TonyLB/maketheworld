@@ -245,7 +245,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
         }
 
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
-            const schemaToWML = (value: SchemaTag) => (this.schemaToWML(value, { indent: options.indent + 1, context: [ ...options.context, value ] }))
+            const schemaToWML = (value: SchemaTag, passedOptions: SchemaToWMLOptions) => (this.schemaToWML(value, { ...passedOptions, indent: options.indent + 1, context: [ ...options.context, value ] }))
             if (isSchemaCondition(value)) {
                 const { siblings = [] } = options
                 console.log(`If-Siblings: ${JSON.stringify(siblings, null, 4)}`)
