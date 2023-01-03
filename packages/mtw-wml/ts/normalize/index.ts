@@ -842,6 +842,8 @@ export class Normalizer {
                     key,
                     tag: 'Room',
                     global: node.global ? true : undefined,
+                    ...(typeof roomAppearance.x !== 'undefined' ? { x: roomAppearance.x } : {}),
+                    ...(typeof roomAppearance.y !== 'undefined' ? { y: roomAppearance.y } : {}),
                     render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
                     name: (roomAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
                     contents: roomAppearance.contents
