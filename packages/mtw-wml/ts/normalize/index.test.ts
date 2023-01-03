@@ -289,12 +289,12 @@ describe('WML normalize', () => {
                 <Use key=(overview) type="Room" />
             </Import>
             <Room key=(a123)>
-                <Exit from=(b456) />
                 <Feature key=(clockTower) />
+                <Exit to=(b456) />
             </Room>
             <Map key=(TestMap)>
-                <Image key=(ImageTest) />
                 <Room key=(a123) x="200" y="150" />
+                <Image key=(ImageTest) />
             </Map>
             <Feature key=(clockTower)>
                 <Name>Clock Tower</Name>
