@@ -21,13 +21,17 @@ export const wordWrapString = (value: string, options: SchemaToWMLOptions & { pa
 
 const mapTagRender = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
     const { returnValue } = tags.reduce<{ returnValue: string[], siblings: SchemaTag[] }>(
-        (previous, tag) => ({
-            returnValue: [
-                ...previous.returnValue,
-                schemaToWML(tag, { ...options, siblings: previous.siblings, context: [ ...options.context, tag ] })
-            ],
-            siblings: [...previous.siblings, tag ]
-        }),
+        (previous, tag) => {
+            console.log(`mapTagRender-Tag: ${JSON.stringify(tag, null, 4)}`)
+            console.log(`mapTagRender-Siblings: ${JSON.stringify(previous.siblings, null, 4)}`)
+            return {
+                returnValue: [
+                    ...previous.returnValue,
+                    schemaToWML(tag, { ...options, siblings: previous.siblings, context: [ ...options.context, tag ] })
+                ],
+                siblings: [...previous.siblings, tag ]
+            }
+        },
         { returnValue: [], siblings: options.siblings ?? [] }
     )
     return returnValue
@@ -97,8 +101,9 @@ const breakTagsByNesting = (schemaToWML: (value: SchemaTag, options: SchemaToWML
 }
 
 const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
+    console.log(`PrintQueuedTags: ${JSON.stringify(tags, null, 4)}`)
     const { indent, siblings } = options
-    let currentSiblings = [...siblings ?? []]
+    let currentSiblings = [...(siblings ?? [])]
     let outputLines: string[] = []
     let tagsBeingConsidered: SchemaTaggedMessageLegalContents[] = []
     let prefix: string = ''
@@ -153,6 +158,8 @@ export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: 
     let multiLine = forceNest ?? false
     let forceNestedRerun = false
     tags.forEach((tag) => {
+        console.log(`Tag: ${JSON.stringify(tag, null, 4)}`)
+        console.log(`Siblings: ${JSON.stringify(currentSiblings, null, 4)}`)
         if (!forceNestedRerun) {
             if (queue.length) {
                 //
@@ -187,6 +194,6 @@ export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: 
     if (forceNestedRerun) {
         return schemaDescriptionToWML(schemaToWML)(tags, { ...options, forceNest: true })
     }
-    outputLines = [...outputLines, ...printQueuedTags(schemaToWML)(queue, options)]
+    outputLines = [...outputLines, ...printQueuedTags(schemaToWML)(queue, { ...options, siblings: currentSiblings })]
     return outputLines.join(`\n${indentSpacing(indent)}`)
 }
