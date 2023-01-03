@@ -922,7 +922,22 @@ export class Normalizer {
                     }))
                 }
         }
-        return undefined
+    }
+
+    //
+    // TODO: Find all top-level Normal appearances and generate a list of SchemaTags
+    // using _normalToSchema
+    //
+    get schema(): SchemaTag[] {
+        const topLevelAppearances: { key: string; appearanceIndex: number }[] = Object.entries(this._normalForm)
+            .reduce<{ key: string; appearanceIndex: number }[]>((previous, [key, { appearances }]) => {
+                return (appearances as BaseAppearance[]).reduce<{ key: string; appearanceIndex: number }[]>((accumulator, { contextStack }, index) => (
+                        contextStack.length === 0
+                            ? [...accumulator, { key, appearanceIndex: index }]
+                            : accumulator
+                    ), previous)
+            }, [])
+        return topLevelAppearances.map(({ key, appearanceIndex }) => (this._normalToSchema(key, appearanceIndex)))
     }
 }
 
