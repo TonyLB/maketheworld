@@ -1,24 +1,21 @@
 import { produce } from 'immer'
-import { objectMap } from '../lib/objects'
+import { isLegalParseConditionContextTag } from '../parser/baseClasses';
 import {
-    isSchemaCharacter,
     isSchemaExit,
     isSchemaWithContents,
     isSchemaWithKey,
     SchemaActionTag,
-    SchemaAssetLegalContents,
     SchemaAssetTag,
     SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
+    SchemaConditionTagDescriptionContext,
     SchemaTaggedMessageLegalContents,
-    SchemaFeatureLegalContents,
     SchemaFeatureTag,
+    isSchemaFeatureContents,
     SchemaImageTag,
     SchemaImportTag,
-    SchemaMapLegalContents,
     SchemaMapTag,
-    SchemaRoomLegalContents,
     SchemaRoomTag,
     SchemaStoryTag,
     SchemaTag,
@@ -27,16 +24,23 @@ import {
     isSchemaConditionTagDescriptionContext,
     SchemaBookmarkTag,
     SchemaMessageTag,
-    isSchemaTaggedMessageLegalContents,
-    isSchemaRoom,
-    SchemaMessageRoom,
     isSchemaImage,
-    SchemaTaggedMessageIncomingContents
+    SchemaTaggedMessageIncomingContents,
+    isSchemaAssetContents,
+    isSchemaRoomContents,
+    isSchemaTaggedMessageLegalContents,
+    isSchemaMessageContents,
+    isSchemaMessage,
+    isSchemaMapContents,
+    isSchemaString
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
+    ComponentAppearance,
     ComponentRenderItem,
     MapAppearance,
+    MessageAppearance,
+    MomentAppearance,
     NormalAction,
     NormalAsset,
     NormalBookmark,
@@ -126,6 +130,46 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
             tag: 'String' as 'String',
             value: ' '
         }
+    }
+}
+
+const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): SchemaTaggedMessageLegalContents => {
+    switch(renderItem.tag) {
+        case 'Condition':
+            return {
+                tag: 'If',
+                conditions: renderItem.conditions,
+                contextTag: 'Description' as 'Description',
+                contents: renderItem.contents
+                    .map(componentRenderToSchemaTaggedMessage)
+                    .filter((value) => (value))
+                    .filter(isSchemaTaggedMessageLegalContents)
+            } as SchemaConditionTagDescriptionContext
+        case 'Link':
+            return {
+                tag: 'Link',
+                to: renderItem.to,
+                text: renderItem.text
+            }
+        case 'Bookmark':
+            return {
+                tag: 'Bookmark',
+                key: renderItem.to,
+                contents: []
+            }
+        case 'LineBreak':
+            return {
+                tag: 'br'
+            }
+        case 'Space':
+            return {
+                tag: 'Space'
+            }
+        case 'String':
+            return {
+                tag: 'String',
+                value: renderItem.value
+            }
     }
 }
 
@@ -703,6 +747,200 @@ export class Normalizer {
 
     get normal() {
         return this._normalForm
+    }
+
+    _normalToSchema(key: string, appearanceIndex: number): SchemaTag | undefined {
+        const node = this._normalForm[key]
+        if (!node || appearanceIndex >= node.appearances.length) {
+            return undefined
+        }
+        const baseAppearance: BaseAppearance = node.appearances[appearanceIndex]
+        switch(node.tag) {
+            case 'Asset':
+                if (node.Story) {
+                    return {
+                        key,
+                        tag: 'Story',
+                        Story: true,
+                        instance: false,
+                        fileName: node.fileName,
+                        contents: baseAppearance.contents
+                            .map(({ key, index }) => (this._normalToSchema(key, index)))
+                            .filter((value) => (value))
+                            .filter(isSchemaAssetContents)
+                    }
+                }
+                else {
+                    return {
+                        key,
+                        tag: 'Asset',
+                        Story: undefined,
+                        fileName: node.fileName,
+                        contents: baseAppearance.contents
+                            .map(({ key, index }) => (this._normalToSchema(key, index)))
+                            .filter((value) => (value))
+                            .filter(isSchemaAssetContents)
+                    }
+                }
+            case 'Image':
+                return {
+                    key,
+                    tag: 'Image'
+                }
+            case 'Variable':
+                return {
+                    key,
+                    tag: 'Variable',
+                    default: node.default
+                }
+            case 'Computed':
+                return {
+                    key,
+                    tag: 'Computed',
+                    src: node.src,
+                    dependencies: node.dependencies
+                }
+            case 'Action':
+                return {
+                    key,
+                    tag: 'Action',
+                    src: node.src
+                }
+            case 'If':
+                const conditionContextTagList = baseAppearance.contextStack.map(({ tag }) => (tag)).filter(isLegalParseConditionContextTag)
+                const conditionContextTag = conditionContextTagList.length ? conditionContextTagList.slice(-1)[0] : 'Asset'
+                return {
+                    tag: 'If',
+                    contextTag: conditionContextTag,
+                    conditions: node.conditions,
+                    contents: baseAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+            } as SchemaConditionTag
+            //
+            // TODO: Recreate contents for Import SchemaTag
+            //
+            case 'Import':
+                return {
+                    tag: 'Import',
+                    from: node.from,
+                    mapping: {}
+                }
+            case 'Room':
+                const roomAppearance = baseAppearance as ComponentAppearance
+                return {
+                    key,
+                    tag: 'Room',
+                    global: node.global ? true : undefined,
+                    render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                    name: (roomAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                    contents: roomAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaRoomContents)
+                }
+            case 'Feature':
+                const featureAppearance = baseAppearance as ComponentAppearance
+                return {
+                    key,
+                    tag: 'Feature',
+                    global: node.global ? true : undefined,
+                    render: (featureAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                    name: (featureAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                    contents: featureAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaFeatureContents)
+                }
+            case 'Bookmark':
+                const bookmarkAppearance = baseAppearance as ComponentAppearance
+                return {
+                    key,
+                    tag: 'Bookmark',
+                    contents: (bookmarkAppearance.render || []).map(componentRenderToSchemaTaggedMessage)
+                }
+            case 'Message':
+                const messageAppearance = baseAppearance as MessageAppearance
+                return {
+                    key,
+                    tag: 'Message',
+                    render: (messageAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                    contents: messageAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaMessageContents),
+                    rooms: []
+                }
+            case 'Moment':
+                const momentAppearance = baseAppearance as MomentAppearance
+                return {
+                    key,
+                    tag: 'Moment',
+                    contents: momentAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaMessage)
+                }
+            case 'Map':
+                const mapAppearance = baseAppearance as MapAppearance
+                return {
+                    key,
+                    tag: 'Map',
+                    images: mapAppearance.images,
+                    name: (mapAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                    rooms: mapAppearance.rooms.map(({ location, ...room }) => ({
+                        ...room,
+                        index: (location.slice(-1) || [0])[0]
+                    })),
+                    contents: mapAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaMapContents)
+                }
+            case 'Exit':
+                return {
+                    key,
+                    tag: 'Exit',
+                    to: node.to,
+                    from: node.from,
+                    name: node.name,
+                    contents: baseAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaString)
+                }
+            case 'Character':
+                return {
+                    key,
+                    tag: 'Character',
+                    Name: node.Name,
+                    Pronouns: node.Pronouns,
+                    FirstImpression: node.FirstImpression,
+                    OneCoolThing: node.OneCoolThing,
+                    Outfit: node.Outfit,
+                    contents: node.images.map((key) => ({
+                        tag: 'Image',
+                        key
+                    })),
+                    fileName: node.fileName
+                }
+        }
+    }
+
+    //
+    // TODO: Find all top-level Normal appearances and generate a list of SchemaTags
+    // using _normalToSchema
+    //
+    get schema(): SchemaTag[] {
+        const topLevelAppearances: { key: string; appearanceIndex: number }[] = Object.entries(this._normalForm)
+            .reduce<{ key: string; appearanceIndex: number }[]>((previous, [key, { appearances }]) => {
+                return (appearances as BaseAppearance[]).reduce<{ key: string; appearanceIndex: number }[]>((accumulator, { contextStack }, index) => (
+                        contextStack.length === 0
+                            ? [...accumulator, { key, appearanceIndex: index }]
+                            : accumulator
+                    ), previous)
+            }, [])
+        return topLevelAppearances.map(({ key, appearanceIndex }) => (this._normalToSchema(key, appearanceIndex)))
     }
 }
 
