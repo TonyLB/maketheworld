@@ -171,3 +171,10 @@ export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementa
     await delayPromise(incrementalBackoff * 1000)
     return { internalData: { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) } }
 }
+
+//
+// TODO: Create regenerateWMLAction internals
+//
+export const regenerateWMLAction: PersonalAssetsAction = () => async(dispatch) => {
+    return {}
+}
