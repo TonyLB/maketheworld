@@ -377,6 +377,7 @@ export const isSchemaFeatureIncomingContents = (value: SchemaTag): value is Sche
 export const isSchemaRoomContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Image', 'Exit', 'Feature', 'Description', 'If'].includes(value.tag))
 export const isSchemaRoomIncomingContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Name', 'Image', 'Exit', 'Feature', 'Description', 'If'].includes(value.tag))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'If'].includes(value.tag))
+export const isSchemaMessageContents = (value: SchemaTag): value is SchemaMessageLegalContents => (isSchemaRoom(value) || isSchemaTaggedMessageLegalContents(value))
 
 export const isSchemaFirstImpression = (value: SchemaTag): value is SchemaFirstImpressionTag => (value.tag === 'FirstImpression')
 export const isSchemaOneCoolThing = (value: SchemaTag): value is SchemaOneCoolThingTag => (value.tag === 'OneCoolThing')

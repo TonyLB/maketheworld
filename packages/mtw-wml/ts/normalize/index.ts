@@ -12,6 +12,7 @@ import {
     SchemaConditionTagDescriptionContext,
     SchemaTaggedMessageLegalContents,
     SchemaFeatureTag,
+    isSchemaFeatureContents,
     SchemaImageTag,
     SchemaImportTag,
     SchemaMapTag,
@@ -27,13 +28,19 @@ import {
     SchemaTaggedMessageIncomingContents,
     isSchemaAssetContents,
     isSchemaRoomContents,
-    isSchemaTaggedMessageLegalContents
+    isSchemaTaggedMessageLegalContents,
+    isSchemaMessageContents,
+    isSchemaMessage,
+    isSchemaMapContents,
+    isSchemaString
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
     ComponentAppearance,
     ComponentRenderItem,
     MapAppearance,
+    MessageAppearance,
+    MomentAppearance,
     NormalAction,
     NormalAsset,
     NormalBookmark,
@@ -817,22 +824,102 @@ export class Normalizer {
                     from: node.from,
                     mapping: {}
                 }
-            //
-            // TODO: Create a mapping function for render lists and name lists
-            // back to SchemaTaggedMessage contents
-            //
             case 'Room':
                 const roomAppearance = baseAppearance as ComponentAppearance
                 return {
                     key,
                     tag: 'Room',
                     global: node.global ? true : undefined,
-                    render: [],
-                    name: [],
+                    render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                    name: (roomAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
                     contents: roomAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
                         .filter(isSchemaRoomContents)
+                }
+            case 'Feature':
+                const featureAppearance = baseAppearance as ComponentAppearance
+                return {
+                    key,
+                    tag: 'Feature',
+                    global: node.global ? true : undefined,
+                    render: (featureAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                    name: (featureAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                    contents: featureAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaFeatureContents)
+                }
+            case 'Bookmark':
+                const bookmarkAppearance = baseAppearance as ComponentAppearance
+                return {
+                    key,
+                    tag: 'Bookmark',
+                    contents: (bookmarkAppearance.render || []).map(componentRenderToSchemaTaggedMessage)
+                }
+            case 'Message':
+                const messageAppearance = baseAppearance as MessageAppearance
+                return {
+                    key,
+                    tag: 'Message',
+                    render: (messageAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                    contents: messageAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaMessageContents),
+                    rooms: []
+                }
+            case 'Moment':
+                const momentAppearance = baseAppearance as MomentAppearance
+                return {
+                    key,
+                    tag: 'Moment',
+                    contents: momentAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaMessage)
+                }
+            case 'Map':
+                const mapAppearance = baseAppearance as MapAppearance
+                return {
+                    key,
+                    tag: 'Map',
+                    images: mapAppearance.images,
+                    name: (mapAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                    rooms: mapAppearance.rooms.map(({ location, ...room }) => ({
+                        ...room,
+                        index: (location.slice(-1) || [0])[0]
+                    })),
+                    contents: mapAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaMapContents)
+                }
+            case 'Exit':
+                return {
+                    key,
+                    tag: 'Exit',
+                    to: node.to,
+                    from: node.from,
+                    name: node.name,
+                    contents: mapAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaString)
+                }
+            case 'Character':
+                return {
+                    key,
+                    tag: 'Character',
+                    Name: node.Name,
+                    Pronouns: node.Pronouns,
+                    FirstImpression: node.FirstImpression,
+                    OneCoolThing: node.OneCoolThing,
+                    Outfit: node.Outfit,
+                    contents: node.images.map((key) => ({
+                        tag: 'Image',
+                        key
+                    }))
                 }
         }
         return undefined
