@@ -144,7 +144,7 @@ describe('schemaFromParse', () => {
 //
 describe('schemaToWML', () => {
     it('should correctly round-trip the simplest asset', () => {
-        const testWML = `<Asset key=(Test)><Room key=(VORTEX) global></Room></Asset>`
+        const testWML = `<Asset key=(Test)><Room key=(VORTEX) global /></Asset>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 

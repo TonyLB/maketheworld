@@ -26,8 +26,6 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
                 return property.value ? `${property.key}="${property.value}"` : ''
         }
     }).filter((value) => (value))
-    const tagOpen = `<${[tag, ...propertyRender].join(' ')}>`
-    const tagClose = `</${tag}>`
     //
     // TODO: Add taggedMessageSiblingBase to reduce returns, in order to keep the starting point of
     // sibling tags for schemaDescriptionToWML, and then use that to equip schemaDescriptionToWML with
@@ -76,8 +74,10 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
             }
         }
     }, { returnValue: [], siblings: [], taggedMessageStack: [] })
+    const tagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(' ')}>` : `<${[tag, ...propertyRender].join(' ')} />`
+    const tagClose = mappedContents.length ? `</${tag}>` : ''
     const naive = `${tagOpen}${mappedContents.join('')}${tagClose}`
-    const nested = `${[tagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`
+    const nested = mappedContents.length ? `${[tagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}` : naive
     if (typeof forceNest === 'undefined') {
         return (naive.length > lineLengthAfterIndent(indent)) ? nested : naive
     }
