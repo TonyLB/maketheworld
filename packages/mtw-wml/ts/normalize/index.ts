@@ -9,6 +9,7 @@ import {
     SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
+    SchemaConditionTagDescriptionContext,
     SchemaTaggedMessageLegalContents,
     SchemaFeatureTag,
     SchemaImageTag,
@@ -25,7 +26,8 @@ import {
     isSchemaImage,
     SchemaTaggedMessageIncomingContents,
     isSchemaAssetContents,
-    isSchemaRoomContents
+    isSchemaRoomContents,
+    isSchemaTaggedMessageLegalContents
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -121,6 +123,46 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
             tag: 'String' as 'String',
             value: ' '
         }
+    }
+}
+
+const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): SchemaTaggedMessageLegalContents => {
+    switch(renderItem.tag) {
+        case 'Condition':
+            return {
+                tag: 'If',
+                conditions: renderItem.conditions,
+                contextTag: 'Description' as 'Description',
+                contents: renderItem.contents
+                    .map(componentRenderToSchemaTaggedMessage)
+                    .filter((value) => (value))
+                    .filter(isSchemaTaggedMessageLegalContents)
+            } as SchemaConditionTagDescriptionContext
+        case 'Link':
+            return {
+                tag: 'Link',
+                to: renderItem.to,
+                text: renderItem.text
+            }
+        case 'Bookmark':
+            return {
+                tag: 'Bookmark',
+                key: renderItem.to,
+                contents: []
+            }
+        case 'LineBreak':
+            return {
+                tag: 'br'
+            }
+        case 'Space':
+            return {
+                tag: 'Space'
+            }
+        case 'String':
+            return {
+                tag: 'String',
+                value: renderItem.value
+            }
     }
 }
 
