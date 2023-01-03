@@ -148,7 +148,7 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly rount-trip complicate rooms', () => {
+    it('should correctly round-trip complicated rooms', () => {
         const testWML = `<Asset key=(Test)>
     <Room key=(VORTEX) global>
         <Name>Vortex</Name>
@@ -175,4 +175,36 @@ describe('schemaToWML', () => {
 </Asset>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
+
+    it('should correctly round-trip variables and actions', () => {
+        const testWML = `<Asset key=(Test)>
+    <Variable key=(lights) default={true} />
+    <Variable key=(power) default={true} />
+    <Computed key=(illumination) src={lights && power} />
+    <Action key=(flipLightSwitch) src={
+        lights = !lights
+    } />
+</Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip a character', () => {
+        const testWML = `<Character key=(TESS)>
+    <Name>Tess</Name>
+    <Pronouns
+        subject="she"
+        object="her"
+        possessive="hers"
+        adjective="her"
+        reflexive="herself"
+    />
+    <FirstImpression>Frumpy Goth</FirstImpression>
+    <Outfit>
+        A tattered frock-coat kitbashed out of a black hoodie and dyed lace.
+    </Outfit>
+    <OneCoolThing>Fuchsia Eyes</OneCoolThing>
+</Character>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
 })
