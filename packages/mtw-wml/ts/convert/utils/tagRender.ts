@@ -13,7 +13,7 @@ type TagRenderProperty = {
     value: boolean;
 }
 
-export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, properties, contents }: { schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string; indent: number, forceNest?: boolean, tag: string, context: SchemaTag[], properties: TagRenderProperty[]; contents: (string | SchemaTag)[]; }): string => {
+export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, properties, contents }: { schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string; indent: number, forceNest?: 'closed' | 'contents' | 'properties', tag: string, context: SchemaTag[], properties: TagRenderProperty[]; contents: (string | SchemaTag)[]; }): string => {
     const propertyRender = properties.map((property) => {
         const propertyKeyLead = `${property.key ? `${property.key}=` : '' }`
         switch(property.type) {
@@ -76,13 +76,22 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
         }
     }, { returnValue: [], siblings: [], taggedMessageStack: [] })
     const tagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(' ')}>` : `<${[tag, ...propertyRender].join(' ')} />`
+    const nestedTagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}>` : `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}/>`
     const tagClose = mappedContents.length ? `</${tag}>` : ''
     const naive = `${tagOpen}${mappedContents.join('')}${tagClose}`
     const nested = mappedContents.length ? `${[tagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}` : naive
-    if (typeof forceNest === 'undefined') {
-        return (naive.length > lineLengthAfterIndent(indent)) ? nested : naive
-    }
-    else {
-        return forceNest ? nested : naive
+    const propertyNested = mappedContents.length ? `${[nestedTagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}` : nestedTagOpen
+    switch(forceNest) {
+        case 'closed': return naive
+        case 'contents':
+            return nested
+        case 'properties':
+            return propertyNested
+        default:
+            return (naive.length <= lineLengthAfterIndent(indent))
+                ? naive
+                : (nested.split('\n')[0] || '').length <= lineLengthAfterIndent(indent)
+                    ? nested
+                    : propertyNested
     }
 }
