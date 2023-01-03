@@ -21,13 +21,15 @@ export const wordWrapString = (value: string, options: SchemaToWMLOptions & { pa
 
 const mapTagRender = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
     const { returnValue } = tags.reduce<{ returnValue: string[], siblings: SchemaTag[] }>(
-        (previous, tag) => ({
-            returnValue: [
-                ...previous.returnValue,
-                schemaToWML(tag, { ...options, siblings: previous.siblings, context: [ ...options.context, tag ] })
-            ],
-            siblings: [...previous.siblings, tag ]
-        }),
+        (previous, tag) => {
+            return {
+                returnValue: [
+                    ...previous.returnValue,
+                    schemaToWML(tag, { ...options, siblings: previous.siblings, context: [ ...options.context, tag ] })
+                ],
+                siblings: [...previous.siblings, tag ]
+            }
+        },
         { returnValue: [], siblings: options.siblings ?? [] }
     )
     return returnValue
@@ -98,7 +100,7 @@ const breakTagsByNesting = (schemaToWML: (value: SchemaTag, options: SchemaToWML
 
 const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
     const { indent, siblings } = options
-    let currentSiblings = [...siblings ?? []]
+    let currentSiblings = [...(siblings ?? [])]
     let outputLines: string[] = []
     let tagsBeingConsidered: SchemaTaggedMessageLegalContents[] = []
     let prefix: string = ''
@@ -187,6 +189,6 @@ export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: 
     if (forceNestedRerun) {
         return schemaDescriptionToWML(schemaToWML)(tags, { ...options, forceNest: true })
     }
-    outputLines = [...outputLines, ...printQueuedTags(schemaToWML)(queue, options)]
+    outputLines = [...outputLines, ...printQueuedTags(schemaToWML)(queue, { ...options, siblings: currentSiblings })]
     return outputLines.join(`\n${indentSpacing(indent)}`)
 }
