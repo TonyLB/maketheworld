@@ -881,7 +881,7 @@ export class Normalizer {
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
                         .filter(isSchemaMessageContents),
-                    rooms: []
+                    rooms: messageAppearance.rooms.map(({ location, ...rest }) => ({ index: (location.slice(-1) || [0])[0], ...rest }))
                 }
             case 'Moment':
                 const momentAppearance = baseAppearance as MomentAppearance
