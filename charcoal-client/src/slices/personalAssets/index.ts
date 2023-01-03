@@ -9,7 +9,8 @@ import {
     saveWML,
     clearAction,
     backoffAction,
-    parseWML
+    parseWML,
+    regenerateWMLAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, setLoadedImage as setLoadedImageReducer } from './reducers'
@@ -22,7 +23,7 @@ export const {
 } = multipleSSM<PersonalAssetsNodes, PublicSelectors>({
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: ['FRESH', 'DIRTY'],
+    initialSSMDesired: ['FRESH', 'WMLDIRTY'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5
@@ -106,15 +107,29 @@ export const {
             },
             FRESH: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'DIRTY', 'NEEDSAVE']
+                choices: ['CLEAR', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDSAVE']
             },
-            DIRTY: {
+            WMLDIRTY: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'NEEDSAVE']
+                choices: ['CLEAR', 'SCHEMADIRTY', 'NEEDSAVE']
+            },
+            SCHEMADIRTY: {
+                stateType: 'CHOICE',
+                choices: ['REGENERATEWML']
+            },
+            REGENERATEWML: {
+                stateType: 'ATTEMPT',
+                action: regenerateWMLAction,
+                resolve: 'WMLDIRTY',
+                reject: 'WMLERROR'
+            },
+            WMLERROR: {
+                stateType: 'CHOICE',
+                choices: []
             },
             NEEDSAVE: {
                 stateType: 'REDIRECT',
-                newIntent: ['DIRTY', 'FRESH'],
+                newIntent: ['WMLDIRTY', 'FRESH'],
                 choices: ['GETSAVEURL']
             },
             GETSAVEURL: {

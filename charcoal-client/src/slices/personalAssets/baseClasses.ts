@@ -43,7 +43,10 @@ export interface PersonalAssetsNodes {
     FETCHDEFAULTSBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHERROR: ISSMChoiceNode;
     FRESH: ISSMChoiceNode;
-    DIRTY: ISSMChoiceNode;
+    WMLDIRTY: ISSMChoiceNode;
+    WMLERROR: ISSMChoiceNode;
+    SCHEMADIRTY: ISSMChoiceNode;
+    REGENERATEWML: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     NEEDSAVE: ISSMRedirectNode;
     GETSAVEURL: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SAVE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
