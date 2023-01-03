@@ -135,9 +135,16 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             const wmlQuery = new WMLQuery(value)
             const prettyPrinted = wmlQuery.prettyPrint().source
             dispatch(setCurrentWML(AssetId)({ value: prettyPrinted }))
+            //
+            // TODO: Activate WMLDIRTY updates, and check that they work properly
+            //
+            // dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY']}))
+            // dispatch(heartbeat)
         }
         else {
             dispatch(setCurrentWML(AssetId)({ value }))
+            // dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY']}))
+            // dispatch(heartbeat)
         }
     }
     const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importDefaults }) ), [normalForm, importDefaults])
