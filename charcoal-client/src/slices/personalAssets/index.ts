@@ -30,7 +30,8 @@ export const {
         publicData: {
             importDefaults: {},
             properties: {},
-            loadedImages: {}
+            loadedImages: {},
+            schema: []
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -49,7 +50,8 @@ export const {
             publicData: {
                 importDefaults: {},
                 properties: {},
-                loadedImages: {}
+                loadedImages: {},
+                schema: []
             }
         },
         states: {
