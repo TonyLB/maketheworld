@@ -13,7 +13,7 @@ import {
     regenerateWMLAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
-import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, setLoadedImage as setLoadedImageReducer } from './reducers'
+import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateSchema as updateSchemaReducer } from './reducers'
 
 export const {
     slice: personalAssetsSlice,
@@ -23,7 +23,7 @@ export const {
 } = multipleSSM<PersonalAssetsNodes, PublicSelectors>({
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: ['FRESH', 'WMLDIRTY'],
+    initialSSMDesired: ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5
@@ -39,7 +39,8 @@ export const {
     publicReducers: {
         setCurrentWML: setCurrentWMLReducer,
         setDraftWML: setDraftWMLReducer,
-        setLoadedImage: setLoadedImageReducer
+        setLoadedImage: setLoadedImageReducer,
+        updateSchema: updateSchemaReducer
     },
     publicSelectors,
     template: {
@@ -174,7 +175,8 @@ export const { addItem, setIntent } = personalAssetsSlice.actions
 export const {
     setCurrentWML,
     setDraftWML,
-    setLoadedImage
+    setLoadedImage,
+    updateSchema
 } = publicActions
 export const {
     getStatus,

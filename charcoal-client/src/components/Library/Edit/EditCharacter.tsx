@@ -446,7 +446,7 @@ export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
     const currentStatus = useSelector(getStatus(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))
 
-    return (['FRESH', 'DIRTY'].includes(currentStatus || '') && wmlQuery)
+    return (['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(currentStatus || '') && wmlQuery)
         ? 
             <LibraryAsset assetKey={assetKey || ''} character>
                 <Routes>
