@@ -763,6 +763,7 @@ export class Normalizer {
                         tag: 'Story',
                         Story: true,
                         instance: false,
+                        fileName: node.fileName,
                         contents: baseAppearance.contents
                             .map(({ key, index }) => (this._normalToSchema(key, index)))
                             .filter((value) => (value))
@@ -774,6 +775,7 @@ export class Normalizer {
                         key,
                         tag: 'Asset',
                         Story: undefined,
+                        fileName: node.fileName,
                         contents: baseAppearance.contents
                             .map(({ key, index }) => (this._normalToSchema(key, index)))
                             .filter((value) => (value))
@@ -902,7 +904,7 @@ export class Normalizer {
                     to: node.to,
                     from: node.from,
                     name: node.name,
-                    contents: mapAppearance.contents
+                    contents: baseAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
                         .filter(isSchemaString)
@@ -919,7 +921,8 @@ export class Normalizer {
                     contents: node.images.map((key) => ({
                         tag: 'Image',
                         key
-                    }))
+                    })),
+                    fileName: node.fileName
                 }
         }
     }

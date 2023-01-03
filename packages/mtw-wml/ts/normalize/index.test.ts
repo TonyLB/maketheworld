@@ -1,6 +1,5 @@
 import {
     NormalizeTagMismatchError,
-    NormalCharacter
 } from './baseClasses'
 import { clearGeneratedKeys } from './keyUtil'
 import Normalizer from '.'
@@ -8,6 +7,47 @@ import { schemaFromParse } from '../schema'
 import parse from '../parser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
+import { isSchemaBookmark, isSchemaFeature, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
+
+const removeParseFromSchema = (nodes: SchemaTag[]): SchemaTag[] => {
+    return nodes.map((node) => {
+        if (isSchemaRoom(node)) {
+            const { parse, ...rest } = node
+            return {
+                ...rest,
+                contents: removeParseFromSchema(rest.contents),
+                render: removeParseFromSchema(rest.render),
+                name: removeParseFromSchema(rest.name)
+            } as SchemaRoomTag
+        }
+        if (isSchemaFeature(node)) {
+            const { parse, ...rest } = node
+            return {
+                ...rest,
+                contents: removeParseFromSchema(rest.contents),
+                render: removeParseFromSchema(rest.render),
+                name: removeParseFromSchema(rest.name)
+            } as SchemaFeatureTag
+        }
+        if (isSchemaMessage(node)) {
+            const { parse, ...rest } = node
+            return {
+                ...rest,
+                render: removeParseFromSchema(rest.render),
+                contents: removeParseFromSchema(rest.contents)
+            } as SchemaMessageTag
+        }
+        if (isSchemaWithContents(node)) {
+            const { parse, ...rest } = node
+            return {
+                ...rest,
+                contents: removeParseFromSchema(rest.contents)
+            } as SchemaTag
+        }
+        const { parse, ...rest } = node
+        return rest
+    })
+}
 
 describe('WML normalize', () => {
 
@@ -241,4 +281,39 @@ describe('WML normalize', () => {
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         expect(() => { normalizer.add(testAsset[0], { contextStack: [], location: [0] }) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
     })
+
+    it('should correctly round-trip from schema to normalize and back', () => {
+        const testSource = `<Asset key=(Test) fileName="Test" >
+            <Import from=(BASE)>
+                <Use key=(basePower) as=(power) type="Variable" />
+                <Use key=(overview) type="Room" />
+            </Import>
+            <Room key=(a123)>
+                <Exit from=(b456) />
+                <Feature key=(clockTower) />
+            </Room>
+            <Map key=(TestMap)>
+                <Image key=(ImageTest) />
+                <Room key=(a123) x="200" y="150" />
+            </Map>
+            <Feature key=(clockTower)>
+                <Name>Clock Tower</Name>
+            </Feature>
+            <Variable key=(active) default={true} />
+            <Computed key=(inactive) src={!active} />
+            <Action key=(toggleActive) src={active = !active} />
+            <Bookmark key=(postFix)><Space />Inactive</Bookmark>
+            <Moment key=(activateMoment)>
+                <Message key=(activate)>
+                    <Room key=(a123) />
+                    It activates!
+                </Message>
+            </Moment>
+        </Asset>`
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.schema).toEqual(removeParseFromSchema(testAsset))
+    })
+
 })
