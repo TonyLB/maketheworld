@@ -32,7 +32,9 @@ import {
     isSchemaMessageContents,
     isSchemaMessage,
     isSchemaMapContents,
-    isSchemaString
+    isSchemaString,
+    isSchemaImportMappingType,
+    SchemaImportMapping
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -824,7 +826,15 @@ export class Normalizer {
                 return {
                     tag: 'Import',
                     from: node.from,
-                    mapping: {}
+                    mapping: Object.entries(node.mapping)
+                        .filter(([_, { type }]) => (isSchemaImportMappingType(type)))
+                        .reduce<Record<string, SchemaImportMapping>>((previous, [key, { key: from, type }]) => ({
+                            ...previous,
+                            [key]: {
+                                key: from,
+                                type: type as SchemaImportMapping["type"]
+                            }
+                        }), {})
                 }
             case 'Room':
                 const roomAppearance = baseAppearance as ComponentAppearance
