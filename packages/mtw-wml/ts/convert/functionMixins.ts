@@ -99,7 +99,7 @@ type ConverterTypeFromArgument<A> = A extends AnyConverterArgument ? A["typeGuar
 
 export type SchemaToWMLOptions = {
     indent: number;
-    forceNest?: boolean;
+    forceNest?: 'closed' | 'contents' | 'properties';
     context: SchemaTag[];
     siblings?: SchemaTag[];
 }
