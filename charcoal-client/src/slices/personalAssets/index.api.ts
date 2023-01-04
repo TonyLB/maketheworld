@@ -11,6 +11,7 @@ import { wmlQueryFromCache } from '../../lib/wmlQueryCache'
 import { TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
+import { schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -172,9 +173,9 @@ export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementa
     return { internalData: { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) } }
 }
 
-//
-// TODO: Create regenerateWMLAction internals
-//
-export const regenerateWMLAction: PersonalAssetsAction = () => async(dispatch) => {
-    return {}
+export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { schema = [] }}) => async(dispatch) => {
+    const newWML = schemaToWML(schema)
+    return {
+        publicData: { currentWML: newWML }
+    }
 }
