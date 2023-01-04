@@ -12,6 +12,7 @@ import { TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseCla
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
 import { schemaToWML } from '@tonylb/mtw-wml/dist/schema'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -173,8 +174,10 @@ export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementa
     return { internalData: { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) } }
 }
 
-export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { schema = [] }}) => async(dispatch) => {
-    const newWML = schemaToWML(schema)
+export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { normal = {} }}) => async(dispatch) => {
+    const normalizer = new Normalizer()
+    normalizer._normalForm = normal
+    const newWML = schemaToWML(normalizer.schema)
     return {
         publicData: { currentWML: newWML }
     }
