@@ -23,7 +23,7 @@ export const {
 } = multipleSSM<PersonalAssetsNodes, PublicSelectors>({
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'],
+    initialSSMDesired: ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5
@@ -32,7 +32,7 @@ export const {
             importDefaults: {},
             properties: {},
             loadedImages: {},
-            schema: []
+            normal: {}
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -53,7 +53,7 @@ export const {
                 importDefaults: {},
                 properties: {},
                 loadedImages: {},
-                schema: []
+                normal: {}
             }
         },
         states: {
@@ -108,13 +108,13 @@ export const {
             },
             FRESH: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDSAVE']
+                choices: ['CLEAR', 'WMLDIRTY', 'NORMALDIRTY', 'NEEDSAVE']
             },
             WMLDIRTY: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'SCHEMADIRTY', 'NEEDSAVE']
+                choices: ['CLEAR', 'NORMALDIRTY', 'NEEDSAVE']
             },
-            SCHEMADIRTY: {
+            NORMALDIRTY: {
                 stateType: 'CHOICE',
                 choices: ['REGENERATEWML']
             },
