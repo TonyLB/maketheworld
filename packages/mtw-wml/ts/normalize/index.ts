@@ -77,6 +77,7 @@ const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWith
 type NormalizerContext = {
     contextStack: NormalReference[];
     location: number[];
+    index?: number;
 }
 
 type NormalizeAddReturnValue = {
@@ -539,6 +540,12 @@ export class Normalizer {
         else {
             return returnValue
         }
+    }
+
+    delete(context: NormalizerContext = { contextStack: [], location: [] }): void {
+    }
+
+    edit(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): void {
     }
 
     _validateTags(node: SchemaTag): void {
