@@ -25,7 +25,7 @@ const getWMLQuery = createSelector(getWMLKey, (key) => {
 
 const getWMLSource = (state: PersonalAssetsPublic & { key: string }) => (getWMLQuery(state).source)
 
-const getNormalized = createSelector(getWMLQuery, getWMLSource, (wmlQuery) => (wmlQuery.normalize() || {}))
+const getNormalized = ({ normal }: PersonalAssetsPublic) => (normal)
 
 const getImportDefaults = (state: PersonalAssetsPublic) => (state.importDefaults)
 

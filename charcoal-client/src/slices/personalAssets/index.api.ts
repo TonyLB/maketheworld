@@ -36,8 +36,10 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
+    const normalizer = new Normalizer()
     if (id) {
         try {
+            normalizer.loadWML(assetWML)
             wmlQueryFromCache({ key: id, value: assetWML })
         }
         catch (err) {
@@ -50,22 +52,17 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             throw err
         }
     }
-    return { publicData: { originalWML: assetWML, currentWML: assetWML }}
+    return { publicData: { originalWML: assetWML, currentWML: assetWML, normal: normalizer.normal }}
 }
 
 type ImportsByAssets = Record<string, Record<string, string>>
 
-export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { currentWML }, internalData: { id } }) => async (dispatch) => {
-    if (!currentWML) {
-        throw new Error()
-    }
+export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal }, internalData: { id } }) => async (dispatch) => {
     if (!id) {
         return {}
     }
 
-    const wmlQuery = new WMLQuery(currentWML)
-    const normalized = wmlQuery.normalize()
-    const importsByAssetId = Object.values(normalized)
+    const importsByAssetId = Object.values(normal || {})
         .filter(({ tag }) => (tag === 'Import'))
         .map((item) => (item as NormalImport))
         .reduce((previous, { from, mapping }) => ({

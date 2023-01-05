@@ -8,6 +8,7 @@ jest.mock('../../../cacheDB')
 jest.mock('../../../lib/wmlQueryCache')
 import { wmlQueryFromCache } from '../../../lib/wmlQueryCache'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
 const wmlQueryFromCacheMock = wmlQueryFromCache as jest.Mock
 
@@ -43,6 +44,8 @@ const currentWML = `
     <Action key=(toggleOpen) src={open = !open} />
 </Asset>
 `
+const normalizer = new Normalizer()
+normalizer.loadWML(currentWML)
 
 const store = mockStore({
    personalAssets: {
@@ -51,6 +54,7 @@ const store = mockStore({
                publicData: {
                    originalWML: currentWML,
                    currentWML,
+                   normal: normalizer.normal,
                    importDefaults: {
                         DEF: {
                             Description: [{
