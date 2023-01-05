@@ -245,7 +245,7 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
 
 type LiteralTagFieldProps = {
     required?: boolean;
-    tag: keyof Omit<NormalCharacter, 'Pronouns' | 'appearances'>;
+    tag: keyof Omit<NormalCharacter, 'Pronouns' | 'appearances' | 'images'>;
     label: string;
 }
 
