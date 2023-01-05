@@ -1,4 +1,4 @@
-import { lineLengthAfterIndent, indentSpacing } from "."
+import { lineLengthAfterIndent, indentSpacing } from "./index"
 import { isSchemaTaggedMessageLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "../../schema/baseClasses";
 import { schemaDescriptionToWML } from "../description";
 import { BaseConverter, SchemaToWMLOptions } from "../functionMixins";

@@ -1,7 +1,6 @@
-import { current } from "immer"
 import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag, SchemaTaggedMessageLegalContents } from "../schema/baseClasses"
-import { BaseConverter, SchemaToWMLOptions } from "./functionMixins"
-import { indentSpacing, lineLengthAfterIndent } from "./utils"
+import { SchemaToWMLOptions } from "./functionMixins"
+import { indentSpacing, lineLengthAfterIndent } from "./utils/index"
 
 const areAdjacent = (a: SchemaTaggedMessageLegalContents, b: SchemaTaggedMessageLegalContents) => {
     const spaces = Boolean(
