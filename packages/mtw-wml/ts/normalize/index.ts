@@ -1,5 +1,8 @@
 import { produce } from 'immer'
 import { isLegalParseConditionContextTag } from '../parser/baseClasses';
+import { schemaFromParse } from '../schema';
+import parser from '../parser'
+import tokenizer from '../parser/tokenizer';
 import {
     isSchemaExit,
     isSchemaWithContents,
@@ -63,6 +66,7 @@ import {
     NormalVariable
 } from './baseClasses'
 import { keyForIfValue, keyForValue } from './keyUtil';
+import SourceStream from '../parser/tokenizer/sourceStream';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -745,6 +749,14 @@ export class Normalizer {
             // default:
             //     throw new NormalizeTagMismatchError(`Tag "${node.tag}" mistakenly processed in normalizer`)
         }
+    }
+
+    loadWML(wml: string): void {
+        this._normalForm = {}
+        const schema = schemaFromParse(parser(tokenizer(new SourceStream(wml))))
+        schema.forEach((item, index) => {
+            this.add(item, { contextStack: [], location: [index] })
+        })
     }
 
     get normal() {
