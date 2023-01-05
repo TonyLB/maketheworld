@@ -998,7 +998,7 @@ Object {
         ],
         "location": Array [
           0,
-          2,
+          3,
           0,
         ],
       },
@@ -1143,7 +1143,7 @@ Object {
         ],
         "location": Array [
           0,
-          2,
+          3,
         ],
         "rooms": Array [
           Object {
@@ -1151,7 +1151,7 @@ Object {
             "key": "a123",
             "location": Array [
               0,
-              2,
+              3,
               1,
             ],
             "x": 200,
@@ -1167,6 +1167,11 @@ Object {
     "appearances": Array [
       Object {
         "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123#b456",
+            "tag": "Exit",
+          },
           Object {
             "index": 0,
             "key": "clockTower",
@@ -1203,7 +1208,7 @@ Object {
         ],
         "location": Array [
           0,
-          2,
+          3,
           1,
         ],
         "name": Array [],
@@ -1232,7 +1237,7 @@ Object {
         ],
         "location": Array [
           0,
-          8,
+          9,
           0,
           0,
         ],
@@ -1243,6 +1248,35 @@ Object {
     "global": false,
     "key": "a123",
     "tag": "Room",
+  },
+  "a123#b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+      },
+    ],
+    "from": "a123",
+    "key": "a123#b456",
+    "name": "",
+    "tag": "Exit",
+    "to": "b456",
   },
   "activate": Object {
     "appearances": Array [
@@ -1268,7 +1302,7 @@ Object {
         ],
         "location": Array [
           0,
-          8,
+          9,
           0,
         ],
         "render": Array [
@@ -1282,7 +1316,7 @@ Object {
             "key": "a123",
             "location": Array [
               0,
-              8,
+              9,
               0,
               0,
             ],
@@ -1312,7 +1346,7 @@ Object {
         ],
         "location": Array [
           0,
-          8,
+          9,
         ],
         "messages": Array [
           "activate",
@@ -1335,7 +1369,7 @@ Object {
         ],
         "location": Array [
           0,
-          4,
+          5,
         ],
       },
     ],
@@ -1346,29 +1380,6 @@ Object {
   "b456": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
-          Object {
-            "index": 0,
-            "key": "b456#a123",
-            "tag": "Exit",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [],
-      },
-    ],
-    "key": "b456",
-    "tag": "Room",
-  },
-  "b456#a123": Object {
-    "appearances": Array [
-      Object {
         "contents": Array [],
         "contextStack": Array [
           Object {
@@ -1376,24 +1387,18 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-          Object {
-            "index": 0,
-            "key": "b456",
-            "tag": "Room",
-          },
         ],
         "location": Array [
           0,
-          1,
-          0,
+          2,
         ],
+        "name": Array [],
+        "render": Array [],
       },
     ],
-    "from": "b456",
-    "key": "b456#a123",
-    "name": "",
-    "tag": "Exit",
-    "to": "a123",
+    "global": false,
+    "key": "b456",
+    "tag": "Room",
   },
   "clockTower": Object {
     "appearances": Array [
@@ -1430,7 +1435,7 @@ Object {
         ],
         "location": Array [
           0,
-          3,
+          4,
         ],
         "name": Array [
           Object {
@@ -1458,7 +1463,7 @@ Object {
         ],
         "location": Array [
           0,
-          5,
+          6,
         ],
       },
     ],
@@ -1511,7 +1516,7 @@ Object {
         ],
         "location": Array [
           0,
-          7,
+          8,
         ],
         "render": Array [
           Object {
@@ -1567,7 +1572,7 @@ Object {
         ],
         "location": Array [
           0,
-          6,
+          7,
         ],
       },
     ],
@@ -1592,11 +1597,6 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "b456",
-            "tag": "Room",
-          },
-          Object {
-            "index": 1,
             "key": "b456",
             "tag": "Room",
           },
@@ -1693,20 +1693,9 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [],
-      },
-      Object {
-        "contents": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
         "location": Array [
           0,
-          2,
+          1,
         ],
         "name": Array [
           Object {
@@ -1717,6 +1706,7 @@ Object {
         "render": Array [],
       },
     ],
+    "global": false,
     "key": "b456",
     "tag": "Room",
   },
@@ -1739,6 +1729,7 @@ Object {
         "location": Array [
           0,
           1,
+          0,
         ],
       },
     ],

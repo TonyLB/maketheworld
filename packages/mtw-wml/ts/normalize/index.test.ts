@@ -66,9 +66,10 @@ describe('WML normalize', () => {
                 <Use key=(overview) type="Room" />
             </Import>
             <Room key=(a123)>
-                <Exit from=(b456) />
+                <Exit to=(b456) />
                 <Feature key=(clockTower) />
             </Room>
+            <Room key=(b456) />
             <Map key=(TestMap)>
                 <Image key=(ImageTest) />
                 <Room key=(a123) x="200" y="150" />
@@ -131,9 +132,9 @@ describe('WML normalize', () => {
                 <Name>Vortex</Name>
                 <Exit to=(b456) />
             </Room>
-            <Exit from=(b456) to=(a123) />
             <Room key=(b456)>
                 <Name>Welcome</Name>
+                <Exit to=(a123) />
             </Room>
         </Asset>`
         const normalizer = new Normalizer()
