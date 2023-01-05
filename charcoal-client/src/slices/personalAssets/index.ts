@@ -13,7 +13,7 @@ import {
     regenerateWMLAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
-import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateSchema as updateSchemaReducer } from './reducers'
+import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer } from './reducers'
 
 export const {
     slice: personalAssetsSlice,
@@ -40,7 +40,7 @@ export const {
         setCurrentWML: setCurrentWMLReducer,
         setDraftWML: setDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
-        updateSchema: updateSchemaReducer
+        updateNormal: updateNormalReducer
     },
     publicSelectors,
     template: {
