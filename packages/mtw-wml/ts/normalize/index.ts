@@ -71,6 +71,7 @@ import {
 import { keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
+import { objectFilterEntries } from '../lib/objects';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -266,19 +267,29 @@ export class Normalizer {
 
     _renameItem(fromKey: string, toKey: string): void {
         const appearances = this._normalForm[fromKey]?.appearances || []
-        appearances.forEach(({ contents, contextStack }) => {
+        this._normalForm = { ...this._normalForm, [toKey]: this._normalForm[fromKey] }
+        const tag = this._normalForm[toKey].tag
+        appearances.forEach(({ contextStack }, index) => {
             //
             // Change references for all parents that have this key in their contents
             //
             if (contextStack.length > 0) {
                 const parent = contextStack.slice(-1)[0]
-
+                this._updateAppearance(parent, (draft) => {
+                    draft.contents.forEach((contentItem) => {
+                        if (contentItem.key === fromKey) {
+                            contentItem.key = toKey
+                        }
+                    })
+                })
             }
 
             //
-            // Change references for all children that have this key in their contextStack
+            // Change references for all descendants that have this key in their contextStack
             //
+            this._reindexReference({ key: toKey, index, tag }, contextStack)
         })
+        this._normalForm = objectFilterEntries(this._normalForm, ([key]) => (key !== fromKey))
     }
 
     //
