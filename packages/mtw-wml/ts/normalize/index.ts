@@ -45,6 +45,7 @@ import {
     BaseAppearance,
     ComponentAppearance,
     ComponentRenderItem,
+    isNormalCondition,
     MapAppearance,
     MessageAppearance,
     MomentAppearance,
@@ -68,7 +69,7 @@ import {
     NormalRoom,
     NormalVariable
 } from './baseClasses'
-import { keyForIfValue, keyForValue } from './keyUtil';
+import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
 import { objectFilterEntries } from '../lib/objects';
@@ -251,11 +252,11 @@ export class Normalizer {
     // _removeReference accepts a NormalReference and removes it, along with all references
     // in its content tree
     //
-    _removeReference(reference: NormalReference): void {
+    _removeAppearance(reference: NormalReference): void {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
             const { contents } = appearance
-            contents.forEach((contentReference) => { this._removeReference(contentReference) })
+            contents.forEach((contentReference) => { this._removeAppearance(contentReference) })
             this._normalForm = produce(this._normalForm, (draft) => {
                 draft[reference.key].appearances.splice(reference.index, 1)
                 if (!draft[reference.key].appearances.length) {
@@ -290,6 +291,28 @@ export class Normalizer {
             this._reindexReference({ key: toKey, index, tag }, contextStack)
         })
         this._normalForm = objectFilterEntries(this._normalForm, ([key]) => (key !== fromKey))
+    }
+
+    //
+    // _renameAllConditions takes an altered normal form (e.g., one in which a condition
+    // has been removed, leaving a gap in the naming sequence) and compresses all of the
+    // synthetic keys, reassigning where necessary.
+    //
+    _renameAllConditions(): void {
+        const conditionItems: NormalCondition[] = Object.values(this._normalForm)
+            .filter(isNormalCondition)
+            .sort(({ key: keyA }, { key: keyB }) => {
+                const indexA = parseInt(keyA.slice(3))
+                const indexB = parseInt(keyB.slice(3))
+                return indexA - indexB
+            })
+        compressIfKeys(conditionItems.map(({ key }) => (key)))
+        conditionItems.forEach(({ key, conditions }) => {
+            const newKey = keyForIfValue(conditions)
+            if (key !== newKey) {
+                this._renameItem(key, newKey)
+            }
+        })
     }
 
     //
@@ -492,7 +515,8 @@ export class Normalizer {
                     }
                 })
             }
-            this._removeReference(reference)
+            this._removeAppearance(reference)
+            this._renameAllConditions()
         }
     }
 

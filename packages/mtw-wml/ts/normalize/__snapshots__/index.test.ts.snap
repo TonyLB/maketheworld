@@ -188,6 +188,246 @@ Object {
 }
 `;
 
+exports[`WML normalize delete method should rename synthetic keys to fill in gaps for deleted conditionals 1`] = `
+Object {
+  "If-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testOne",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          3,
+        ],
+      },
+    ],
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "testVarOne",
+        ],
+        "if": "testVarOne",
+      },
+    ],
+    "key": "If-0",
+    "tag": "If",
+  },
+  "If-1": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "testOne",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          5,
+        ],
+      },
+    ],
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "testVarThree",
+        ],
+        "if": "testVarThree",
+      },
+    ],
+    "key": "If-2",
+    "tag": "If",
+  },
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testVarOne",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "testVarTwo",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "testVarThree",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "If-0",
+            "tag": "If",
+          },
+          Object {
+            "index": 0,
+            "key": "If-1",
+            "tag": "If",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "testOne": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "If-0",
+            "tag": "If",
+          },
+        ],
+        "location": Array [
+          0,
+          3,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "If-2",
+            "tag": "If",
+          },
+        ],
+        "location": Array [
+          0,
+          5,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Three",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "testOne",
+    "tag": "Room",
+  },
+  "testVarOne": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "testVarOne",
+    "tag": "Variable",
+  },
+  "testVarThree": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          2,
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "testVarThree",
+    "tag": "Variable",
+  },
+  "testVarTwo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "testVarTwo",
+    "tag": "Variable",
+  },
+}
+`;
+
 exports[`WML normalize put method should add an item in contents 1`] = `
 Object {
   "TestAsset": Object {
