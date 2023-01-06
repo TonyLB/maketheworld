@@ -38,7 +38,8 @@ import {
     isSchemaString,
     isSchemaImportMappingType,
     SchemaImportMapping,
-    SchemaException
+    SchemaException,
+    SchemaMomentTag
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -62,6 +63,7 @@ import {
     NormalizeTagMismatchError,
     NormalMap,
     NormalMessage,
+    NormalMoment,
     NormalReference,
     NormalRoom,
     NormalVariable
@@ -181,6 +183,11 @@ export class Normalizer {
     _tags: NormalizeTagTranslationMap = {}
 
     constructor() {}
+
+    _lookupAppearance(reference: NormalReference): BaseAppearance | undefined {
+        return this._normalForm?.[reference.key]?.appearances?.[reference.index]
+    }
+
     _mergeAppearance(key: string, item: NormalItem): number {
         if (key in this._normalForm) {
             this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
@@ -210,6 +217,14 @@ export class Normalizer {
     }
 
     //
+    // _reindexReference accepts a NormalReference and walks down all of its content tree,
+    // updating the contextStack entries of each appearance to make sure that they reflect
+    // the correct (e.g. updated) reference
+    //
+    _reindexReference(reference: NormalReference, contextStack?: NormalReference[]): void {
+    }
+
+    //
     // TODO: Add a way to normalize a SchemaCharacterTag, or do some equivalent translation as
     // the client demands
     //
@@ -228,10 +243,6 @@ export class Normalizer {
         let appearanceIndex: number
         let returnKey: string = node.key
         switch(node.tag) {
-            //
-            // TODO:  Simplify WML syntax around Exits, so that they can only be created in the Rooms from which they lead, and subsequently
-            // simplify all this code as well.
-            //
             case 'Exit':
                 appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
                 returnValue = {
@@ -461,6 +472,7 @@ export class Normalizer {
     _translate(appearance: BaseAppearance, node: SchemaFeatureTag): NormalFeature
     _translate(appearance: BaseAppearance, node: SchemaBookmarkTag): NormalBookmark
     _translate(appearance: BaseAppearance, node: SchemaMessageTag): NormalMessage
+    _translate(appearance: BaseAppearance, node: SchemaMomentTag): NormalMoment
     _translate(appearance: BaseAppearance, node: SchemaMapTag): NormalMap
     _translate(appearance: BaseAppearance, node: SchemaCharacterTag): NormalCharacter
     _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem
@@ -636,7 +648,10 @@ export class Normalizer {
         if (!node || appearanceIndex >= node.appearances.length) {
             return undefined
         }
-        const baseAppearance: BaseAppearance = node.appearances[appearanceIndex]
+        const baseAppearance = this._lookupAppearance({ key, index: appearanceIndex, tag: node.tag })
+        if (!baseAppearance) {
+            return undefined
+        }
         switch(node.tag) {
             case 'Asset':
                 if (node.Story) {
