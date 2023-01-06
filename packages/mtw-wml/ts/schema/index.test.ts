@@ -31,7 +31,6 @@ describe('schemaFromParse', () => {
                     </Else>
                     <Link to=(toggleOpen)>(toggle)</Link>
                 </Description>
-                <Exit from=(DEF)>vortex</Exit>
             </Room>
             <If {open}>
                 <Room key=(ABC)>
@@ -40,6 +39,7 @@ describe('schemaFromParse', () => {
             </If>
             <Room key=(DEF)>
                 <Name>Welcome</Name>
+                <Exit to=(DEF)>vortex</Exit>
             </Room>
             <Variable key=(open) default={false} />
             <Action key=(toggleOpen) src={open = !open} />

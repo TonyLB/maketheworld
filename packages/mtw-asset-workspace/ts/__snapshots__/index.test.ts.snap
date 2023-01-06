@@ -33,11 +33,6 @@ Object {
             "key": "b456",
             "tag": "Room",
           },
-          Object {
-            "index": 1,
-            "key": "b456",
-            "tag": "Room",
-          },
         ],
         "contextStack": Array [],
         "location": Array [
@@ -99,7 +94,7 @@ Object {
         "location": Array [
           0,
           0,
-          1,
+          0,
         ],
       },
     ],
@@ -126,17 +121,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [],
-      },
-      Object {
-        "contents": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
         "location": Array [
           0,
           1,
@@ -145,6 +129,7 @@ Object {
         "render": Array [],
       },
     ],
+    "global": false,
     "key": "b456",
     "tag": "Room",
   },
@@ -166,7 +151,7 @@ Object {
         ],
         "location": Array [
           0,
-          0,
+          1,
           0,
         ],
       },

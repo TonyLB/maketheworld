@@ -133,19 +133,6 @@ Array [
         "tag": "Exit",
         "to": "Test",
       },
-      Object {
-        "contents": Array [
-          Object {
-            "tag": "String",
-            "value": "vortex",
-          },
-        ],
-        "from": "Test",
-        "key": "Test#VORTEX",
-        "name": "vortex",
-        "tag": "Exit",
-        "to": "VORTEX",
-      },
     ],
     "display": undefined,
     "global": true,
@@ -322,14 +309,14 @@ Array [
     "contents": Array [
       Object {
         "tag": "String",
-        "value": "vortex",
+        "value": "test",
       },
     ],
-    "from": "Test",
-    "key": "Test#VORTEX",
-    "name": "vortex",
+    "from": "VORTEX",
+    "key": "VORTEX#Test",
+    "name": "test",
     "tag": "Exit",
-    "to": "VORTEX",
+    "to": "Test",
   },
 ]
 `;
@@ -337,7 +324,21 @@ Array [
 exports[`newWMLQuery selector should properly select one level :nthChild filter 1`] = `
 Array [
   Object {
-    "contents": Array [],
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "vortex",
+          },
+        ],
+        "from": "Test",
+        "key": "Test#VORTEX",
+        "name": "vortex",
+        "tag": "Exit",
+        "to": "VORTEX",
+      },
+    ],
     "display": undefined,
     "global": undefined,
     "key": "Test",
@@ -382,19 +383,6 @@ Array [
         "tag": "Exit",
         "to": "Test",
       },
-      Object {
-        "contents": Array [
-          Object {
-            "tag": "String",
-            "value": "vortex",
-          },
-        ],
-        "from": "Test",
-        "key": "Test#VORTEX",
-        "name": "vortex",
-        "tag": "Exit",
-        "to": "VORTEX",
-      },
     ],
     "display": undefined,
     "global": true,
@@ -436,7 +424,21 @@ Array [
     "y": undefined,
   },
   Object {
-    "contents": Array [],
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "vortex",
+          },
+        ],
+        "from": "Test",
+        "key": "Test#VORTEX",
+        "name": "vortex",
+        "tag": "Exit",
+        "to": "VORTEX",
+      },
+    ],
     "display": undefined,
     "global": undefined,
     "key": "Test",

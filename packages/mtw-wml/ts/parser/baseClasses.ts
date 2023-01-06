@@ -24,7 +24,6 @@ export type ParseAssetLegalContents = ParseActionTag |
     ParseConditionTag |
     ParseElseTag |
     ParseElseIfTag |
-    ParseExitTag |
     ParseFeatureTag |
     ParseImageTag |
     ParseImportTag |
@@ -263,7 +262,7 @@ export type ParseFeatureTag = {
 
 export type ParseBookmarkTag = ParseTaggedMessageTag<"Bookmark"> & { key: string; }
 
-export type ParseMapLegalContents = ParseNameTag | ParseRoomTag | ParseImageTag | ParseExitTag | ParseConditionTagMapContext | ParseElseTagMapContext | ParseElseIfTagMapContext
+export type ParseMapLegalContents = ParseNameTag | ParseRoomTag | ParseImageTag | ParseConditionTagMapContext | ParseElseTagMapContext | ParseElseIfTagMapContext
 export type ParseMapTag = {
     tag: 'Map';
     key: string;

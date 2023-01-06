@@ -558,7 +558,7 @@ export class WMLQuery {
     normalize(): NormalForm {
         const normalizer = new Normalizer()
         this._schema.forEach((tag, index) => {
-            normalizer.add(tag, { contextStack: [], location: [index] })
+            normalizer.put(tag, { contextStack: [], location: [index] })
         })
         return normalizer.normal
     }

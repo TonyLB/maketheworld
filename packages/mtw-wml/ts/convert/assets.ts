@@ -26,7 +26,7 @@ export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                         }
                     },
                     contents: {
-                        legal: ['Action', 'Computed', 'If', 'Else', 'ElseIf', 'Exit', 'Feature', 'Bookmark', 'Import', 'Room', 'Variable', 'Map', 'Message', 'Moment'],
+                        legal: ['Action', 'Computed', 'If', 'Else', 'ElseIf', 'Feature', 'Bookmark', 'Import', 'Room', 'Variable', 'Map', 'Message', 'Moment'],
                         ignore: ['Whitespace', 'Comment']
                     }
                 })(value)

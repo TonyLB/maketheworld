@@ -196,7 +196,7 @@ export class AssetWorkspace {
         // file is encountered.
         //
         if (schema.length > 1) {
-            throw new ParseException('Multi-Asset files are not yet implemented', schema[1].parse.startTagToken, schema[1].parse.startTagToken)
+            throw new ParseException('Multi-Asset files are not yet implemented', schema[1].parse?.startTagToken ?? 0, schema[1].parse?.startTagToken ?? 0)
         }
         const normalizer = new Normalizer()
         schema.forEach((item, index) => {

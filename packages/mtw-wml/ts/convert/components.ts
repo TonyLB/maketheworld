@@ -152,7 +152,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         optional: {}
                     },
                     contents: {
-                        legal: ['Name', 'Room', 'Exit', 'Image', 'If', 'Else', 'ElseIf'],
+                        legal: ['Name', 'Room', 'Image', 'If', 'Else', 'ElseIf'],
                         ignore: ['Whitespace', 'Comment']
                     }
                 })(value)
