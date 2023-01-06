@@ -70,6 +70,7 @@ import {
 } from './baseClasses'
 import { keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
+import { WritableDraft } from 'immer/dist/internal';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -188,6 +189,14 @@ export class Normalizer {
         return this._normalForm?.[reference.key]?.appearances?.[reference.index]
     }
 
+    _updateAppearance(reference: NormalReference, update: (draft: WritableDraft<BaseAppearance>) => void): void {
+        if (this._lookupAppearance(reference)) {
+            this._normalForm = { ...produce(this._normalForm, (draft) => {
+                update(draft[reference.key].appearances[reference.index])
+            })}
+        }
+    }
+
     _mergeAppearance(key: string, item: NormalItem): number {
         if (key in this._normalForm) {
             this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
@@ -225,8 +234,8 @@ export class Normalizer {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
             if (contextStack) {
-                this._normalForm = produce(this._normalForm, (draft) => {
-                    draft[reference.key].appearances[reference.index].contextStack = contextStack
+                this._updateAppearance(reference, (draft) => {
+                    draft.contextStack = contextStack
                 })
             }
             const { contents } = appearance
@@ -253,6 +262,23 @@ export class Normalizer {
                 }
             })
         }
+    }
+
+    _renameItem(fromKey: string, toKey: string): void {
+        const appearances = this._normalForm[fromKey]?.appearances || []
+        appearances.forEach(({ contents, contextStack }) => {
+            //
+            // Change references for all parents that have this key in their contents
+            //
+            if (contextStack.length > 0) {
+                const parent = contextStack.slice(-1)[0]
+
+            }
+
+            //
+            // Change references for all children that have this key in their contextStack
+            //
+        })
     }
 
     //
