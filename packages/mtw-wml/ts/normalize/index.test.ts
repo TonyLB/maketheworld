@@ -361,5 +361,25 @@ describe('WML normalize', () => {
             normalizer.delete({ key: 'test', index: 0, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
+
+        it('should cascade deletes when removing an appearance with contents', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Variable key=(testVar) default={false} />
+                <Room key=(testOne)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Room key=(testOne)>
+                    <If {testVar}><Exit to=(testTwo)>go</Exit></If>
+                </Room>
+                <Room key=(testTwo) />
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.delete({ key: 'testOne', index: 1, tag: 'Room' })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
     })
 })
