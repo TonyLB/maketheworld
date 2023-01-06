@@ -224,8 +224,8 @@ export class Normalizer {
     // that it has added to the NormalForm mapping as children of the most granular level of the context
     // (i.e., if a feature is being added in a Room then that feature becomes a child of that room)
     //
-    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference[] {
-        let returnValue: NormalReference[] = []
+    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference | undefined {
+        let returnValue: NormalReference = undefined
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return returnValue
         }
@@ -239,11 +239,11 @@ export class Normalizer {
             //
             case 'Exit':
                 appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
-                returnValue = [{
+                returnValue = {
                     tag: 'Exit',
                     key: node.key,
                     index: appearanceIndex
-                }]
+                }
                 break
             case 'Import':
                 //
@@ -286,7 +286,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                )[0]
+                                )
                         case 'Feature':
                             return this.add(
                                     {
@@ -306,7 +306,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                )[0]
+                                )
                         case 'Variable':
                             return this.add(
                                     {
@@ -320,7 +320,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                )[0]
+                                )
                         case 'Computed':
                             return this.add(
                                     {
@@ -338,7 +338,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                )[0]
+                                )
                         case 'Action':
                             return this.add(
                                     {
@@ -354,7 +354,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                )[0]
+                                )
                         //
                         // TODO: Add import for Bookmarks
                         //
@@ -363,20 +363,20 @@ export class Normalizer {
                     }
                 })
                 this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
-                return [{
+                return {
                     key: translatedImport.key,
                     tag: 'Import',
                     index: importIndex
-                }]
+                }
             default:
                 const translatedItem = this._translate({ ...context, contents: [] }, node)
                 returnKey = translatedItem.key
                 appearanceIndex = this._mergeAppearance(returnKey, translatedItem)
-                returnValue = [{
+                returnValue = {
                     key: returnKey,
                     tag: node.tag,
                     index: appearanceIndex
-                }]
+                }
         }
         if (isSchemaWithContents(node) && !isSchemaExit(node)) {
             const contentReferences = (node.contents as SchemaTag[]).reduce((previous, contentNode, index) => {
@@ -394,10 +394,10 @@ export class Normalizer {
                         index
                     ]
                 }
-                const newChildren = this.add(contentNode, updateContext)
+                const newChild = this.add(contentNode, updateContext)
                 return [
                     ...previous,
-                    ...newChildren
+                    ...(newChild ? [newChild] : [])
                 ]
             }, [] as NormalReference[])
             this._updateAppearanceContents(returnKey, appearanceIndex, contentReferences)
