@@ -288,4 +288,78 @@ describe('WML normalize', () => {
         expect(normalizer.schema).toEqual(removeParseFromSchema(testAsset))
     })
 
+    describe('put method', () => {
+        it('should add an item in contents', () => {
+            const testSource = `<Asset key=(TestAsset) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Two
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            //
+            // TODO: Refactor put arguments to allow:
+            //    (a) specifying the item into the contents of which the element should be added/put
+            //    (b) specifying an optional index in the contents order at which to put
+            //    (c) specifying whether the put should insert or overwrite
+            //
+            normalizer.put(
+                { tag: 'Name' as 'Name', contents: [{ tag: 'String', value: 'TestName' }] },
+                {
+                    contextStack: [
+                        { tag: 'Asset', key: 'TestAsset', index: 0 },
+                        { tag: 'Room', key: 'test', index: 0 }
+                    ],
+                    location: [0, 0]
+                }
+            )
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+        
+    })
+
+    describe('delete method', () => {
+        it('should remove a single appearance', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Two
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.delete({ key: 'test', index: 1, tag: 'Room' })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should remove the entire element on removing last appearance', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.delete({ key: 'test', index: 0, tag: 'Room' })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+    })
 })

@@ -400,10 +400,7 @@ export class Normalizer {
         return returnValue
     }
 
-    delete(context: NormalizerContext = { contextStack: [], location: [] }): void {
-    }
-
-    edit(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): void {
+    delete(reference: NormalReference): void {
     }
 
     _validateTags(node: SchemaTag): void {
