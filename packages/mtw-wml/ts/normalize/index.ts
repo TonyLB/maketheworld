@@ -81,11 +81,6 @@ type NormalizerContext = {
     index?: number;
 }
 
-type NormalizeAddReturnValue = {
-    children: NormalReference[];
-    siblings: NormalReference[];
-}
-
 type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character" | "Message" | "Moment">
 
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
@@ -220,11 +215,11 @@ export class Normalizer {
     //
 
     //
-    // add accepts an incoming tag and a context, and returns a list of NormalReference returns for things
+    // put accepts an incoming tag and a context, and returns a list of NormalReference returns for things
     // that it has added to the NormalForm mapping as children of the most granular level of the context
     // (i.e., if a feature is being added in a Room then that feature becomes a child of that room)
     //
-    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference | undefined {
+    put(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference | undefined {
         let returnValue: NormalReference = undefined
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return returnValue
@@ -268,7 +263,7 @@ export class Normalizer {
                     }    
                     switch(type) {
                         case 'Room':
-                            return this.add(
+                            return this.put(
                                     {
                                         key,
                                         tag: 'Room',
@@ -288,7 +283,7 @@ export class Normalizer {
                                     updatedContext
                                 )
                         case 'Feature':
-                            return this.add(
+                            return this.put(
                                     {
                                         key,
                                         tag: 'Feature',
@@ -308,7 +303,7 @@ export class Normalizer {
                                     updatedContext
                                 )
                         case 'Variable':
-                            return this.add(
+                            return this.put(
                                     {
                                         key,
                                         tag: 'Variable',
@@ -322,7 +317,7 @@ export class Normalizer {
                                     updatedContext
                                 )
                         case 'Computed':
-                            return this.add(
+                            return this.put(
                                     {
                                         key,
                                         tag: 'Computed',
@@ -340,7 +335,7 @@ export class Normalizer {
                                     updatedContext
                                 )
                         case 'Action':
-                            return this.add(
+                            return this.put(
                                     {
                                         key,
                                         tag: 'Action',
@@ -394,7 +389,7 @@ export class Normalizer {
                         index
                     ]
                 }
-                const newChild = this.add(contentNode, updateContext)
+                const newChild = this.put(contentNode, updateContext)
                 return [
                     ...previous,
                     ...(newChild ? [newChild] : [])
@@ -631,7 +626,7 @@ export class Normalizer {
         this._normalForm = {}
         const schema = schemaFromParse(parser(tokenizer(new SourceStream(wml))))
         schema.forEach((item, index) => {
-            this.add(item, { contextStack: [], location: [index] })
+            this.put(item, { contextStack: [], location: [index] })
         })
     }
 

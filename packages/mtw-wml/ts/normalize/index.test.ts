@@ -90,7 +90,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
     })
 
@@ -110,7 +110,7 @@ describe('WML normalize', () => {
         </Character>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
     })
 
@@ -134,7 +134,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
 
     })
@@ -158,7 +158,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
 
     })
@@ -192,7 +192,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
 
     })
@@ -215,7 +215,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
 
     })
@@ -235,7 +235,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
     })
 
@@ -251,7 +251,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        expect(() => { normalizer.add(testAsset[0], { contextStack: [], location: [0] }) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
+        expect(() => { normalizer.put(testAsset[0], { contextStack: [], location: [0] }) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
     })
 
     it('should correctly round-trip from schema to normalize and back', () => {
@@ -284,7 +284,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.schema).toEqual(removeParseFromSchema(testAsset))
     })
 
