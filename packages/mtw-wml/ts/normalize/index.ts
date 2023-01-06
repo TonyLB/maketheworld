@@ -220,25 +220,12 @@ export class Normalizer {
     //
 
     //
-    // add accepts an incoming tag and a context, and returns two lists of NormalReference returns for things
-    // that it has added to the NormalForm mapping:
-    //      * children: Elements that have been added as children of the most granular level of the context
-    //                  (i.e., if a feature is being added in a Room then that feature becomes a child of
-    //                  that room)
-    //      * siblings: Elements that should be added at the same level as the most granular item of the
-    //                  context (i.e., if a 'from' exit is written into a Room, it should be wrapped in
-    //                  a Room of that from key, and that Room in turn should be added as a sibling of the
-    //                  room that is passed as part of the context)
+    // add accepts an incoming tag and a context, and returns a list of NormalReference returns for things
+    // that it has added to the NormalForm mapping as children of the most granular level of the context
+    // (i.e., if a feature is being added in a Room then that feature becomes a child of that room)
     //
-    // TODO: Refactor add to return both children (array of NormalReference for children created by the add)
-    // and siblings (array of NormalReference for *siblings* created by the add), and to properly accumulate
-    // those in the contents recursion
-    //
-    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalizeAddReturnValue {
-        let returnValue: NormalizeAddReturnValue = {
-            children: [],
-            siblings: []
-        }
+    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference[] {
+        let returnValue: NormalReference[] = []
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return returnValue
         }
@@ -251,77 +238,12 @@ export class Normalizer {
             // simplify all this code as well.
             //
             case 'Exit':
-                const roomIndex = context.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
-                if (roomIndex === -1) {
-                    throw new SchemaException('Exit tag cannot be created outside of room', node.parse)
-                }
-
-                const roomKey = context.contextStack[roomIndex].key
-                const { to, from } = node
-                if (from && from !== roomKey) {
-                    //
-                    // This exit is being defined within the context of the room *to which* it leads.
-                    // For ease of reference, define a sibling-level room wrapper for the FROM room
-                    // and nest the exit within it
-                    //
-                    const contextStackBeforeRoom = context.contextStack.slice(0, roomIndex)
-                    const contextStackAfterRoom = context.contextStack.slice(roomIndex + 1)
-                    returnKey = `${from}#${to}`
-                    const wrapperRoomAppearance = this._mergeAppearance(from, {
-                        tag: 'Room',
-                        key: from,
-                        appearances: [{
-                            contextStack: context.contextStack.slice(0, -1),
-                            location: [],
-                            contents: []
-                        }]
-                    })
-                    appearanceIndex = this._mergeAppearance(returnKey, {
-                        tag: 'Exit',
-                        key: returnKey,
-                        to: node.to,
-                        from: node.from,
-                        name: node.name,
-                        appearances: [{
-                            contextStack: [
-                                ...contextStackBeforeRoom,
-                                {
-                                    index: wrapperRoomAppearance,
-                                    key: from,
-                                    tag: 'Room'
-                                },
-                                ...contextStackAfterRoom
-                            ],
-                            location: context.location,
-                            contents: []
-                        }]
-                    })
-                    const childReturn: NormalReference = {
-                        tag: 'Exit',
-                        key: returnKey,
-                        index: appearanceIndex
-                    }
-                    this._updateAppearanceContents(from, wrapperRoomAppearance, [childReturn])
-                    returnValue = {
-                        children: [],
-                        siblings: [{
-                            key: node.from,
-                            tag: 'Room',
-                            index: wrapperRoomAppearance
-                        }]
-                    }
-                }
-                else {
-                    appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
-                    returnValue = {
-                        children: [{
-                            tag: 'Exit',
-                            key: node.key,
-                            index: appearanceIndex
-                        }],
-                        siblings: []
-                    }
-                }
+                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
+                returnValue = [{
+                    tag: 'Exit',
+                    key: node.key,
+                    index: appearanceIndex
+                }]
                 break
             case 'Import':
                 //
@@ -364,7 +286,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                ).children[0]
+                                )[0]
                         case 'Feature':
                             return this.add(
                                     {
@@ -384,7 +306,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                ).children[0]
+                                )[0]
                         case 'Variable':
                             return this.add(
                                     {
@@ -398,7 +320,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                ).children[0]
+                                )[0]
                         case 'Computed':
                             return this.add(
                                     {
@@ -416,7 +338,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                ).children[0]
+                                )[0]
                         case 'Action':
                             return this.add(
                                     {
@@ -432,7 +354,7 @@ export class Normalizer {
                                         }
                                     },
                                     updatedContext
-                                ).children[0]
+                                )[0]
                         //
                         // TODO: Add import for Bookmarks
                         //
@@ -441,29 +363,22 @@ export class Normalizer {
                     }
                 })
                 this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
-                return {
-                    children: [{
-                        key: translatedImport.key,
-                        tag: 'Import',
-                        index: importIndex
-                    }],
-                    siblings: []
-                }
+                return [{
+                    key: translatedImport.key,
+                    tag: 'Import',
+                    index: importIndex
+                }]
             default:
                 const translatedItem = this._translate({ ...context, contents: [] }, node)
                 returnKey = translatedItem.key
                 appearanceIndex = this._mergeAppearance(returnKey, translatedItem)
-                returnValue = {
-                    children: [{
-                        key: returnKey,
-                        tag: node.tag,
-                        index: appearanceIndex
-                    }],
-                    siblings: []
-                }
+                returnValue = [{
+                    key: returnKey,
+                    tag: node.tag,
+                    index: appearanceIndex
+                }]
         }
         if (isSchemaWithContents(node) && !isSchemaExit(node)) {
-            let children: NormalReference[] = returnValue.children
             const contentReferences = (node.contents as SchemaTag[]).reduce((previous, contentNode, index) => {
                 const updateContext: NormalizerContext = {
                     contextStack: [
@@ -479,22 +394,15 @@ export class Normalizer {
                         index
                     ]
                 }
-                const { children: newChildren = [], siblings: newSiblings = [] } = this.add(contentNode, updateContext)
-                children = [...children, ...newSiblings]
+                const newChildren = this.add(contentNode, updateContext)
                 return [
                     ...previous,
                     ...newChildren
                 ]
             }, [] as NormalReference[])
             this._updateAppearanceContents(returnKey, appearanceIndex, contentReferences)
-            return {
-                children,
-                siblings: returnValue.siblings
-            }
         }
-        else {
-            return returnValue
-        }
+        return returnValue
     }
 
     delete(context: NormalizerContext = { contextStack: [], location: [] }): void {
