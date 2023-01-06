@@ -238,6 +238,24 @@ export class Normalizer {
     }
 
     //
+    // _removeReference accepts a NormalReference and removes it, along with all references
+    // in its content tree
+    //
+    _removeReference(reference: NormalReference): void {
+        const appearance = this._lookupAppearance(reference)
+        if (appearance) {
+            const { contents } = appearance
+            contents.forEach((contentReference) => { this._removeReference(contentReference) })
+            this._normalForm = produce(this._normalForm, (draft) => {
+                draft[reference.key].appearances.splice(reference.index, 1)
+                if (!draft[reference.key].appearances.length) {
+                    delete draft[reference.key]
+                }
+            })
+        }
+    }
+
+    //
     // TODO: Add a way to normalize a SchemaCharacterTag, or do some equivalent translation as
     // the client demands
     //
@@ -425,6 +443,20 @@ export class Normalizer {
     }
 
     delete(reference: NormalReference): void {
+        const appearance = this._lookupAppearance(reference)
+        if (appearance) {
+            const { contextStack } = appearance
+            if (contextStack.length) {
+                const directParent = contextStack.slice(-1)[0]
+                this._normalForm = produce(this._normalForm, (draft) => {
+                    const indexToRemove = draft[directParent.key].appearances[directParent.index].contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
+                    if (indexToRemove !== -1) {
+                        draft[directParent.key].appearances[directParent.index].contents.splice(indexToRemove, 1)
+                    }
+                })
+            }
+            this._removeReference(reference)
+        }
     }
 
     _validateTags(node: SchemaTag): void {
