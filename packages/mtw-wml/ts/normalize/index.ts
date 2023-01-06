@@ -222,6 +222,19 @@ export class Normalizer {
     // the correct (e.g. updated) reference
     //
     _reindexReference(reference: NormalReference, contextStack?: NormalReference[]): void {
+        const appearance = this._lookupAppearance(reference)
+        if (appearance) {
+            if (contextStack) {
+                this._normalForm = produce(this._normalForm, (draft) => {
+                    draft[reference.key].appearances[reference.index].contextStack = contextStack
+                })
+            }
+            const { contents } = appearance
+            const newContextStack = [ ...(contextStack || appearance.contextStack), reference ]
+            contents.forEach((contentReference) => {
+                this._reindexReference(contentReference, newContextStack)
+            })
+        }
     }
 
     //
