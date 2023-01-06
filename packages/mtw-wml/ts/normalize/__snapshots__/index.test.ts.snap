@@ -1,5 +1,225 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`WML normalize delete method should remove a single appearance 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Two",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+}
+`;
+
+exports[`WML normalize delete method should remove the entire element on removing last appearance 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+}
+`;
+
+exports[`WML normalize put method should add an item in contents 1`] = `
+Object {
+  "TestAsset": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "TestAsset",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Two",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+}
+`;
+
 exports[`WML normalize should accumulate multiple appearances of the same key 1`] = `
 Object {
   "If-0": Object {
