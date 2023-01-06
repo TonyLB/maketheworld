@@ -249,7 +249,7 @@ exports[`wmlQuery extend method should correctly update base query from filter e
                 </Description>
                 
             </Room>
-            <Room key=(test) />
+            <Room key=(Test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
             <If {true}>
@@ -257,7 +257,9 @@ exports[`wmlQuery extend method should correctly update base query from filter e
                     <Description>
                         Conditional Render
                     </Description>
-                    <Exit from=(Test)>vortex</Exit>
+                </Room>
+                <Room key=(Test)>
+                    <Exit to=(Test)>vortex</Exit>
                 </Room>
             </If>
         </Asset>
@@ -268,11 +270,14 @@ exports[`wmlQuery extend method should not impact base search on extension 1`] =
 "
         <Asset key=(BASE)>
             
-            <Room key=(test) />
+            <Room key=(Test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
             <If {true}>
                 
+                <Room key=(Test)>
+                    <Exit to=(Test)>vortex</Exit>
+                </Room>
             </If>
         </Asset>
     "

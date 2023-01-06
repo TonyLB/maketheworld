@@ -1,5 +1,5 @@
 import { produce } from 'immer'
-import { isLegalParseConditionContextTag } from '../parser/baseClasses';
+import { isLegalParseConditionContextTag, ParseException } from '../parser/baseClasses';
 import { schemaFromParse } from '../schema';
 import parser from '../parser'
 import tokenizer from '../parser/tokenizer';
@@ -37,7 +37,8 @@ import {
     isSchemaMapContents,
     isSchemaString,
     isSchemaImportMappingType,
-    SchemaImportMapping
+    SchemaImportMapping,
+    SchemaException
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -252,16 +253,25 @@ export class Normalizer {
             case 'Exit':
                 const roomIndex = context.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
                 if (roomIndex === -1) {
+                    throw new SchemaException('Exit tag cannot be created outside of room', node.parse)
+                }
+
+                const roomKey = context.contextStack[roomIndex].key
+                const { to, from } = node
+                if (from && from !== roomKey) {
                     //
-                    // The exit is being created globally, outside of any room wrapper.  For normalization, we add a room wrapper
-                    // appearance for the FROM key, inside the normalize structure
+                    // This exit is being defined within the context of the room *to which* it leads.
+                    // For ease of reference, define a sibling-level room wrapper for the FROM room
+                    // and nest the exit within it
                     //
-                    returnKey = `${node.from}#${node.to}`
-                    const wrapperRoomAppearance = this._mergeAppearance(node.from, {
+                    const contextStackBeforeRoom = context.contextStack.slice(0, roomIndex)
+                    const contextStackAfterRoom = context.contextStack.slice(roomIndex + 1)
+                    returnKey = `${from}#${to}`
+                    const wrapperRoomAppearance = this._mergeAppearance(from, {
                         tag: 'Room',
-                        key: node.from,
+                        key: from,
                         appearances: [{
-                            contextStack: context.contextStack,
+                            contextStack: context.contextStack.slice(0, -1),
                             location: [],
                             contents: []
                         }]
@@ -274,97 +284,42 @@ export class Normalizer {
                         name: node.name,
                         appearances: [{
                             contextStack: [
-                                ...context.contextStack,
+                                ...contextStackBeforeRoom,
                                 {
-                                    tag: 'Room',
-                                    key: node.from,
-                                    index: wrapperRoomAppearance
-                                }
+                                    index: wrapperRoomAppearance,
+                                    key: from,
+                                    tag: 'Room'
+                                },
+                                ...contextStackAfterRoom
                             ],
                             location: context.location,
                             contents: []
                         }]
                     })
-                    this._updateAppearanceContents(node.from, wrapperRoomAppearance, [{
+                    const childReturn: NormalReference = {
                         tag: 'Exit',
                         key: returnKey,
                         index: appearanceIndex
-                    }])
+                    }
+                    this._updateAppearanceContents(from, wrapperRoomAppearance, [childReturn])
                     returnValue = {
-                        children: [{
+                        children: [],
+                        siblings: [{
                             key: node.from,
                             tag: 'Room',
                             index: wrapperRoomAppearance
-                        }],
-                        siblings: []
+                        }]
                     }
                 }
                 else {
-                    const roomKey = context.contextStack[roomIndex].key
-                    const { to, from } = node
-                    if (from && from !== roomKey) {
-                        //
-                        // This exit is being defined within the context of the room *to which* it leads.
-                        // For ease of reference, define a sibling-level room wrapper for the FROM room
-                        // and nest the exit within it
-                        //
-                        const contextStackBeforeRoom = context.contextStack.slice(0, roomIndex)
-                        const contextStackAfterRoom = context.contextStack.slice(roomIndex + 1)
-                        returnKey = `${from}#${to}`
-                        const wrapperRoomAppearance = this._mergeAppearance(from, {
-                            tag: 'Room',
-                            key: from,
-                            appearances: [{
-                                contextStack: context.contextStack.slice(0, -1),
-                                location: [],
-                                contents: []
-                            }]
-                        })
-                        appearanceIndex = this._mergeAppearance(returnKey, {
+                    appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
+                    returnValue = {
+                        children: [{
                             tag: 'Exit',
-                            key: returnKey,
-                            to: node.to,
-                            from: node.from,
-                            name: node.name,
-                            appearances: [{
-                                contextStack: [
-                                    ...contextStackBeforeRoom,
-                                    {
-                                        index: wrapperRoomAppearance,
-                                        key: from,
-                                        tag: 'Room'
-                                    },
-                                    ...contextStackAfterRoom
-                                ],
-                                location: context.location,
-                                contents: []
-                            }]
-                        })
-                        const childReturn: NormalReference = {
-                            tag: 'Exit',
-                            key: returnKey,
+                            key: node.key,
                             index: appearanceIndex
-                        }
-                        this._updateAppearanceContents(from, wrapperRoomAppearance, [childReturn])
-                        returnValue = {
-                            children: [],
-                            siblings: [{
-                                key: node.from,
-                                tag: 'Room',
-                                index: wrapperRoomAppearance
-                            }]
-                        }
-                    }
-                    else {
-                        appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
-                        returnValue = {
-                            children: [{
-                                tag: 'Exit',
-                                key: node.key,
-                                index: appearanceIndex
-                            }],
-                            siblings: []
-                        }
+                        }],
+                        siblings: []
                     }
                 }
                 break
@@ -732,11 +687,17 @@ export class Normalizer {
                     }] as MapAppearance[]
                 }
             case 'Exit':
+                const exitRoomIndex = appearance.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
+                if (exitRoomIndex === -1) {
+                    throw new SchemaException('Exit tag cannot be created outside of room', node.parse)
+                }
+
+                const exitRoomKey = appearance.contextStack[exitRoomIndex].key
                 return {
                     key: node.key,
                     tag: node.tag,
                     to: node.to,
-                    from: node.from,
+                    from: exitRoomKey,
                     name: node.name,
                     appearances: [appearance]
                 }

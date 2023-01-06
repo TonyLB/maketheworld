@@ -370,7 +370,7 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Room key=(test) />
+            <Room key=(Test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
             <If {true}>
@@ -378,7 +378,9 @@ describe('wmlQuery', () => {
                     <Description>
                         Conditional Render
                     </Description>
-                    <Exit from=(Test)>vortex</Exit>
+                </Room>
+                <Room key=(Test)>
+                    <Exit to=(Test)>vortex</Exit>
                 </Room>
             </If>
         </Asset>

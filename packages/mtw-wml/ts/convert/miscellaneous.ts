@@ -15,21 +15,16 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
                 return parseConverterMixin<ParseExitTag, ParseStringTag>({
                     tag: 'Exit',
                     properties: {
-                        required: {},
+                        required: {
+                            to: ['key']
+                        },
                         optional: {
-                            to: ['key'],
                             from: ['key']
                         }
                     },
                     contents: {
                         legal: ['String'],
                         ignore: ['Whitespace', 'Comment']
-                    },
-                    postProcess: ({ properties, contents, startTagToken, endTagToken }) => {
-                        if (!properties.to && !properties.from) {
-                            throw new ParseException(`Exit must include either a 'to' or 'from' property`, startTagToken, endTagToken)
-                        }
-                        return { contents }
                     }
                 })(value)
             }

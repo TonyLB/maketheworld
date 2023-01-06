@@ -114,35 +114,6 @@ describe('WML normalize', () => {
         expect(normalizer.normal).toMatchSnapshot()
     })
 
-    it('should create wrapping elements for exits where needed', () => {
-        const testSource = `<Asset key=(Test) fileName="Test" >
-            <Room key=(a123)>
-                <Exit from=(b456) />
-            </Room>
-        </Asset>`
-        const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
-        expect(normalizer.normal).toMatchSnapshot()
-    })
-
-    it('should normalize exits into their parent room where needed', () => {
-        const testSource = `<Asset key=(Test) fileName="Test">
-            <Room key=(a123)>
-                <Name>Vortex</Name>
-                <Exit to=(b456) />
-            </Room>
-            <Room key=(b456)>
-                <Name>Welcome</Name>
-                <Exit to=(a123) />
-            </Room>
-        </Asset>`
-        const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
-        expect(normalizer.normal).toMatchSnapshot()
-    })
-
     it('should accumulate multiple appearances of the same key', () => {
         const testSource = `<Asset key=(Test) fileName="Test">
             <Room key=(a123)>

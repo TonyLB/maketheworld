@@ -51,9 +51,10 @@ describe('newWMLQuery selector', () => {
                     <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
-                <Exit from=(Test)>vortex</Exit>
             </Room>
-            <Room key=(Test) />
+            <Room key=(Test)>
+                <Exit to=(VORTEX)>vortex</Exit>
+            </Room>
             <Feature key=(clockTower)>
                 <Description>
                     Clocktower
@@ -123,7 +124,7 @@ describe('newWMLQuery selector', () => {
     })
 
     it('should properly select nested :nthChild filters', () => {
-        expect(assetQuery('Asset:nthChild(0):nthChild(2)')).toMatchSnapshot()
+        expect(assetQuery('Asset:nthChild(0):nthChild(1)')).toMatchSnapshot()
     })
 
     it('should properly select grouped operators', () => {

@@ -5,7 +5,9 @@
     </Import>
     <Room key=(secretRoom)>
         <Description>It's a secret room!</Description>
-        <Exit from=(welcomeRoom)>secret</Exit>
         <Exit to=(welcomeRoom)>out</Exit>
+    </Room>
+    <Room key=(welcomeRoom)>
+        <Exit to=(secretRoom)>secret</Exit>
     </Room>
 </Story>

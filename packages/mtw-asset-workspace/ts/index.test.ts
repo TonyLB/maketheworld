@@ -1,11 +1,12 @@
-import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
-import { NotFound } from '@aws-sdk/client-s3'
+import { NoSuchKey } from '@aws-sdk/client-s3'
 
 jest.mock('./clients')
 import { s3Client } from './clients'
 jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
 import { AssetWorkspaceException } from './errors'
+
+import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -101,7 +102,15 @@ describe('AssetWorkspace', () => {
     
         it('should return empty on no JSON file', async () => {
             s3ClientMock.get.mockImplementation(() => {
-                throw new NotFound({ $metadata: {} } as any)
+                const error = new (class NoSuchKey extends Error {
+                    Code: string;
+                    constructor(message: string) {
+                        super(message)
+                        Object.setPrototypeOf(this, NoSuchKey.prototype)
+                        this.Code = 'NoSuchKey'
+                    }
+                })('Test message')
+                throw error
             })
     
             const testWorkspace = new AssetWorkspace({
@@ -129,10 +138,11 @@ describe('AssetWorkspace', () => {
             testWorkspace.setWML(`
                 <Asset key=(Test) fileName="Test">
                     <Room key=(a123)>
-                        <Exit to=(a123) from=(b456)>vortex</Exit>
                         <Exit to=(b456)>welcome</Exit>
                     </Room>
-                    <Room key=(b456) />
+                    <Room key=(b456)>
+                        <Exit to=(a123)>vortex</Exit>
+                    </Room>
                 </Asset>
             `)
             expect(testWorkspace.normal).toMatchSnapshot()
@@ -247,10 +257,11 @@ describe('AssetWorkspace', () => {
             const testSource = `
                 <Asset key=(Test) fileName="Test">
                     <Room key=(a123)>
-                        <Exit to=(a123) from=(b456)>vortex</Exit>
                         <Exit to=(b456)>welcome</Exit>
                     </Room>
-                    <Room key=(b456) />
+                    <Room key=(b456)>
+                        <Exit to=(a123)>vortex</Exit>
+                    </Room>
                 </Asset>
             `
             testWorkspace.setWML(testSource)
@@ -279,10 +290,11 @@ describe('AssetWorkspace', () => {
             const testSource = `
                 <Asset key=(Test) fileName="Test">
                     <Room key=(a123)>
-                        <Exit to=(a123) from=(b456)>vortex</Exit>
                         <Exit to=(b456)>welcome</Exit>
                     </Room>
-                    <Room key=(b456) />
+                    <Room key=(b456)>
+                        <Exit to=(a123)>vortex</Exit>
+                    </Room>
                 </Asset>
             `
             testWorkspace.setWML(testSource)

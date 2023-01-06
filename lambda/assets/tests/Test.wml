@@ -9,7 +9,6 @@
             </Description>
             <Name>Welcome Area</Name>
             <Exit to=(VORTEX)>vortex</Exit>
-            <Exit from=(VORTEX)>welcome</Exit>
         </Room>
         <Room global key=(VORTEX)>
             <Name>Vortex</Name>
@@ -19,6 +18,7 @@
                 of rustling leaves.  Doorways leading from this place stand
                 equidistant around you.
             </Description>
+            <Exit to=(a345)>welcome</Exit>
         </Room>
     </Layer>
     <If {true}>

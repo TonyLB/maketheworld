@@ -18,7 +18,6 @@ exports[`LibraryAsset context provider should provide currentWML 1`] = `
             Vortex
             <Link to=(toggleOpen)>(toggle)</Link>
         </Description>
-        <Exit from=(DEF)>vortex</Exit>
     </Room>
     <If {open}>
         <Room key=(ABC)>
@@ -27,6 +26,7 @@ exports[`LibraryAsset context provider should provide currentWML 1`] = `
     </If>
     <Room key=(DEF)>
         <Name>Welcome</Name>
+        <Exit to=(ABC)>vortex</Exit>
     </Room>
     <Variable key=(open) default={false} />
     <Action key=(toggleOpen) src={open = !open} />
@@ -81,11 +81,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     },
                     {
-                        \\"key\\": \\"DEF\\",
-                        \\"tag\\": \\"Room\\",
-                        \\"index\\": 1
-                    },
-                    {
                         \\"key\\": \\"If-0\\",
                         \\"tag\\": \\"If\\",
                         \\"index\\": 0
@@ -93,7 +88,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                     {
                         \\"key\\": \\"DEF\\",
                         \\"tag\\": \\"Room\\",
-                        \\"index\\": 2
+                        \\"index\\": 1
                     },
                     {
                         \\"key\\": \\"open\\",
@@ -212,28 +207,17 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"location\\": [],
+                \\"location\\": [
+                    0,
+                    4
+                ],
                 \\"contents\\": [
                     {
                         \\"tag\\": \\"Exit\\",
                         \\"key\\": \\"DEF#ABC\\",
                         \\"index\\": 0
                     }
-                ]
-            },
-            {
-                \\"contextStack\\": [
-                    {
-                        \\"tag\\": \\"Asset\\",
-                        \\"key\\": \\"Test\\",
-                        \\"index\\": 0
-                    }
                 ],
-                \\"location\\": [
-                    0,
-                    4
-                ],
-                \\"contents\\": [],
                 \\"render\\": [],
                 \\"name\\": [
                     {
@@ -339,35 +323,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             }
         ]
     },
-    \\"DEF#ABC\\": {
-        \\"tag\\": \\"Exit\\",
-        \\"key\\": \\"DEF#ABC\\",
-        \\"to\\": \\"ABC\\",
-        \\"from\\": \\"DEF\\",
-        \\"name\\": \\"vortex\\",
-        \\"appearances\\": [
-            {
-                \\"contextStack\\": [
-                    {
-                        \\"tag\\": \\"Asset\\",
-                        \\"key\\": \\"Test\\",
-                        \\"index\\": 0
-                    },
-                    {
-                        \\"index\\": 1,
-                        \\"key\\": \\"DEF\\",
-                        \\"tag\\": \\"Room\\"
-                    }
-                ],
-                \\"location\\": [
-                    0,
-                    2,
-                    1
-                ],
-                \\"contents\\": []
-            }
-        ]
-    },
     \\"If-0\\": {
         \\"key\\": \\"If-0\\",
         \\"tag\\": \\"If\\",
@@ -431,6 +386,35 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                     0,
                     3,
                     0,
+                    0
+                ],
+                \\"contents\\": []
+            }
+        ]
+    },
+    \\"DEF#ABC\\": {
+        \\"key\\": \\"DEF#ABC\\",
+        \\"tag\\": \\"Exit\\",
+        \\"to\\": \\"ABC\\",
+        \\"from\\": \\"DEF\\",
+        \\"name\\": \\"vortex\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"tag\\": \\"Asset\\",
+                        \\"key\\": \\"Test\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"tag\\": \\"Room\\",
+                        \\"key\\": \\"DEF\\",
+                        \\"index\\": 1
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    4,
                     0
                 ],
                 \\"contents\\": []
