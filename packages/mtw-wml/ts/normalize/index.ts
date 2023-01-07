@@ -72,7 +72,7 @@ import {
 import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
-import { objectFilterEntries } from '../lib/objects';
+import { deepEqual, objectFilterEntries } from '../lib/objects';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -231,7 +231,36 @@ export class Normalizer {
     }
 
     _insertPositionSortOrder(locationA: NormalizerInsertPosition | NormalReference, locationB: NormalizerInsertPosition | NormalReference): number {
-        return 0
+        const isInsertPosition = (value: NormalizerInsertPosition | NormalReference): value is NormalizerInsertPosition => ('contextStack' in value)
+        const positionA = isInsertPosition(locationA) ? locationA : this._referenceToInsertPosition(locationA)
+        const positionB = isInsertPosition(locationA) ? locationA : this._referenceToInsertPosition(locationA)
+        const firstIndexA = positionA.contextStack.length
+            ? (this._referenceToInsertPosition(positionA.contextStack[0]) ?? { index: -1 }).index
+            : positionA.index
+        const firstIndexB = positionB.contextStack.length
+            ? (this._referenceToInsertPosition(positionB.contextStack[0]) ?? { index: -1 }).index
+            : positionB.index
+        if (firstIndexA !== firstIndexB) {
+            return firstIndexA - firstIndexB
+        }
+        else {
+            if (positionA.contextStack.length === 0) {
+                return -1
+            }
+            if (positionB.contextStack.length === 0) {
+                return 1
+            }
+            return this._insertPositionSortOrder(
+                {
+                    contextStack: positionA.contextStack.slice(1),
+                    index: positionA.index
+                },
+                {
+                    contextStack: positionB.contextStack.slice(1),
+                    index: positionB.index
+                }
+            )
+        }
     }
 
     _mergeAppearance(key: string, item: NormalItem): number {
