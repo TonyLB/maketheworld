@@ -181,6 +181,11 @@ const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): 
     }
 }
 
+type NormalizerInsertPosition = {
+    contextStack: NormalReference[];
+    index: number;
+}
+
 export class Normalizer {
     _normalForm: NormalForm = {};
     _tags: NormalizeTagTranslationMap = {}
@@ -197,6 +202,36 @@ export class Normalizer {
                 update(draft[reference.key].appearances[reference.index])
             })}
         }
+    }
+
+    _referenceToInsertPosition(reference: NormalReference): NormalizerInsertPosition | undefined {
+        const appearance = this._lookupAppearance(reference)
+        if (!reference) {
+            return undefined
+        }
+        const parent = appearance.contextStack.length > 0 ? appearance.contextStack.slice(-1)[0] : undefined
+        if (parent) {
+            const index = this._normalForm[parent.key].appearances[parent.index].contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
+            if (index === -1) {
+                return undefined
+            }
+            else {
+                return {
+                    contextStack: appearance.contextStack,
+                    index
+                }
+            }
+        }
+        else {
+            return {
+                contextStack: [],
+                index: appearance.location[0]
+            }
+        }
+    }
+
+    _insertPositionSortOrder(locationA: NormalizerInsertPosition | NormalReference, locationB: NormalizerInsertPosition | NormalReference): number {
+        return 0
     }
 
     _mergeAppearance(key: string, item: NormalItem): number {
