@@ -72,7 +72,7 @@ import {
 import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
-import { objectFilterEntries } from '../lib/objects';
+import { deepEqual, objectFilterEntries } from '../lib/objects';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -181,6 +181,11 @@ const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): 
     }
 }
 
+type NormalizerInsertPosition = {
+    contextStack: NormalReference[];
+    index: number;
+}
+
 export class Normalizer {
     _normalForm: NormalForm = {};
     _tags: NormalizeTagTranslationMap = {}
@@ -196,6 +201,65 @@ export class Normalizer {
             this._normalForm = { ...produce(this._normalForm, (draft) => {
                 update(draft[reference.key].appearances[reference.index])
             })}
+        }
+    }
+
+    _referenceToInsertPosition(reference: NormalReference): NormalizerInsertPosition | undefined {
+        const appearance = this._lookupAppearance(reference)
+        if (!reference) {
+            return undefined
+        }
+        const parent = appearance.contextStack.length > 0 ? appearance.contextStack.slice(-1)[0] : undefined
+        if (parent) {
+            const index = this._normalForm[parent.key].appearances[parent.index].contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
+            if (index === -1) {
+                return undefined
+            }
+            else {
+                return {
+                    contextStack: appearance.contextStack,
+                    index
+                }
+            }
+        }
+        else {
+            return {
+                contextStack: [],
+                index: appearance.location[0]
+            }
+        }
+    }
+
+    _insertPositionSortOrder(locationA: NormalizerInsertPosition | NormalReference, locationB: NormalizerInsertPosition | NormalReference): number {
+        const isInsertPosition = (value: NormalizerInsertPosition | NormalReference): value is NormalizerInsertPosition => ('contextStack' in value)
+        const positionA = isInsertPosition(locationA) ? locationA : this._referenceToInsertPosition(locationA)
+        const positionB = isInsertPosition(locationA) ? locationA : this._referenceToInsertPosition(locationA)
+        const firstIndexA = positionA.contextStack.length
+            ? (this._referenceToInsertPosition(positionA.contextStack[0]) ?? { index: -1 }).index
+            : positionA.index
+        const firstIndexB = positionB.contextStack.length
+            ? (this._referenceToInsertPosition(positionB.contextStack[0]) ?? { index: -1 }).index
+            : positionB.index
+        if (firstIndexA !== firstIndexB) {
+            return firstIndexA - firstIndexB
+        }
+        else {
+            if (positionA.contextStack.length === 0) {
+                return -1
+            }
+            if (positionB.contextStack.length === 0) {
+                return 1
+            }
+            return this._insertPositionSortOrder(
+                {
+                    contextStack: positionA.contextStack.slice(1),
+                    index: positionA.index
+                },
+                {
+                    contextStack: positionB.contextStack.slice(1),
+                    index: positionB.index
+                }
+            )
         }
     }
 
