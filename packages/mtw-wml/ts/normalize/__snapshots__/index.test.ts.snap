@@ -255,7 +255,7 @@ Object {
         "if": "testVarThree",
       },
     ],
-    "key": "If-2",
+    "key": "If-1",
     "tag": "If",
   },
   "Test": Object {
@@ -340,7 +340,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-2",
+            "key": "If-1",
             "tag": "If",
           },
         ],

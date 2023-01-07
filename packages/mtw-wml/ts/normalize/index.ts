@@ -232,7 +232,13 @@ export class Normalizer {
     // updating the contextStack entries of each appearance to make sure that they reflect
     // the correct (e.g. updated) reference
     //
-    _reindexReference(reference: NormalReference, contextStack?: NormalReference[]): void {
+
+    //
+    // TODO: Correct bug in _reindexReference in which it does not replace the content
+    // reference in its parent appearance
+    //
+    _reindexReference(reference: NormalReference, options?: { contextStack?: NormalReference[], fromIndex?: number }): void {
+        const { contextStack, fromIndex } = options
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
             if (contextStack) {
@@ -240,10 +246,17 @@ export class Normalizer {
                     draft.contextStack = contextStack
                 })
             }
+            if (fromIndex && appearance.contextStack.length > 0) {
+                const parent = appearance.contextStack.slice(-1)[0]
+                this._updateAppearance(parent, (draft) => {
+                    const appearanceIndex = draft.contents.findIndex(({ key, index }) => (key === reference.key && index === fromIndex))
+                    draft.contents[appearanceIndex].index = reference.index
+                })
+            }
             const { contents } = appearance
             const newContextStack = [ ...(contextStack || appearance.contextStack), reference ]
             contents.forEach((contentReference) => {
-                this._reindexReference(contentReference, newContextStack)
+                this._reindexReference(contentReference, { contextStack: newContextStack })
             })
         }
     }
@@ -266,7 +279,7 @@ export class Normalizer {
             const revisedAppearanceList = this._normalForm[reference.key]?.appearances || []
             revisedAppearanceList.forEach((_, index) => {
                 if (index >= reference.index) {
-                    this._reindexReference({ key: reference.key, index, tag: reference.tag })
+                    this._reindexReference({ key: reference.key, index, tag: reference.tag }, { fromIndex: index + 1 })
                 }
             })
         }
@@ -274,7 +287,7 @@ export class Normalizer {
 
     _renameItem(fromKey: string, toKey: string): void {
         const appearances = this._normalForm[fromKey]?.appearances || []
-        this._normalForm = { ...this._normalForm, [toKey]: this._normalForm[fromKey] }
+        this._normalForm = { ...this._normalForm, [toKey]: { ...this._normalForm[fromKey], key: toKey } }
         const tag = this._normalForm[toKey].tag
         appearances.forEach(({ contextStack }, index) => {
             //
@@ -294,7 +307,7 @@ export class Normalizer {
             //
             // Change references for all descendants that have this key in their contextStack
             //
-            this._reindexReference({ key: toKey, index, tag }, contextStack)
+            this._reindexReference({ key: toKey, index, tag }, { contextStack })
         })
         this._normalForm = objectFilterEntries(this._normalForm, ([key]) => (key !== fromKey))
     }
