@@ -528,9 +528,21 @@ export class Normalizer {
             if (contextStack.length) {
                 const directParent = contextStack.slice(-1)[0]
                 this._normalForm = produce(this._normalForm, (draft) => {
-                    const indexToRemove = draft[directParent.key].appearances[directParent.index].contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
+                    const directParentAppearance = draft[directParent.key].appearances[directParent.index]
+                    const indexToRemove = directParentAppearance.contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
                     if (indexToRemove !== -1) {
-                        draft[directParent.key].appearances[directParent.index].contents.splice(indexToRemove, 1)
+                        directParentAppearance.contents.splice(indexToRemove, 1)
+                        //
+                        // Revise all content-index numbers on later children downward
+                        //
+                        directParentAppearance.contents.forEach((reference, index) => {
+                            if (index >= indexToRemove) {
+                                draft[reference.key].appearances[reference.index].location = [
+                                    ...draft[reference.key].appearances[reference.index].location.slice(0, -1),
+                                    index
+                                ]
+                            }
+                        })
                     }
                 })
             }

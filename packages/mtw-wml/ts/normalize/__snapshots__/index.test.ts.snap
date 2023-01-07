@@ -76,7 +76,7 @@ Object {
         ],
         "location": Array [
           0,
-          3,
+          2,
         ],
         "name": Array [],
         "render": Array [],
@@ -243,7 +243,7 @@ Object {
         ],
         "location": Array [
           0,
-          5,
+          4,
         ],
       },
     ],
