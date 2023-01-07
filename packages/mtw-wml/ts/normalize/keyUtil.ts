@@ -59,3 +59,17 @@ export const keyForIfValue = (conditions: NormalConditionStatement[]): string =>
     })
     return syntheticKey
 }
+
+//
+// compressIfKeys reorganizes the mapping of conditions into keys, to replace empty
+// indices and renumber where necessary.  Should always be combined with remapping the
+// keys in normal storage
+//
+export const compressIfKeys = (extantKeys: string[]): void => {
+    const previousGeneratedIfKeys = [...generatedIfKeys]
+    generatedIfKeys = []
+    extantKeys.forEach((key) => {
+        const previousConditions = previousGeneratedIfKeys.find(({ key: checkKey }) => (key === checkKey))
+        keyForIfValue(previousConditions.conditions)
+    })
+}

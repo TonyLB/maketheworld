@@ -381,5 +381,39 @@ describe('WML normalize', () => {
             normalizer.delete({ key: 'testOne', index: 1, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
+
+        it('should rename synthetic keys to fill in gaps for deleted conditionals', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Variable key=(testVarOne) default={false} />
+                <Variable key=(testVarTwo) default={false} />
+                <Variable key=(testVarThree) default={false} />
+                <If {testVarOne}>
+                    <Room key=(testOne)>
+                        <Description>
+                            One
+                        </Description>
+                    </Room>
+                </If>
+                <If {testVarTwo}>
+                    <Room key=(testOne)>
+                        <Description>
+                            Two
+                        </Description>
+                    </Room>
+                </If>
+                <If {testVarThree}>
+                    <Room key=(testOne)>
+                        <Description>
+                            Three
+                        </Description>
+                    </Room>
+                </If>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.delete({ key: 'If-1', index: 0, tag: 'If' })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
     })
 })

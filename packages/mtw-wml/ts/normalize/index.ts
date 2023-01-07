@@ -45,6 +45,7 @@ import {
     BaseAppearance,
     ComponentAppearance,
     ComponentRenderItem,
+    isNormalCondition,
     MapAppearance,
     MessageAppearance,
     MomentAppearance,
@@ -68,7 +69,7 @@ import {
     NormalRoom,
     NormalVariable
 } from './baseClasses'
-import { keyForIfValue, keyForValue } from './keyUtil';
+import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
 import { objectFilterEntries } from '../lib/objects';
@@ -231,7 +232,13 @@ export class Normalizer {
     // updating the contextStack entries of each appearance to make sure that they reflect
     // the correct (e.g. updated) reference
     //
-    _reindexReference(reference: NormalReference, contextStack?: NormalReference[]): void {
+
+    //
+    // TODO: Correct bug in _reindexReference in which it does not replace the content
+    // reference in its parent appearance
+    //
+    _reindexReference(reference: NormalReference, options?: { contextStack?: NormalReference[], fromIndex?: number }): void {
+        const { contextStack, fromIndex } = options
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
             if (contextStack) {
@@ -239,10 +246,17 @@ export class Normalizer {
                     draft.contextStack = contextStack
                 })
             }
+            if (fromIndex && appearance.contextStack.length > 0) {
+                const parent = appearance.contextStack.slice(-1)[0]
+                this._updateAppearance(parent, (draft) => {
+                    const appearanceIndex = draft.contents.findIndex(({ key, index }) => (key === reference.key && index === fromIndex))
+                    draft.contents[appearanceIndex].index = reference.index
+                })
+            }
             const { contents } = appearance
             const newContextStack = [ ...(contextStack || appearance.contextStack), reference ]
             contents.forEach((contentReference) => {
-                this._reindexReference(contentReference, newContextStack)
+                this._reindexReference(contentReference, { contextStack: newContextStack })
             })
         }
     }
@@ -251,15 +265,21 @@ export class Normalizer {
     // _removeReference accepts a NormalReference and removes it, along with all references
     // in its content tree
     //
-    _removeReference(reference: NormalReference): void {
+    _removeAppearance(reference: NormalReference): void {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
             const { contents } = appearance
-            contents.forEach((contentReference) => { this._removeReference(contentReference) })
+            contents.forEach((contentReference) => { this._removeAppearance(contentReference) })
             this._normalForm = produce(this._normalForm, (draft) => {
                 draft[reference.key].appearances.splice(reference.index, 1)
                 if (!draft[reference.key].appearances.length) {
                     delete draft[reference.key]
+                }
+            })
+            const revisedAppearanceList = this._normalForm[reference.key]?.appearances || []
+            revisedAppearanceList.forEach((_, index) => {
+                if (index >= reference.index) {
+                    this._reindexReference({ key: reference.key, index, tag: reference.tag }, { fromIndex: index + 1 })
                 }
             })
         }
@@ -267,7 +287,7 @@ export class Normalizer {
 
     _renameItem(fromKey: string, toKey: string): void {
         const appearances = this._normalForm[fromKey]?.appearances || []
-        this._normalForm = { ...this._normalForm, [toKey]: this._normalForm[fromKey] }
+        this._normalForm = { ...this._normalForm, [toKey]: { ...this._normalForm[fromKey], key: toKey } }
         const tag = this._normalForm[toKey].tag
         appearances.forEach(({ contextStack }, index) => {
             //
@@ -287,9 +307,31 @@ export class Normalizer {
             //
             // Change references for all descendants that have this key in their contextStack
             //
-            this._reindexReference({ key: toKey, index, tag }, contextStack)
+            this._reindexReference({ key: toKey, index, tag }, { contextStack })
         })
         this._normalForm = objectFilterEntries(this._normalForm, ([key]) => (key !== fromKey))
+    }
+
+    //
+    // _renameAllConditions takes an altered normal form (e.g., one in which a condition
+    // has been removed, leaving a gap in the naming sequence) and compresses all of the
+    // synthetic keys, reassigning where necessary.
+    //
+    _renameAllConditions(): void {
+        const conditionItems: NormalCondition[] = Object.values(this._normalForm)
+            .filter(isNormalCondition)
+            .sort(({ key: keyA }, { key: keyB }) => {
+                const indexA = parseInt(keyA.slice(3))
+                const indexB = parseInt(keyB.slice(3))
+                return indexA - indexB
+            })
+        compressIfKeys(conditionItems.map(({ key }) => (key)))
+        conditionItems.forEach(({ key, conditions }) => {
+            const newKey = keyForIfValue(conditions)
+            if (key !== newKey) {
+                this._renameItem(key, newKey)
+            }
+        })
     }
 
     //
@@ -486,13 +528,26 @@ export class Normalizer {
             if (contextStack.length) {
                 const directParent = contextStack.slice(-1)[0]
                 this._normalForm = produce(this._normalForm, (draft) => {
-                    const indexToRemove = draft[directParent.key].appearances[directParent.index].contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
+                    const directParentAppearance = draft[directParent.key].appearances[directParent.index]
+                    const indexToRemove = directParentAppearance.contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
                     if (indexToRemove !== -1) {
-                        draft[directParent.key].appearances[directParent.index].contents.splice(indexToRemove, 1)
+                        directParentAppearance.contents.splice(indexToRemove, 1)
+                        //
+                        // Revise all content-index numbers on later children downward
+                        //
+                        directParentAppearance.contents.forEach((reference, index) => {
+                            if (index >= indexToRemove) {
+                                draft[reference.key].appearances[reference.index].location = [
+                                    ...draft[reference.key].appearances[reference.index].location.slice(0, -1),
+                                    index
+                                ]
+                            }
+                        })
                     }
                 })
             }
-            this._removeReference(reference)
+            this._removeAppearance(reference)
+            this._renameAllConditions()
         }
     }
 
