@@ -263,15 +263,30 @@ export class Normalizer {
         }
     }
 
-    _mergeAppearance(key: string, item: NormalItem): number {
+    //
+    // TODO: When position is provided, compare against existing appearances (if any) in order
+    // to find the right place to splice the new entry into the list, and then reindex all of
+    // the later appearances
+    //
+    _mergeAppearance(key: string, item: NormalItem, position?: NormalizerInsertPosition): number {
         if (key in this._normalForm) {
+            const insertBefore = position
+                ? this._normalForm[key].appearances.findIndex(({ contextStack }, index) => (
+                    this._insertPositionSortOrder(position, { key, index, tag: this._normalForm[key].tag }) >= 0
+                ))
+                : -1
             this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
                 if (draft.tag !== item.tag) {
                     throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
                 }
-                (draft.appearances as any).push(item.appearances[0])
+                if (insertBefore === -1) {
+                    (draft.appearances as any).push(item.appearances[0])
+                }
+                else {
+                    (draft.appearances as any).splice(insertBefore, 0, item.appearances[0])
+                }
             }) }
-            return this._normalForm[key].appearances.length - 1
+            return insertBefore > -1 ? insertBefore : this._normalForm[key].appearances.length - 1
         }
         else {
             this._normalForm[key] = item
