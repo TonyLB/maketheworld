@@ -72,5 +72,4 @@ export const compressIfKeys = (extantKeys: string[]): void => {
         const previousConditions = previousGeneratedIfKeys.find(({ key: checkKey }) => (key === checkKey))
         keyForIfValue(previousConditions.conditions)
     })
-    console.log(`generatedIfKeys: ${JSON.stringify(generatedIfKeys, null, 4)}`)
 }

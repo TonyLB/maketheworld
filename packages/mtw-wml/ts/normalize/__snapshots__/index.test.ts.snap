@@ -229,7 +229,7 @@ Object {
       Object {
         "contents": Array [
           Object {
-            "index": 2,
+            "index": 1,
             "key": "testOne",
             "tag": "Room",
           },

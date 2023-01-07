@@ -263,6 +263,12 @@ export class Normalizer {
                     delete draft[reference.key]
                 }
             })
+            const revisedAppearanceList = this._normalForm[reference.key]?.appearances || []
+            revisedAppearanceList.forEach((_, index) => {
+                if (index >= reference.index) {
+                    this._reindexReference({ key: reference.key, index, tag: reference.tag })
+                }
+            })
         }
     }
 
