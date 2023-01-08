@@ -184,6 +184,7 @@ const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): 
 type NormalizerInsertPosition = {
     contextStack: NormalReference[];
     index: number;
+    replace: boolean;
 }
 
 export class Normalizer {
@@ -204,28 +205,34 @@ export class Normalizer {
         }
     }
 
-    _referenceToInsertPosition(reference: NormalReference): NormalizerInsertPosition | undefined {
+    _referenceToInsertPosition(reference: NormalReference): NormalizerInsertPosition {
         const appearance = this._lookupAppearance(reference)
-        if (!reference) {
-            return undefined
+        if (!appearance) {
+            throw new Error('Reference error in Normalizer')
         }
         const parent = appearance.contextStack.length > 0 ? appearance.contextStack.slice(-1)[0] : undefined
         if (parent) {
             const index = this._normalForm[parent.key].appearances[parent.index].contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
             if (index === -1) {
-                return undefined
+                throw new Error('Parent lookup error in Normalizer')
             }
             else {
                 return {
                     contextStack: appearance.contextStack,
-                    index
+                    index,
+                    replace: true
                 }
             }
         }
         else {
+            //
+            // TODO: Refactor NormalForm to usefully remember the order in which multiple top-level elements are stored,
+            // without depending upon the location field
+            //
             return {
                 contextStack: [],
-                index: appearance.location[0]
+                index: appearance.location[0],
+                replace: true
             }
         }
     }
@@ -233,7 +240,7 @@ export class Normalizer {
     _insertPositionSortOrder(locationA: NormalizerInsertPosition | NormalReference, locationB: NormalizerInsertPosition | NormalReference): number {
         const isInsertPosition = (value: NormalizerInsertPosition | NormalReference): value is NormalizerInsertPosition => ('contextStack' in value)
         const positionA = isInsertPosition(locationA) ? locationA : this._referenceToInsertPosition(locationA)
-        const positionB = isInsertPosition(locationA) ? locationA : this._referenceToInsertPosition(locationA)
+        const positionB = isInsertPosition(locationB) ? locationB : this._referenceToInsertPosition(locationB)
         const firstIndexA = positionA.contextStack.length
             ? (this._referenceToInsertPosition(positionA.contextStack[0]) ?? { index: -1 }).index
             : positionA.index
@@ -245,7 +252,24 @@ export class Normalizer {
         }
         else {
             if (positionA.contextStack.length === 0) {
-                return -1
+                if (positionB.contextStack.length === 0) {
+                    //
+                    // As both positions reference the same place exactly,
+                    // the only question now is whether one of them references
+                    // *before* that element, while the other references the element
+                    // itself
+                    //
+                    if (positionA.replace && !(positionB.replace)) {
+                        return 1
+                    }
+                    if (positionB.replace && !(positionA.replace)) {
+                        return -1
+                    }
+                    return 0
+                }
+                else {
+                    return -1
+                }
             }
             if (positionB.contextStack.length === 0) {
                 return 1
@@ -253,11 +277,13 @@ export class Normalizer {
             return this._insertPositionSortOrder(
                 {
                     contextStack: positionA.contextStack.slice(1),
-                    index: positionA.index
+                    index: positionA.index,
+                    replace: positionA.replace
                 },
                 {
                     contextStack: positionB.contextStack.slice(1),
-                    index: positionB.index
+                    index: positionB.index,
+                    replace: positionB.replace
                 }
             )
         }
