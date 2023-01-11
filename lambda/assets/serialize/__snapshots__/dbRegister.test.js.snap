@@ -19,6 +19,10 @@ Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
   "Story": undefined,
+  "address": Object {
+    "fileName": "test",
+    "zone": "Library",
+  },
   "defaultExits": Array [],
   "defaultNames": Object {
     "Welcome": Object {
@@ -30,12 +34,8 @@ Object {
       "tag": "Feature",
     },
   },
-  "fileName": "test",
   "importTree": Array [],
   "instance": undefined,
-  "player": undefined,
-  "subFolder": undefined,
-  "zone": "Library",
 }
 `;
 
@@ -88,6 +88,10 @@ Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
   "Story": undefined,
+  "address": Object {
+    "fileName": "test",
+    "zone": "Library",
+  },
   "defaultExits": Array [
     Object {
       "from": "Entry",
@@ -105,12 +109,8 @@ Object {
       "tag": "Room",
     },
   },
-  "fileName": "test",
   "importTree": Array [],
   "instance": undefined,
-  "player": undefined,
-  "subFolder": undefined,
-  "zone": "Library",
 }
 `;
 
@@ -163,14 +163,14 @@ Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
   "Story": true,
+  "address": Object {
+    "fileName": "test",
+    "zone": "Library",
+  },
   "defaultExits": Array [],
   "defaultNames": Object {},
-  "fileName": "test",
   "importTree": Array [],
   "instance": true,
-  "player": undefined,
-  "subFolder": undefined,
-  "zone": "Library",
 }
 `;
 
@@ -191,6 +191,10 @@ Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
   "Story": undefined,
+  "address": Object {
+    "fileName": "test",
+    "zone": "Library",
+  },
   "defaultExits": Array [],
   "defaultNames": Object {
     "Welcome": Object {
@@ -198,12 +202,8 @@ Object {
       "tag": "Room",
     },
   },
-  "fileName": "test",
   "importTree": Array [],
   "instance": undefined,
-  "player": undefined,
-  "subFolder": undefined,
-  "zone": "Library",
 }
 `;
 
@@ -256,14 +256,14 @@ Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
   "Story": true,
+  "address": Object {
+    "fileName": "test",
+    "zone": "Library",
+  },
   "defaultExits": Array [],
   "defaultNames": Object {},
-  "fileName": "test",
   "importTree": Array [],
   "instance": undefined,
-  "player": undefined,
-  "subFolder": undefined,
-  "zone": "Library",
 }
 `;
 

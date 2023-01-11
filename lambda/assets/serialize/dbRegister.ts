@@ -108,10 +108,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
                 DataCategory: `Meta::Asset`,
-                fileName: address.fileName,
-                zone: address.zone,
-                subFolder: address.subFolder,
-                player: address.zone === 'Personal' ? address.player : undefined,
+                address,
                 Story: asset.Story,
                 instance: asset.instance,
                 importTree: [],

@@ -159,7 +159,7 @@ const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { persona
         <CardActions>
             { personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise({ message: 'checkin', AssetId: `CHARACTER#${CharacterId}` }, { service: 'asset' }))
+                        dispatch(socketDispatchPromise({ message: 'checkin', AssetId: CharacterId }, { service: 'asset' }))
                         clearPreview()
                     }}
                 >
@@ -168,7 +168,7 @@ const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { persona
             }
             { !personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise({ message: 'checkout', AssetId: `CHARACTER#${CharacterId}` }, { service: 'asset' }))
+                        dispatch(socketDispatchPromise({ message: 'checkout', AssetId: CharacterId }, { service: 'asset' }))
                         clearPreview()
                     }}
                 >

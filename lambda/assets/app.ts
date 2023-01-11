@@ -1,6 +1,5 @@
 // Import required AWS SDK clients and commands for Node.js
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
-import jimp from "jimp"
+import { S3Client } from "@aws-sdk/client-s3"
 import type { Readable } from "stream"
 
 import { healAsset } from "./selfHealing/"
@@ -13,7 +12,6 @@ import {
     isFetchLibraryAPIMessage,
     isFetchAssetAPIMessage,
     isUploadAssetLinkAPIMessage,
-    isUploadImageLinkAPIMessage,
     isAssetCheckinAPIMessage,
     isAssetCheckoutAPIMessage,
     isAssetSubscribeAPIMessage,
