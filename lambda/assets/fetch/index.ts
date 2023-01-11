@@ -5,7 +5,7 @@ import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { FetchAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { MessageBus } from "../messageBus/baseClasses"
-import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
+import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/index"
 import { convertSelectDataToJson } from "../utilities/stream"
 
 const { S3_BUCKET } = process.env;
@@ -15,17 +15,17 @@ const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId
     if (AssetId) {
         const DataCategory = (splitType(AssetId)[0] === 'CHARACTER') ? 'Meta::Character' : 'Meta::Asset'
         if (DataCategory === 'Meta::Asset') {
-            const { fileName: fetchFileName, zone, subFolder, player } = (await assetDB.getItem<{ fileName: string; zone: string; subFolder: string; player: string; }>({
+            const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
                 AssetId,
                 DataCategory,
-                ProjectionFields: ['fileName', '#zone', 'player', 'subFolder'],
-                ExpressionAttributeNames: {
-                    '#zone': 'zone'
-                }
+                ProjectionFields: ['address']
             })) || {}
-            if (zone === 'Personal' && player === PlayerName && fetchFileName) {
-                derivedFileName = `Personal/${PlayerName}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.wml`
-            }    
+            if (address) {
+                const { fileName: fetchFileName, subFolder } = address || {}
+                if (address.zone === 'Personal' && address.player === PlayerName && fetchFileName) {
+                    derivedFileName = `Personal/${PlayerName}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.wml`
+                }
+            }
         }
         else {
             const queryOutput = await assetDB.query({

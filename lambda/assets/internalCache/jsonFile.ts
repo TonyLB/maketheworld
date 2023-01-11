@@ -1,6 +1,6 @@
 import { DeferredCache } from './deferredCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import AssetWorkspace, { isAssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/index'
+import AssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/index'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
@@ -32,14 +32,11 @@ export class JSONFileData {
     }
 
     async _getPromiseFactory(AssetId: `ASSET#${string}`): Promise<JSONFileCache> {
-        const address = await assetDB.getItem<{ zone: string; player?: string; subFolder?: string; fileName: string }>({
+        const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
             AssetId,
             DataCategory: 'Meta::Asset',
-            ProjectionFields: ['#zone', 'player', 'subFolder', 'fileName'],
-            ExpressionAttributeNames: {
-                '#zone': 'zone'
-            }
-        })
+            ProjectionFields: ['address']
+        })) || {}
         if (!isAssetWorkspaceAddress(address)) {
             return {
                 normal: {},

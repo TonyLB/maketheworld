@@ -10,13 +10,10 @@ export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<AssetW
             dataCategory = 'Meta::Character'
             break
     }
-    const address = (await assetDB.getItem<AssetWorkspaceAddress>({
+    const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
         AssetId,
         DataCategory: dataCategory,
-        ProjectionFields: ['fileName', '#zone', 'player', 'subFolder'],
-        ExpressionAttributeNames: {
-            '#zone': 'zone'
-        }
+        ProjectionFields: ['address']
     })) || {}
     if (!isAssetWorkspaceAddress(address)) {
         return undefined
