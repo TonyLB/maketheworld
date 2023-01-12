@@ -214,11 +214,6 @@ export const handler = async (event: any, context: any) => {
                     })
                 }
             }
-            if (isWhoAmIAPIMessage(request)) {
-                messageBus.send({
-                    type: 'WhoAmI'
-                })
-            }
             if (isSyncAPIMessage(request)) {
                 if (isEphemeraCharacterId(request.CharacterId)) {
                     messageBus.send({
