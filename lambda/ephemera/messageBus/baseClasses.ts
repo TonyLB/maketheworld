@@ -128,10 +128,6 @@ export type ConnectMessage = {
     userName: string;
 }
 
-export type WhoAmIMessage = {
-    type: 'WhoAmI'
-}
-
 export type SyncRequest = {
     type: 'Sync';
     targetId: EphemeraCharacterId;
@@ -306,7 +302,6 @@ export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
     ConnectMessage |
-    WhoAmIMessage |
     SyncRequest |
     SyncResponse |
     SyncNotificationRequest |
@@ -343,7 +338,6 @@ export const isInformationNotification = (prop: PublishNotification): prop is Pu
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')
 export const isConnectMessage = (prop: MessageType): prop is ConnectMessage => (prop.type === 'Connect')
-export const isWhoAmIMessage = (prop: MessageType): prop is WhoAmIMessage => (prop.type === 'WhoAmI')
 
 export const isSyncRequest = (prop: MessageType): prop is SyncRequest => (prop.type === 'Sync')
 export const isSyncResponse = (prop: MessageType): prop is SyncResponse => (prop.type === 'SyncResponse')
