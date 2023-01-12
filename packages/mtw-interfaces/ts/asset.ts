@@ -64,6 +64,10 @@ export type AssetSubscribeAPIMessage = {
     message: 'subscribe';
 }
 
+export type AssetWhoAmIAPIMessage = {
+    message: 'whoAmI';
+}
+
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
     FetchImportDefaultsAPIMessage |
@@ -72,7 +76,8 @@ export type AssetAPIMessage = { RequestId?: string } & (
     ParseWMLAPIMessage |
     AssetCheckinAPIMessage |
     AssetCheckoutAPIMessage |
-    AssetSubscribeAPIMessage
+    AssetSubscribeAPIMessage |
+    AssetWhoAmIAPIMessage
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
@@ -83,6 +88,7 @@ export const isParseWMLAPIMessage = (message: AssetAPIMessage): message is Parse
 export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
 export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
 export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is AssetSubscribeAPIMessage => (message.message === 'subscribe')
+export const isAssetWhoAmIAPIMessage = (message: AssetAPIMessage): message is AssetWhoAmIAPIMessage => (message.message === 'whoAmI')
 
 export type AssetClientPlayerAsset = {
     AssetId: string;

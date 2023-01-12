@@ -67,6 +67,7 @@ export type LibrarySubscribeMessage = {
 export type PlayerLibraryUpdateMessage = {
     type: 'PlayerLibraryUpdate';
     player?: string;
+    RequestId?: string;
 }
 
 export type LibraryUpdateMessage = {
