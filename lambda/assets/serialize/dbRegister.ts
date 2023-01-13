@@ -177,7 +177,12 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 AssetId: assetWorkspace.namespaceIdToDB[character.key],
                 DataCategory: `Meta::Character`,
                 address,
+                zone: address.zone,
                 Name: character.Name,
+                FirstImpression: character.FirstImpression,
+                OneCoolThing: character.OneCoolThing,
+                Pronouns: character.Pronouns,
+                Outfit: character.Outfit,
                 images: character.images,
                 scopedId: character.key,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
