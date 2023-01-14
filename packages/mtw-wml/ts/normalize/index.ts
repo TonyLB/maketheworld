@@ -1,5 +1,5 @@
 import { produce } from 'immer'
-import { isLegalParseConditionContextTag, ParseException } from '../parser/baseClasses';
+import { isLegalParseConditionContextTag } from '../parser/baseClasses';
 import { schemaFromParse } from '../schema';
 import parser from '../parser'
 import tokenizer from '../parser/tokenizer';
@@ -39,7 +39,8 @@ import {
     isSchemaImportMappingType,
     SchemaImportMapping,
     SchemaException,
-    SchemaMomentTag
+    SchemaMomentTag,
+    isSchemaImport
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -183,8 +184,8 @@ const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): 
 
 type NormalizerInsertPosition = {
     contextStack: NormalReference[];
-    index: number;
-    replace: boolean;
+    index?: number;
+    replace?: boolean;
 }
 
 export class Normalizer {
@@ -227,14 +228,29 @@ export class Normalizer {
         else {
             //
             // TODO: Refactor NormalForm to usefully remember the order in which multiple top-level elements are stored,
-            // without depending upon the location field
+            // without counting on the current restriction of only one top-level element per asset
             //
             return {
                 contextStack: [],
-                index: appearance.location[0],
+                index: 0,
                 replace: true
             }
         }
+    }
+
+    _insertPositionToReference(position: NormalizerInsertPosition): NormalReference | undefined {
+        if (typeof position.index !== 'number') {
+            return undefined
+        }
+        const parent = this._getParentReference(position.contextStack)
+        if (!parent) {
+            return undefined
+        }
+        const parentAppearance = this._lookupAppearance(parent)
+        if (!parentAppearance) {
+            throw new Error('Reference error in Normalizer')
+        }
+        return parentAppearance.contents[position.index]
     }
 
     _insertPositionSortOrder(locationA: NormalizerInsertPosition | NormalReference, locationB: NormalizerInsertPosition | NormalReference): number {
@@ -289,33 +305,80 @@ export class Normalizer {
         }
     }
 
+    _insertPositionToLocation(position: NormalizerInsertPosition): number[] {
+        if (position.contextStack.length === 0) {
+            return [0]
+        }
+        const parentReference = position.contextStack.slice(-1)[0]
+        const parent = this._lookupAppearance(parentReference)
+        const parentLocation = parent.location ?? []
+        if (typeof position.index === 'number') {
+            return [ ...parentLocation, position.index]
+        }
+        else {
+            return [ ...parentLocation, parent.contents.length ]
+        }
+    }
+
+    _getParentReference(context: NormalReference[]): NormalReference | undefined {
+        if (context.length) {
+            return context.slice(-1)[0]
+        }
+        else {
+            return undefined
+        }
+    }
+
     //
     // TODO: When position is provided, compare against existing appearances (if any) in order
     // to find the right place to splice the new entry into the list, and then reindex all of
     // the later appearances
     //
-    _mergeAppearance(key: string, item: NormalItem, position?: NormalizerInsertPosition): number {
+    _mergeAppearance(key: string, item: NormalItem, position: NormalizerInsertPosition): number {
         if (key in this._normalForm) {
-            const insertBefore = position
-                ? this._normalForm[key].appearances.findIndex(({ contextStack }, index) => (
-                    this._insertPositionSortOrder(position, { key, index, tag: this._normalForm[key].tag }) >= 0
-                ))
-                : -1
+            const tag = this._normalForm[key].tag
+            const insertBefore = this._normalForm[key].appearances.findIndex((_, index) => (
+                this._insertPositionSortOrder(position, { key, index, tag }) <= 0
+            ))
+            //
+            // If the insert is happening in the middle of the appearances, first shift all indexes occur after the
+            // insertion point upwards by one, and reindex them.  Place an undefined entry as a placeholder, to be
+            // replaced later
+            //
+            if (insertBefore !== -1) {
+                this._normalForm = produce(this._normalForm, (draft) => {
+                    draft[key].appearances.splice(insertBefore, 0, undefined)
+                })
+                const appearances = this._normalForm[key].appearances ?? []
+                const tag = this._normalForm[key].tag
+                appearances.forEach((_, index) => {
+                    if (index > insertBefore) {
+                        this._reindexReference({ key, tag, index }, { fromIndex: index - 1 })
+                    }
+                })
+            }
             this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
+                const appearances = draft.appearances as any
                 if (draft.tag !== item.tag) {
                     throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
                 }
+                const newAppearance = {
+                    ...item.appearances[0],
+                    location: this._insertPositionToLocation(position)
+                }
                 if (insertBefore === -1) {
-                    (draft.appearances as any).push(item.appearances[0])
+                    appearances.push(newAppearance)
                 }
                 else {
-                    (draft.appearances as any).splice(insertBefore, 0, item.appearances[0])
+                    appearances.splice(insertBefore, 1, newAppearance)
                 }
             }) }
             return insertBefore > -1 ? insertBefore : this._normalForm[key].appearances.length - 1
         }
         else {
-            this._normalForm[key] = item
+            this._normalForm[key] = { ...produce(item, (draft) => {
+                draft.appearances[0].location = this._insertPositionToLocation(position)
+            })}
             return 0
         }
     }
@@ -345,14 +408,14 @@ export class Normalizer {
     _reindexReference(reference: NormalReference, options?: { contextStack?: NormalReference[], fromIndex?: number }): void {
         const { contextStack, fromIndex } = options
         const appearance = this._lookupAppearance(reference)
+        const parent = this._getParentReference(contextStack || appearance.contextStack)
         if (appearance) {
             if (contextStack) {
                 this._updateAppearance(reference, (draft) => {
                     draft.contextStack = contextStack
                 })
             }
-            if (fromIndex && appearance.contextStack.length > 0) {
-                const parent = appearance.contextStack.slice(-1)[0]
+            if (fromIndex && parent) {
                 this._updateAppearance(parent, (draft) => {
                     const appearanceIndex = draft.contents.findIndex(({ key, index }) => (key === reference.key && index === fromIndex))
                     draft.contents[appearanceIndex].index = reference.index
@@ -440,26 +503,28 @@ export class Normalizer {
     }
 
     //
-    // TODO: Add a way to normalize a SchemaCharacterTag, or do some equivalent translation as
-    // the client demands
-    //
-
-    //
     // put accepts an incoming tag and a context, and returns a list of NormalReference returns for things
     // that it has added to the NormalForm mapping as children of the most granular level of the context
     // (i.e., if a feature is being added in a Room then that feature becomes a child of that room)
     //
-    put(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference | undefined {
+    put(node: SchemaTag, position: NormalizerInsertPosition): NormalReference | undefined {
         let returnValue: NormalReference = undefined
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return returnValue
+        }
+        if (position.replace) {
+            this.delete(this._insertPositionToReference(position))
+        }
+        const translateContext: NormalizerContext = {
+            contextStack: position.contextStack,
+            location: this._insertPositionToLocation(position)
         }
         this._validateTags(node)
         let appearanceIndex: number
         let returnKey: string = node.key
         switch(node.tag) {
             case 'Exit':
-                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
+                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, contents: [] }, node), position)
                 returnValue = {
                     tag: 'Exit',
                     key: node.key,
@@ -470,22 +535,35 @@ export class Normalizer {
                 //
                 // TODO: Refactor Import to deprecate Use tags and have direct appearances with optional 'as' property
                 //
-                const translatedImport = this._translate({ ...context, contents: [] }, node)
-                const importIndex = this._mergeAppearance(translatedImport.key, translatedImport)
+                const translatedImport = this._translate({ ...translateContext, contents: [] }, node)
+                const importIndex = this._mergeAppearance(translatedImport.key, translatedImport, position)
+                const importParentReference = this._getParentReference(translateContext.contextStack)
+                if (importParentReference) {
+                    const { contents = [] } = this._lookupAppearance(importParentReference)
+                    this._updateAppearanceContents(
+                        importParentReference.key,
+                        importParentReference.index,
+                        [
+                            ...contents,
+                            {
+                                key: translatedImport.key,
+                                tag: 'Import',
+                                index: importIndex
+                            }
+                        ]
+                    )
+                }
                 const importContents = Object.entries(node.mapping).map<NormalReference>(([key, { type, key: from }], index) => {
-                    const updatedContext: NormalizerContext = {
+                    const updatedContext: NormalizerInsertPosition = {
+                        ...position,
                         contextStack: [
-                            ...context.contextStack,
+                            ...translateContext.contextStack,
                             {
                                 key: translatedImport.key,
                                 tag: node.tag,
                                 index: importIndex
                             }
                         ],
-                        location: [
-                            ...context.location,
-                            index
-                        ]
                     }    
                     switch(type) {
                         case 'Room':
@@ -590,38 +668,39 @@ export class Normalizer {
                     index: importIndex
                 }
             default:
-                const translatedItem = this._translate({ ...context, contents: [] }, node)
+                const translatedItem = this._translate({ ...translateContext, contents: [] }, node)
                 returnKey = translatedItem.key
-                appearanceIndex = this._mergeAppearance(returnKey, translatedItem)
+                appearanceIndex = this._mergeAppearance(returnKey, translatedItem, position)
                 returnValue = {
                     key: returnKey,
                     tag: node.tag,
                     index: appearanceIndex
                 }
         }
+        //
+        // TODO: Add each child to contents as it is normalized, rather than accumulating parses in a (temporarily)
+        // inconsistent NormalForm and then adding them to Appearance at the end
+        //
+        const parentReference = this._getParentReference(translateContext.contextStack)
+        if (parentReference && !isSchemaImport(node)) {
+            const { contents = [] } = this._lookupAppearance(parentReference)
+            if (typeof position.index === 'number') {
+                this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents.slice(0, position.index), returnValue, ...contents.slice(position.index)])
+            }
+            else {
+                this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents, returnValue])
+            }
+        }
         if (isSchemaWithContents(node) && !isSchemaExit(node)) {
-            const contentReferences = (node.contents as SchemaTag[]).reduce((previous, contentNode, index) => {
-                const updateContext: NormalizerContext = {
-                    contextStack: [
-                        ...context.contextStack,
-                        {
-                            tag: node.tag,
-                            key: returnKey,
-                            index: appearanceIndex
-                        }
-                    ],
-                    location: [
-                        ...context.location,
-                        index
-                    ]
-                }
-                const newChild = this.put(contentNode, updateContext)
-                return [
-                    ...previous,
-                    ...(newChild ? [newChild] : [])
+            const updateContext: NormalizerInsertPosition = {
+                contextStack: [
+                    ...translateContext.contextStack,
+                    returnValue
                 ]
-            }, [] as NormalReference[])
-            this._updateAppearanceContents(returnKey, appearanceIndex, contentReferences)
+            }
+            node.contents.forEach((child) => {
+                this.put(child, updateContext)
+            })
         }
         return returnValue
     }
@@ -877,7 +956,7 @@ export class Normalizer {
         this._normalForm = {}
         const schema = schemaFromParse(parser(tokenizer(new SourceStream(wml))))
         schema.forEach((item, index) => {
-            this.put(item, { contextStack: [], location: [index] })
+            this.put(item, { contextStack: [], index, replace: false })
         })
     }
 
