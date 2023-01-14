@@ -1,5 +1,5 @@
 import { produce } from 'immer'
-import { isLegalParseConditionContextTag, ParseException } from '../parser/baseClasses';
+import { isLegalParseConditionContextTag } from '../parser/baseClasses';
 import { schemaFromParse } from '../schema';
 import parser from '../parser'
 import tokenizer from '../parser/tokenizer';
@@ -487,7 +487,7 @@ export class Normalizer {
         }
         const translateContext: NormalizerContext = {
             contextStack: position.contextStack,
-            location: []
+            location: this._insertPositionToLocation(position)
         }
         this._validateTags(node)
         let appearanceIndex: number
@@ -507,11 +507,22 @@ export class Normalizer {
                 //
                 const translatedImport = this._translate({ ...translateContext, contents: [] }, node)
                 const importIndex = this._mergeAppearance(translatedImport.key, translatedImport, position)
-                const parentReference = this._getParentReference(translateContext.contextStack)
-                if (parentReference) {
-                    const { contents = [] } = this._lookupAppearance(parentReference)
-                    this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents, returnValue])
-                }        
+                const importParentReference = this._getParentReference(translateContext.contextStack)
+                if (importParentReference) {
+                    const { contents = [] } = this._lookupAppearance(importParentReference)
+                    this._updateAppearanceContents(
+                        importParentReference.key,
+                        importParentReference.index,
+                        [
+                            ...contents,
+                            {
+                                key: translatedImport.key,
+                                tag: 'Import',
+                                index: importIndex
+                            }
+                        ]
+                    )
+                }
                 const importContents = Object.entries(node.mapping).map<NormalReference>(([key, { type, key: from }], index) => {
                     const updatedContext: NormalizerInsertPosition = {
                         ...position,
