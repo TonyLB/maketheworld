@@ -73,7 +73,7 @@ import {
 import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
-import { deepEqual, objectFilterEntries } from '../lib/objects';
+import { objectFilterEntries } from '../lib/objects';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -182,7 +182,7 @@ const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): 
     }
 }
 
-type NormalizerInsertPosition = {
+export type NormalizerInsertPosition = {
     contextStack: NormalReference[];
     index?: number;
     replace?: boolean;

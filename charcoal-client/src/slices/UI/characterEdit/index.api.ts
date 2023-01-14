@@ -89,8 +89,8 @@ export const parseCharacterWML: CharacterEditAction = ({ internalData: { id, cha
     }
     const schema = schemaFromParse(parser(tokenizer(new SourceStream(characterWML))))
     const normalizer = new Normalizer()
-    schema.forEach((item, index) => {
-        normalizer.add(item, { contextStack: [], location: [index] })
+    schema.forEach((item) => {
+        normalizer.put(item, { contextStack: [] })
     })
 
     const evaluated = (Object.values(normalizer.normal) as NormalItem[]).find(({ tag }: { tag?: string } = {}) => (tag === 'Character')) as unknown as NormalCharacter

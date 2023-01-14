@@ -176,7 +176,7 @@ export const {
     setCurrentWML,
     setDraftWML,
     setLoadedImage,
-    updateSchema
+    updateNormal
 } = publicActions
 export const {
     getStatus,
