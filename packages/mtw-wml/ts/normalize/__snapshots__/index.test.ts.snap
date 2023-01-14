@@ -692,6 +692,493 @@ Object {
 }
 `;
 
+exports[`WML normalize positioned put method should replace a nest that includes an item with the item itself 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 2,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Two",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Three",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+}
+`;
+
+exports[`WML normalize positioned put method should replace an item with a different item 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "testTwo",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Two",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+  "testTwo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Bar",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "testTwo",
+    "tag": "Room",
+  },
+}
+`;
+
+exports[`WML normalize positioned put method should replace an item with a nest that includes the item 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+          Object {
+            "index": 2,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Two",
+          },
+        ],
+        "x": 0,
+        "y": 0,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Three",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+  "testMap": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "images": Array [],
+        "location": Array [
+          0,
+          1,
+        ],
+        "rooms": Array [
+          Object {
+            "conditions": Array [],
+            "key": "test",
+            "location": Array [
+              0,
+              1,
+              0,
+            ],
+            "x": 0,
+            "y": 0,
+          },
+        ],
+      },
+    ],
+    "key": "testMap",
+    "tag": "Map",
+  },
+}
+`;
+
+exports[`WML normalize positioned put method should update an item in place 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 2,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Uno",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Dos",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Tres",
+          },
+        ],
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+}
+`;
+
 exports[`WML normalize put method should add an item in contents 1`] = `
 Object {
   "TestAsset": Object {

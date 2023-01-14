@@ -238,6 +238,21 @@ export class Normalizer {
         }
     }
 
+    _insertPositionToReference(position: NormalizerInsertPosition): NormalReference | undefined {
+        if (typeof position.index !== 'number') {
+            return undefined
+        }
+        const parent = this._getParentReference(position.contextStack)
+        if (!parent) {
+            return undefined
+        }
+        const parentAppearance = this._lookupAppearance(parent)
+        if (!parentAppearance) {
+            throw new Error('Reference error in Normalizer')
+        }
+        return parentAppearance.contents[position.index]
+    }
+
     _insertPositionSortOrder(locationA: NormalizerInsertPosition | NormalReference, locationB: NormalizerInsertPosition | NormalReference): number {
         const isInsertPosition = (value: NormalizerInsertPosition | NormalReference): value is NormalizerInsertPosition => ('contextStack' in value)
         const positionA = isInsertPosition(locationA) ? locationA : this._referenceToInsertPosition(locationA)
@@ -496,6 +511,9 @@ export class Normalizer {
         let returnValue: NormalReference = undefined
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return returnValue
+        }
+        if (position.replace) {
+            this.delete(this._insertPositionToReference(position))
         }
         const translateContext: NormalizerContext = {
             contextStack: position.contextStack,

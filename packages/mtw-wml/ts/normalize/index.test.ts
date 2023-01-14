@@ -462,6 +462,117 @@ describe('WML normalize', () => {
             normalizer.put(toAddAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: false })
             expect(normalizer.normal).toMatchSnapshot()
         })
+
+        it('should update an item in place', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        Uno
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Two
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Tres
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toUpdateSource = `<Room key=(test)><Description>Dos</Description></Room>`
+            const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
+            normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: true })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should replace an item with a different item', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Foo
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Two
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toUpdateSource = `<Room key=(testTwo)><Description>Bar</Description></Room>`
+            const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
+            normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: true })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should replace an item with a nest that includes the item', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Two
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Three
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toUpdateSource = `<Map key=(testMap)><Room key=(test) x="0" y="0"><Description>Two</Description></Room></Map>`
+            const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
+            normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: true })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should replace a nest that includes an item with the item itself', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Map key=(testMap)>
+                    <Room key=(test) x="0" y="0">
+                        <Description>
+                            Two
+                        </Description>
+                    </Room>
+                </Map>
+                <Room key=(test)>
+                    <Description>
+                        Three
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toUpdateSource = `<Room key=(test)><Description>Two</Description></Room>`
+            const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
+            normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: true })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
     })
 
 })
