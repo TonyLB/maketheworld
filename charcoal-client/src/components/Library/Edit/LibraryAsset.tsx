@@ -25,7 +25,8 @@ import {
     getLoadedImages,
     setCurrentWML,
     setIntent,
-    getProperties
+    getProperties,
+    updateNormal as updateNormalAction
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
@@ -34,6 +35,8 @@ import { objectFilter } from '../../../lib/objects'
 import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
 import { PersonalAssetsLoadedImage } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -43,6 +46,7 @@ type LibraryAssetContextType = {
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
     wmlQuery: WMLQuery;
     updateWML: (value: string, options?: { prettyPrint?: boolean }) => void;
+    updateNormal: (action: UpdateNormalPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
     components: Record<string, AssetComponent>;
@@ -60,6 +64,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     importDefaults: {},
     wmlQuery: new WMLQuery(''),
     updateWML: () => {},
+    updateNormal: () => {},
     properties: {},
     loadedImages: {},
     components: {},
@@ -147,11 +152,15 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             // dispatch(heartbeat)
         }
     }
+    const updateNormal = (updateAction: UpdateNormalPayload) => {
+        dispatch(updateNormalAction(AssetId)(updateAction))
+        dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
+        dispatch(heartbeat)
+    }
     const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importDefaults }) ), [normalForm, importDefaults])
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
     const exits = useMemo<Record<string, NormalExit>>(() => ( objectFilter(normalForm, isNormalExit) ), [components])
     const features = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Feature')) ), [components])
-    const images = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Image')) ), [components])
     const save = useCallback(() => {
         dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
         dispatch(heartbeat)
@@ -166,6 +175,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             importDefaults,
             wmlQuery,
             updateWML,
+            updateNormal,
             properties,
             loadedImages,
             components,

@@ -2,18 +2,19 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import { WritableDraft } from 'immer/dist/internal'
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema'
 import parser from "@tonylb/mtw-wml/dist/parser"
 import tokenizer from "@tonylb/mtw-wml/dist/parser/tokenizer"
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
     const schema = schemaFromParse(parser(tokenizer(new SourceStream(newCurrent.payload.value))))
     const normalizer = new Normalizer()
-    schema.forEach((item, index) => {
-        normalizer.add(item, { contextStack: [], location: [index] })
+    schema.forEach((item) => {
+        normalizer.put(item, { contextStack: [] })
     })
     state.draftWML = undefined
 }
@@ -29,9 +30,21 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
-export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<(normalizer: WritableDraft<Normalizer>) => void>) => {
+type UpdateNormalPayloadPut = {
+    type: 'put';
+    item: SchemaTag;
+    position: NormalizerInsertPosition;
+}
+
+export type UpdateNormalPayload = UpdateNormalPayloadPut
+
+export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<UpdateNormalPayload>) => {
     const normalizer = new Normalizer()
     normalizer._normalForm = state.normal
-    action.payload(normalizer)
+    switch(action.payload.type) {
+        case 'put':
+            normalizer.put(action.payload.item, action.payload.position)
+            break
+    }
     state.normal = normalizer.normal
 }

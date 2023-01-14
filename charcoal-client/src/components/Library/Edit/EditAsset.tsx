@@ -5,9 +5,6 @@ import {
     CircularProgress,
     IconButton,
     List,
-    ListItemButton,
-    ListItemText,
-    ListItemIcon,
     ListSubheader,
     Button
 } from '@mui/material'
@@ -26,7 +23,7 @@ import {
     getWMLQuery
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
@@ -37,11 +34,40 @@ import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 type AssetEditFormProps = {}
 
+const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): SchemaTag => {
+    switch(tag) {
+        case 'Room':
+            return {
+                tag: 'Room' as 'Room',
+                key,
+                contents: [],
+                name: [],
+                render: [],
+                global: false
+            }
+        case 'Feature':
+            return {
+                tag: 'Feature' as 'Feature',
+                key,
+                contents: [],
+                name: [],
+                render: [],
+                global: false
+            }
+        case 'Image':
+            return {
+                tag: 'Image' as 'Image',
+                key
+            }
+    }
+}
+
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { normalForm, wmlQuery, updateWML, save } = useLibraryAsset()
+    const { normalForm, wmlQuery, updateWML, updateNormal, save } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
@@ -49,10 +75,19 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
-    const addAsset = useCallback((tag: string) => (componentId: string) => {
-        wmlQuery.search('Asset, Story').addElement(`<${tag} key=(${componentId}) />`, { position: 'after' })
-        updateWML(wmlQuery.source)
-    }, [wmlQuery])
+    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image') => (componentId: string) => {
+        // wmlQuery.search('Asset, Story').addElement(`<${tag} key=(${componentId}) />`, { position: 'after' })
+        // updateWML(wmlQuery.source)
+        const rootItem = Object.values(normalForm)
+            .find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
+        if (rootItem) {
+            updateNormal({
+                type: 'put',
+                item: defaultItemFromTag(tag, componentId),
+                position: { contextStack: [{ key: rootItem.key, tag: rootItem.tag, index: 0 }]}
+            })
+        }
+    }, [updateNormal, normalForm])
     return <Box sx={{ display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
             primary={asset?.key || 'Untitled'}
@@ -140,7 +175,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     const currentStatus = useSelector(getStatus(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))
 
-    return (['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(currentStatus || '') && wmlQuery)
+    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(currentStatus || '') && wmlQuery)
         ? 
             <LibraryAsset assetKey={assetKey || ''}>
                 <Routes>

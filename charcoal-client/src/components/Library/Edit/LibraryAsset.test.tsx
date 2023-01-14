@@ -67,7 +67,7 @@ const store = mockStore({
                },
                meta: {
                    currentState: 'FRESH',
-                   desiredStates: ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY']
+                   desiredStates: ['FRESH', 'WMLDIRTY', 'NORMALDIRTY']
                }
            }
        }

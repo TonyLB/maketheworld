@@ -122,8 +122,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
                 ],
@@ -153,8 +153,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     },
                     {
@@ -180,8 +180,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     },
                     {
@@ -202,8 +202,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
                 ],
@@ -236,8 +236,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
                 ],
@@ -264,8 +264,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
                 ],
@@ -296,13 +296,13 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     },
                     {
-                        \\"tag\\": \\"If\\",
                         \\"key\\": \\"If-0\\",
+                        \\"tag\\": \\"If\\",
                         \\"index\\": 0
                     }
                 ],
@@ -338,8 +338,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
                 ],
@@ -367,18 +367,18 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     },
                     {
-                        \\"tag\\": \\"If\\",
                         \\"key\\": \\"If-0\\",
+                        \\"tag\\": \\"If\\",
                         \\"index\\": 0
                     },
                     {
-                        \\"tag\\": \\"Room\\",
                         \\"key\\": \\"ABC\\",
+                        \\"tag\\": \\"Room\\",
                         \\"index\\": 1
                     }
                 ],
@@ -402,13 +402,13 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     },
                     {
-                        \\"tag\\": \\"Room\\",
                         \\"key\\": \\"DEF\\",
+                        \\"tag\\": \\"Room\\",
                         \\"index\\": 1
                     }
                 ],
@@ -429,8 +429,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
                 ],
@@ -450,8 +450,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
             {
                 \\"contextStack\\": [
                     {
-                        \\"tag\\": \\"Asset\\",
                         \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
                 ],
