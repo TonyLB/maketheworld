@@ -90,7 +90,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
         expect(normalizer.normal).toMatchSnapshot()
     })
 
@@ -110,7 +110,7 @@ describe('WML normalize', () => {
         </Character>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
         expect(normalizer.normal).toMatchSnapshot()
     })
 
@@ -134,7 +134,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
         expect(normalizer.normal).toMatchSnapshot()
 
     })
@@ -158,7 +158,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
         expect(normalizer.normal).toMatchSnapshot()
 
     })
@@ -192,7 +192,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
         expect(normalizer.normal).toMatchSnapshot()
 
     })
@@ -215,7 +215,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
         expect(normalizer.normal).toMatchSnapshot()
 
     })
@@ -235,7 +235,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
         expect(normalizer.normal).toMatchSnapshot()
     })
 
@@ -251,7 +251,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        expect(() => { normalizer.put(testAsset[0], { contextStack: [], location: [0] }) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
+        expect(() => { normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false }) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
     })
 
     it('should correctly round-trip from schema to normalize and back', () => {
@@ -284,7 +284,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
         expect(normalizer.schema).toEqual(removeParseFromSchema(testAsset))
     })
 
@@ -304,7 +304,7 @@ describe('WML normalize', () => {
             </Asset>`
             const normalizer = new Normalizer()
             const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
             //
             // TODO: Refactor put arguments to allow:
             //    (a) specifying the item into the contents of which the element should be added/put
@@ -318,7 +318,8 @@ describe('WML normalize', () => {
                         { tag: 'Asset', key: 'TestAsset', index: 0 },
                         { tag: 'Room', key: 'test', index: 0 }
                     ],
-                    location: [0, 0]
+                    index: 0,
+                    replace: false
                 }
             )
             expect(normalizer.normal).toMatchSnapshot()
@@ -342,7 +343,7 @@ describe('WML normalize', () => {
             </Asset>`
             const normalizer = new Normalizer()
             const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
             normalizer.delete({ key: 'test', index: 1, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
@@ -357,7 +358,7 @@ describe('WML normalize', () => {
             </Asset>`
             const normalizer = new Normalizer()
             const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
             normalizer.delete({ key: 'test', index: 0, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
@@ -377,7 +378,7 @@ describe('WML normalize', () => {
             </Asset>`
             const normalizer = new Normalizer()
             const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
             normalizer.delete({ key: 'testOne', index: 1, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
@@ -411,7 +412,7 @@ describe('WML normalize', () => {
             </Asset>`
             const normalizer = new Normalizer()
             const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], location: [0] })
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
             normalizer.delete({ key: 'If-1', index: 0, tag: 'If' })
             expect(normalizer.normal).toMatchSnapshot()
         })

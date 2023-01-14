@@ -183,8 +183,8 @@ const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): 
 
 type NormalizerInsertPosition = {
     contextStack: NormalReference[];
-    index: number;
-    replace: boolean;
+    index?: number;
+    replace?: boolean;
 }
 
 export class Normalizer {
@@ -206,12 +206,15 @@ export class Normalizer {
     }
 
     _referenceToInsertPosition(reference: NormalReference): NormalizerInsertPosition {
+        console.log(`Reference: ${JSON.stringify(reference, null, 4)}`)
         const appearance = this._lookupAppearance(reference)
+        console.log(`Appearance: ${JSON.stringify(appearance, null, 4)}`)
         if (!appearance) {
             throw new Error('Reference error in Normalizer')
         }
         const parent = appearance.contextStack.length > 0 ? appearance.contextStack.slice(-1)[0] : undefined
         if (parent) {
+            console.log(`Lookup: ${JSON.stringify(this._normalForm[parent.key].appearances[parent.index], null, 4)}`)
             const index = this._normalForm[parent.key].appearances[parent.index].contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
             if (index === -1) {
                 throw new Error('Parent lookup error in Normalizer')
@@ -227,20 +230,26 @@ export class Normalizer {
         else {
             //
             // TODO: Refactor NormalForm to usefully remember the order in which multiple top-level elements are stored,
-            // without depending upon the location field
+            // without counting on the current restriction of only one top-level element per asset
             //
             return {
                 contextStack: [],
-                index: appearance.location[0],
+                index: 0,
                 replace: true
             }
         }
     }
 
     _insertPositionSortOrder(locationA: NormalizerInsertPosition | NormalReference, locationB: NormalizerInsertPosition | NormalReference): number {
+        console.log(`locationA: ${JSON.stringify(locationA, null, 4)}`)
+        console.log(`locationB: ${JSON.stringify(locationB, null, 4)}`)
+        console.log(`NormalForm: ${JSON.stringify(this._normalForm, null, 4)}`)
         const isInsertPosition = (value: NormalizerInsertPosition | NormalReference): value is NormalizerInsertPosition => ('contextStack' in value)
+        console.log(`Gate1`)
         const positionA = isInsertPosition(locationA) ? locationA : this._referenceToInsertPosition(locationA)
+        console.log(`Gate2`)
         const positionB = isInsertPosition(locationB) ? locationB : this._referenceToInsertPosition(locationB)
+        console.log(`Gate3`)
         const firstIndexA = positionA.contextStack.length
             ? (this._referenceToInsertPosition(positionA.contextStack[0]) ?? { index: -1 }).index
             : positionA.index
@@ -295,8 +304,9 @@ export class Normalizer {
     // the later appearances
     //
     _mergeAppearance(key: string, item: NormalItem, position?: NormalizerInsertPosition): number {
+        const location = []
         if (key in this._normalForm) {
-            const insertBefore = position
+            const insertBefore = typeof position?.index === 'number'
                 ? this._normalForm[key].appearances.findIndex(({ contextStack }, index) => (
                     this._insertPositionSortOrder(position, { key, index, tag: this._normalForm[key].tag }) >= 0
                 ))
@@ -305,22 +315,33 @@ export class Normalizer {
                 if (draft.tag !== item.tag) {
                     throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
                 }
+                const newAppearance = {
+                    ...item.appearances[0],
+                    location: [...location, position?.index ?? 0]
+                }
                 if (insertBefore === -1) {
-                    (draft.appearances as any).push(item.appearances[0])
+                    (draft.appearances as any).push(newAppearance)
                 }
                 else {
-                    (draft.appearances as any).splice(insertBefore, 0, item.appearances[0])
+                    (draft.appearances as any).splice(insertBefore, 0, newAppearance)
                 }
             }) }
             return insertBefore > -1 ? insertBefore : this._normalForm[key].appearances.length - 1
         }
         else {
-            this._normalForm[key] = item
+            this._normalForm[key] = {
+                ...item,
+                appearances: item.appearances.map((appearance, index) => ({
+                    ...appearance,
+                    location: [...location, index]
+                }))
+            }
             return 0
         }
     }
 
     _updateAppearanceContents(key: string, appearance: number, contents: NormalReference[]): void {
+        console.log(`Update[${key}][${appearance}]: ${JSON.stringify(contents, null, 4)}`)
         if (!(key in this._normalForm)) {
             throw new NormalizeKeyMismatchError(`Key "${key}" does not match any tag in asset`)
         }
@@ -449,17 +470,21 @@ export class Normalizer {
     // that it has added to the NormalForm mapping as children of the most granular level of the context
     // (i.e., if a feature is being added in a Room then that feature becomes a child of that room)
     //
-    put(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference | undefined {
+    put(node: SchemaTag, position: NormalizerInsertPosition): NormalReference | undefined {
         let returnValue: NormalReference = undefined
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return returnValue
+        }
+        const translateContext: NormalizerContext = {
+            contextStack: position.contextStack,
+            location: []
         }
         this._validateTags(node)
         let appearanceIndex: number
         let returnKey: string = node.key
         switch(node.tag) {
             case 'Exit':
-                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
+                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, contents: [] }, node), position)
                 returnValue = {
                     tag: 'Exit',
                     key: node.key,
@@ -470,22 +495,19 @@ export class Normalizer {
                 //
                 // TODO: Refactor Import to deprecate Use tags and have direct appearances with optional 'as' property
                 //
-                const translatedImport = this._translate({ ...context, contents: [] }, node)
-                const importIndex = this._mergeAppearance(translatedImport.key, translatedImport)
+                const translatedImport = this._translate({ ...translateContext, contents: [] }, node)
+                const importIndex = this._mergeAppearance(translatedImport.key, translatedImport, position)
                 const importContents = Object.entries(node.mapping).map<NormalReference>(([key, { type, key: from }], index) => {
-                    const updatedContext: NormalizerContext = {
+                    const updatedContext: NormalizerInsertPosition = {
+                        ...position,
                         contextStack: [
-                            ...context.contextStack,
+                            ...translateContext.contextStack,
                             {
                                 key: translatedImport.key,
                                 tag: node.tag,
                                 index: importIndex
                             }
                         ],
-                        location: [
-                            ...context.location,
-                            index
-                        ]
                     }    
                     switch(type) {
                         case 'Room':
@@ -590,9 +612,9 @@ export class Normalizer {
                     index: importIndex
                 }
             default:
-                const translatedItem = this._translate({ ...context, contents: [] }, node)
+                const translatedItem = this._translate({ ...translateContext, contents: [] }, node)
                 returnKey = translatedItem.key
-                appearanceIndex = this._mergeAppearance(returnKey, translatedItem)
+                appearanceIndex = this._mergeAppearance(returnKey, translatedItem, position)
                 returnValue = {
                     key: returnKey,
                     tag: node.tag,
@@ -601,18 +623,10 @@ export class Normalizer {
         }
         if (isSchemaWithContents(node) && !isSchemaExit(node)) {
             const contentReferences = (node.contents as SchemaTag[]).reduce((previous, contentNode, index) => {
-                const updateContext: NormalizerContext = {
+                const updateContext: NormalizerInsertPosition = {
                     contextStack: [
-                        ...context.contextStack,
-                        {
-                            tag: node.tag,
-                            key: returnKey,
-                            index: appearanceIndex
-                        }
-                    ],
-                    location: [
-                        ...context.location,
-                        index
+                        ...translateContext.contextStack,
+                        returnValue
                     ]
                 }
                 const newChild = this.put(contentNode, updateContext)
@@ -621,6 +635,7 @@ export class Normalizer {
                     ...(newChild ? [newChild] : [])
                 ]
             }, [] as NormalReference[])
+            console.log(`Updating contents to: ${JSON.stringify(contentReferences, null, 4)}`)
             this._updateAppearanceContents(returnKey, appearanceIndex, contentReferences)
         }
         return returnValue
@@ -877,7 +892,7 @@ export class Normalizer {
         this._normalForm = {}
         const schema = schemaFromParse(parser(tokenizer(new SourceStream(wml))))
         schema.forEach((item, index) => {
-            this.put(item, { contextStack: [], location: [index] })
+            this.put(item, { contextStack: [], index, replace: false })
         })
     }
 
