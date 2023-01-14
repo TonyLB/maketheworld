@@ -321,12 +321,29 @@ export class Normalizer {
     //
     _mergeAppearance(key: string, item: NormalItem, position: NormalizerInsertPosition): number {
         if (key in this._normalForm) {
-            const insertBefore = typeof position?.index === 'number'
-                ? this._normalForm[key].appearances.findIndex((_, index) => (
-                    this._insertPositionSortOrder(position, { key, index, tag: this._normalForm[key].tag }) >= 0
-                ))
-                : -1
+            const tag = this._normalForm[key].tag
+            const insertBefore = this._normalForm[key].appearances.findIndex((_, index) => (
+                this._insertPositionSortOrder(position, { key, index, tag }) <= 0
+            ))
+            //
+            // If the insert is happening in the middle of the appearances, first shift all indexes occur after the
+            // insertion point upwards by one, and reindex them.  Place an undefined entry as a placeholder, to be
+            // replaced later
+            //
+            if (insertBefore !== -1) {
+                this._normalForm = produce(this._normalForm, (draft) => {
+                    draft[key].appearances.splice(insertBefore, 0, undefined)
+                })
+                const appearances = this._normalForm[key].appearances ?? []
+                const tag = this._normalForm[key].tag
+                appearances.forEach((_, index) => {
+                    if (index > insertBefore) {
+                        this._reindexReference({ key, tag, index }, { fromIndex: index - 1 })
+                    }
+                })
+            }
             this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
+                const appearances = draft.appearances as any
                 if (draft.tag !== item.tag) {
                     throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
                 }
@@ -335,10 +352,10 @@ export class Normalizer {
                     location: this._insertPositionToLocation(position)
                 }
                 if (insertBefore === -1) {
-                    (draft.appearances as any).push(newAppearance)
+                    appearances.push(newAppearance)
                 }
                 else {
-                    (draft.appearances as any).splice(insertBefore, 0, newAppearance)
+                    appearances.splice(insertBefore, 1, newAppearance)
                 }
             }) }
             return insertBefore > -1 ? insertBefore : this._normalForm[key].appearances.length - 1
@@ -376,14 +393,14 @@ export class Normalizer {
     _reindexReference(reference: NormalReference, options?: { contextStack?: NormalReference[], fromIndex?: number }): void {
         const { contextStack, fromIndex } = options
         const appearance = this._lookupAppearance(reference)
+        const parent = this._getParentReference(contextStack || appearance.contextStack)
         if (appearance) {
             if (contextStack) {
                 this._updateAppearance(reference, (draft) => {
                     draft.contextStack = contextStack
                 })
             }
-            if (fromIndex && appearance.contextStack.length > 0) {
-                const parent = appearance.contextStack.slice(-1)[0]
+            if (fromIndex && parent) {
                 this._updateAppearance(parent, (draft) => {
                     const appearanceIndex = draft.contents.findIndex(({ key, index }) => (key === reference.key && index === fromIndex))
                     draft.contents[appearanceIndex].index = reference.index
@@ -469,11 +486,6 @@ export class Normalizer {
             }
         })
     }
-
-    //
-    // TODO: Add a way to normalize a SchemaCharacterTag, or do some equivalent translation as
-    // the client demands
-    //
 
     //
     // put accepts an incoming tag and a context, and returns a list of NormalReference returns for things
@@ -654,7 +666,12 @@ export class Normalizer {
         const parentReference = this._getParentReference(translateContext.contextStack)
         if (parentReference && !isSchemaImport(node)) {
             const { contents = [] } = this._lookupAppearance(parentReference)
-            this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents, returnValue])
+            if (typeof position.index === 'number') {
+                this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents.slice(0, position.index), returnValue, ...contents.slice(position.index)])
+            }
+            else {
+                this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents, returnValue])
+            }
         }
         if (isSchemaWithContents(node) && !isSchemaExit(node)) {
             const updateContext: NormalizerInsertPosition = {

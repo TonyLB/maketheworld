@@ -417,4 +417,51 @@ describe('WML normalize', () => {
             expect(normalizer.normal).toMatchSnapshot()
         })
     })
+
+    describe('positioned put method', () => {
+        it('should add an item between two others', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Three
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toAddSource = `<Room key=(test)><Description>Two</Description></Room>`
+            const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
+            normalizer.put(toAddAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: false })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should correctly reorder when added item is nested', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Room key=(test)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Three
+                    </Description>
+                </Room>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toAddSource = `<Map key=(testMap)><Room key=(test) x="0" y="0"><Description>Two</Description></Room></Map>`
+            const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
+            normalizer.put(toAddAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: false })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+    })
+
 })
