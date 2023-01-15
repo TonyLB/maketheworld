@@ -35,7 +35,6 @@ import { objectFilter } from '../../../lib/objects'
 import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
 import { PersonalAssetsLoadedImage } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
 
 type LibraryAssetContextType = {
@@ -126,15 +125,21 @@ const assetComponents = ({ normalForm, importDefaults }: { normalForm: NormalFor
 
 export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, children, character }) => {
 
-    const AssetId = `${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`
-    const currentWML = useSelector(getCurrentWML(AssetId))
-    const normalForm = useSelector(getNormalized(AssetId))
-    const wmlQuery = useSelector(getWMLQuery(AssetId))
-    const importDefaults = useSelector(getImportDefaults(AssetId))
-    const loadedImages = useSelector(getLoadedImages(AssetId))
-    const properties = useSelector(getProperties(AssetId))
+    const AssetId = useMemo<string>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
+    const currentWMLSelector = useCallback(getCurrentWML(AssetId), [AssetId])
+    const currentWML = useSelector(currentWMLSelector)
+    const normalSelector = useCallback(getNormalized(AssetId), [AssetId])
+    const normalForm = useSelector(normalSelector)
+    const wmlQuerySelector = useCallback(getWMLQuery(AssetId), [AssetId])
+    const wmlQuery = useSelector(wmlQuerySelector)
+    const importDefaultsSelector = useCallback(getImportDefaults(AssetId), [AssetId])
+    const importDefaults = useSelector(importDefaultsSelector)
+    const loadedImagesSelector = useCallback(getLoadedImages(AssetId), [AssetId])
+    const loadedImages = useSelector(loadedImagesSelector)
+    const propertiesSelector = useCallback(getProperties(AssetId), [AssetId])
+    const properties = useSelector(propertiesSelector)
     const dispatch = useDispatch()
-    const updateWML = (value: string, options?: { prettyPrint?: boolean }) => {
+    const updateWML = useCallback((value: string, options?: { prettyPrint?: boolean }) => {
         const { prettyPrint = true } = options || {}
         if (prettyPrint) {
             const wmlQuery = new WMLQuery(value)
@@ -151,12 +156,12 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             // dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY']}))
             // dispatch(heartbeat)
         }
-    }
-    const updateNormal = (updateAction: UpdateNormalPayload) => {
+    }, [dispatch, AssetId])
+    const updateNormal = useCallback((updateAction: UpdateNormalPayload) => {
         dispatch(updateNormalAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
         dispatch(heartbeat)
-    }
+    }, [dispatch, AssetId])
     const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importDefaults }) ), [normalForm, importDefaults])
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
     const exits = useMemo<Record<string, NormalExit>>(() => ( objectFilter(normalForm, isNormalExit) ), [components])

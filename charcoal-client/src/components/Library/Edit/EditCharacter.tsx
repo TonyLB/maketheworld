@@ -40,17 +40,22 @@ import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsse
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
+import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
+import { SchemaCharacterTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import { deepEqual } from '../../../lib/objects'
 
 type ReplaceLiteralTagProps = {
-    wmlQuery: WMLQuery;
-    search: string;
-    tag: string;
+    normalForm: NormalForm;
+    updateNormal: (action: UpdateNormalPayload) => void;
+    tag: LiteralTagFieldProps["tag"];
     replace: string;
 }
 
 const replaceLiteralTag = ({
-    wmlQuery,
-    search,
+    normalForm,
+    updateNormal,
     tag,
     replace
 }: ReplaceLiteralTagProps) => {
@@ -58,19 +63,50 @@ const replaceLiteralTag = ({
     // TODO: Add replace method to WMLQuery, to replace the entire tag
     // with new text
     //
-    const queryBase = wmlQuery.search(search)
-    const queryResult = queryBase.extend().add(tag)
-    if (replace) {
-        if (queryResult.nodes().length) {
-            queryResult.contents(replace)
+    const character = Object.values(normalForm).find(({ tag }) => (tag === 'Character')) as NormalCharacter | undefined
+    if (!character) {
+        return
+    }
+    const mergeProperty = (merge: Partial<SchemaCharacterTag>) => {
+        const normalizer = new Normalizer()
+        normalizer._normalForm = normalForm
+        const baseSchema = normalizer.schema[0]
+        const updatedSchema = { ...baseSchema, ...merge } as SchemaCharacterTag
+        if (!deepEqual(baseSchema, updatedSchema)) {
+            updateNormal({
+                type: 'put',
+                item: updatedSchema,
+                position: { contextStack: [], index: 0 }
+            })    
         }
-        else {
-            queryBase.addElement(`<${tag}>${replace}</${tag}>`, { position: 'after' })
-        }    
     }
-    else {
-        queryResult.remove()
+    switch(tag) {
+        case 'FirstImpression':
+            mergeProperty({ FirstImpression: replace || undefined })
+            break
+        case 'Name':
+            mergeProperty({ Name: replace || undefined })
+            break
+        case 'OneCoolThing':
+            mergeProperty({ OneCoolThing: replace || undefined })
+            break
+        case 'Outfit':
+            mergeProperty({ Outfit: replace || undefined })
+            break
     }
+    // const queryBase = wmlQuery.search(search)
+    // const queryResult = queryBase.extend().add(tag)
+    // if (replace) {
+    //     if (queryResult.nodes().length) {
+    //         queryResult.contents(replace)
+    //     }
+    //     else {
+    //         queryBase.addElement(`<${tag}>${replace}</${tag}>`, { position: 'after' })
+    //     }    
+    // }
+    // else {
+    //     queryResult.remove()
+    // }
 }
 
 type CharacterEditPronounsProps = NormalCharacterPronouns & {
@@ -250,7 +286,7 @@ type LiteralTagFieldProps = {
 }
 
 const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, tag, label }) => {
-    const { normalForm, wmlQuery, updateWML } = useLibraryAsset()
+    const { normalForm, updateNormal } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
         const character = Object.values(normalForm || {}).find(({ tag }) => (['Character'].includes(tag))) as NormalCharacter | undefined
@@ -259,15 +295,18 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, ta
 
     const debouncedTagValue = useDebounce(currentTagValue, 500)
 
+    //
+    // TODO: Figure out why replaceLiteralTag is causing an infinite change loop, and correct
+    //
     useEffect(() => {
-        replaceLiteralTag({
-            wmlQuery,
-            search: 'Character',
-            tag,
-            replace: debouncedTagValue
-        })
-        updateWML(wmlQuery.source)
-    }, [wmlQuery, updateWML, tag, debouncedTagValue])
+        console.log(`Replace`)
+        // replaceLiteralTag({
+        //     normalForm,
+        //     updateNormal,
+        //     tag,
+        //     replace: debouncedTagValue
+        // })
+    }, [normalForm, updateNormal, tag, debouncedTagValue])
 
     return <TextField
         required={required}
