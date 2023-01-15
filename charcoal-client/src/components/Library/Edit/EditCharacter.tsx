@@ -94,19 +94,6 @@ const replaceLiteralTag = ({
             mergeProperty({ Outfit: replace || undefined })
             break
     }
-    // const queryBase = wmlQuery.search(search)
-    // const queryResult = queryBase.extend().add(tag)
-    // if (replace) {
-    //     if (queryResult.nodes().length) {
-    //         queryResult.contents(replace)
-    //     }
-    //     else {
-    //         queryBase.addElement(`<${tag}>${replace}</${tag}>`, { position: 'after' })
-    //     }    
-    // }
-    // else {
-    //     queryResult.remove()
-    // }
 }
 
 type CharacterEditPronounsProps = NormalCharacterPronouns & {
@@ -357,7 +344,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name, 
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { normalForm, wmlQuery, updateWML, save, AssetId } = useLibraryAsset()
+    const { normalForm, updateNormal, save, AssetId } = useLibraryAsset()
     const navigate = useNavigate()
 
     const character = Object.values(normalForm || {}).find(({ tag }) => (['Character'].includes(tag))) as NormalCharacter | undefined
@@ -389,14 +376,18 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     const debouncedPronouns = useDebounce(currentPronouns, 500)
 
     useEffect(() => {
-        wmlQuery.search('Character Pronouns')
-            .prop('subject', debouncedPronouns.subject)
-            .prop('object', debouncedPronouns.object)
-            .prop('reflexive', debouncedPronouns.reflexive)
-            .prop('possessive', debouncedPronouns.possessive)
-            .prop('adjective', debouncedPronouns.adjective)
-        updateWML(wmlQuery.source)
-    }, [wmlQuery, updateWML, debouncedPronouns])
+        const normalizer = new Normalizer()
+        normalizer._normalForm = normalForm
+        const baseSchema = normalizer.schema[0] as SchemaCharacterTag
+        if (!deepEqual(baseSchema.Pronouns, debouncedPronouns)) {
+            const updatedSchema = { ...baseSchema, Pronouns: debouncedPronouns }
+            updateNormal({
+                type: 'put',
+                item: updatedSchema,
+                position: { contextStack: [], index: 0, replace: true }
+            })    
+        }
+    }, [normalForm, updateNormal, debouncedPronouns])
 
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
