@@ -8,12 +8,13 @@ import {
 import ExitIcon from '@mui/icons-material/CallMade'
 import DeleteIcon from '@mui/icons-material/Delete'
 
-import { isNormalExit } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalExit, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { useLibraryAsset } from './LibraryAsset'
 import useDebounce from '../../../hooks/useDebounce'
 import { noConditionContext } from './utilities'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
 interface RoomExitHeaderBaseProps {
     defaultName: string;
@@ -63,7 +64,7 @@ interface RoomExitHeaderProps {
 }
 
 export const RoomExitHeader: FunctionComponent<RoomExitHeaderProps> = ({ ItemId, RoomId, onClick }) => {
-    const { wmlQuery, updateWML } = useLibraryAsset()
+    const { wmlQuery, updateWML, normalForm, updateNormal } = useLibraryAsset()
     const saveName = useCallback(({ location }: { location: number[] }) => (name: string) => {
         if (location.length) {
             const exitQuery = wmlQuery.search(['Asset', ...location.slice(1).map((index) => (`:nthChild(${index})`))].join(''))
@@ -72,10 +73,15 @@ export const RoomExitHeader: FunctionComponent<RoomExitHeaderProps> = ({ ItemId,
         }
     }, [ItemId, RoomId, wmlQuery, updateWML])
     const onDelete = useCallback(({ to, from }: { to: string; from: string }) => () => {
-        wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not('If Exit').remove()
-        wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not('If Exit').remove()
-        updateWML(wmlQuery.source)
-    }, [wmlQuery, updateWML])
+        const exitKey = `${from}#${to}`
+        if(exitKey in normalForm && (normalForm[exitKey].appearances ?? []).length) {
+            const deleteReferences: NormalReference[] = (normalForm[exitKey].appearances || []).map((_, index) => ({ key: exitKey, index, tag: 'Exit' as 'Exit' })).reverse()
+            updateNormal({
+                type: 'delete',
+                references: deleteReferences
+            })
+        }
+    }, [normalForm, updateNormal])
     const primaryBase: AssetDataHeaderRenderFunction = ({ item, defaultItem, rooms }) => {
         if (isNormalExit(item)) {
             const toTarget = Boolean(item.from === RoomId)
