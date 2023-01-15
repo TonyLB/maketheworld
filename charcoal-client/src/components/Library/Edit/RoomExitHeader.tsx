@@ -8,12 +8,12 @@ import {
 import ExitIcon from '@mui/icons-material/CallMade'
 import DeleteIcon from '@mui/icons-material/Delete'
 
-import { isNormalExit } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalExit, NormalExit, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { useLibraryAsset } from './LibraryAsset'
 import useDebounce from '../../../hooks/useDebounce'
-import { noConditionContext } from './utilities'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
 interface RoomExitHeaderBaseProps {
     defaultName: string;
@@ -63,23 +63,49 @@ interface RoomExitHeaderProps {
 }
 
 export const RoomExitHeader: FunctionComponent<RoomExitHeaderProps> = ({ ItemId, RoomId, onClick }) => {
-    const { wmlQuery, updateWML } = useLibraryAsset()
-    const saveName = useCallback(({ location }: { location: number[] }) => (name: string) => {
-        if (location.length) {
-            const exitQuery = wmlQuery.search(['Asset', ...location.slice(1).map((index) => (`:nthChild(${index})`))].join(''))
-            exitQuery.contents(name)
-            updateWML(exitQuery.source)    
+    const { normalForm, updateNormal } = useLibraryAsset()
+    //
+    // TODO: Overhaul this callback to handle conditionals better, as part of the overall conditional refactor
+    //
+    const saveName = useCallback((name: string) => {
+        let nameSet = false
+        if (ItemId in normalForm) {
+            const { to, from, appearances = [] } = normalForm[ItemId] as NormalExit
+            const normalizer = new Normalizer()
+            normalizer._normalForm = normalForm
+            appearances.forEach((appearance, index) => {
+                const { contextStack } = appearance
+                if (!contextStack.find(({ tag }) => (tag === 'If'))) {
+                    updateNormal({
+                        type: 'put',
+                        item: {
+                            tag: 'Exit',
+                            key: ItemId,
+                            to,
+                            from,
+                            name: nameSet ? '' : name,
+                            contents: []
+                        },
+                        position: { ...normalizer._referenceToInsertPosition({ tag: 'Exit', key: ItemId, index }), replace: true },
+                    })
+                    nameSet = true
+                }
+            })
         }
-    }, [ItemId, RoomId, wmlQuery, updateWML])
+    }, [ItemId, normalForm, updateNormal])
     const onDelete = useCallback(({ to, from }: { to: string; from: string }) => () => {
-        wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not('If Exit').remove()
-        wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not('If Exit').remove()
-        updateWML(wmlQuery.source)
-    }, [wmlQuery, updateWML])
+        const exitKey = `${from}#${to}`
+        if(exitKey in normalForm && (normalForm[exitKey].appearances ?? []).length) {
+            const deleteReferences: NormalReference[] = (normalForm[exitKey].appearances || []).map((_, index) => ({ key: exitKey, index, tag: 'Exit' as 'Exit' })).reverse()
+            updateNormal({
+                type: 'delete',
+                references: deleteReferences
+            })
+        }
+    }, [normalForm, updateNormal])
     const primaryBase: AssetDataHeaderRenderFunction = ({ item, defaultItem, rooms }) => {
         if (isNormalExit(item)) {
             const toTarget = Boolean(item.from === RoomId)
-            const location = (item.appearances?.filter(noConditionContext)?.[0]?.location) || []
             return <RoomExitHeaderBase
                 targetName={
                     toTarget
@@ -88,7 +114,7 @@ export const RoomExitHeader: FunctionComponent<RoomExitHeaderProps> = ({ ItemId,
                 }
                 toTarget={toTarget}
                 defaultName={item?.name || taggedMessageToString(defaultItem?.Name || []) || ''}
-                onChanged={saveName({ location })}
+                onChanged={saveName}
                 onDelete={onDelete({ to: item.to, from: item.from })}
             />
         }

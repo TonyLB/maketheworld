@@ -8,6 +8,7 @@ import parser from "@tonylb/mtw-wml/dist/parser"
 import tokenizer from "@tonylb/mtw-wml/dist/parser/tokenizer"
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -36,7 +37,13 @@ type UpdateNormalPayloadPut = {
     position: NormalizerInsertPosition;
 }
 
-export type UpdateNormalPayload = UpdateNormalPayloadPut
+type UpdateNormalPayloadDelete = {
+    type: 'delete';
+    references: NormalReference[];
+}
+
+export type UpdateNormalPayload = UpdateNormalPayloadPut |
+    UpdateNormalPayloadDelete
 
 export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<UpdateNormalPayload>) => {
     const normalizer = new Normalizer()
@@ -44,6 +51,9 @@ export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<
     switch(action.payload.type) {
         case 'put':
             normalizer.put(action.payload.item, action.payload.position)
+            break
+        case 'delete':
+            action.payload.references.forEach((reference) => { normalizer.delete(reference) })
             break
     }
     state.normal = normalizer.normal
