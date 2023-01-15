@@ -573,6 +573,41 @@ describe('WML normalize', () => {
             expect(normalizer.normal).toMatchSnapshot()
         })
 
+        it('should replace a top level character item', () => {
+            const testSource = `<Character key=(Tess) fileName="test">
+                <Name>Tess</Name>
+                <FirstImpression>Frumpy goth</FirstImpression>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+                <OneCoolThing>Fuchsia eyes</OneCoolThing>
+                <Outfit>A battered frock-coat</Outfit>
+            </Character>`
+            const normalizer = new Normalizer()
+            const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
+            const toUpdateSource = `<Character key=(Tess) fileName="test">
+                <Name>Tessa</Name>
+                <FirstImpression>Frumpy goth</FirstImpression>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+                <OneCoolThing>Thousand yard stare</OneCoolThing>
+                <Outfit>A battered frock-coat</Outfit>
+            </Character>`
+            const toUpdateCharacter = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
+            normalizer.put(toUpdateCharacter[0], { contextStack: [], index: 0, replace: true })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
     })
 
 })

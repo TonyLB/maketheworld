@@ -800,6 +800,37 @@ Object {
 }
 `;
 
+exports[`WML normalize positioned put method should replace a top level character item 1`] = `
+Object {
+  "Tess": Object {
+    "FirstImpression": "Frumpy goth",
+    "Name": "Tessa",
+    "OneCoolThing": "Thousand yard stare",
+    "Outfit": "A battered frock-coat",
+    "Pronouns": Object {
+      "adjective": "hers",
+      "object": "her",
+      "possessive": "her",
+      "reflexive": "herself",
+      "subject": "she",
+    },
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "test",
+    "images": Array [],
+    "key": "Tess",
+    "tag": "Character",
+  },
+}
+`;
+
 exports[`WML normalize positioned put method should replace an item with a different item 1`] = `
 Object {
   "Test": Object {
