@@ -15,13 +15,17 @@ import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import RoomExits from './RoomExits'
 import useDebounce from '../../../hooks/useDebounce'
-import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
+import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { deepEqual } from '../../../lib/objects'
 
 interface WMLComponentDetailProps {
 }
 
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
-    const { assetKey, normalForm, wmlQuery, updateWML, components } = useLibraryAsset()
+    const { assetKey, normalForm, updateNormal, components } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component = normalForm[ComponentId || '']
     const { tag } = component || {}
@@ -55,70 +59,78 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
                 ...previous,
                 item
             ]
-        }, [])
-        const componentsQuery = wmlQuery
-            .search(`${tag}[key="${ComponentId}"]`)
-            .not(`If ${tag}`)
-            .not(`Map ${tag}`)
-        componentsQuery
-            .extend()
-            .add('Description')
-            .remove()
-        if (newRender.length > 0) {
-            componentsQuery
-                .extend()
-                .add(':first')
-                .addElement(`<Description></Description>`, { position: 'after' })
-            componentsQuery
-                .extend()
-                .add('Description')
-                .render(adjustedRender)
+        }, []).map(componentRenderToSchemaTaggedMessage)
+        let nameSet = false
+        if (ComponentId && ComponentId in normalForm) {
+            const { appearances = [] } = normalForm[ComponentId]
+            const normalizer = new Normalizer()
+            normalizer._normalForm = normalForm
+            appearances.forEach((appearance, index) => {
+                const { contextStack } = appearance
+                const reference: NormalReference = { tag, key: ComponentId, index }
+                if (!contextStack.find(({ tag }) => (['If', 'Map'].includes(tag)))) {
+                    const baseSchema = normalizer.referenceToSchema(reference)
+                    if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
+                        updateNormal({
+                            type: 'put',
+                            item: {
+                                ...baseSchema,
+                                render: nameSet ? [] : adjustedRender
+                            },
+                            position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
+                        })
+                        nameSet = true
+                    }
+                }
+            })
         }
-        updateWML(componentsQuery.source)
-    }, [wmlQuery, tag, updateWML])
-    const defaultName = useMemo(() => (components[component.key]?.localName || ''), [components, component.key])
+    }, [ComponentId, tag, normalForm, updateNormal])
+    const defaultName = useMemo(() => {
+        const localName = components[component.key]?.localName
+        if (typeof localName === 'string') {
+            return [{ tag: 'String' as 'String', value: localName }]
+        }
+        if (Array.isArray(localName)) {
+            return localName
+        }
+        return []
+    }, [components, component.key])
     const [name, setName] = useState(defaultName)
+    console.log(`Name: ${JSON.stringify(name, null, 4)}`)
+    const nameText = useMemo<string>(() => ((name || []).map((item) => ((item.tag === 'String') ? item.value : '')).join('')), [name])
 
-    const dispatchNameChange = useCallback((value) => {
-        const componentQuery = wmlQuery.search(tag).not(`If ${tag}`).not(`Map ${tag}`).add(`[key="${ComponentId}"] Name`)
-        if (componentQuery) {
-            componentQuery.remove()
+    const dispatchNameChange = useCallback((value: ComponentRenderItem[]) => {
+        let nameSet = false
+        if (ComponentId && ComponentId in normalForm) {
+            const { appearances = [] } = normalForm[ComponentId]
+            const normalizer = new Normalizer()
+            normalizer._normalForm = normalForm
+            appearances.forEach((appearance, index) => {
+                const { contextStack } = appearance
+                const reference: NormalReference = { tag, key: ComponentId, index }
+                if (!contextStack.find(({ tag }) => (['If', 'Map'].includes(tag)))) {
+                    const baseSchema = normalizer.referenceToSchema(reference)
+                    if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
+                        updateNormal({
+                            type: 'put',
+                            item: {
+                                ...baseSchema,
+                                name: (nameSet || !value) ? [] : value.map(componentRenderToSchemaTaggedMessage)
+                            },
+                            position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
+                        })
+                        nameSet = true
+                    }
+                }
+            })
         }
-        if (value) {
-            const componentsQuery = wmlQuery.search(`${tag}[key="${ComponentId}"]`)
-                .not(`If ${tag}`)
-                .not(`Map ${tag}`)
-            if (tag === 'Feature') {
-                componentsQuery.not(`Room Feature`)
-            }
-            componentsQuery
-                .extend()
-                .add('Name')
-                .remove()
-            componentsQuery
-                .extend()
-                .add(':first')
-                .addElement(`<Name>${value.trim()}</Name>`, { position: 'after' })
-        }
-        else {
-            const componentsQuery = wmlQuery.search(`${tag}[key="${ComponentId}"]`)
-                .not(`If ${tag}`)
-                .not(`Map ${tag}`)
-            if (tag === 'Feature') {
-                componentsQuery.not(`Room Feature`)
-            }
-            componentsQuery
-                .add('Name')
-                .remove()
-        }
-        updateWML(componentQuery.source)
-    }, [updateWML, wmlQuery, tag, ComponentId])
+    }, [tag, ComponentId, normalForm, updateNormal])
     const changeName = useCallback((event) => {
-        setName(event.target.value)
+        setName([{ tag: 'String', value: event.target.value }])
     }, [setName])
     const debouncedName = useDebounce(name, 1000)
     useEffect(() => {
-        if (debouncedName !== defaultName) {
+        if (!deepEqual(debouncedName, defaultName)) {
             dispatchNameChange(debouncedName)
         }
     }, [debouncedName, defaultName])
@@ -163,7 +175,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
                     id="name"
                     label="Name"
                     size="small"
-                    value={name}
+                    value={nameText}
                     onChange={changeName}
                 />
             </Box>

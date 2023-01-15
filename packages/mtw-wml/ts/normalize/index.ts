@@ -142,7 +142,7 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
     }
 }
 
-const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): SchemaTaggedMessageLegalContents => {
+export const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): SchemaTaggedMessageLegalContents => {
     switch(renderItem.tag) {
         case 'Condition':
             return {
@@ -1170,10 +1170,6 @@ export class Normalizer {
         }
     }
 
-    //
-    // TODO: Find all top-level Normal appearances and generate a list of SchemaTags
-    // using _normalToSchema
-    //
     get schema(): SchemaTag[] {
         const topLevelAppearances: { key: string; appearanceIndex: number }[] = Object.entries(this._normalForm)
             .reduce<{ key: string; appearanceIndex: number }[]>((previous, [key, { appearances }]) => {
@@ -1184,6 +1180,10 @@ export class Normalizer {
                     ), previous)
             }, [])
         return topLevelAppearances.map(({ key, appearanceIndex }) => (this._normalToSchema(key, appearanceIndex)))
+    }
+
+    referenceToSchema(reference: NormalReference): SchemaTag {
+        return this._normalToSchema(reference.key, reference.index)
     }
 }
 
