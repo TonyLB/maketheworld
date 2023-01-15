@@ -9,7 +9,7 @@ import {
 } from '@mui/material'
 
 import { WMLQuery, WMLQueryUpdate } from '@tonylb/mtw-wml/dist/wmlQuery'
-import wmlQueryToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlQueryToSlate'
+import wmlToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlToSlate'
 import { setDraftWML } from '../../../slices/personalAssets'
 
 import LibraryBanner from './LibraryBanner'
@@ -132,7 +132,7 @@ const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point |
         return undefined
     }
     else {
-        return indexToSlatePoint(wmlQuery, wmlQuery._errorStart)
+        return indexToSlatePoint(wmlQuery.source, wmlQuery._errorStart)
     }
 }
 
@@ -166,7 +166,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
             wmlQuery.setInput(currentWML)
         }
     }, [currentWML, wmlQuery])
-    const initialValue = wmlQueryToSlate(wmlQuery)
+    const initialValue = wmlToSlate(currentWML)
     const [debounceMoment, setDebounce] = useState<number>(Date.now())
     const [debounceTimeout, setDebounceTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
     const debouncedUpdate = useCallback(() => {

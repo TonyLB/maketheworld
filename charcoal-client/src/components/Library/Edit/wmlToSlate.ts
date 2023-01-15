@@ -1,14 +1,10 @@
 import { Descendant, Point, Node } from "slate"
-import { WMLQuery } from "@tonylb/mtw-wml/dist/wmlQuery"
 
-export const wmlQueryToSlate = (wmlQuery: WMLQuery): Descendant[] => {
-    const source = wmlQuery.source as string
-
+export const wmlToSlate = (source: string): Descendant[] => {
     return source.split('\n').map((text) => ({ type: 'line', children: [{ text }] }))
 }
 
-export const indexToSlatePoint = (wmlQuery: WMLQuery, index: number): Point => {
-    const source = wmlQuery.source
+export const indexToSlatePoint = (source: string, index: number): Point => {
     const lines = source.slice(0, index).split('\n')
     return {
         path: [lines.length - 1],
@@ -20,4 +16,4 @@ export const sourceStringFromSlate = (nodes: Node[]): string => (
     nodes.map((node) => (Node.string(node))).join('\n')
 )
 
-export default wmlQueryToSlate
+export default wmlToSlate
