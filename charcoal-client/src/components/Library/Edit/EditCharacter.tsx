@@ -299,13 +299,12 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, ta
     // TODO: Figure out why replaceLiteralTag is causing an infinite change loop, and correct
     //
     useEffect(() => {
-        console.log(`Replace`)
-        // replaceLiteralTag({
-        //     normalForm,
-        //     updateNormal,
-        //     tag,
-        //     replace: debouncedTagValue
-        // })
+        replaceLiteralTag({
+            normalForm,
+            updateNormal,
+            tag,
+            replace: debouncedTagValue
+        })
     }, [normalForm, updateNormal, tag, debouncedTagValue])
 
     return <TextField
