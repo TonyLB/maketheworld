@@ -45,6 +45,7 @@ export interface PersonalAssetsNodes {
     FETCHERROR: ISSMChoiceNode;
     FRESH: ISSMChoiceNode;
     WMLDIRTY: ISSMChoiceNode;
+    DRAFTERROR: ISSMChoiceNode;
     WMLERROR: ISSMChoiceNode;
     NORMALDIRTY: ISSMChoiceNode;
     REGENERATEWML: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
