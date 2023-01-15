@@ -112,7 +112,11 @@ export const {
             },
             WMLDIRTY: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'NORMALDIRTY', 'NEEDSAVE']
+                choices: ['CLEAR', 'NORMALDIRTY', 'DRAFTERROR', 'NEEDSAVE']
+            },
+            DRAFTERROR: {
+                stateType: 'CHOICE',
+                choices: ['CLEAR', 'WMLDIRTY']
             },
             NORMALDIRTY: {
                 stateType: 'CHOICE',
