@@ -26,7 +26,7 @@ export class CachePlayerLibraryData {
                 ExpressionAttributeNames: {
                     '#name': 'Name'
                 },
-                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
+                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit', 'scopedId']
             })
             const Characters = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
