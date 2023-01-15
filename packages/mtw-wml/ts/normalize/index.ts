@@ -244,7 +244,16 @@ export class Normalizer {
         }
         const parent = this._getParentReference(position.contextStack)
         if (!parent) {
-            return undefined
+            const rootNode = Object.values(this._normalForm).find(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
+            const index = rootNode.appearances.findIndex(({ contextStack }) => (contextStack.length === 0))
+            if (!rootNode || index === -1) {
+                return undefined
+            }
+            return {
+                key: rootNode.key,
+                tag: rootNode.tag,
+                index
+            }
         }
         const parentAppearance = this._lookupAppearance(parent)
         if (!parentAppearance) {
@@ -357,9 +366,9 @@ export class Normalizer {
                     }
                 })
             }
-            this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
-                const appearances = draft.appearances as any
-                if (draft.tag !== item.tag) {
+            this._normalForm = produce(this._normalForm, (draft) => {
+                const appearances = draft[key].appearances as any
+                if (draft[key].tag !== item.tag) {
                     throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
                 }
                 const newAppearance = {
@@ -372,13 +381,19 @@ export class Normalizer {
                 else {
                     appearances.splice(insertBefore, 1, newAppearance)
                 }
-            }) }
+            })
             return insertBefore > -1 ? insertBefore : this._normalForm[key].appearances.length - 1
         }
         else {
-            this._normalForm[key] = { ...produce(item, (draft) => {
-                draft.appearances[0].location = this._insertPositionToLocation(position)
-            })}
+            this._normalForm = produce(this._normalForm, (draft) => {
+                draft[key] = {
+                    ...item,
+                    appearances: [{
+                        ...item.appearances[0],
+                        location: this._insertPositionToLocation(position)
+                    }]
+                } as NormalItem
+            })
             return 0
         }
     }

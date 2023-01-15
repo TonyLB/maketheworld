@@ -76,7 +76,7 @@ const replaceLiteralTag = ({
             updateNormal({
                 type: 'put',
                 item: updatedSchema,
-                position: { contextStack: [], index: 0 }
+                position: { contextStack: [], index: 0, replace: true }
             })    
         }
     }
