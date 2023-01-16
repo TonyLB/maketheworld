@@ -40,13 +40,16 @@ import {
     SchemaImportMapping,
     SchemaException,
     SchemaMomentTag,
-    isSchemaImport
+    isSchemaImport,
+    SchemaConditionMixin
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
     ComponentAppearance,
     ComponentRenderItem,
     isNormalCondition,
+    isNormalMap,
+    isNormalRoom,
     MapAppearance,
     MessageAppearance,
     MomentAppearance,
@@ -398,6 +401,83 @@ export class Normalizer {
         }
     }
 
+    //
+    // _recalculateDenormalizedFields fills in fields that are denormalized (during Schema creation) from the contents
+    // of the element (e.g. the "rooms" property on a Map tag)
+    //
+    _recalculateDenormalizedFields(reference: NormalReference): void {
+        const { key, index: appearance } = reference
+        if (!(key in this._normalForm)) {
+            throw new NormalizeKeyMismatchError(`Key "${key}" does not match any tag in asset`)
+        }
+        if (appearance >= this._normalForm[key].appearances.length) {
+            throw new NormalizeKeyMismatchError(`Illegal appearance referenced on key "${key}"`)
+        }
+        //
+        // A normalizer-centric version of the utility function from schema/utils, which does the same thing
+        // but looks up structures in a normalForm, rather than being provided with them in the schema
+        // object
+        //
+        const extractConditionedItemFromContents = <T extends NormalItem, O extends SchemaConditionMixin>(props: {
+            contents: NormalReference[];
+            typeGuard: (value: NormalItem) => value is T;
+            transform: (value: T, appearanceIndex: number, index: number) => O;
+        }): O[] => {
+            const { contents, typeGuard, transform } = props
+            return contents.reduce<O[]>((previous, reference, index) => {
+                const item = this._normalForm[reference.key]
+                if (item && typeGuard(item)) {
+                    return [
+                        ...previous,
+                        transform(item, reference.index, index)
+                    ]
+                }
+                if (item && isNormalCondition(item)) {
+                    const nestedItems = extractConditionedItemFromContents({ contents: item.appearances[reference.index].contents, typeGuard, transform })
+                        .map(({ conditions, ...rest }) => ({
+                            conditions: [
+                                ...item.conditions,
+                                ...conditions
+                            ],
+                            ...rest
+                        })) as O[]
+                    return [
+                        ...previous,
+                        ...nestedItems
+                    ]
+                }
+                return previous
+            }, [])
+        }
+        switch(this._normalForm[key].tag) {
+            case 'Map':
+                this._normalForm = produce(this._normalForm, (draft) => {
+                    const mapItem = draft[key]
+                    if (isNormalMap(mapItem)) {
+                        const appearanceData = mapItem.appearances[appearance]
+                        appearanceData.rooms = extractConditionedItemFromContents({
+                            contents: appearanceData.contents,
+                            typeGuard: isNormalRoom,
+                            transform: ({ key, appearances }, appearanceIndex) => {
+                                return {
+                                    conditions: [],
+                                    key,
+                                    x: appearances[appearanceIndex].x,
+                                    y: appearances[appearanceIndex].y,
+                                    location: appearances[appearanceIndex].location,
+                                }
+                            }
+                        })
+                    }
+                })
+        }
+    }
+
+    //
+    // TODO: Figure out how to recalculate properties that are derived from children (or further ancestors)
+    // when the contents of an item are changed (e.g. recalculate rooms on Map when a room is added or
+    // removed)
+    //
     _updateAppearanceContents(key: string, appearance: number, contents: NormalReference[]): void {
         if (!(key in this._normalForm)) {
             throw new NormalizeKeyMismatchError(`Key "${key}" does not match any tag in asset`)
@@ -408,7 +488,11 @@ export class Normalizer {
         this._normalForm = { ...produce(this._normalForm, (draft) => {
             draft[key].appearances[appearance].contents = contents
         }) }
-    }
+        const referencesNeedingRecalculation = [ { key, tag: this._normalForm[key].tag, index: appearance }, ...[ ...this._normalForm[key].appearances[appearance].contextStack ].reverse()]
+        referencesNeedingRecalculation.forEach((itemRef) => {
+            this._recalculateDenormalizedFields(itemRef)
+        })
+}
 
     //
     // _reindexReference accepts a NormalReference and walks down all of its content tree,

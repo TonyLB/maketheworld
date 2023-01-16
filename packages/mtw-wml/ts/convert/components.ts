@@ -89,8 +89,19 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                                 }
                             }
                         },
-                        optional: {
-                            global: ['boolean']
+                        optional: (context) => {
+                            if (context.find(({ tag }) => (['Asset', 'Story'].includes(tag)))) {
+                                return {
+                                    global: ['boolean']
+                                }
+                            }
+                            else {
+                                return {
+                                    global: ['boolean'],
+                                    x: ['literal'],
+                                    y: ['literal']
+                                }
+                            }
                         }
                     },
                     contents: {
@@ -98,7 +109,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         ignore: ['Whitespace', 'Comment']
                     },
                     postProcess: ({ context, properties, contents, startTagToken, endTagToken }) => {
-                        if (context.map(({ tag }) => (tag)).includes('Map')) {
+                        if (context.map(({ tag }) => (tag)).includes('Map') || !context.find(({ tag }) => (['Asset', 'Story'].includes(tag)))) {
                             const x = properties.x ? parseInt(properties.x) : undefined
                             const y = properties.y ? parseInt(properties.y) : undefined
                             if (properties.x && Number.isNaN(x)) {

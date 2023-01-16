@@ -138,9 +138,29 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     }, [wmlQuery, updateWML])
 
     const onAddRoom = useCallback(({ clientX, clientY, roomId }: { clientX: number; clientY: number; roomId: string }) => {
-        wmlQuery.search(`Map[key="${mapId}"]`).not('If Map').add(':first').addElement(`<Room key=(${roomId}) x="${clientX}" y="${clientY}" />`, { position: 'after' })
-        updateWML(wmlQuery.source)
-    }, [wmlQuery, updateWML])
+        const normalMap = normalForm[mapId || '']
+        if (mapId && isNormalMap(normalMap)) {
+            const firstUnconditionedAppearance = normalMap.appearances.findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
+            if (firstUnconditionedAppearance !== -1) {
+                updateNormal({
+                    type: 'put',
+                    item: {
+                        tag: 'Room',
+                        key: roomId,
+                        x: clientX,
+                        y: clientY,
+                        contents: [],
+                        name: [],
+                        render: [],
+                        global: false
+                    },
+                    position: { contextStack: [ ...normalMap.appearances[firstUnconditionedAppearance].contextStack, { key: mapId, tag: 'Map', index: firstUnconditionedAppearance }] }
+                })
+            }
+        }
+        // wmlQuery.search(`Map[key="${mapId}"]`).not('If Map').add(':first').addElement(`<Room key=(${roomId}) x="${clientX}" y="${clientY}" />`, { position: 'after' })
+        // updateWML(wmlQuery.source)
+    }, [normalForm, mapId, updateNormal])
 
     return <ToolSelectContext.Provider value={toolSelected}>
         <div className={localClasses.grid}>
