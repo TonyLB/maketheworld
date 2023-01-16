@@ -416,10 +416,6 @@ export class Normalizer {
     // the correct (e.g. updated) reference
     //
 
-    //
-    // TODO: Correct bug in _reindexReference in which it does not replace the content
-    // reference in its parent appearance
-    //
     _reindexReference(reference: NormalReference, options?: { contextStack?: NormalReference[], fromIndex?: number }): void {
         const { contextStack, fromIndex } = options
         const appearance = this._lookupAppearance(reference)
@@ -430,7 +426,7 @@ export class Normalizer {
                     draft.contextStack = contextStack
                 })
             }
-            if (fromIndex && parent) {
+            if (typeof fromIndex === 'number' && parent) {
                 this._updateAppearance(parent, (draft) => {
                     const appearanceIndex = draft.contents.findIndex(({ key, index }) => (key === reference.key && index === fromIndex))
                     draft.contents[appearanceIndex].index = reference.index
@@ -692,10 +688,6 @@ export class Normalizer {
                     index: appearanceIndex
                 }
         }
-        //
-        // TODO: Add each child to contents as it is normalized, rather than accumulating parses in a (temporarily)
-        // inconsistent NormalForm and then adding them to Appearance at the end
-        //
         const parentReference = this._getParentReference(translateContext.contextStack)
         if (parentReference && !isSchemaImport(node)) {
             const { contents = [] } = this._lookupAppearance(parentReference)

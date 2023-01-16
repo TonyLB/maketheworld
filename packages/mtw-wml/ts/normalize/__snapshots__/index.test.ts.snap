@@ -1102,6 +1102,314 @@ Object {
 }
 `;
 
+exports[`WML normalize positioned put method should replace nested internal conditions 1`] = `
+Object {
+  "If-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testTwo",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          1,
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "testMap",
+            "tag": "Map",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+      },
+    ],
+    "conditions": Array [
+      Object {
+        "dependencies": Array [],
+        "if": "true",
+      },
+    ],
+    "key": "If-0",
+    "tag": "If",
+  },
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+          Object {
+            "index": 1,
+            "key": "If-0",
+            "tag": "If",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+        "x": 0,
+        "y": 100,
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+  "testMap": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "If-0",
+            "tag": "If",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "images": Array [],
+        "location": Array [
+          0,
+          0,
+        ],
+        "rooms": Array [
+          Object {
+            "conditions": Array [],
+            "key": "test",
+            "location": Array [
+              0,
+              0,
+              0,
+            ],
+            "x": 0,
+            "y": 100,
+          },
+          Object {
+            "conditions": Array [
+              Object {
+                "dependencies": Array [],
+                "if": "true",
+              },
+            ],
+            "key": "testTwo",
+            "location": Array [
+              0,
+              0,
+              0,
+            ],
+            "x": 100,
+            "y": 0,
+          },
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testThree",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 1,
+            "key": "If-0",
+            "tag": "If",
+          },
+        ],
+        "images": Array [],
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+        "rooms": Array [
+          Object {
+            "conditions": Array [],
+            "key": "testThree",
+            "location": Array [
+              0,
+              1,
+              0,
+              0,
+            ],
+            "x": -100,
+            "y": 0,
+          },
+        ],
+      },
+    ],
+    "key": "testMap",
+    "tag": "Map",
+  },
+  "testThree": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 1,
+            "key": "If-0",
+            "tag": "If",
+          },
+          Object {
+            "index": 1,
+            "key": "testMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [],
+        "x": -100,
+        "y": 0,
+      },
+    ],
+    "global": false,
+    "key": "testThree",
+    "tag": "Room",
+  },
+  "testTwo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+          Object {
+            "index": 0,
+            "key": "If-0",
+            "tag": "If",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          1,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Two",
+          },
+        ],
+        "x": 100,
+        "y": 0,
+      },
+    ],
+    "global": false,
+    "key": "testTwo",
+    "tag": "Room",
+  },
+}
+`;
+
 exports[`WML normalize positioned put method should update an item in place 1`] = `
 Object {
   "Test": Object {

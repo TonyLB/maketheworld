@@ -608,6 +608,42 @@ describe('WML normalize', () => {
             expect(normalizer.normal).toMatchSnapshot()
         })
 
+        it('should replace nested internal conditions', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Map key=(testMap)>
+                    <Room key=(test) x="0" y="0" />
+                    <If {true}>
+                        <Room key=(testTwo) x="100" y="0" />
+                    </If>
+                </Map>
+                <If {true}>
+                    <Map key=(testMap)>
+                        <Room key=(testThree) x="-100" y="0" />
+                    </Map>
+                </If>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
+            const toUpdateSource = `<Map key=(testMap)>
+                <Room key=(test) x="0" y="100">
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <If {true}>
+                    <Room key=(testTwo) x="100" y="0">
+                        <Description>
+                            Two
+                        </Description>
+                    </Room>
+                </If>
+            </Map>`
+            const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
+            normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 0, replace: true })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
     })
 
 })
