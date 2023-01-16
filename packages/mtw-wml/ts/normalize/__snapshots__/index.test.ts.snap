@@ -692,6 +692,152 @@ Object {
 }
 `;
 
+exports[`WML normalize positioned put method should recalculate Map rooms property on contents update 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          0,
+        ],
+        "name": Array [],
+        "render": Array [],
+        "x": 0,
+        "y": 0,
+      },
+    ],
+    "global": false,
+    "key": "test",
+    "tag": "Room",
+  },
+  "testMap": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "testTwo",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "images": Array [],
+        "location": Array [
+          0,
+          0,
+        ],
+        "rooms": Array [
+          Object {
+            "conditions": Array [],
+            "key": "test",
+            "location": Array [
+              0,
+              0,
+              0,
+            ],
+            "x": 0,
+            "y": 0,
+          },
+          Object {
+            "conditions": Array [],
+            "key": "testTwo",
+            "location": Array [
+              0,
+              0,
+              1,
+            ],
+            "x": 0,
+            "y": 100,
+          },
+        ],
+      },
+    ],
+    "key": "testMap",
+    "tag": "Map",
+  },
+  "testTwo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          1,
+        ],
+        "name": Array [],
+        "render": Array [],
+        "x": 0,
+        "y": 100,
+      },
+    ],
+    "global": false,
+    "key": "testTwo",
+    "tag": "Room",
+  },
+}
+`;
+
 exports[`WML normalize positioned put method should replace a nest that includes an item with the item itself 1`] = `
 Object {
   "Test": Object {
@@ -1276,6 +1422,7 @@ Object {
             "location": Array [
               0,
               0,
+              1,
               0,
             ],
             "x": 100,

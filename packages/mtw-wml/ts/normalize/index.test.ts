@@ -644,6 +644,21 @@ describe('WML normalize', () => {
             expect(normalizer.normal).toMatchSnapshot()
         })
 
+        it('should recalculate Map rooms property on contents update', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Map key=(testMap)>
+                    <Room key=(test) x="0" y="0" />
+                </Map>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
+            const toAddSource = `<Room key=(testTwo) x="0" y="100" />`
+            const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
+            normalizer.put(toAddAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'testMap', tag: 'Map', index: 0 }] })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
     })
 
 })

@@ -17,6 +17,7 @@ export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAc
     schema.forEach((item) => {
         normalizer.put(item, { contextStack: [] })
     })
+    state.normal = normalizer.normal
     state.draftWML = undefined
 }
 
