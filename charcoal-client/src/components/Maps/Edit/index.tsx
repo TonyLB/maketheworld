@@ -16,7 +16,7 @@ import mapReducer from './reducer'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import normalToTree from './normalToTree'
 import { deepEqual } from '../../../lib/objects'
-import { MapAppearance, isNormalImage, isNormalMap, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { MapAppearance, isNormalImage, isNormalMap, NormalReference, isNormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { extractConditionedItemFromContents } from '@tonylb/mtw-wml/dist/schema/utils'
@@ -26,7 +26,7 @@ type MapEditProps = {
 
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
-    const { normalForm, rooms, wmlQuery, updateWML, updateNormal } = useLibraryAsset()
+    const { normalForm, rooms, updateNormal } = useLibraryAsset()
     const { MapId: mapId } = useParams<{ MapId: string }>()
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
@@ -129,17 +129,29 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     }, [normalForm, mapId, updateNormal])
 
     const onAddExit = useCallback(({ to, from }: { to: string; from: string }) => {
-        const outgoingQuery = wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not("If Exit")
-        const incomingQuery = wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not("If Exit")
-        if (outgoingQuery.nodes().length === 0 && incomingQuery.nodes().length === 0) {
-            wmlQuery.search(`Room[key="${from}"]`).not("If Room").add(':first').addElement(`<Exit to=(${to}) />`, { position: 'after' })
-            updateWML(wmlQuery.source)
+        const normalRoom = normalForm[from || '']
+        if (from && normalRoom && isNormalRoom(normalRoom)) {
+            const firstUnconditionedAppearance = normalRoom.appearances.findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
+            if (firstUnconditionedAppearance !== -1) {
+                updateNormal({
+                    type: 'put',
+                    item: {
+                        tag: 'Exit',
+                        key: `${from}#${to}`,
+                        from,
+                        to,
+                        name: '',
+                        contents: [],
+                    },
+                    position: { contextStack: [ ...normalRoom.appearances[firstUnconditionedAppearance].contextStack, { key: from, tag: 'Room', index: firstUnconditionedAppearance }] }
+                })
+            }
         }
-    }, [wmlQuery, updateWML])
+    }, [normalForm, updateNormal])
 
     const onAddRoom = useCallback(({ clientX, clientY, roomId }: { clientX: number; clientY: number; roomId: string }) => {
         const normalMap = normalForm[mapId || '']
-        if (mapId && isNormalMap(normalMap)) {
+        if (mapId && normalMap && isNormalMap(normalMap)) {
             const firstUnconditionedAppearance = normalMap.appearances.findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
             if (firstUnconditionedAppearance !== -1) {
                 updateNormal({
@@ -158,8 +170,6 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 })
             }
         }
-        // wmlQuery.search(`Map[key="${mapId}"]`).not('If Map').add(':first').addElement(`<Room key=(${roomId}) x="${clientX}" y="${clientY}" />`, { position: 'after' })
-        // updateWML(wmlQuery.source)
     }, [normalForm, mapId, updateNormal])
 
     return <ToolSelectContext.Provider value={toolSelected}>
