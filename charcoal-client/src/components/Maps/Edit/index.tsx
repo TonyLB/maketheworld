@@ -15,11 +15,10 @@ import { MapReducer } from './reducer.d'
 import mapReducer from './reducer'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import normalToTree from './normalToTree'
-import { deepEqual, objectEntryMap, objectMap } from '../../../lib/objects'
+import { deepEqual } from '../../../lib/objects'
 import { MapAppearance, isNormalImage, isNormalMap, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { InheritedExit } from '../../../slices/personalAssets/inheritedData'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaMapRoom, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { extractConditionedItemFromContents } from '@tonylb/mtw-wml/dist/schema/utils'
 
 type MapEditProps = {
@@ -69,8 +68,11 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
             ]), [] as string[])
         return images
     }, [normalForm, mapId])
+    //
+    // TODO: Figure out why onStabilize is not actually updating the normal in a way that results in the derived information
+    // being brought up to date so that onStabilize will not keep looping
+    //
     const onStabilize = useCallback((values) => {
-        console.log(`Stabilize!`)
         const normalMap = normalForm[mapId || '']
         if (mapId && isNormalMap(normalMap)) {
             let nameSet = false
@@ -90,7 +92,6 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 const { contextStack } = appearance
                 const reference: NormalReference = { tag, key: mapId, index }
                 if (!contextStack.find(({ tag }) => (tag === 'If'))) {
-                    console.log(`Reference: ${JSON.stringify(reference, null, 4)}`)
                     const baseSchema = normalizer.referenceToSchema(reference)
                     if (isSchemaMap(baseSchema)) {
                         const roomContents = baseSchema.contents
@@ -104,7 +105,6 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
 
                         if (!deepEqual(baseSchema.contents, nameSet ? [] : roomContents)) {
                             const position = normalizer._referenceToInsertPosition(reference)
-                            console.log(`Map Put position: ${JSON.stringify(position, null, 4)}`)
                             updateNormal({
                                 type: 'put',
                                 item: {
@@ -115,7 +115,6 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                                         typeGuard: isSchemaRoom,
                                         transform: ({ key, x, y }, index) => ({ conditions: [], key, x: x ?? 0, y: y ?? 0, index })
                                     }),
-                
                                 },
                                 position: { ...position, replace: true },
                             })
@@ -125,28 +124,6 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 }
             })
     
-            // const locationsToUpdate: Record<string, number[]> = (normalMap.appearances)
-            //     .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-            //     .reduce((previous, { rooms = [] }) => ({
-            //         ...previous,
-            //         ...rooms.map(({ location }) => (location))
-            //     }), {})
-            // const updatesNeeded = Object.entries(newPositions)
-            //     .filter(([roomId]) => (locationsToUpdate[roomId]))
-            //     .map(([roomId, { x, y }]) => ({
-            //         x,
-            //         y,
-            //         searchString:[
-            //             'Asset',
-            //             ...(locationsToUpdate[roomId].slice(1).map((index) => (`:nthChild(${index})`)))
-            //         ].join('')
-            //     }))
-            // if (updatesNeeded.length) {
-            //     updatesNeeded.forEach(({ searchString, x, y }) => {
-            //         wmlQuery.search(searchString).prop('x', `${x}`).prop('y', `${y}`)
-            //     })
-            //     updateWML(wmlQuery.source)
-            // }
         }
         
     }, [normalForm, mapId, updateNormal])

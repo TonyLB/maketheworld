@@ -14,14 +14,12 @@ interface NormalToTreeProps {
 
 export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inheritedAppearances }: NormalToTreeProps): MapTree => {
     const map = (normalForm[MapId] || {}) as NormalMap
-    console.log(`mapAppearances: ${JSON.stringify(map.appearances, null, 4)}`)
     const roomItems = (map.appearances || [])
         .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
         .reduce((previous, { rooms }) => ([
             ...previous, 
             ...rooms
         ]), []  as ({ key: string, x: number; y: number; location: number[] }[]))
-    console.log(`RoomItem: ${JSON.stringify(roomItems, null, 4)}`)
     const exitPairs = Object.values(normalForm || {})
         .filter(isNormalExit)
         .reduce<Record<string, string[]>>((previous, { to, from, appearances = [] }) => {

@@ -121,7 +121,7 @@ export const mapAreaReducer: MapAreaReducer = (state, action) => {
             recursiveUpdate<MapItem>(draft, (node) => {
                 if (node.item.type === 'ROOM') {
                     const previous = previousNodesByRoomId[node.item.roomId]
-                    if (previous && previous.x !== undefined && previous.y !== undefined) {
+                    if (previous && typeof previous.x !== 'undefined' && typeof previous.y !== 'undefined') {
                         node.item.x = previous.x
                         node.item.y = previous.y
                     }

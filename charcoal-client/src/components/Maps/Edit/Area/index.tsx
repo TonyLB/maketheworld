@@ -79,7 +79,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
                 onStabilize(value)
             }
         })
-    }, [mapDispatch])
+    }, [mapDispatch, onStabilize])
     useEffect(() => {
         mapDispatch({
             type: 'UPDATETREE',
