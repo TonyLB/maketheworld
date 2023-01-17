@@ -8,6 +8,7 @@ import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset';
 
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
+    getDraftWML: (state: PersonalAssetsPublic) => string;
     getNormalized: (state: PersonalAssetsPublic & { key: string }) => NormalForm;
     getWMLQuery: (state: PersonalAssetsPublic & { key: string }) => WMLQuery;
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
@@ -16,6 +17,8 @@ export type PublicSelectors = {
 }
 
 const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
+
+const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
 
 const getWMLKey = ({ key }: PersonalAssetsPublic & { key: string }) => (key)
 
@@ -35,6 +38,7 @@ const getLoadedImages = (state: PersonalAssetsPublic) => ( state.loadedImages )
 
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
+    getDraftWML,
     getWMLQuery,
     getNormalized,
     getImportDefaults,

@@ -133,13 +133,12 @@ const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point |
         return undefined
     }
     else {
-        console.log(`wml valid on error: ${wmlQuery.valid}`)
         return indexToSlatePoint(wmlQuery.source, wmlQuery._errorStart)
     }
 }
 
 export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
-    const { AssetId, assetKey, currentWML, wmlQuery: globalQuery, updateWML } = useLibraryAsset()
+    const { AssetId, assetKey, currentWML, draftWML, wmlQuery: globalQuery, updateWML } = useLibraryAsset()
     const dispatch = useDispatch()
     //
     // TODO: Refactor the entire complicated back-and-forth flow of local and globally-cached
@@ -168,7 +167,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
             wmlQuery.setInput(currentWML)
         }
     }, [currentWML, wmlQuery])
-    const initialValue = wmlToSlate(currentWML)
+    const initialValue = wmlToSlate(draftWML || currentWML)
     const [debounceMoment, setDebounce] = useState<number>(Date.now())
     const [debounceTimeout, setDebounceTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
     const debouncedUpdate = useCallback(() => {
@@ -180,10 +179,8 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
     const generateStatusMessage = useCallback(() => {
         if (wmlQuery) {
             if (wmlQuery.valid) {
-                console.log(`Check valid`)
                 return 'Success!'
             }
-            console.log(`Check failed`)
             return `Failure at (${wmlQuery._errorStart}): ${wmlQuery._error}`
         }
         return 'WMLQuery initiating'
@@ -201,6 +198,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
             setLastDebounceMoment(debounceMoment)
             if (wmlQuery.valid) {
                 dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY'] }))
+                dispatch(setDraftWML(AssetId)({ value: '' }))
             }
             else {
                 dispatch(setIntent({ key: AssetId, intent: ['DRAFTERROR'] }))
