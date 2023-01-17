@@ -10,10 +10,11 @@ import {
 
 import { WMLQuery, WMLQueryUpdate } from '@tonylb/mtw-wml/dist/wmlQuery'
 import wmlToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlToSlate'
-import { setDraftWML } from '../../../slices/personalAssets'
+import { setDraftWML, setIntent } from '../../../slices/personalAssets'
 
 import LibraryBanner from './LibraryBanner'
 import { useLibraryAsset } from './LibraryAsset'
+import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 interface WMLEditProps {}
 
@@ -132,6 +133,7 @@ const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point |
         return undefined
     }
     else {
+        console.log(`wml valid on error: ${wmlQuery.valid}`)
         return indexToSlatePoint(wmlQuery.source, wmlQuery._errorStart)
     }
 }
@@ -177,10 +179,11 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
     }, [debounceTimeout, setDebounceTimeout])
     const generateStatusMessage = useCallback(() => {
         if (wmlQuery) {
-            wmlQuery.setInput(sourceStringFromSlate(value))
             if (wmlQuery.valid) {
+                console.log(`Check valid`)
                 return 'Success!'
             }
+            console.log(`Check failed`)
             return `Failure at (${wmlQuery._errorStart}): ${wmlQuery._error}`
         }
         return 'WMLQuery initiating'
@@ -196,8 +199,15 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
             setErrorPosition(newErrorPosition)
             setStatusMessage(generateStatusMessage())
             setLastDebounceMoment(debounceMoment)
+            if (wmlQuery.valid) {
+                dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY'] }))
+            }
+            else {
+                dispatch(setIntent({ key: AssetId, intent: ['DRAFTERROR'] }))
+            }
+            dispatch(heartbeat)
         }
-    }, [debounceMoment, lastDebounceMoment, wmlQuery, value, setStatusMessage, generateStatusMessage, setErrorPosition, editor])
+    }, [debounceMoment, lastDebounceMoment, wmlQuery, value, setStatusMessage, generateStatusMessage, setErrorPosition, editor, dispatch])
     const decorate = useCallback(
         ([node, path]) => {
             const endPosition = Editor.end(editor, [])

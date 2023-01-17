@@ -175,7 +175,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     const currentStatus = useSelector(getStatus(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))
 
-    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(currentStatus || '') && wmlQuery)
+    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'DRAFTERROR'].includes(currentStatus || '') && wmlQuery)
         ? 
             <LibraryAsset assetKey={assetKey || ''}>
                 <Routes>

@@ -556,11 +556,14 @@ export class WMLQuery {
     }
 
     normalize(): NormalForm {
-        const normalizer = new Normalizer()
-        this._schema.forEach((tag, index) => {
-            normalizer.put(tag, { contextStack: [], index, replace: false })
+        this._errorHandler(() => {
+            const normalizer = new Normalizer()
+            this._schema.forEach((tag, index) => {
+                normalizer.put(tag, { contextStack: [], index, replace: false })
+            })
+            return normalizer.normal
         })
-        return normalizer.normal
+        return {}
     }
     prettyPrint(): WMLQuery {
         // if (this.matcher.match().succeeded()) {
