@@ -1,12 +1,20 @@
-import { FunctionComponent } from "react"
-import { useSelector } from "react-redux"
-import { getStatus } from "../../../slices/personalAssets"
+import { FunctionComponent, useCallback } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { getStatus, revertDraftWML, setIntent } from "../../../slices/personalAssets"
 import { useLibraryAsset } from "./LibraryAsset"
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import { heartbeat } from "../../../slices/stateSeekingMachine/ssmHeartbeat"
 
 export const DraftLockout: FunctionComponent<{}> = () => {
     const { AssetId } = useLibraryAsset()
     const currentStatus = useSelector(getStatus(AssetId))
+    const dispatch = useDispatch()
+    const handleRevert = useCallback(() => {
+        dispatch(revertDraftWML(AssetId)({}))
+        dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY', 'WMLDIRTY'] }))
+        dispatch(heartbeat)
+    }, [AssetId])
     return currentStatus === 'DRAFTERROR'
         ? <Box sx={{
             zIndex: 1,
@@ -27,6 +35,11 @@ export const DraftLockout: FunctionComponent<{}> = () => {
                 <Box sx={{ flexGrow: 1 }} />
                     <Box>
                         TEST
+                        <Button
+                            onClick={handleRevert}
+                        >
+                            Revert
+                        </Button>
                     </Box>
                 <Box sx={{ flexGrow: 1 }} />
             </Box>
