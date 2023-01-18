@@ -10,10 +10,11 @@ import {
 
 import { WMLQuery, WMLQueryUpdate } from '@tonylb/mtw-wml/dist/wmlQuery'
 import wmlToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlToSlate'
-import { setDraftWML } from '../../../slices/personalAssets'
+import { setDraftWML, setIntent } from '../../../slices/personalAssets'
 
 import LibraryBanner from './LibraryBanner'
 import { useLibraryAsset } from './LibraryAsset'
+import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 interface WMLEditProps {}
 
@@ -137,7 +138,7 @@ const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point |
 }
 
 export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
-    const { AssetId, assetKey, currentWML, wmlQuery: globalQuery, updateWML } = useLibraryAsset()
+    const { AssetId, assetKey, currentWML, draftWML, wmlQuery: globalQuery, updateWML } = useLibraryAsset()
     const dispatch = useDispatch()
     //
     // TODO: Refactor the entire complicated back-and-forth flow of local and globally-cached
@@ -166,7 +167,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
             wmlQuery.setInput(currentWML)
         }
     }, [currentWML, wmlQuery])
-    const initialValue = wmlToSlate(currentWML)
+    const initialValue = wmlToSlate(draftWML || currentWML)
     const [debounceMoment, setDebounce] = useState<number>(Date.now())
     const [debounceTimeout, setDebounceTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
     const debouncedUpdate = useCallback(() => {
@@ -177,7 +178,6 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
     }, [debounceTimeout, setDebounceTimeout])
     const generateStatusMessage = useCallback(() => {
         if (wmlQuery) {
-            wmlQuery.setInput(sourceStringFromSlate(value))
             if (wmlQuery.valid) {
                 return 'Success!'
             }
@@ -196,8 +196,16 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
             setErrorPosition(newErrorPosition)
             setStatusMessage(generateStatusMessage())
             setLastDebounceMoment(debounceMoment)
+            if (wmlQuery.valid) {
+                dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY'] }))
+                dispatch(setDraftWML(AssetId)({ value: '' }))
+            }
+            else {
+                dispatch(setIntent({ key: AssetId, intent: ['DRAFTERROR'] }))
+            }
+            dispatch(heartbeat)
         }
-    }, [debounceMoment, lastDebounceMoment, wmlQuery, value, setStatusMessage, generateStatusMessage, setErrorPosition, editor])
+    }, [debounceMoment, lastDebounceMoment, wmlQuery, value, setStatusMessage, generateStatusMessage, setErrorPosition, editor, dispatch])
     const decorate = useCallback(
         ([node, path]) => {
             const endPosition = Editor.end(editor, [])

@@ -26,7 +26,8 @@ import {
     setCurrentWML,
     setIntent,
     getProperties,
-    updateNormal as updateNormalAction
+    updateNormal as updateNormalAction,
+    getDraftWML
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
@@ -41,6 +42,7 @@ type LibraryAssetContextType = {
     assetKey: string;
     AssetId: string;
     currentWML: string;
+    draftWML: string;
     normalForm: NormalForm;
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
     wmlQuery: WMLQuery;
@@ -59,6 +61,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     assetKey: '',
     AssetId: '',
     currentWML: '',
+    draftWML: '',
     normalForm: {},
     importDefaults: {},
     wmlQuery: new WMLQuery(''),
@@ -128,6 +131,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const AssetId = useMemo<string>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
     const currentWMLSelector = useCallback(getCurrentWML(AssetId), [AssetId])
     const currentWML = useSelector(currentWMLSelector)
+    const draftWML = useSelector(getDraftWML(AssetId))
     const normalSelector = useCallback(getNormalized(AssetId), [AssetId])
     const normalForm = useSelector(normalSelector)
     const wmlQuerySelector = useCallback(getWMLQuery(AssetId), [AssetId])
@@ -176,6 +180,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             assetKey,
             AssetId,
             currentWML,
+            draftWML,
             normalForm,
             importDefaults,
             wmlQuery,

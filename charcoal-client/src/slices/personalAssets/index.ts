@@ -185,6 +185,7 @@ export const {
 export const {
     getStatus,
     getCurrentWML,
+    getDraftWML,
     getNormalized,
     getWMLQuery,
     getImportDefaults,
