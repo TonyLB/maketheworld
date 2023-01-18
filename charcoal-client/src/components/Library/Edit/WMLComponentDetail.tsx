@@ -20,6 +20,7 @@ import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wm
 import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { deepEqual } from '../../../lib/objects'
+import DraftLockout from './DraftLockout'
 
 interface WMLComponentDetailProps {
 }
@@ -96,7 +97,6 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         return []
     }, [components, component.key])
     const [name, setName] = useState(defaultName)
-    console.log(`Name: ${JSON.stringify(name, null, 4)}`)
     const nameText = useMemo<string>(() => ((name || []).map((item) => ((item.tag === 'String') ? item.value : '')).join('')), [name])
 
     const dispatchNameChange = useCallback((value: ComponentRenderItem[]) => {
@@ -138,7 +138,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         return <Box />
     }
     const componentName = (components[component.key]?.name ?? [{ tag: 'String', value: 'Untitled' }]).map((item) => ((item.tag === 'String') ? item.value : '')).join('')
-    return <Box sx={{ width: "100%" }}>
+    return <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
             <LibraryBanner
                 primary={componentName}
                 secondary={component.key}
@@ -156,39 +156,48 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
                 }]}
             />
 
-            <Box sx={{
-                marginLeft: '0.5em',
-                display: 'flex',
-                alignItems: 'center',
-            }}>
-                <Box
-                    sx={{
-                        height: "100%",
-                        background: 'lightgrey',
-                        verticalAlign: 'middle',
-                        display: 'inline'
-                    }}
-                >
-                    { components[component.key]?.defaultName || '' }
+            <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
+                <Box sx={{ overflowY: 'auto' }}>
+                    <Box sx={{
+                        marginLeft: '0.5em',
+                        marginTop: '0.5em',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        rowGap: '0.25em',
+                        width: "calc(100% - 0.5em)",
+                        position: 'relative'
+                    }}>
+                        <Box
+                            sx={{
+                                height: "100%",
+                                background: 'lightgrey',
+                                verticalAlign: 'middle',
+                                display: 'inline'
+                            }}
+                        >
+                            { components[component.key]?.defaultName || '' }
+                        </Box>
+                        <TextField
+                            id="name"
+                            label="Name"
+                            size="small"
+                            value={nameText}
+                            onChange={changeName}
+                        />
+                        <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
+                            <DescriptionEditor
+                                inheritedRender={components[component.key]?.defaultRender}
+                                render={components[component.key]?.localRender || []}
+                                onChange={onChange}
+                            />
+                        </Box>
+                        {
+                            (tag === 'Room') && <RoomExits RoomId={ComponentId || ''} />
+                        }
+                    </Box>
                 </Box>
-                <TextField
-                    id="name"
-                    label="Name"
-                    size="small"
-                    value={nameText}
-                    onChange={changeName}
-                />
+                <DraftLockout />
             </Box>
-            <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
-                <DescriptionEditor
-                    inheritedRender={components[component.key]?.defaultRender}
-                    render={components[component.key]?.localRender || []}
-                    onChange={onChange}
-                />
-            </Box>
-            {
-                (tag === 'Room') && <RoomExits RoomId={ComponentId || ''} />
-            }
         </Box>
 }
 
