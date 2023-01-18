@@ -9,11 +9,14 @@ export const DraftLockout: FunctionComponent<{}> = () => {
     const currentStatus = useSelector(getStatus(AssetId))
     return currentStatus === 'DRAFTERROR'
         ? <Box sx={{
-            zIndex: -1,
+            zIndex: 1,
             width: "100%",
             height: "100%",
             background: "rgba(0, 0, 0, .2)",
             display: "flex",
+            position: "absolute",
+            top: 0,
+            left: 0,
             flexDirection: "row"
         }}>
             <Box sx={{ flexGrow: 1 }} />
