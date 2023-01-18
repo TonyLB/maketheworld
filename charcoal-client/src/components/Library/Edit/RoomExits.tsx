@@ -51,7 +51,6 @@ export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
     return <Box sx={{
         display: 'flex',
         flexDirection: 'row',
-        width: "100%",
         marginTop: '0.5em',
         marginLeft: '0.5em'
     }}>
