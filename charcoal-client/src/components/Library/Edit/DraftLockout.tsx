@@ -4,6 +4,10 @@ import { getStatus, revertDraftWML, setIntent } from "../../../slices/personalAs
 import { useLibraryAsset } from "./LibraryAsset"
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CardActions from '@mui/material/CardActions'
+import Typography from '@mui/material/Typography'
 import { heartbeat } from "../../../slices/stateSeekingMachine/ssmHeartbeat"
 
 export const DraftLockout: FunctionComponent<{}> = () => {
@@ -33,14 +37,20 @@ export const DraftLockout: FunctionComponent<{}> = () => {
                 flexDirection: "column"
             }}>
                 <Box sx={{ flexGrow: 1 }} />
-                    <Box>
-                        TEST
-                        <Button
-                            onClick={handleRevert}
-                        >
-                            Revert
-                        </Button>
-                    </Box>
+                    <Card sx={{ maxWidth: '300px' }}>
+                        <CardContent>
+                            <Typography variant="h5" component="div">WML Error</Typography>
+                            There is an error in the advanced WML editor.  Either use the revert button to discard your error-causing changes,
+                            or return to the advanced editor and correct the error in place.
+                        </CardContent>
+                        <CardActions>
+                            <Button
+                                onClick={handleRevert}
+                            >
+                                Revert
+                            </Button>
+                        </CardActions>
+                    </Card>
                 <Box sx={{ flexGrow: 1 }} />
             </Box>
             <Box sx={{ flexGrow: 1 }} />
