@@ -13,7 +13,7 @@ import {
     regenerateWMLAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
-import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer } from './reducers'
+import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer } from './reducers'
 
 export const {
     slice: personalAssetsSlice,
@@ -39,6 +39,7 @@ export const {
     publicReducers: {
         setCurrentWML: setCurrentWMLReducer,
         setDraftWML: setDraftWMLReducer,
+        revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
         updateNormal: updateNormalReducer
     },
@@ -179,6 +180,7 @@ export const { addItem, setIntent } = personalAssetsSlice.actions
 export const {
     setCurrentWML,
     setDraftWML,
+    revertDraftWML,
     setLoadedImage,
     updateNormal
 } = publicActions

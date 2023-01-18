@@ -25,6 +25,10 @@ export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction
     state.draftWML = newDraft.payload.value
 }
 
+export const revertDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{}>) => {
+    state.draftWML = undefined
+}
+
 export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ itemId: string; file: File }>) => {
     state.loadedImages[action.payload.itemId] = {
         loadId: uuidv4(),

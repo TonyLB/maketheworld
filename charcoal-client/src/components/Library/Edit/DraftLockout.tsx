@@ -1,12 +1,24 @@
-import { FunctionComponent } from "react"
-import { useSelector } from "react-redux"
-import { getStatus } from "../../../slices/personalAssets"
+import { FunctionComponent, useCallback } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { getStatus, revertDraftWML, setIntent } from "../../../slices/personalAssets"
 import { useLibraryAsset } from "./LibraryAsset"
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CardActions from '@mui/material/CardActions'
+import Typography from '@mui/material/Typography'
+import { heartbeat } from "../../../slices/stateSeekingMachine/ssmHeartbeat"
 
 export const DraftLockout: FunctionComponent<{}> = () => {
     const { AssetId } = useLibraryAsset()
     const currentStatus = useSelector(getStatus(AssetId))
+    const dispatch = useDispatch()
+    const handleRevert = useCallback(() => {
+        dispatch(revertDraftWML(AssetId)({}))
+        dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY', 'WMLDIRTY'] }))
+        dispatch(heartbeat)
+    }, [AssetId])
     return currentStatus === 'DRAFTERROR'
         ? <Box sx={{
             zIndex: 1,
@@ -25,9 +37,20 @@ export const DraftLockout: FunctionComponent<{}> = () => {
                 flexDirection: "column"
             }}>
                 <Box sx={{ flexGrow: 1 }} />
-                    <Box>
-                        TEST
-                    </Box>
+                    <Card sx={{ maxWidth: '300px' }}>
+                        <CardContent>
+                            <Typography variant="h5" component="div">WML Error</Typography>
+                            There is an error in the advanced WML editor.  Either use the revert button to discard your error-causing changes,
+                            or return to the advanced editor and correct the error in place.
+                        </CardContent>
+                        <CardActions>
+                            <Button
+                                onClick={handleRevert}
+                            >
+                                Revert
+                            </Button>
+                        </CardActions>
+                    </Card>
                 <Box sx={{ flexGrow: 1 }} />
             </Box>
             <Box sx={{ flexGrow: 1 }} />
