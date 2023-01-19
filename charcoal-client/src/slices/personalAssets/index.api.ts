@@ -222,8 +222,14 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draf
 export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { normal = {} }}) => async(dispatch) => {
     const normalizer = new Normalizer()
     normalizer._normalForm = normal
-    const newWML = schemaToWML(normalizer.schema)
-    return {
-        publicData: { currentWML: newWML }
+    try {
+        const newWML = schemaToWML(normalizer.schema)
+        return {
+            publicData: { currentWML: newWML }
+        }
+    }
+    catch (err) {
+        console.log(err)
+        throw err
     }
 }
