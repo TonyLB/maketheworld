@@ -6,11 +6,7 @@ import LibraryAsset, { useLibraryAsset, AssetComponent } from './LibraryAsset'
 
 jest.mock('../../../cacheDB')
 jest.mock('../../../lib/wmlQueryCache')
-import { wmlQueryFromCache } from '../../../lib/wmlQueryCache'
-import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-
-const wmlQueryFromCacheMock = wmlQueryFromCache as jest.Mock
 
 const mockStore = configureStore()
 const currentWML = `
@@ -80,9 +76,6 @@ describe('LibraryAsset context provider', () => {
         store.clearActions()
         jest.clearAllMocks()
         jest.resetAllMocks()
-        wmlQueryFromCacheMock.mockReturnValue(
-            new WMLQuery(currentWML)
-        )
     })
 
     it('should provide currentWML', () => {

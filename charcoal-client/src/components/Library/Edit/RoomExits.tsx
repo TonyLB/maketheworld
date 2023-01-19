@@ -26,7 +26,7 @@ const guessExitName = (roomName: ComponentRenderItem[] = []) => {
 }
 
 export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
-    const { wmlQuery, rooms, exits, updateWML, normalForm, updateNormal } = useLibraryAsset()
+    const { rooms, exits, normalForm, updateNormal } = useLibraryAsset()
     const relevantExits = objectFilter(
         objectFilter(exits, ({ appearances }) => (Boolean((appearances || []).find(noConditionContext)))),
         ({ to, from }) => ((to === RoomId) || (from === RoomId))
@@ -55,7 +55,7 @@ export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
         if (!rooms[targetId]) {
             return
         }
-    }, [wmlQuery, rooms, RoomId, updateWML])
+    }, [rooms, RoomId, normalForm, updateNormal])
     return <Box sx={{
         display: 'flex',
         flexDirection: 'row',
