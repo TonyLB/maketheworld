@@ -2,6 +2,7 @@ import { lineLengthAfterIndent, indentSpacing } from "./index"
 import { isSchemaTaggedMessageLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "../../schema/baseClasses";
 import { schemaDescriptionToWML } from "../description";
 import { BaseConverter, SchemaToWMLOptions } from "../functionMixins";
+import { isLegalParseConditionContextTag } from "../../parser/baseClasses";
 
 type TagRenderProperty = {
     key?: string;
@@ -13,7 +14,19 @@ type TagRenderProperty = {
     value: boolean;
 }
 
+const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] => {
+    const contextTagRaw = context.reduce<SchemaTag["tag"]>((previous, item) => {
+        const tag = item.tag
+        if (isLegalParseConditionContextTag(tag)) {
+            return tag
+        }
+        return previous
+    }, undefined)
+    return contextTagRaw === 'Bookmark' ? 'Description' : contextTagRaw
+}
+
 export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, properties, contents }: { schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string; indent: number, forceNest?: 'closed' | 'contents' | 'properties', tag: string, context: SchemaTag[], properties: TagRenderProperty[]; contents: (string | SchemaTag)[]; }): string => {
+    const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(context))
     const propertyRender = properties.map((property) => {
         const propertyKeyLead = `${property.key ? `${property.key}=` : '' }`
         switch(property.type) {
@@ -27,11 +40,7 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
                 return property.value ? `${propertyKeyLead}"${property.value}"` : ''
         }
     }).filter((value) => (value))
-    //
-    // TODO: Add taggedMessageSiblingBase to reduce returns, in order to keep the starting point of
-    // sibling tags for schemaDescriptionToWML, and then use that to equip schemaDescriptionToWML with
-    // sibling processing as well
-    //
+
     const { returnValue: mappedContents } = contents.reduce<{ returnValue: string[]; siblings: SchemaTag[]; taggedMessageStack: SchemaTaggedMessageLegalContents[] }>((previous, tag, index) => {
         if (typeof tag === 'string') {
             return {
@@ -44,7 +53,12 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
                 taggedMessageStack: []
             }
         }
-        if (isSchemaTaggedMessageLegalContents(tag)) {
+        //
+        // TODO: Find function that checks what the current mode for a condition would be, and use it to judge whether you're in a description context or not
+        //
+        // TODO: Use schemaDescriptionToWML only in the case where you are in a context that parses tagged messages in that way
+        //
+        if (descriptionContext && isSchemaTaggedMessageLegalContents(tag)) {
             if (index === contents.length - 1) {
                 return {
                     returnValue: [
