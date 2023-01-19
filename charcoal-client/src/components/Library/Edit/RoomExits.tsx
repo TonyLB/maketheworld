@@ -12,7 +12,7 @@ import AddRoomExit from './AddRoomExit'
 import RoomExitHeader from './RoomExitHeader'
 import { objectFilter } from '../../../lib/objects'
 import { noConditionContext } from './utilities'
-import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, isNormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 interface RoomExitsProps {
     RoomId: string;
@@ -26,27 +26,35 @@ const guessExitName = (roomName: ComponentRenderItem[] = []) => {
 }
 
 export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
-    const { wmlQuery, rooms, exits, updateWML } = useLibraryAsset()
+    const { wmlQuery, rooms, exits, updateWML, normalForm, updateNormal } = useLibraryAsset()
     const relevantExits = objectFilter(
         objectFilter(exits, ({ appearances }) => (Boolean((appearances || []).find(noConditionContext)))),
         ({ to, from }) => ((to === RoomId) || (from === RoomId))
     )
     const onAddExit = useCallback(({ toTarget, targetId }: { toTarget: boolean, targetId: string }) => {
+        const { from, to } = toTarget ? { from: RoomId, to: targetId } : { to: RoomId, from: targetId}
+        const normalRoom = normalForm[from]
+        if (from && normalRoom && isNormalRoom(normalRoom)) {
+            const firstUnconditionedAppearance = normalRoom.appearances.findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
+            if (firstUnconditionedAppearance !== -1) {
+                const guessName = guessExitName(rooms[to]?.name)
+                updateNormal({
+                    type: 'put',
+                    item: {
+                        tag: 'Exit',
+                        key: `${from}#${to}`,
+                        from,
+                        to,
+                        name: guessName,
+                        contents: [],
+                    },
+                    position: { contextStack: [ ...normalRoom.appearances[firstUnconditionedAppearance].contextStack, { key: from, tag: 'Room', index: firstUnconditionedAppearance }] }
+                })
+            }
+        }
         if (!rooms[targetId]) {
             return
         }
-        const guessName = toTarget
-            ? guessExitName(rooms[targetId]?.name)
-            : guessExitName(rooms[RoomId]?.name)
-        const newElement = `<Exit ${toTarget ? 'to' : 'from'}=(${targetId})>${guessName}</Exit>`
-        const updateQuery = wmlQuery
-            .search(`Room[key="${RoomId}"]`)
-            .not('If Room')
-            .not('Map Room')
-            .add(':first')
-        updateQuery
-            .addElement(newElement, { position: 'after' })
-        updateWML(updateQuery.source)
     }, [wmlQuery, rooms, RoomId, updateWML])
     return <Box sx={{
         display: 'flex',
