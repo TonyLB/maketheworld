@@ -207,4 +207,25 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly round-trip asset-level conditions', () => {
+        const testWML = `<Asset key=(Test)>
+    <Feature key=(doors)>
+        <Name>Drifting doors</Name>
+        <Description>Doors drifting in space</Description>
+    </Feature>
+    <If {lights}>
+        <Feature key=(doors)>
+            <Description>, lit from a distant star</Description>
+        </Feature>
+    </If>
+    <Else>
+        <Feature key=(doors)>
+            <Description>, dark and cold</Description>
+        </Feature>
+    </Else>
+    <Variable key=(lights) default={true} />
+</Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
 })
