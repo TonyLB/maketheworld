@@ -228,4 +228,23 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+        it('should correctly round-trip nested description conditions', () => {
+        const testWML = `<Asset key=(Test)>
+    <Feature key=(doors)>
+        <Name>Drifting doors</Name>
+        <Description>
+            Doors drifting in space,
+            <If {lights}>
+                <If {solar}>lit from a distant star</If>
+                <Else>lit by a swelling moon</Else>
+            </If>
+            <Else>dark and cold</Else>
+        </Description>
+    </Feature>
+    <Variable key=(lights) default={true} />
+    <Variable key=(solar) default={true} />
+</Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
 })
