@@ -19,8 +19,7 @@ import {
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
-    getStatus,
-    getWMLQuery
+    getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -77,8 +76,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image') => (componentId: string) => {
-        // wmlQuery.search('Asset, Story').addElement(`<${tag} key=(${componentId}) />`, { position: 'after' })
-        // updateWML(wmlQuery.source)
         const rootItem = Object.values(normalForm)
             .find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
         if (rootItem) {
@@ -179,9 +176,8 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     }, [dispatch, assetKey])
 
     const currentStatus = useSelector(getStatus(AssetId))
-    const wmlQuery = useSelector(getWMLQuery(AssetId))
 
-    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'DRAFTERROR'].includes(currentStatus || '') && wmlQuery)
+    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
         ? 
             <LibraryAsset assetKey={assetKey || ''}>
                 <Routes>

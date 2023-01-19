@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid'
-import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 import { PersonalAssetsCondition, PersonalAssetsAction } from './baseClasses'
 import {
     socketDispatchPromise,
@@ -8,11 +7,14 @@ import {
 import delayPromise from '../../lib/delayPromise'
 import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache'
-import { TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
+import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
-import { schemaToWML } from '@tonylb/mtw-wml/dist/schema'
+import { schemaFromParse, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
+import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer'
+import parse from '@tonylb/mtw-wml/dist/parser'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -169,6 +171,52 @@ export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementa
     }
     await delayPromise(incrementalBackoff * 1000)
     return { internalData: { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) } }
+}
+
+export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draftWML }}) => async(dispatch) => {
+    if (!draftWML) {
+        return {}
+    }
+    let tokens: Token[] = []
+    try {
+        tokens = tokenizer(new SourceStream(draftWML))
+        const schema = schemaFromParse(parse(tokens))
+        const normalizer = new Normalizer()
+        schema.forEach((tag, index) => {
+            normalizer.put(tag, { contextStack: [], index, replace: false })
+        })
+        return {
+            publicData: {
+                normal: normalizer.normal,
+                currentWML: draftWML,
+                draftWML: undefined
+            },
+            internalData: {
+                error: undefined
+            }
+        }
+    }
+    catch (err) {
+        if (err instanceof TokenizeException) {
+            throw {
+                error: err.message,
+                errorStart: err.startIdx,
+                errorEnd: err.endIdx
+            }
+        }
+        else if (err instanceof ParseException) {
+            throw {
+                error: err.message,
+                errorStart: tokens[err.startToken].startIdx,
+                errorEnd: tokens[err.endToken].endIdx
+            }
+        }
+        else {
+            throw {
+                error: 'Unknown exception'
+            }
+        }
+    }
 }
 
 export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { normal = {} }}) => async(dispatch) => {

@@ -27,12 +27,10 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
     getStatus,
-    getWMLQuery,
     setLoadedImage
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'
@@ -59,10 +57,6 @@ const replaceLiteralTag = ({
     tag,
     replace
 }: ReplaceLiteralTagProps) => {
-    //
-    // TODO: Add replace method to WMLQuery, to replace the entire tag
-    // with new text
-    //
     const character = Object.values(normalForm).find(({ tag }) => (tag === 'Character')) as NormalCharacter | undefined
     if (!character) {
         return
@@ -473,9 +467,8 @@ export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
     }, [dispatch, assetKey])
 
     const currentStatus = useSelector(getStatus(AssetId))
-    const wmlQuery = useSelector(getWMLQuery(AssetId))
 
-    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'DRAFTERROR'].includes(currentStatus || '') && wmlQuery)
+    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'DRAFTERROR'].includes(currentStatus || ''))
         ? 
             <LibraryAsset assetKey={assetKey || ''} character>
                 <Routes>
