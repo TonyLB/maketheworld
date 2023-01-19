@@ -45,8 +45,6 @@ type LibraryAssetContextType = {
     draftWML: string;
     normalForm: NormalForm;
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
-    wmlQuery: WMLQuery;
-    updateWML: (value: string, options?: { prettyPrint?: boolean }) => void;
     updateNormal: (action: UpdateNormalPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -64,8 +62,6 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     draftWML: '',
     normalForm: {},
     importDefaults: {},
-    wmlQuery: new WMLQuery(''),
-    updateWML: () => {},
     updateNormal: () => {},
     properties: {},
     loadedImages: {},
@@ -129,38 +125,13 @@ const assetComponents = ({ normalForm, importDefaults }: { normalForm: NormalFor
 export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, children, character }) => {
 
     const AssetId = useMemo<string>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
-    const currentWMLSelector = useCallback(getCurrentWML(AssetId), [AssetId])
-    const currentWML = useSelector(currentWMLSelector)
+    const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
-    const normalSelector = useCallback(getNormalized(AssetId), [AssetId])
-    const normalForm = useSelector(normalSelector)
-    const wmlQuerySelector = useCallback(getWMLQuery(AssetId), [AssetId])
-    const wmlQuery = useSelector(wmlQuerySelector)
-    const importDefaultsSelector = useCallback(getImportDefaults(AssetId), [AssetId])
-    const importDefaults = useSelector(importDefaultsSelector)
-    const loadedImagesSelector = useCallback(getLoadedImages(AssetId), [AssetId])
-    const loadedImages = useSelector(loadedImagesSelector)
-    const propertiesSelector = useCallback(getProperties(AssetId), [AssetId])
-    const properties = useSelector(propertiesSelector)
+    const normalForm = useSelector(getNormalized(AssetId))
+    const importDefaults = useSelector(getImportDefaults(AssetId))
+    const loadedImages = useSelector(getLoadedImages(AssetId))
+    const properties = useSelector(getProperties(AssetId))
     const dispatch = useDispatch()
-    const updateWML = useCallback((value: string, options?: { prettyPrint?: boolean }) => {
-        const { prettyPrint = true } = options || {}
-        if (prettyPrint) {
-            const wmlQuery = new WMLQuery(value)
-            const prettyPrinted = wmlQuery.prettyPrint().source
-            dispatch(setCurrentWML(AssetId)({ value: prettyPrinted }))
-            //
-            // TODO: Activate WMLDIRTY updates, and check that they work properly
-            //
-            // dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY']}))
-            // dispatch(heartbeat)
-        }
-        else {
-            dispatch(setCurrentWML(AssetId)({ value }))
-            // dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY']}))
-            // dispatch(heartbeat)
-        }
-    }, [dispatch, AssetId])
     const updateNormal = useCallback((updateAction: UpdateNormalPayload) => {
         dispatch(updateNormalAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
@@ -183,8 +154,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             draftWML,
             normalForm,
             importDefaults,
-            wmlQuery,
-            updateWML,
             updateNormal,
             properties,
             loadedImages,
