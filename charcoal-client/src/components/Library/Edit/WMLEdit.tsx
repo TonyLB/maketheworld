@@ -82,10 +82,12 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
     const [lastDebounceMoment, setLastDebounceMoment] = useState<number>(0)
     const [editor] = useState(() => withHistory(withReact(createEditor())))
     useEffect(() => {
+        dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY', 'DRAFTERROR', 'FRESH'] }))
+        dispatch(heartbeat)
+    }, [])
+    useEffect(() => {
         if (debounceMoment !== lastDebounceMoment) {
-            console.log(`Debounce`)
             if (draftWML) {
-                console.log(`Parsing draft`)
                 dispatch(setIntent({ key: AssetId, intent: ['NEEDPARSE'] }))
                 dispatch(heartbeat)
             }
