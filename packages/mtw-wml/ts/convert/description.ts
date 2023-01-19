@@ -1,4 +1,4 @@
-import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag, SchemaTaggedMessageLegalContents } from "../schema/baseClasses"
+import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, isSchemaWhitespace, SchemaTag, SchemaTaggedMessageLegalContents } from "../schema/baseClasses"
 import { SchemaToWMLOptions } from "./functionMixins"
 import { indentSpacing, lineLengthAfterIndent } from "./utils/index"
 
@@ -115,7 +115,7 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
             const { outputLines: extractedOutputLines, remainingTags } = breakTagsOnFirstStringWhitespace(schemaToWML)(tagsBeingConsidered, { indent, siblings: currentSiblings, context: options.context, padding: prefix.length })
             if (extractedOutputLines.length) {
                 outputLines = [...outputLines, `${prefix}${extractedOutputLines[0]}`, ...(extractedOutputLines.slice(1))]
-                currentSiblings = [...currentSiblings, ...tagsBeingConsidered.slice(0, -remainingTags.length)]
+                currentSiblings = [...currentSiblings, ...tagsBeingConsidered.slice(0, -remainingTags.length).filter((tag) => (!isSchemaWhitespace(tag)))]
                 tagsBeingConsidered = remainingTags
                 prefix = ''
             }
@@ -127,7 +127,7 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
                 if (nestedLines.length > 1) {
                     outputLines = [...outputLines, `${prefix}${nestedLines[0]}`, ...(nestedLines.slice(1, -1))]
                     prefix = nestedLines.slice(-1)[0]
-                    currentSiblings = [...currentSiblings, ...tagsBeingConsidered]
+                    currentSiblings = [...currentSiblings, ...tagsBeingConsidered.filter((tag) => (!isSchemaWhitespace(tag)))]
                     tagsBeingConsidered = []
                 }
                 //
@@ -141,14 +141,18 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
         }
     })
     if (tagsBeingConsidered.length) {
-        outputLines.push(`${prefix}${naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0, context: options.context })}`.trim())
+        outputLines.push(`${prefix}${naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0, context: options.context })}`.trimEnd())
     }
-    return outputLines
+    //
+    // Remove indents (which were needed in order to calculate line length) before applying indents in schemaDescriptionToWML,
+    // to avoid multiplying the spacing through recursion
+    //
+    return outputLines.map((line, index) => (index > 0 ? line.slice(indent * 4) : line))
 }
 
 export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions & { padding: number }): string => {
     const { indent, forceNest, padding, siblings } = options
-    let currentSiblings = [...siblings ?? []]
+    let currentSiblings = [...(siblings ?? []).filter((tag) => (!isSchemaWhitespace(tag)))]
     let outputLines: string[] = []
     let queue: SchemaTaggedMessageLegalContents[] = []
     let multiLine = forceNest && forceNest !== 'closed'
@@ -176,7 +180,7 @@ export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: 
                 }
                 else {
                     outputLines = [...outputLines, ...printQueuedTags(schemaToWML)(queue, { ...options, siblings: currentSiblings })]
-                    currentSiblings = [...currentSiblings, ...queue]
+                    currentSiblings = [...currentSiblings, ...queue.filter((tag) => (!isSchemaWhitespace(tag)))]
                     queue = [tag]
                 }
             }
