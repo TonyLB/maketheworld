@@ -5,7 +5,8 @@ import {
     InferredDataTypeAggregateFromNodes,
     InferredPublicDataTypeAggregateFromNodes,
     TemplateFromNodes,
-    PartialDataTypeAggregateFromNodes
+    PartialDataTypeAggregateFromNodes,
+    InferredInternalDataTypeAggregateFromNodes
 } from './baseClasses'
 import { iterateOneSSM } from './index'
 import { Entries } from '../../lib/objects'
@@ -225,12 +226,21 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         return []
     }
 
+    const getError = (key: string): Selector<Record<string, any>> => (state) => {
+        const focus = sliceSelector(state).byId[key]
+        if (focus) {
+            return focus.internalData.error ?? {}
+        }
+        return {}
+    }
+
     type SelectorAggregate = {
         [T in keyof typeof publicSelectors]: (key: string) => Selector<ReturnType<typeof publicSelectors[T]>>
     }
     const selectors: SelectorAggregate & {
         getStatus: (key: string) => Selector<keyof Nodes | undefined>;
         getIntent: (key: string) => Selector<(keyof Nodes)[]>;
+        getError: (key: string) => Selector<Record<string, any>>;
     } = {
         ...(Object.entries(publicSelectors) as Entries<typeof publicSelectors>)
             .reduce((previous, [name, selector]) => ({
@@ -238,7 +248,8 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                 [name]: wrapPublicSelector(sliceSelector)(selector)
             }), {} as Partial<SelectorAggregate>) as SelectorAggregate,
         getStatus,
-        getIntent
+        getIntent,
+        getError
     }
 
     return {

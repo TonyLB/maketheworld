@@ -11,6 +11,11 @@ export interface PersonalAssetsInternal {
     s3Object?: string;
     saveImages?: AssetClientUploadURL["images"];
     uploadRequestId?: string;
+    error?: {
+        error?: string;
+        errorStart?: number;
+        errorEnd?: number;
+    }
 }
 
 export type PersonalAssetsLoadedImage = {
@@ -45,6 +50,9 @@ export interface PersonalAssetsNodes {
     FETCHERROR: ISSMChoiceNode;
     FRESH: ISSMChoiceNode;
     WMLDIRTY: ISSMChoiceNode;
+    NEEDPARSE: ISSMRedirectNode;
+    PARSEDRAFT: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    NEEDERROR: ISSMRedirectNode;
     DRAFTERROR: ISSMChoiceNode;
     WMLERROR: ISSMChoiceNode;
     NORMALDIRTY: ISSMChoiceNode;

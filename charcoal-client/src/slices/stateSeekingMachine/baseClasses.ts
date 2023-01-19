@@ -89,7 +89,7 @@ type InferredPublicDataTypeFromNodes<Nodes extends Record<string, any>> = {
 // to just unioning the same type a bunch of times, but better safe than
 // sorry)
 //
-type InferredInternalDataTypeAggregateFromNodes<Nodes extends ISSMData> =
+export type InferredInternalDataTypeAggregateFromNodes<Nodes extends ISSMData> =
     InferredInternalDataTypeFromNodes<Nodes>[keyof InferredInternalDataTypeFromNodes<Nodes>]
 
 export type InferredPublicDataTypeAggregateFromNodes<Nodes extends ISSMData> =
@@ -200,4 +200,5 @@ export type ssmMeta<K> = {
     currentState: K;
     desiredStates: K[];
     inProgress: K | null;
+    error?: Record<string, any>;
 }

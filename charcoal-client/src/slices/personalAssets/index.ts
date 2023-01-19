@@ -10,6 +10,7 @@ import {
     clearAction,
     backoffAction,
     parseWML,
+    locallyParseWMLAction,
     regenerateWMLAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
@@ -113,11 +114,27 @@ export const {
             },
             WMLDIRTY: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'NORMALDIRTY', 'DRAFTERROR', 'NEEDSAVE']
+                choices: ['CLEAR', 'NORMALDIRTY', 'NEEDPARSE', 'NEEDSAVE']
+            },
+            NEEDPARSE: {
+                stateType: 'REDIRECT',
+                newIntent: ['WMLDIRTY'],
+                choices: ['PARSEDRAFT']
+            },
+            PARSEDRAFT: {
+                stateType: 'ATTEMPT',
+                action: locallyParseWMLAction,
+                resolve: 'WMLDIRTY',
+                reject: 'NEEDERROR'
+            },
+            NEEDERROR: {
+                stateType: 'REDIRECT',
+                newIntent: ['DRAFTERROR'],
+                choices: ['DRAFTERROR']
             },
             DRAFTERROR: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'WMLDIRTY']
+                choices: ['CLEAR', 'NEEDPARSE']
             },
             NORMALDIRTY: {
                 stateType: 'CHOICE',
@@ -192,7 +209,8 @@ export const {
     getWMLQuery,
     getImportDefaults,
     getProperties,
-    getLoadedImages
+    getLoadedImages,
+    getError
 } = selectors
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
