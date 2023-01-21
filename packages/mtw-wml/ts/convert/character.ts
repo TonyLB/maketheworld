@@ -156,15 +156,13 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                     object: item.object,
                     possessive: item.possessive,
                     adjective: item.adjective,
-                    reflexive: item.reflexive,
-                    parse: item
+                    reflexive: item.reflexive
                 }            
             }
             else if (isParseFirstImpression(item)) {
                 return {
                     tag: 'FirstImpression',
                     value: item.value,
-                    parse: item,
                     contents: contents as SchemaLiteralLegalContents[]
                 }            
             }
@@ -172,7 +170,6 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                 return {
                     tag: 'OneCoolThing',
                     value: item.value,
-                    parse: item,
                     contents: contents as SchemaLiteralLegalContents[]
                 }            
             }
@@ -180,7 +177,6 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                 return {
                     tag: 'Outfit',
                     value: item.value,
-                    parse: item,
                     contents: contents as SchemaLiteralLegalContents[]
                 }            
             }
@@ -201,7 +197,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                         .filter((item): item is SchemaStringTag => (item.tag === 'String'))
                         .map(({ value }) => (value))
                         .join(''),
-                    Pronouns: (contents as SchemaTag[]).filter(isSchemaPronouns).reduce((previous, { tag, parse, ...rest }) => (rest), {
+                    Pronouns: (contents as SchemaTag[]).filter(isSchemaPronouns).reduce((previous, { tag, ...rest }) => (rest), {
                         subject: 'they',
                         object: 'them',
                         possessive: 'theirs',
@@ -211,8 +207,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                     FirstImpression: (contents as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
                     OneCoolThing: (contents as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
                     Outfit: (contents as SchemaTag[]).filter(isSchemaOutfit).length ? (contents as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
-                    contents: contents as SchemaCharacterLegalContents[],
-                    parse: item
+                    contents: contents as SchemaCharacterLegalContents[]
                 } as SchemaCharacterTag
             }
             else {

@@ -19,8 +19,7 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
                     returnValue.push(currentToken)
                     currentToken = {
                         tag: 'String',
-                        value: ' ',
-                        parse: item.parse
+                        value: ' '
                     }
                 }
             }

@@ -26,8 +26,7 @@ export const FallbackMixin = <C extends Constructor<BaseConverter>>(Base: C) => 
         override schemaConvert(value: any, siblings: any, contents: any): SchemaStringTag {
             return {
                 tag: 'String',
-                value: '',
-                parse: value
+                value: ''
             }
         }
 

@@ -79,36 +79,25 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
                 contents: MixinInheritedSchemaContents<C> | SchemaTag[] | any[]
             ): MixinInheritedSchemaReturn<C> | SchemaStringTag | SchemaWhitespaceTag | SchemaSpacerTag | SchemaLineBreakTag | SchemaLinkTag {
             if (isParseWhitespace(value)) {
-                return {
-                    tag: 'Whitespace',
-                    parse: value
-                }
+                return { tag: 'Whitespace' }
             }
             if (isParseSpacer(value)) {
-                return {
-                    tag: 'Space',
-                    parse: value
-                }
+                return { tag: 'Space' }
             }
             if (isParseLineBreak(value)) {
-                return {
-                    tag: 'br',
-                    parse: value
-                }
+                return { tag: 'br' }
             }
             if (isParseString(value)) {
                 return {
                     tag: 'String',
-                    value: value.value,
-                    parse: value
+                    value: value.value
                 }
             }
             if (isParseLink(value)) {
                 return {
                     tag: 'Link',
                     to: value.to,
-                    text: (contents as SchemaTag[]).filter((item): item is SchemaStringTag => (item.tag === 'String')).map(({ value }) => (value)).join(''),
-                    parse: value
+                    text: (contents as SchemaTag[]).filter((item): item is SchemaStringTag => (item.tag === 'String')).map(({ value }) => (value)).join('')
                 }
             }
             else {

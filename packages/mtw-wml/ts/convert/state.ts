@@ -88,16 +88,14 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
                 return {
                     tag: 'Action',
                     key: value.key,
-                    src: value.src,
-                    parse: value            
+                    src: value.src
                 }
             }
             else if (isParseVariable(value)) {
                 return {
                     tag: 'Variable',
                     key: value.key,
-                    default: value.default,
-                    parse: value
+                    default: value.default
                 }
             }
             else if (isParseComputed(value)) {
@@ -105,8 +103,7 @@ export const ParseStateMixin = <C extends Constructor<BaseConverter>>(Base: C) =
                     tag: 'Computed',
                     key: value.key,
                     src: value.src,
-                    dependencies: value.dependencies,
-                    parse: value
+                    dependencies: value.dependencies
                 }
             }
             else {

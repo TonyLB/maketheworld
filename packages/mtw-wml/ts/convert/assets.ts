@@ -80,8 +80,7 @@ export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                     fileName: item.fileName,
                     zone: item.zone,
                     subFolder: item.subFolder,
-                    player: item.player,
-                    parse: item
+                    player: item.player
                 }            
             }
             else if (isParseStory(item)) {
@@ -94,8 +93,7 @@ export const ParseAssetsMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                     zone: item.zone,
                     subFolder: item.subFolder,
                     player: item.player,
-                    instance: item.instance,
-                    parse: item
+                    instance: item.instance
                 }            
             }
             else {
