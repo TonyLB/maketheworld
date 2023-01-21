@@ -247,4 +247,20 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly round-trip nested line-wrapped text', () => {
+        const testWML = `<Asset key=(Test)>
+    <Feature key=(doors)>
+        <Name>Drifting doors</Name>
+        <Description>
+            <If {lights}>
+                Testing a long text string that will require line wrapping to
+                render in its entirety
+            </If>
+        </Description>
+    </Feature>
+    <Variable key=(lights) default={true} />
+</Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
 })

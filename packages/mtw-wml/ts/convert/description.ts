@@ -168,7 +168,7 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
     // Remove indents (which were needed in order to calculate line length) before applying indents in schemaDescriptionToWML,
     // to avoid multiplying the spacing through recursion
     //
-    return (prefix ? [...outputLines, prefix] : outputLines).filter((value) => (value.trim())).map((line, index) => (index > 0 ? line.slice(indent * 4) : line))
+    return (prefix ? [...outputLines, prefix] : outputLines).filter((value) => (value.trim())).map((line, index) => ((index > 0 && !line.slice(0, indent * 4).trim()) ? line.slice(indent * 4) : line))
 }
 
 export const schemaDescriptionToWML = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions & { padding: number }): string => {
