@@ -267,7 +267,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                 if (closestSibling &&
                     isSchemaCondition(closestSibling) &&
                     (value.conditions.length >= closestSibling.conditions.length) &&
-                    deepEqual(closestSibling.conditions.map((condition) => ({ ...condition, not: true })), value.conditions)
+                    deepEqual(closestSibling.conditions.map((condition) => ({ ...condition, not: true })), value.conditions.slice(0, closestSibling.conditions.length))
                 ) {
                     const remainingConditions = value.conditions.slice(closestSibling.conditions.length)
                     if (remainingConditions.length) {

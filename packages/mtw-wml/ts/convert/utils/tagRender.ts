@@ -46,7 +46,7 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
             return {
                 returnValue: [
                     ...previous.returnValue,
-                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0, context })] : []),
+                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0, context, siblings: previous.siblings })] : []),
                     tag
                 ],
                 siblings: previous.siblings,
@@ -63,7 +63,7 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
                 return {
                     returnValue: [
                         ...previous.returnValue,
-                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, forceNest, context, padding: 0 })
+                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, forceNest, context, padding: 0, siblings: previous.siblings })
                     ],
                     siblings: [ ...previous.siblings, tag],
                     taggedMessageStack: []
@@ -81,7 +81,7 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
             return {
                 returnValue: [
                     ...previous.returnValue,
-                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, context, padding: 0 })] : []),
+                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, context, padding: 0, siblings: previous.siblings })] : []),
                     schemaToWML(tag, { indent: indent + 1, forceNest, siblings: previous.siblings, context })
                 ],
                 siblings: [ ...previous.siblings, tag],
