@@ -32,8 +32,7 @@ describe('normalToTree', () => {
                         key: 'TestMap',
                         tag: 'Map',
                         index: 0
-                    }],
-                    location: [0]
+                    }]
                 }]
             },
             TestMap: {
@@ -48,8 +47,7 @@ describe('normalToTree', () => {
                             conditions: [],
                             key: '123',
                             x: 200,
-                            y: 150,
-                            location: [0, 0, 0]
+                            y: 150
                         }
                     ],
                     contents: [{
@@ -62,7 +60,6 @@ describe('normalToTree', () => {
                         key: '123',
                         index: 1
                     }],
-                    location: [0, 0]
                 }]
             },
             '123': {
@@ -71,16 +68,14 @@ describe('normalToTree', () => {
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
                     name: [{ tag: 'String', value: 'Vortex' }],
-                    contents: [],
-                    location: [0, 1]
+                    contents: []
                 },
                 {
                     contextStack: [
                         { key: 'Test', tag: 'Asset', index: 0 },
                         { key: 'TestMap', tag: 'Map', index: 0 }
                     ],
-                    contents: [],
-                    location: [0, 0, 0]
+                    contents: []
                 }]
             },
             '456': {
@@ -92,16 +87,14 @@ describe('normalToTree', () => {
                     contents: [
                         { key: '456#123', tag: 'Exit', index: 0 },
                         { key: '456#789', tag: 'Exit', index: 0 }
-                    ],
-                    location: [0, 2]
+                    ]
                 },
                 {
                     contextStack: [
                         { key: 'Test', tag: 'Asset', index: 0 },
                         { key: 'TestMap', tag: 'Map', index: 0 }
                     ],
-                    contents: [],
-                    location: [0, 0, 1]
+                    contents: []
                 }]
             },
             '456#123': {
@@ -111,8 +104,7 @@ describe('normalToTree', () => {
                 from: '456',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: '456', tag: 'Room', index: 0 }],
-                    contents: [],
-                    location: [0, 2, 0]
+                    contents: []
                 }]
             },
             '456#789': {
@@ -122,8 +114,7 @@ describe('normalToTree', () => {
                 from: '456',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: '456', tag: 'Room', index: 0 }],
-                    contents: [],
-                    location: [0, 2, 1]
+                    contents: []
                 }]
             },
             '789': {
@@ -132,16 +123,14 @@ describe('normalToTree', () => {
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
                     name: [{ tag: 'String', value: 'None' }],
-                    contents: [],
-                    location: [0, 3]
+                    contents: []
                 },
                 {
                     contextStack: [
                         { key: 'Test', tag: 'Asset', index: 0 },
                         { key: 'TestMap', tag: 'Map', index: 0 }
                     ],
-                    contents: [],
-                    location: [0, 0, 2]
+                    contents: []
                 }]
             },          
         }

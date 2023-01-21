@@ -19,7 +19,7 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
         .reduce((previous, { rooms }) => ([
             ...previous, 
             ...rooms
-        ]), []  as ({ key: string, x: number; y: number; location: number[] }[]))
+        ]), []  as ({ key: string, x: number; y: number; }[]))
     const exitPairs = Object.values(normalForm || {})
         .filter(isNormalExit)
         .reduce<Record<string, string[]>>((previous, { to, from, appearances = [] }) => {
@@ -65,7 +65,7 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
     // TODO: Abstract the following two functions, to reduce code-repetition
     //
     const tree: MapTree = (roomItems || [])
-        .reduce<MapTree>((previous, { key, x = 0, y = 0, location }, index) => {
+        .reduce<MapTree>((previous, { key, x = 0, y = 0 }) => {
             return [
                 ...previous,
                 {
@@ -73,7 +73,6 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
                     item: {
                         type: 'ROOM',
                         name: (rooms[key]?.name ?? [{ tag: 'String', value: 'Untitled' }]).map((item) => ((item.tag === 'String') ? item.value : '')).join(''),
-                        location,
                         x,
                         y,
                         roomId: key,

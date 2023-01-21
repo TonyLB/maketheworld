@@ -18,15 +18,17 @@ Object {
             "tag": "Room",
           },
           Object {
+            "index": 1,
+            "key": "testOne",
+            "tag": "Room",
+          },
+          Object {
             "index": 0,
             "key": "testTwo",
             "tag": "Room",
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -45,10 +47,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -74,10 +72,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          2,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -96,10 +90,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
       },
     ],
@@ -122,11 +112,13 @@ Object {
             "key": "test",
             "tag": "Room",
           },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -145,10 +137,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -172,11 +160,14 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [],
-        "contextStack": Array [],
-        "location": Array [
-          0,
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
         ],
+        "contextStack": Array [],
       },
     ],
     "fileName": "Test",
@@ -207,10 +198,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          3,
-        ],
       },
     ],
     "conditions": Array [
@@ -240,10 +227,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          4,
         ],
       },
     ],
@@ -288,11 +271,13 @@ Object {
             "key": "If-1",
             "tag": "If",
           },
+          Object {
+            "index": 0,
+            "key": "If-1",
+            "tag": "If",
+          },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -317,11 +302,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          3,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -343,11 +323,6 @@ Object {
             "key": "If-1",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          5,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -373,10 +348,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
       },
     ],
     "default": "false",
@@ -394,10 +365,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          2,
-        ],
       },
     ],
     "default": "false",
@@ -414,10 +381,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
       },
     ],
@@ -452,9 +415,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -474,10 +434,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -495,10 +451,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -515,10 +467,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -560,9 +508,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -581,10 +526,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -608,11 +549,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -631,10 +567,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -667,19 +599,10 @@ Object {
           },
         ],
         "images": Array [],
-        "location": Array [
-          0,
-          1,
-        ],
         "rooms": Array [
           Object {
             "conditions": Array [],
             "key": "test",
-            "location": Array [
-              0,
-              1,
-              0,
-            ],
             "x": 0,
             "y": 0,
           },
@@ -706,9 +629,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -732,11 +652,6 @@ Object {
             "key": "testMap",
             "tag": "Map",
           },
-        ],
-        "location": Array [
-          0,
-          0,
-          0,
         ],
         "name": Array [],
         "render": Array [],
@@ -771,30 +686,16 @@ Object {
           },
         ],
         "images": Array [],
-        "location": Array [
-          0,
-          0,
-        ],
         "rooms": Array [
           Object {
             "conditions": Array [],
             "key": "test",
-            "location": Array [
-              0,
-              0,
-              0,
-            ],
             "x": 0,
             "y": 0,
           },
           Object {
             "conditions": Array [],
             "key": "testTwo",
-            "location": Array [
-              0,
-              0,
-              1,
-            ],
             "x": 0,
             "y": 100,
           },
@@ -819,11 +720,6 @@ Object {
             "key": "testMap",
             "tag": "Map",
           },
-        ],
-        "location": Array [
-          0,
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [],
@@ -856,15 +752,17 @@ Object {
             "tag": "Room",
           },
           Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+          Object {
             "index": 2,
             "key": "test",
             "tag": "Room",
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -884,10 +782,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -905,10 +799,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -925,10 +815,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -964,9 +850,6 @@ Object {
       Object {
         "contents": Array [],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "test",
@@ -999,11 +882,13 @@ Object {
             "key": "test",
             "tag": "Room",
           },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -1023,10 +908,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -1043,10 +924,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -1071,10 +948,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -1114,11 +987,13 @@ Object {
             "key": "test",
             "tag": "Room",
           },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -1137,10 +1012,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -1164,11 +1035,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -1187,10 +1053,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -1223,19 +1085,10 @@ Object {
           },
         ],
         "images": Array [],
-        "location": Array [
-          0,
-          1,
-        ],
         "rooms": Array [
           Object {
             "conditions": Array [],
             "key": "test",
-            "location": Array [
-              0,
-              1,
-              0,
-            ],
             "x": 0,
             "y": 0,
           },
@@ -1272,11 +1125,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          0,
-          1,
-        ],
       },
       Object {
         "contents": Array [
@@ -1292,10 +1140,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
       },
     ],
@@ -1319,15 +1163,17 @@ Object {
             "tag": "Map",
           },
           Object {
+            "index": 0,
+            "key": "testMap",
+            "tag": "Map",
+          },
+          Object {
             "index": 1,
             "key": "If-0",
             "tag": "If",
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -1351,11 +1197,6 @@ Object {
             "key": "testMap",
             "tag": "Map",
           },
-        ],
-        "location": Array [
-          0,
-          0,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -1395,19 +1236,10 @@ Object {
           },
         ],
         "images": Array [],
-        "location": Array [
-          0,
-          0,
-        ],
         "rooms": Array [
           Object {
             "conditions": Array [],
             "key": "test",
-            "location": Array [
-              0,
-              0,
-              0,
-            ],
             "x": 0,
             "y": 100,
           },
@@ -1419,12 +1251,6 @@ Object {
               },
             ],
             "key": "testTwo",
-            "location": Array [
-              0,
-              0,
-              1,
-              0,
-            ],
             "x": 100,
             "y": 0,
           },
@@ -1451,21 +1277,10 @@ Object {
           },
         ],
         "images": Array [],
-        "location": Array [
-          0,
-          1,
-          0,
-        ],
         "rooms": Array [
           Object {
             "conditions": Array [],
             "key": "testThree",
-            "location": Array [
-              0,
-              1,
-              0,
-              0,
-            ],
             "x": -100,
             "y": 0,
           },
@@ -1495,12 +1310,6 @@ Object {
             "key": "testMap",
             "tag": "Map",
           },
-        ],
-        "location": Array [
-          0,
-          1,
-          0,
-          0,
         ],
         "name": Array [],
         "render": Array [],
@@ -1532,12 +1341,6 @@ Object {
             "key": "If-0",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          0,
-          1,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -1579,11 +1382,13 @@ Object {
             "key": "test",
             "tag": "Room",
           },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -1603,10 +1408,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -1624,10 +1425,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -1644,10 +1441,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -1684,9 +1477,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -1706,10 +1496,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -1726,10 +1512,6 @@ Object {
             "key": "TestAsset",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -1766,10 +1548,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          2,
-        ],
       },
     ],
     "conditions": Array [
@@ -1803,9 +1581,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -1825,10 +1600,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
         "name": Array [
           Object {
             "tag": "String",
@@ -1845,10 +1616,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -1874,11 +1641,6 @@ Object {
             "key": "If-0",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          2,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -1920,9 +1682,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -1941,10 +1700,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
         "name": Array [
           Object {
@@ -2026,10 +1781,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          1,
-        ],
       },
     ],
     "default": "false",
@@ -2046,10 +1797,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          2,
         ],
       },
     ],
@@ -2078,10 +1825,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
       },
     ],
@@ -2112,10 +1855,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          2,
         ],
       },
     ],
@@ -2151,11 +1890,6 @@ Object {
             "key": "If-2",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          2,
-          0,
         ],
       },
     ],
@@ -2202,9 +1936,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -2223,10 +1954,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
         "name": Array [
           Object {
@@ -2255,11 +1982,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -2287,12 +2009,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          2,
-          0,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -2317,10 +2033,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          3,
-        ],
       },
     ],
     "default": "false",
@@ -2337,10 +2049,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          4,
         ],
       },
     ],
@@ -2370,9 +2078,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -2392,10 +2097,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -2412,10 +2113,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -2452,10 +2149,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          1,
-        ],
       },
     ],
     "conditions": Array [
@@ -2491,9 +2184,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -2512,10 +2202,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
         "name": Array [
           Object {
@@ -2544,11 +2230,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -2572,10 +2253,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          2,
         ],
       },
     ],
@@ -2604,9 +2281,6 @@ Object {
       Object {
         "contents": Array [],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "test",
@@ -2635,11 +2309,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          3,
-          0,
-        ],
       },
     ],
     "key": "ImageTest",
@@ -2666,10 +2335,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          0,
         ],
       },
     ],
@@ -2744,9 +2409,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Test",
@@ -2780,19 +2442,10 @@ Object {
         "images": Array [
           "ImageTest",
         ],
-        "location": Array [
-          0,
-          3,
-        ],
         "rooms": Array [
           Object {
             "conditions": Array [],
             "key": "a123",
-            "location": Array [
-              0,
-              3,
-              1,
-            ],
             "x": 200,
             "y": 150,
           },
@@ -2824,10 +2477,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          1,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -2844,11 +2493,6 @@ Object {
             "key": "TestMap",
             "tag": "Map",
           },
-        ],
-        "location": Array [
-          0,
-          3,
-          1,
         ],
         "name": Array [],
         "render": Array [],
@@ -2874,12 +2518,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          9,
-          0,
-          0,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -2903,11 +2541,6 @@ Object {
             "key": "a123",
             "tag": "Room",
           },
-        ],
-        "location": Array [
-          0,
-          1,
-          0,
         ],
       },
     ],
@@ -2939,11 +2572,6 @@ Object {
             "tag": "Moment",
           },
         ],
-        "location": Array [
-          0,
-          9,
-          0,
-        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2953,12 +2581,6 @@ Object {
         "rooms": Array [
           Object {
             "key": "a123",
-            "location": Array [
-              0,
-              9,
-              0,
-              0,
-            ],
           },
         ],
       },
@@ -2983,10 +2605,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          9,
-        ],
         "messages": Array [
           "activate",
         ],
@@ -3006,10 +2624,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          5,
-        ],
       },
     ],
     "default": "true",
@@ -3026,10 +2640,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          2,
         ],
         "name": Array [],
         "render": Array [],
@@ -3055,11 +2665,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          1,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -3071,10 +2676,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          4,
         ],
         "name": Array [
           Object {
@@ -3099,10 +2700,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          6,
         ],
       },
     ],
@@ -3129,11 +2726,6 @@ Object {
             "tag": "Import",
           },
         ],
-        "location": Array [
-          0,
-          0,
-          1,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -3152,10 +2744,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          8,
         ],
         "render": Array [
           Object {
@@ -3187,11 +2775,6 @@ Object {
             "tag": "Import",
           },
         ],
-        "location": Array [
-          0,
-          0,
-          0,
-        ],
       },
     ],
     "default": undefined,
@@ -3208,10 +2791,6 @@ Object {
             "key": "Test",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          7,
         ],
       },
     ],

@@ -318,7 +318,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     rooms: extractConditionedItemFromContents({
                         contents: contents as SchemaMapLegalContents[],
                         typeGuard: isSchemaRoom,
-                        transform: ({ key, x, y }, index) => ({ conditions: [], key, x, y, index })
+                        transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
                     }),
                     images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key)),
                     parse: item
@@ -331,14 +331,11 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     key: item.key,
                     render: (contents as SchemaTag[]).filter(isSchemaTaggedMessageLegalContents),
                     contents: componentContents,
-                    rooms: (contents as SchemaTag[]).reduce((previous, room, index) => (
+                    rooms: (contents as SchemaTag[]).reduce((previous, room) => (
                         isSchemaRoom(room)
                             ? [
                                 ...previous,
-                                {
-                                    key: room.key,
-                                    index
-                                }
+                                { key: room.key }
                             ]
                             : previous
                     ), []),

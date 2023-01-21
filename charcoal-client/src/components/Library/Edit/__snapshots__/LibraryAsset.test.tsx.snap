@@ -61,9 +61,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         \\"appearances\\": [
             {
                 \\"contextStack\\": [],
-                \\"location\\": [
-                    0
-                ],
                 \\"contents\\": [
                     {
                         \\"key\\": \\"Import-0\\",
@@ -127,10 +124,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"location\\": [
-                    0,
-                    0
-                ],
                 \\"contents\\": [
                     {
                         \\"key\\": \\"power\\",
@@ -163,11 +156,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"location\\": [
-                    0,
-                    0,
-                    0
-                ],
                 \\"contents\\": []
             }
         ]
@@ -190,11 +178,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"location\\": [
-                    0,
-                    0,
-                    1
-                ],
                 \\"contents\\": [],
                 \\"render\\": [],
                 \\"name\\": []
@@ -206,10 +189,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
-                ],
-                \\"location\\": [
-                    0,
-                    4
                 ],
                 \\"contents\\": [
                     {
@@ -241,10 +220,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"location\\": [
-                    0,
-                    1
-                ],
                 \\"contents\\": [],
                 \\"render\\": [
                     {
@@ -268,10 +243,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
-                ],
-                \\"location\\": [
-                    0,
-                    2
                 ],
                 \\"contents\\": [],
                 \\"render\\": [
@@ -306,11 +277,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"location\\": [
-                    0,
-                    3,
-                    0
-                ],
                 \\"contents\\": [
                     {
                         \\"tag\\": \\"Exit\\",
@@ -342,10 +308,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
-                ],
-                \\"location\\": [
-                    0,
-                    3
                 ],
                 \\"contents\\": [
                     {
@@ -382,12 +344,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 1
                     }
                 ],
-                \\"location\\": [
-                    0,
-                    3,
-                    0,
-                    0
-                ],
                 \\"contents\\": []
             }
         ]
@@ -412,11 +368,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 1
                     }
                 ],
-                \\"location\\": [
-                    0,
-                    4,
-                    0
-                ],
                 \\"contents\\": []
             }
         ]
@@ -434,10 +385,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"location\\": [
-                    0,
-                    5
-                ],
                 \\"contents\\": []
             }
         ]
@@ -454,10 +401,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"tag\\": \\"Asset\\",
                         \\"index\\": 0
                     }
-                ],
-                \\"location\\": [
-                    0,
-                    6
                 ],
                 \\"contents\\": []
             }

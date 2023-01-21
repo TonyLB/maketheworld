@@ -818,7 +818,6 @@ Array [
         "rooms": Array [
           Object {
             "conditions": Array [],
-            "index": 0,
             "key": "ABC",
             "x": 100,
             "y": 0,
@@ -832,7 +831,6 @@ Array [
                 "if": "open",
               },
             ],
-            "index": 0,
             "key": "DEF",
             "x": -100,
             "y": 0,
@@ -2553,7 +2551,6 @@ Array [
             ],
             "rooms": Array [
               Object {
-                "index": 2,
                 "key": "ABC",
               },
             ],
