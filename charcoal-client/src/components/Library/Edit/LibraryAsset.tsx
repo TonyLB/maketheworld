@@ -21,16 +21,13 @@ import {
     getCurrentWML,
     getImportDefaults,
     getNormalized,
-    getWMLQuery,
     getLoadedImages,
-    setCurrentWML,
     setIntent,
     getProperties,
     updateNormal as updateNormalAction,
     getDraftWML
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
 import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'

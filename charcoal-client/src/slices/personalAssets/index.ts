@@ -206,7 +206,6 @@ export const {
     getCurrentWML,
     getDraftWML,
     getNormalized,
-    getWMLQuery,
     getImportDefaults,
     getProperties,
     getLoadedImages,

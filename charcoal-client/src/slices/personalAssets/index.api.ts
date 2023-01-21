@@ -6,7 +6,6 @@ import {
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { wmlQueryFromCache } from '../../lib/wmlQueryCache'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
@@ -42,7 +41,6 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     if (id) {
         try {
             normalizer.loadWML(assetWML)
-            wmlQueryFromCache({ key: id, value: assetWML })
         }
         catch (err) {
             if (err instanceof TokenizeException) {
