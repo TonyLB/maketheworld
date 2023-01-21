@@ -5,7 +5,6 @@ import configureStore from 'redux-mock-store'
 import LibraryAsset, { useLibraryAsset, AssetComponent } from './LibraryAsset'
 
 jest.mock('../../../cacheDB')
-jest.mock('../../../lib/wmlQueryCache')
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
 const mockStore = configureStore()
