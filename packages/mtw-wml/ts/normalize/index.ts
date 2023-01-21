@@ -86,7 +86,6 @@ const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWith
 
 type NormalizerContext = {
     contextStack: NormalReference[];
-    location: number[];
     index?: number;
 }
 
@@ -317,21 +316,6 @@ export class Normalizer {
         }
     }
 
-    _insertPositionToLocation(position: NormalizerInsertPosition): number[] {
-        if (position.contextStack.length === 0) {
-            return [0]
-        }
-        const parentReference = position.contextStack.slice(-1)[0]
-        const parent = this._lookupAppearance(parentReference)
-        const parentLocation = parent.location ?? []
-        if (typeof position.index === 'number') {
-            return [ ...parentLocation, position.index]
-        }
-        else {
-            return [ ...parentLocation, parent.contents.length ]
-        }
-    }
-
     _getParentReference(context: NormalReference[]): NormalReference | undefined {
         if (context.length) {
             return context.slice(-1)[0]
@@ -374,10 +358,7 @@ export class Normalizer {
                 if (draft[key].tag !== item.tag) {
                     throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
                 }
-                const newAppearance = {
-                    ...item.appearances[0],
-                    location: this._insertPositionToLocation(position)
-                }
+                const newAppearance = item.appearances[0]
                 if (insertBefore === -1) {
                     appearances.push(newAppearance)
                 }
@@ -391,10 +372,7 @@ export class Normalizer {
             this._normalForm = produce(this._normalForm, (draft) => {
                 draft[key] = {
                     ...item,
-                    appearances: [{
-                        ...item.appearances[0],
-                        location: this._insertPositionToLocation(position)
-                    }]
+                    appearances: [item.appearances[0]]
                 } as NormalItem
             })
             return 0
@@ -463,8 +441,7 @@ export class Normalizer {
                                     conditions: [],
                                     key,
                                     x: appearances[appearanceIndex].x,
-                                    y: appearances[appearanceIndex].y,
-                                    location: appearances[appearanceIndex].location,
+                                    y: appearances[appearanceIndex].y
                                 }
                             }
                         })
@@ -611,8 +588,7 @@ export class Normalizer {
             this.delete(this._insertPositionToReference(position))
         }
         const translateContext: NormalizerContext = {
-            contextStack: position.contextStack,
-            location: this._insertPositionToLocation(position)
+            contextStack: position.contextStack
         }
         this._validateTags(node)
         let appearanceIndex: number
@@ -799,28 +775,6 @@ export class Normalizer {
     delete(reference: NormalReference): void {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
-            const { contextStack } = appearance
-            if (contextStack.length) {
-                const directParent = contextStack.slice(-1)[0]
-                this._normalForm = produce(this._normalForm, (draft) => {
-                    const directParentAppearance = draft[directParent.key].appearances[directParent.index]
-                    const indexToRemove = directParentAppearance.contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
-                    if (indexToRemove !== -1) {
-                        directParentAppearance.contents.splice(indexToRemove, 1)
-                        //
-                        // Revise all content-index numbers on later children downward
-                        //
-                        directParentAppearance.contents.forEach((reference, index) => {
-                            if (index >= indexToRemove) {
-                                draft[reference.key].appearances[reference.index].location = [
-                                    ...draft[reference.key].appearances[reference.index].location.slice(0, -1),
-                                    index
-                                ]
-                            }
-                        })
-                    }
-                })
-            }
             this._removeAppearance(reference)
             this._renameAllConditions()
         }
@@ -982,10 +936,7 @@ export class Normalizer {
                     appearances: [{
                         ...appearance,
                         render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
-                        rooms: node.rooms.map(({ index, ...room }) => ({
-                            ...room,
-                            location: [...appearance.location, index]
-                        }))
+                        rooms: node.rooms
                     }]
                 }
             case 'Moment':
@@ -1003,10 +954,7 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...appearance,
-                        rooms: node.rooms.map(({ index, ...room }) => ({
-                            ...room,
-                            location: [...appearance.location, index]
-                        })),
+                        rooms: node.rooms,
                         images: node.images
                     }] as MapAppearance[]
                 }
@@ -1188,7 +1136,7 @@ export class Normalizer {
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
                         .filter(isSchemaMessageContents),
-                    rooms: messageAppearance.rooms.map(({ location, ...rest }) => ({ index: (location.slice(-1) || [0])[0], ...rest }))
+                    rooms: messageAppearance.rooms
                 }
             case 'Moment':
                 const momentAppearance = baseAppearance as MomentAppearance
@@ -1207,10 +1155,7 @@ export class Normalizer {
                     tag: 'Map',
                     images: mapAppearance.images,
                     name: (mapAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                    rooms: mapAppearance.rooms.map(({ location, ...room }) => ({
-                        ...room,
-                        index: (location.slice(-1) || [0])[0]
-                    })),
+                    rooms: mapAppearance.rooms,
                     contents: mapAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))

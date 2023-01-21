@@ -30,7 +30,7 @@ const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
         const mapDefaultAppearances = item.appearances
             .filter(noConditionContext)
             .map(({ rooms }) => ({
-                rooms: rooms.map(({ key, location, ...rest }) => {
+                rooms: rooms.map(({ key, ...rest }) => {
                     const lookup = normalForm[key]
                     if (!isNormalRoom(lookup)) {
                         throw new EphemeraError(`Invalid item in map room lookup: ${key}`)

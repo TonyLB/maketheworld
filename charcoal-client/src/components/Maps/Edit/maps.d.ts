@@ -14,7 +14,6 @@ export interface MapRoom extends MapObjectBase {
     roomId: string;
     x: number;
     y: number;
-    wmlLocation?: number[];
 }
 
 export interface MapExit extends MapObjectBase {

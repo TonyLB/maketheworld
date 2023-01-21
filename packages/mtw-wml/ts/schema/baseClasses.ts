@@ -265,7 +265,6 @@ export type SchemaMapRoom = {
     key: string;
     x: number;
     y: number;
-    index: number;
 } & SchemaConditionMixin
 
 export type SchemaMapTag = {
@@ -279,7 +278,6 @@ export type SchemaMapTag = {
 
 export type SchemaMessageRoom = {
     key: string;
-    index: number;
 } & SchemaConditionMixin
 
 export type SchemaMessageLegalContents = SchemaRoomTag | SchemaTaggedMessageLegalContents

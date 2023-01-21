@@ -509,9 +509,6 @@ Object {
           },
         ],
         "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
       },
     ],
     "fileName": "Dungeon",
@@ -541,10 +538,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          12,
         ],
       },
     ],
@@ -586,10 +579,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          13,
-        ],
       },
     ],
     "conditions": Array [
@@ -619,11 +608,6 @@ Object {
             "key": "waterDescription",
             "tag": "Bookmark",
           },
-        ],
-        "location": Array [
-          0,
-          39,
-          2,
         ],
       },
     ],
@@ -663,10 +647,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          44,
-        ],
       },
     ],
     "conditions": Array [
@@ -696,10 +676,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          45,
         ],
       },
     ],
@@ -731,10 +707,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          48,
-        ],
       },
       Object {
         "contents": Array [
@@ -755,10 +727,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          50,
         ],
       },
     ],
@@ -800,10 +768,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          49,
-        ],
       },
     ],
     "conditions": Array [
@@ -839,11 +803,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          49,
-          2,
-        ],
       },
       Object {
         "contents": Array [
@@ -864,11 +823,6 @@ Object {
             "key": "If-13",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          50,
-          1,
         ],
       },
     ],
@@ -900,10 +854,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          51,
-        ],
       },
     ],
     "conditions": Array [
@@ -933,10 +883,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          52,
         ],
       },
     ],
@@ -968,10 +914,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          53,
-        ],
       },
       Object {
         "contents": Array [
@@ -992,10 +934,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          93,
         ],
       },
     ],
@@ -1026,10 +964,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          66,
         ],
       },
     ],
@@ -1066,10 +1000,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          28,
-        ],
       },
     ],
     "conditions": Array [
@@ -1099,10 +1029,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          67,
         ],
       },
     ],
@@ -1134,10 +1060,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          69,
-        ],
       },
     ],
     "conditions": Array [
@@ -1167,10 +1089,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          70,
         ],
       },
     ],
@@ -1212,10 +1130,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          75,
-        ],
       },
       Object {
         "contents": Array [
@@ -1236,10 +1150,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          90,
         ],
       },
     ],
@@ -1276,10 +1186,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          76,
-        ],
       },
     ],
     "conditions": Array [
@@ -1310,10 +1216,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          84,
-        ],
       },
     ],
     "conditions": Array [
@@ -1343,10 +1245,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          85,
         ],
       },
     ],
@@ -1408,10 +1306,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          95,
-        ],
       },
     ],
     "conditions": Array [
@@ -1472,10 +1366,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          96,
         ],
       },
     ],
@@ -1539,10 +1429,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          97,
-        ],
       },
     ],
     "conditions": Array [
@@ -1579,10 +1465,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          29,
         ],
       },
     ],
@@ -1644,10 +1526,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          98,
         ],
       },
     ],
@@ -1711,10 +1589,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          99,
-        ],
       },
     ],
     "conditions": Array [
@@ -1746,10 +1620,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          30,
-        ],
       },
     ],
     "conditions": Array [
@@ -1779,10 +1649,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          31,
         ],
       },
     ],
@@ -1815,10 +1681,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          32,
-        ],
       },
     ],
     "conditions": Array [
@@ -1848,10 +1710,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          33,
         ],
       },
     ],
@@ -1883,11 +1741,6 @@ Object {
             "tag": "Bookmark",
           },
         ],
-        "location": Array [
-          0,
-          39,
-          0,
-        ],
       },
     ],
     "conditions": Array [
@@ -1916,11 +1769,6 @@ Object {
             "key": "waterDescription",
             "tag": "Bookmark",
           },
-        ],
-        "location": Array [
-          0,
-          39,
-          1,
         ],
       },
     ],
@@ -1959,10 +1807,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          0,
-        ],
         "name": Array [
           Object {
             "tag": "String",
@@ -1997,11 +1841,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          1,
-        ],
         "name": Array [],
         "render": Array [],
         "x": 0,
@@ -2028,11 +1867,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          0,
-          0,
-        ],
       },
     ],
     "from": "VORTEX",
@@ -2051,10 +1885,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          65,
         ],
         "name": Array [
           Object {
@@ -2082,11 +1912,6 @@ Object {
             "key": "If-19",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          66,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -2126,11 +1951,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          67,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -2168,10 +1988,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          56,
-        ],
       },
     ],
     "default": "false",
@@ -2188,10 +2004,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          92,
         ],
         "name": Array [
           Object {
@@ -2222,11 +2034,6 @@ Object {
             "key": "If-18",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          93,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -2296,10 +2103,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          62,
-        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -2309,67 +2112,27 @@ Object {
         "rooms": Array [
           Object {
             "key": "orchard",
-            "location": Array [
-              0,
-              62,
-              2,
-            ],
           },
           Object {
             "key": "forest",
-            "location": Array [
-              0,
-              62,
-              3,
-            ],
           },
           Object {
             "key": "fireCatGrotto",
-            "location": Array [
-              0,
-              62,
-              4,
-            ],
           },
           Object {
             "key": "well",
-            "location": Array [
-              0,
-              62,
-              5,
-            ],
           },
           Object {
             "key": "statueChamber",
-            "location": Array [
-              0,
-              62,
-              6,
-            ],
           },
           Object {
             "key": "intersection",
-            "location": Array [
-              0,
-              62,
-              7,
-            ],
           },
           Object {
             "key": "curvingPassage",
-            "location": Array [
-              0,
-              62,
-              8,
-            ],
           },
           Object {
             "key": "foundry",
-            "location": Array [
-              0,
-              62,
-              9,
-            ],
           },
         ],
       },
@@ -2388,10 +2151,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          60,
-        ],
       },
     ],
     "default": "false",
@@ -2408,10 +2167,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          89,
         ],
         "name": Array [
           Object {
@@ -2443,11 +2198,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          90,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -2474,10 +2224,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          59,
         ],
       },
     ],
@@ -2512,11 +2258,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          2,
-        ],
         "name": Array [],
         "render": Array [],
         "x": 0,
@@ -2530,10 +2271,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          2,
         ],
         "name": Array [
           Object {
@@ -2574,12 +2311,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          2,
-          1,
-        ],
       },
     ],
     "from": "cave",
@@ -2609,12 +2340,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          2,
-          0,
-        ],
       },
     ],
     "from": "cave",
@@ -2633,10 +2358,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          6,
         ],
         "name": Array [
           Object {
@@ -2667,10 +2388,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          81,
-        ],
       },
     ],
     "key": "closeTrapDoor",
@@ -2690,10 +2407,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          86,
         ],
         "name": Array [
           Object {
@@ -2735,11 +2448,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          90,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -2762,10 +2470,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          91,
         ],
         "name": Array [],
         "render": Array [
@@ -2801,11 +2505,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          93,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -2825,10 +2524,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          94,
         ],
         "name": Array [],
         "render": Array [
@@ -2882,11 +2577,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          4,
-        ],
         "name": Array [],
         "render": Array [],
         "x": -150,
@@ -2900,10 +2590,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          3,
         ],
         "name": Array [
           Object {
@@ -2932,11 +2618,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          61,
-          6,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -2953,11 +2634,6 @@ Object {
             "key": "birdsFade",
             "tag": "Message",
           },
-        ],
-        "location": Array [
-          0,
-          62,
-          6,
         ],
         "name": Array [],
         "render": Array [],
@@ -2988,12 +2664,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          4,
-          0,
-        ],
       },
     ],
     "from": "curvingPassage",
@@ -3023,12 +2693,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          4,
-          1,
-        ],
       },
     ],
     "from": "curvingPassage",
@@ -3048,10 +2712,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          26,
-        ],
         "name": Array [
           Object {
             "tag": "String",
@@ -3068,10 +2728,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          27,
         ],
         "name": Array [
           Object {
@@ -3113,11 +2769,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          30,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -3151,11 +2802,6 @@ Object {
             "key": "If-5",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          31,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -3191,11 +2837,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          32,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -3230,11 +2871,6 @@ Object {
             "key": "If-7",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          33,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -3273,10 +2909,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          25,
-        ],
         "name": Array [
           Object {
             "tag": "String",
@@ -3307,11 +2939,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          28,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -3340,11 +2967,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          29,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -3367,10 +2989,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          35,
         ],
         "name": Array [],
         "render": Array [
@@ -3409,10 +3027,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          36,
-        ],
       },
     ],
     "dependencies": Array [
@@ -3435,10 +3049,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          23,
-        ],
       },
     ],
     "default": "false",
@@ -3456,10 +3066,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          17,
-        ],
       },
     ],
     "default": "false",
@@ -3476,10 +3082,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          20,
         ],
       },
     ],
@@ -3502,11 +3104,6 @@ Object {
             "key": "dungeonMap",
             "tag": "Map",
           },
-        ],
-        "location": Array [
-          0,
-          1,
-          0,
         ],
       },
     ],
@@ -3583,118 +3180,64 @@ Object {
         "images": Array [
           "dungeonImage",
         ],
-        "location": Array [
-          0,
-          1,
-        ],
         "rooms": Array [
           Object {
             "conditions": Array [],
             "key": "VORTEX",
-            "location": Array [
-              0,
-              1,
-              1,
-            ],
             "x": 0,
             "y": 250,
           },
           Object {
             "conditions": Array [],
             "key": "cave",
-            "location": Array [
-              0,
-              1,
-              2,
-            ],
             "x": 0,
             "y": 150,
           },
           Object {
             "conditions": Array [],
             "key": "intersection",
-            "location": Array [
-              0,
-              1,
-              3,
-            ],
             "x": -150,
             "y": -50,
           },
           Object {
             "conditions": Array [],
             "key": "curvingPassage",
-            "location": Array [
-              0,
-              1,
-              4,
-            ],
             "x": -150,
             "y": 100,
           },
           Object {
             "conditions": Array [],
             "key": "statueChamber",
-            "location": Array [
-              0,
-              1,
-              5,
-            ],
             "x": 0,
             "y": 0,
           },
           Object {
             "conditions": Array [],
             "key": "well",
-            "location": Array [
-              0,
-              1,
-              6,
-            ],
             "x": 150,
             "y": -50,
           },
           Object {
             "conditions": Array [],
             "key": "fireCatGrotto",
-            "location": Array [
-              0,
-              1,
-              7,
-            ],
             "x": 250,
             "y": -150,
           },
           Object {
             "conditions": Array [],
             "key": "orchard",
-            "location": Array [
-              0,
-              1,
-              8,
-            ],
             "x": 100,
             "y": -200,
           },
           Object {
             "conditions": Array [],
             "key": "forest",
-            "location": Array [
-              0,
-              1,
-              9,
-            ],
             "x": -50,
             "y": -200,
           },
           Object {
             "conditions": Array [],
             "key": "foundry",
-            "location": Array [
-              0,
-              1,
-              10,
-            ],
             "x": -200,
             "y": -150,
           },
@@ -3726,11 +3269,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          7,
-        ],
         "name": Array [],
         "render": Array [],
         "x": 250,
@@ -3744,10 +3282,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          46,
         ],
         "name": Array [
           Object {
@@ -3785,11 +3319,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          48,
-          0,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -3806,11 +3335,6 @@ Object {
             "key": "If-14",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          49,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -3850,11 +3374,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          51,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -3893,11 +3412,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          52,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -3927,10 +3441,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          54,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -3959,11 +3469,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          61,
-          2,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -3981,11 +3486,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          62,
-          2,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -4002,11 +3502,6 @@ Object {
             "key": "If-27",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          95,
-          3,
         ],
         "name": Array [],
         "render": Array [
@@ -4033,11 +3528,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          96,
-          4,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4062,11 +3552,6 @@ Object {
             "key": "If-29",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          97,
-          4,
         ],
         "name": Array [],
         "render": Array [
@@ -4093,11 +3578,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          98,
-          4,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4122,11 +3602,6 @@ Object {
             "key": "If-31",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          99,
-          4,
         ],
         "name": Array [],
         "render": Array [
@@ -4165,12 +3640,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          48,
-          0,
-          0,
-        ],
       },
     ],
     "from": "fireCatGrotto",
@@ -4199,12 +3668,6 @@ Object {
             "key": "fireCatGrotto",
             "tag": "Room",
           },
-        ],
-        "location": Array [
-          0,
-          1,
-          7,
-          0,
         ],
       },
     ],
@@ -4236,11 +3699,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          9,
-        ],
         "name": Array [],
         "render": Array [],
         "x": -50,
@@ -4260,11 +3718,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          61,
-          1,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -4282,11 +3735,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          62,
-          1,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -4298,10 +3746,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          72,
         ],
         "name": Array [
           Object {
@@ -4343,11 +3787,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          75,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4379,11 +3818,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          76,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4408,11 +3842,6 @@ Object {
             "key": "If-27",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          95,
-          2,
         ],
         "name": Array [],
         "render": Array [
@@ -4439,11 +3868,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          96,
-          2,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4468,11 +3892,6 @@ Object {
             "key": "If-29",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          97,
-          2,
         ],
         "name": Array [],
         "render": Array [
@@ -4499,11 +3918,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          98,
-          2,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4528,11 +3942,6 @@ Object {
             "key": "If-31",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          99,
-          2,
         ],
         "name": Array [],
         "render": Array [
@@ -4571,12 +3980,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          76,
-          1,
-          0,
-        ],
       },
     ],
     "from": "forest",
@@ -4605,12 +4008,6 @@ Object {
             "key": "forest",
             "tag": "Room",
           },
-        ],
-        "location": Array [
-          0,
-          1,
-          9,
-          0,
         ],
       },
     ],
@@ -4642,11 +4039,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          10,
-        ],
         "name": Array [],
         "render": Array [],
         "x": -200,
@@ -4666,11 +4058,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          62,
-          7,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -4682,10 +4069,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          73,
         ],
         "name": Array [
           Object {
@@ -4747,11 +4130,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          75,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4783,11 +4161,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          76,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4812,11 +4185,6 @@ Object {
             "key": "If-27",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          95,
-          4,
         ],
         "name": Array [],
         "render": Array [
@@ -4843,11 +4211,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          96,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4872,11 +4235,6 @@ Object {
             "key": "If-29",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          97,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -4903,11 +4261,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          98,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -4932,11 +4285,6 @@ Object {
             "key": "If-31",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          99,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -4975,12 +4323,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          76,
-          0,
-          0,
-        ],
       },
     ],
     "from": "foundry",
@@ -5010,12 +4352,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          10,
-          0,
-        ],
       },
     ],
     "from": "foundry",
@@ -5034,10 +4370,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          79,
         ],
         "name": Array [
           Object {
@@ -5078,10 +4410,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          40,
-        ],
       },
     ],
     "default": "false",
@@ -5098,10 +4426,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          43,
         ],
         "name": Array [
           Object {
@@ -5132,11 +4456,6 @@ Object {
             "key": "If-11",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          44,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -5172,11 +4491,6 @@ Object {
             "key": "If-12",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          45,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -5215,10 +4529,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          58,
-        ],
       },
     ],
     "default": "false",
@@ -5235,10 +4545,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          68,
         ],
         "name": Array [
           Object {
@@ -5270,11 +4576,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          69,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -5303,11 +4604,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          70,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -5330,10 +4626,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          71,
         ],
         "name": Array [],
         "render": Array [
@@ -5371,10 +4663,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          74,
         ],
         "name": Array [
           Object {
@@ -5416,11 +4704,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          75,
-          2,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -5447,10 +4730,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          57,
         ],
       },
     ],
@@ -5490,11 +4769,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          3,
-        ],
         "name": Array [],
         "render": Array [],
         "x": -150,
@@ -5508,10 +4782,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          4,
         ],
         "name": Array [
           Object {
@@ -5540,11 +4810,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          61,
-          5,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -5562,11 +4827,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          62,
-          5,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -5583,11 +4843,6 @@ Object {
             "key": "If-27",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          95,
-          5,
         ],
         "name": Array [],
         "render": Array [
@@ -5614,11 +4869,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          96,
-          5,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -5643,11 +4893,6 @@ Object {
             "key": "If-29",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          97,
-          5,
         ],
         "name": Array [],
         "render": Array [
@@ -5674,11 +4919,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          98,
-          5,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -5703,11 +4943,6 @@ Object {
             "key": "If-31",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          99,
-          5,
         ],
         "name": Array [],
         "render": Array [
@@ -5746,12 +4981,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          3,
-          0,
-        ],
       },
     ],
     "from": "intersection",
@@ -5780,12 +5009,6 @@ Object {
             "key": "intersection",
             "tag": "Room",
           },
-        ],
-        "location": Array [
-          0,
-          1,
-          3,
-          2,
         ],
       },
     ],
@@ -5816,12 +5039,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          3,
-          1,
-        ],
       },
     ],
     "from": "intersection",
@@ -5840,10 +5057,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          55,
         ],
         "name": Array [
           Object {
@@ -5874,10 +5087,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          19,
-        ],
       },
     ],
     "key": "lowerLeftArm",
@@ -5903,10 +5112,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          22,
         ],
       },
     ],
@@ -5934,10 +5139,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          9,
-        ],
       },
     ],
     "key": "lowerRobedStatueHead",
@@ -5961,10 +5162,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          77,
         ],
         "name": Array [
           Object {
@@ -6011,11 +5208,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          8,
-        ],
         "name": Array [],
         "render": Array [],
         "x": 100,
@@ -6029,10 +5221,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          47,
         ],
         "name": Array [
           Object {
@@ -6074,11 +5262,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          49,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6109,12 +5292,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          49,
-          2,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6142,11 +5319,6 @@ Object {
             "key": "If-13",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          50,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -6181,12 +5353,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          50,
-          1,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6215,11 +5381,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          53,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6245,11 +5406,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          61,
-          0,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -6267,11 +5423,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          62,
-          0,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -6288,11 +5439,6 @@ Object {
             "key": "If-27",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          95,
-          1,
         ],
         "name": Array [],
         "render": Array [
@@ -6319,11 +5465,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          96,
-          3,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6348,11 +5489,6 @@ Object {
             "key": "If-29",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          97,
-          3,
         ],
         "name": Array [],
         "render": Array [
@@ -6379,11 +5515,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          98,
-          3,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6408,11 +5539,6 @@ Object {
             "key": "If-31",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          99,
-          3,
         ],
         "name": Array [],
         "render": Array [
@@ -6451,12 +5577,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          8,
-          0,
-        ],
       },
     ],
     "from": "orchard",
@@ -6485,12 +5605,6 @@ Object {
             "key": "orchard",
             "tag": "Room",
           },
-        ],
-        "location": Array [
-          0,
-          1,
-          8,
-          1,
         ],
       },
     ],
@@ -6547,10 +5661,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          61,
-        ],
         "render": Array [
           Object {
             "tag": "String",
@@ -6560,59 +5670,24 @@ Object {
         "rooms": Array [
           Object {
             "key": "orchard",
-            "location": Array [
-              0,
-              61,
-              2,
-            ],
           },
           Object {
             "key": "forest",
-            "location": Array [
-              0,
-              61,
-              3,
-            ],
           },
           Object {
             "key": "fireCatGrotto",
-            "location": Array [
-              0,
-              61,
-              4,
-            ],
           },
           Object {
             "key": "well",
-            "location": Array [
-              0,
-              61,
-              5,
-            ],
           },
           Object {
             "key": "statueChamber",
-            "location": Array [
-              0,
-              61,
-              6,
-            ],
           },
           Object {
             "key": "intersection",
-            "location": Array [
-              0,
-              61,
-              7,
-            ],
           },
           Object {
             "key": "curvingPassage",
-            "location": Array [
-              0,
-              61,
-              8,
-            ],
           },
         ],
       },
@@ -6630,10 +5705,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          18,
         ],
       },
     ],
@@ -6661,10 +5732,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          21,
-        ],
       },
     ],
     "key": "raiseRightArm",
@@ -6691,10 +5758,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          8,
-        ],
       },
     ],
     "key": "raiseRobedStatueHead",
@@ -6718,10 +5781,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          10,
         ],
         "name": Array [
           Object {
@@ -6753,11 +5812,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          12,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6786,11 +5840,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          13,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6813,10 +5862,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          15,
         ],
         "name": Array [],
         "render": Array [
@@ -6855,10 +5900,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          7,
-        ],
       },
     ],
     "default": "false",
@@ -6875,10 +5916,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          11,
         ],
         "name": Array [
           Object {
@@ -6910,11 +5947,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          12,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -6945,11 +5977,6 @@ Object {
             "key": "If-1",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          13,
-          2,
         ],
         "name": Array [],
         "render": Array [
@@ -6984,10 +6011,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          78,
-        ],
       },
     ],
     "key": "shakeFruitTrees",
@@ -7021,10 +6044,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          87,
-        ],
       },
     ],
     "key": "sing",
@@ -7055,10 +6074,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          88,
         ],
         "name": Array [
           Object {
@@ -7115,11 +6130,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          5,
-        ],
         "name": Array [],
         "render": Array [],
         "x": 0,
@@ -7139,11 +6149,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          61,
-          4,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -7161,11 +6166,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          62,
-          4,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -7177,10 +6177,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          82,
         ],
         "name": Array [
           Object {
@@ -7229,11 +6225,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          95,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -7258,11 +6249,6 @@ Object {
             "key": "If-28",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          96,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -7289,11 +6275,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          97,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -7319,11 +6300,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          98,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -7348,11 +6324,6 @@ Object {
             "key": "If-31",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          99,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -7391,12 +6362,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          5,
-          0,
-        ],
       },
     ],
     "from": "statueChamber",
@@ -7426,12 +6391,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          5,
-          1,
-        ],
       },
     ],
     "from": "statueChamber",
@@ -7450,10 +6409,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          16,
         ],
         "name": Array [
           Object {
@@ -7483,10 +6438,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          63,
         ],
       },
     ],
@@ -7550,10 +6501,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          42,
-        ],
       },
     ],
     "key": "toggleGratingBlocked",
@@ -7590,10 +6537,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          64,
         ],
       },
     ],
@@ -7659,10 +6602,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          83,
-        ],
         "name": Array [
           Object {
             "tag": "String",
@@ -7692,11 +6631,6 @@ Object {
             "key": "If-25",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          84,
-          0,
         ],
         "name": Array [],
         "render": Array [
@@ -7740,11 +6674,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          85,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -7772,10 +6701,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          80,
-        ],
       },
     ],
     "default": "false",
@@ -7792,10 +6717,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          24,
         ],
       },
     ],
@@ -7845,10 +6766,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          39,
         ],
         "render": Array [
           Object {
@@ -7934,10 +6851,6 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-          37,
-        ],
       },
     ],
     "dependencies": Array [
@@ -7958,10 +6871,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          41,
         ],
       },
     ],
@@ -8000,11 +6909,6 @@ Object {
             "tag": "Map",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          6,
-        ],
         "name": Array [],
         "render": Array [],
         "x": 150,
@@ -8018,10 +6922,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          38,
         ],
         "name": Array [
           Object {
@@ -8067,11 +6967,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          61,
-          3,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -8089,11 +6984,6 @@ Object {
             "tag": "Message",
           },
         ],
-        "location": Array [
-          0,
-          62,
-          3,
-        ],
         "name": Array [],
         "render": Array [],
       },
@@ -8110,11 +7000,6 @@ Object {
             "key": "If-27",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          95,
-          6,
         ],
         "name": Array [],
         "render": Array [
@@ -8141,11 +7026,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          96,
-          6,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -8170,11 +7050,6 @@ Object {
             "key": "If-29",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          97,
-          6,
         ],
         "name": Array [],
         "render": Array [
@@ -8201,11 +7076,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          98,
-          6,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -8230,11 +7100,6 @@ Object {
             "key": "If-31",
             "tag": "If",
           },
-        ],
-        "location": Array [
-          0,
-          99,
-          6,
         ],
         "name": Array [],
         "render": Array [
@@ -8273,12 +7138,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          6,
-          1,
-        ],
       },
     ],
     "from": "well",
@@ -8308,12 +7167,6 @@ Object {
             "tag": "Room",
           },
         ],
-        "location": Array [
-          0,
-          1,
-          6,
-          0,
-        ],
       },
     ],
     "from": "well",
@@ -8332,10 +7185,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          5,
         ],
         "name": Array [
           Object {
@@ -8419,11 +7268,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          13,
-          0,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -8446,10 +7290,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          14,
         ],
         "name": Array [],
         "render": Array [
@@ -8489,11 +7329,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          28,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -8522,11 +7357,6 @@ Object {
             "tag": "If",
           },
         ],
-        "location": Array [
-          0,
-          29,
-          1,
-        ],
         "name": Array [],
         "render": Array [
           Object {
@@ -8549,10 +7379,6 @@ Object {
             "key": "Dungeon",
             "tag": "Asset",
           },
-        ],
-        "location": Array [
-          0,
-          34,
         ],
         "name": Array [],
         "render": Array [

@@ -26,7 +26,6 @@ export type NormalReference = {
 export type BaseAppearance = {
     contextStack: NormalReference[];
     contents: NormalReference[];
-    location?: number[];
 }
 
 type NormalBase = {
@@ -161,7 +160,6 @@ export type MapAppearanceRoom = {
     key: string;
     x: number;
     y: number;
-    location: number[];
 } & NormalConditionMixin
 
 type MapAppearanceImage = string
@@ -210,7 +208,6 @@ export type NormalAction = {
 
 export type MessageAppearanceRoom = {
     key: string;
-    location: number[];
 } & NormalConditionMixin
 
 export type MessageAppearance = {

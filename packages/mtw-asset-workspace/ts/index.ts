@@ -200,7 +200,7 @@ export class AssetWorkspace {
         }
         const normalizer = new Normalizer()
         schema.forEach((item, index) => {
-            normalizer.put(item, { contextStack: [], location: [index] })
+            normalizer.put(item, { contextStack: [] })
         })
         if (!(this.normal && deepEqual(this.normal, normalizer.normal))) {
             this.status.json = 'Dirty'
