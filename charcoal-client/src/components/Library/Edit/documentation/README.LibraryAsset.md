@@ -39,7 +39,7 @@ out at every single component
 ### useLibraryAsset
 
 ```ts
-    const { assetKey, normalForm, defaultAppearances, wmlQuery, updateWML, rooms } = useLibraryAsset()
+    const { assetKey, normalForm, updateNormal, defaultAppearances, updateWML, rooms } = useLibraryAsset()
 ```
 
 ---
@@ -53,11 +53,12 @@ out at every single component
 - ***assetKey***: The asset-manager key through which the asset is written and fetched
 - ***AssetId***: The database key for searching ephemera or asset items from the DB
 - ***currentWML***: The text of the currently stored WML for the asset
+- ***draftWML***: The text of the current WML in the editor (which may differ from currentWML
+if the editor is in an unparsable error state)
 - ***normalForm***: The normal form of all current data for the asset
 - ***defaultAppearances***: The basic appearance of all components in the asset
 *as inherited from* the import-tree of assets they are imported from (before the
 changes in the asset itself)
-- ***wmlQuery***: A live WMLQuery object based on the currently stored WML for the asset
 - ***rooms***: Room information aggregated across all default (non-conditioned) tags for
 each room
 - ***features***: Feature information aggregated across all default (non-conditioned) tags for
@@ -65,5 +66,7 @@ each feature
 
 ### Methods
 
+- ***updateNormal***: (value: UpdateNormalPayload) => void: Adds, deletes, and replaces elements
+in the current normal form directly
 - ***updateWML***: (value: string) => void: Updates the current WML
 - ***save***: () => void: Initiates an asynchronous save to the asset manager back-end

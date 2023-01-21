@@ -41,5 +41,7 @@ consistent programming framework:
 different steps of processing in complex jobs.
 - ***WML***: The WML library contains a lexical parser for the World Markup Language,
 which allows the definition of MTW assets and resources.
-- ***WMLQuery***: The WMLQuery library contains a JQuery-style domain-manipulator for
-WML content, allowing programmatic search and edit of WML assets.
+- ***Normalizer***: While WML NormalForm records are straightforward to *read from*, they
+are quite complicated to *write to* and particularly to update.  The Normalizer object
+in the WML library packages a sophisticated update engine that allows adding, deleting
+and replacing elements within an existing normal form.
