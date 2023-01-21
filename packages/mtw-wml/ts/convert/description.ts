@@ -84,7 +84,7 @@ const breakTagsOnFirstStringWhitespace = (schemaToWML: (value: SchemaTag, option
     const outputLine = `${outputBeforeString}${extractedLine}`.trim()
     const remainderLine = firstBreakableString.value.slice(splitIndex + 1)
     const remainingTags = [
-        ...(remainderLine ? [{ tag: 'String' as 'String', value: remainderLine, parse: { tag: 'Space' as 'Space', startTagToken: 0, endTagToken: 0 }}] : []),
+        ...(remainderLine ? [{ tag: 'String' as 'String', value: remainderLine }] : []),
         ...tags.slice(indexOfFirstBreakableString + 1)
     ]
     return {
@@ -94,13 +94,7 @@ const breakTagsOnFirstStringWhitespace = (schemaToWML: (value: SchemaTag, option
             ...(indexOfFirstBreakableString > 0 ? tags.slice(0, indexOfFirstBreakableString - 1) : []),
             {
                 tag: 'String' as 'String',
-                value: extractedLine.trim(),
-                parse: {
-                    tag: 'String' as 'String',
-                    value: extractedLine.trim(),
-                    startTagToken: 0,
-                    endTagToken: 0
-                }
+                value: extractedLine.trim()
             }
         ]
     }

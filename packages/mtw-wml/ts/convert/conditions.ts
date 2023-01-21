@@ -188,8 +188,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                     }],
                     contents: (isParseConditionTagDescriptionContext(value))
                         ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
-                        : contents,
-                    parse: value
+                        : contents
                 } as unknown as SchemaConditionTagFromParse<typeof value>
             }
             else if (isParseElseIf(value) || isParseElse(value)) {
@@ -219,8 +218,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                         ],
                         contents: (isParseConditionTagDescriptionContext({ ...value, tag: 'If', if: '', dependencies: [] }))
                             ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
-                            : contents,
-                        parse: value
+                            : contents
                     } as unknown as SchemaConditionTagFromParse<Omit<typeof value, 'tag'> & { tag: 'If' }>
                 }
                 else {
@@ -230,8 +228,7 @@ export const ParseConditionsMixin = <C extends Constructor<BaseConverter>>(Base:
                         conditions: closestConditions,
                         contents: (isParseConditionTagDescriptionContext({ ...value, tag: 'If', if: '', dependencies: [] }))
                             ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
-                            : contents,
-                        parse: value
+                            : contents
                     } as unknown as SchemaConditionTagFromParse<Omit<typeof value, 'tag'> & { tag: 'If'; if: string; dependencies: string[] }>
                 }
             }

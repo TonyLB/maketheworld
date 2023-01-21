@@ -59,8 +59,7 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
             if (isParseImage(value)) {
                 return {
                     tag: 'Image',
-                    key: value.key,
-                    parse: value
+                    key: value.key
                 }            
             }
             else if (isParseExit(value)) {
@@ -70,7 +69,6 @@ export const ParseMiscellaneousMixin = <C extends Constructor<BaseConverter>>(Ba
                     key: value.key,
                     from: value.from,
                     to: value.to,
-                    parse: value,
                     contents: contents as SchemaStringTag[]
                 }            
             }

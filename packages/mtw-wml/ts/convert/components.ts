@@ -259,14 +259,12 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 return {
                     tag: 'Description',
                     display: item.display,
-                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[]),
-                    parse: item
+                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
                 }            
             }
             else if (isParseName(item)) {
                 return {
                     tag: 'Name',
-                    parse: item,
                     contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[]),
                 }            
             }
@@ -282,8 +280,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     y: item.y,
                     name: extractNameFromContents(translatedContents),
                     render: extractDescriptionFromContents(translatedContents),
-                    contents: componentContents,
-                    parse: item
+                    contents: componentContents
                 }            
             }
             else if (isParseFeature(item)) {
@@ -295,8 +292,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     global: item.global,
                     name: extractNameFromContents(translatedContents),
                     render: extractDescriptionFromContents(translatedContents),
-                    contents: componentContents,
-                    parse: item
+                    contents: componentContents
                 }            
             }
             else if (isParseBookmark(item)) {
@@ -304,8 +300,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     tag: 'Bookmark',
                     key: item.key,
                     display: item.display,
-                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[]),
-                    parse: item
+                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
                 }            
             }
             else if (isParseMap(item)) {
@@ -320,8 +315,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         typeGuard: isSchemaRoom,
                         transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
                     }),
-                    images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key)),
-                    parse: item
+                    images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
                 }
             }
             else if (isParseMessage(item)) {
@@ -338,8 +332,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                                 { key: room.key }
                             ]
                             : previous
-                    ), []),
-                    parse: item
+                    ), [])
                 }
             }
             else if (isParseMoment(item)) {
@@ -347,8 +340,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 return {
                     tag: 'Moment',
                     key: item.key,
-                    contents: componentContents,
-                    parse: item
+                    contents: componentContents
                 }
             }
             else {

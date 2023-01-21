@@ -7,47 +7,7 @@ import { schemaFromParse } from '../schema'
 import parse from '../parser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
-import { isSchemaBookmark, isSchemaFeature, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
-
-const removeParseFromSchema = (nodes: SchemaTag[]): SchemaTag[] => {
-    return nodes.map((node) => {
-        if (isSchemaRoom(node)) {
-            const { parse, ...rest } = node
-            return {
-                ...rest,
-                contents: removeParseFromSchema(rest.contents),
-                render: removeParseFromSchema(rest.render),
-                name: removeParseFromSchema(rest.name)
-            } as SchemaRoomTag
-        }
-        if (isSchemaFeature(node)) {
-            const { parse, ...rest } = node
-            return {
-                ...rest,
-                contents: removeParseFromSchema(rest.contents),
-                render: removeParseFromSchema(rest.render),
-                name: removeParseFromSchema(rest.name)
-            } as SchemaFeatureTag
-        }
-        if (isSchemaMessage(node)) {
-            const { parse, ...rest } = node
-            return {
-                ...rest,
-                render: removeParseFromSchema(rest.render),
-                contents: removeParseFromSchema(rest.contents)
-            } as SchemaMessageTag
-        }
-        if (isSchemaWithContents(node)) {
-            const { parse, ...rest } = node
-            return {
-                ...rest,
-                contents: removeParseFromSchema(rest.contents)
-            } as SchemaTag
-        }
-        const { parse, ...rest } = node
-        return rest
-    })
-}
+import { isSchemaFeature, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
 
 describe('WML normalize', () => {
 
@@ -285,7 +245,7 @@ describe('WML normalize', () => {
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
-        expect(normalizer.schema).toEqual(removeParseFromSchema(testAsset))
+        expect(normalizer.schema).toEqual(testAsset)
     })
 
     describe('put method', () => {

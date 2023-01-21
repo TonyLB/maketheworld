@@ -645,15 +645,7 @@ export class Normalizer {
                                         name: [],
                                         global: false,
                                         contents: [],
-                                        render: [],
-                                        parse: {
-                                            key,
-                                            tag: 'Room',
-                                            contents: [],
-                                            global: false,
-                                            startTagToken: 0,
-                                            endTagToken: 0
-                                        }
+                                        render: []
                                     },
                                     updatedContext
                                 )
@@ -665,15 +657,7 @@ export class Normalizer {
                                         name: [],
                                         global: false,
                                         contents: [],
-                                        render: [],
-                                        parse: {
-                                            key,
-                                            tag: 'Feature',
-                                            contents: [],
-                                            global: false,
-                                            startTagToken: 0,
-                                            endTagToken: 0
-                                        }
+                                        render: []
                                     },
                                     updatedContext
                                 )
@@ -681,13 +665,7 @@ export class Normalizer {
                             return this.put(
                                     {
                                         key,
-                                        tag: 'Variable',
-                                        parse: {
-                                            key,
-                                            tag: 'Variable',
-                                            startTagToken: 0,
-                                            endTagToken: 0
-                                        }
+                                        tag: 'Variable'
                                     },
                                     updatedContext
                                 )
@@ -697,15 +675,7 @@ export class Normalizer {
                                         key,
                                         tag: 'Computed',
                                         src: '',
-                                        dependencies: [],
-                                        parse: {
-                                            key,
-                                            tag: 'Computed',
-                                            startTagToken: 0,
-                                            endTagToken: 0,
-                                            src: '',
-                                            dependencies: []
-                                        }
+                                        dependencies: []
                                     },
                                     updatedContext
                                 )
@@ -714,14 +684,7 @@ export class Normalizer {
                                     {
                                         key,
                                         tag: 'Action',
-                                        src: '',
-                                        parse: {
-                                            key,
-                                            tag: 'Action',
-                                            src: '',
-                                            startTagToken: 0,
-                                            endTagToken: 0
-                                        }
+                                        src: ''
                                     },
                                     updatedContext
                                 )
@@ -961,7 +924,7 @@ export class Normalizer {
             case 'Exit':
                 const exitRoomIndex = appearance.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
                 if (exitRoomIndex === -1) {
-                    throw new SchemaException('Exit tag cannot be created outside of room', node.parse)
+                    throw new SchemaException('Exit tag cannot be created outside of room', { tag: 'Exit', to: '', from: '', contents: [], name: '', startTagToken: 0, endTagToken: 0 })
                 }
 
                 const exitRoomKey = appearance.contextStack[exitRoomIndex].key

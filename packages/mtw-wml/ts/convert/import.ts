@@ -65,8 +65,7 @@ export const ParseImportMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                             key,
                             type
                         }
-                    }), {}),
-                    parse: value
+                    }), {})
                 }            
             }
             else if (isParseUse(value)) {
@@ -74,8 +73,7 @@ export const ParseImportMixin = <C extends Constructor<BaseConverter>>(Base: C) 
                     tag: 'Use',
                     key: value.key,
                     as: value.as,
-                    type: value.type,
-                    parse: value
+                    type: value.type
                 }            
             }
             else {
