@@ -1,24 +1,24 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`flattenTaggedMessageContent should correctly combine strings, links and line breaks 1`] = `
-[
-  {
+Array [
+  Object {
     "tag": "String",
     "value": "OneTwo",
   },
-  {
+  Object {
     "tag": "Link",
     "text": "Three",
     "to": "FEATURE#Test",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Four",
   },
-  {
+  Object {
     "tag": "LineBreak",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Five",
   },
@@ -26,8 +26,8 @@ exports[`flattenTaggedMessageContent should correctly combine strings, links and
 `;
 
 exports[`flattenTaggedMessageContent should correctly evaluate conditionals 1`] = `
-[
-  {
+Array [
+  Object {
     "tag": "String",
     "value": "Show this, and this, and also this.",
   },
@@ -35,24 +35,24 @@ exports[`flattenTaggedMessageContent should correctly evaluate conditionals 1`] 
 `;
 
 exports[`flattenTaggedMessageContent should correctly handle spacer adjoining linebreak 1`] = `
-[
-  {
+Array [
+  Object {
     "tag": "String",
     "value": "OneTwo",
   },
-  {
+  Object {
     "tag": "Link",
     "text": "Three",
     "to": "FEATURE#Test",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Four",
   },
-  {
+  Object {
     "tag": "LineBreak",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Five",
   },
@@ -60,24 +60,24 @@ exports[`flattenTaggedMessageContent should correctly handle spacer adjoining li
 `;
 
 exports[`flattenTaggedMessageContent should correctly handle spacer at beginning of message 1`] = `
-[
-  {
+Array [
+  Object {
     "tag": "String",
     "value": "OneTwo",
   },
-  {
+  Object {
     "tag": "Link",
     "text": "Three",
     "to": "FEATURE#Test",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Four",
   },
-  {
+  Object {
     "tag": "LineBreak",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Five",
   },
@@ -85,24 +85,24 @@ exports[`flattenTaggedMessageContent should correctly handle spacer at beginning
 `;
 
 exports[`flattenTaggedMessageContent should correctly handle spacer at end of message 1`] = `
-[
-  {
+Array [
+  Object {
     "tag": "String",
     "value": "OneTwo",
   },
-  {
+  Object {
     "tag": "Link",
     "text": "Three",
     "to": "FEATURE#Test",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Four",
   },
-  {
+  Object {
     "tag": "LineBreak",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Five",
   },
@@ -110,29 +110,29 @@ exports[`flattenTaggedMessageContent should correctly handle spacer at end of me
 `;
 
 exports[`flattenTaggedMessageContent should correctly handle spacer between links 1`] = `
-[
-  {
+Array [
+  Object {
     "tag": "String",
     "value": "OneTwo",
   },
-  {
+  Object {
     "tag": "Link",
     "text": "Three",
     "to": "FEATURE#Test",
   },
-  {
+  Object {
     "tag": "String",
     "value": " ",
   },
-  {
+  Object {
     "tag": "Link",
     "text": "Four",
     "to": "FEATURE#Test",
   },
-  {
+  Object {
     "tag": "LineBreak",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Five",
   },
@@ -140,24 +140,24 @@ exports[`flattenTaggedMessageContent should correctly handle spacer between link
 `;
 
 exports[`flattenTaggedMessageContent should correctly handle spacer between strings 1`] = `
-[
-  {
+Array [
+  Object {
     "tag": "String",
     "value": "One Two",
   },
-  {
+  Object {
     "tag": "Link",
     "text": "Three",
     "to": "FEATURE#Test",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Four",
   },
-  {
+  Object {
     "tag": "LineBreak",
   },
-  {
+  Object {
     "tag": "String",
     "value": "Five",
   },
@@ -165,8 +165,8 @@ exports[`flattenTaggedMessageContent should correctly handle spacer between stri
 `;
 
 exports[`flattenTaggedMessageContent should correctly ignore failing conditional trees 1`] = `
-[
-  {
+Array [
+  Object {
     "tag": "String",
     "value": "Show, Also Show",
   },
