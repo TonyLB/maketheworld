@@ -8,7 +8,7 @@ import delayPromise from '../../lib/delayPromise'
 import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
-import { AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
+import { AssetClientImportDefaults, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
 import { schemaFromParse, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
@@ -159,16 +159,15 @@ export const parseWML: PersonalAssetsAction = ({
         saveImages
     },
     publicData: {
-        loadedImages = {}
+        loadedImages = {},
+        properties = {}
     }
 }) => async (dispatch, getState) => {
     if (!s3Object || !id || !(isEphemeraAssetId(id) || isEphemeraCharacterId(id))) {
         throw new Error()
     }
-    //
-    // TODO: Extend arguments of parseWML call to add saveImages data
-    //
-    await dispatch(socketDispatchPromise({
+
+    const { images = [] } = await dispatch(socketDispatchPromise({
         message: 'parseWML',
         AssetId: id,
         uploadName: s3Object,
@@ -187,15 +186,19 @@ export const parseWML: PersonalAssetsAction = ({
                 return previous
             }
         }, [])
-    }, { service: 'asset' }))
-    //
-    // TODO: Parse a return value to update properties and clear loadedImages once
-    // the processed uploads are available in CloudFront
-    //
+    }, { service: 'asset' })) as AssetClientParseWML
+
     return {
         internalData: {
             saveImages: undefined,
             saveURL: undefined
+        },
+        publicData: {
+            properties: images.reduce<Record<string, { fileName: string }>>((previous, { key, fileName }) => ({
+                ...previous,
+                [key]: { fileName }
+            }), properties),
+            loadedImages: {}
         }
     }
 }

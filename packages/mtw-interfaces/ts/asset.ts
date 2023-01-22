@@ -158,11 +158,23 @@ export type AssetClientImportDefaults = {
     defaultsByKey: Record<string, AssetClientImportDefaultsRoom | AssetClientImportDefaultsFeature>;
 }
 
+//
+// TODO: Create AssetClientParseWML message type, and add it to legal AssetClientMessage
+//    - Type should return the properties for images that have been added during the parse
+//
+
+export type AssetClientParseWML = {
+    messageType: 'ParseWML';
+    RequestId?: string;
+    images: ParseWMLAPIImage[];
+}
+
 export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientLibraryMessage |
     AssetClientFetchURL |
     AssetClientUploadURL |
-    AssetClientImportDefaults
+    AssetClientImportDefaults |
+    AssetClientParseWML
 
 export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {
@@ -280,6 +292,11 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                     ['Room', 'Feature'].includes(item.tag) && validateTaggedMessageList(item.Name) && validateTaggedMessageList(item.Description)
                 ))
             ) && message.assetId.split('#')[0] === 'ASSET'
+        case 'ParseWML':
+            return checkAll(
+                checkTypes(message, {}, { RequestId: 'string' }),
+                ...message.images.map((image) => (checkTypes(image, { key: 'string', fileName: 'string' })))
+            )
         default: return false
     }
 

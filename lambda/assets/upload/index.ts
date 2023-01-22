@@ -97,9 +97,7 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
     }
     await Promise.all(
         payloads.map(async (payload) => (asyncSuppressExceptions(async () => {
-            console.log(`Getting assetWorkspace for: ${payload.AssetId}`)
             const assetWorkspace = await assetWorkspaceFromAssetId(payload.AssetId, true)
-            console.log(`assetWorkspace: ${JSON.stringify(assetWorkspace, null, 4)}`)
             //
             // TODO: If assetWorkspace does not exist, check "create" property for address at which
             // to create it.
@@ -150,7 +148,8 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
-                        messageType: 'Success',
+                        messageType: 'ParseWML',
+                        images: imageFiles
                     }
                 })
             }
