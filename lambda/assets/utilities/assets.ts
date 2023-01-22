@@ -2,13 +2,27 @@ import AssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress } from "
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
-export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<AssetWorkspace | undefined> => {
-    const [type] = splitType(AssetId)
+//
+// TODO: Strongly type AssetId as EphemeraCharacterId | EphemeraAssetId
+//
+export const assetWorkspaceFromAssetId = async (AssetId: string, scoped?: boolean): Promise<AssetWorkspace | undefined> => {
+    const [type, scopedId] = splitType(AssetId)
     let dataCategory = 'Meta::Asset'
     switch(type) {
         case 'CHARACTER':
             dataCategory = 'Meta::Character'
             break
+    }
+    if (scoped) {
+        const addresses = (await assetDB.query({
+            IndexName: 'ScopedIdIndex',
+            scopedId,
+            ProjectionFields: ['address']
+        }))
+        if (addresses && addresses.length && isAssetWorkspaceAddress(addresses[0].address)) {
+            return new AssetWorkspace(addresses[0].address)
+        }
+        return undefined
     }
     const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
         AssetId,

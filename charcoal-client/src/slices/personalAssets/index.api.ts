@@ -14,6 +14,7 @@ import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer'
 import parse from '@tonylb/mtw-wml/dist/parser'
+import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -157,25 +158,35 @@ export const parseWML: PersonalAssetsAction = ({
         s3Object,
         saveImages
     },
+    publicData: {
+        loadedImages = {}
+    }
 }) => async (dispatch, getState) => {
-    if (!s3Object || !id) {
+    if (!s3Object || !id || !(isEphemeraAssetId(id) || isEphemeraCharacterId(id))) {
         throw new Error()
     }
-    const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Characters' : 'Assets'
-    const assetKey = id?.split('#').slice(1).join('#')
     //
     // TODO: Extend arguments of parseWML call to add saveImages data
     //
     await dispatch(socketDispatchPromise({
         message: 'parseWML',
-        zone: 'Personal',
-        fileName: assetKey,
-        subFolder: assetType,
+        AssetId: id,
         uploadName: s3Object,
-        images: (saveImages || []).map(({ key, s3Object }) => ({
-            key,
-            fileName: s3Object
-        }))
+        images: (saveImages || []).reduce<{ key: string; fileName: string }[]>((previous, { key, s3Object }) => {
+            const loadKey = Object.keys(loadedImages).find((key) => (loadedImages[key].loadId === key))
+            if (loadKey) {
+                return [
+                    ...previous,
+                    {
+                        key: loadKey,
+                        fileName: s3Object
+                    }
+                ]
+            }
+            else {
+                return previous
+            }
+        }, [])
     }, { service: 'asset' }))
     //
     // TODO: Parse a return value to update properties and clear loadedImages once

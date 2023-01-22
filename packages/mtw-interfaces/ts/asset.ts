@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, isEphemeraCharacterId } from "./baseClasses";
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraCharacterId } from "./baseClasses";
 import { LibraryAsset, LibraryCharacter } from "./library";
 import { FeatureDescribeData, RoomDescribeData, validateTaggedMessageList } from "./messages";
 import { checkAll, checkTypes } from "./utils";
@@ -36,26 +36,13 @@ export type ParseWMLAPIImage = {
     fileName: string;
 }
 
-type ParseWMLAPIMessagePersonal = {
+type ParseWMLAPIMessage = {
     message: 'parseWML';
+    AssetId: EphemeraCharacterId | EphemeraAssetId;
     uploadName: string;
-    fileName: string;
-    subFolder?: string;
-    zone: 'Personal';
-    player?: string;
     images?: ParseWMLAPIImage[];
+    create?: boolean;
 }
-
-type ParseWMLAPIMessageImpersonal = {
-    message: 'parseWML';
-    uploadName: string;
-    fileName: string;
-    subFolder?: string;
-    zone: 'Canon' | 'Library';
-    images?: ParseWMLAPIImage[];
-}
-
-export type ParseWMLAPIMessage = ParseWMLAPIMessagePersonal | ParseWMLAPIMessageImpersonal
 
 export type AssetCheckinAPIMessage = {
     message: 'checkin';

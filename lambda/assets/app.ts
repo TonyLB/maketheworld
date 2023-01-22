@@ -115,28 +115,12 @@ export const handler = async (event, context) => {
             })
         }
         if (isParseWMLAPIMessage(request)) {
-            if (request.zone === 'Personal') {
-                const player = await internalCache.Connection.get('player')
-                if (player) {
-                    messageBus.send({
-                        type: 'ParseWML',
-                        fileName: request.fileName,
-                        zone: request.zone,
-                        player: player,
-                        subFolder: request.subFolder,
-                        uploadName: request.uploadName
-                    })
-                }
-            }
-            else {
-                messageBus.send({
-                    type: 'ParseWML',
-                    fileName: request.fileName,
-                    zone: request.zone,
-                    subFolder: request.subFolder,
-                    uploadName: request.uploadName
-                })    
-            }
+            messageBus.send({
+                type: 'ParseWML',
+                AssetId: request.AssetId,
+                uploadName: request.uploadName,
+                images: request.images
+            })
         }
         if (isAssetCheckinAPIMessage(request)) {
             messageBus.send({
