@@ -18,6 +18,9 @@ export const isEphemeraTaggedId = <G extends string>(tag: G) => (value: string):
     return Boolean(sections[0] === tag)
 }
 
+export type EphemeraAssetId = EphemeraWrappedId<'ASSET'>
+export const isEphemeraAssetId = isEphemeraTaggedId<'ASSET'>('ASSET')
+
 export type EphemeraFeatureId = EphemeraWrappedId<'FEATURE'>
 export const isEphemeraFeatureId = isEphemeraTaggedId<'FEATURE'>('FEATURE')
 

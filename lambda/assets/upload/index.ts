@@ -9,6 +9,10 @@ import internalCache from "../internalCache"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
+import { formatImage } from "../formatImage"
+import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/dist/asset"
+import { isNormalAsset } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { assetWorkspaceFromAssetId } from "../utilities/assets"
 
 const { UPLOAD_BUCKET } = process.env;
 
@@ -79,29 +83,10 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
     }
 }
 
-const extractAddressFromParseWMLMessage = (value: ParseWMLMessage): AssetWorkspaceAddress => {
-    const zone = value.zone
-    if (zone === 'Personal') {
-        return {
-            zone,
-            fileName: value.fileName,
-            subFolder: value.subFolder,
-            player: value.player
-        }
-    }
-    else {
-        return {
-            zone,
-            fileName: value.fileName,
-            subFolder: value.subFolder
-        }
-    }
-}
-
 export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: ParseWMLMessage[], messageBus: MessageBus }): Promise<void> => {
     const player = await internalCache.Connection.get('player')
     const s3Client = await internalCache.Connection.get('s3Client')
-    if (!s3Client) {
+    if (!s3Client || !player) {
         messageBus.send({
             type: 'ReturnValue',
             body: {
@@ -112,19 +97,35 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
     }
     await Promise.all(
         payloads.map(async (payload) => (asyncSuppressExceptions(async () => {
-            if (payload.zone !== 'Personal' || payload.player !== player) {
+            const assetWorkspace = await assetWorkspaceFromAssetId(payload.AssetId, true)
+            //
+            // TODO: If assetWorkspace does not exist, check "create" property for address at which
+            // to create it.
+            //         
+            if (!(assetWorkspace && assetWorkspace.address.zone === 'Personal' && assetWorkspace.address.player === player)) {
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
                         messageType: 'Error'
                     }
-                })    
+                })
             }
             else {
-                const assetWorkspace = new AssetWorkspace(extractAddressFromParseWMLMessage(payload))
-            
                 await assetWorkspace.loadJSON()
-                await assetWorkspace.loadWMLFrom(payload.uploadName, true)
+                const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
+                const imageFiles = (await Promise.all([
+                    assetWorkspace.loadWMLFrom(payload.uploadName, true),
+                    ...((payload.images || []).map(async ({ key, fileName }) => {
+                        const final = await formatImage({ fromFileName: fileName, width: fileType === 'Asset' ? 1200: 200, height: fileType === 'Asset' ? 800 : 200 })
+                        return { key, fileName: final }
+                    }))
+                ])).slice(1) as ParseWMLAPIImage[]
+                if (imageFiles.length) {
+                    assetWorkspace.status.json = 'Dirty'
+                    imageFiles.forEach(({ key, fileName }) => {
+                        assetWorkspace.properties[key] = { fileName }
+                    })
+                }
                 if (assetWorkspace.status.json !== 'Clean') {
                     await Promise.all([
                         assetWorkspace.pushJSON(),
@@ -147,7 +148,8 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
-                        messageType: 'Success',
+                        messageType: 'ParseWML',
+                        images: imageFiles
                     }
                 })
             }

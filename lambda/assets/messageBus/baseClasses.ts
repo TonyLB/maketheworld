@@ -1,5 +1,7 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
+import { ParseWMLAPIImage } from '@tonylb/mtw-interfaces/dist/asset';
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -33,10 +35,20 @@ export type UploadURLMessage = {
     images: UploadURLMessageImage[];
 }
 
+//
+// TODO: Refactor ParseWMLMessage so that it pulls the AssetId field from the
+// upload, rather than requiring a specific AssetWorkspaceAddress.  Add a "create"
+// flag to explicitly authorize creation of a new asset file (rather than update),
+// and otherwise fail if the Asset doesn't exist.  Fail with access rejection if
+// the asset exists but the player is not authorized to update.
+//
 export type ParseWMLMessage = {
     type: 'ParseWML';
+    AssetId: EphemeraCharacterId | EphemeraAssetId;
     uploadName: string;
-} & AssetWorkspaceAddress
+    images?: ParseWMLAPIImage[];
+    create?: boolean;
+}
 
 export type FormatImageMessage = {
     type: 'FormatImage';
