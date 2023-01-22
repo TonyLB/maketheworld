@@ -1,5 +1,6 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
+import { ParseWMLAPIImage } from '@tonylb/mtw-interfaces/dist/asset';
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -36,6 +37,7 @@ export type UploadURLMessage = {
 export type ParseWMLMessage = {
     type: 'ParseWML';
     uploadName: string;
+    images?: ParseWMLAPIImage[];
 } & AssetWorkspaceAddress
 
 export type FormatImageMessage = {

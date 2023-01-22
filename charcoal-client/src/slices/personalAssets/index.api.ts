@@ -166,13 +166,21 @@ export const parseWML: PersonalAssetsAction = ({
     //
     // TODO: Extend arguments of parseWML call to add saveImages data
     //
-    // await dispatch(socketDispatchPromise({
-    //     message: 'parseWML',
-    //     zone: 'Personal',
-    //     fileName: assetKey,
-    //     subFolder: assetType,
-    //     uploadName: s3Object
-    // }, { service: 'asset' }))
+    await dispatch(socketDispatchPromise({
+        message: 'parseWML',
+        zone: 'Personal',
+        fileName: assetKey,
+        subFolder: assetType,
+        uploadName: s3Object,
+        images: (saveImages || []).map(({ key, s3Object }) => ({
+            key,
+            fileName: s3Object
+        }))
+    }, { service: 'asset' }))
+    //
+    // TODO: Parse a return value to update properties and clear loadedImages once
+    // the processed uploads are available in CloudFront
+    //
     return {
         internalData: {
             saveImages: undefined,

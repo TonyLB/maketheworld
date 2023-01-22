@@ -9,6 +9,9 @@ import internalCache from "../internalCache"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
+import { formatImage } from "../formatImage"
+import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/dist/asset"
+import { isNormalAsset } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 
 const { UPLOAD_BUCKET } = process.env;
 
@@ -124,7 +127,20 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                 const assetWorkspace = new AssetWorkspace(extractAddressFromParseWMLMessage(payload))
             
                 await assetWorkspace.loadJSON()
-                await assetWorkspace.loadWMLFrom(payload.uploadName, true)
+                const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
+                const imageFiles = (await Promise.all([
+                    assetWorkspace.loadWMLFrom(payload.uploadName, true),
+                    ...((payload.images || []).map(async ({ key, fileName }) => {
+                        const final = await formatImage({ fromFileName: fileName, width: fileType === 'Asset' ? 1200: 200, height: fileType === 'Asset' ? 800 : 200 })
+                        return { key, fileName: final }
+                    }))
+                ])).slice(1) as ParseWMLAPIImage[]
+                if (imageFiles.length) {
+                    assetWorkspace.status.json = 'Dirty'
+                    imageFiles.forEach(({ key, fileName }) => {
+                        assetWorkspace.properties[key] = { fileName }
+                    })
+                }
                 if (assetWorkspace.status.json !== 'Clean') {
                     await Promise.all([
                         assetWorkspace.pushJSON(),

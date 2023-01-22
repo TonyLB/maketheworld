@@ -31,6 +31,11 @@ export type UploadAssetLinkAPIMessage = {
     images: UploadAssetLinkAPIImage[];
 }
 
+export type ParseWMLAPIImage = {
+    key: string;
+    fileName: string;
+}
+
 type ParseWMLAPIMessagePersonal = {
     message: 'parseWML';
     uploadName: string;
@@ -38,6 +43,7 @@ type ParseWMLAPIMessagePersonal = {
     subFolder?: string;
     zone: 'Personal';
     player?: string;
+    images?: ParseWMLAPIImage[];
 }
 
 type ParseWMLAPIMessageImpersonal = {
@@ -46,6 +52,7 @@ type ParseWMLAPIMessageImpersonal = {
     fileName: string;
     subFolder?: string;
     zone: 'Canon' | 'Library';
+    images?: ParseWMLAPIImage[];
 }
 
 export type ParseWMLAPIMessage = ParseWMLAPIMessagePersonal | ParseWMLAPIMessageImpersonal
