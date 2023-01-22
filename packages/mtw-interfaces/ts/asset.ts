@@ -144,7 +144,7 @@ export type AssetClientUploadURL = {
     s3Object: string;
     images: {
         key: string;
-        url: string;
+        presignedOutput: string;
         s3Object: string;
     }[];
 }
@@ -278,7 +278,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
             return (typeof properties === 'object') && Object.values(properties).reduce<boolean>((previous, property) => (previous && checkTypes(property, { fileName: 'string' })), true)
         case 'UploadURL':
             return checkTypes(message, { url: 'string', s3Object: 'string' }, { RequestId: 'string' }) &&
-                ("images" in message && Array.isArray(message.images) && message.images.map((item) => (checkTypes(item, { key: 'string', url: 'string', s3Object: 'string' }))))
+                ("images" in message && Array.isArray(message.images) && message.images.reduce((previous, item) => (previous && checkTypes(item, { key: 'string', presignedOutput: 'string', s3Object: 'string' })), true))
         case 'ImportDefaults':
             return checkAll(
                 checkTypes(message, { assetId: 'string' }),

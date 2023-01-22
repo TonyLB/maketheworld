@@ -103,14 +103,14 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal
     }
 }
 
-export const getSaveURL: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
+export const getSaveURL: PersonalAssetsAction = ({ internalData: { id }, publicData: { loadedImages } }) => async (dispatch) => {
     if (id) {
         const uploadRequestId = uuidv4()
         const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Character' : 'Asset'
         const { url, s3Object, images: saveImages } = (await dispatch(socketDispatchPromise({
             message: 'upload',
             tag: assetType,
-            images: [],
+            images: Object.values(loadedImages || {}).map(({ loadId, file }) => ({ key: loadId, contentType: file.type })),
             uploadRequestId
         }, { service: 'asset' }))) as AssetClientUploadURL
     
@@ -122,33 +122,50 @@ export const getSaveURL: PersonalAssetsAction = ({ internalData: { id } }) => as
 export const saveWML: PersonalAssetsAction = ({
     internalData: {
         saveURL,
+        saveImages,
         uploadRequestId
     },
     publicData: {
-        currentWML
+        currentWML,
+        loadedImages
     }
 }) => async (dispatch, getState) => {
-    // if (!currentWML || !saveURL || !uploadRequestId) {
-    //     throw new Error()
-    // }
-    // await fetch(saveURL, {
-    //     method: 'PUT',
-    //     body: currentWML
-    // })
+    if (!currentWML || !saveURL || !uploadRequestId) {
+        throw new Error()
+    }
+    await Promise.all([
+        fetch(saveURL, {
+            method: 'PUT',
+            body: currentWML
+        }),
+        ...((saveImages || []).map(({ presignedOutput, key }) => (async () => {
+            const loadedImage = Object.values(loadedImages || {}).find(({ loadId }) => (loadId === key))
+            if (loadedImage) {
+                await fetch(presignedOutput, {
+                    method: 'PUT',
+                    body: loadedImage.file
+                })
+            }
+        })()))
+    ])
     return {}
 }
 
 export const parseWML: PersonalAssetsAction = ({
     internalData: {
         id,
-        s3Object
-    }
+        s3Object,
+        saveImages
+    },
 }) => async (dispatch, getState) => {
-    // if (!s3Object || !id) {
-    //     throw new Error()
-    // }
-    // const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Characters' : 'Assets'
-    // const assetKey = id?.split('#').slice(1).join('#')
+    if (!s3Object || !id) {
+        throw new Error()
+    }
+    const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Characters' : 'Assets'
+    const assetKey = id?.split('#').slice(1).join('#')
+    //
+    // TODO: Extend arguments of parseWML call to add saveImages data
+    //
     // await dispatch(socketDispatchPromise({
     //     message: 'parseWML',
     //     zone: 'Personal',
@@ -156,7 +173,12 @@ export const parseWML: PersonalAssetsAction = ({
     //     subFolder: assetType,
     //     uploadName: s3Object
     // }, { service: 'asset' }))
-    return {}
+    return {
+        internalData: {
+            saveImages: undefined,
+            saveURL: undefined
+        }
+    }
 }
 
 export const clearAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
