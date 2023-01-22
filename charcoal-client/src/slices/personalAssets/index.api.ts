@@ -173,7 +173,7 @@ export const parseWML: PersonalAssetsAction = ({
         AssetId: id,
         uploadName: s3Object,
         images: (saveImages || []).reduce<{ key: string; fileName: string }[]>((previous, { key, s3Object }) => {
-            const loadKey = Object.keys(loadedImages).find((key) => (loadedImages[key].loadId === key))
+            const loadKey = Object.keys(loadedImages).find((loadKey) => (loadedImages[loadKey].loadId === key))
             if (loadKey) {
                 return [
                     ...previous,
