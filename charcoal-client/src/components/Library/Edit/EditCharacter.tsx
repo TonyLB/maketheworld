@@ -27,6 +27,7 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
     getStatus,
+    setIntent,
     setLoadedImage
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -387,6 +388,8 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     const onDrop = useCallback((file: File) => {
         if (character?.key) {
             dispatch(setLoadedImage(AssetId)({ itemId: `${character.key}Icon`, file }))
+            dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY', 'NORMALDIRTY']}))
+            dispatch(heartbeat)
         }
     }, [dispatch, character?.key])
 
