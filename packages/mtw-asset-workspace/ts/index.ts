@@ -12,7 +12,7 @@ import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { ParseException } from "@tonylb/mtw-wml/dist/parser/baseClasses"
-import { deepEqual } from "./objects"
+import { deepEqual, objectFilterEntries } from "./objects"
 
 const { S3_BUCKET = 'Test', UPLOAD_BUCKET = 'Test' } = process.env;
 
@@ -196,7 +196,7 @@ export class AssetWorkspace {
         // file is encountered.
         //
         if (schema.length > 1) {
-            throw new ParseException('Multi-Asset files are not yet implemented', schema[1].parse?.startTagToken ?? 0, schema[1].parse?.startTagToken ?? 0)
+            throw new ParseException('Multi-Asset files are not yet implemented', 0, 0)
         }
         const normalizer = new Normalizer()
         schema.forEach((item, index) => {
@@ -265,7 +265,7 @@ export class AssetWorkspace {
         const contents = JSON.stringify({
             namespaceIdToDB: this.namespaceIdToDB,
             normal: this.normal || {},
-            properties: this.properties
+            properties: objectFilterEntries(this.properties, ([key]) => (key in (this.normal || {})))
         }, null, 4)
         await s3Client.put({
             Key: filePath,
