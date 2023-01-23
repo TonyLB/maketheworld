@@ -242,6 +242,49 @@ describe('AssetWorkspace', () => {
 }`
             })
         })
+
+        it('should correctly trim properties to those represented in normal', async () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            testWorkspace.normal = {
+                Test: {
+                    tag: "Asset",
+                    key: "Test",
+                    fileName: "Test",
+                    appearances: []
+                }
+            }
+            testWorkspace.namespaceIdToDB = {}
+            testWorkspace.properties = {
+                Test: { fileName: 'test' },
+                foo: { fileName: 'bar'}
+            }
+            testWorkspace.status.json = 'Dirty'
+            await testWorkspace.pushJSON()
+            expect(testWorkspace.status.json).toEqual('Clean')
+            expect(s3Client.put).toHaveBeenCalledWith({
+                Key: 'Personal/Test/Test.json',
+                Body: `{
+    "namespaceIdToDB": {},
+    "normal": {
+        "Test": {
+            "tag": "Asset",
+            "key": "Test",
+            "fileName": "Test",
+            "appearances": []
+        }
+    },
+    "properties": {
+        "Test": {
+            "fileName": "test"
+        }
+    }
+}`
+            })
+        })
     })
 
     describe('putWML', () => {
