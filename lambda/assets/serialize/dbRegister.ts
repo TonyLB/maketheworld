@@ -172,6 +172,9 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
     }
     const character = Object.values(assets).find(isNormalCharacter)
     if (character && character.key) {
+        const images = (character.images || [])
+            .map((image) => (assetWorkspace.properties[image]?.fileName))
+            .filter((image) => (image))
         await Promise.all([
             assetDB.putItem({
                 AssetId: assetWorkspace.namespaceIdToDB[character.key],
@@ -183,7 +186,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 OneCoolThing: character.OneCoolThing,
                 Pronouns: character.Pronouns,
                 Outfit: character.Outfit,
-                images: character.images,
+                images,
                 scopedId: character.key,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
             })

@@ -20,6 +20,9 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
+            properties: {
+                TESSIcon: { fileName: 'IMAGE-123' }
+            },
             normal: {
                 TESS: {
                     tag: 'Character',
@@ -35,7 +38,12 @@ describe('dbRegister', () => {
                     },
                     FirstImpression: 'Frumpy Goth',
                     OneCoolThing: 'Fuchsia eyes',
-                    Outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.'
+                    Outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
+                    images: ['TESSIcon']
+                },
+                TESSIcon: {
+                    tag: 'Image',
+                    key: 'TESSIcon'
                 }
             }
         })
