@@ -41,7 +41,7 @@ import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
-import { SchemaCharacterTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaCharacterTag, SchemaImageTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { deepEqual } from '../../../lib/objects'
 
@@ -403,7 +403,6 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             //
             else {
                 if (!unconditionedImages.length) {
-                    console.log(`Updating normal`)
                     updateNormal({
                         type: 'put',
                         item: {

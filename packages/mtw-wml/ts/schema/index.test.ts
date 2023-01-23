@@ -203,6 +203,7 @@ describe('schemaToWML', () => {
         A tattered frock-coat kitbashed out of a black hoodie and dyed lace.
     </Outfit>
     <OneCoolThing>Fuchsia Eyes</OneCoolThing>
+    <Image key=(TESSIcon) />
 </Character>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })

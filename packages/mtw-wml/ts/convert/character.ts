@@ -250,10 +250,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                         ...stringToLiteral(value.FirstImpression, 'FirstImpression'),
                         ...stringToLiteral(value.Outfit, 'Outfit'),
                         ...stringToLiteral(value.OneCoolThing, 'OneCoolThing'),
-                        //
-                        // TODO: Refactor how Character WML stores image, and write out
-                        // an Image element here if needed
-                        //
+                        ...value.contents.filter(isSchemaImage).map((node) => (schemaToWML(node, options)))
                     ],
                 })
             }
