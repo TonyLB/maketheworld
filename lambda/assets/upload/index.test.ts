@@ -107,7 +107,8 @@ describe('parseWMLMessage', () => {
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
-                messageType: 'Success'
+                messageType: 'ParseWML',
+                images: []
             }
         })
 

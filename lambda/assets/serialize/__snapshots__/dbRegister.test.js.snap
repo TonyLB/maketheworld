@@ -19,7 +19,9 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "images": undefined,
+  "images": Array [
+    "IMAGE-123",
+  ],
   "scopedId": "TESS",
   "zone": "Library",
 }
