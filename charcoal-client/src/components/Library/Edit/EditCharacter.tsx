@@ -31,7 +31,7 @@ import {
     setLoadedImage
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalImage, NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'
@@ -41,7 +41,7 @@ import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
-import { SchemaCharacterTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaCharacterTag, SchemaImageTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { deepEqual } from '../../../lib/objects'
 
@@ -387,11 +387,38 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
         if (character?.key) {
-            dispatch(setLoadedImage(AssetId)({ itemId: `${character.key}Icon`, file }))
-            dispatch(setIntent({ key: AssetId, intent: ['WMLDIRTY', 'NORMALDIRTY']}))
+            const characterIconKey = `${character.key}Icon`
+            const unconditionedImages = Object.values(normalForm)
+                .filter(isNormalImage)
+                .filter(({ appearances }) => (appearances.find(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))))
+            //
+            // If Images exist, but not by the characterIcon default key, choose the first at random
+            //
+            let normalDirty = false
+            if (unconditionedImages.length && !unconditionedImages.find(({ key }) => (key === characterIconKey))) {
+                dispatch(setLoadedImage(AssetId)({ itemId: unconditionedImages[0].key, file }))
+            }
+            //
+            // Otherwise, assign to the characterIcon default key, creating an Image tag in the WML if necessary
+            //
+            else {
+                if (!unconditionedImages.length) {
+                    updateNormal({
+                        type: 'put',
+                        item: {
+                            tag: 'Image',
+                            key: characterIconKey
+                        },
+                        position: { contextStack: [{ key: character.key, index: 0, tag: 'Character' }] }
+                    })
+                    normalDirty = true
+                }
+                dispatch(setLoadedImage(AssetId)({ itemId: characterIconKey, file }))
+            }
+            dispatch(setIntent({ key: AssetId, intent: normalDirty ? ['NORMALDIRTY'] : ['WMLDIRTY', 'NORMALDIRTY']}))
             dispatch(heartbeat)
         }
-    }, [dispatch, character?.key])
+    }, [dispatch, character?.key, normalForm, updateNormal])
 
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner

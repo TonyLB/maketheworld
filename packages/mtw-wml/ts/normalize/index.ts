@@ -47,6 +47,7 @@ import {
     BaseAppearance,
     ComponentAppearance,
     ComponentRenderItem,
+    isNormalCharacter,
     isNormalCondition,
     isNormalMap,
     isNormalRoom,
@@ -447,6 +448,19 @@ export class Normalizer {
                         })
                     }
                 })
+                break
+            case 'Character':
+                this._normalForm = produce(this._normalForm, (draft) => {
+                    const characterItem = draft[key]
+                    if (isNormalCharacter(characterItem)) {
+                        characterItem.images = [...(new Set(characterItem.appearances.reduce<string[]>((previous, { contents }) => ([
+                            ...previous,
+                            ...contents.filter(({ tag }) => (tag === 'Image'))
+                                .map(({ key }) => (key))
+                        ]), [])))]
+                    }
+                })
+                break
         }
     }
 
