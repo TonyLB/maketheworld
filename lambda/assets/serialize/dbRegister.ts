@@ -81,9 +81,9 @@ const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
 
 export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
-    if (assetWorkspace.status.json !== 'Clean') {
-        await assetWorkspace.loadJSON()
-    }
+    // if (assetWorkspace.status.json !== 'Clean') {
+    //     await assetWorkspace.loadJSON()
+    // }
     const assets: NormalForm = assetWorkspace.normal || {}
     const asset = Object.values(assets).find(isNormalAsset)
     if (asset && asset.key) {
