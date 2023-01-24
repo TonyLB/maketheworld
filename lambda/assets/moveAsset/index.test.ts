@@ -34,7 +34,11 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
             },
             namespaceIdToDB: {
                 VORTEX: 'VORTEX'
-            }
+            },
+            rootNodes: [{
+                tag: 'Asset',
+                key: 'Test'
+            }]
         }
     })
 })
@@ -100,7 +104,11 @@ describe('moveAsset', () => {
             loadJSON: expect.any(Function),
             namespaceIdToDB: {
                 VORTEX: 'VORTEX'
-            }
+            },
+            rootNodes: [{
+                tag: 'Asset',
+                key: 'Test'
+            }]
         })
         expect(DeleteObjectCommand).toHaveBeenCalledWith({
             Key: 'Personal/Test/Test.wml'

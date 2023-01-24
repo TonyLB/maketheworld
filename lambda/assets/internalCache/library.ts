@@ -12,6 +12,33 @@ export class CacheLibraryData {
         this.Assets = undefined
         this.Characters = undefined
     }
+    async set(override: { Assets: Record<string, LibraryAsset | undefined>; Characters: Record<string, LibraryCharacter | undefined>}) {
+        if (typeof this.Assets === 'undefined' && typeof this.Characters === 'undefined') {
+            await this.get('Assets')
+        }
+        Object.keys(override.Assets).forEach((key) => {
+            const asset = override.Assets[key]
+            if (this.Assets) {
+                if (asset) {
+                    this.Assets[key] = asset
+                }
+                else if (key in this.Assets) {
+                    delete this.Assets[key]
+                }
+            }
+        })
+        Object.keys(override.Characters).forEach((key) => {
+            const character = override.Characters[key]
+            if (this.Characters) {
+                if (character) {
+                    this.Characters[key] = character
+                }
+                else if (key in this.Characters) {
+                    delete this.Characters[key]
+                }
+            }
+        })
+    }
     async get(key: 'Assets'): Promise<LibraryAsset[]>
     async get(key: 'Characters'): Promise<LibraryCharacter[]>
     async get(key: CacheLibraryKeys): Promise<LibraryAsset[] | LibraryCharacter[]> {

@@ -2,6 +2,7 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { ParseWMLAPIImage } from '@tonylb/mtw-interfaces/dist/asset';
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library';
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';

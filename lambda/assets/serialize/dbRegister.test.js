@@ -3,6 +3,15 @@ import { jest, describe, it, expect } from '@jest/globals'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
+jest.mock('../internalCache', () => ({
+    PlayerLibrary: {
+        set: jest.fn().mockResolvedValue({})
+    },
+    Library: {
+        set: jest.fn().mockResolvedValue({})
+    }
+}))
+
 import { dbRegister } from './dbRegister'
 
 describe('dbRegister', () => {
