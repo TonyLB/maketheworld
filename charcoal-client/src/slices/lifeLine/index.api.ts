@@ -65,7 +65,7 @@ const getLifeLine = (state: any) => ({
 
 const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
     if (payload.messageType === 'Messages') {
-        dispatch(cacheMessages(payload.messages))
+        dispatch(cacheMessages(payload))
     }
 }
 

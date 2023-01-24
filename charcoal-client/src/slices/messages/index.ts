@@ -2,6 +2,9 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import cacheDB, { LastSyncType } from '../../cacheDB'
 import { Message } from '@tonylb/mtw-interfaces/dist/messages'
+import { EphemeraClientMessagePublishMessages } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { unique } from '../../lib/lists'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 const initialState = {} as Record<string, Message[]>
 
@@ -69,25 +72,24 @@ const messagesSlice = createSlice({
 
 export const { receiveMessages } = messagesSlice.actions
 
-export const cacheMessages = (messages: Message[]) => async (dispatch: any) => {
+export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => async (dispatch: any) => {
     //
     // Update LastSync data, and push messages to cacheDB
     //
-    const lastSyncUpdates = messages.reduce((previous, { CreatedTime, Target }) => ({
-        ...previous,
-        [Target]: Math.max(previous[Target] || 0, CreatedTime)
-    }), {} as LastSyncType["value"])
+    const { messages, LastSync } = payload
+    const lastSyncUpdateTargets = unique(messages.map(({ Target }) => (Target))) as EphemeraCharacterId[]
+    const updateLastSync = LastSync
+        ? Promise.all(lastSyncUpdateTargets.map((CharacterId) => (cacheDB.characterSync
+            .update(CharacterId, (storedLastSync: number) => (Math.max(LastSync ?? 0, storedLastSync)))
+            .then((update) => {
+                if (!update) {
+                    cacheDB.characterSync.put({ CharacterId, lastSync: LastSync ?? 0 })
+                }
+            })
+        )))
+        : Promise.resolve({})
     await Promise.all([
-        cacheDB.clientSettings.update("LastSync", (lastSync: LastSyncType) => (
-            Object.entries(lastSyncUpdates).reduce((previous, [Target, CreatedTime]) => ({
-                ...previous,
-                [Target]: Math.max(previous[Target] || 0, CreatedTime)
-            }), lastSync.value)
-        )).then((update) => {
-            if (!update) {
-                cacheDB.clientSettings.put({ key: "LastSync", value: lastSyncUpdates })
-            }
-        }),
+        updateLastSync,
         cacheDB.messages.bulkPut(messages)
     ])
 

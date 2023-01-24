@@ -350,6 +350,7 @@ export type EphemeraClientMessageEphemeraUpdate = {
 export type EphemeraClientMessagePublishMessages = {
     messageType: 'Messages';
     RequestId?: string;
+    LastSync?: number;
     messages: Message[];
 }
 
@@ -404,10 +405,13 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             if (!('messages' in message)) {
                 return false
             }
+            if ('LastSync' in message && typeof message.LastSync !== 'number') {
+                return false
+            }
             const messages = message.messages
             if (!Array.isArray(messages)) {
                 return false
-            }            
+            }
             return messages.reduce<boolean>((previous, subMessage) => (
                 previous && isMessage(subMessage)
             ), true)
