@@ -1,5 +1,5 @@
 import { ActiveCharacterCondition, ActiveCharacterAction } from './baseClasses'
-import cacheDB, { LastSyncType } from '../../cacheDB'
+import cacheDB, { CharacterSyncType, LastSyncType } from '../../cacheDB'
 import {
     socketDispatchPromise,
     LifeLinePubSub,
@@ -10,6 +10,7 @@ import { receiveMessages } from '../messages'
 import { push as pushFeedback } from '../../slices/UI/feedback'
 import delayPromise from '../../lib/delayPromise'
 import { isEphemeraClientMessageEphemeraUpdateMapItem } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {
     const state = getState()
@@ -22,14 +23,16 @@ export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id
 //
 // getLastMessageSync pulls the last message sync value from cacheDB
 //
-export const getLastMessageSync = (CharacterId: string) => (
-    (cacheDB.clientSettings.get('LastSync') as Promise<LastSyncType | undefined>)
-        .then((response) => (((response ?? {}).value || {})[CharacterId]))
+export const getLastMessageSync = (CharacterId: EphemeraCharacterId | undefined) => (
+    CharacterId
+        ? (cacheDB.characterSync.get(CharacterId) as Promise<CharacterSyncType | undefined>)
+            .then((response) => (((response ?? {})?.lastSync)))
+        : Promise.resolve(undefined)
 )
 
 export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
 
-    const LastMessageSync = await getLastMessageSync(id || '')
+    const LastMessageSync = await getLastMessageSync(id)
     const messages = await cacheDB.messages.where("Target").equals(id || '').toArray()
 
     dispatch(receiveMessages(messages))
