@@ -6,6 +6,7 @@ import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBu
 import internalCache from "../internalCache"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
+import { isNormalAsset, isNormalCharacter } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 
 const { S3_BUCKET } = process.env;
 
@@ -49,26 +50,43 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         }))
                     ])
             
+                    if ((to.zone === 'Library' || from.zone === 'Library') && !(to.zone === 'Library' && from.zone === 'Library')) {
+                        //
+                        // TODO: Add set method to internalCache.Library, and use it (as below) to clear or update things
+                        // that are being moved
+                        //
+                        if (from.zone === 'Library') {
+                            const rootNodes = toAssetWorkspace.rootNodes
+                            internalCache.Library.set({
+                                Assets: rootNodes.filter(isNormalAsset).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                                Characters: rootNodes.filter(isNormalCharacter).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                            })
+                        }
+                        messageBus.send({ type: 'LibraryUpdate' })
+                    }
+                    if (!(to.zone === 'Personal' && from.zone === 'Personal' && to.player === from.player)) {
+                        if (from.zone === 'Personal') {
+                            const rootNodes = toAssetWorkspace.rootNodes
+                            internalCache.PlayerLibrary.set(from.player, {
+                                Assets: rootNodes.filter(isNormalAsset).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                                Characters: rootNodes.filter(isNormalCharacter).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
+                            })
+                            messageBus.send({
+                                type: 'PlayerLibraryUpdate',
+                                player: from.player
+                            })
+                        }
+                        //
+                        // Library updates for moving *to* a player are automatically handled in dbRegister
+                        //
+                        if (to.zone === 'Personal') {
+                            messageBus.send({
+                                type: 'PlayerLibraryUpdate',
+                                player: to.player
+                            })
+                        }
+                    }
                 })
-                if ((to.zone === 'Library' || from.zone === 'Library') && !(to.zone === 'Library' && from.zone === 'Library')) {
-                    messageBus.send({ type: 'LibraryUpdate' })
-                }
-                if (!(to.zone === 'Personal' && from.zone === 'Personal' && to.player === from.player)) {
-                    if (from.zone === 'Personal') {
-                        internalCache.PlayerLibrary.clear()
-                        messageBus.send({
-                            type: 'PlayerLibraryUpdate',
-                            player: from.player
-                        })
-                    }
-                    if (to.zone === 'Personal') {
-                        internalCache.PlayerLibrary.clear()
-                        messageBus.send({
-                            type: 'PlayerLibraryUpdate',
-                            player: to.player
-                        })
-                    }
-                }
             })
         )
         messageBus.send({

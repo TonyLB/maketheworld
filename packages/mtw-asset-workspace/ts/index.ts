@@ -5,7 +5,7 @@ import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
 import parser from '@tonylb/mtw-wml/dist/parser/index'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalAsset, isNormalCharacter, NormalAction, NormalAsset, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 
 import { AssetWorkspaceException } from "./errors"
@@ -281,6 +281,12 @@ export class AssetWorkspace {
             Body: this.wml || ''
         })
         this.status.wml = 'Clean'
+    }
+
+    get rootNodes(): (NormalAsset | NormalCharacter)[] {
+        return Object.values(this.normal || {})
+            .filter((node): node is NormalAsset | NormalCharacter => (isNormalAsset(node) || isNormalCharacter(node)))
+            .filter(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
     }
 
 }

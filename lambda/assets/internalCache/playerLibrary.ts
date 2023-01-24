@@ -14,6 +14,29 @@ export class CachePlayerLibraryData {
     clear() {
         this.CharacterLibraries = {}
     }
+    async set(player: string, override: { Assets: Record<string, LibraryAsset | undefined>; Characters: Record<string, LibraryCharacter | undefined>}) {
+        if (!(player in this.CharacterLibraries)) {
+            await this.get(player)
+        }
+        Object.keys(override.Assets).forEach((key) => {
+            const asset = override.Assets[key]
+            if (asset) {
+                this.CharacterLibraries[player].Assets[key] = asset
+            }
+            else if (key in this.CharacterLibraries[player].Assets) {
+                delete this.CharacterLibraries[player].Assets[key]
+            }
+        })
+        Object.keys(override.Characters).forEach((key) => {
+            const character = override.Characters[key]
+            if (character) {
+                this.CharacterLibraries[player].Characters[key] = character
+            }
+            else if (key in this.CharacterLibraries[player].Characters) {
+                delete this.CharacterLibraries[player].Characters[key]
+            }
+        })
+    }
     async get(player: string): Promise<PlayerLibrary> {
         if (!(player in this.CharacterLibraries)) {
             const Items = await assetDB.query({

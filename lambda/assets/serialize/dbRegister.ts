@@ -3,7 +3,9 @@ import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
-import { EphemeraError } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
+import { EphemeraCharacterId, EphemeraError } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
+import internalCache from '../internalCache'
+import messageBus from '../messageBus'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -104,6 +106,25 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
             .filter(({ name }) => (Boolean(name)))
             .map(({ tag, key, name }) => ({ [key]: { tag, name } }))
             .reduce((previous, entry) => (Object.assign(previous, entry)), {})
+        const updatedAssets = {
+            [AssetKey(asset.key)]: {
+                AssetId: AssetKey(asset.key),
+                scopedId: asset.key,
+                Story: asset.Story,
+                instance: asset.instance,
+            }
+        }
+        const updateLibraryPromise = address.zone === 'Personal'
+            ? internalCache.PlayerLibrary.set(address.player, {
+                Assets: updatedAssets,
+                Characters: {}
+            })
+            : address.zone === 'Library'
+                ? internalCache.Library.set({
+                    Assets: updatedAssets,
+                    Characters: {}
+                })
+                : Promise.resolve({})
         await Promise.all([
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
@@ -167,7 +188,8 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                     console.log(`ERROR:  ScopeMap in dbRegister has no entry for ${key}`)
                     return `${prefix}#${uuidv4()}`
                 }
-            })
+            }),
+            updateLibraryPromise
         ])
     }
     const character = Object.values(assets).find(isNormalCharacter)
@@ -175,6 +197,30 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
         const images = (character.images || [])
             .map((image) => (assetWorkspace.properties[image]?.fileName))
             .filter((image) => (image))
+        const updatedCharacters = {
+            [assetWorkspace.namespaceIdToDB[character.key]]: {
+                CharacterId: assetWorkspace.namespaceIdToDB[character.key] as EphemeraCharacterId,
+                Name: character.Name,
+                FirstImpression: character.FirstImpression,
+                OneCoolThing: character.OneCoolThing,
+                Pronouns: character.Pronouns,
+                Outfit: character.Outfit,
+                fileName: '',
+                fileURL: images[0] || undefined,
+                scopedId: character.key,        
+            }
+        }
+        const updateLibraryPromise = address.zone === 'Personal'
+            ? internalCache.PlayerLibrary.set(address.player, {
+                Assets: {},
+                Characters: updatedCharacters
+            })
+            : address.zone === 'Library'
+                ? internalCache.Library.set({
+                    Assets: {},
+                    Characters: updatedCharacters
+                })
+                : Promise.resolve({})
         await Promise.all([
             assetDB.putItem({
                 AssetId: assetWorkspace.namespaceIdToDB[character.key],
@@ -189,8 +235,19 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 images,
                 scopedId: character.key,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
-            })
+            }),
+            updateLibraryPromise
         ])
+        if (address.zone === 'Personal') {
+            messageBus.send({
+                type: 'PlayerLibraryUpdate',
+                player: address.player
+            })
+
+        }
+        if (address.zone === 'Library') {
+            messageBus.send({ type: 'LibraryUpdate' })
+        }
     }
 
 }
