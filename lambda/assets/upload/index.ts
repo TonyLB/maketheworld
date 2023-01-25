@@ -13,6 +13,8 @@ import { formatImage } from "../formatImage"
 import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/dist/asset"
 import { isNormalAsset } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
+import { ebClient } from "../clients"
+import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 
 const { UPLOAD_BUCKET } = process.env;
 
@@ -132,6 +134,17 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                         assetWorkspace.pushWML(),
                         dbRegister(assetWorkspace)
                     ])
+                    await ebClient.send(new PutEventsCommand({
+                        Entries: [{
+                            EventBusName: process.env.EVENT_BUS_NAME,
+                            Source: 'mtw.coordination',
+                            DetailType: 'Cache Asset',
+                            Detail: JSON.stringify({
+                                ...assetWorkspace.address,
+                                updateOnly: true
+                            })
+                        }]
+                    }))            
                 }
                 else {
                     await assetWorkspace.pushWML()

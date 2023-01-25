@@ -48,12 +48,6 @@ import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/m
 // of notifying people in it?
 //
 
-type CacheAssetOptions = {
-    check?: boolean;
-    recursive?: boolean;
-    forceCache?: boolean;
-}
-
 //
 // Translates from normal form to a fetch-ready record to be stored in the Ephemera table.
 //
@@ -362,15 +356,12 @@ export const pushCharacterEphemera = async (character: EphemeraCharacter) => {
     })
 }
 
-//
-// TODO: Extend cacheAsset to also cache characters where needed
-//
 export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: CacheAssetMessage[], messageBus: MessageBus }): Promise<void> => {
     //
     // To avoid race conditions, Cache payloads are currently evaluated sequentially
     //
     for (const { address, options } of payloads) {
-        const { check = false, recursive = false, forceCache = false } = options
+        const { check = false, updateOnly = false } = options
 
         const assetWorkspace = new AssetWorkspace(address)
         await assetWorkspace.loadJSON()
@@ -379,7 +370,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         //
         const assetItem = Object.values(assetWorkspace.normal || {}).find(isNormalAsset)
         if (assetItem) {
-            if (check) {
+            if (check || updateOnly) {
                 const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || ''
                 if (!assetEphemeraId) {
                     continue
@@ -388,7 +379,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     EphemeraId: assetEphemeraId,
                     DataCategory: 'Meta::Asset',
                 }) || {}
-                if (Boolean(EphemeraId)) {
+                if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                     continue
                 }
             }
@@ -431,6 +422,19 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         if (characterItem) {
             const ephemeraItem = ephemeraItemFromNormal(assetWorkspace)(characterItem)
             if (ephemeraItem) {
+                if (check || updateOnly) {
+                    const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
+                    if (!characterEphemeraId) {
+                        continue
+                    }
+                    const { EphemeraId = null } = await ephemeraDB.getItem<{ EphemeraId: string }>({
+                        EphemeraId: characterEphemeraId,
+                        DataCategory: 'Meta::Character',
+                    }) || {}
+                    if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
+                        continue
+                    }
+                }
                 await pushCharacterEphemera(ephemeraItem as EphemeraCharacter)
             }
         }

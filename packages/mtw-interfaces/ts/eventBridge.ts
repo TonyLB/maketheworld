@@ -1,5 +1,25 @@
 import { EphemeraCharacterId } from "./baseClasses";
 
+type AssetWorkspaceConstructorBase = {
+    fileName: string;
+    subFolder?: string;
+}
+
+type AssetWorkspaceConstructorCanon = {
+    zone: 'Canon';
+} & AssetWorkspaceConstructorBase
+
+type AssetWorkspaceConstructorLibrary = {
+    zone: 'Library';
+} & AssetWorkspaceConstructorBase
+
+type AssetWorkspaceConstructorPersonal = {
+    zone: 'Personal';
+    player: string;
+} & AssetWorkspaceConstructorBase
+
+type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal
+
 export type EventBridgeUpdatePlayerCharacter = {
     CharacterId: EphemeraCharacterId;
     Name: string;
@@ -22,4 +42,11 @@ export type EventBridgeUpdatePlayer = {
         Characters: EventBridgeUpdatePlayerCharacter[];
         Assets: EventBridgeUpdatePlayerAsset[];
     }
+}
+
+export type EventBridgeCacheAsset = {
+    "detail-type": "Cache Asset";
+    details: {
+        updateOnly?: boolean;
+    } & AssetWorkspaceAddress
 }
