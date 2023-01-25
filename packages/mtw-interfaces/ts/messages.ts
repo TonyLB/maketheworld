@@ -354,6 +354,7 @@ const validateRoomExitList = (items: any) => {
 export type RoomCharacter = {
     Name: string;
     CharacterId: EphemeraCharacterId;
+    fileURL?: string;
 }
 
 const validateRoomCharacterList = (items: any) => {
@@ -476,6 +477,7 @@ type MessageCharacterInfo = {
     CharacterId: EphemeraCharacterId;
     Name: string;
     Color: LegalCharacterColor;
+    fileURL?: string;
 }
 
 export type CharacterSpeech = {

@@ -38,15 +38,16 @@ export const CharacterAvatarDirect: FunctionComponent<CharacterAvatarDirectProps
 
 interface CharacterAvatarProps {
     CharacterId: EphemeraCharacterId;
+    fileURL?: string;
     width?: string;
     height?: string;
 }
 
-export const CharacterAvatar: FunctionComponent<CharacterAvatarProps> = ({ CharacterId, width, height }) => {
+export const CharacterAvatar: FunctionComponent<CharacterAvatarProps> = ({ CharacterId, fileURL, width, height }) => {
     const charactersInPlay = useSelector(getCharactersInPlay)
 
-    const { Name, fileURL } = charactersInPlay[CharacterId]
-    return <CharacterAvatarDirect CharacterId={CharacterId} Name={Name} fileURL={fileURL} width={width} height={height} />
+    const { Name, fileURL: fileURLCurrent } = charactersInPlay[CharacterId]
+    return <CharacterAvatarDirect CharacterId={CharacterId} Name={Name} fileURL={fileURL ?? fileURLCurrent} width={width} height={height} />
 }
 
 export default CharacterAvatar

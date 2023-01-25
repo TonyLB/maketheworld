@@ -95,14 +95,14 @@ export const OOCMessage: FunctionComponent<OOCMessageProps> = ({ message, varian
             leftIcon={
                 <Box sx={{ height: "100%", display: 'flex', alignItems: 'end', paddingBottom: '5px' }}>
                     { variant === 'left' &&
-                        <CharacterAvatar CharacterId={CharacterId} />
+                        <CharacterAvatar CharacterId={CharacterId} fileURL={message.fileURL} />
                     }
                 </Box>
             }
             rightIcon={
                 <Box sx={{ height: "100%", display: 'flex', alignItems: 'end', paddingBottom: '5px' }}>
                     { variant === 'right' &&
-                        <CharacterAvatar CharacterId={CharacterId} />
+                        <CharacterAvatar CharacterId={CharacterId} fileURL={message.fileURL} />
                     }
                 </Box>
             }
