@@ -16,7 +16,8 @@ interface RoomCharacterProps {
 export const RoomCharacter = ({
     character: {
         CharacterId,
-        Name
+        Name,
+        fileURL
     }
 }: RoomCharacterProps) => {
     const { CharacterId: viewCharacterId } = useActiveCharacter()
@@ -34,7 +35,7 @@ export const RoomCharacter = ({
         }))
     } : () => {}
 
-    return <CharacterChip CharacterId={CharacterId} onClick={clickHandler} Name={Name} />
+    return <CharacterChip CharacterId={CharacterId} onClick={clickHandler} Name={Name} fileURL={fileURL} />
 }
 
 export default RoomCharacter

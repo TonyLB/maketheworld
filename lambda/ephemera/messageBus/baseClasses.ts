@@ -244,8 +244,7 @@ export type DecacheAssetMessage = {
 
 type CacheAssetOptions = {
     check?: boolean;
-    recursive?: boolean;
-    forceCache?: boolean;
+    updateOnly?: boolean;
 }
 
 export type CacheAssetMessage = {

@@ -148,7 +148,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
         })
     }
 
-    payloads.forEach((payload, index) => {
+    await Promise.all(payloads.map(async (payload, index) => {
         if (isWorldMessage(payload)) {
             pushToQueues({
                 Targets: payload.targets,
@@ -158,7 +158,12 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 DisplayProtocol: payload.displayProtocol,
             })
         }
+        //
+        // TODO: Deprecate Name and possibly Color from data that needs to be sent on a
+        // CharacterMessage, and pull it instead from the internalCache along with fileURL
+        //
         if (isCharacterMessage(payload)) {
+            const { fileURL } = await internalCache.CharacterMeta.get(payload.characterId)
             pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
@@ -167,7 +172,8 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 DisplayProtocol: payload.displayProtocol,
                 Name: payload.name,
                 CharacterId: payload.characterId,
-                Color: payload.color
+                Color: payload.color,
+                fileURL
             })
         }
         if (isRoomUpdatePublishMessage(payload)) {
@@ -219,7 +225,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 fileURL: payload.fileURL
             })
         }
-    })
+    }))
 
     await Promise.all([
         ...dbPromises,

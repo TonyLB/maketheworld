@@ -15,21 +15,22 @@ import { getConfiguration } from '../../slices/configuration'
 type CharacterChipProps = {
     CharacterId: EphemeraCharacterId;
     Name?: string;
+    fileURL?: string;
     onClick: () => void;
 }
 
-export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ CharacterId, Name, onClick }) => {
+export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ CharacterId, Name, fileURL, onClick }) => {
     const { AppBaseURL = '' } = useSelector(getConfiguration)
     const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
     const charactersInPlay = useSelector(getCharactersInPlay)
-    const { Name: defaultName, fileURL } = charactersInPlay[CharacterId]
+    const { Name: defaultName, fileURL: fileURLCurrent } = charactersInPlay[CharacterId]
     return (
         <CharacterStyleWrapper CharacterId={CharacterId} nested>
             <Chip
                 label={Name || defaultName}
                 onClick={onClick}
                 avatar={fileURL
-                    ? <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name} src={fileURL && `${appBaseURL}/images/${fileURL}.png`}>
+                    ? <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name} src={(fileURL ?? fileURLCurrent) && `${appBaseURL}/images/${fileURL ?? fileURLCurrent}.png`}>
                         { (Name || '')[0].toUpperCase() }
                     </Avatar>
                     : undefined

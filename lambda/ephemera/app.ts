@@ -105,7 +105,7 @@ export const handler = async (event: any, context: any) => {
                 messageBus.send({
                     type: 'CacheAsset',
                     address,
-                    options: {}
+                    options: { updateOnly: event.detail.updateOnly }
                 })
                 break
             case 'Update Player':
