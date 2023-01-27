@@ -380,6 +380,148 @@ Array [
 ]
 `;
 
+exports[`wml parser should parse display taggedMessageContents correctly 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 15,
+                "startTagToken": 15,
+                "tag": "String",
+                "value": "Vortex",
+              },
+            ],
+            "endTagToken": 16,
+            "startTagToken": 13,
+            "tag": "Name",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 19,
+                "startTagToken": 19,
+                "tag": "Whitespace",
+              },
+              Object {
+                "endTagToken": 20,
+                "startTagToken": 20,
+                "tag": "String",
+                "value": "Vortex",
+              },
+              Object {
+                "endTagToken": 21,
+                "startTagToken": 21,
+                "tag": "Whitespace",
+              },
+              Object {
+                "contents": Array [
+                  Object {
+                    "endTagToken": 24,
+                    "startTagToken": 24,
+                    "tag": "Whitespace",
+                  },
+                  Object {
+                    "endTagToken": 25,
+                    "startTagToken": 25,
+                    "tag": "String",
+                    "value": ": Open",
+                  },
+                  Object {
+                    "endTagToken": 26,
+                    "startTagToken": 26,
+                    "tag": "Whitespace",
+                  },
+                ],
+                "endTagToken": 27,
+                "startTagToken": 22,
+                "tag": "After",
+              },
+              Object {
+                "endTagToken": 28,
+                "startTagToken": 28,
+                "tag": "Whitespace",
+              },
+              Object {
+                "contents": Array [
+                  Object {
+                    "endTagToken": 31,
+                    "startTagToken": 31,
+                    "tag": "Whitespace",
+                  },
+                  Object {
+                    "endTagToken": 32,
+                    "startTagToken": 32,
+                    "tag": "String",
+                    "value": "Closed",
+                  },
+                  Object {
+                    "endTagToken": 33,
+                    "startTagToken": 33,
+                    "tag": "Whitespace",
+                  },
+                ],
+                "endTagToken": 34,
+                "startTagToken": 29,
+                "tag": "Replace",
+              },
+              Object {
+                "endTagToken": 35,
+                "startTagToken": 35,
+                "tag": "Whitespace",
+              },
+              Object {
+                "contents": Array [
+                  Object {
+                    "endTagToken": 38,
+                    "startTagToken": 38,
+                    "tag": "Whitespace",
+                  },
+                  Object {
+                    "endTagToken": 39,
+                    "startTagToken": 39,
+                    "tag": "String",
+                    "value": "Vortex :",
+                  },
+                  Object {
+                    "endTagToken": 40,
+                    "startTagToken": 40,
+                    "tag": "Whitespace",
+                  },
+                ],
+                "endTagToken": 41,
+                "startTagToken": 36,
+                "tag": "Before",
+              },
+              Object {
+                "endTagToken": 42,
+                "startTagToken": 42,
+                "tag": "Whitespace",
+              },
+            ],
+            "endTagToken": 43,
+            "startTagToken": 17,
+            "tag": "Description",
+          },
+        ],
+        "endTagToken": 44,
+        "key": "ABC",
+        "startTagToken": 8,
+        "tag": "Room",
+      },
+    ],
+    "endTagToken": 45,
+    "fileName": "test",
+    "key": "Test",
+    "startTagToken": 0,
+    "tag": "Asset",
+  },
+]
+`;
+
 exports[`wml parser should parse elements correctly 1`] = `
 Array [
   Object {

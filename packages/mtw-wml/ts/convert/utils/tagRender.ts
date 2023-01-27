@@ -53,11 +53,6 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
                 taggedMessageStack: []
             }
         }
-        //
-        // TODO: Find function that checks what the current mode for a condition would be, and use it to judge whether you're in a description context or not
-        //
-        // TODO: Use schemaDescriptionToWML only in the case where you are in a context that parses tagged messages in that way
-        //
         if (descriptionContext && isSchemaTaggedMessageLegalContents(tag)) {
             if (index === contents.length - 1) {
                 return {

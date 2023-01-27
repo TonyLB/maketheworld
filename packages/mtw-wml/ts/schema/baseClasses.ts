@@ -198,12 +198,26 @@ export type SchemaLinkTag = {
     text: string;
 } & SchemaBase
 
-export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTagDescriptionContext | SchemaWhitespaceTag
-export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag
+export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaWhitespaceTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
-    display?: 'before' | 'after' | 'replace';
+    contents: SchemaTaggedMessageLegalContents[];
+} & SchemaBase
+
+export type SchemaAfterTag = {
+    tag: 'After';
+    contents: SchemaTaggedMessageLegalContents[];
+} & SchemaBase
+
+export type SchemaBeforeTag = {
+    tag: 'Before';
+    contents: SchemaTaggedMessageLegalContents[];
+} & SchemaBase
+
+export type SchemaReplaceTag = {
+    tag: 'Replace';
     contents: SchemaTaggedMessageLegalContents[];
 } & SchemaBase
 
@@ -327,7 +341,10 @@ export type SchemaTag = SchemaAssetTag |
     SchemaStringTag |
     SchemaWhitespaceTag |
     SchemaMessageTag |
-    SchemaMomentTag
+    SchemaMomentTag |
+    SchemaAfterTag |
+    SchemaBeforeTag |
+    SchemaReplaceTag
 
 export type SchemaWithContents = SchemaAssetTag |
     SchemaStoryTag |
@@ -344,7 +361,10 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaOneCoolThingTag |
     SchemaOutfitTag |
     SchemaMessageTag |
-    SchemaMomentTag
+    SchemaMomentTag |
+    SchemaAfterTag |
+    SchemaBeforeTag |
+    SchemaReplaceTag
 
 export class SchemaException extends Error {
     parseTag: ParseTag;
@@ -357,8 +377,10 @@ export class SchemaException extends Error {
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
 export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')
-export const isSchemaDescriptionContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (['Whitespae', 'String', 'Link', 'br'].includes(value.tag))
 export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptionTag => (value.tag === 'Description')
+export const isSchemaAfter = (value: SchemaTag): value is SchemaAfterTag => (value.tag === 'After')
+export const isSchemaBefore = (value: SchemaTag): value is SchemaBeforeTag => (value.tag === 'Before')
+export const isSchemaReplace = (value: SchemaTag): value is SchemaReplaceTag => (value.tag === 'Replace')
 export const isSchemaBookmark = (value: SchemaTag): value is SchemaBookmarkTag => (value.tag === 'Bookmark')
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
@@ -406,7 +428,7 @@ export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
 )
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
-    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If'].includes(value.tag)
+    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If', 'After', 'Before', 'Replace'].includes(value.tag)
 )
 
 export const isSchemaTag = (value: any): value is SchemaTag => {

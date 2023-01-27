@@ -41,7 +41,10 @@ import {
     SchemaException,
     SchemaMomentTag,
     isSchemaImport,
-    SchemaConditionMixin
+    SchemaConditionMixin,
+    SchemaAfterTag,
+    SchemaBeforeTag,
+    SchemaReplaceTag
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -90,7 +93,7 @@ type NormalizerContext = {
     index?: number;
 }
 
-type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character" | "Message" | "Moment">
+type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Bookmark" | "Character" | "Message" | "Moment" | "After" | "Before" | "Replace">
 
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
     if (renderItem.tag === 'If' && isSchemaConditionTagDescriptionContext(renderItem)) {
@@ -113,6 +116,12 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
             to: renderItem.to,
             text: renderItem.text,
             targetTag: targetTag as 'Action' | 'Feature'
+        }
+    }
+    else if (((item: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): item is SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag => (['After', 'Before', 'Replace'].includes(renderItem.tag)))(renderItem)) {
+        return {
+            tag: renderItem.tag,
+            contents: renderItem.contents.map(schemaDescriptionToComponentRender(translationTags))
         }
     }
     else if (renderItem.tag === 'Bookmark') {
@@ -181,6 +190,16 @@ export const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRender
             return {
                 tag: 'String',
                 value: renderItem.value
+            }
+        case 'After':
+        case 'Before':
+        case 'Replace':
+            return {
+                tag: renderItem.tag,
+                contents: renderItem.contents
+                    .map(componentRenderToSchemaTaggedMessage)
+                    .filter((value) => (value))
+                    .filter(isSchemaTaggedMessageLegalContents)
             }
     }
 }

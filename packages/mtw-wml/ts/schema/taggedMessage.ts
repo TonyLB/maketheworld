@@ -1,11 +1,11 @@
-import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag, isSchemaBookmark, SchemaBookmarkTag, SchemaConditionTagDescriptionContext } from "./baseClasses";
+import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag, isSchemaBookmark, SchemaBookmarkTag, SchemaConditionTagDescriptionContext, isSchemaAfter, isSchemaBefore, isSchemaReplace, SchemaAfterTag, SchemaBeforeTag, SchemaReplaceTag } from "./baseClasses";
 
 //
 // Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values
 //
 export const translateTaggedMessageContents = (contents: SchemaTaggedMessageIncomingContents[]): SchemaTaggedMessageLegalContents[] => {
     let returnValue: SchemaTaggedMessageLegalContents[] = []
-    let currentToken: SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaConditionTag | undefined
+    let currentToken: SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaConditionTagDescriptionContext | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag | undefined
     contents.forEach((item) => {
         if (isSchemaWhitespace(item)) {
             if (currentToken) {
@@ -63,6 +63,15 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
                 ...item,
                 contents: translateTaggedMessageContents(item.contents)
             } as SchemaConditionTagDescriptionContext
+        }
+        if (isSchemaAfter(item) || isSchemaBefore(item) || isSchemaReplace(item)) {
+            if (currentToken) {
+                returnValue.push(currentToken)
+            }
+            currentToken = {
+                ...item,
+                contents: translateTaggedMessageContents(item.contents) as SchemaTaggedMessageLegalContents[]
+            }
         }
         if (isSchemaLink(item) || isSchemaBookmark(item)) {
             if (currentToken) {

@@ -78,6 +78,9 @@ export type ComponentRenderItem = {
     tag: 'LineBreak';
 } | {
     tag: 'Space';
+} | {
+    tag: 'After' | 'Before' | 'Replace';
+    contents: ComponentRenderItem[];
 } | ({
     tag: 'Condition';
     contents: ComponentRenderItem[];
