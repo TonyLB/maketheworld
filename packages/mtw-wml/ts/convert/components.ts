@@ -1,5 +1,5 @@
-import { isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseMessage, isParseMoment, isParseName, isParseRoom, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses"
-import { isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
+import { isParseAfter, isParseBefore, isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseMessage, isParseMoment, isParseName, isParseReplace, isParseRoom, ParseAfterTag, ParseBeforeTag, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseReplaceTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses"
+import { isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaReplace, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaAfterTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
 import { translateTaggedMessageContents } from "../schema/taggedMessage"
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils"
 import { schemaDescriptionToWML } from "./description"
@@ -10,6 +10,9 @@ import { mergeOrderedConditionalTrees } from "./utils/orderedConditionalTree"
 export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base: C) => {
     return class ParseComponentsMixin extends Base {
         override parseConvert(value: ParseTagFactoryPropsLimited<'Description'>): ParseStackTagEntry<ParseDescriptionTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'After'>): ParseStackTagEntry<ParseAfterTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Before'>): ParseStackTagEntry<ParseBeforeTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Replace'>): ParseStackTagEntry<ParseReplaceTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Name'>): ParseStackTagEntry<ParseNameTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Room'>): ParseStackTagEntry<ParseRoomTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Feature'>): ParseStackTagEntry<ParseFeatureTag>
@@ -19,6 +22,9 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
         override parseConvert(value: ParseTagFactoryPropsLimited<'Moment'>): ParseStackTagEntry<ParseMomentTag>
         override parseConvert(value: MixinInheritedParseParameters<C>
             | ParseTagFactoryPropsLimited<'Description'>
+            | ParseTagFactoryPropsLimited<'After'>
+            | ParseTagFactoryPropsLimited<'Before'>
+            | ParseTagFactoryPropsLimited<'Replace'>
             | ParseTagFactoryPropsLimited<'Name'>
             | ParseTagFactoryPropsLimited<'Room'>
             | ParseTagFactoryPropsLimited<'Feature'>
@@ -28,6 +34,9 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             | ParseTagFactoryPropsLimited<'Moment'>
             ): MixinInheritedParseReturn<C>
             | ParseStackTagEntry<ParseDescriptionTag>
+            | ParseStackTagEntry<ParseAfterTag>
+            | ParseStackTagEntry<ParseBeforeTag>
+            | ParseStackTagEntry<ParseReplaceTag>
             | ParseStackTagEntry<ParseNameTag>
             | ParseStackTagEntry<ParseRoomTag>
             | ParseStackTagEntry<ParseFeatureTag>
@@ -47,7 +56,55 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         optional: {}
                     },
                     contents: {
-                        legal: ['Whitespace', 'String', 'Link', 'Bookmark', 'br', 'Space', 'If', 'Else', 'ElseIf'],
+                        legal: ['Whitespace', 'String', 'Link', 'Bookmark', 'br', 'Space', 'If', 'Else', 'ElseIf', 'After', 'Before', 'Replace'],
+                        ignore: ['Comment']
+                    }
+                })(value)
+            }
+            //
+            // Convert After tag-opens
+            //
+            if (isTypedParseTagOpen('After')(value)) {
+                return parseConverterMixin<ParseAfterTag, ParseTaggedMessageLegalContents>({
+                    tag: 'After',
+                    properties: {
+                        required: {},
+                        optional: {}
+                    },
+                    contents: {
+                        legal: ['Whitespace', 'String', 'Link', 'Bookmark', 'br', 'Space', 'If', 'Else', 'ElseIf', 'After', 'Before', 'Replace'],
+                        ignore: ['Comment']
+                    }
+                })(value)
+            }
+            //
+            // Convert Before tag-opens
+            //
+            if (isTypedParseTagOpen('Before')(value)) {
+                return parseConverterMixin<ParseBeforeTag, ParseTaggedMessageLegalContents>({
+                    tag: 'Before',
+                    properties: {
+                        required: {},
+                        optional: {}
+                    },
+                    contents: {
+                        legal: ['Whitespace', 'String', 'Link', 'Bookmark', 'br', 'Space', 'If', 'Else', 'ElseIf', 'After', 'Before', 'Replace'],
+                        ignore: ['Comment']
+                    }
+                })(value)
+            }
+            //
+            // Convert Replace tag-opens
+            //
+            if (isTypedParseTagOpen('Replace')(value)) {
+                return parseConverterMixin<ParseReplaceTag, ParseTaggedMessageLegalContents>({
+                    tag: 'Replace',
+                    properties: {
+                        required: {},
+                        optional: {}
+                    },
+                    contents: {
+                        legal: ['Whitespace', 'String', 'Link', 'Bookmark', 'br', 'Space', 'If', 'Else', 'ElseIf', 'After', 'Before', 'Replace'],
                         ignore: ['Comment']
                     }
                 })(value)
@@ -63,7 +120,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         optional: {}
                     },
                     contents: {
-                        legal: ['Whitespace', 'String', 'Space'],
+                        legal: ['Whitespace', 'String', 'Space', 'After', 'Before', 'Replace'],
                         ignore: ['Comment']
                     }
                 })(value)
@@ -226,6 +283,9 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
         }
 
         override schemaConvert(item: ParseDescriptionTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaDescriptionTag
+        override schemaConvert(item: ParseAfterTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaAfterTag
+        override schemaConvert(item: ParseBeforeTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaBeforeTag
+        override schemaConvert(item: ParseReplaceTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaReplaceTag
         override schemaConvert(item: ParseNameTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaNameTag
         override schemaConvert(item: ParseRoomTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaRoomTag
         override schemaConvert(item: ParseFeatureTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaFeatureTag
@@ -236,6 +296,9 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
         override schemaConvert(
                 item: MixinInheritedSchemaParameters<C>
                     | ParseDescriptionTag
+                    | ParseAfterTag
+                    | ParseBeforeTag
+                    | ParseReplaceTag
                     | ParseNameTag
                     | ParseRoomTag
                     | ParseFeatureTag
@@ -248,6 +311,9 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     | SchemaTag[]
             ): MixinInheritedSchemaReturn<C>
                 | SchemaDescriptionTag
+                | SchemaAfterTag
+                | SchemaBeforeTag
+                | SchemaReplaceTag
                 | SchemaNameTag
                 | SchemaRoomTag
                 | SchemaFeatureTag
@@ -258,6 +324,24 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             if (isParseDescription(item)) {
                 return {
                     tag: 'Description',
+                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+                }            
+            }
+            else if (isParseAfter(item)) {
+                return {
+                    tag: 'After',
+                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+                }            
+            }
+            else if (isParseBefore(item)) {
+                return {
+                    tag: 'Before',
+                    contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
+                }            
+            }
+            else if (isParseReplace(item)) {
+                return {
+                    tag: 'Replace',
                     contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
                 }            
             }
@@ -357,6 +441,33 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     ...options,
                     schemaToWML,
                     tag: 'Description',
+                    properties: [],
+                    contents: value.contents,
+                })
+            }
+            else if (isSchemaAfter(value)) {
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'After',
+                    properties: [],
+                    contents: value.contents,
+                })
+            }
+            else if (isSchemaBefore(value)) {
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'Before',
+                    properties: [],
+                    contents: value.contents,
+                })
+            }
+            else if (isSchemaReplace(value)) {
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'Replace',
                     properties: [],
                     contents: value.contents,
                 })

@@ -144,4 +144,28 @@ describe('wml parser', () => {
         expect(parse(testTokens)).toMatchSnapshot()
     })
 
+    it('should parse display taggedMessageContents correctly', () => {
+        const testTokens = tokenizer(new SourceStream(`
+            <Asset key=(Test) fileName="test">
+            <Room key=(ABC)>
+                <Name>Vortex</Name>
+                <Description>
+                    Vortex
+                    <After>
+                        : Open
+                    </After>
+                    <Replace>
+                        Closed
+                    </Replace>
+                    <Before>
+                        Vortex :
+                    </Before>
+                </Description>
+            </Room>
+        </Asset>
+    `))
+        expect(parse(testTokens)).toMatchSnapshot()
+    })
+
+
 })

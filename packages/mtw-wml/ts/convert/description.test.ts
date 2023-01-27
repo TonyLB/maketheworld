@@ -6,11 +6,6 @@ import WMLConverter from './index'
 describe('description schemaToWML', () => {
     const convert = new WMLConverter()
     const schemaToWML = convert.schemaToWML.bind(this)
-    const fakeParse: ParseTag = {
-        tag: 'Space',
-        startTagToken: 0,
-        endTagToken: 0
-    }
     it('should properly render a non-breaking line', () => {
         expect(schemaDescriptionToWML(schemaToWML)(
             [{

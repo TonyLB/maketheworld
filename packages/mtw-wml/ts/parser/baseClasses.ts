@@ -368,7 +368,10 @@ export const isParseLegalTag = (tag: string): tag is ParseLegalTag => ([
     'String',
     'Whitespace',
     'Space',
-    'Comment'
+    'Comment',
+    'After',
+    'Before',
+    'Replace'
 ].includes(tag))
 
 export type ParseStackTagOpenPendingEntry = {

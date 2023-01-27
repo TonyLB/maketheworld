@@ -264,4 +264,17 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly round-trip display tags', () => {
+        const testWML = `<Asset key=(Test)>
+    <Feature key=(doors)>
+        <Description>
+            <After>Dingy doors</After>
+            <Replace>portals</Replace>
+            <Before>Clean<Space /></Before>
+        </Description>
+    </Feature>
+</Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
 })
