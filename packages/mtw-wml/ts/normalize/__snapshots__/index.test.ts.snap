@@ -18,11 +18,6 @@ Object {
             "tag": "Room",
           },
           Object {
-            "index": 1,
-            "key": "testOne",
-            "tag": "Room",
-          },
-          Object {
             "index": 0,
             "key": "testTwo",
             "tag": "Room",
@@ -112,11 +107,6 @@ Object {
             "key": "test",
             "tag": "Room",
           },
-          Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
-          },
         ],
         "contextStack": Array [],
       },
@@ -160,13 +150,7 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
-          Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
-          },
-        ],
+        "contents": Array [],
         "contextStack": Array [],
       },
     ],
@@ -264,11 +248,6 @@ Object {
           Object {
             "index": 0,
             "key": "If-0",
-            "tag": "If",
-          },
-          Object {
-            "index": 0,
-            "key": "If-1",
             "tag": "If",
           },
           Object {
@@ -752,11 +731,6 @@ Object {
             "tag": "Room",
           },
           Object {
-            "index": 0,
-            "key": "testMap",
-            "tag": "Map",
-          },
-          Object {
             "index": 2,
             "key": "test",
             "tag": "Room",
@@ -882,11 +856,6 @@ Object {
             "key": "test",
             "tag": "Room",
           },
-          Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
-          },
         ],
         "contextStack": Array [],
       },
@@ -984,11 +953,6 @@ Object {
           },
           Object {
             "index": 2,
-            "key": "test",
-            "tag": "Room",
-          },
-          Object {
-            "index": 1,
             "key": "test",
             "tag": "Room",
           },
@@ -1157,11 +1121,6 @@ Object {
     "appearances": Array [
       Object {
         "contents": Array [
-          Object {
-            "index": 0,
-            "key": "testMap",
-            "tag": "Map",
-          },
           Object {
             "index": 0,
             "key": "testMap",
@@ -1379,11 +1338,6 @@ Object {
           },
           Object {
             "index": 2,
-            "key": "test",
-            "tag": "Room",
-          },
-          Object {
-            "index": 1,
             "key": "test",
             "tag": "Room",
           },

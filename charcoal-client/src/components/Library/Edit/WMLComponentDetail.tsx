@@ -66,6 +66,9 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         normalizer._normalForm = normalForm
         const reference: NormalReference = { tag, key: ComponentId, index: appearanceIndex }
         const baseSchema = normalizer.referenceToSchema(reference)
+        const position = { ...normalizer._referenceToInsertPosition(reference), replace: true }
+        console.log(`Reference: ${JSON.stringify(reference, null, 4)}`)
+        console.log(`Position: ${JSON.stringify(position, null, 4)}`)
         if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
             updateNormal({
                 type: 'put',
@@ -190,7 +193,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             <Box sx={{ overflowY: 'auto' }}>
                 {
                     (component.appearances || []).map(({ contextStack }, index) => {
-                        if (contextStack.find(({ tag }) => (['If', 'Map'].includes(tag)))) {
+                        if (contextStack.find(({ tag }) => (['If', 'Map', 'Message'].includes(tag)))) {
                             return null
                         }
                         else {
