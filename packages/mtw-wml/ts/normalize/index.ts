@@ -753,6 +753,14 @@ export class Normalizer {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
             this._removeAppearance(reference)
+            const parentReference = this._getParentReference(appearance.contextStack)
+            if (parentReference) {
+                const { contents = [] } = this._lookupAppearance(parentReference)
+                const index = contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
+                if (index !== -1) {
+                    this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents.slice(0, index), ...contents.slice(index + 1)])
+                }
+            }
             this._renameAllConditions()
         }
     }
