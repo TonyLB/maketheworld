@@ -274,7 +274,9 @@ describe('schemaToWML', () => {
         </Description>
     </Feature>
 </Asset>`
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        console.log(`schema: ${JSON.stringify(schema, null, 4)}`)
+        expect(schemaToWML(schema)).toEqual(testWML)
     })
 
 })
