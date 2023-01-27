@@ -54,7 +54,10 @@ import {
     ParseBookmarkTag,
     ParseMessageLegalContents,
     ParseMessageTag,
-    ParseMomentTag
+    ParseMomentTag,
+    ParseAfterTag,
+    ParseBeforeTag,
+    ParseReplaceTag
 } from "../parser/baseClasses"
 import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, isSchemaTag, SchemaConditionMixin, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaNameTag, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
 
@@ -99,6 +102,9 @@ export type TransformWithContextCallback = {
     (item: ParseStringTag, context: ParseTag[]): ParseStringTag;
     (item: ParseWhitespaceTag, context: ParseTag[]): ParseWhitespaceTag;
     (item: ParseCommentTag, context: ParseTag[]): ParseCommentTag;
+    (item: ParseAfterTag, context: ParseTag[]): ParseAfterTag;
+    (item: ParseBeforeTag, context: ParseTag[]): ParseBeforeTag;
+    (item: ParseReplaceTag, context: ParseTag[]): ParseReplaceTag;
 }
 
 //
@@ -445,6 +451,33 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                 return [
                     ...previous,
                     callback(item, context)
+                ]
+            case 'After':
+                const afterItem = callback(item, context)
+                return [
+                    ...previous,
+                    {
+                        ...afterItem,
+                        contents: transformWithContext(item.contents, callback, [...context, afterItem]) as ParseTaggedMessageLegalContents[]
+                    }
+                ]
+            case 'Before':
+                const beforeItem = callback(item, context)
+                return [
+                    ...previous,
+                    {
+                        ...beforeItem,
+                        contents: transformWithContext(item.contents, callback, [...context, beforeItem]) as ParseTaggedMessageLegalContents[]
+                    }
+                ]
+            case 'Replace':
+                const replaceItem = callback(item, context)
+                return [
+                    ...previous,
+                    {
+                        ...replaceItem,
+                        contents: transformWithContext(item.contents, callback, [...context, replaceItem]) as ParseTaggedMessageLegalContents[]
+                    }
                 ]
         }
         return [

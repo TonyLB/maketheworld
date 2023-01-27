@@ -258,7 +258,6 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             if (isParseDescription(item)) {
                 return {
                     tag: 'Description',
-                    display: item.display,
                     contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
                 }            
             }
@@ -299,7 +298,6 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 return {
                     tag: 'Bookmark',
                     key: item.key,
-                    display: item.display,
                     contents: translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
                 }            
             }
