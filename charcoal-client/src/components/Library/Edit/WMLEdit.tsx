@@ -111,7 +111,6 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
         [editor, errorPosition]
     )
     const handleChange = useCallback(newValue => {
-        console.log(`Handle Change`)
         const draftValue = sourceStringFromSlate(newValue)
         if (draftValue !== sourceStringFromSlate(value)) {
             debouncedUpdate()

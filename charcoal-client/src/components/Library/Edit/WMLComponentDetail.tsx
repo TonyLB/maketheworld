@@ -15,7 +15,7 @@ import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import RoomExits from './RoomExits'
 import useDebounce from '../../../hooks/useDebounce'
-import { ComponentRenderItem, isNormalComponent, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, isNormalFeature, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
@@ -67,8 +67,6 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         const reference: NormalReference = { tag, key: ComponentId, index: appearanceIndex }
         const baseSchema = normalizer.referenceToSchema(reference)
         const position = { ...normalizer._referenceToInsertPosition(reference), replace: true }
-        console.log(`Reference: ${JSON.stringify(reference, null, 4)}`)
-        console.log(`Position: ${JSON.stringify(position, null, 4)}`)
         if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
             updateNormal({
                 type: 'put',
@@ -81,7 +79,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         }
     }, [ComponentId, tag, normalForm, updateNormal])
     const defaultName = useMemo(() => {
-        const localName = components[component.key]?.localName
+        const localName = components[ComponentId]?.localName
         if (typeof localName === 'string') {
             return [{ tag: 'String' as 'String', value: localName }]
         }
@@ -89,8 +87,15 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
             return localName
         }
         return []
-    }, [components, component.key])
-    const [name, setName] = useState(defaultName)
+    }, [components, ComponentId])
+    const appearance = useMemo(() => {
+        const component = normalForm[ComponentId]
+        if (!(component && (isNormalRoom(component) || isNormalFeature(component)))) {
+            return undefined
+        }
+        return component.appearances[appearanceIndex]
+    }, [normalForm, ComponentId, appearanceIndex])
+    const [name, setName] = useState(appearance?.name || [])
     const nameText = useMemo<string>(() => ((name || []).map((item) => ((item.tag === 'String') ? item.value : '')).join('')), [name])
 
     const dispatchNameChange = useCallback((value: ComponentRenderItem[]) => {
@@ -114,11 +119,11 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
     }, [setName])
     const debouncedName = useDebounce(name, 1000)
     useEffect(() => {
-        if (!deepEqual(debouncedName, defaultName)) {
+        if (!deepEqual(debouncedName, appearance?.name || [])) {
             dispatchNameChange(debouncedName)
         }
-    }, [debouncedName, defaultName])
-    if (!component) {
+    }, [debouncedName, appearance])
+    if (!component || !appearance) {
         return <Box />
     }
     return <Box sx={{
@@ -138,7 +143,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
                 display: 'inline'
             }}
         >
-            { components[component.key]?.defaultName || '' }
+            { components[ComponentId]?.defaultName || '' }
         </Box>
         <TextField
             id="name"
@@ -150,7 +155,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
             <DescriptionEditor
                 inheritedRender={components[component.key]?.defaultRender}
-                render={components[component.key]?.localRender || []}
+                render={appearance.render || []}
                 onChange={onChange}
             />
         </Box>
