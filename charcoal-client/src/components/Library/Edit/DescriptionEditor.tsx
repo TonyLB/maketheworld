@@ -5,6 +5,7 @@ import {
 } from "react-router-dom"
 import { v4 as uuidv4 } from 'uuid'
 import { isKeyHotkey } from 'is-hotkey'
+import { pink, green } from '@mui/material/colors'
 
 import { useSlateStatic, useSlate } from 'slate-react'
 import {
@@ -33,6 +34,8 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
+import BeforeIcon from '@mui/icons-material/Reply'
+import ReplaceIcon from '@mui/icons-material/Backspace'
 
 import {
     CustomActionLinkElement,
@@ -213,13 +216,45 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
             </span>
         case 'before':
         case 'replace':
-            return <span {...attributes}>
-                <Box component="span" sx={{ fontWeight: 'bold' }}>
-                    <InlineChromiumBugfix />
-                    {children}
-                    <InlineChromiumBugfix />
+            const highlight = element.type === 'before' ? green : pink
+            return <React.Fragment>
+                <Box
+                    component="span"
+                    contentEditable={false}
+                    sx={{
+                        borderRadius: "1em 0em 0em 1em",
+                        borderStyle: 'solid',
+                        borderRightStyle: 'none',
+                        borderColor: highlight[500],
+                        background: highlight[100],
+                        display: 'inline',
+                        paddingRight: '0.25em'
+                    }}
+                >
+                    {
+                        element.type === 'before'
+                            ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
+                            : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment> }
                 </Box>
-            </span>
+                <span {...attributes}>
+                    <Box
+                        component="span"
+                        sx={{
+                            borderRadius: '0em 1em 1em 0em',
+                            borderStyle: 'solid',
+                            borderColor: highlight[500],
+                            background: highlight[50],
+                            display: 'inline',
+                            paddingRight: '0.5em',
+                            paddingLeft: '0.25em'
+                        }}
+                    >
+                        <InlineChromiumBugfix />
+                        {children}
+                        <InlineChromiumBugfix />
+                    </Box>
+                </span>
+            </React.Fragment>
         case 'description':
             const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
                 ...previous,
