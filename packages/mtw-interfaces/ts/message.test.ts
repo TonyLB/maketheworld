@@ -153,4 +153,39 @@ describe('flattenTaggedMessageContent', () => {
         expect(evaluator).toHaveBeenCalledTimes(4)
         expect(output).toMatchSnapshot()
     })
+
+    it('should correctly expand after tag', async () => {
+        expect(await flattenTaggedMessageContent([
+            { tag: 'String', value: 'One' },
+            { tag: 'After', contents: [
+                { tag: 'String', value: 'Two' },
+                { tag: 'String', value: 'Three' },
+            ]},
+            { tag: 'String', value: 'Four' },
+        ])).toMatchSnapshot()
+    })
+
+    it('should correctly expand before tag', async () => {
+        expect(await flattenTaggedMessageContent([
+            { tag: 'String', value: 'Three' },
+            { tag: 'Before', contents: [
+                { tag: 'String', value: 'One' },
+                { tag: 'String', value: 'Two' },
+            ]},
+            { tag: 'String', value: 'Four' },
+        ])).toMatchSnapshot()
+    })
+
+    it('should correctly expand replace tag', async () => {
+        expect(await flattenTaggedMessageContent([
+            { tag: 'String', value: 'Uno' },
+            { tag: 'String', value: 'Dos' },
+            { tag: 'Replace', contents: [
+                { tag: 'String', value: 'One' },
+                { tag: 'String', value: 'Two' },
+            ]},
+            { tag: 'String', value: 'Three' },
+        ])).toMatchSnapshot()
+    })
+
 })

@@ -34,6 +34,33 @@ Array [
 ]
 `;
 
+exports[`flattenTaggedMessageContent should correctly expand after tag 1`] = `
+Array [
+  Object {
+    "tag": "String",
+    "value": "OneTwoThreeFour",
+  },
+]
+`;
+
+exports[`flattenTaggedMessageContent should correctly expand before tag 1`] = `
+Array [
+  Object {
+    "tag": "String",
+    "value": "ThreeOneTwoFour",
+  },
+]
+`;
+
+exports[`flattenTaggedMessageContent should correctly expand replace tag 1`] = `
+Array [
+  Object {
+    "tag": "String",
+    "value": "UnoDosOneTwoThree",
+  },
+]
+`;
+
 exports[`flattenTaggedMessageContent should correctly handle spacer adjoining linebreak 1`] = `
 Array [
   Object {
