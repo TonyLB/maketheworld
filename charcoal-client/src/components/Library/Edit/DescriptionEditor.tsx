@@ -81,6 +81,16 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 break
             case 'LineBreak':
                 yield { type: 'lineBreak' }
+                break
+            case 'After':
+                yield *descendantsTranslate(normalForm, item.contents)
+                break
+            case 'Before':
+            case 'Replace':
+                yield {
+                    type: item.tag === 'Before' ? 'before' : 'replace',
+                    children: [...descendantsTranslate(normalForm, item.contents)]
+                }
         }
     }
 }
@@ -122,6 +132,11 @@ const descendantsFromRender = (normalForm: NormalForm) => (render: ComponentRend
 const withInlines = (editor: Editor) => {
     const { isInline, isVoid } = editor
 
+    //
+    // TODO: Add in new Inline types for Before / Replace blocks.
+    //
+    // TODO: Add in new Inline types for If, Else If and Else blocks.
+    //
     editor.isInline = (element: SlateElement) => (
         ['actionLink', 'featureLink'].includes(element.type) || isInline(element)
     )
