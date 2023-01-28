@@ -47,7 +47,7 @@ exports[`flattenTaggedMessageContent should correctly expand before tag 1`] = `
 Array [
   Object {
     "tag": "String",
-    "value": "ThreeOneTwoFour",
+    "value": "OneTwoThreeFour",
   },
 ]
 `;
@@ -56,7 +56,7 @@ exports[`flattenTaggedMessageContent should correctly expand replace tag 1`] = `
 Array [
   Object {
     "tag": "String",
-    "value": "UnoDosOneTwoThree",
+    "value": "OneTwoThree",
   },
 ]
 `;

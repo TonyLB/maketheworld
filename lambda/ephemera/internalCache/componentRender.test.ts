@@ -283,7 +283,7 @@ describe('ComponentRender cache handler', () => {
                 }]
             })).toEqual({
                 Description: [
-                    { tag: 'String', value: 'ThreeOne Two ' }
+                    { tag: 'String', value: 'One Two Three' }
                 ],
                 Name: [],
                 Exits: []
@@ -313,7 +313,7 @@ describe('ComponentRender cache handler', () => {
                 }]
             })).toEqual({
                 Description: [
-                    { tag: 'String', value: 'Uno Dos One Two Three' }
+                    { tag: 'String', value: 'One Two Three' }
                 ],
                 Name: [],
                 Exits: []

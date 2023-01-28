@@ -239,7 +239,19 @@ const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], op
             }
         })
     )
-    return evaluatedMessages.reduce<(TaggedMessageContentFlat | TaggedSpacer)[]>((previous, messages) => ([ ...previous, ...messages ]), [])
+    return evaluatedMessages.reduce<(TaggedMessageContentFlat | TaggedSpacer)[]>((previous, outputMessages, index) => {
+        const originalMessage = messages[index]
+        if (!originalMessage) {
+            return previous
+        }
+        if (isTaggedBefore(originalMessage)) {
+            return [ ...outputMessages, ...previous ]
+        }
+        if (isTaggedReplace(originalMessage)) {
+            return outputMessages
+        }
+        return [ ...previous, ...outputMessages ]
+    }, [])
 }
 
 export const flattenTaggedMessageContent = async (messages: TaggedMessageContent[], options: FlattenTaggedMessageContentOptions = {}): Promise<TaggedMessageContentFlat[]> => {
