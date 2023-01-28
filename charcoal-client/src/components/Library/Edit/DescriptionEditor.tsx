@@ -138,7 +138,7 @@ const withInlines = (editor: Editor) => {
     // TODO: Add in new Inline types for If, Else If and Else blocks.
     //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'before', 'after'].includes(element.type) || isInline(element)
     )
 
     editor.isVoid = (element: SlateElement) => (
@@ -210,6 +210,15 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                     {children}
                     <InlineChromiumBugfix />
                 </DescriptionLinkActionChip>
+            </span>
+        case 'before':
+        case 'replace':
+            return <span {...attributes}>
+                <Box component="span" sx={{ fontWeight: 'bold' }}>
+                    <InlineChromiumBugfix />
+                    {children}
+                    <InlineChromiumBugfix />
+                </Box>
             </span>
         case 'description':
             const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([

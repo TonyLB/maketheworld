@@ -79,7 +79,13 @@ export type ComponentRenderItem = {
 } | {
     tag: 'Space';
 } | {
-    tag: 'After' | 'Before' | 'Replace';
+    tag: 'After';
+    contents: ComponentRenderItem[];
+} | {
+    tag: 'Replace';
+    contents: ComponentRenderItem[];
+} | {
+    tag: 'Before';
     contents: ComponentRenderItem[];
 } | ({
     tag: 'Condition';
