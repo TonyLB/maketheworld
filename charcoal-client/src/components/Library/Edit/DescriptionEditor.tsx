@@ -5,6 +5,7 @@ import {
 } from "react-router-dom"
 import { v4 as uuidv4 } from 'uuid'
 import { isKeyHotkey } from 'is-hotkey'
+import { pink, green } from '@mui/material/colors'
 
 import { useSlateStatic, useSlate } from 'slate-react'
 import {
@@ -33,6 +34,8 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
+import BeforeIcon from '@mui/icons-material/Reply'
+import ReplaceIcon from '@mui/icons-material/Backspace'
 
 import {
     CustomActionLinkElement,
@@ -81,6 +84,16 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 break
             case 'LineBreak':
                 yield { type: 'lineBreak' }
+                break
+            case 'After':
+                yield *descendantsTranslate(normalForm, item.contents)
+                break
+            case 'Before':
+            case 'Replace':
+                yield {
+                    type: item.tag === 'Before' ? 'before' : 'replace',
+                    children: [...descendantsTranslate(normalForm, item.contents)]
+                }
         }
     }
 }
@@ -122,8 +135,13 @@ const descendantsFromRender = (normalForm: NormalForm) => (render: ComponentRend
 const withInlines = (editor: Editor) => {
     const { isInline, isVoid } = editor
 
+    //
+    // TODO: Add in new Inline types for Before / Replace blocks.
+    //
+    // TODO: Add in new Inline types for If, Else If and Else blocks.
+    //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'before', 'after'].includes(element.type) || isInline(element)
     )
 
     editor.isVoid = (element: SlateElement) => (
@@ -196,6 +214,47 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                     <InlineChromiumBugfix />
                 </DescriptionLinkActionChip>
             </span>
+        case 'before':
+        case 'replace':
+            const highlight = element.type === 'before' ? green : pink
+            return <React.Fragment>
+                <Box
+                    component="span"
+                    contentEditable={false}
+                    sx={{
+                        borderRadius: "1em 0em 0em 1em",
+                        borderStyle: 'solid',
+                        borderRightStyle: 'none',
+                        borderColor: highlight[500],
+                        background: highlight[100],
+                        display: 'inline',
+                        paddingRight: '0.25em'
+                    }}
+                >
+                    {
+                        element.type === 'before'
+                            ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
+                            : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment> }
+                </Box>
+                <span {...attributes}>
+                    <Box
+                        component="span"
+                        sx={{
+                            borderRadius: '0em 1em 1em 0em',
+                            borderStyle: 'solid',
+                            borderColor: highlight[500],
+                            background: highlight[50],
+                            display: 'inline',
+                            paddingRight: '0.5em',
+                            paddingLeft: '0.25em'
+                        }}
+                    >
+                        <InlineChromiumBugfix />
+                        {children}
+                        <InlineChromiumBugfix />
+                    </Box>
+                </span>
+            </React.Fragment>
         case 'description':
             const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
                 ...previous,

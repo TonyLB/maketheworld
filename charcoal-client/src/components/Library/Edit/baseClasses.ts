@@ -28,13 +28,25 @@ export type CustomLineBreak = {
     type: 'lineBreak';
 }
 
-export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomLineBreak
+export type CustomBeforeBlock = {
+    type: 'before';
+    children: CustomParagraphContents[];
+}
+
+export type CustomReplaceBlock = {
+    type: 'replace';
+    children: CustomParagraphContents[];
+}
+
+export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock
 
 export const isCustomLineBreak = (item: CustomParagraphContents): item is CustomLineBreak => ('type' in item && item.type === 'lineBreak')
 export const isCustomActionLink = (item: CustomParagraphContents): item is CustomActionLinkElement => ('type' in item && item.type === 'actionLink')
 export const isCustomFeatureLink = (item: CustomParagraphContents): item is CustomFeatureLinkElement => ('type' in item && item.type === 'featureLink')
 export const isCustomLink = (item: CustomParagraphContents): item is CustomLinkElement => (isCustomActionLink(item) || isCustomFeatureLink(item))
 export const isCustomText = (item: CustomParagraphContents): item is CustomText => ('text' in item)
+export const isCustomBeforeBlock = (item: CustomParagraphContents): item is CustomBeforeBlock => ('type' in item && item.type === 'before')
+export const isCustomReplaceBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'replace')
 
 export type CustomParagraphElement = {
     type: 'paragraph';
@@ -50,8 +62,9 @@ type CustomElement = CustomLineElement |
     CustomActionLinkElement |
     CustomFeatureLinkElement |
     CustomParagraphElement |
-    CustomDescriptionElement
-
+    CustomDescriptionElement |
+    CustomBeforeBlock |
+    CustomReplaceBlock
 
 
 declare module 'slate' {
