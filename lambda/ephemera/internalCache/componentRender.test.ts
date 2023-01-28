@@ -239,6 +239,88 @@ describe('ComponentRender cache handler', () => {
             })
         })
 
+        it('should correctly parse into after tag', async () => {
+            expect(await componentAppearanceReduce(options, {
+                conditions: [],
+                name: [],
+                exits: [],
+                render: [{
+                    tag: 'String',
+                    value: 'One ',
+                },
+                {
+                    tag: 'After',
+                    contents: [
+                        { tag: 'String', value: 'Two ' },
+                        { tag: 'String', value: 'Three' }
+                    ]
+                }]
+            })).toEqual({
+                Description: [
+                    { tag: 'String', value: 'One Two Three' }
+                ],
+                Name: [],
+                Exits: []
+            })
+
+        })
+
+        it('should correctly parse into before tag', async () => {
+            expect(await componentAppearanceReduce(options, {
+                conditions: [],
+                name: [],
+                exits: [],
+                render: [{
+                    tag: 'String',
+                    value: 'Three',
+                },
+                {
+                    tag: 'Before',
+                    contents: [
+                        { tag: 'String', value: 'One ' },
+                        { tag: 'String', value: 'Two ' }
+                    ]
+                }]
+            })).toEqual({
+                Description: [
+                    { tag: 'String', value: 'ThreeOne Two ' }
+                ],
+                Name: [],
+                Exits: []
+            })
+
+        })
+
+        it('should correctly parse into replace tag', async () => {
+            expect(await componentAppearanceReduce(options, {
+                conditions: [],
+                name: [],
+                exits: [],
+                render: [{
+                    tag: 'String',
+                    value: 'Uno Dos ',
+                },
+                {
+                    tag: 'Replace',
+                    contents: [
+                        { tag: 'String', value: 'One ' },
+                        { tag: 'String', value: 'Two ' }
+                    ]
+                },
+                {
+                    tag: 'String',
+                    value: 'Three'
+                }]
+            })).toEqual({
+                Description: [
+                    { tag: 'String', value: 'Uno Dos One Two Three' }
+                ],
+                Name: [],
+                Exits: []
+            })
+
+        })
+
     })
 
     beforeEach(() => {

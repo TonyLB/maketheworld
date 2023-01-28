@@ -75,14 +75,44 @@ export type TaggedConditionalUnrestricted = {
     contents: TaggedMessageContentUnrestricted[];
 }
 
-export type TaggedMessageContent = TaggedLink | TaggedBookmark | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditional;
+export type TaggedAfter = {
+    tag: 'After';
+    contents: TaggedMessageContent[];
+}
+
+export type TaggedBefore = {
+    tag: 'Before';
+    contents: TaggedMessageContent[];
+}
+
+export type TaggedReplace = {
+    tag: 'Replace';
+    contents: TaggedMessageContent[];
+}
+
+export type TaggedAfterUnrestricted = {
+    tag: 'After';
+    contents: TaggedMessageContentUnrestricted[];
+}
+
+export type TaggedBeforeUnrestricted = {
+    tag: 'Before';
+    contents: TaggedMessageContentUnrestricted[];
+}
+
+export type TaggedReplaceUnrestricted = {
+    tag: 'Replace';
+    contents: TaggedMessageContentUnrestricted[];
+}
+
+export type TaggedMessageContent = TaggedLink | TaggedBookmark | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditional | TaggedAfter | TaggedBefore | TaggedReplace;
 
 //
 // TaggedMessageContentUnrestricted is a utility type which should (hopefully) match ComponentRenderItem from mtw-wml,
 // and let the more basic of the message utility functions operate identically on both those types (since
 // they share a lot of basic structure, with ComponentRenderItem using local keys rather than global ones)
 //
-export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedBookmarkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditionalUnrestricted;
+export type TaggedMessageContentUnrestricted = TaggedLinkUnrestricted | TaggedBookmarkUnrestricted | TaggedText | TaggedLineBreak | TaggedSpacer | TaggedConditionalUnrestricted | TaggedAfterUnrestricted | TaggedBeforeUnrestricted | TaggedReplaceUnrestricted;
 
 export type TaggedMessageContentFlat = TaggedLink | TaggedText | TaggedLineBreak;
 
@@ -136,6 +166,9 @@ export const isTaggedText = (item: TaggedMessageContent | TaggedMessageContentUn
 export const isTaggedLineBreak = (item: TaggedMessageContent | TaggedNotificationContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 export const isTaggedSpacer = (item: TaggedMessageContent): item is TaggedSpacer => (item.tag === 'Space')
 export const isTaggedConditional = (item: TaggedMessageContent): item is TaggedConditional => (item.tag === 'Condition')
+export const isTaggedAfter = (item: TaggedMessageContent): item is TaggedAfter => (item.tag === 'After')
+export const isTaggedBefore = (item: TaggedMessageContent): item is TaggedBefore => (item.tag === 'Before')
+export const isTaggedReplace = (item: TaggedMessageContent): item is TaggedReplace => (item.tag === 'Replace')
 
 export const validateTaggedMessageList = (items: any): items is TaggedMessageContentFlat[] => {
     if (!Array.isArray(items)) {
@@ -193,6 +226,9 @@ const evaluateTaggedMessageContent = async (messages: TaggedMessageContent[], op
                 else {
                     return []
                 }
+            }
+            else if (isTaggedAfter(message) || isTaggedBefore(message) || isTaggedReplace(message)) {
+                return evaluateTaggedMessageContent(message.contents, options)
             }
             else if (isTaggedBookmark(message)) {
                 const evaluatedContents = await renderBookmark(message.to)
