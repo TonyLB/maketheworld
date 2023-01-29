@@ -221,44 +221,47 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
         case 'before':
         case 'replace':
             const highlight = element.type === 'before' ? green : pink
-            return <React.Fragment>
-                <Box
-                    component="span"
-                    contentEditable={false}
-                    sx={{
-                        borderRadius: "1em 0em 0em 1em",
-                        borderStyle: 'solid',
-                        borderRightStyle: 'none',
-                        borderColor: highlight[500],
-                        background: highlight[100],
-                        display: 'inline',
-                        paddingRight: '0.25em'
-                    }}
-                >
-                    {
-                        element.type === 'before'
-                            ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
-                            : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment> }
-                </Box>
-                <span {...attributes}>
+            return <span {...attributes}>
+                <Box sx={{ position: 'relative', width: "100%" }}>
                     <Box
-                        component="span"
                         sx={{
                             borderRadius: '0em 1em 1em 0em',
                             borderStyle: 'solid',
                             borderColor: highlight[500],
                             background: highlight[50],
-                            display: 'inline',
                             paddingRight: '0.5em',
-                            paddingLeft: '0.25em'
+                            paddingLeft: '0.25em',
+                            paddingTop: "0.5em",
+                            position: "relative",
+                            top: '1em',
+                            left: 0
                         }}
                     >
                         <InlineChromiumBugfix />
                         {children}
                         <InlineChromiumBugfix />
                     </Box>
-                </span>
-            </React.Fragment>
+                    <Box
+                        contentEditable={false}
+                        sx={{
+                            borderRadius: "0em 1em 1em 0em",
+                            borderStyle: 'solid',
+                            borderColor: highlight[500],
+                            background: highlight[100],
+                            display: 'inline',
+                            paddingRight: '0.25em',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0
+                        }}
+                    >
+                        {
+                            element.type === 'before'
+                                ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
+                                : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment> }
+                    </Box>
+                </Box>
+            </span>
         case 'description':
             const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
                 ...previous,
