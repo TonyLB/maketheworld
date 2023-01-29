@@ -375,6 +375,22 @@ const isLinkActive = (editor: Editor) => {
     return !!(link?.value)
 }
 
+const isBeforeBlock = (editor: Editor) => {
+    const block = Editor.nodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'before',
+    }).next()
+    return !!(block?.value)
+}
+
+const isReplaceBlock = (editor: Editor) => {
+    const block = Editor.nodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'replace',
+    }).next()
+    return !!(block?.value)
+}
+
 const selectActiveLink = (editor: Editor) => {
     const link = Editor.nodes(editor, {
         match: n =>
@@ -385,7 +401,7 @@ const selectActiveLink = (editor: Editor) => {
         Transforms.select(editor, location)
     }
 }
-  
+
 const unwrapLink = (editor: Editor) => {
     Transforms.unwrapNodes(editor, {
         match: n =>
@@ -434,6 +450,68 @@ const wrapFeatureLink = (editor: Editor, to: string) => {
         Transforms.insertNodes(editor, link)
     } else {
         Transforms.wrapNodes(editor, link, { split: true })
+        Transforms.collapse(editor, { edge: 'end' })
+        editor.saveSelection = undefined
+    }
+}
+
+const selectActiveBlock = (editor: Editor) => {
+    const block = Editor.nodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && ['before', 'replace'].includes(n.type),
+    }).next()
+    if (block?.value) {
+        const location = block.value[1]
+        Transforms.select(editor, location)
+    }
+}
+
+const unwrapBlock = (editor: Editor) => {
+    Transforms.unwrapNodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && ['before', 'replace'].includes(n.type),
+    })
+}
+
+const wrapBeforeBlock = (editor: Editor) => {
+    if (isBeforeBlock(editor)) {
+        selectActiveBlock(editor)
+        unwrapBlock(editor)
+    }
+  
+    const { selection } = editor
+    const isCollapsed = selection && Range.isCollapsed(selection)
+    const block: CustomBeforeBlock = {
+        type: 'before',
+        children: [],
+    }
+  
+    if (isCollapsed) {
+        Transforms.insertNodes(editor, block)
+    } else {
+        Transforms.wrapNodes(editor, block, { split: true })
+        Transforms.collapse(editor, { edge: 'end' })
+        editor.saveSelection = undefined
+    }
+}
+
+const wrapReplaceBlock = (editor: Editor) => {
+    if (isReplaceBlock(editor)) {
+        selectActiveBlock(editor)
+        unwrapBlock(editor)
+    }
+  
+    const { selection } = editor
+    const isCollapsed = selection && Range.isCollapsed(selection)
+    const block: CustomReplaceBlock = {
+        type: 'replace',
+        children: [],
+    }
+  
+    if (isCollapsed) {
+        Transforms.insertNodes(editor, block)
+    } else {
+        Transforms.wrapNodes(editor, block, { split: true })
         Transforms.collapse(editor, { edge: 'end' })
         editor.saveSelection = undefined
     }
@@ -517,6 +595,46 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
         <LinkOffIcon />
     </Button>
 }
+
+const DisplayTagRadio: FunctionComponent<{}> = () => {
+    const editor = useSlate()
+    const { selection } = editor
+    const handleBeforeClick = useCallback(() => {
+        wrapBeforeBlock(editor)
+        setTimeout(() => {
+            if (editor.saveSelection) {
+                Transforms.select(editor, editor.saveSelection)
+            }
+            ReactEditor.focus(editor)
+        }, 10)
+    }, [editor])
+    const handleReplaceClick = useCallback(() => {
+        wrapReplaceBlock(editor)
+        setTimeout(() => {
+            if (editor.saveSelection) {
+                Transforms.select(editor, editor.saveSelection)
+            }
+            ReactEditor.focus(editor)
+        }, 10)
+    }, [editor])
+    return <React.Fragment>
+        <Button
+            variant={isBeforeBlock(editor) ? "contained" : "outlined"}
+            disabled={!selection || Boolean(!isBeforeBlock(editor) && Range.isCollapsed(selection))}
+            onClick={handleBeforeClick}
+        >
+            <BeforeIcon />Before
+        </Button>
+        <Button
+            variant={isReplaceBlock(editor) ? "contained" : "outlined"}
+            disabled={!selection || Boolean(!isReplaceBlock(editor) && Range.isCollapsed(selection))}
+            onClick={handleReplaceClick}
+        >
+            <ReplaceIcon />Replace
+        </Button>
+    </React.Fragment>
+}
+
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, onChange = () => {} }) => {
     const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
@@ -577,6 +695,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                 <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
                 <RemoveLinkButton />
+                <DisplayTagRadio />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <Editable
