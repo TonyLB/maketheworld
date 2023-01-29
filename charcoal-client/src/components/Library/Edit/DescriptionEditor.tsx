@@ -50,7 +50,6 @@ import {
     isCustomBeforeBlock,
     CustomBeforeBlock,
     CustomReplaceBlock,
-    isCustomElementWithChildren,
     isCustomReplaceBlock
 } from './baseClasses'
 
@@ -600,7 +599,16 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
     const editor = useSlate()
     const { selection } = editor
     const handleBeforeClick = useCallback(() => {
-        wrapBeforeBlock(editor)
+        if (isBeforeBlock(editor)) {
+            unwrapBlock(editor)
+        }
+        else {
+            if (isReplaceBlock(editor)) {
+                selectActiveBlock(editor)
+                unwrapBlock(editor)
+            }
+            wrapBeforeBlock(editor)
+        }
         setTimeout(() => {
             if (editor.saveSelection) {
                 Transforms.select(editor, editor.saveSelection)
@@ -609,7 +617,28 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
         }, 10)
     }, [editor])
     const handleReplaceClick = useCallback(() => {
-        wrapReplaceBlock(editor)
+        if (isReplaceBlock(editor)) {
+            unwrapBlock(editor)
+        }
+        else {
+            if (isBeforeBlock(editor)) {
+                selectActiveBlock(editor)
+                unwrapBlock(editor)
+            }
+            wrapReplaceBlock(editor)
+        }
+        setTimeout(() => {
+            if (editor.saveSelection) {
+                Transforms.select(editor, editor.saveSelection)
+            }
+            ReactEditor.focus(editor)
+        }, 10)
+    }, [editor])
+    const handleAfterClick = useCallback(() => {
+        if (isReplaceBlock(editor) || isBeforeBlock(editor)) {
+            selectActiveBlock(editor)
+            unwrapBlock(editor)
+        }
         setTimeout(() => {
             if (editor.saveSelection) {
                 Transforms.select(editor, editor.saveSelection)
@@ -620,17 +649,24 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
     return <React.Fragment>
         <Button
             variant={isBeforeBlock(editor) ? "contained" : "outlined"}
-            disabled={!selection || Boolean(!isBeforeBlock(editor) && Range.isCollapsed(selection))}
+            disabled={Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && selection && Range.isCollapsed(selection))}
             onClick={handleBeforeClick}
         >
             <BeforeIcon />Before
         </Button>
         <Button
             variant={isReplaceBlock(editor) ? "contained" : "outlined"}
-            disabled={!selection || Boolean(!isReplaceBlock(editor) && Range.isCollapsed(selection))}
+            disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
             onClick={handleReplaceClick}
         >
             <ReplaceIcon />Replace
+        </Button>
+        <Button
+            variant={(isReplaceBlock(editor) || isBeforeBlock(editor)) ? "outlined" : "contained"}
+            disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
+            onClick={handleAfterClick}
+        >
+            <BeforeIcon sx={{ transform: "scaleX(-1)" }} />After
         </Button>
     </React.Fragment>
 }
