@@ -1,11 +1,10 @@
 import React, { FunctionComponent, useMemo, useState, useCallback, useEffect, ReactNode } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import {
     useParams
 } from "react-router-dom"
-import { v4 as uuidv4 } from 'uuid'
 import { isKeyHotkey } from 'is-hotkey'
-import { pink, green } from '@mui/material/colors'
+import { pink, green, blue } from '@mui/material/colors'
 
 import { useSlateStatic, useSlate } from 'slate-react'
 import {
@@ -58,6 +57,7 @@ import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Mes
 import { getNormalized } from '../../../slices/personalAssets'
 import useDebounce from '../../../hooks/useDebounce'
 import { deepEqual } from '../../../lib/objects'
+import { Items } from 'react-virtuoso/dist/List'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
@@ -98,6 +98,15 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                     type: item.tag === 'Before' ? 'before' : 'replace',
                     children: [...descendantsTranslate(normalForm, item.contents)]
                 }
+                break
+            case 'Condition':
+                const conditionSrc = item.conditions.filter(({ not }) => (!not))
+                yield {
+                    type: 'if',
+                    source: conditionSrc.length <= 1 ? `${(conditionSrc[0] || { if: 'false' }).if}` : `(${conditionSrc.join(') && (')})`,
+                    children: [...descendantsTranslate(normalForm, item.contents)]
+                }
+                break
         }
     }
 }
@@ -273,6 +282,15 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                         ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
                         : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment>
                     }
+                >
+                    { children }
+                </LabelledIndentBox>
+            </span>
+        case 'if':
+            return <span {...attributes}>
+                <LabelledIndentBox
+                    color={blue}
+                    label={<React.Fragment>If [{element.source}]</React.Fragment>}
                 >
                     { children }
                 </LabelledIndentBox>

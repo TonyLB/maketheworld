@@ -38,7 +38,13 @@ export type CustomReplaceBlock = {
     children: CustomParagraphContents[];
 }
 
-export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock
+export type CustomIfBlock = {
+    type: 'if';
+    source: string;
+    children: CustomParagraphContents[];
+}
+
+export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock | CustomIfBlock
 
 export const isCustomLineBreak = (item: CustomParagraphContents): item is CustomLineBreak => ('type' in item && item.type === 'lineBreak')
 export const isCustomActionLink = (item: CustomParagraphContents): item is CustomActionLinkElement => ('type' in item && item.type === 'actionLink')
@@ -47,6 +53,7 @@ export const isCustomLink = (item: CustomParagraphContents): item is CustomLinkE
 export const isCustomText = (item: CustomParagraphContents): item is CustomText => ('text' in item)
 export const isCustomBeforeBlock = (item: CustomParagraphContents): item is CustomBeforeBlock => ('type' in item && item.type === 'before')
 export const isCustomReplaceBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'replace')
+export const isCustomUfBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'if')
 export const isCustomElementWithChildren = (item: CustomText | CustomParagraphElement | CustomParagraphContents): item is CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock => ("type" in item && ['paragraph', 'before', 'replace'].includes(item.type))
 
 export type CustomParagraphElement = {
@@ -65,8 +72,8 @@ type CustomElement = CustomLineElement |
     CustomParagraphElement |
     CustomDescriptionElement |
     CustomBeforeBlock |
-    CustomReplaceBlock
-
+    CustomReplaceBlock |
+    CustomIfBlock
 
 declare module 'slate' {
     interface CustomTypes {
