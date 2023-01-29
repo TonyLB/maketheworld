@@ -46,7 +46,11 @@ import {
     isCustomLineBreak,
     isCustomLink,
     isCustomText,
-    isCustomFeatureLink
+    isCustomFeatureLink,
+    isCustomBeforeBlock,
+    CustomBeforeBlock,
+    CustomReplaceBlock,
+    isCustomReplaceBlock
 } from './baseClasses'
 
 import { ComponentRenderItem, NormalForm, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -370,6 +374,22 @@ const isLinkActive = (editor: Editor) => {
     return !!(link?.value)
 }
 
+const isBeforeBlock = (editor: Editor) => {
+    const block = Editor.nodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'before',
+    }).next()
+    return !!(block?.value)
+}
+
+const isReplaceBlock = (editor: Editor) => {
+    const block = Editor.nodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'replace',
+    }).next()
+    return !!(block?.value)
+}
+
 const selectActiveLink = (editor: Editor) => {
     const link = Editor.nodes(editor, {
         match: n =>
@@ -380,7 +400,7 @@ const selectActiveLink = (editor: Editor) => {
         Transforms.select(editor, location)
     }
 }
-  
+
 const unwrapLink = (editor: Editor) => {
     Transforms.unwrapNodes(editor, {
         match: n =>
@@ -434,6 +454,110 @@ const wrapFeatureLink = (editor: Editor, to: string) => {
     }
 }
 
+const selectActiveBlock = (editor: Editor) => {
+    const block = Editor.nodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && ['before', 'replace'].includes(n.type),
+    }).next()
+    if (block?.value) {
+        const location = block.value[1]
+        Transforms.select(editor, location)
+    }
+}
+
+const unwrapBlock = (editor: Editor) => {
+    Transforms.unwrapNodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && ['before', 'replace'].includes(n.type),
+    })
+}
+
+const wrapBeforeBlock = (editor: Editor) => {
+    if (isBeforeBlock(editor)) {
+        selectActiveBlock(editor)
+        unwrapBlock(editor)
+    }
+  
+    const { selection } = editor
+    const isCollapsed = selection && Range.isCollapsed(selection)
+    const block: CustomBeforeBlock = {
+        type: 'before',
+        children: [],
+    }
+  
+    if (isCollapsed) {
+        Transforms.insertNodes(editor, block)
+    } else {
+        Transforms.wrapNodes(editor, block, { split: true })
+        Transforms.collapse(editor, { edge: 'end' })
+        editor.saveSelection = undefined
+    }
+}
+
+const wrapReplaceBlock = (editor: Editor) => {
+    if (isReplaceBlock(editor)) {
+        selectActiveBlock(editor)
+        unwrapBlock(editor)
+    }
+  
+    const { selection } = editor
+    const isCollapsed = selection && Range.isCollapsed(selection)
+    const block: CustomReplaceBlock = {
+        type: 'replace',
+        children: [],
+    }
+  
+    if (isCollapsed) {
+        Transforms.insertNodes(editor, block)
+    } else {
+        Transforms.wrapNodes(editor, block, { split: true })
+        Transforms.collapse(editor, { edge: 'end' })
+        editor.saveSelection = undefined
+    }
+}
+
+const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock)[]): ComponentRenderItem[] => (
+    items.reduce<ComponentRenderItem[]>((accumulator, { children = [] }, index) => (
+        children
+            .filter((item) => (!(isCustomText(item) && !item.text)))
+            .reduce((previous, item) => {
+                if (isCustomLink(item)) {
+                    return [
+                        ...previous,
+                        {
+                            tag: 'Link',
+                            targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
+                            to: item.to,
+                            text: item.children
+                                .filter((child) => ('text' in child))
+                                .map(({ text }) => (text))
+                                .join('')
+                        }
+                    ]
+                }
+                if (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)) {
+                    return [
+                        ...previous,
+                        {
+                            tag: item.type === 'before' ? 'Before' : 'Replace',
+                            contents: descendantsToRender([item])
+                        }
+                    ]
+                }
+                if ('text' in item) {
+                    return [
+                        ...previous,
+                        {
+                            tag: 'String',
+                            value: item.text
+                        }
+                    ]
+                }
+                return previous
+            }, (index > 0) ? [...accumulator, { tag: 'LineBreak' }] : accumulator) as ComponentRenderItem[]
+    ), [] as ComponentRenderItem[])
+)
+
 interface AddLinkButtonProps {
     openDialog: () => void;
 }
@@ -470,6 +594,83 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
         <LinkOffIcon />
     </Button>
 }
+
+const DisplayTagRadio: FunctionComponent<{}> = () => {
+    const editor = useSlate()
+    const { selection } = editor
+    const handleBeforeClick = useCallback(() => {
+        if (isBeforeBlock(editor)) {
+            unwrapBlock(editor)
+        }
+        else {
+            if (isReplaceBlock(editor)) {
+                selectActiveBlock(editor)
+                unwrapBlock(editor)
+            }
+            wrapBeforeBlock(editor)
+        }
+        setTimeout(() => {
+            if (editor.saveSelection) {
+                Transforms.select(editor, editor.saveSelection)
+            }
+            ReactEditor.focus(editor)
+        }, 10)
+    }, [editor])
+    const handleReplaceClick = useCallback(() => {
+        if (isReplaceBlock(editor)) {
+            unwrapBlock(editor)
+        }
+        else {
+            if (isBeforeBlock(editor)) {
+                selectActiveBlock(editor)
+                unwrapBlock(editor)
+            }
+            wrapReplaceBlock(editor)
+        }
+        setTimeout(() => {
+            if (editor.saveSelection) {
+                Transforms.select(editor, editor.saveSelection)
+            }
+            ReactEditor.focus(editor)
+        }, 10)
+    }, [editor])
+    const handleAfterClick = useCallback(() => {
+        if (isReplaceBlock(editor) || isBeforeBlock(editor)) {
+            selectActiveBlock(editor)
+            unwrapBlock(editor)
+        }
+        setTimeout(() => {
+            if (editor.saveSelection) {
+                Transforms.select(editor, editor.saveSelection)
+            }
+            ReactEditor.focus(editor)
+        }, 10)
+    }, [editor])
+    return <React.Fragment>
+        <Button
+            variant={isBeforeBlock(editor) ? "contained" : "outlined"}
+            disabled={Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && selection && Range.isCollapsed(selection))}
+            onClick={handleBeforeClick}
+        >
+            <BeforeIcon />Before
+        </Button>
+        <Button
+            variant={isReplaceBlock(editor) ? "contained" : "outlined"}
+            disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
+            onClick={handleReplaceClick}
+        >
+            <ReplaceIcon />Replace
+        </Button>
+        <Button
+            variant={(isReplaceBlock(editor) || isBeforeBlock(editor)) ? "outlined" : "contained"}
+            disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
+            onClick={handleAfterClick}
+        >
+            <BeforeIcon sx={{ transform: "scaleX(-1)" }} />After
+        </Button>
+    </React.Fragment>
+}
+
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, onChange = () => {} }) => {
     const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
@@ -508,37 +709,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     }, [])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = ((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
-            .reduce((accumulator, { children = [] }, index) => (
-                children
-                    .filter((item) => (!(isCustomText(item) && !item.text)))
-                    .reduce((previous, item) => {
-                        if (isCustomLink(item)) {
-                            return [
-                                ...previous,
-                                {
-                                    tag: 'Link',
-                                    targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
-                                    to: item.to,
-                                    text: item.children
-                                        .filter((child) => ('text' in child))
-                                        .map(({ text }) => (text))
-                                        .join('')
-                                }
-                            ]
-                        }
-                        if ('text' in item) {
-                            return [
-                                ...previous,
-                                {
-                                    tag: 'String',
-                                    value: item.text
-                                }
-                            ]
-                        }
-                        return previous
-                    }, (index > 0) ? [...accumulator, { tag: 'LineBreak' }] : accumulator) as ComponentRenderItem[]
-            ), [] as ComponentRenderItem[])
+        const newRender = descendantsToRender((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
         onChange(newRender)
     }, [onChange, value])
 
@@ -560,6 +731,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                 <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
                 <RemoveLinkButton />
+                <DisplayTagRadio />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <Editable

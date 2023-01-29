@@ -47,6 +47,7 @@ export const isCustomLink = (item: CustomParagraphContents): item is CustomLinkE
 export const isCustomText = (item: CustomParagraphContents): item is CustomText => ('text' in item)
 export const isCustomBeforeBlock = (item: CustomParagraphContents): item is CustomBeforeBlock => ('type' in item && item.type === 'before')
 export const isCustomReplaceBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'replace')
+export const isCustomElementWithChildren = (item: CustomText | CustomParagraphElement | CustomParagraphContents): item is CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock => ("type" in item && ['paragraph', 'before', 'replace'].includes(item.type))
 
 export type CustomParagraphElement = {
     type: 'paragraph';
