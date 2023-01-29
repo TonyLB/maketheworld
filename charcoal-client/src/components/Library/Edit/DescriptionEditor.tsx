@@ -52,7 +52,7 @@ import {
     isCustomReplaceBlock
 } from './baseClasses'
 
-import { ComponentRenderItem, NormalForm, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, NormalForm, NormalFeature, NormalConditionStatement } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 import { getNormalized } from '../../../slices/personalAssets'
 import useDebounce from '../../../hooks/useDebounce'
@@ -66,7 +66,16 @@ interface DescriptionEditorProps {
 }
 
 const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents> {
+    let conditionElseContext: NormalConditionStatement[] = []
+    if (renderItems.length === 0) {
+        yield {
+            text: ''
+        }
+    }
     for (const item of renderItems) {
+        if (item.tag !== 'Condition') {
+            conditionElseContext = []
+        }
         switch(item.tag) {
             case 'Space':
                 yield {
@@ -100,11 +109,39 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 }
                 break
             case 'Condition':
-                const conditionSrc = item.conditions.filter(({ not }) => (!not))
-                yield {
-                    type: 'if',
-                    source: conditionSrc.length <= 1 ? `${(conditionSrc[0] || { if: 'false' }).if}` : `(${conditionSrc.join(') && (')})`,
-                    children: [...descendantsTranslate(normalForm, item.contents)]
+                const predicateToSrc = (predicate: NormalConditionStatement): string => {
+                    return `${ predicate.not ? '!' : ''}${predicate.if}`
+                }
+                const conditionsToSrc = (predicates: NormalConditionStatement[]): string => {
+                    return predicates.length <= 1 ? `${predicateToSrc(predicates[0] || { dependencies: [], if: 'false' })}` : `(${predicates.map(predicateToSrc).join(') && (')})`
+                }
+                const matchesElseConditions = conditionElseContext.length &&
+                    (deepEqual(conditionElseContext, item.conditions.slice(0, conditionElseContext.length).map((predicate) => ({ ...predicate, not: true }))))
+                if (matchesElseConditions) {
+                    const remainingConditions = item.conditions.slice(conditionElseContext.length)
+                    if (remainingConditions.length) {
+                        yield {
+                            type: 'elseif',
+                            source: conditionsToSrc(remainingConditions),
+                            children: [...descendantsTranslate(normalForm, item.contents)]
+                        }
+                        conditionElseContext = item.conditions.map((predicate) => ({ ...predicate, not: true }))
+                    }
+                    else {
+                        yield {
+                            type: 'else',
+                            children: [...descendantsTranslate(normalForm, item.contents)]
+                        }
+                        conditionElseContext = []
+                    }
+                }
+                else {
+                    yield {
+                        type: 'if',
+                        source: conditionsToSrc(item.conditions),
+                        children: [...descendantsTranslate(normalForm, item.contents)]
+                    }
+                    conditionElseContext = item.conditions.map((predicate) => ({ ...predicate, not: true }))
                 }
                 break
         }
@@ -287,10 +324,20 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                 </LabelledIndentBox>
             </span>
         case 'if':
+        case 'elseif':
             return <span {...attributes}>
                 <LabelledIndentBox
                     color={blue}
-                    label={<React.Fragment>If [{element.source}]</React.Fragment>}
+                    label={<React.Fragment>{element.type === 'if' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
+                >
+                    { children }
+                </LabelledIndentBox>
+            </span>
+        case 'else':
+            return <span {...attributes}>
+                <LabelledIndentBox
+                    color={blue}
+                    label={<React.Fragment>Else</React.Fragment>}
                 >
                     { children }
                 </LabelledIndentBox>
