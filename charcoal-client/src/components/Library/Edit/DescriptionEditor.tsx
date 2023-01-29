@@ -1,11 +1,10 @@
-import React, { FunctionComponent, useMemo, useState, useCallback, useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import React, { FunctionComponent, useMemo, useState, useCallback, useEffect, ReactNode } from 'react'
+import { useSelector } from 'react-redux'
 import {
     useParams
 } from "react-router-dom"
-import { v4 as uuidv4 } from 'uuid'
 import { isKeyHotkey } from 'is-hotkey'
-import { pink, green } from '@mui/material/colors'
+import { pink, green, blue } from '@mui/material/colors'
 
 import { useSlateStatic, useSlate } from 'slate-react'
 import {
@@ -53,11 +52,12 @@ import {
     isCustomReplaceBlock
 } from './baseClasses'
 
-import { ComponentRenderItem, NormalForm, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, NormalForm, NormalFeature, NormalConditionStatement } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 import { getNormalized } from '../../../slices/personalAssets'
 import useDebounce from '../../../hooks/useDebounce'
 import { deepEqual } from '../../../lib/objects'
+import { Items } from 'react-virtuoso/dist/List'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
@@ -66,7 +66,16 @@ interface DescriptionEditorProps {
 }
 
 const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents> {
+    let conditionElseContext: NormalConditionStatement[] = []
+    if (renderItems.length === 0) {
+        yield {
+            text: ''
+        }
+    }
     for (const item of renderItems) {
+        if (item.tag !== 'Condition') {
+            conditionElseContext = []
+        }
         switch(item.tag) {
             case 'Space':
                 yield {
@@ -98,6 +107,43 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                     type: item.tag === 'Before' ? 'before' : 'replace',
                     children: [...descendantsTranslate(normalForm, item.contents)]
                 }
+                break
+            case 'Condition':
+                const predicateToSrc = (predicate: NormalConditionStatement): string => {
+                    return `${ predicate.not ? '!' : ''}${predicate.if}`
+                }
+                const conditionsToSrc = (predicates: NormalConditionStatement[]): string => {
+                    return predicates.length <= 1 ? `${predicateToSrc(predicates[0] || { dependencies: [], if: 'false' })}` : `(${predicates.map(predicateToSrc).join(') && (')})`
+                }
+                const matchesElseConditions = conditionElseContext.length &&
+                    (deepEqual(conditionElseContext, item.conditions.slice(0, conditionElseContext.length).map((predicate) => ({ ...predicate, not: true }))))
+                if (matchesElseConditions) {
+                    const remainingConditions = item.conditions.slice(conditionElseContext.length)
+                    if (remainingConditions.length) {
+                        yield {
+                            type: 'elseif',
+                            source: conditionsToSrc(remainingConditions),
+                            children: [...descendantsTranslate(normalForm, item.contents)]
+                        }
+                        conditionElseContext = item.conditions.map((predicate) => ({ ...predicate, not: true }))
+                    }
+                    else {
+                        yield {
+                            type: 'else',
+                            children: [...descendantsTranslate(normalForm, item.contents)]
+                        }
+                        conditionElseContext = []
+                    }
+                }
+                else {
+                    yield {
+                        type: 'if',
+                        source: conditionsToSrc(item.conditions),
+                        children: [...descendantsTranslate(normalForm, item.contents)]
+                    }
+                    conditionElseContext = item.conditions.map((predicate) => ({ ...predicate, not: true }))
+                }
+                break
         }
     }
 }
@@ -199,6 +245,51 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
     </span>
 }
 
+type LabelledIndentBoxProps = {
+    color: Record<number | string, string>;
+    children: any;
+    label: ReactNode;
+}
+
+const LabelledIndentBox: FunctionComponent<LabelledIndentBoxProps> = ({ color, children, label }) => {
+    return <Box sx={{ position: 'relative', width: "100%" }}>
+        <Box
+            sx={{
+                borderRadius: '0em 1em 1em 0em',
+                borderStyle: 'solid',
+                borderColor: color[500],
+                background: color[50],
+                paddingRight: '0.5em',
+                paddingLeft: '0.25em',
+                paddingTop: "0.5em",
+                position: "relative",
+                top: '1em',
+                left: 0
+            }}
+        >
+            <InlineChromiumBugfix />
+            {children}
+            <InlineChromiumBugfix />
+        </Box>
+        <Box
+            contentEditable={false}
+            sx={{
+                borderRadius: "0em 1em 1em 0em",
+                borderStyle: 'solid',
+                borderColor: color[500],
+                background: color[100],
+                display: 'inline',
+                paddingRight: '0.25em',
+                position: 'absolute',
+                top: 0,
+                left: 0
+            }}
+        >
+            { label }
+        </Box>
+    </Box>
+}
+
 const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender, ...props }) => {
     const { attributes, children, element } = props
     switch(element.type) {
@@ -222,45 +313,34 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
         case 'replace':
             const highlight = element.type === 'before' ? green : pink
             return <span {...attributes}>
-                <Box sx={{ position: 'relative', width: "100%" }}>
-                    <Box
-                        sx={{
-                            borderRadius: '0em 1em 1em 0em',
-                            borderStyle: 'solid',
-                            borderColor: highlight[500],
-                            background: highlight[50],
-                            paddingRight: '0.5em',
-                            paddingLeft: '0.25em',
-                            paddingTop: "0.5em",
-                            position: "relative",
-                            top: '1em',
-                            left: 0
-                        }}
-                    >
-                        <InlineChromiumBugfix />
-                        {children}
-                        <InlineChromiumBugfix />
-                    </Box>
-                    <Box
-                        contentEditable={false}
-                        sx={{
-                            borderRadius: "0em 1em 1em 0em",
-                            borderStyle: 'solid',
-                            borderColor: highlight[500],
-                            background: highlight[100],
-                            display: 'inline',
-                            paddingRight: '0.25em',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0
-                        }}
-                    >
-                        {
-                            element.type === 'before'
-                                ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
-                                : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment> }
-                    </Box>
-                </Box>
+                <LabelledIndentBox
+                    color={highlight}
+                    label={element.type === 'before'
+                        ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
+                        : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment>
+                    }
+                >
+                    { children }
+                </LabelledIndentBox>
+            </span>
+        case 'if':
+        case 'elseif':
+            return <span {...attributes}>
+                <LabelledIndentBox
+                    color={blue}
+                    label={<React.Fragment>{element.type === 'if' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
+                >
+                    { children }
+                </LabelledIndentBox>
+            </span>
+        case 'else':
+            return <span {...attributes}>
+                <LabelledIndentBox
+                    color={blue}
+                    label={<React.Fragment>Else</React.Fragment>}
+                >
+                    { children }
+                </LabelledIndentBox>
             </span>
         case 'description':
             const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
