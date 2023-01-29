@@ -732,24 +732,24 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
     return <React.Fragment>
         <Button
             variant={isBeforeBlock(editor) ? "contained" : "outlined"}
-            disabled={Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && selection && Range.isCollapsed(selection))}
+            disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && selection && Range.isCollapsed(selection))}
             onClick={handleBeforeClick}
         >
-            <BeforeIcon />Before
+            <BeforeIcon />
         </Button>
         <Button
             variant={isReplaceBlock(editor) ? "contained" : "outlined"}
             disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
             onClick={handleReplaceClick}
         >
-            <ReplaceIcon />Replace
+            <ReplaceIcon />
         </Button>
         <Button
             variant={(isReplaceBlock(editor) || isBeforeBlock(editor)) ? "outlined" : "contained"}
             disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
             onClick={handleAfterClick}
         >
-            <BeforeIcon sx={{ transform: "scaleX(-1)" }} />After
+            <BeforeIcon sx={{ transform: "scaleX(-1)" }} />
         </Button>
     </React.Fragment>
 }
