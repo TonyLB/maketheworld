@@ -46,7 +46,12 @@ import {
     isCustomLineBreak,
     isCustomLink,
     isCustomText,
-    isCustomFeatureLink
+    isCustomFeatureLink,
+    isCustomBeforeBlock,
+    CustomBeforeBlock,
+    CustomReplaceBlock,
+    isCustomElementWithChildren,
+    isCustomReplaceBlock
 } from './baseClasses'
 
 import { ComponentRenderItem, NormalForm, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -434,6 +439,48 @@ const wrapFeatureLink = (editor: Editor, to: string) => {
     }
 }
 
+const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock)[]): ComponentRenderItem[] => (
+    items.reduce<ComponentRenderItem[]>((accumulator, { children = [] }, index) => (
+        children
+            .filter((item) => (!(isCustomText(item) && !item.text)))
+            .reduce((previous, item) => {
+                if (isCustomLink(item)) {
+                    return [
+                        ...previous,
+                        {
+                            tag: 'Link',
+                            targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
+                            to: item.to,
+                            text: item.children
+                                .filter((child) => ('text' in child))
+                                .map(({ text }) => (text))
+                                .join('')
+                        }
+                    ]
+                }
+                if (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)) {
+                    return [
+                        ...previous,
+                        {
+                            tag: item.type === 'before' ? 'Before' : 'Replace',
+                            contents: descendantsToRender([item])
+                        }
+                    ]
+                }
+                if ('text' in item) {
+                    return [
+                        ...previous,
+                        {
+                            tag: 'String',
+                            value: item.text
+                        }
+                    ]
+                }
+                return previous
+            }, (index > 0) ? [...accumulator, { tag: 'LineBreak' }] : accumulator) as ComponentRenderItem[]
+    ), [] as ComponentRenderItem[])
+)
+
 interface AddLinkButtonProps {
     openDialog: () => void;
 }
@@ -508,37 +555,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     }, [])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = ((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
-            .reduce((accumulator, { children = [] }, index) => (
-                children
-                    .filter((item) => (!(isCustomText(item) && !item.text)))
-                    .reduce((previous, item) => {
-                        if (isCustomLink(item)) {
-                            return [
-                                ...previous,
-                                {
-                                    tag: 'Link',
-                                    targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
-                                    to: item.to,
-                                    text: item.children
-                                        .filter((child) => ('text' in child))
-                                        .map(({ text }) => (text))
-                                        .join('')
-                                }
-                            ]
-                        }
-                        if ('text' in item) {
-                            return [
-                                ...previous,
-                                {
-                                    tag: 'String',
-                                    value: item.text
-                                }
-                            ]
-                        }
-                        return previous
-                    }, (index > 0) ? [...accumulator, { tag: 'LineBreak' }] : accumulator) as ComponentRenderItem[]
-            ), [] as ComponentRenderItem[])
+        const newRender = descendantsToRender((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
         onChange(newRender)
     }, [onChange, value])
 
