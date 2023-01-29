@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo, useState, useCallback, useEffect } from 'react'
+import React, { FunctionComponent, useMemo, useState, useCallback, useEffect, ReactNode } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
     useParams
@@ -199,6 +199,51 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
     </span>
 }
 
+type LabelledIndentBoxProps = {
+    color: Record<number | string, string>;
+    children: any;
+    label: ReactNode;
+}
+
+const LabelledIndentBox: FunctionComponent<LabelledIndentBoxProps> = ({ color, children, label }) => {
+    return <Box sx={{ position: 'relative', width: "100%" }}>
+        <Box
+            sx={{
+                borderRadius: '0em 1em 1em 0em',
+                borderStyle: 'solid',
+                borderColor: color[500],
+                background: color[50],
+                paddingRight: '0.5em',
+                paddingLeft: '0.25em',
+                paddingTop: "0.5em",
+                position: "relative",
+                top: '1em',
+                left: 0
+            }}
+        >
+            <InlineChromiumBugfix />
+            {children}
+            <InlineChromiumBugfix />
+        </Box>
+        <Box
+            contentEditable={false}
+            sx={{
+                borderRadius: "0em 1em 1em 0em",
+                borderStyle: 'solid',
+                borderColor: color[500],
+                background: color[100],
+                display: 'inline',
+                paddingRight: '0.25em',
+                position: 'absolute',
+                top: 0,
+                left: 0
+            }}
+        >
+            { label }
+        </Box>
+    </Box>
+}
+
 const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender, ...props }) => {
     const { attributes, children, element } = props
     switch(element.type) {
@@ -222,45 +267,15 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
         case 'replace':
             const highlight = element.type === 'before' ? green : pink
             return <span {...attributes}>
-                <Box sx={{ position: 'relative', width: "100%" }}>
-                    <Box
-                        sx={{
-                            borderRadius: '0em 1em 1em 0em',
-                            borderStyle: 'solid',
-                            borderColor: highlight[500],
-                            background: highlight[50],
-                            paddingRight: '0.5em',
-                            paddingLeft: '0.25em',
-                            paddingTop: "0.5em",
-                            position: "relative",
-                            top: '1em',
-                            left: 0
-                        }}
-                    >
-                        <InlineChromiumBugfix />
-                        {children}
-                        <InlineChromiumBugfix />
-                    </Box>
-                    <Box
-                        contentEditable={false}
-                        sx={{
-                            borderRadius: "0em 1em 1em 0em",
-                            borderStyle: 'solid',
-                            borderColor: highlight[500],
-                            background: highlight[100],
-                            display: 'inline',
-                            paddingRight: '0.25em',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0
-                        }}
-                    >
-                        {
-                            element.type === 'before'
-                                ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
-                                : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment> }
-                    </Box>
-                </Box>
+                <LabelledIndentBox
+                    color={highlight}
+                    label={element.type === 'before'
+                        ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
+                        : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment>
+                    }
+                >
+                    { children }
+                </LabelledIndentBox>
             </span>
         case 'description':
             const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
