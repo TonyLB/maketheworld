@@ -1,9 +1,8 @@
-import { FunctionComponent, useCallback, useState } from 'react'
+import React, { FunctionComponent, useCallback, useMemo } from 'react'
 
 import {
     Box,
-    Typography,
-    TextField
+    Typography
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
 
@@ -12,11 +11,9 @@ import AddRoomExit from './AddRoomExit'
 import RoomExitHeader from './RoomExitHeader'
 import { objectFilter } from '../../../lib/objects'
 import { noConditionContext } from './utilities'
-import { ComponentRenderItem, isNormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-
-interface RoomExitsProps {
-    RoomId: string;
-}
+import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ConditionalTree, reduceItemsToTree } from './conditionTree'
+import { LabelledIndentBox } from './LabelledIndentBox'
 
 const guessExitName = (roomName: ComponentRenderItem[] = []) => {
     const roomNameText = roomName.map((item) => (item.tag === 'String' ? item.value : '')).join('')
@@ -25,12 +22,76 @@ const guessExitName = (roomName: ComponentRenderItem[] = []) => {
         .filter((token) => (!['a', 'an', 'the'].includes(token)))[0] || 'unknown'
 }
 
+type RoomExitNodeData = {
+    key: string;
+    to: string;
+    from: string;
+}
+
+type RoomExitSubListProps = {
+    RoomId: string;
+    tree: ConditionalTree<string>;
+    onAddExit: (value: { toTarget: boolean; targetId: string }) => void;
+}
+
+const RoomExitSubList: FunctionComponent<RoomExitSubListProps> = ({ RoomId, tree, onAddExit }) => (
+    <Box sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: "100%"
+    }}>
+        {
+            tree.items.map((key) => (<RoomExitHeader key={key} ItemId={key} RoomId={RoomId} />))
+        }
+        {
+            tree.conditionals.map(({ if: ifPredicate, elseIfs, else: elsePredicate }) => (<React.Fragment key={ifPredicate.key}>
+                <LabelledIndentBox
+                    color={blue}
+                    label={<React.Fragment>If [{ifPredicate.source}]</React.Fragment>}
+                >
+                    <RoomExitSubList RoomId={RoomId} tree={ifPredicate.node} onAddExit={onAddExit} />
+                </LabelledIndentBox>
+                {
+                    elseIfs.map(({ key, node, source }) => (
+                        <LabelledIndentBox
+                            color={blue}
+                            label={<React.Fragment>Else If [{source}]</React.Fragment>}
+                            key={key}
+                        >
+                            <RoomExitSubList RoomId={RoomId} tree={node} onAddExit={onAddExit} />
+                        </LabelledIndentBox>
+                    ))
+                }
+                {
+                    elsePredicate && <LabelledIndentBox
+                        color={blue}
+                        label={<React.Fragment>Else</React.Fragment>}
+                    >
+                        <RoomExitSubList RoomId={RoomId} tree={elsePredicate.node} onAddExit={onAddExit} />
+                    </LabelledIndentBox>
+                }
+            </React.Fragment>))
+        }
+        <AddRoomExit RoomId={RoomId} onAdd={onAddExit} />
+    </Box>
+)
+
+type RoomExitsProps = {
+    RoomId: string;
+}
+
 export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
-    const { rooms, exits, normalForm, updateNormal } = useLibraryAsset()
-    const relevantExits = objectFilter(
-        objectFilter(exits, ({ appearances }) => (Boolean((appearances || []).find(noConditionContext)))),
-        ({ to, from }) => ((to === RoomId) || (from === RoomId))
-    )
+    const { rooms, normalForm, updateNormal } = useLibraryAsset()
+    const relevantExits = useMemo(() => (
+        Object.values(normalForm)
+            .filter(isNormalExit)
+            .filter(({ to, from }) => (to === RoomId || from === RoomId))
+            .reduce(reduceItemsToTree({
+                compare: (A: string, B: string) => (A === B),
+                normalForm,
+                transform: ({ key }: NormalExit) => (key)
+            }), { items: [], conditionals: [] })
+        ), [normalForm, RoomId])
     const onAddExit = useCallback(({ toTarget, targetId }: { toTarget: boolean, targetId: string }) => {
         const { from, to } = toTarget ? { from: RoomId, to: targetId } : { to: RoomId, from: targetId}
         const normalRoom = normalForm[from]
@@ -85,19 +146,13 @@ export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
             display: 'flex',
             flexGrow: 1,
         }}>
-            <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                width: "100%"
-            }}>
-                {
-                    Object.keys(relevantExits)
-                        .map((key) => (<RoomExitHeader key={key} ItemId={key} RoomId={RoomId} />))
-                }
-                <AddRoomExit RoomId={RoomId} onAdd={onAddExit} />
-            </Box>
+            <RoomExitSubList RoomId={RoomId} tree={relevantExits} onAddExit={onAddExit} />
         </Box>
     </Box>
+    //
+    // TODO: Abstract display of a list of exits into its own component, and then extend that with
+    // If/ElseIf/Else, recursively calling that component to nest the structure
+    //
 }
 
 export default RoomExits

@@ -1,0 +1,123 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`conditionTree should create complete tree given all exits 1`] = `
+Object {
+  "conditionals": Array [
+    Object {
+      "else": Object {
+        "conditionals": Array [],
+        "items": Array [
+          Object {
+            "key": "targetTwo#testRoom",
+            "name": "fromTwo",
+          },
+        ],
+      },
+      "elseIfs": Array [],
+      "if": Object {
+        "node": Object {
+          "conditionals": Array [
+            Object {
+              "else": Object {
+                "conditionals": Array [],
+                "items": Array [
+                  Object {
+                    "key": "testRoom#targetFour",
+                    "name": "target four",
+                  },
+                ],
+              },
+              "elseIfs": Array [
+                Object {
+                  "node": Object {
+                    "conditionals": Array [],
+                    "items": Array [
+                      Object {
+                        "key": "testRoom#targetThree",
+                        "name": "target three",
+                      },
+                    ],
+                  },
+                  "source": "varThree",
+                },
+              ],
+              "if": Object {
+                "node": Object {
+                  "conditionals": Array [],
+                  "items": Array [
+                    Object {
+                      "key": "testRoom#targetTwo",
+                      "name": "target two",
+                    },
+                  ],
+                },
+                "source": "varTwo",
+              },
+            },
+          ],
+          "items": Array [
+            Object {
+              "key": "targetOne#testRoom",
+              "name": "fromOne",
+            },
+          ],
+        },
+        "source": "varOne",
+      },
+    },
+  ],
+  "items": Array [
+    Object {
+      "key": "testRoom#targetOne",
+      "name": "target one",
+    },
+  ],
+}
+`;
+
+exports[`conditionTree should create nested elseIf items 1`] = `
+Object {
+  "conditionals": Array [
+    Object {
+      "elseIfs": Array [],
+      "if": Object {
+        "node": Object {
+          "conditionals": Array [
+            Object {
+              "elseIfs": Array [
+                Object {
+                  "node": Object {
+                    "conditionals": Array [],
+                    "items": Array [
+                      Object {
+                        "key": "testRoom#targetThree",
+                        "name": "target three",
+                      },
+                    ],
+                  },
+                  "source": "varThree",
+                },
+              ],
+              "if": Object {
+                "node": Object {
+                  "conditionals": Array [],
+                  "items": Array [
+                    Object {
+                      "key": "testRoom#targetTwo",
+                      "name": "target two",
+                    },
+                  ],
+                },
+                "source": "varTwo",
+              },
+            },
+          ],
+          "items": Array [],
+        },
+        "source": "varOne",
+      },
+    },
+  ],
+  "items": Array [],
+}
+`;
