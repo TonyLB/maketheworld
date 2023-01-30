@@ -7,7 +7,10 @@ Object {
       "else": Object {
         "conditionals": Array [],
         "items": Array [
-          "fromTwo",
+          Object {
+            "key": "targetTwo#testRoom",
+            "name": "fromTwo",
+          },
         ],
       },
       "elseIfs": Array [],
@@ -18,7 +21,10 @@ Object {
               "else": Object {
                 "conditionals": Array [],
                 "items": Array [
-                  "target four",
+                  Object {
+                    "key": "testRoom#targetFour",
+                    "name": "target four",
+                  },
                 ],
               },
               "elseIfs": Array [
@@ -26,7 +32,10 @@ Object {
                   "node": Object {
                     "conditionals": Array [],
                     "items": Array [
-                      "target three",
+                      Object {
+                        "key": "testRoom#targetThree",
+                        "name": "target three",
+                      },
                     ],
                   },
                   "source": "varThree",
@@ -36,7 +45,10 @@ Object {
                 "node": Object {
                   "conditionals": Array [],
                   "items": Array [
-                    "target two",
+                    Object {
+                      "key": "testRoom#targetTwo",
+                      "name": "target two",
+                    },
                   ],
                 },
                 "source": "varTwo",
@@ -44,7 +56,10 @@ Object {
             },
           ],
           "items": Array [
-            "fromOne",
+            Object {
+              "key": "targetOne#testRoom",
+              "name": "fromOne",
+            },
           ],
         },
         "source": "varOne",
@@ -52,7 +67,10 @@ Object {
     },
   ],
   "items": Array [
-    "target one",
+    Object {
+      "key": "testRoom#targetOne",
+      "name": "target one",
+    },
   ],
 }
 `;
@@ -61,19 +79,20 @@ exports[`conditionTree should create nested elseIf items 1`] = `
 Object {
   "conditionals": Array [
     Object {
-      "else": undefined,
       "elseIfs": Array [],
       "if": Object {
         "node": Object {
           "conditionals": Array [
             Object {
-              "else": undefined,
               "elseIfs": Array [
                 Object {
                   "node": Object {
                     "conditionals": Array [],
                     "items": Array [
-                      "target three",
+                      Object {
+                        "key": "testRoom#targetThree",
+                        "name": "target three",
+                      },
                     ],
                   },
                   "source": "varThree",
@@ -83,7 +102,10 @@ Object {
                 "node": Object {
                   "conditionals": Array [],
                   "items": Array [
-                    "target two",
+                    Object {
+                      "key": "testRoom#targetTwo",
+                      "name": "target two",
+                    },
                   ],
                 },
                 "source": "varTwo",

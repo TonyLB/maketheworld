@@ -22,7 +22,7 @@ const recursiveSimplifyConditionTree = (tree: ConditionalTree<NormalExit>): any 
 })
 
 describe('conditionTree', () => {
-    const reducer = (normalForm: NormalForm) => (reduceItemsToTree((A: NormalExit, B: NormalExit): boolean => (A.key === B.key), normalForm))
+    const reducer = (normalForm: NormalForm) => (reduceItemsToTree({ compare: (A: { key: string; name: string; }, B: { key: string; name: string; }): boolean => (A.key === B.key), normalForm, transform: ({ key, name }: NormalExit) => ({ key, name: name || '' }) }))
     const normalFromSource = (source: string) => {
         const normalizer = new Normalizer()
         const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(source))))
@@ -50,8 +50,8 @@ describe('conditionTree', () => {
                 </If>
             </Room>
         </Asset>`)
-        const testTree = Object.values(testNormalForm).filter(isNormalExit).reduce<ConditionalTree<NormalExit>>(reducer(testNormalForm), { items: [], conditionals: [] })
-        expect(recursiveSimplifyConditionTree(testTree)).toMatchSnapshot()
+        const testTree = Object.values(testNormalForm).filter(isNormalExit).reduce<ConditionalTree<{ key: string; name: string; }>>(reducer(testNormalForm), { items: [], conditionals: [] })
+        expect(testTree).toMatchSnapshot()
     })
 
     it('should create complete tree given all exits', () => {
@@ -84,7 +84,7 @@ describe('conditionTree', () => {
                 <Room key=(targetTwo)><Exit to=(testRoom)>fromTwo</Exit></Room>
             </Else>
         </Asset>`)
-        const testTree = Object.values(testNormalForm).filter(isNormalExit).reduce<ConditionalTree<NormalExit>>(reducer(testNormalForm), { items: [], conditionals: [] })
-        expect(recursiveSimplifyConditionTree(testTree)).toMatchSnapshot()
+        const testTree = Object.values(testNormalForm).filter(isNormalExit).reduce<ConditionalTree<{ key: string; name: string; }>>(reducer(testNormalForm), { items: [], conditionals: [] })
+        expect(testTree).toMatchSnapshot()
     })
 })

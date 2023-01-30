@@ -6,10 +6,9 @@
 
 import { isNormalCondition, isNormalExit, NormalCondition, NormalConditionStatement, NormalForm, NormalItem, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses";
 import { deepEqual } from "../../../lib/objects";
-import { addItem } from "../../../slices/activeCharacters";
 import { noConditionContext } from "./utilities";
 
-type ConditionalTreeNode<T extends NormalItem> = {
+type ConditionalTreeNode<T> = {
     if: {
         source: string;
         node: ConditionalTree<T>;
@@ -21,12 +20,12 @@ type ConditionalTreeNode<T extends NormalItem> = {
     else?: ConditionalTree<T>;
 }
 
-export type ConditionalTree<T extends NormalItem> = {
+export type ConditionalTree<T> = {
     items: T[];
     conditionals: ConditionalTreeNode<T>[];
 }
 
-const mergeItem = <T extends NormalItem>(compare: (A: T, B: T) => boolean ) => (previous: (T)[], item: T): (T)[] => {
+const mergeItem = <T>(compare: (A: T, B: T) => boolean ) => (previous: (T)[], item: T): (T)[] => {
     if (previous.find((check) => (compare(check, item)))) {
         return previous
     }
@@ -53,7 +52,7 @@ type MatchExistingTreeOutput = {
     additionalConditions: string[];
 }
 
-const matchExistingTree = <T extends NormalItem>(node: ConditionalTreeNode<T>, { conditions }: NormalCondition): MatchExistingTreeOutput | undefined => {
+const matchExistingTree = <T>(node: ConditionalTreeNode<T>, { conditions }: NormalCondition): MatchExistingTreeOutput | undefined => {
     const hasSource = Boolean(conditions.find(({ not }) => (!not)))
     const extendsConditions = conditions.length > node.elseIfs.length + 1
     if (extendsConditions) {
@@ -96,7 +95,14 @@ const matchExistingTree = <T extends NormalItem>(node: ConditionalTreeNode<T>, {
     }
 }
 
-const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => boolean, normalForm: NormalForm ) => (previous: ConditionalTree<T>, { item, contextStack }: { item: T, contextStack: NormalReference[] }): ConditionalTree<T> => {
+type AddItemToTreeOptions<T, N extends NormalItem> = {
+    compare: (A: T, B: T) => boolean;
+    normalForm: NormalForm;
+    transform: (item: N) => T;
+}
+
+const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeOptions<T, N>) => (previous: ConditionalTree<T>, { item, contextStack }: { item: N, contextStack: NormalReference[] }): ConditionalTree<T> => {
+    const { compare, normalForm, transform } = options
     if (contextStack.length)  {
         const firstCondition = normalForm[contextStack[0].key]
         if (firstCondition && isNormalCondition(firstCondition)) {
@@ -122,14 +128,14 @@ const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => b
                             ...newNode,
                             if: {
                                 ...newNode.if,
-                                node: addItemToTreeInContext(compare, normalForm)(newNode.if.node, newArg)
+                                node: addItemToTreeInContext(options)(newNode.if.node, newArg)
                             }
                         }
                         break
                     case 'Else':
                         newNode = {
                             ...newNode,
-                            else: addItemToTreeInContext(compare, normalForm)(newNode.else ?? { items: [], conditionals: [] }, newArg)
+                            else: addItemToTreeInContext(options)(newNode.else ?? { items: [], conditionals: [] }, newArg)
                         }
                         break
                     case 'ElseIf':
@@ -139,7 +145,7 @@ const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => b
                                 ...newNode.elseIfs.slice(0, match.index),
                                 {
                                     ...newNode.elseIfs[match.index],
-                                    node: addItemToTreeInContext(compare, normalForm)(newNode.elseIfs[match.index].node, newArg)
+                                    node: addItemToTreeInContext(options)(newNode.elseIfs[match.index].node, newArg)
                                 }
                             ]
                         }
@@ -151,7 +157,7 @@ const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => b
                                 ...newNode.elseIfs,
                                 ...match.additionalConditions.map((source) => ({ source, node: { items: [], conditionals: []  }}))
                             ],
-                            else: addItemToTreeInContext(compare, normalForm)({ items: [], conditionals: [] }, newArg)
+                            else: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
                         }
                         break
                     case 'NewElseIf':
@@ -162,7 +168,7 @@ const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => b
                                 ...match.additionalConditions.slice(0, -1).map((source) => ({ source, node: { items: [], conditionals: []  }})),
                                 {
                                     source: match.additionalConditions.slice(-1)[0],
-                                    node: addItemToTreeInContext(compare, normalForm)({ items: [], conditionals: [] }, newArg)
+                                    node: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
                                 }
                             ]
                         }
@@ -204,7 +210,7 @@ const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => b
                                     })),
                                     {
                                         source: conditions.slice(-1)[0].if,
-                                        node: addItemToTreeInContext(compare, normalForm)({ items: [], conditionals: [] }, newArg)
+                                        node: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
                                     }
                                 ]
                             }
@@ -213,7 +219,7 @@ const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => b
                             newNode = {
                                 if: {
                                     source: conditions[0].if,
-                                    node: addItemToTreeInContext(compare, normalForm)({ items: [], conditionals: [] }, newArg)
+                                    node: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
                                 },
                                 elseIfs: []
                             }
@@ -235,7 +241,7 @@ const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => b
                                     conditionals: []
                                 }
                             })),
-                            else: addItemToTreeInContext(compare, normalForm)({ items: [], conditionals: [] }, newArg)
+                            else: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
                         }
                     }
                     return {
@@ -253,36 +259,22 @@ const addItemToTreeInContext = <T extends NormalItem>(compare: (A: T, B: T) => b
     else {
         return {
             ...previous,
-            items: mergeItem(compare)(previous.items, item)
+            items: mergeItem(compare)(previous.items, transform(item))
         }
     }
 }
 
-const recursiveSimplifyConditionTree = <T extends NormalItem>(tree: ConditionalTree<T>): any => ({
-    items: tree.items.map((item) => (isNormalExit(item) ? item.name : '')),
-    conditionals: tree.conditionals.map(({ if: ifPredicate, elseIfs, else: elsePredicate }) => ({
-        if: {
-            source: ifPredicate.source,
-            node: recursiveSimplifyConditionTree(ifPredicate.node)
-        },
-        elseIfs: elseIfs.map(({ source, node }) => ({
-            source,
-            node: recursiveSimplifyConditionTree(node)
-        })),
-        else: elsePredicate ? recursiveSimplifyConditionTree(elsePredicate) : undefined
-    }))
-})
-
-export const reduceItemsToTree = <T extends NormalItem>(compare: (A: T, B: T) => boolean, normalForm: NormalForm) => (previous: ConditionalTree<T>, item: T): ConditionalTree<T> => {
+export const reduceItemsToTree = <T, N extends NormalItem>(options: AddItemToTreeOptions<T, N>) => (previous: ConditionalTree<T>, item: N): ConditionalTree<T> => {
+    const { compare, transform } = options
     if ((item.appearances ?? []).find(noConditionContext)) {
         return {
             ...previous,
-            items: mergeItem(compare)(previous.items, item)
+            items: mergeItem(compare)(previous.items, transform(item))
         }
     }
     else {
         return (item.appearances ?? [])
             .map(({ contextStack }) => ({ item, contextStack: contextStack.filter(({ tag }) => (tag === 'If')) }))
-            .reduce<ConditionalTree<T>>((previous, item) => (addItemToTreeInContext(compare, normalForm)(previous, item)), previous)
+            .reduce<ConditionalTree<T>>((previous, item) => (addItemToTreeInContext(options)(previous, item)), previous)
     }
 }
