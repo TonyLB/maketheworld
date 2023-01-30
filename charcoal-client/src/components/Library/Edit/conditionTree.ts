@@ -10,14 +10,19 @@ import { noConditionContext } from "./utilities";
 
 type ConditionalTreeNode<T> = {
     if: {
+        key: string;
         source: string;
         node: ConditionalTree<T>;
     };
     elseIfs: {
+        key: string;
         source: string;
         node: ConditionalTree<T>;
     }[];
-    else?: ConditionalTree<T>;
+    else?: {
+        key: string;
+        node: ConditionalTree<T>;
+    }
 }
 
 export type ConditionalTree<T> = {
@@ -135,7 +140,10 @@ const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeO
                     case 'Else':
                         newNode = {
                             ...newNode,
-                            else: addItemToTreeInContext(options)(newNode.else ?? { items: [], conditionals: [] }, newArg)
+                            else: {
+                                key: newNode.else?.key || firstCondition.key,
+                                node: addItemToTreeInContext(options)(newNode.else?.node ?? { items: [], conditionals: [] }, newArg)
+                            }
                         }
                         break
                     case 'ElseIf':
@@ -155,9 +163,12 @@ const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeO
                             ...newNode,
                             elseIfs: [
                                 ...newNode.elseIfs,
-                                ...match.additionalConditions.map((source) => ({ source, node: { items: [], conditionals: []  }}))
+                                ...match.additionalConditions.map((source, index) => ({ key: `${firstCondition.key}-Synthetic-${index}`, source, node: { items: [], conditionals: []  }}))
                             ],
-                            else: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
+                            else: {
+                                key: firstCondition.key,
+                                node: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
+                            }
                         }
                         break
                     case 'NewElseIf':
@@ -165,8 +176,9 @@ const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeO
                             ...newNode,
                             elseIfs: [
                                 ...newNode.elseIfs,
-                                ...match.additionalConditions.slice(0, -1).map((source) => ({ source, node: { items: [], conditionals: []  }})),
+                                ...match.additionalConditions.slice(0, -1).map((source, index) => ({ key: `${firstCondition.key}-Synthetic-${index}`, source, node: { items: [], conditionals: []  }})),
                                 {
+                                    key: firstCondition.key,
                                     source: match.additionalConditions.slice(-1)[0],
                                     node: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
                                 }
@@ -194,6 +206,7 @@ const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeO
                         if (conditions.length > 1) {
                             newNode = {
                                 if: {
+                                    key: `${firstCondition.key}-Synthetic-Base`,
                                     source: conditions[0].if,
                                     node: {
                                         items: [],
@@ -201,7 +214,8 @@ const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeO
                                     }
                                 },
                                 elseIfs: [
-                                    ...conditions.slice(1, -1).map(({ if: ifPredicate }) => ({
+                                    ...conditions.slice(1, -1).map(({ if: ifPredicate }, index) => ({
+                                        key: `${firstCondition.key}-Synthetic-${index}`,
                                         source: ifPredicate,
                                         node: {
                                             items: [],
@@ -209,6 +223,7 @@ const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeO
                                         }
                                     })),
                                     {
+                                        key: firstCondition.key,
                                         source: conditions.slice(-1)[0].if,
                                         node: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
                                     }
@@ -218,6 +233,7 @@ const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeO
                         else {
                             newNode = {
                                 if: {
+                                    key: firstCondition.key,
                                     source: conditions[0].if,
                                     node: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
                                 },
@@ -228,20 +244,25 @@ const addItemToTreeInContext = <T, N extends NormalItem>(options: AddItemToTreeO
                     else {
                         newNode = {
                             if: {
+                                key: `${firstCondition.key}-Synthetic-Base`,
                                 source: conditions[0].if,
                                 node: {
                                     items: [],
                                     conditionals: []
                                 }
                             },
-                            elseIfs: conditions.slice(1).map(({ if: ifPredicate }) => ({
+                            elseIfs: conditions.slice(1).map(({ if: ifPredicate }, index) => ({
+                                key: `${firstCondition.key}-Synthetic-${index}`,
                                 source: ifPredicate,
                                 node: {
                                     items: [],
                                     conditionals: []
                                 }
                             })),
-                            else: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
+                            else: {
+                                key: firstCondition.key,
+                                node: addItemToTreeInContext(options)({ items: [], conditionals: [] }, newArg)
+                            }
                         }
                     }
                     return {

@@ -44,7 +44,7 @@ const RoomExitSubList: FunctionComponent<RoomExitSubListProps> = ({ RoomId, tree
             tree.items.map((key) => (<RoomExitHeader key={key} ItemId={key} RoomId={RoomId} />))
         }
         {
-            tree.conditionals.map(({ if: ifPredicate, elseIfs, else: elsePredicate }) => (<React.Fragment>
+            tree.conditionals.map(({ if: ifPredicate, elseIfs, else: elsePredicate }) => (<React.Fragment key={ifPredicate.key}>
                 <LabelledIndentBox
                     color={blue}
                     label={<React.Fragment>If [{ifPredicate.source}]</React.Fragment>}
@@ -52,10 +52,11 @@ const RoomExitSubList: FunctionComponent<RoomExitSubListProps> = ({ RoomId, tree
                     <RoomExitSubList RoomId={RoomId} tree={ifPredicate.node} onAddExit={onAddExit} />
                 </LabelledIndentBox>
                 {
-                    elseIfs.map(({ node, source }) => (
+                    elseIfs.map(({ key, node, source }) => (
                         <LabelledIndentBox
                             color={blue}
                             label={<React.Fragment>Else If [{source}]</React.Fragment>}
+                            key={key}
                         >
                             <RoomExitSubList RoomId={RoomId} tree={node} onAddExit={onAddExit} />
                         </LabelledIndentBox>
@@ -66,7 +67,7 @@ const RoomExitSubList: FunctionComponent<RoomExitSubListProps> = ({ RoomId, tree
                         color={blue}
                         label={<React.Fragment>Else</React.Fragment>}
                     >
-                        <RoomExitSubList RoomId={RoomId} tree={elsePredicate} onAddExit={onAddExit} />
+                        <RoomExitSubList RoomId={RoomId} tree={elsePredicate.node} onAddExit={onAddExit} />
                     </LabelledIndentBox>
                 }
             </React.Fragment>))

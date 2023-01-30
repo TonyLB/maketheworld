@@ -6,21 +6,6 @@ import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 import { schemaFromParse } from "@tonylb/mtw-wml/dist/schema"
 import { ConditionalTree, reduceItemsToTree } from "./conditionTree"
 
-const recursiveSimplifyConditionTree = (tree: ConditionalTree<NormalExit>): any => ({
-    items: tree.items.map(({ name }) => (name)),
-    conditionals: tree.conditionals.map(({ if: ifPredicate, elseIfs, else: elsePredicate }) => ({
-        if: {
-            source: ifPredicate.source,
-            node: recursiveSimplifyConditionTree(ifPredicate.node)
-        },
-        elseIfs: elseIfs.map(({ source, node }) => ({
-            source,
-            node: recursiveSimplifyConditionTree(node)
-        })),
-        else: elsePredicate ? recursiveSimplifyConditionTree(elsePredicate) : undefined
-    }))
-})
-
 describe('conditionTree', () => {
     const reducer = (normalForm: NormalForm) => (reduceItemsToTree({ compare: (A: { key: string; name: string; }, B: { key: string; name: string; }): boolean => (A.key === B.key), normalForm, transform: ({ key, name }: NormalExit) => ({ key, name: name || '' }) }))
     const normalFromSource = (source: string) => {
