@@ -1,0 +1,101 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`conditionTree should create complete tree given all exits 1`] = `
+Object {
+  "conditionals": Array [
+    Object {
+      "else": Object {
+        "conditionals": Array [],
+        "items": Array [
+          "fromTwo",
+        ],
+      },
+      "elseIfs": Array [],
+      "if": Object {
+        "node": Object {
+          "conditionals": Array [
+            Object {
+              "else": Object {
+                "conditionals": Array [],
+                "items": Array [
+                  "target four",
+                ],
+              },
+              "elseIfs": Array [
+                Object {
+                  "node": Object {
+                    "conditionals": Array [],
+                    "items": Array [
+                      "target three",
+                    ],
+                  },
+                  "source": "varThree",
+                },
+              ],
+              "if": Object {
+                "node": Object {
+                  "conditionals": Array [],
+                  "items": Array [
+                    "target two",
+                  ],
+                },
+                "source": "varTwo",
+              },
+            },
+          ],
+          "items": Array [
+            "fromOne",
+          ],
+        },
+        "source": "varOne",
+      },
+    },
+  ],
+  "items": Array [
+    "target one",
+  ],
+}
+`;
+
+exports[`conditionTree should create nested elseIf items 1`] = `
+Object {
+  "conditionals": Array [
+    Object {
+      "else": undefined,
+      "elseIfs": Array [],
+      "if": Object {
+        "node": Object {
+          "conditionals": Array [
+            Object {
+              "else": undefined,
+              "elseIfs": Array [
+                Object {
+                  "node": Object {
+                    "conditionals": Array [],
+                    "items": Array [
+                      "target three",
+                    ],
+                  },
+                  "source": "varThree",
+                },
+              ],
+              "if": Object {
+                "node": Object {
+                  "conditionals": Array [],
+                  "items": Array [
+                    "target two",
+                  ],
+                },
+                "source": "varTwo",
+              },
+            },
+          ],
+          "items": Array [],
+        },
+        "source": "varOne",
+      },
+    },
+  ],
+  "items": Array [],
+}
+`;

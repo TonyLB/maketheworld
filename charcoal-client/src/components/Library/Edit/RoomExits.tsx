@@ -12,7 +12,9 @@ import AddRoomExit from './AddRoomExit'
 import RoomExitHeader from './RoomExitHeader'
 import { objectFilter } from '../../../lib/objects'
 import { noConditionContext } from './utilities'
-import { ComponentRenderItem, isNormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, isNormalCondition, isNormalRoom, NormalExit, NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import produce from 'immer'
+import { WritableDraft } from 'immer/dist/internal'
 
 interface RoomExitsProps {
     RoomId: string;
