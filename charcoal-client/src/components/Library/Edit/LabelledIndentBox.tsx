@@ -5,10 +5,10 @@ type LabelledIndentBoxProps = {
     color: Record<number | string, string>;
     children: any;
     label: ReactNode;
-    labelArgs?: Record<string, any>;
+    slate?: boolean;
 }
 
-export const LabelledIndentBox: FunctionComponent<LabelledIndentBoxProps> = ({ color, children, label, labelArgs }) => {
+export const LabelledIndentBox: FunctionComponent<LabelledIndentBoxProps> = ({ color, children, label, slate }) => {
     return <Box sx={{ position: 'relative', width: "100%" }}>
         <Box
             sx={{
@@ -19,15 +19,20 @@ export const LabelledIndentBox: FunctionComponent<LabelledIndentBoxProps> = ({ c
                 paddingRight: '0.5em',
                 paddingLeft: '0.25em',
                 paddingTop: "0.5em",
-                position: "relative",
-                top: '1em',
-                left: 0
+                ...(slate
+                    ? {
+                        position: "relative",
+                        top: '1em',
+                        left: 0
+                    }
+                    : { marginTop: '1em' }
+                )
             }}
         >
             {children}
         </Box>
         <Box
-            {...(labelArgs || {})}
+            {...(slate ? { contentEditable: false } : {})}
             sx={{
                 borderRadius: "0em 1em 1em 0em",
                 borderStyle: 'solid',

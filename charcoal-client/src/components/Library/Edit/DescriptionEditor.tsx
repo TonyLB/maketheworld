@@ -256,7 +256,7 @@ const SlateIndentBox: FunctionComponent<SlateIndentBoxProps> = ({ color, childre
     return <LabelledIndentBox
         color={color}
         label={label}
-        labelArgs={{ contentEditable: false }}
+        slate
     >
         <InlineChromiumBugfix />
         {children}
