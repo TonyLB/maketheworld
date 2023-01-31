@@ -17,6 +17,9 @@ import {
 } from 'slate'
 import { withHistory } from 'slate-history'
 import { Slate, Editable, withReact, ReactEditor, RenderElementProps, RenderLeafProps } from 'slate-react'
+
+import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
+
 import {
     Box,
     Toolbar,
@@ -49,7 +52,13 @@ import {
     isCustomBeforeBlock,
     CustomBeforeBlock,
     CustomReplaceBlock,
-    isCustomReplaceBlock
+    isCustomReplaceBlock,
+    isCustomIfBlock,
+    isCustomElseBlock,
+    isCustomElseIfBlock,
+    CustomIfBlock,
+    CustomElseIfBlock,
+    CustomElseBlock
 } from './baseClasses'
 
 import { ComponentRenderItem, NormalForm, NormalFeature, NormalConditionStatement } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -192,7 +201,7 @@ const withInlines = (editor: Editor) => {
     // TODO: Add in new Inline types for If, Else If and Else blocks.
     //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink', 'before', 'after'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'before', 'after', 'if', 'elseif', 'else'].includes(element.type) || isInline(element)
     )
 
     editor.isVoid = (element: SlateElement) => (
@@ -573,11 +582,44 @@ const wrapReplaceBlock = (editor: Editor) => {
     }
 }
 
-const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock)[]): ComponentRenderItem[] => (
-    items.reduce<ComponentRenderItem[]>((accumulator, { children = [] }, index) => (
-        children
+const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]): ComponentRenderItem[] => (
+    items.reduce<ComponentRenderItem[]>((accumulator, { children = [] }, index) => {
+        let adjacentConditions: NormalConditionStatement[] = []
+        return children
             .filter((item) => (!(isCustomText(item) && !item.text)))
             .reduce((previous, item) => {
+                if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
+                    if (isCustomIfBlock(item)) {
+                        adjacentConditions = [{
+                            if: item.source,
+                            dependencies: extractDependenciesFromJS(item.source)
+                        }]
+                    }
+                    else if (isCustomElseIfBlock(item)) {
+                        adjacentConditions = [
+                            ...adjacentConditions.map((condition) => ({ ...condition, not: true })),
+                            {
+                                if: item.source,
+                                dependencies: extractDependenciesFromJS(item.source)
+                            }
+                        ]
+                    }
+                    else {
+                        adjacentConditions = adjacentConditions.map((condition) => ({ ...condition, not: true }))
+                    }
+                    const returnValue: ComponentRenderItem[] = [
+                        ...previous,
+                        {
+                            tag: 'Condition',
+                            conditions: adjacentConditions,
+                            contents: descendantsToRender([item])
+                        }
+                    ]
+                    if (isCustomElseBlock(item)) {
+                        adjacentConditions = []
+                    }
+                    return returnValue
+                }
                 if (isCustomLink(item)) {
                     return [
                         ...previous,
@@ -612,7 +654,7 @@ const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock 
                 }
                 return previous
             }, (index > 0) ? [...accumulator, { tag: 'LineBreak' }] : accumulator) as ComponentRenderItem[]
-    ), [] as ComponentRenderItem[])
+    }, [] as ComponentRenderItem[])
 )
 
 interface AddLinkButtonProps {

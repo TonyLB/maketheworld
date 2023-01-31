@@ -52,7 +52,7 @@ export type UpdateNormalPayload = UpdateNormalPayloadPut |
 
 export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<UpdateNormalPayload>) => {
     const normalizer = new Normalizer()
-    normalizer._normalForm = state.normal
+    normalizer.loadNormal(state.normal)
     switch(action.payload.type) {
         case 'put':
             normalizer.put(action.payload.item, action.payload.position)
