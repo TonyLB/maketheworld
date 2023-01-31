@@ -1003,6 +1003,11 @@ export class Normalizer {
         })
     }
 
+    loadNormal(normal: NormalForm): void {
+        this._normalForm = normal
+        this._tags = Object.values(normal).reduce((previous, { key, tag }) => ({ ...previous, [key]: tag }), {})
+    }
+
     get normal() {
         return this._normalForm
     }

@@ -66,7 +66,6 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         normalizer._normalForm = normalForm
         const reference: NormalReference = { tag, key: ComponentId, index: appearanceIndex }
         const baseSchema = normalizer.referenceToSchema(reference)
-        const position = { ...normalizer._referenceToInsertPosition(reference), replace: true }
         if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
             updateNormal({
                 type: 'put',
