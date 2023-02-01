@@ -58,7 +58,9 @@ import {
     isCustomElseIfBlock,
     CustomIfBlock,
     CustomElseIfBlock,
-    CustomElseBlock
+    CustomElseBlock,
+    isCustomIfBase,
+    CustomIfBase
 } from '../baseClasses'
 
 import { ComponentRenderItem, NormalForm, NormalFeature, NormalConditionStatement, NormalCondition } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -86,7 +88,7 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
         else {
             return {
                 elseContext: [
-                    current.source,
+                    ...current.children.filter(isCustomIfBase).map(({ source }) => (source)),
                     ...current.children.filter(isCustomElseIfBlock).map(({ source }) => (source))
                 ],
                 elseDefined: Boolean(current.children.find(isCustomElseBlock))
@@ -181,10 +183,13 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                         }
                         currentIfElement = {
                             type: 'if',
-                            source: conditionsToSrc(item.conditions),
-                            children: [...descendantsTranslate(normalForm, item.contents)]
+                            children: [{
+                                type: 'ifBase',
+                                source: conditionsToSrc(item.conditions),
+                                children: [...descendantsTranslate(normalForm, item.contents)]
+                            }]
                         }
-                    }
+                        }
                 }
                 else {
                     if (currentIfElement) {
@@ -192,8 +197,11 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                     }
                     currentIfElement = {
                         type: 'if',
-                        source: conditionsToSrc(item.conditions),
-                        children: [...descendantsTranslate(normalForm, item.contents)]
+                        children: [{
+                            type: 'ifBase',
+                            source: conditionsToSrc(item.conditions),
+                            children: [...descendantsTranslate(normalForm, item.contents)]
+                        }]
                     }
                 }
                 break
@@ -353,11 +361,15 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                 </SlateIndentBox>
             </span>
         case 'if':
+            return <span {...attributes}>
+                { children }
+            </span>
+        case 'ifBase':
         case 'elseif':
             return <span {...attributes}>
                 <SlateIndentBox
                     color={blue}
-                    label={<React.Fragment>{element.type === 'if' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
+                    label={<React.Fragment>{element.type === 'ifBase' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
                 >
                     { children }
                 </SlateIndentBox>
@@ -628,18 +640,29 @@ const wrapReplaceBlock = (editor: Editor) => {
     }
 }
 
-const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock | CustomElseIfBlock | CustomElseBlock)[]): ComponentRenderItem[] => (
+const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock | CustomIfBase | CustomElseIfBlock | CustomElseBlock)[]): ComponentRenderItem[] => (
     items.reduce<ComponentRenderItem[]>((accumulator, { children = [] }, index) => {
         return children
             .filter((item) => (!(isCustomText(item) && !item.text)))
             .reduce((previous, item) => {
                 if (isCustomIfBlock(item)) {
-                    const ifCondition = {
-                        if: item.source,
-                        dependencies: extractDependenciesFromJS(item.source)
-                    }
-                    const { elseIfs, ifContents, elseContents, runningConditions } = item.children.reduce<{ runningConditions: NormalConditionStatement[]; ifContents: ComponentRenderItem[]; elseIfs: ComponentRenderItem[]; elseContents: ComponentRenderItem[] }>((previous, child) => {
-                        if (isCustomElseIfBlock(child)) {
+                    const { elseIfs, ifBase, elseContents, runningConditions } = item.children.reduce<{ runningConditions: NormalConditionStatement[]; ifBase?: ComponentRenderItem | undefined; elseIfs: ComponentRenderItem[]; elseContents: ComponentRenderItem[] }>((previous, child) => {
+                        if (isCustomIfBase(child)) {
+                            const ifCondition = {
+                                if: child.source,
+                                dependencies: extractDependenciesFromJS(child.source)
+                            }
+                            return {
+                                ...previous,
+                                ifBase: {
+                                    tag: 'Condition',
+                                    conditions: [ifCondition],
+                                    contents: descendantsToRender([child])
+                                },
+                                runningConditions: [{ ...ifCondition, not: true }]
+                            }
+                        }
+                        else if (isCustomElseIfBlock(child)) {
                             const newCondition = {
                                 if: child.source,
                                 dependencies: extractDependenciesFromJS(child.source)
@@ -666,31 +689,24 @@ const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock 
                                 elseContents: descendantsToRender([child])
                             }
                         }
-                        else {
-                            return {
-                                ...previous,
-                                ifContents: [
-                                    ...previous.ifContents,
-                                    ...(descendantsToRender([{ type: 'paragraph', children: [child] }]))
-                                ]
-                            }
-                        }
-                    }, { ifContents: [], elseIfs: [], elseContents: [], runningConditions: [{ ...ifCondition, not: true }] })
+                        return previous
+                    }, { elseIfs: [], elseContents: [], runningConditions: [] })
                     const elseItem: ComponentRenderItem | undefined = elseContents.length ? {
                         tag: 'Condition',
                         conditions: runningConditions,
                         contents: elseContents
                     } : undefined
-                    return [
-                        ...previous,
-                        {
-                            tag: 'Condition',
-                            conditions: [ifCondition],
-                            contents: ifContents
-                        },
-                        ...elseIfs,
-                        ...(elseItem ? [elseItem] : [])
-                    ]
+                    if (ifBase) {
+                        return [
+                            ...previous,
+                            ifBase,
+                            ...elseIfs,
+                            ...(elseItem ? [elseItem] : [])
+                        ]    
+                    }
+                    else {
+                        return previous
+                    }
                 }
                 if (isCustomLink(item)) {
                     return [
