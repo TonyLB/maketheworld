@@ -54,6 +54,7 @@ import { LabelledIndentBox } from '../LabelledIndentBox'
 import descendantsToRender from './descendantToRender'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
 import descendantsFromRender from './descendantsFromRender'
+import withConditionals from './conditionals'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
@@ -64,13 +65,8 @@ interface DescriptionEditorProps {
 const withInlines = (editor: Editor) => {
     const { isInline, isVoid } = editor
 
-    //
-    // TODO: Add in new Inline types for Before / Replace blocks.
-    //
-    // TODO: Add in new Inline types for If, Else If and Else blocks.
-    //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink', 'before', 'after', 'if', 'ifBase', 'elseif', 'else'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'before', 'replace', 'if'].includes(element.type) || isInline(element)
     )
 
     editor.isVoid = (element: SlateElement) => (
@@ -577,7 +573,7 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, onChange = () => {} }) => {
-    const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
+    const editor = useMemo(() => withConditionals(withInlines(withHistory(withReact(createEditor())))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
