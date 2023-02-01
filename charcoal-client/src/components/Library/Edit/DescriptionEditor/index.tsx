@@ -18,8 +18,6 @@ import {
 import { withHistory } from 'slate-history'
 import { Slate, Editable, withReact, ReactEditor, RenderElementProps, RenderLeafProps } from 'slate-react'
 
-import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
-
 import {
     Box,
     Toolbar,
@@ -42,208 +40,25 @@ import ReplaceIcon from '@mui/icons-material/Backspace'
 import {
     CustomActionLinkElement,
     CustomFeatureLinkElement,
-    CustomText,
-    CustomParagraphContents,
     CustomParagraphElement,
-    isCustomLineBreak,
-    isCustomLink,
-    isCustomText,
-    isCustomFeatureLink,
-    isCustomBeforeBlock,
     CustomBeforeBlock,
     CustomReplaceBlock,
-    isCustomReplaceBlock,
-    isCustomIfBlock,
-    isCustomElseBlock,
-    isCustomElseIfBlock,
-    CustomIfBlock,
-    CustomElseIfBlock,
-    CustomElseBlock,
-    isCustomIfBase,
-    CustomIfBase
 } from '../baseClasses'
 
-import { ComponentRenderItem, NormalForm, NormalFeature, NormalConditionStatement, NormalCondition } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 import { getNormalized } from '../../../../slices/personalAssets'
 import useDebounce from '../../../../hooks/useDebounce'
 import { deepEqual } from '../../../../lib/objects'
 import { LabelledIndentBox } from '../LabelledIndentBox'
+import descendantsToRender from './descendantToRender'
+import InlineChromiumBugfix from './InlineChromiumBugfix'
+import descendantsFromRender from './descendantsFromRender'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
     render: ComponentRenderItem[];
     onChange?: (items: ComponentRenderItem[]) => void;
-}
-
-const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents> {
-    let currentIfElement: CustomIfBlock | undefined
-    const conditionElseContext: (current: CustomIfBlock | undefined) => { elseContext: string[], elseDefined: boolean } = (current) => {
-        if (!current) {
-            return {
-                elseContext: [],
-                elseDefined: false
-            }
-        }
-        else {
-            return {
-                elseContext: [
-                    ...current.children.filter(isCustomIfBase).map(({ source }) => (source)),
-                    ...current.children.filter(isCustomElseIfBlock).map(({ source }) => (source))
-                ],
-                elseDefined: Boolean(current.children.find(isCustomElseBlock))
-            }
-        }
-    }
-    if (renderItems.length === 0) {
-        yield {
-            text: ''
-        }
-    }
-    for (const item of renderItems) {
-        if (item.tag !== 'Condition' && currentIfElement) {
-            yield currentIfElement
-            currentIfElement = undefined
-        }
-        switch(item.tag) {
-            case 'Space':
-                yield {
-                    text: ' '
-                } as CustomText
-                break
-            case 'Link':
-                const targetTag = normalForm[item.to]?.tag || 'Action'
-                yield {
-                    type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
-                    to: item.to,
-                    children: [{
-                        text: item.text || ''
-                    }]
-                } as CustomActionLinkElement | CustomFeatureLinkElement
-                break
-            case 'String':
-                yield { text: item.value } as CustomText
-                break
-            case 'LineBreak':
-                yield { type: 'lineBreak' }
-                break
-            case 'After':
-                yield *descendantsTranslate(normalForm, item.contents)
-                break
-            case 'Before':
-            case 'Replace':
-                yield {
-                    type: item.tag === 'Before' ? 'before' : 'replace',
-                    children: [...descendantsTranslate(normalForm, item.contents)]
-                }
-                break
-            case 'Condition':
-                const predicateToSrc = (predicate: NormalConditionStatement): string => {
-                    return `${ predicate.not ? '!' : ''}${predicate.if}`
-                }
-                const conditionsToSrc = (predicates: NormalConditionStatement[]): string => {
-                    return predicates.length <= 1 ? `${predicateToSrc(predicates[0] || { dependencies: [], if: 'false' })}` : `(${predicates.map(predicateToSrc).join(') && (')})`
-                }
-                const { elseContext, elseDefined } = conditionElseContext(currentIfElement)
-                //
-                // TODO: Make a more complicated predicate matching, to handle as yet undefined more complicate uses of the conditional list structure
-                //
-                const matchesElseConditions = elseContext.length &&
-                    (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
-                if (matchesElseConditions) {
-                    const remainingConditions = item.conditions.slice(elseContext.length)
-                    if (remainingConditions.length && currentIfElement && !elseDefined) {
-                        currentIfElement = {
-                            ...currentIfElement,
-                            children: [
-                                ...currentIfElement.children,
-                                {
-                                    type: 'elseif',
-                                    source: conditionsToSrc(remainingConditions),
-                                    children: [...descendantsTranslate(normalForm, item.contents)]
-                                }
-                            ]
-                        }
-                    }
-                    else if (currentIfElement && !elseDefined) {
-                        currentIfElement = {
-                            ...currentIfElement,
-                            children: [
-                                ...currentIfElement.children,
-                                {
-                                    type: 'else',
-                                    children: [...descendantsTranslate(normalForm, item.contents)]
-                                }
-                            ]
-                        }
-                    }
-                    else {
-                        if (currentIfElement) {
-                            yield currentIfElement
-                        }
-                        currentIfElement = {
-                            type: 'if',
-                            children: [{
-                                type: 'ifBase',
-                                source: conditionsToSrc(item.conditions),
-                                children: [...descendantsTranslate(normalForm, item.contents)]
-                            }]
-                        }
-                        }
-                }
-                else {
-                    if (currentIfElement) {
-                        yield currentIfElement
-                    }
-                    currentIfElement = {
-                        type: 'if',
-                        children: [{
-                            type: 'ifBase',
-                            source: conditionsToSrc(item.conditions),
-                            children: [...descendantsTranslate(normalForm, item.contents)]
-                        }]
-                    }
-                }
-                break
-        }
-    }
-    if (currentIfElement) {
-        yield currentIfElement
-    }
-}
-
-const descendantsFromRender = (normalForm: NormalForm) => (render: ComponentRenderItem[]): CustomParagraphElement[] => {
-    if (render.length > 0) {
-        let returnValue = [] as CustomParagraphElement[]
-        let accumulator = [] as CustomParagraphContents[]
-        for (const item of descendantsTranslate(normalForm, render)) {
-            if (isCustomLineBreak(item)) {
-                returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
-                accumulator = [{ text: ''} as CustomText]
-            }
-            else {
-                accumulator.push(item)
-            }
-        }
-        return [
-            ...returnValue,
-            ...(accumulator.length > 0
-                //
-                // TODO: Make or find a join procedure that joins children where possible (i.e. combines adjacent text children)
-                //
-                ? [{
-                    type: "paragraph" as "paragraph",
-                    children: accumulator
-                }]
-                : [] as CustomParagraphElement[])
-        ]
-    }
-    return [{
-        type: 'paragraph',
-        children: [{
-            text: ''
-        } as CustomText]
-    }]
 }
 
 const withInlines = (editor: Editor) => {
@@ -265,17 +80,10 @@ const withInlines = (editor: Editor) => {
     return editor
 }
 
-// Put this at the start and end of an inline component to work around this Chromium bug:
-// https://bugs.chromium.org/p/chromium/issues/detail?id=1249405
-const InlineChromiumBugfix = () => (
-    <Box
-        component="span"
-        contentEditable={false}
-        sx={{ fontSize: 0 }}
-    >
-        ${String.fromCodePoint(160) /* Non-breaking space */}
-    </Box>
-)
+//
+// TODO: Create a normalizer mixin to prevent the insertion of in-between text points inside of a CustomIfElement
+// child-family
+//
 
 const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
@@ -362,7 +170,9 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
             </span>
         case 'if':
             return <span {...attributes}>
+                <InlineChromiumBugfix />
                 { children }
+                <InlineChromiumBugfix />
             </span>
         case 'ifBase':
         case 'elseif':
@@ -490,29 +300,42 @@ const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
     </Dialog>
 }
 
-const isLinkActive = (editor: Editor) => {
+const isInContextOf = (tags: string[]) => (editor: Editor) => {
     const link = Editor.nodes(editor, {
         match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink'].includes(n.type),
+            !Editor.isEditor(n) && SlateElement.isElement(n) && tags.includes(n.type),
     }).next()
     return !!(link?.value)
 }
 
-const isBeforeBlock = (editor: Editor) => {
-    const block = Editor.nodes(editor, {
-        match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'before',
-    }).next()
-    return !!(block?.value)
-}
+const isLinkActive = isInContextOf(['actionLink', 'featureLink'])
+// const isLinkActive = (editor: Editor) => {
+//     const link = Editor.nodes(editor, {
+//         match: n =>
+//             !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink'].includes(n.type),
+//     }).next()
+//     return !!(link?.value)
+// }
 
-const isReplaceBlock = (editor: Editor) => {
-    const block = Editor.nodes(editor, {
-        match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'replace',
-    }).next()
-    return !!(block?.value)
-}
+const isBeforeBlock = isInContextOf(['before'])
+// const isBeforeBlock = (editor: Editor) => {
+//     const block = Editor.nodes(editor, {
+//         match: n =>
+//             !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'before',
+//     }).next()
+//     return !!(block?.value)
+// }
+
+const isReplaceBlock = isInContextOf(['replace'])
+// const isReplaceBlock = (editor: Editor) => {
+//     const block = Editor.nodes(editor, {
+//         match: n =>
+//             !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'replace',
+//     }).next()
+//     return !!(block?.value)
+// }
+
+const isIfBlock = isInContextOf(['if'])
 
 const selectActiveLink = (editor: Editor) => {
     const link = Editor.nodes(editor, {
@@ -639,111 +462,6 @@ const wrapReplaceBlock = (editor: Editor) => {
         editor.saveSelection = undefined
     }
 }
-
-const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock | CustomIfBase | CustomElseIfBlock | CustomElseBlock)[]): ComponentRenderItem[] => (
-    items.reduce<ComponentRenderItem[]>((accumulator, { children = [] }, index) => {
-        return children
-            .filter((item) => (!(isCustomText(item) && !item.text)))
-            .reduce((previous, item) => {
-                if (isCustomIfBlock(item)) {
-                    const { elseIfs, ifBase, elseContents, runningConditions } = item.children.reduce<{ runningConditions: NormalConditionStatement[]; ifBase?: ComponentRenderItem | undefined; elseIfs: ComponentRenderItem[]; elseContents: ComponentRenderItem[] }>((previous, child) => {
-                        if (isCustomIfBase(child)) {
-                            const ifCondition = {
-                                if: child.source,
-                                dependencies: extractDependenciesFromJS(child.source)
-                            }
-                            return {
-                                ...previous,
-                                ifBase: {
-                                    tag: 'Condition',
-                                    conditions: [ifCondition],
-                                    contents: descendantsToRender([child])
-                                },
-                                runningConditions: [{ ...ifCondition, not: true }]
-                            }
-                        }
-                        else if (isCustomElseIfBlock(child)) {
-                            const newCondition = {
-                                if: child.source,
-                                dependencies: extractDependenciesFromJS(child.source)
-                            }
-                            return {
-                                ...previous,
-                                elseIfs: [
-                                    ...previous.elseIfs,
-                                    {
-                                        tag: 'Condition',
-                                        conditions: [...previous.runningConditions, newCondition],
-                                        contents: descendantsToRender([child])
-                                    }
-                                ],
-                                runningConditions: [
-                                    ...previous.runningConditions,
-                                    { ...newCondition, not: true }
-                                ]
-                            }
-                        }
-                        else if (isCustomElseBlock(child)) {
-                            return {
-                                ...previous,
-                                elseContents: descendantsToRender([child])
-                            }
-                        }
-                        return previous
-                    }, { elseIfs: [], elseContents: [], runningConditions: [] })
-                    const elseItem: ComponentRenderItem | undefined = elseContents.length ? {
-                        tag: 'Condition',
-                        conditions: runningConditions,
-                        contents: elseContents
-                    } : undefined
-                    if (ifBase) {
-                        return [
-                            ...previous,
-                            ifBase,
-                            ...elseIfs,
-                            ...(elseItem ? [elseItem] : [])
-                        ]    
-                    }
-                    else {
-                        return previous
-                    }
-                }
-                if (isCustomLink(item)) {
-                    return [
-                        ...previous,
-                        {
-                            tag: 'Link',
-                            targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
-                            to: item.to,
-                            text: item.children
-                                .filter((child) => ('text' in child))
-                                .map(({ text }) => (text))
-                                .join('')
-                        }
-                    ]
-                }
-                if (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)) {
-                    return [
-                        ...previous,
-                        {
-                            tag: item.type === 'before' ? 'Before' : 'Replace',
-                            contents: descendantsToRender([item])
-                        }
-                    ]
-                }
-                if ('text' in item) {
-                    return [
-                        ...previous,
-                        {
-                            tag: 'String',
-                            value: item.text
-                        }
-                    ]
-                }
-                return previous
-            }, (index > 0) ? [...accumulator, { tag: 'LineBreak' }] : accumulator) as ComponentRenderItem[]
-    }, [] as ComponentRenderItem[])
-)
 
 interface AddLinkButtonProps {
     openDialog: () => void;
