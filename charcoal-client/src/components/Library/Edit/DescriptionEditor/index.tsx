@@ -255,7 +255,7 @@ const withInlines = (editor: Editor) => {
     // TODO: Add in new Inline types for If, Else If and Else blocks.
     //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink', 'before', 'after', 'if', 'elseif', 'else'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'before', 'after', 'if', 'ifBase', 'elseif', 'else'].includes(element.type) || isInline(element)
     )
 
     editor.isVoid = (element: SlateElement) => (
