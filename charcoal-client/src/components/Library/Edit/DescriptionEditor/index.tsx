@@ -58,16 +58,17 @@ import {
     isCustomElseIfBlock,
     CustomIfBlock,
     CustomElseIfBlock,
-    CustomElseBlock
-} from './baseClasses'
+    CustomElseBlock,
+    isCustomIfBase,
+    CustomIfBase
+} from '../baseClasses'
 
-import { ComponentRenderItem, NormalForm, NormalFeature, NormalConditionStatement } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
-import { getNormalized } from '../../../slices/personalAssets'
-import useDebounce from '../../../hooks/useDebounce'
-import { deepEqual } from '../../../lib/objects'
-import { Items } from 'react-virtuoso/dist/List'
-import { LabelledIndentBox } from './LabelledIndentBox'
+import { ComponentRenderItem, NormalForm, NormalFeature, NormalConditionStatement, NormalCondition } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
+import { getNormalized } from '../../../../slices/personalAssets'
+import useDebounce from '../../../../hooks/useDebounce'
+import { deepEqual } from '../../../../lib/objects'
+import { LabelledIndentBox } from '../LabelledIndentBox'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
@@ -76,15 +77,33 @@ interface DescriptionEditorProps {
 }
 
 const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents> {
-    let conditionElseContext: NormalConditionStatement[] = []
+    let currentIfElement: CustomIfBlock | undefined
+    const conditionElseContext: (current: CustomIfBlock | undefined) => { elseContext: string[], elseDefined: boolean } = (current) => {
+        if (!current) {
+            return {
+                elseContext: [],
+                elseDefined: false
+            }
+        }
+        else {
+            return {
+                elseContext: [
+                    ...current.children.filter(isCustomIfBase).map(({ source }) => (source)),
+                    ...current.children.filter(isCustomElseIfBlock).map(({ source }) => (source))
+                ],
+                elseDefined: Boolean(current.children.find(isCustomElseBlock))
+            }
+        }
+    }
     if (renderItems.length === 0) {
         yield {
             text: ''
         }
     }
     for (const item of renderItems) {
-        if (item.tag !== 'Condition') {
-            conditionElseContext = []
+        if (item.tag !== 'Condition' && currentIfElement) {
+            yield currentIfElement
+            currentIfElement = undefined
         }
         switch(item.tag) {
             case 'Space':
@@ -125,36 +144,71 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 const conditionsToSrc = (predicates: NormalConditionStatement[]): string => {
                     return predicates.length <= 1 ? `${predicateToSrc(predicates[0] || { dependencies: [], if: 'false' })}` : `(${predicates.map(predicateToSrc).join(') && (')})`
                 }
-                const matchesElseConditions = conditionElseContext.length &&
-                    (deepEqual(conditionElseContext, item.conditions.slice(0, conditionElseContext.length).map((predicate) => ({ ...predicate, not: true }))))
+                const { elseContext, elseDefined } = conditionElseContext(currentIfElement)
+                //
+                // TODO: Make a more complicated predicate matching, to handle as yet undefined more complicate uses of the conditional list structure
+                //
+                const matchesElseConditions = elseContext.length &&
+                    (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
                 if (matchesElseConditions) {
-                    const remainingConditions = item.conditions.slice(conditionElseContext.length)
-                    if (remainingConditions.length) {
-                        yield {
-                            type: 'elseif',
-                            source: conditionsToSrc(remainingConditions),
-                            children: [...descendantsTranslate(normalForm, item.contents)]
+                    const remainingConditions = item.conditions.slice(elseContext.length)
+                    if (remainingConditions.length && currentIfElement && !elseDefined) {
+                        currentIfElement = {
+                            ...currentIfElement,
+                            children: [
+                                ...currentIfElement.children,
+                                {
+                                    type: 'elseif',
+                                    source: conditionsToSrc(remainingConditions),
+                                    children: [...descendantsTranslate(normalForm, item.contents)]
+                                }
+                            ]
                         }
-                        conditionElseContext = item.conditions.map((predicate) => ({ ...predicate, not: true }))
+                    }
+                    else if (currentIfElement && !elseDefined) {
+                        currentIfElement = {
+                            ...currentIfElement,
+                            children: [
+                                ...currentIfElement.children,
+                                {
+                                    type: 'else',
+                                    children: [...descendantsTranslate(normalForm, item.contents)]
+                                }
+                            ]
+                        }
                     }
                     else {
-                        yield {
-                            type: 'else',
-                            children: [...descendantsTranslate(normalForm, item.contents)]
+                        if (currentIfElement) {
+                            yield currentIfElement
                         }
-                        conditionElseContext = []
-                    }
+                        currentIfElement = {
+                            type: 'if',
+                            children: [{
+                                type: 'ifBase',
+                                source: conditionsToSrc(item.conditions),
+                                children: [...descendantsTranslate(normalForm, item.contents)]
+                            }]
+                        }
+                        }
                 }
                 else {
-                    yield {
-                        type: 'if',
-                        source: conditionsToSrc(item.conditions),
-                        children: [...descendantsTranslate(normalForm, item.contents)]
+                    if (currentIfElement) {
+                        yield currentIfElement
                     }
-                    conditionElseContext = item.conditions.map((predicate) => ({ ...predicate, not: true }))
+                    currentIfElement = {
+                        type: 'if',
+                        children: [{
+                            type: 'ifBase',
+                            source: conditionsToSrc(item.conditions),
+                            children: [...descendantsTranslate(normalForm, item.contents)]
+                        }]
+                    }
                 }
                 break
         }
+    }
+    if (currentIfElement) {
+        yield currentIfElement
     }
 }
 
@@ -201,7 +255,7 @@ const withInlines = (editor: Editor) => {
     // TODO: Add in new Inline types for If, Else If and Else blocks.
     //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink', 'before', 'after', 'if', 'elseif', 'else'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'before', 'after', 'if', 'ifBase', 'elseif', 'else'].includes(element.type) || isInline(element)
     )
 
     editor.isVoid = (element: SlateElement) => (
@@ -307,11 +361,15 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                 </SlateIndentBox>
             </span>
         case 'if':
+            return <span {...attributes}>
+                { children }
+            </span>
+        case 'ifBase':
         case 'elseif':
             return <span {...attributes}>
                 <SlateIndentBox
                     color={blue}
-                    label={<React.Fragment>{element.type === 'if' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
+                    label={<React.Fragment>{element.type === 'ifBase' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
                 >
                     { children }
                 </SlateIndentBox>
@@ -582,43 +640,73 @@ const wrapReplaceBlock = (editor: Editor) => {
     }
 }
 
-const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]): ComponentRenderItem[] => (
+const descendantsToRender = (items: (CustomParagraphElement | CustomBeforeBlock | CustomReplaceBlock | CustomIfBase | CustomElseIfBlock | CustomElseBlock)[]): ComponentRenderItem[] => (
     items.reduce<ComponentRenderItem[]>((accumulator, { children = [] }, index) => {
-        let adjacentConditions: NormalConditionStatement[] = []
         return children
             .filter((item) => (!(isCustomText(item) && !item.text)))
             .reduce((previous, item) => {
-                if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
-                    if (isCustomIfBlock(item)) {
-                        adjacentConditions = [{
-                            if: item.source,
-                            dependencies: extractDependenciesFromJS(item.source)
-                        }]
-                    }
-                    else if (isCustomElseIfBlock(item)) {
-                        adjacentConditions = [
-                            ...adjacentConditions.map((condition) => ({ ...condition, not: true })),
-                            {
-                                if: item.source,
-                                dependencies: extractDependenciesFromJS(item.source)
+                if (isCustomIfBlock(item)) {
+                    const { elseIfs, ifBase, elseContents, runningConditions } = item.children.reduce<{ runningConditions: NormalConditionStatement[]; ifBase?: ComponentRenderItem | undefined; elseIfs: ComponentRenderItem[]; elseContents: ComponentRenderItem[] }>((previous, child) => {
+                        if (isCustomIfBase(child)) {
+                            const ifCondition = {
+                                if: child.source,
+                                dependencies: extractDependenciesFromJS(child.source)
                             }
-                        ]
+                            return {
+                                ...previous,
+                                ifBase: {
+                                    tag: 'Condition',
+                                    conditions: [ifCondition],
+                                    contents: descendantsToRender([child])
+                                },
+                                runningConditions: [{ ...ifCondition, not: true }]
+                            }
+                        }
+                        else if (isCustomElseIfBlock(child)) {
+                            const newCondition = {
+                                if: child.source,
+                                dependencies: extractDependenciesFromJS(child.source)
+                            }
+                            return {
+                                ...previous,
+                                elseIfs: [
+                                    ...previous.elseIfs,
+                                    {
+                                        tag: 'Condition',
+                                        conditions: [...previous.runningConditions, newCondition],
+                                        contents: descendantsToRender([child])
+                                    }
+                                ],
+                                runningConditions: [
+                                    ...previous.runningConditions,
+                                    { ...newCondition, not: true }
+                                ]
+                            }
+                        }
+                        else if (isCustomElseBlock(child)) {
+                            return {
+                                ...previous,
+                                elseContents: descendantsToRender([child])
+                            }
+                        }
+                        return previous
+                    }, { elseIfs: [], elseContents: [], runningConditions: [] })
+                    const elseItem: ComponentRenderItem | undefined = elseContents.length ? {
+                        tag: 'Condition',
+                        conditions: runningConditions,
+                        contents: elseContents
+                    } : undefined
+                    if (ifBase) {
+                        return [
+                            ...previous,
+                            ifBase,
+                            ...elseIfs,
+                            ...(elseItem ? [elseItem] : [])
+                        ]    
                     }
                     else {
-                        adjacentConditions = adjacentConditions.map((condition) => ({ ...condition, not: true }))
+                        return previous
                     }
-                    const returnValue: ComponentRenderItem[] = [
-                        ...previous,
-                        {
-                            tag: 'Condition',
-                            conditions: adjacentConditions,
-                            contents: descendantsToRender([item])
-                        }
-                    ]
-                    if (isCustomElseBlock(item)) {
-                        adjacentConditions = []
-                    }
-                    return returnValue
                 }
                 if (isCustomLink(item)) {
                     return [
