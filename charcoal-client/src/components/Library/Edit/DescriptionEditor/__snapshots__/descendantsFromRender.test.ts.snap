@@ -1,0 +1,95 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`descendantsFromRender should break paragraphs at LineBreak tags 1`] = `
+Array [
+  Object {
+    "children": Array [
+      Object {
+        "text": "This is a test.",
+      },
+    ],
+    "type": "paragraph",
+  },
+  Object {
+    "children": Array [
+      Object {
+        "text": "With two paragraphs.",
+      },
+    ],
+    "type": "paragraph",
+  },
+]
+`;
+
+exports[`descendantsFromRender should render a single-level condition 1`] = `
+Array [
+  Object {
+    "children": Array [
+      Object {
+        "text": "This is a test ",
+      },
+    ],
+    "type": "paragraph",
+  },
+  Object {
+    "children": Array [
+      Object {
+        "children": Array [
+          Object {
+            "text": "with an If",
+          },
+        ],
+        "type": "paragraph",
+      },
+    ],
+    "source": "testVariable",
+    "type": "ifBase",
+  },
+  Object {
+    "children": Array [
+      Object {
+        "children": Array [
+          Object {
+            "text": "and an Else",
+          },
+        ],
+        "type": "paragraph",
+      },
+    ],
+    "type": "else",
+  },
+  Object {
+    "children": Array [
+      Object {
+        "text": " and more text.",
+      },
+    ],
+    "type": "paragraph",
+  },
+]
+`;
+
+exports[`descendantsFromRender should return a text description 1`] = `
+Array [
+  Object {
+    "children": Array [
+      Object {
+        "text": "This is a test ",
+      },
+      Object {
+        "children": Array [
+          Object {
+            "text": "with a link",
+          },
+        ],
+        "to": "testFeature",
+        "type": "featureLink",
+      },
+      Object {
+        "text": " and more text.",
+      },
+    ],
+    "type": "paragraph",
+  },
+]
+`;

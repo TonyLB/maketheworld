@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo, useState, useCallback, useEffect, ReactNode } from 'react'
+import React, { FunctionComponent, useMemo, useState, useCallback, useEffect, ReactNode, ForwardedRef } from 'react'
 import { useSelector } from 'react-redux'
 import {
     useParams
@@ -117,17 +117,19 @@ type SlateIndentBoxProps = {
     label: ReactNode;
 }
 
-const SlateIndentBox: FunctionComponent<SlateIndentBoxProps> = ({ color, children, label }) => {
+const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color, children, label, ...attributes }: T, ref: ForwardedRef<any>) => {
     return <LabelledIndentBox
         color={color}
         label={label}
         slate
+        { ...attributes }
+        ref={ref}
     >
         <InlineChromiumBugfix />
         {children}
         <InlineChromiumBugfix />
     </LabelledIndentBox>
-}
+})
 
 const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender, ...props }) => {
     const { attributes, children, element } = props
@@ -151,8 +153,8 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
         case 'before':
         case 'replace':
             const highlight = element.type === 'before' ? green : pink
-            return <span {...attributes}>
-                <SlateIndentBox
+            return <SlateIndentBox
+                    { ...attributes }
                     color={highlight}
                     label={element.type === 'before'
                         ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
@@ -160,27 +162,24 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                     }
                 >
                     { children }
-                </SlateIndentBox>
-            </span>
+            </SlateIndentBox>
         case 'ifBase':
         case 'elseif':
-            return <span {...attributes}>
-                <SlateIndentBox
+            return <SlateIndentBox
+                    { ...attributes }
                     color={blue}
                     label={<React.Fragment>{element.type === 'ifBase' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
                 >
                     { children }
-                </SlateIndentBox>
-            </span>
+            </SlateIndentBox>
         case 'else':
-            return <span {...attributes}>
-                <SlateIndentBox
+            return <SlateIndentBox
+                    {...attributes}
                     color={blue}
                     label={<React.Fragment>Else</React.Fragment>}
                 >
                     { children }
-                </SlateIndentBox>
-            </span>
+            </SlateIndentBox>
         case 'description':
             const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
                 ...previous,

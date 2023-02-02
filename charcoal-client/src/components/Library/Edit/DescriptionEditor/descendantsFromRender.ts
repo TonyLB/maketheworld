@@ -6,21 +6,21 @@ import {
     CustomElseBlock,
     CustomElseIfBlock,
     CustomFeatureLinkElement,
-    CustomIfBase,
+    CustomIfBlock,
     CustomParagraphContents,
     CustomParagraphElement,
     CustomText,
     isCustomBlock,
     isCustomElseBlock,
     isCustomElseIfBlock,
-    isCustomIfBase,
+    isCustomIfBlock,
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
 
-const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents | CustomIfBase | CustomElseIfBlock | CustomElseBlock> {
-    let currentIfSequence: (CustomIfBase | CustomElseIfBlock | CustomElseBlock)[] = []
-    const conditionElseContext: (current: (CustomIfBase | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
+const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
+    let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
+    const conditionElseContext: (current: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
         if (!current) {
             return {
                 elseContext: [],
@@ -30,7 +30,7 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
         else {
             return {
                 elseContext: [
-                    ...current.filter(isCustomIfBase).map(({ source }) => (source)),
+                    ...current.filter(isCustomIfBlock).map(({ source }) => (source)),
                     ...current.filter(isCustomElseIfBlock).map(({ source }) => (source))
                 ],
                 elseDefined: Boolean(current.find(isCustomElseBlock))
@@ -152,15 +152,18 @@ export const descendantsFromRender = (normalForm: NormalForm) => (render: Compon
         let accumulator = [] as CustomParagraphContents[]
         for (const item of descendantsTranslate(normalForm, render)) {
             if (isCustomBlock(item)) {
-                if (isCustomIfBase(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
-                    returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }, item]
-                    accumulator = [{ text: ''} as CustomText]
+                if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
+                    if (accumulator.length) {
+                        returnValue = [...returnValue, { type: 'paragraph', children: accumulator }]
+                    }
+                    returnValue = [...returnValue, item]
+                    accumulator = []
                 }
             }
             else {
                 if (isCustomLineBreak(item)) {
                     returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
-                    accumulator = [{ text: ''} as CustomText]
+                    accumulator = []
                 }
                 else {
                     accumulator.push(item)

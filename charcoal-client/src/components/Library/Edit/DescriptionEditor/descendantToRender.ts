@@ -8,7 +8,7 @@ import {
     isCustomElseBlock,
     isCustomElseIfBlock,
     isCustomFeatureLink,
-    isCustomIfBase,
+    isCustomIfBlock,
     isCustomLink,
     isCustomParagraph,
     isCustomReplaceBlock,
@@ -18,7 +18,7 @@ import {
 export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): ComponentRenderItem[] => {
     let runningConditions: NormalConditionStatement[] = []
     return items.reduce<ComponentRenderItem[]>((accumulator, item, index) => {
-        if (isCustomIfBase(item)) {
+        if (isCustomIfBlock(item)) {
             const ifCondition = {
                 if: item.source,
                 dependencies: extractDependenciesFromJS(item.source)
