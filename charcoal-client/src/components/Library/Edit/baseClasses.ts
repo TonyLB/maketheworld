@@ -38,30 +38,24 @@ export type CustomReplaceBlock = {
     children: CustomParagraphContents[];
 }
 
-export type CustomIfBlock = {
-    type: 'if';
-    children: CustomIfContents[];
-}
-
 export type CustomIfBase = {
     type: 'ifBase';
     source: string;
-    children: CustomParagraphContents[];
+    children: CustomBlock[];
 }
 
 export type CustomElseIfBlock = {
     type: 'elseif';
     source: string;
-    children: CustomParagraphContents[];
+    children: CustomBlock[];
 }
 
 export type CustomElseBlock = {
     type: 'else';
-    children: CustomParagraphContents[];
+    children: CustomBlock[];
 }
 
-export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock | CustomIfBlock
-export type CustomIfContents = CustomIfBase | CustomElseIfBlock | CustomElseBlock
+export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock
 
 export const isCustomLineBreak = (item: CustomParagraphContents): item is CustomLineBreak => ('type' in item && item.type === 'lineBreak')
 export const isCustomActionLink = (item: CustomParagraphContents): item is CustomActionLinkElement => ('type' in item && item.type === 'actionLink')
@@ -70,10 +64,12 @@ export const isCustomLink = (item: CustomParagraphContents): item is CustomLinkE
 export const isCustomText = (item: CustomParagraphContents): item is CustomText => ('text' in item)
 export const isCustomBeforeBlock = (item: CustomParagraphContents): item is CustomBeforeBlock => ('type' in item && item.type === 'before')
 export const isCustomReplaceBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'replace')
-export const isCustomIfBlock = (item: CustomParagraphContents): item is CustomIfBlock => ('type' in item && item.type === 'if')
-export const isCustomIfBase = (item: CustomIfContents): item is CustomIfBase => (item.type === 'ifBase')
-export const isCustomElseIfBlock = (item: CustomIfContents): item is CustomElseIfBlock => (item.type === 'elseif')
-export const isCustomElseBlock = (item: CustomIfContents): item is CustomElseBlock => (item.type === 'else')
+export const isCustomParagraph = (item: CustomBlock | CustomParagraphContents): item is CustomParagraphElement => ('type' in item && item.type === 'paragraph')
+export const isCustomIfBase = (item: CustomBlock | CustomParagraphContents): item is CustomIfBase => ('type' in item && item.type === 'ifBase')
+export const isCustomElseIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseIfBlock => ('type' in item && item.type === 'elseif')
+export const isCustomElseBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseBlock => ('type' in item && item.type === 'else')
+
+export const isCustomParagraphContents = (item: CustomElement | CustomText | CustomLineBreak): item is CustomParagraphContents => ((!('type' in item)) || ('type' in item && ['actionLink', 'featureLink', 'lineBreak', 'before', 'replace'].includes(item.type)))
 
 export type CustomParagraphElement = {
     type: 'paragraph';
@@ -82,7 +78,7 @@ export type CustomParagraphElement = {
 
 export type CustomDescriptionElement = {
     type: 'description';
-    children: CustomParagraphElement[]
+    children: CustomBlock[]
 }
 
 type CustomElement = CustomLineElement |
@@ -92,10 +88,12 @@ type CustomElement = CustomLineElement |
     CustomDescriptionElement |
     CustomBeforeBlock |
     CustomReplaceBlock |
-    CustomIfBlock |
     CustomIfBase |
     CustomElseIfBlock |
     CustomElseBlock
+
+export type CustomBlock = CustomParagraphElement | CustomIfBase | CustomElseIfBlock | CustomElseBlock
+export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'ifBase', 'elseIf', 'else'].includes(item.type))
 
 declare module 'slate' {
     interface CustomTypes {

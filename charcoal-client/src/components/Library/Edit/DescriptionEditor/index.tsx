@@ -65,8 +65,11 @@ interface DescriptionEditorProps {
 const withInlines = (editor: Editor) => {
     const { isInline, isVoid } = editor
 
+    //
+    // TODO: Refactor before and replace as blocks rather than inlines, so they can contain conditionals
+    //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink', 'before', 'replace', 'if'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'before', 'replace'].includes(element.type) || isInline(element)
     )
 
     editor.isVoid = (element: SlateElement) => (
@@ -75,11 +78,6 @@ const withInlines = (editor: Editor) => {
 
     return editor
 }
-
-//
-// TODO: Create a normalizer mixin to prevent the insertion of in-between text points inside of a CustomIfElement
-// child-family
-//
 
 const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
@@ -163,12 +161,6 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                 >
                     { children }
                 </SlateIndentBox>
-            </span>
-        case 'if':
-            return <span {...attributes}>
-                <InlineChromiumBugfix />
-                { children }
-                <InlineChromiumBugfix />
             </span>
         case 'ifBase':
         case 'elseif':

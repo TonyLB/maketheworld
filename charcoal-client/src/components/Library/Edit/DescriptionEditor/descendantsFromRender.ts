@@ -2,20 +2,25 @@ import { ComponentRenderItem, NormalConditionStatement, NormalForm } from "@tony
 import { deepEqual } from "../../../../lib/objects"
 import {
     CustomActionLinkElement,
+    CustomBlock,
+    CustomElseBlock,
+    CustomElseIfBlock,
     CustomFeatureLinkElement,
-    CustomIfBlock,
+    CustomIfBase,
     CustomParagraphContents,
     CustomParagraphElement,
     CustomText,
+    isCustomBlock,
     isCustomElseBlock,
     isCustomElseIfBlock,
     isCustomIfBase,
-    isCustomLineBreak
+    isCustomLineBreak,
+    isCustomParagraphContents
 } from "../baseClasses"
 
-const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents> {
-    let currentIfElement: CustomIfBlock | undefined
-    const conditionElseContext: (current: CustomIfBlock | undefined) => { elseContext: string[], elseDefined: boolean } = (current) => {
+const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents | CustomIfBase | CustomElseIfBlock | CustomElseBlock> {
+    let currentIfSequence: (CustomIfBase | CustomElseIfBlock | CustomElseBlock)[] = []
+    const conditionElseContext: (current: (CustomIfBase | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
         if (!current) {
             return {
                 elseContext: [],
@@ -25,10 +30,10 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
         else {
             return {
                 elseContext: [
-                    ...current.children.filter(isCustomIfBase).map(({ source }) => (source)),
-                    ...current.children.filter(isCustomElseIfBlock).map(({ source }) => (source))
+                    ...current.filter(isCustomIfBase).map(({ source }) => (source)),
+                    ...current.filter(isCustomElseIfBlock).map(({ source }) => (source))
                 ],
-                elseDefined: Boolean(current.children.find(isCustomElseBlock))
+                elseDefined: Boolean(current.find(isCustomElseBlock))
             }
         }
     }
@@ -38,9 +43,9 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
         }
     }
     for (const item of renderItems) {
-        if (item.tag !== 'Condition' && currentIfElement) {
-            yield currentIfElement
-            currentIfElement = undefined
+        if (item.tag !== 'Condition' && currentIfSequence.length) {
+            yield* currentIfSequence as any
+            currentIfSequence = []
         }
         switch(item.tag) {
             case 'Space':
@@ -71,7 +76,7 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
             case 'Replace':
                 yield {
                     type: item.tag === 'Before' ? 'before' : 'replace',
-                    children: [...descendantsTranslate(normalForm, item.contents)]
+                    children: [...descendantsTranslate(normalForm, item.contents)].filter(isCustomParagraphContents)
                 }
                 break
             case 'Condition':
@@ -81,7 +86,7 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 const conditionsToSrc = (predicates: NormalConditionStatement[]): string => {
                     return predicates.length <= 1 ? `${predicateToSrc(predicates[0] || { dependencies: [], if: 'false' })}` : `(${predicates.map(predicateToSrc).join(') && (')})`
                 }
-                const { elseContext, elseDefined } = conditionElseContext(currentIfElement)
+                const { elseContext, elseDefined } = conditionElseContext(currentIfSequence)
                 //
                 // TODO: Make a more complicated predicate matching, to handle as yet undefined more complicate uses of the conditional list structure
                 //
@@ -89,77 +94,77 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                     (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
                 if (matchesElseConditions) {
                     const remainingConditions = item.conditions.slice(elseContext.length)
-                    if (remainingConditions.length && currentIfElement && !elseDefined) {
-                        currentIfElement = {
-                            ...currentIfElement,
-                            children: [
-                                ...currentIfElement.children,
-                                {
-                                    type: 'elseif',
-                                    source: conditionsToSrc(remainingConditions),
-                                    children: [...descendantsTranslate(normalForm, item.contents)]
-                                }
-                            ]
-                        }
+                    if (remainingConditions.length && currentIfSequence.length && !elseDefined) {
+                        currentIfSequence = [
+                            ...currentIfSequence,
+                            {
+                                type: 'elseif',
+                                source: conditionsToSrc(remainingConditions),
+                                children: descendantsFromRender(normalForm)(item.contents)
+                            }
+                        ]
                     }
-                    else if (currentIfElement && !elseDefined) {
-                        currentIfElement = {
-                            ...currentIfElement,
-                            children: [
-                                ...currentIfElement.children,
-                                {
-                                    type: 'else',
-                                    children: [...descendantsTranslate(normalForm, item.contents)]
-                                }
-                            ]
-                        }
+                    else if (currentIfSequence.length && !elseDefined) {
+                        currentIfSequence = [
+                            ...currentIfSequence,
+                            {
+                                type: 'else',
+                                children: descendantsFromRender(normalForm)(item.contents)
+                            }
+                        ]
                     }
                     else {
-                        if (currentIfElement) {
-                            yield currentIfElement
+                        if (currentIfSequence.length) {
+                            //
+                            // TODO: Rewrite descendantsTranslate so that we can return blocks, and handle those
+                            // blocks in descendantsFromRender
+                            //
+                            yield* currentIfSequence as any
                         }
-                        currentIfElement = {
-                            type: 'if',
-                            children: [{
-                                type: 'ifBase',
-                                source: conditionsToSrc(item.conditions),
-                                children: [...descendantsTranslate(normalForm, item.contents)]
-                            }]
-                        }
-                        }
-                }
-                else {
-                    if (currentIfElement) {
-                        yield currentIfElement
-                    }
-                    currentIfElement = {
-                        type: 'if',
-                        children: [{
+                        currentIfSequence = [{
                             type: 'ifBase',
                             source: conditionsToSrc(item.conditions),
-                            children: [...descendantsTranslate(normalForm, item.contents)]
+                            children: descendantsFromRender(normalForm)(item.contents)
                         }]
                     }
+                }
+                else {
+                    if (currentIfSequence) {
+                        yield* currentIfSequence as any
+                    }
+                    currentIfSequence = [{
+                        type: 'ifBase',
+                        source: conditionsToSrc(item.conditions),
+                        children: descendantsFromRender(normalForm)(item.contents)
+                    }]
                 }
                 break
         }
     }
-    if (currentIfElement) {
-        yield currentIfElement
+    if (currentIfSequence) {
+        yield* currentIfSequence as any
     }
 }
 
-export const descendantsFromRender = (normalForm: NormalForm) => (render: ComponentRenderItem[]): CustomParagraphElement[] => {
+export const descendantsFromRender = (normalForm: NormalForm) => (render: ComponentRenderItem[]): CustomBlock[] => {
     if (render.length > 0) {
-        let returnValue = [] as CustomParagraphElement[]
+        let returnValue = [] as CustomBlock[]
         let accumulator = [] as CustomParagraphContents[]
         for (const item of descendantsTranslate(normalForm, render)) {
-            if (isCustomLineBreak(item)) {
-                returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
-                accumulator = [{ text: ''} as CustomText]
+            if (isCustomBlock(item)) {
+                if (isCustomIfBase(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
+                    returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }, item]
+                    accumulator = [{ text: ''} as CustomText]
+                }
             }
             else {
-                accumulator.push(item)
+                if (isCustomLineBreak(item)) {
+                    returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
+                    accumulator = [{ text: ''} as CustomText]
+                }
+                else {
+                    accumulator.push(item)
+                }
             }
         }
         return [
