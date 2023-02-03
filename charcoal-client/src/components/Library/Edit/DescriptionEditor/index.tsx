@@ -180,15 +180,18 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                 >
                     { children }
             </SlateIndentBox>
-        case 'description':
-            const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
-                ...previous,
-                ...((index > 0) ? [<br key={`line-break-${index}`} />] : []),
-                item
-            ]), [] as any[])
-            return <span {...attributes}><span contentEditable={false}><InheritedDescription inheritedRender={inheritedRender} /></span>{interspersedChildren}</span>
+        //
+        // TODO: Build InheritedDescription into render base rather than into a Slate Element
+        //
+        // case 'description':
+        //     const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
+        //         ...previous,
+        //         ...((index > 0) ? [<br key={`line-break-${index}`} />] : []),
+        //         item
+        //     ]), [] as any[])
+        //     return <span {...attributes}><span contentEditable={false}><InheritedDescription inheritedRender={inheritedRender} /></span>{interspersedChildren}</span>
         case 'paragraph':
-            return <span {...attributes} >{ children }</span>
+            return <p {...attributes} >{ children }</p>
         default: return (
             <p {...attributes}>
                 {children}
@@ -296,32 +299,9 @@ const isInContextOf = (tags: string[]) => (editor: Editor) => {
 }
 
 const isLinkActive = isInContextOf(['actionLink', 'featureLink'])
-// const isLinkActive = (editor: Editor) => {
-//     const link = Editor.nodes(editor, {
-//         match: n =>
-//             !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink'].includes(n.type),
-//     }).next()
-//     return !!(link?.value)
-// }
 
 const isBeforeBlock = isInContextOf(['before'])
-// const isBeforeBlock = (editor: Editor) => {
-//     const block = Editor.nodes(editor, {
-//         match: n =>
-//             !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'before',
-//     }).next()
-//     return !!(block?.value)
-// }
-
 const isReplaceBlock = isInContextOf(['replace'])
-// const isReplaceBlock = (editor: Editor) => {
-//     const block = Editor.nodes(editor, {
-//         match: n =>
-//             !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'replace',
-//     }).next()
-//     return !!(block?.value)
-// }
-
 const isIfBlock = isInContextOf(['if'])
 
 const selectActiveLink = (editor: Editor) => {
@@ -568,10 +548,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    const [defaultValue, setDefaultValue] = useState<Descendant[]>(() => ([{
-        type: 'description',
-        children: descendantsFromRender(normalForm)(render)
-    }]))
+    const [defaultValue, setDefaultValue] = useState<Descendant[]>(() => (descendantsFromRender(normalForm)(render)))
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element inheritedRender={inheritedRender} {...props} />, [inheritedRender])
@@ -590,15 +567,18 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
             if (isKeyHotkey('left', nativeEvent)) {
                 event.preventDefault()
                 Transforms.move(editor, { unit: 'offset', reverse: true })
+                console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
                 return
             }
             if (isKeyHotkey('right', nativeEvent)) {
                 event.preventDefault()
                 Transforms.move(editor, { unit: 'offset' })
+                console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
                 return
             }
         }
-    }, [])
+        console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
+    }, [editor])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
         const newRender = descendantsToRender((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
@@ -629,7 +609,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
-                    onKeyDown={onKeyDown}
+                    // onKeyDown={onKeyDown}
                 />
             </Box>
         </Slate>

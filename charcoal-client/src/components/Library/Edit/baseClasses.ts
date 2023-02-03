@@ -76,16 +76,10 @@ export type CustomParagraphElement = {
     children: CustomParagraphContents[]
 }
 
-export type CustomDescriptionElement = {
-    type: 'description';
-    children: CustomBlock[]
-}
-
 type CustomElement = CustomLineElement |
     CustomActionLinkElement |
     CustomFeatureLinkElement |
     CustomParagraphElement |
-    CustomDescriptionElement |
     CustomBeforeBlock |
     CustomReplaceBlock |
     CustomIfBlock |
