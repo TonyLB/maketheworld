@@ -42,6 +42,9 @@ Array [
         "type": "paragraph",
       },
     ],
+    "path": Array [
+      1,
+    ],
     "source": "testVariable",
     "type": "ifBase",
   },

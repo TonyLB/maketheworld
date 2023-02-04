@@ -1,4 +1,4 @@
-import { BaseEditor, Selection } from 'slate'
+import { BaseEditor, Path, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
 export type CustomText = {
@@ -44,6 +44,7 @@ export type CustomIfBlock = {
     type: 'ifBase';
     source: string;
     isElseValid?: boolean;
+    path?: Path;
     children: CustomBlock[];
 }
 
@@ -51,6 +52,7 @@ export type CustomElseIfBlock = {
     type: 'elseif';
     source: string;
     isElseValid?: boolean;
+    path?: Path;
     children: CustomBlock[];
 }
 

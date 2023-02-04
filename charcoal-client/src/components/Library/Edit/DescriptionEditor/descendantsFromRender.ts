@@ -17,9 +17,18 @@ import {
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
+import { Path } from 'slate'
 
-const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
+type DescendantsTranslateOptions = {
+    normalForm: NormalForm;
+    path?: Path;
+    currentPathIndex?: number;
+}
+
+const descendantsTranslate = function * (renderItems: ComponentRenderItem[], options: DescendantsTranslateOptions): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
+    const { normalForm, path = [] } = options
     let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
+    let currentIndex = options.currentPathIndex ?? 0
     const conditionElseContext: (current: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
         if (!current) {
             return {
@@ -37,6 +46,15 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
             }
         }
     }
+    const mapConditionIsElseValid = (item: CustomIfBlock | CustomElseIfBlock | CustomElseBlock, index: number, list: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]): (CustomIfBlock | CustomElseIfBlock | CustomElseBlock) => {
+        if (index < list.length - 1 || isCustomElseBlock(item)) {
+            return item
+        }
+        return {
+            ...item,
+            isElseValid: true
+        }
+    }
     if (renderItems.length === 0) {
         yield {
             text: ''
@@ -44,16 +62,18 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
     }
     for (const item of renderItems) {
         if (item.tag !== 'Condition' && currentIfSequence.length) {
-            yield* currentIfSequence as any
+            yield* (currentIfSequence.map(mapConditionIsElseValid)) as any
             currentIfSequence = []
         }
         switch(item.tag) {
             case 'Space':
+                currentIndex++
                 yield {
                     text: ' '
                 } as CustomText
                 break
             case 'Link':
+                currentIndex++
                 const targetTag = normalForm[item.to]?.tag || 'Action'
                 yield {
                     type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
@@ -64,19 +84,23 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 } as CustomActionLinkElement | CustomFeatureLinkElement
                 break
             case 'String':
+                currentIndex++
                 yield { text: item.value } as CustomText
                 break
             case 'LineBreak':
                 yield { type: 'lineBreak' }
                 break
             case 'After':
-                yield *descendantsTranslate(normalForm, item.contents)
+                const afterTranslate = [...descendantsTranslate(item.contents, { normalForm, path, currentPathIndex: currentIndex })]
+                currentIndex += afterTranslate.length
+                yield* afterTranslate as any
                 break
             case 'Before':
             case 'Replace':
+                currentIndex++
                 yield {
                     type: item.tag === 'Before' ? 'before' : 'replace',
-                    children: [...descendantsTranslate(normalForm, item.contents)].filter(isCustomParagraphContents)
+                    children: [...descendantsTranslate(item.contents, { normalForm, path: [...path, currentIndex] })].filter(isCustomParagraphContents)
                 }
                 break
             case 'Condition':
@@ -100,18 +124,21 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                             {
                                 type: 'elseif',
                                 source: conditionsToSrc(remainingConditions),
-                                children: descendantsFromRender(normalForm)(item.contents)
+                                children: descendantsFromRender(item.contents, { normalForm, path: [...path, currentIndex] }),
+                                path: [...path, currentIndex]
                             }
                         ]
+                        currentIndex++
                     }
                     else if (currentIfSequence.length && !elseDefined) {
                         currentIfSequence = [
                             ...currentIfSequence,
                             {
                                 type: 'else',
-                                children: descendantsFromRender(normalForm)(item.contents)
+                                children: descendantsFromRender(item.contents, { normalForm, path: [...path, currentIndex] })
                             }
                         ]
+                        currentIndex++
                     }
                     else {
                         if (currentIfSequence.length) {
@@ -119,38 +146,43 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                             // TODO: Rewrite descendantsTranslate so that we can return blocks, and handle those
                             // blocks in descendantsFromRender
                             //
-                            yield* currentIfSequence as any
+                            yield* (currentIfSequence.map(mapConditionIsElseValid)) as any
                         }
                         currentIfSequence = [{
                             type: 'ifBase',
                             source: conditionsToSrc(item.conditions),
-                            children: descendantsFromRender(normalForm)(item.contents)
+                            children: descendantsFromRender(item.contents, { normalForm, path: [...path, currentIndex] }),
+                            path: [...path, currentIndex]
                         }]
+                        currentIndex++
                     }
                 }
                 else {
                     if (currentIfSequence) {
-                        yield* currentIfSequence as any
+                        yield* (currentIfSequence.map(mapConditionIsElseValid)) as any
                     }
                     currentIfSequence = [{
                         type: 'ifBase',
                         source: conditionsToSrc(item.conditions),
-                        children: descendantsFromRender(normalForm)(item.contents)
+                        children: descendantsFromRender(item.contents, { normalForm, path: [...path, currentIndex] }),
+                        path: [...path, currentIndex]
                     }]
+                    currentIndex++
                 }
                 break
         }
     }
     if (currentIfSequence) {
-        yield* currentIfSequence as any
+        yield* (currentIfSequence.map(mapConditionIsElseValid)) as any
     }
 }
 
-export const descendantsFromRender = (normalForm: NormalForm) => (render: ComponentRenderItem[]): CustomBlock[] => {
+export const descendantsFromRender = (render: ComponentRenderItem[], options: DescendantsTranslateOptions): CustomBlock[] => {
+    const { normalForm, path = [] } = options
     if (render.length > 0) {
         let returnValue = [] as CustomBlock[]
         let accumulator = [] as CustomParagraphContents[]
-        for (const item of descendantsTranslate(normalForm, render)) {
+        for (const item of descendantsTranslate(render, { normalForm, path })) {
             if (isCustomBlock(item)) {
                 if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
                     if (accumulator.length) {

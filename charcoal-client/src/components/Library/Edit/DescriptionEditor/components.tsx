@@ -55,9 +55,6 @@ const AddElseIfButton: FunctionComponent<{}> = ({}) => (
             borderColor: blue[300],
             '&:hover': {
                 backgroundColor: blue[100]
-            },
-            '&:click': {
-                backgroundColor: blue[200]
             }
         }}
         label="+ Else If"
@@ -76,9 +73,6 @@ const AddElseButton: FunctionComponent<{}> = ({}) => (
             borderColor: blue[300],
             '&:hover': {
                 backgroundColor: blue[100]
-            },
-            '&:click': {
-                backgroundColor: blue[200]
             }
         }}
         label="+ Else"

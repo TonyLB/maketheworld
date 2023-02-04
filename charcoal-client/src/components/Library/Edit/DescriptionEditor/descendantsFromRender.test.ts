@@ -36,27 +36,27 @@ describe('descendantsFromRender', () => {
     }
 
     it('should return an empty paragraph from empty list', () => {
-        expect(descendantsFromRender(testNormalForm)([])).toEqual([{ type: 'paragraph', children: [{ text: '' }]}])
+        expect(descendantsFromRender([], { normalForm: testNormalForm })).toEqual([{ type: 'paragraph', children: [{ text: '' }]}])
     })
 
     it('should return a text description', () => {
-        expect(descendantsFromRender(testNormalForm)([
+        expect(descendantsFromRender([
             { tag: 'String', value: 'This is a test ' },
             { tag: 'Link', to: 'testFeature', targetTag: 'Feature', text: 'with a link' },
             { tag: 'String', value: ' and more text.' }
-        ])).toMatchSnapshot()
+        ], { normalForm: testNormalForm })).toMatchSnapshot()
     })
 
     it('should break paragraphs at LineBreak tags', () => {
-        expect(descendantsFromRender(testNormalForm)([
+        expect(descendantsFromRender([
             { tag: 'String', value: 'This is a test.' },
             { tag: 'LineBreak' },
             { tag: 'String', value: 'With two paragraphs.' }
-        ])).toMatchSnapshot()
+        ], { normalForm: testNormalForm })).toMatchSnapshot()
     })
 
     it('should render a single-level condition', () => {
-        expect(descendantsFromRender(testNormalForm)([
+        expect(descendantsFromRender([
             { tag: 'String', value: 'This is a test ' },
             { tag: 'Condition', conditions: [{ if: 'testVariable', dependencies: ['testVariable'] }], contents: [
                 { tag: 'String', value: 'with an If'}
@@ -65,6 +65,6 @@ describe('descendantsFromRender', () => {
                 { tag: 'String', value: 'and an Else'}
             ] },
             { tag: 'String', value: ' and more text.' }
-        ])).toMatchSnapshot()
+        ], { normalForm: testNormalForm })).toMatchSnapshot()
     })
 })
