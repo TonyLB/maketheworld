@@ -6,6 +6,8 @@ import { RenderElementProps, RenderLeafProps } from 'slate-react'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'
@@ -24,12 +26,14 @@ type SlateIndentBoxProps = {
     color: Record<number | string, string>;
     children: any;
     label: ReactNode;
+    actions?: ReactNode;
 }
 
-const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color, children, label, ...attributes }: T, ref: ForwardedRef<any>) => {
+const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color, children, label, actions, ...attributes }: T, ref: ForwardedRef<any>) => {
     return <LabelledIndentBox
         color={color}
         label={label}
+        actions={actions}
         slate
         { ...attributes }
         ref={ref}
@@ -39,6 +43,48 @@ const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color,
         <InlineChromiumBugfix />
     </LabelledIndentBox>
 })
+
+const AddElseIfButton: FunctionComponent<{}> = ({}) => (
+    <Chip
+        variant="filled"
+        size="small"
+        sx={{
+            backgroundColor: blue[50],
+            borderStyle: "solid",
+            borderWidth: "1px",
+            borderColor: blue[300],
+            '&:hover': {
+                backgroundColor: blue[100]
+            },
+            '&:click': {
+                backgroundColor: blue[200]
+            }
+        }}
+        label="+ Else If"
+        onClick={() => {}}
+    />
+)
+
+const AddElseButton: FunctionComponent<{}> = ({}) => (
+    <Chip
+        variant="filled"
+        size="small"
+        sx={{
+            backgroundColor: blue[50],
+            borderStyle: "solid",
+            borderWidth: "1px",
+            borderColor: blue[300],
+            '&:hover': {
+                backgroundColor: blue[100]
+            },
+            '&:click': {
+                backgroundColor: blue[200]
+            }
+        }}
+        label="+ Else"
+        onClick={() => {}}
+    />
+)
 
 export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender, ...props }) => {
     const { attributes, children, element } = props
@@ -78,6 +124,10 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
                     { ...attributes }
                     color={blue}
                     label={<React.Fragment>{element.type === 'ifBase' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
+                    actions={<React.Fragment>
+                        <AddElseIfButton />
+                        { element.isElseValid && <AddElseButton />}
+                    </React.Fragment>}
                 >
                     { children }
             </SlateIndentBox>
