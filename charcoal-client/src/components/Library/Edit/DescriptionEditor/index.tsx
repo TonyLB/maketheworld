@@ -13,7 +13,8 @@ import {
     Editor,
     Element as SlateElement,
     Transforms,
-    Range
+    Range,
+    Node
 } from 'slate'
 import { withHistory } from 'slate-history'
 import { Slate, Editable, withReact, ReactEditor, RenderElementProps, RenderLeafProps } from 'slate-react'
@@ -37,6 +38,7 @@ import LinkOffIcon from '@mui/icons-material/LinkOff'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'
+import MoreIcon from '@mui/icons-material/More'
 
 import {
     CustomActionLinkElement,
@@ -209,12 +211,21 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
 const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children, leaf }) => {
     return <span {...attributes}>
         {children}
-        { leaf.explicitBR && <span contentEditable={false}>
-            <KeyboardReturnIcon
-                color="primary"
-                fontSize="small"
-                sx={{ verticalAlign: 'middle' }}
-            />
+        { (leaf.explicitBR || leaf.softBR) && <span contentEditable={false}>
+            {
+                leaf.explicitBR && <KeyboardReturnIcon
+                    color="primary"
+                    fontSize="small"
+                    sx={{ verticalAlign: 'middle' }}
+                />
+            }
+            {
+                (leaf.softBR && !leaf.explicitBR) && <MoreIcon
+                    color="primary"
+                    fontSize="small"
+                    sx={{ verticalAlign: 'middle', transform: "rotate(-0.25turn)" }}
+                />
+            }
             <br />
         </span> }
     </span>
@@ -614,28 +625,37 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     }, [debouncedValue, defaultValue, saveToReduce])
 
     const decorate = useCallback(
-        ([node, path]): (Range & { explicitBR: boolean })[] => {
+        ([node, path]): (Range & { explicitBR?: boolean; softBR?: boolean })[] => {
             if (SlateElement.isElement(node) && isCustomParagraph(node)) {
+                let explicitBR: boolean | undefined
+                let softBR: boolean | undefined
                 const next = Editor.next(editor, { at: path })
                 if (next) {
                     const [ nextNode, nextPath ] = next
                     if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
-                        //
-                        // Apply explicitBR mark to the last text leaf (which will render it appropriately)
-                        //
-                        const last = Editor.last(editor, path)
-                        if (last) {
-                            const [_, lastPath] = last
-                            const endPoint = Editor.end(editor, lastPath)
-                            return [{
-                                explicitBR: true,
-                                anchor: endPoint,
-                                focus: endPoint
-                            }]
-                        }
+                        explicitBR = true
+                    }
+                    if (Node.string(node)) {
+                        softBR = true
                     }
                 }
-            }
+                if (explicitBR || softBR) {
+                    const last = Editor.last(editor, path)
+                    if (last) {
+                        //
+                        // Apply marks to the last text leaf (which will render them appropriately)
+                        //
+                        const [_, lastPath] = last
+                        const endPoint = Editor.end(editor, lastPath)
+                        return [{
+                            explicitBR,
+                            softBR,
+                            anchor: endPoint,
+                            focus: endPoint
+                        }]    
+                    }
+                }
+        }
             return []
         },
         [editor]

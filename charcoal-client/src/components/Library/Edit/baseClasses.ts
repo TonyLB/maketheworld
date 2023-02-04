@@ -3,6 +3,7 @@ import { ReactEditor } from 'slate-react'
 
 export type CustomText = {
     explicitBR?: boolean;
+    softBR?: boolean;
     text: string;
 }
 
