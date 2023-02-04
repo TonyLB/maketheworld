@@ -36,6 +36,7 @@ import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
+import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'
 
 import {
     CustomActionLinkElement,
@@ -208,7 +209,14 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
 const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children, leaf }) => {
     return <span {...attributes}>
         {children}
-        { leaf.explicitBR && <span contentEditable={false}>[RET!]<br /></span> }
+        { leaf.explicitBR && <span contentEditable={false}>
+            <KeyboardReturnIcon
+                color="primary"
+                fontSize="small"
+                sx={{ verticalAlign: 'middle' }}
+            />
+            <br />
+        </span> }
     </span>
 }
 
@@ -618,10 +626,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                         const last = Editor.last(editor, path)
                         if (last) {
                             const [_, lastPath] = last
+                            const endPoint = Editor.end(editor, lastPath)
                             return [{
                                 explicitBR: true,
-                                anchor: Editor.start(editor, lastPath),
-                                focus: Editor.end(editor, lastPath)
+                                anchor: endPoint,
+                                focus: endPoint
                             }]
                         }
                     }
