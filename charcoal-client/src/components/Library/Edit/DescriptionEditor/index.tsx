@@ -22,14 +22,6 @@ import {
     Box,
     Toolbar,
     Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    List,
-    ListItemButton,
-    ListItemText,
-    ListSubheader,
-    IconButton
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import LinkIcon from '@mui/icons-material/Link'
@@ -38,15 +30,13 @@ import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
 
 import {
-    CustomActionLinkElement,
-    CustomFeatureLinkElement,
     CustomParagraphElement,
     CustomBeforeBlock,
     CustomReplaceBlock,
     isCustomParagraph,
 } from '../baseClasses'
 
-import { ComponentRenderItem, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 import { getNormalized } from '../../../../slices/personalAssets'
 import useDebounce from '../../../../hooks/useDebounce'
@@ -55,6 +45,7 @@ import descendantsToRender from './descendantToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
 import { Element, Leaf } from './components'
+import LinkDialog from './LinkDialog'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
@@ -111,91 +102,91 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
     </span>
 }
 
-interface LinkDialogProps {
-    open: boolean;
-    onClose: () => void;
-}
+// interface LinkDialogProps {
+//     open: boolean;
+//     onClose: () => void;
+// }
 
-const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
-    const editor = useSlateStatic()
-    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-    const AssetId = `ASSET#${assetKey}`
-    const normalForm = useSelector(getNormalized(AssetId))
-    const actions = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Action'))
-    const features = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]
-    return <Dialog
-        open={open}
-        scroll='paper'
-        onClose={onClose}
-    >
-        <DialogTitle>
-            <Box sx={{ marginRight: '2rem' }}>
-                Select Link Target
-            </Box>
-            <IconButton
-                aria-label="close"
-                onClick={onClose}
-                sx={{
-                position: 'absolute',
-                right: 8,
-                top: 8
-                }}
-            >
-                <CloseIcon />
-            </IconButton>
-        </DialogTitle>
-        <DialogContent>
-            <List>
-                <ListSubheader>
-                    Actions
-                </ListSubheader>
-                { actions.map(({ key }) => (
-                    <ListItemButton
-                        key={key}
-                        onClick={() => {
-                            wrapActionLink(editor, key)
-                            onClose()
-                            setTimeout(() => {
-                                if (editor.saveSelection) {
-                                    Transforms.select(editor, editor.saveSelection)
-                                }
-                                ReactEditor.focus(editor)
-                            }, 10)
-                        }}
-                    >
-                        <ListItemText>
-                            {key}
-                        </ListItemText>
-                    </ListItemButton>
-                ))}
-                <ListSubheader>
-                    Features
-                </ListSubheader>
-                { features.map(({ key }) => (
-                    <ListItemButton
-                        key={key}
-                        onClick={() => {
-                            wrapFeatureLink(editor, key)
-                            onClose()
-                            setTimeout(() => {
-                                if (editor.saveSelection) {
-                                    Transforms.select(editor, editor.saveSelection)
-                                }
-                                ReactEditor.focus(editor)
-                            }, 10)
-                        }}
-                    >
-                        <ListItemText>
-                            {key}
-                        </ListItemText>
-                    </ListItemButton>
-                ))}
-            </List>
-        </DialogContent>
-    </Dialog>
-}
+// const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
+//     const editor = useSlateStatic()
+//     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
+//     const AssetId = `ASSET#${assetKey}`
+//     const normalForm = useSelector(getNormalized(AssetId))
+//     const actions = Object.values(normalForm)
+//         .filter(({ tag }) => (tag === 'Action'))
+//     const features = Object.values(normalForm)
+//         .filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]
+//     return <Dialog
+//         open={open}
+//         scroll='paper'
+//         onClose={onClose}
+//     >
+//         <DialogTitle>
+//             <Box sx={{ marginRight: '2rem' }}>
+//                 Select Link Target
+//             </Box>
+//             <IconButton
+//                 aria-label="close"
+//                 onClick={onClose}
+//                 sx={{
+//                 position: 'absolute',
+//                 right: 8,
+//                 top: 8
+//                 }}
+//             >
+//                 <CloseIcon />
+//             </IconButton>
+//         </DialogTitle>
+//         <DialogContent>
+//             <List>
+//                 <ListSubheader>
+//                     Actions
+//                 </ListSubheader>
+//                 { actions.map(({ key }) => (
+//                     <ListItemButton
+//                         key={key}
+//                         onClick={() => {
+//                             wrapActionLink(editor, key)
+//                             onClose()
+//                             setTimeout(() => {
+//                                 if (editor.saveSelection) {
+//                                     Transforms.select(editor, editor.saveSelection)
+//                                 }
+//                                 ReactEditor.focus(editor)
+//                             }, 10)
+//                         }}
+//                     >
+//                         <ListItemText>
+//                             {key}
+//                         </ListItemText>
+//                     </ListItemButton>
+//                 ))}
+//                 <ListSubheader>
+//                     Features
+//                 </ListSubheader>
+//                 { features.map(({ key }) => (
+//                     <ListItemButton
+//                         key={key}
+//                         onClick={() => {
+//                             wrapFeatureLink(editor, key)
+//                             onClose()
+//                             setTimeout(() => {
+//                                 if (editor.saveSelection) {
+//                                     Transforms.select(editor, editor.saveSelection)
+//                                 }
+//                                 ReactEditor.focus(editor)
+//                             }, 10)
+//                         }}
+//                     >
+//                         <ListItemText>
+//                             {key}
+//                         </ListItemText>
+//                     </ListItemButton>
+//                 ))}
+//             </List>
+//         </DialogContent>
+//     </Dialog>
+// }
 
 const isInContextOf = (tags: string[]) => (editor: Editor) => {
     const link = Editor.nodes(editor, {
@@ -229,51 +220,51 @@ const unwrapLink = (editor: Editor) => {
     })
 }
 
-const wrapActionLink = (editor: Editor, to: string) => {
-    if (isLinkActive(editor)) {
-        selectActiveLink(editor)
-        unwrapLink(editor)
-    }
+// const wrapActionLink = (editor: Editor, to: string) => {
+//     if (isLinkActive(editor)) {
+//         selectActiveLink(editor)
+//         unwrapLink(editor)
+//     }
   
-    const { selection } = editor
-    const isCollapsed = selection && Range.isCollapsed(selection)
-    const link: CustomActionLinkElement = {
-        type: 'actionLink',
-        to,
-        children: isCollapsed ? [{ text: to }] : [],
-    }
+//     const { selection } = editor
+//     const isCollapsed = selection && Range.isCollapsed(selection)
+//     const link: CustomActionLinkElement = {
+//         type: 'actionLink',
+//         to,
+//         children: isCollapsed ? [{ text: to }] : [],
+//     }
   
-    if (isCollapsed) {
-        Transforms.insertNodes(editor, link)
-    } else {
-        Transforms.wrapNodes(editor, link, { split: true })
-        Transforms.collapse(editor, { edge: 'end' })
-        editor.saveSelection = undefined
-    }
-}
+//     if (isCollapsed) {
+//         Transforms.insertNodes(editor, link)
+//     } else {
+//         Transforms.wrapNodes(editor, link, { split: true })
+//         Transforms.collapse(editor, { edge: 'end' })
+//         editor.saveSelection = undefined
+//     }
+// }
 
-const wrapFeatureLink = (editor: Editor, to: string) => {
-    if (isLinkActive(editor)) {
-        selectActiveLink(editor)
-        unwrapLink(editor)
-    }
+// const wrapFeatureLink = (editor: Editor, to: string) => {
+//     if (isLinkActive(editor)) {
+//         selectActiveLink(editor)
+//         unwrapLink(editor)
+//     }
   
-    const { selection } = editor
-    const isCollapsed = selection && Range.isCollapsed(selection)
-    const link: CustomFeatureLinkElement = {
-        type: 'featureLink',
-        to,
-        children: isCollapsed ? [{ text: to }] : [],
-    }
+//     const { selection } = editor
+//     const isCollapsed = selection && Range.isCollapsed(selection)
+//     const link: CustomFeatureLinkElement = {
+//         type: 'featureLink',
+//         to,
+//         children: isCollapsed ? [{ text: to }] : [],
+//     }
   
-    if (isCollapsed) {
-        Transforms.insertNodes(editor, link)
-    } else {
-        Transforms.wrapNodes(editor, link, { split: true })
-        Transforms.collapse(editor, { edge: 'end' })
-        editor.saveSelection = undefined
-    }
-}
+//     if (isCollapsed) {
+//         Transforms.insertNodes(editor, link)
+//     } else {
+//         Transforms.wrapNodes(editor, link, { split: true })
+//         Transforms.collapse(editor, { edge: 'end' })
+//         editor.saveSelection = undefined
+//     }
+// }
 
 const selectActiveBlock = (editor: Editor) => {
     const block = Editor.nodes(editor, {
