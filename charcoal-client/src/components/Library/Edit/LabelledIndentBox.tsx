@@ -14,7 +14,7 @@ type LabelledIndentBoxProps = {
 // be used with Slate
 //
 export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxProps>({ color, children, label, slate, ...attributes }: T, ref: ForwardedRef<any>) => {
-    return <Box sx={{ position: 'relative', width: "100%" }}>
+    return <Box sx={{ position: 'relative', width: "100%", display: 'inline-block' }}>
         <Box
             sx={{
                 borderRadius: '0em 1em 1em 0em',

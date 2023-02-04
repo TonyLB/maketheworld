@@ -2,6 +2,7 @@ import { BaseEditor, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
 export type CustomText = {
+    explicitBR?: boolean;
     text: string;
 }
 
@@ -64,7 +65,7 @@ export const isCustomLink = (item: CustomParagraphContents): item is CustomLinkE
 export const isCustomText = (item: CustomParagraphContents): item is CustomText => ('text' in item)
 export const isCustomBeforeBlock = (item: CustomParagraphContents): item is CustomBeforeBlock => ('type' in item && item.type === 'before')
 export const isCustomReplaceBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'replace')
-export const isCustomParagraph = (item: CustomBlock | CustomParagraphContents): item is CustomParagraphElement => ('type' in item && item.type === 'paragraph')
+export const isCustomParagraph = (item: CustomElement): item is CustomParagraphElement => ('type' in item && item.type === 'paragraph')
 export const isCustomIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomIfBlock => ('type' in item && item.type === 'ifBase')
 export const isCustomElseIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseIfBlock => ('type' in item && item.type === 'elseif')
 export const isCustomElseBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseBlock => ('type' in item && item.type === 'else')

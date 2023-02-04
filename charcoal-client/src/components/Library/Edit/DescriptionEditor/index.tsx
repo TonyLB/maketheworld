@@ -43,6 +43,7 @@ import {
     CustomParagraphElement,
     CustomBeforeBlock,
     CustomReplaceBlock,
+    isCustomParagraph,
 } from '../baseClasses'
 
 import { ComponentRenderItem, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -191,7 +192,11 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
         //     ]), [] as any[])
         //     return <span {...attributes}><span contentEditable={false}><InheritedDescription inheritedRender={inheritedRender} /></span>{interspersedChildren}</span>
         case 'paragraph':
-            return <p {...attributes} >{ children }</p>
+            //
+            // TODO: Add a decorator that tags paragraph items with "softBR" if they have any text and "explicitBR" if they are followed by
+            // another paragraph ... and then adds a carriage-return icon in the case of "explicitBR" and a <br /> in the case of softBR
+            //
+            return <span {...attributes} >{ children }</span>
         default: return (
             <p {...attributes}>
                 {children}
@@ -201,7 +206,10 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
 }
 
 const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children, leaf }) => {
-    return <span {...attributes}>{children}</span>
+    return <span {...attributes}>
+        {children}
+        { leaf.explicitBR && <span contentEditable={false}>[RET!]<br /></span> }
+    </span>
 }
 
 interface LinkDialogProps {
@@ -597,6 +605,33 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
         }
     }, [debouncedValue, defaultValue, saveToReduce])
 
+    const decorate = useCallback(
+        ([node, path]): (Range & { explicitBR: boolean })[] => {
+            if (SlateElement.isElement(node) && isCustomParagraph(node)) {
+                const next = Editor.next(editor, { at: path })
+                if (next) {
+                    const [ nextNode, nextPath ] = next
+                    if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
+                        //
+                        // Apply explicitBR mark to the last text leaf (which will render it appropriately)
+                        //
+                        const last = Editor.last(editor, path)
+                        if (last) {
+                            const [_, lastPath] = last
+                            return [{
+                                explicitBR: true,
+                                anchor: Editor.start(editor, lastPath),
+                                focus: Editor.end(editor, lastPath)
+                            }]
+                        }
+                    }
+                }
+            }
+            return []
+        },
+        [editor]
+    )
+
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
@@ -609,6 +644,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
+                    decorate={decorate}
                     // onKeyDown={onKeyDown}
                 />
             </Box>
