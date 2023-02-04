@@ -1,5 +1,6 @@
-import { FunctionComponent, ReactNode } from 'react'
+import React, { ForwardedRef, ReactNode } from 'react'
 import Box from '@mui/material/Box'
+import InlineChromiumBugfix from './DescriptionEditor/InlineChromiumBugfix';
 
 type LabelledIndentBoxProps = {
     color: Record<number | string, string>;
@@ -8,8 +9,12 @@ type LabelledIndentBoxProps = {
     slate?: boolean;
 }
 
-export const LabelledIndentBox: FunctionComponent<LabelledIndentBoxProps> = ({ color, children, label, slate }) => {
-    return <Box sx={{ position: 'relative', width: "100%" }}>
+//
+// Refactor LabelledIndentBox withForwardRef, so that it doesn't need to be wrapped in a span in order to
+// be used with Slate
+//
+export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxProps>({ color, children, label, slate, ...attributes }: T, ref: ForwardedRef<any>) => {
+    return <Box sx={{ position: "relative", width: "100%", display: 'inline-block' }}>
         <Box
             sx={{
                 borderRadius: '0em 1em 1em 0em',
@@ -19,17 +24,14 @@ export const LabelledIndentBox: FunctionComponent<LabelledIndentBoxProps> = ({ c
                 paddingRight: '0.5em',
                 paddingLeft: '0.25em',
                 paddingTop: "0.5em",
-                ...(slate
-                    ? {
-                        position: "relative",
-                        top: '1em',
-                        left: 0
-                    }
-                    : { marginTop: '1em' }
-                )
+                marginTop: '1em'
             }}
         >
-            {children}
+            <span {...attributes} ref={ref}>
+                <InlineChromiumBugfix />
+                {children}
+                <InlineChromiumBugfix />
+            </span>
         </Box>
         <Box
             {...(slate ? { contentEditable: false } : {})}
@@ -48,4 +50,4 @@ export const LabelledIndentBox: FunctionComponent<LabelledIndentBoxProps> = ({ c
             { label }
         </Box>
     </Box>
-}
+})
