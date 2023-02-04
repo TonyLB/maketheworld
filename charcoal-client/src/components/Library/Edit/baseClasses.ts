@@ -43,12 +43,14 @@ export type CustomReplaceBlock = {
 export type CustomIfBlock = {
     type: 'ifBase';
     source: string;
+    isElseValid?: boolean;
     children: CustomBlock[];
 }
 
 export type CustomElseIfBlock = {
     type: 'elseif';
     source: string;
+    isElseValid?: boolean;
     children: CustomBlock[];
 }
 
