@@ -44,7 +44,7 @@ import { deepEqual } from '../../../../lib/objects'
 import descendantsToRender from './descendantToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
-import { Element, Leaf } from './components'
+import { decorateFactory, Element, Leaf } from './components'
 import LinkDialog from './LinkDialog'
 
 interface DescriptionEditorProps {
@@ -102,92 +102,6 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
     </span>
 }
 
-// interface LinkDialogProps {
-//     open: boolean;
-//     onClose: () => void;
-// }
-
-// const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
-//     const editor = useSlateStatic()
-//     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-//     const AssetId = `ASSET#${assetKey}`
-//     const normalForm = useSelector(getNormalized(AssetId))
-//     const actions = Object.values(normalForm)
-//         .filter(({ tag }) => (tag === 'Action'))
-//     const features = Object.values(normalForm)
-//         .filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]
-//     return <Dialog
-//         open={open}
-//         scroll='paper'
-//         onClose={onClose}
-//     >
-//         <DialogTitle>
-//             <Box sx={{ marginRight: '2rem' }}>
-//                 Select Link Target
-//             </Box>
-//             <IconButton
-//                 aria-label="close"
-//                 onClick={onClose}
-//                 sx={{
-//                 position: 'absolute',
-//                 right: 8,
-//                 top: 8
-//                 }}
-//             >
-//                 <CloseIcon />
-//             </IconButton>
-//         </DialogTitle>
-//         <DialogContent>
-//             <List>
-//                 <ListSubheader>
-//                     Actions
-//                 </ListSubheader>
-//                 { actions.map(({ key }) => (
-//                     <ListItemButton
-//                         key={key}
-//                         onClick={() => {
-//                             wrapActionLink(editor, key)
-//                             onClose()
-//                             setTimeout(() => {
-//                                 if (editor.saveSelection) {
-//                                     Transforms.select(editor, editor.saveSelection)
-//                                 }
-//                                 ReactEditor.focus(editor)
-//                             }, 10)
-//                         }}
-//                     >
-//                         <ListItemText>
-//                             {key}
-//                         </ListItemText>
-//                     </ListItemButton>
-//                 ))}
-//                 <ListSubheader>
-//                     Features
-//                 </ListSubheader>
-//                 { features.map(({ key }) => (
-//                     <ListItemButton
-//                         key={key}
-//                         onClick={() => {
-//                             wrapFeatureLink(editor, key)
-//                             onClose()
-//                             setTimeout(() => {
-//                                 if (editor.saveSelection) {
-//                                     Transforms.select(editor, editor.saveSelection)
-//                                 }
-//                                 ReactEditor.focus(editor)
-//                             }, 10)
-//                         }}
-//                     >
-//                         <ListItemText>
-//                             {key}
-//                         </ListItemText>
-//                     </ListItemButton>
-//                 ))}
-//             </List>
-//         </DialogContent>
-//     </Dialog>
-// }
-
 const isInContextOf = (tags: string[]) => (editor: Editor) => {
     const link = Editor.nodes(editor, {
         match: n =>
@@ -202,69 +116,12 @@ const isBeforeBlock = isInContextOf(['before'])
 const isReplaceBlock = isInContextOf(['replace'])
 const isIfBlock = isInContextOf(['if'])
 
-const selectActiveLink = (editor: Editor) => {
-    const link = Editor.nodes(editor, {
-        match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink'].includes(n.type),
-    }).next()
-    if (link?.value) {
-        const location = link.value[1]
-        Transforms.select(editor, location)
-    }
-}
-
 const unwrapLink = (editor: Editor) => {
     Transforms.unwrapNodes(editor, {
         match: n =>
             !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink'].includes(n.type),
     })
 }
-
-// const wrapActionLink = (editor: Editor, to: string) => {
-//     if (isLinkActive(editor)) {
-//         selectActiveLink(editor)
-//         unwrapLink(editor)
-//     }
-  
-//     const { selection } = editor
-//     const isCollapsed = selection && Range.isCollapsed(selection)
-//     const link: CustomActionLinkElement = {
-//         type: 'actionLink',
-//         to,
-//         children: isCollapsed ? [{ text: to }] : [],
-//     }
-  
-//     if (isCollapsed) {
-//         Transforms.insertNodes(editor, link)
-//     } else {
-//         Transforms.wrapNodes(editor, link, { split: true })
-//         Transforms.collapse(editor, { edge: 'end' })
-//         editor.saveSelection = undefined
-//     }
-// }
-
-// const wrapFeatureLink = (editor: Editor, to: string) => {
-//     if (isLinkActive(editor)) {
-//         selectActiveLink(editor)
-//         unwrapLink(editor)
-//     }
-  
-//     const { selection } = editor
-//     const isCollapsed = selection && Range.isCollapsed(selection)
-//     const link: CustomFeatureLinkElement = {
-//         type: 'featureLink',
-//         to,
-//         children: isCollapsed ? [{ text: to }] : [],
-//     }
-  
-//     if (isCollapsed) {
-//         Transforms.insertNodes(editor, link)
-//     } else {
-//         Transforms.wrapNodes(editor, link, { split: true })
-//         Transforms.collapse(editor, { edge: 'end' })
-//         editor.saveSelection = undefined
-//     }
-// }
 
 const selectActiveBlock = (editor: Editor) => {
     const block = Editor.nodes(editor, {
@@ -495,42 +352,43 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
         }
     }, [debouncedValue, defaultValue, saveToReduce])
 
-    const decorate = useCallback(
-        ([node, path]): (Range & { explicitBR?: boolean; softBR?: boolean })[] => {
-            if (SlateElement.isElement(node) && isCustomParagraph(node)) {
-                let explicitBR: boolean | undefined
-                let softBR: boolean | undefined
-                const next = Editor.next(editor, { at: path })
-                if (next) {
-                    const [ nextNode, nextPath ] = next
-                    if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
-                        explicitBR = true
-                    }
-                    if (Node.string(node)) {
-                        softBR = true
-                    }
-                }
-                if (explicitBR || softBR) {
-                    const last = Editor.last(editor, path)
-                    if (last) {
-                        //
-                        // Apply marks to the last text leaf (which will render them appropriately)
-                        //
-                        const [_, lastPath] = last
-                        const endPoint = Editor.end(editor, lastPath)
-                        return [{
-                            explicitBR,
-                            softBR,
-                            anchor: endPoint,
-                            focus: endPoint
-                        }]    
-                    }
-                }
-        }
-            return []
-        },
-        [editor]
-    )
+    const decorate = useCallback(decorateFactory(editor), [editor])
+    // const decorate = useCallback(
+    //     ([node, path]): (Range & { explicitBR?: boolean; softBR?: boolean })[] => {
+    //         if (SlateElement.isElement(node) && isCustomParagraph(node)) {
+    //             let explicitBR: boolean | undefined
+    //             let softBR: boolean | undefined
+    //             const next = Editor.next(editor, { at: path })
+    //             if (next) {
+    //                 const [ nextNode, nextPath ] = next
+    //                 if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
+    //                     explicitBR = true
+    //                 }
+    //                 if (Node.string(node)) {
+    //                     softBR = true
+    //                 }
+    //             }
+    //             if (explicitBR || softBR) {
+    //                 const last = Editor.last(editor, path)
+    //                 if (last) {
+    //                     //
+    //                     // Apply marks to the last text leaf (which will render them appropriately)
+    //                     //
+    //                     const [_, lastPath] = last
+    //                     const endPoint = Editor.end(editor, lastPath)
+    //                     return [{
+    //                         explicitBR,
+    //                         softBR,
+    //                         anchor: endPoint,
+    //                         focus: endPoint
+    //                     }]    
+    //                 }
+    //             }
+    //     }
+    //         return []
+    //     },
+    //     [editor]
+    // )
 
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>

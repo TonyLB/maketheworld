@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo, useState, useCallback, useEffect, ReactNode, ForwardedRef } from 'react'
+import React, { FunctionComponent, ReactNode, ForwardedRef } from 'react'
 import { pink, green, blue } from '@mui/material/colors'
 import { LabelledIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
@@ -6,13 +6,18 @@ import { RenderElementProps, RenderLeafProps } from 'slate-react'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
-import CloseIcon from '@mui/icons-material/Close'
-import LinkIcon from '@mui/icons-material/Link'
-import LinkOffIcon from '@mui/icons-material/LinkOff'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'
 import MoreIcon from '@mui/icons-material/More'
+import {
+    Editor,
+    Node,
+    NodeEntry,
+    Element as SlateElement,
+    Range
+} from 'slate'
+import { isCustomParagraph } from '../baseClasses'
 
 
 type SlateIndentBoxProps = {
@@ -130,3 +135,38 @@ export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children,
         </span> }
     </span>
 }
+
+export const decorateFactory = (editor: Editor) =>
+    ([node, path]: NodeEntry): (Range & { explicitBR?: boolean; softBR?: boolean })[] => {
+        if (SlateElement.isElement(node) && isCustomParagraph(node)) {
+            let explicitBR: boolean | undefined
+            let softBR: boolean | undefined
+            const next = Editor.next(editor, { at: path })
+            if (next) {
+                const [ nextNode, nextPath ] = next
+                if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
+                    explicitBR = true
+                }
+                if (Node.string(node)) {
+                    softBR = true
+                }
+            }
+            if (explicitBR || softBR) {
+                const last = Editor.last(editor, path)
+                if (last) {
+                    //
+                    // Apply marks to the last text leaf (which will render them appropriately)
+                    //
+                    const [_, lastPath] = last
+                    const endPoint = Editor.end(editor, lastPath)
+                    return [{
+                        explicitBR,
+                        softBR,
+                        anchor: endPoint,
+                        focus: endPoint
+                    }]    
+                }
+            }
+        }
+        return []
+    }
