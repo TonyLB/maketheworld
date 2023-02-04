@@ -5,15 +5,14 @@ import {
 } from "react-router-dom"
 import { isKeyHotkey } from 'is-hotkey'
 
-import { useSlateStatic, useSlate } from 'slate-react'
+import { useSlate } from 'slate-react'
 import {
     Descendant,
     createEditor,
     Editor,
     Element as SlateElement,
     Transforms,
-    Range,
-    Node
+    Range
 } from 'slate'
 import { withHistory } from 'slate-history'
 import { Slate, Editable, withReact, ReactEditor, RenderElementProps } from 'slate-react'
@@ -23,7 +22,6 @@ import {
     Toolbar,
     Button,
 } from '@mui/material'
-import CloseIcon from '@mui/icons-material/Close'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import BeforeIcon from '@mui/icons-material/Reply'
@@ -32,8 +30,7 @@ import ReplaceIcon from '@mui/icons-material/Backspace'
 import {
     CustomParagraphElement,
     CustomBeforeBlock,
-    CustomReplaceBlock,
-    isCustomParagraph,
+    CustomReplaceBlock
 } from '../baseClasses'
 
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -353,42 +350,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     }, [debouncedValue, defaultValue, saveToReduce])
 
     const decorate = useCallback(decorateFactory(editor), [editor])
-    // const decorate = useCallback(
-    //     ([node, path]): (Range & { explicitBR?: boolean; softBR?: boolean })[] => {
-    //         if (SlateElement.isElement(node) && isCustomParagraph(node)) {
-    //             let explicitBR: boolean | undefined
-    //             let softBR: boolean | undefined
-    //             const next = Editor.next(editor, { at: path })
-    //             if (next) {
-    //                 const [ nextNode, nextPath ] = next
-    //                 if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
-    //                     explicitBR = true
-    //                 }
-    //                 if (Node.string(node)) {
-    //                     softBR = true
-    //                 }
-    //             }
-    //             if (explicitBR || softBR) {
-    //                 const last = Editor.last(editor, path)
-    //                 if (last) {
-    //                     //
-    //                     // Apply marks to the last text leaf (which will render them appropriately)
-    //                     //
-    //                     const [_, lastPath] = last
-    //                     const endPoint = Editor.end(editor, lastPath)
-    //                     return [{
-    //                         explicitBR,
-    //                         softBR,
-    //                         anchor: endPoint,
-    //                         focus: endPoint
-    //                     }]    
-    //                 }
-    //             }
-    //     }
-    //         return []
-    //     },
-    //     [editor]
-    // )
 
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
