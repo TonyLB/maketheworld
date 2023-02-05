@@ -6,7 +6,7 @@ import { RenderElementProps, RenderLeafProps } from 'slate-react'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
-import Button from '@mui/material/Button'
+import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
@@ -154,11 +154,47 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
         //     ]), [] as any[])
         //     return <span {...attributes}><span contentEditable={false}><InheritedDescription inheritedRender={inheritedRender} /></span>{interspersedChildren}</span>
         case 'paragraph':
-            //
-            // TODO: Add a decorator that tags paragraph items with "softBR" if they have any text and "explicitBR" if they are followed by
-            // another paragraph ... and then adds a carriage-return icon in the case of "explicitBR" and a <br /> in the case of softBR
-            //
-            return <span {...attributes} >{ children }</span>
+            const paragraphTags = <React.Fragment>
+                    { (element.explicitBR || element.softBR) && <span contentEditable={false}>
+                        {
+                            element.explicitBR && <KeyboardReturnIcon
+                                color="primary"
+                                fontSize="small"
+                                sx={{ verticalAlign: 'middle' }}
+                            />
+                        }
+                        {
+                            (element.softBR && !element.explicitBR) && <MoreIcon
+                                color="primary"
+                                fontSize="small"
+                                sx={{ verticalAlign: 'middle', transform: "rotate(-0.25turn)" }}
+                            />
+                        }
+                    </span> }
+            </React.Fragment>
+            if (element.softBR || element.explicitBR) {
+                return <Box
+                    component='span'
+                    {...attributes}
+                >
+                    {children}
+                    {paragraphTags}
+                    <br />
+                </Box>
+            }
+            else {
+                return <Box
+                    {...attributes}
+                    sx={{
+                        display: 'inline-block',
+                        verticalAlign: 'top',
+                        marginRight: '0.1em'
+                    }}
+                >
+                    {children}
+                    {paragraphTags}
+                </Box>
+            }
         default: return (
             <p {...attributes}>
                 {children}
@@ -167,60 +203,73 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
     }
 }
 
+export const withParagraphBR = (editor: Editor) => {
+    const { normalizeNode } = editor
+    editor.normalizeNode = ([node, path]) => {
+        //
+        // Check all paragraphs to set their explicitBR and softBR marks according to their next element and contents
+        //
+        if ((SlateElement.isElement(node) && Editor.isBlock(editor, node) && !isCustomParagraph(node)) || Editor.isEditor(node)) {
+            let errorNormalized: boolean = false
+            const allChildren = [...Node.children(node, [])]
+            allChildren.forEach(([child, childPath]) => {
+                if (!errorNormalized && SlateElement.isElement(child) && isCustomParagraph(child)) {
+                    let explicitBR: boolean | undefined
+                    let softBR: boolean | undefined
+                    const aggregatePath = [...path, ...childPath]
+                    const next = Editor.next(editor, { at: aggregatePath})
+                    if (next) {
+                        const [nextNode] = next
+                        if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
+                            explicitBR = true
+                        }
+                        if (Node.string(child)) {
+                            softBR = true
+                        }
+                    }
+    
+                    if ((Boolean(explicitBR) !== Boolean(child.explicitBR)) || (Boolean(softBR) !== Boolean(child.softBR))) {
+                        Transforms.setNodes(editor, { explicitBR, softBR }, { at: aggregatePath })
+                        errorNormalized = true
+                    }
+                }
+            })
+            if (errorNormalized) {
+                return
+            }
+        }
+        return normalizeNode([node, path])
+    }
+    return editor
+}
+
 export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children, leaf }) => {
-    return <span {...attributes}>
+    //
+    // Hide Slate's default br after an empty paragraph block, so it can be used as a placeholder
+    // in a horizontal layout with other blocks
+    //
+    return <Box 
+        component="span"
+        {...attributes}
+        sx={{
+            [`& span[data-slate-length=0]`]: {
+                marginRight: '0.25em',
+                '& br': {
+                    display: 'none'
+                }
+            }
+        }}
+    >
         {children}
-        { (leaf.explicitBR || leaf.softBR) && <span contentEditable={false}>
-            {
-                leaf.explicitBR && <KeyboardReturnIcon
-                    color="primary"
-                    fontSize="small"
-                    sx={{ verticalAlign: 'middle' }}
-                />
-            }
-            {
-                (leaf.softBR && !leaf.explicitBR) && <MoreIcon
-                    color="primary"
-                    fontSize="small"
-                    sx={{ verticalAlign: 'middle', transform: "rotate(-0.25turn)" }}
-                />
-            }
-            <br />
-        </span> }
-    </span>
+    </Box>
 }
 
 export const decorateFactory = (editor: Editor) =>
-    ([node, path]: NodeEntry): (Range & { explicitBR?: boolean; softBR?: boolean })[] => {
+    ([node, path]: NodeEntry): (Range & { highlight?: boolean })[] => {
         if (SlateElement.isElement(node) && isCustomParagraph(node)) {
-            let explicitBR: boolean | undefined
-            let softBR: boolean | undefined
-            const next = Editor.next(editor, { at: path })
-            if (next) {
-                const [ nextNode, nextPath ] = next
-                if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
-                    explicitBR = true
-                }
-                if (Node.string(node)) {
-                    softBR = true
-                }
-            }
-            if (explicitBR || softBR) {
-                const last = Editor.last(editor, path)
-                if (last) {
-                    //
-                    // Apply marks to the last text leaf (which will render them appropriately)
-                    //
-                    const [_, lastPath] = last
-                    const endPoint = Editor.end(editor, lastPath)
-                    return [{
-                        explicitBR,
-                        softBR,
-                        anchor: endPoint,
-                        focus: endPoint
-                    }]    
-                }
-            }
+            //
+            // TODO: Highlight marker for spaces at beginning and end of paragraph
+            //
         }
         return []
     }

@@ -17,18 +17,14 @@ import {
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
-import { Path } from 'slate'
 
 type DescendantsTranslateOptions = {
     normalForm: NormalForm;
-    path?: Path;
-    currentPathIndex?: number;
 }
 
 const descendantsTranslate = function * (renderItems: ComponentRenderItem[], options: DescendantsTranslateOptions): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
-    const { normalForm, path = [] } = options
+    const { normalForm } = options
     let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
-    let currentIndex = options.currentPathIndex ?? 0
     const conditionElseContext: (current: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
         if (!current) {
             return {
@@ -67,13 +63,11 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
         }
         switch(item.tag) {
             case 'Space':
-                currentIndex++
                 yield {
                     text: ' '
                 } as CustomText
                 break
             case 'Link':
-                currentIndex++
                 const targetTag = normalForm[item.to]?.tag || 'Action'
                 yield {
                     type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
@@ -84,23 +78,20 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                 } as CustomActionLinkElement | CustomFeatureLinkElement
                 break
             case 'String':
-                currentIndex++
                 yield { text: item.value } as CustomText
                 break
             case 'LineBreak':
                 yield { type: 'lineBreak' }
                 break
             case 'After':
-                const afterTranslate = [...descendantsTranslate(item.contents, { normalForm, path, currentPathIndex: currentIndex })]
-                currentIndex += afterTranslate.length
+                const afterTranslate = [...descendantsTranslate(item.contents, { normalForm })]
                 yield* afterTranslate as any
                 break
             case 'Before':
             case 'Replace':
-                currentIndex++
                 yield {
                     type: item.tag === 'Before' ? 'before' : 'replace',
-                    children: [...descendantsTranslate(item.contents, { normalForm, path: [...path, currentIndex] })].filter(isCustomParagraphContents)
+                    children: [...descendantsTranslate(item.contents, { normalForm })].filter(isCustomParagraphContents)
                 }
                 break
             case 'Condition':
@@ -124,21 +115,18 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                             {
                                 type: 'elseif',
                                 source: conditionsToSrc(remainingConditions),
-                                children: descendantsFromRender(item.contents, { normalForm, path: [...path, currentIndex] }),
-                                path: [...path, currentIndex]
+                                children: descendantsFromRender(item.contents, { normalForm }),
                             }
                         ]
-                        currentIndex++
                     }
                     else if (currentIfSequence.length && !elseDefined) {
                         currentIfSequence = [
                             ...currentIfSequence,
                             {
                                 type: 'else',
-                                children: descendantsFromRender(item.contents, { normalForm, path: [...path, currentIndex] })
+                                children: descendantsFromRender(item.contents, { normalForm })
                             }
                         ]
-                        currentIndex++
                     }
                     else {
                         if (currentIfSequence.length) {
@@ -151,10 +139,8 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                         currentIfSequence = [{
                             type: 'ifBase',
                             source: conditionsToSrc(item.conditions),
-                            children: descendantsFromRender(item.contents, { normalForm, path: [...path, currentIndex] }),
-                            path: [...path, currentIndex]
+                            children: descendantsFromRender(item.contents, { normalForm }),
                         }]
-                        currentIndex++
                     }
                 }
                 else {
@@ -164,10 +150,8 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                     currentIfSequence = [{
                         type: 'ifBase',
                         source: conditionsToSrc(item.conditions),
-                        children: descendantsFromRender(item.contents, { normalForm, path: [...path, currentIndex] }),
-                        path: [...path, currentIndex]
+                        children: descendantsFromRender(item.contents, { normalForm }),
                     }]
-                    currentIndex++
                 }
                 break
         }
@@ -178,11 +162,11 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
 }
 
 export const descendantsFromRender = (render: ComponentRenderItem[], options: DescendantsTranslateOptions): CustomBlock[] => {
-    const { normalForm, path = [] } = options
+    const { normalForm } = options
     if (render.length > 0) {
         let returnValue = [] as CustomBlock[]
         let accumulator = [] as CustomParagraphContents[]
-        for (const item of descendantsTranslate(render, { normalForm, path })) {
+        for (const item of descendantsTranslate(render, { normalForm })) {
             if (isCustomBlock(item)) {
                 if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
                     if (accumulator.length) {

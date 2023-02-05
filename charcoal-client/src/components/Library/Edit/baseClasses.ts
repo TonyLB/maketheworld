@@ -2,8 +2,6 @@ import { BaseEditor, Path, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
 export type CustomText = {
-    explicitBR?: boolean;
-    softBR?: boolean;
     text: string;
 }
 
@@ -79,6 +77,8 @@ export const isCustomParagraphContents = (item: CustomElement | CustomText | Cus
 
 export type CustomParagraphElement = {
     type: 'paragraph';
+    explicitBR?: boolean;
+    softBR?: boolean;
     children: CustomParagraphContents[]
 }
 
