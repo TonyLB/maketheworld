@@ -21,7 +21,7 @@ import {
     Path,
     Transforms
 } from 'slate'
-import { CustomBlock, isCustomParagraph } from '../baseClasses'
+import { CustomBlock, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 
 
 type SlateIndentBoxProps = {
@@ -257,7 +257,12 @@ export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children,
                 '& br': {
                     display: 'none'
                 }
-            }
+            },
+            ...(leaf.highlight ? {
+                backgroundColor: blue[300],
+                paddingLeft: '0.25em',
+                paddingRight: '0.25em'
+            } : {})
         }}
     >
         {children}
@@ -267,9 +272,30 @@ export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children,
 export const decorateFactory = (editor: Editor) =>
     ([node, path]: NodeEntry): (Range & { highlight?: boolean })[] => {
         if (SlateElement.isElement(node) && isCustomParagraph(node)) {
+            let decorators: (Range & { highlight?: boolean })[] = []
             //
             // TODO: Highlight marker for spaces at beginning and end of paragraph
             //
+            const children = [...Node.children(node, [])]
+            if (children.length) {
+                const [firstChild, firstChildPath] = children[0]
+                if (isCustomParagraphContents(firstChild) && isCustomText(firstChild) && firstChild.text.match(/^\s/)) {
+                    decorators.push({
+                        anchor: { path: firstChildPath, offset: 0 },
+                        focus: { path: firstChildPath, offset: 1 },
+                        highlight: true
+                    })
+                }
+                const [lastChild, lastChildPath] = children.slice(-1)[0]
+                if (isCustomParagraphContents(lastChild) && isCustomText(lastChild) && lastChild.text.match(/\s$/)) {
+                    decorators.push({
+                        anchor: { path: lastChildPath, offset: lastChild.text.length - 1 },
+                        focus: { path: lastChildPath, offset:  lastChild.text.length },
+                        highlight: true
+                    })
+                }
+            }
+            return decorators
         }
         return []
     }

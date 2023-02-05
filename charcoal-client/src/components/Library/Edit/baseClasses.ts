@@ -2,6 +2,7 @@ import { BaseEditor, Path, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
 export type CustomText = {
+    highlight?: boolean;
     text: string;
 }
 
