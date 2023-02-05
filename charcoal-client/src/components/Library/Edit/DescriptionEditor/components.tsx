@@ -158,7 +158,21 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
             // TODO: Transfer explicitBR and softBR marks to block level, and adjust them in normalize rather
             // than decorate, then render paragraph different depending.
             //
-            return <span {...attributes} >{ children }</span>
+            if (element.softBR || element.explicitBR) {
+                return <Box {...attributes}>{children}</Box>
+            }
+            else {
+                return <Box
+                    {...attributes}
+                    sx={{
+                        display: 'inline-block',
+                        verticalAlign: 'top',
+                        marginRight: '0.1em'
+                    }}
+                >
+                    {children}
+                </Box>
+            }
         default: return (
             <p {...attributes}>
                 {children}
