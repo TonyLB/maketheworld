@@ -154,12 +154,33 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
         //     ]), [] as any[])
         //     return <span {...attributes}><span contentEditable={false}><InheritedDescription inheritedRender={inheritedRender} /></span>{interspersedChildren}</span>
         case 'paragraph':
-            //
-            // TODO: Transfer explicitBR and softBR marks to block level, and adjust them in normalize rather
-            // than decorate, then render paragraph different depending.
-            //
+            const paragraphTags = <React.Fragment>
+                    { (element.explicitBR || element.softBR) && <span contentEditable={false}>
+                        {
+                            element.explicitBR && <KeyboardReturnIcon
+                                color="primary"
+                                fontSize="small"
+                                sx={{ verticalAlign: 'middle' }}
+                            />
+                        }
+                        {
+                            (element.softBR && !element.explicitBR) && <MoreIcon
+                                color="primary"
+                                fontSize="small"
+                                sx={{ verticalAlign: 'middle', transform: "rotate(-0.25turn)" }}
+                            />
+                        }
+                    </span> }
+            </React.Fragment>
             if (element.softBR || element.explicitBR) {
-                return <Box {...attributes}>{children}</Box>
+                return <Box
+                    component='span'
+                    {...attributes}
+                >
+                    {children}
+                    {paragraphTags}
+                    <br />
+                </Box>
             }
             else {
                 return <Box
@@ -171,6 +192,7 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
                     }}
                 >
                     {children}
+                    {paragraphTags}
                 </Box>
             }
         default: return (
@@ -201,9 +223,9 @@ export const withParagraphBR = (editor: Editor) => {
                         if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
                             explicitBR = true
                         }
-                    }
-                    if (Node.string(child)) {
-                        softBR = true
+                        if (Node.string(child)) {
+                            softBR = true
+                        }
                     }
     
                     if ((Boolean(explicitBR) !== Boolean(child.explicitBR)) || (Boolean(softBR) !== Boolean(child.softBR))) {
@@ -222,6 +244,10 @@ export const withParagraphBR = (editor: Editor) => {
 }
 
 export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children, leaf }) => {
+    //
+    // Hide Slate's default br after an empty paragraph block, so it can be used as a placeholder
+    // in a horizontal layout with other blocks
+    //
     return <Box 
         component="span"
         {...attributes}
@@ -235,23 +261,6 @@ export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children,
         }}
     >
         {children}
-        { (leaf.explicitBR || leaf.softBR) && <span contentEditable={false}>
-            {
-                leaf.explicitBR && <KeyboardReturnIcon
-                    color="primary"
-                    fontSize="small"
-                    sx={{ verticalAlign: 'middle' }}
-                />
-            }
-            {
-                (leaf.softBR && !leaf.explicitBR) && <MoreIcon
-                    color="primary"
-                    fontSize="small"
-                    sx={{ verticalAlign: 'middle', transform: "rotate(-0.25turn)" }}
-                />
-            }
-            <br />
-        </span> }
     </Box>
 }
 
