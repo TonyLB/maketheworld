@@ -2,8 +2,6 @@ import { BaseEditor, Path, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
 export type CustomText = {
-    explicitBR?: boolean;
-    softBR?: boolean;
     text: string;
 }
 

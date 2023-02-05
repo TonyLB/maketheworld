@@ -265,36 +265,11 @@ export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children,
 }
 
 export const decorateFactory = (editor: Editor) =>
-    ([node, path]: NodeEntry): (Range & { explicitBR?: boolean; softBR?: boolean })[] => {
+    ([node, path]: NodeEntry): (Range & { highlight?: boolean })[] => {
         if (SlateElement.isElement(node) && isCustomParagraph(node)) {
-            let explicitBR: boolean | undefined
-            let softBR: boolean | undefined
-            const next = Editor.next(editor, { at: path })
-            if (next) {
-                const [ nextNode, nextPath ] = next
-                if (SlateElement.isElement(nextNode) && isCustomParagraph(nextNode)) {
-                    explicitBR = true
-                }
-                if (Node.string(node)) {
-                    softBR = true
-                }
-            }
-            if (explicitBR || softBR) {
-                const last = Editor.last(editor, path)
-                if (last) {
-                    //
-                    // Apply marks to the last text leaf (which will render them appropriately)
-                    //
-                    const [_, lastPath] = last
-                    const endPoint = Editor.end(editor, lastPath)
-                    return [{
-                        explicitBR,
-                        softBR,
-                        anchor: endPoint,
-                        focus: endPoint
-                    }]    
-                }
-            }
+            //
+            // TODO: Highlight marker for spaces at beginning and end of paragraph
+            //
         }
         return []
     }
