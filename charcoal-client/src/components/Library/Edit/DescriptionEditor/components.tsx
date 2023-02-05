@@ -21,7 +21,7 @@ import {
     Path,
     Transforms
 } from 'slate'
-import { CustomBlock, isCustomParagraph } from '../baseClasses'
+import { CustomBlock, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 
 
 type SlateIndentBoxProps = {
@@ -248,28 +248,78 @@ export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children,
     // Hide Slate's default br after an empty paragraph block, so it can be used as a placeholder
     // in a horizontal layout with other blocks
     //
-    return <Box 
-        component="span"
-        {...attributes}
-        sx={{
-            [`& span[data-slate-length=0]`]: {
-                marginRight: '0.25em',
-                '& br': {
-                    display: 'none'
+    return <React.Fragment>
+        { leaf.highlight && 
+            <Box 
+                component="div"
+                contentEditable={false}
+                sx={{
+                    position: "relative",
+                    display: 'inline-block',
+                    backgroundColor: blue[300],
+                    marginLeft: '0.1em',
+                    marginRight: '-0.15em',
+                    minWidth: '0.75em',
+                    '&::after': {
+                        content: '""',
+                        width: "100%",
+                        height: "0.25em",
+                        position: "absolute",
+                        bottom: 0,
+                        left:0,
+                        borderColor: blue[500],
+                        borderStyle: 'solid',
+                        borderTopStyle: 'none',
+                    }
+                }}
+            >
+                &nbsp;
+            </Box>
+        }
+        <Box 
+            component="span"
+            {...attributes}
+            sx={{
+                [`& span[data-slate-length=0]`]: {
+                    marginRight: '0.25em',
+                    '& br': {
+                        display: 'none'
+                    }
                 }
-            }
-        }}
-    >
-        {children}
-    </Box>
+            }}
+        >
+            {children}
+        </Box>
+    </React.Fragment>
 }
 
 export const decorateFactory = (editor: Editor) =>
     ([node, path]: NodeEntry): (Range & { highlight?: boolean })[] => {
         if (SlateElement.isElement(node) && isCustomParagraph(node)) {
+            let decorators: (Range & { highlight?: boolean })[] = []
             //
             // TODO: Highlight marker for spaces at beginning and end of paragraph
             //
+            const children = [...Node.children(node, [])]
+            if (children.length) {
+                const [firstChild, firstChildPath] = children[0]
+                if (isCustomParagraphContents(firstChild) && isCustomText(firstChild) && firstChild.text.match(/^\s/)) {
+                    decorators.push({
+                        anchor: { path: firstChildPath, offset: 0 },
+                        focus: { path: firstChildPath, offset: 1 },
+                        highlight: true
+                    })
+                }
+                const [lastChild, lastChildPath] = children.slice(-1)[0]
+                if (isCustomParagraphContents(lastChild) && isCustomText(lastChild) && lastChild.text.match(/\s$/)) {
+                    decorators.push({
+                        anchor: { path: lastChildPath, offset: lastChild.text.length - 1 },
+                        focus: { path: lastChildPath, offset:  lastChild.text.length },
+                        highlight: true
+                    })
+                }
+            }
+            return decorators
         }
         return []
     }
