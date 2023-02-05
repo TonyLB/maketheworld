@@ -25,6 +25,10 @@ type DescendantsTranslateOptions = {
     currentPathIndex?: number;
 }
 
+//
+// Confirm that normalize is running in the editor, and then you can remove the path rendering
+// from this translate.
+//
 const descendantsTranslate = function * (renderItems: ComponentRenderItem[], options: DescendantsTranslateOptions): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
     const { normalForm, path = [] } = options
     let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []

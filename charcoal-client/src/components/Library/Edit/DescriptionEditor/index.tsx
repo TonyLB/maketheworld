@@ -41,7 +41,7 @@ import { deepEqual } from '../../../../lib/objects'
 import descendantsToRender from './descendantToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
-import { decorateFactory, Element, Leaf } from './components'
+import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
 
 interface DescriptionEditorProps {
@@ -296,11 +296,14 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, onChange = () => {} }) => {
-    const editor = useMemo(() => withConditionals(withInlines(withHistory(withReact(createEditor())))), [])
+    const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const [defaultValue, setDefaultValue] = useState<Descendant[]>(() => (descendantsFromRender(render, { normalForm })))
+    useEffect(() => {
+        Editor.normalize(editor, { force: true })
+    }, [editor, defaultValue])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element editor={editor} inheritedRender={inheritedRender} {...props} />, [inheritedRender, editor])

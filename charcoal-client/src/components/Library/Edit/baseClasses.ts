@@ -79,6 +79,8 @@ export const isCustomParagraphContents = (item: CustomElement | CustomText | Cus
 
 export type CustomParagraphElement = {
     type: 'paragraph';
+    explicitBR?: boolean;
+    softBR?: boolean;
     children: CustomParagraphContents[]
 }
 
