@@ -248,25 +248,49 @@ export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children,
     // Hide Slate's default br after an empty paragraph block, so it can be used as a placeholder
     // in a horizontal layout with other blocks
     //
-    return <Box 
-        component="span"
-        {...attributes}
-        sx={{
-            [`& span[data-slate-length=0]`]: {
-                marginRight: '0.25em',
-                '& br': {
-                    display: 'none'
+    return <React.Fragment>
+        { leaf.highlight && 
+            <Box 
+                component="div"
+                contentEditable={false}
+                sx={{
+                    position: "relative",
+                    display: 'inline-block',
+                    backgroundColor: blue[300],
+                    marginLeft: '0.1em',
+                    marginRight: '-0.15em',
+                    minWidth: '0.75em',
+                    '&::after': {
+                        content: '""',
+                        width: "100%",
+                        height: "0.25em",
+                        position: "absolute",
+                        bottom: 0,
+                        left:0,
+                        borderColor: blue[500],
+                        borderStyle: 'solid',
+                        borderTopStyle: 'none',
+                    }
+                }}
+            >
+                &nbsp;
+            </Box>
+        }
+        <Box 
+            component="span"
+            {...attributes}
+            sx={{
+                [`& span[data-slate-length=0]`]: {
+                    marginRight: '0.25em',
+                    '& br': {
+                        display: 'none'
+                    }
                 }
-            },
-            ...(leaf.highlight ? {
-                backgroundColor: blue[300],
-                paddingLeft: '0.25em',
-                paddingRight: '0.25em'
-            } : {})
-        }}
-    >
-        {children}
-    </Box>
+            }}
+        >
+            {children}
+        </Box>
+    </React.Fragment>
 }
 
 export const decorateFactory = (editor: Editor) =>
