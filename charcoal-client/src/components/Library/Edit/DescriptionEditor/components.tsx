@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactNode, ForwardedRef } from 'react'
+import React, { FunctionComponent, ReactNode, ForwardedRef, useCallback } from 'react'
 import { pink, green, blue } from '@mui/material/colors'
 import { LabelledIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
@@ -17,9 +17,11 @@ import {
     Node,
     NodeEntry,
     Element as SlateElement,
-    Range
+    Range,
+    Path,
+    Transforms
 } from 'slate'
-import { isCustomParagraph } from '../baseClasses'
+import { CustomBlock, isCustomParagraph } from '../baseClasses'
 
 
 type SlateIndentBoxProps = {
@@ -44,8 +46,17 @@ const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color,
     </LabelledIndentBox>
 })
 
-const AddElseIfButton: FunctionComponent<{}> = ({}) => (
-    <Chip
+const AddConditionalButton: FunctionComponent<{ editor: Editor; path: Path; defaultItem: CustomBlock; label: string }> = ({ editor, path, defaultItem, label }) => {
+    const onClick = useCallback(() => {
+        if (path.length) {
+            Transforms.insertNodes(
+                editor,
+                defaultItem,
+                { at: [...path.slice(0, -1), path.slice(-1)[0] + 1] }
+            )
+        }
+    }, [editor, path])
+    return <Chip
         variant="filled"
         size="small"
         sx={{
@@ -57,30 +68,29 @@ const AddElseIfButton: FunctionComponent<{}> = ({}) => (
                 backgroundColor: blue[100]
             }
         }}
-        label="+ Else If"
-        onClick={() => {}}
+        label={`+ ${label}`}
+        onClick={onClick}
+    />
+}
+
+const AddElseIfButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ editor, path }) => (
+    <AddConditionalButton
+        editor={editor}
+        path={path}
+        defaultItem={{ type: 'elseif', source: '', children: [{ type: 'paragraph', children: [{ text: '' }]}]}}
+        label='Else If'
+    />
+)
+const AddElseButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ editor, path }) => (
+    <AddConditionalButton
+        editor={editor}
+        path={path}
+        defaultItem={{ type: 'else', children: [{ type: 'paragraph', children: [{ text: '' }]}]}}
+        label='Else'
     />
 )
 
-const AddElseButton: FunctionComponent<{}> = ({}) => (
-    <Chip
-        variant="filled"
-        size="small"
-        sx={{
-            backgroundColor: blue[50],
-            borderStyle: "solid",
-            borderWidth: "1px",
-            borderColor: blue[300],
-            '&:hover': {
-                backgroundColor: blue[100]
-            }
-        }}
-        label="+ Else"
-        onClick={() => {}}
-    />
-)
-
-export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender, ...props }) => {
+export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[]; editor: Editor }> = ({ inheritedRender, editor, ...props }) => {
     const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':
@@ -119,8 +129,8 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
                     color={blue}
                     label={<React.Fragment>{element.type === 'ifBase' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
                     actions={<React.Fragment>
-                        <AddElseIfButton />
-                        { element.isElseValid && <AddElseButton />}
+                        <AddElseIfButton editor={editor} path={element.path ?? []} />
+                        { element.isElseValid && <AddElseButton editor={editor} path={element.path ?? []} />}
                     </React.Fragment>}
                 >
                     { children }
