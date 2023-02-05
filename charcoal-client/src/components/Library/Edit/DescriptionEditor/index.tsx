@@ -300,10 +300,10 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    const [defaultValue, setDefaultValue] = useState<Descendant[]>(() => (descendantsFromRender(normalForm)(render)))
+    const [defaultValue, setDefaultValue] = useState<Descendant[]>(() => (descendantsFromRender(render, { normalForm })))
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const renderElement = useCallback((props: RenderElementProps) => <Element inheritedRender={inheritedRender} {...props} />, [inheritedRender])
+    const renderElement = useCallback((props: RenderElementProps) => <Element editor={editor} inheritedRender={inheritedRender} {...props} />, [inheritedRender, editor])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = useCallback((event) => {
         const { selection } = editor

@@ -3,6 +3,7 @@ import {
     Editor,
     Element as SlateElement
 } from "slate";
+import { deepEqual } from "../../../../lib/objects";
 import { CustomBlock, CustomElseBlock, CustomElseIfBlock, CustomIfBlock, isCustomElseBlock, isCustomElseIfBlock, isCustomIfBlock, isCustomParagraph } from "../baseClasses";
 
 //
@@ -108,10 +109,11 @@ export const withConditionals = (editor: Editor): Editor => {
 
                     //
                     // Next, check whether there is an else in the sequence, and tag only the final
-                    // if or else if accordingly (if all in sequence are not already tagged)
+                    // if or else if accordingly (if all in sequence are not already tagged).  Also
+                    // check that the path property has been populated correctly
                     //
                     const elsePresent = Boolean(ifSequence.find(([{ type }]) => (type === 'else')))
-                    const elseUntagged = ifSequence.reduce<boolean>((previous, [item], index) => {
+                    const elseUntagged = ifSequence.reduce<boolean>((previous, [item, itemPath], index) => {
                         if (!previous && (isCustomIfBlock(item) || isCustomElseIfBlock(item))) {
                             if (Boolean(item.isElseValid) && elsePresent) {
                                 return true
@@ -119,14 +121,26 @@ export const withConditionals = (editor: Editor): Editor => {
                             if (!elsePresent && (index === ifSequence.length - 1) && !item.isElseValid) {
                                 return true
                             }
+                            if (!deepEqual(itemPath, item.path ?? [])) {
+                                return true
+                            }
                         }
                         return previous
                     }, false)
                     if (elseUntagged) {
-                        ifSequence.forEach(([_, itemPath], index) => {
-                            Transforms.setNodes(editor, { isElseValid: (!elsePresent && index === ifSequence.length - 1) ? true : undefined }, { at: itemPath })
+                        ifSequence.forEach(([item, itemPath], index) => {
+                            if (isCustomIfBlock(item) || isCustomElseIfBlock(item)) {
+                                Transforms.setNodes(
+                                    editor,
+                                    {
+                                        isElseValid: (!elsePresent && index === ifSequence.length - 1) ? true : undefined,
+                                        path: itemPath
+                                    },
+                                    { at: itemPath }
+                                )
+                            }
+                            errorNormalized = true
                         })
-                        errorNormalized = true
                     }
                 }
             })

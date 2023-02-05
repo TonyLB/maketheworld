@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactNode, ForwardedRef } from 'react'
+import React, { FunctionComponent, ReactNode, ForwardedRef, useCallback } from 'react'
 import { pink, green, blue } from '@mui/material/colors'
 import { LabelledIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
@@ -6,6 +6,8 @@ import { RenderElementProps, RenderLeafProps } from 'slate-react'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'
@@ -15,21 +17,25 @@ import {
     Node,
     NodeEntry,
     Element as SlateElement,
-    Range
+    Range,
+    Path,
+    Transforms
 } from 'slate'
-import { isCustomParagraph } from '../baseClasses'
+import { CustomBlock, isCustomParagraph } from '../baseClasses'
 
 
 type SlateIndentBoxProps = {
     color: Record<number | string, string>;
     children: any;
     label: ReactNode;
+    actions?: ReactNode;
 }
 
-const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color, children, label, ...attributes }: T, ref: ForwardedRef<any>) => {
+const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color, children, label, actions, ...attributes }: T, ref: ForwardedRef<any>) => {
     return <LabelledIndentBox
         color={color}
         label={label}
+        actions={actions}
         slate
         { ...attributes }
         ref={ref}
@@ -40,7 +46,51 @@ const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color,
     </LabelledIndentBox>
 })
 
-export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender, ...props }) => {
+const AddConditionalButton: FunctionComponent<{ editor: Editor; path: Path; defaultItem: CustomBlock; label: string }> = ({ editor, path, defaultItem, label }) => {
+    const onClick = useCallback(() => {
+        if (path.length) {
+            Transforms.insertNodes(
+                editor,
+                defaultItem,
+                { at: [...path.slice(0, -1), path.slice(-1)[0] + 1] }
+            )
+        }
+    }, [editor, path])
+    return <Chip
+        variant="filled"
+        size="small"
+        sx={{
+            backgroundColor: blue[50],
+            borderStyle: "solid",
+            borderWidth: "1px",
+            borderColor: blue[300],
+            '&:hover': {
+                backgroundColor: blue[100]
+            }
+        }}
+        label={`+ ${label}`}
+        onClick={onClick}
+    />
+}
+
+const AddElseIfButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ editor, path }) => (
+    <AddConditionalButton
+        editor={editor}
+        path={path}
+        defaultItem={{ type: 'elseif', source: '', children: [{ type: 'paragraph', children: [{ text: '' }]}]}}
+        label='Else If'
+    />
+)
+const AddElseButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ editor, path }) => (
+    <AddConditionalButton
+        editor={editor}
+        path={path}
+        defaultItem={{ type: 'else', children: [{ type: 'paragraph', children: [{ text: '' }]}]}}
+        label='Else'
+    />
+)
+
+export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[]; editor: Editor }> = ({ inheritedRender, editor, ...props }) => {
     const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':
@@ -78,6 +128,10 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
                     { ...attributes }
                     color={blue}
                     label={<React.Fragment>{element.type === 'ifBase' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
+                    actions={<React.Fragment>
+                        <AddElseIfButton editor={editor} path={element.path ?? []} />
+                        { element.isElseValid && <AddElseButton editor={editor} path={element.path ?? []} />}
+                    </React.Fragment>}
                 >
                     { children }
             </SlateIndentBox>
