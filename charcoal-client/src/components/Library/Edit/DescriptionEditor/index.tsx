@@ -32,7 +32,8 @@ import {
     CustomParagraphElement,
     CustomBeforeBlock,
     CustomReplaceBlock,
-    CustomIfBlock
+    CustomIfBlock,
+    isCustomBlock
 } from '../baseClasses'
 
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -40,7 +41,7 @@ import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../
 import { getNormalized } from '../../../../slices/personalAssets'
 import useDebounce from '../../../../hooks/useDebounce'
 import { deepEqual } from '../../../../lib/objects'
-import descendantsToRender from './descendantToRender'
+import descendantsToRender from './descendantsToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
 import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
@@ -365,7 +366,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     }, [editor])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
-        const newRender = descendantsToRender((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
+        const newRender = descendantsToRender((value || []).filter(isCustomBlock))
         onChange(newRender)
     }, [onChange, value])
 
