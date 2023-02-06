@@ -46,7 +46,7 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
                 ...accumulator,
                 {
                     tag: 'Condition',
-                    conditions: [...runningConditions, newCondition],
+                    conditions: [...(runningConditions.slice(0, -1)), newCondition],
                     contents: descendantsToRender(item.children)
                 }
             ]
