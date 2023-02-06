@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactNode, ForwardedRef, useCallback } from 'react'
+import React, { FunctionComponent, ReactNode, ForwardedRef, useCallback, useMemo } from 'react'
 import { pink, green, blue } from '@mui/material/colors'
 import { LabelledIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
-import { RenderElementProps, RenderLeafProps } from 'slate-react'
+import { ReactEditor, RenderElementProps, RenderLeafProps } from 'slate-react'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
@@ -22,6 +22,7 @@ import {
     Transforms
 } from 'slate'
 import { CustomBlock, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
+import CodeEditor from '../CodeEditor'
 
 
 type SlateIndentBoxProps = {
@@ -90,8 +91,12 @@ const AddElseButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ edit
     />
 )
 
+//
+// TODO: Replace assignment of editor as property with useSlateStatic (see Checklists Slate JS example)
+//
 export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[]; editor: Editor }> = ({ inheritedRender, editor, ...props }) => {
     const { attributes, children, element } = props
+    const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
     switch(element.type) {
         case 'featureLink':
             return <span {...attributes}>
@@ -127,7 +132,28 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
             return <SlateIndentBox
                     { ...attributes }
                     color={blue}
-                    label={<React.Fragment>{element.type === 'ifBase' ? 'If' : 'Else If'} [{element.source}]</React.Fragment>}
+                    label={
+                        <React.Fragment>
+                            {element.type === 'ifBase' ? 'If ' : 'Else If '}
+                            <Box
+                                sx={{
+                                    display: 'inline-block',
+                                    borderRadius: '0.25em',
+                                    backgroundColor: blue[50],
+                                    paddingLeft: '0.25em',
+                                    paddingRight: '0.25em',
+                                    marginRight: '0.25em'
+                                }}
+                            >
+                                <CodeEditor
+                                    source={element.source}
+                                    onChange={(value: string) => {
+                                        Transforms.setNodes(editor, { source: value }, { at: path })
+                                    }}
+                                />
+                            </Box>
+                        </React.Fragment>
+                    }
                     actions={<React.Fragment>
                         <AddElseIfButton editor={editor} path={element.path ?? []} />
                         { element.isElseValid && <AddElseButton editor={editor} path={element.path ?? []} />}

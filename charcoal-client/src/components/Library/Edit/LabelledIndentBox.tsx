@@ -17,6 +17,22 @@ type LabelledIndentBoxProps = {
 export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxProps>({ color, children, label, actions, slate, ...attributes }: T, ref: ForwardedRef<any>) => {
     return <Box sx={{ position: "relative", width: "calc(100% - 0.1em)", display: 'inline-block' }}>
         <Box
+            {...(slate ? { contentEditable: false } : {})}
+            sx={{
+                borderRadius: "0em 1em 1em 0em",
+                borderStyle: 'solid',
+                borderColor: color[500],
+                background: color[100],
+                display: 'inline',
+                paddingRight: '0.25em',
+                position: 'absolute',
+                top: 0,
+                left: 0
+            }}
+        >
+            { label }
+        </Box>
+        <Box
             sx={{
                 borderRadius: '0em 1em 1em 0em',
                 borderStyle: 'solid',
@@ -36,22 +52,6 @@ export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxPr
                 {children}
                 <InlineChromiumBugfix />
             </span>
-        </Box>
-        <Box
-            {...(slate ? { contentEditable: false } : {})}
-            sx={{
-                borderRadius: "0em 1em 1em 0em",
-                borderStyle: 'solid',
-                borderColor: color[500],
-                background: color[100],
-                display: 'inline',
-                paddingRight: '0.25em',
-                position: 'absolute',
-                top: 0,
-                left: 0
-            }}
-        >
-            { label }
         </Box>
         { actions && <Box
             {...(slate ? { contentEditable: false } : {})}
