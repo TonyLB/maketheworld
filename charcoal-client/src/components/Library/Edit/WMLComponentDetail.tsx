@@ -32,55 +32,54 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
     const component = normalForm[ComponentId || '']
     const { tag } = component || {}
     const onChange = useCallback((newRender: ComponentRenderItem[]) => {
-        console.log(`onChange!`)
         //
         // TODO: Figure out how to stop out-of-control looping on onChange in the case of minor
         // miscalibrations of the descendantsToRender function
         //
-        // const adjustedRender = newRender.reduce<ComponentRenderItem[]>((previous, item, index) => {
-        //     if (index === 0 && item.tag === 'String' && item.value.search(/^\s+/) !== -1) {
-        //         return [
-        //             ...previous,
-        //             {
-        //                 tag: 'Space'
-        //             },
-        //             {
-        //                 tag: 'String',
-        //                 value: item.value.trimStart()
-        //             }
-        //         ]
-        //     }
-        //     if ((index === newRender.length - 1) && item.tag === 'String' && item.value.search(/\s+$/) !== -1) {
-        //         return [
-        //             ...previous,
-        //             {
-        //                 tag: 'String',
-        //                 value: item.value.trimEnd()
-        //             },
-        //             {
-        //                 tag: 'Space'
-        //             }
-        //         ]
-        //     }
-        //     return [
-        //         ...previous,
-        //         item
-        //     ]
-        // }, []).map(componentRenderToSchemaTaggedMessage)
-        // const normalizer = new Normalizer()
-        // normalizer._normalForm = normalForm
-        // const reference: NormalReference = { tag, key: ComponentId, index: appearanceIndex }
-        // const baseSchema = normalizer.referenceToSchema(reference)
-        // if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
-        //     updateNormal({
-        //         type: 'put',
-        //         item: {
-        //             ...baseSchema,
-        //             render: adjustedRender
-        //         },
-        //         position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
-        //     })
-        // }
+        const adjustedRender = newRender.reduce<ComponentRenderItem[]>((previous, item, index) => {
+            if (index === 0 && item.tag === 'String' && item.value.search(/^\s+/) !== -1) {
+                return [
+                    ...previous,
+                    {
+                        tag: 'Space'
+                    },
+                    {
+                        tag: 'String',
+                        value: item.value.trimStart()
+                    }
+                ]
+            }
+            if ((index === newRender.length - 1) && item.tag === 'String' && item.value.search(/\s+$/) !== -1) {
+                return [
+                    ...previous,
+                    {
+                        tag: 'String',
+                        value: item.value.trimEnd()
+                    },
+                    {
+                        tag: 'Space'
+                    }
+                ]
+            }
+            return [
+                ...previous,
+                item
+            ]
+        }, []).map(componentRenderToSchemaTaggedMessage)
+        const normalizer = new Normalizer()
+        normalizer._normalForm = normalForm
+        const reference: NormalReference = { tag, key: ComponentId, index: appearanceIndex }
+        const baseSchema = normalizer.referenceToSchema(reference)
+        if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
+            updateNormal({
+                type: 'put',
+                item: {
+                    ...baseSchema,
+                    render: adjustedRender
+                },
+                position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
+            })
+        }
     }, [ComponentId, tag, normalForm, updateNormal])
     const defaultName = useMemo(() => {
         const localName = components[ComponentId]?.localName

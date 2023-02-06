@@ -26,11 +26,13 @@ import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
+import IfIcon from '@mui/icons-material/Quiz'
 
 import {
     CustomParagraphElement,
     CustomBeforeBlock,
-    CustomReplaceBlock
+    CustomReplaceBlock,
+    CustomIfBlock
 } from '../baseClasses'
 
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -180,6 +182,33 @@ const wrapReplaceBlock = (editor: Editor) => {
         Transforms.collapse(editor, { edge: 'end' })
         editor.saveSelection = undefined
     }
+}
+
+const wrapIfBlock = (editor: Editor) => {
+    const block: CustomIfBlock = {
+        type: 'ifBase',
+        source: "",
+        children: [{
+            type: 'paragraph',
+            children: [{ text: '' }]
+        }]
+    }
+    Transforms.insertNodes(editor, block)
+}
+
+const AddIfButton: FunctionComponent<{}> = () => {
+    const editor = useSlate()
+    const { selection } = editor
+    const onClick = useCallback(() => {
+        wrapIfBlock(editor)
+    }, [editor])
+    return <Button
+        variant="outlined"
+        disabled={!selection}
+        onClick={onClick}
+    >
+        <IfIcon />If
+    </Button>
 }
 
 interface AddLinkButtonProps {
@@ -361,6 +390,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
                 <RemoveLinkButton />
                 <DisplayTagRadio />
+                <AddIfButton />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <Editable
