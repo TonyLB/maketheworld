@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactNode, ForwardedRef, useCallback, useMemo
 import { pink, green, blue } from '@mui/material/colors'
 import { LabelledIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
-import { ReactEditor, RenderElementProps, RenderLeafProps } from 'slate-react'
+import { ReactEditor, RenderElementProps, RenderLeafProps, useSlateStatic } from 'slate-react'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
@@ -94,7 +94,8 @@ const AddElseButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ edit
 //
 // TODO: Replace assignment of editor as property with useSlateStatic (see Checklists Slate JS example)
 //
-export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[]; editor: Editor }> = ({ inheritedRender, editor, ...props }) => {
+export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[]; }> = ({ inheritedRender, ...props }) => {
+    const editor = useSlateStatic()
     const { attributes, children, element } = props
     const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
     switch(element.type) {
@@ -155,8 +156,8 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
                         </React.Fragment>
                     }
                     actions={<React.Fragment>
-                        <AddElseIfButton editor={editor} path={element.path ?? []} />
-                        { element.isElseValid && <AddElseButton editor={editor} path={element.path ?? []} />}
+                        <AddElseIfButton editor={editor} path={path ?? []} />
+                        { element.isElseValid && <AddElseButton editor={editor} path={path ?? []} />}
                     </React.Fragment>}
                 >
                     { children }

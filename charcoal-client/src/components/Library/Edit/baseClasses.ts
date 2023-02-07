@@ -43,7 +43,6 @@ export type CustomIfBlock = {
     type: 'ifBase';
     source: string;
     isElseValid?: boolean;
-    path?: Path;
     children: CustomBlock[];
 }
 
@@ -51,7 +50,6 @@ export type CustomElseIfBlock = {
     type: 'elseif';
     source: string;
     isElseValid?: boolean;
-    path?: Path;
     children: CustomBlock[];
 }
 

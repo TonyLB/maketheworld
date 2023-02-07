@@ -1,10 +1,9 @@
-import { Node, NodeEntry, Path, Transforms } from "slate";
+import { Node, NodeEntry, Transforms } from "slate";
 import {
     Editor,
     Element as SlateElement
 } from "slate";
-import { deepEqual } from "../../../../lib/objects";
-import { CustomBlock, CustomElseBlock, CustomElseIfBlock, CustomIfBlock, isCustomElseBlock, isCustomElseIfBlock, isCustomIfBlock, isCustomParagraph } from "../baseClasses";
+import { CustomElseBlock, CustomElseIfBlock, CustomIfBlock, isCustomElseBlock, isCustomElseIfBlock, isCustomIfBlock, isCustomParagraph } from "../baseClasses";
 
 //
 // TODO: Figure out how to normalize when an ElseIf block exists not following an IfBase or ElseIf block (turn it into an IfBase block and
@@ -113,15 +112,12 @@ export const withConditionals = (editor: Editor): Editor => {
                     // check that the path property has been populated correctly
                     //
                     const elsePresent = Boolean(ifSequence.find(([{ type }]) => (type === 'else')))
-                    const elseUntagged = ifSequence.reduce<boolean>((previous, [item, itemPath], index) => {
+                    const elseUntagged = ifSequence.reduce<boolean>((previous, [item], index) => {
                         if (!previous && (isCustomIfBlock(item) || isCustomElseIfBlock(item))) {
                             if (Boolean(item.isElseValid) && elsePresent) {
                                 return true
                             }
                             if (!elsePresent && (index === ifSequence.length - 1) && !item.isElseValid) {
-                                return true
-                            }
-                            if (!deepEqual(itemPath, item.path ?? [])) {
                                 return true
                             }
                         }
@@ -133,8 +129,7 @@ export const withConditionals = (editor: Editor): Editor => {
                                 Transforms.setNodes(
                                     editor,
                                     {
-                                        isElseValid: (!elsePresent && index === ifSequence.length - 1) ? true : undefined,
-                                        path: itemPath
+                                        isElseValid: (!elsePresent && index === ifSequence.length - 1) ? true : undefined
                                     },
                                     { at: itemPath }
                                 )
