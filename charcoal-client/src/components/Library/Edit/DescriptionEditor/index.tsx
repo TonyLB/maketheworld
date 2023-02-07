@@ -39,8 +39,7 @@ import {
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 import { getNormalized } from '../../../../slices/personalAssets'
-import useDebounce from '../../../../hooks/useDebounce'
-import { deepEqual } from '../../../../lib/objects'
+import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import descendantsToRender from './descendantsToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
@@ -330,11 +329,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    const [defaultValue, setDefaultValue] = useState<Descendant[]>(() => (descendantsFromRender(render, { normalForm })))
+    const defaultValue = useMemo(() => (descendantsFromRender(render, { normalForm })), [render, normalForm])
+    const [value, setValue] = useState<Descendant[]>(defaultValue)
     useEffect(() => {
         Editor.normalize(editor, { force: true })
     }, [editor, defaultValue])
-    const [value, setValue] = useState<Descendant[]>(defaultValue)
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element editor={editor} inheritedRender={inheritedRender} {...props} />, [inheritedRender, editor])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
@@ -373,14 +372,14 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     const onChangeHandler = useCallback((value) => {
         setValue(value)
     }, [setValue])
-    
-    const debouncedValue = useDebounce(value, 1000)
-    useEffect(() => {
-        if (!deepEqual(debouncedValue, defaultValue)) {
-            saveToReduce(debouncedValue)
-            setDefaultValue(debouncedValue)
+
+    useDebouncedOnChange({
+        value,
+        delay: 1000,
+        onChange: (value) => {
+            saveToReduce(value)
         }
-    }, [debouncedValue, defaultValue, saveToReduce])
+    })
 
     const decorate = useCallback(decorateFactory(editor), [editor])
 
