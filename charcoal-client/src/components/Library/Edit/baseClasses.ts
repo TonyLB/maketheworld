@@ -58,6 +58,14 @@ export type CustomElseBlock = {
     children: CustomBlock[];
 }
 
+export type CustomExitBlock = {
+    type: 'exit';
+    key: string;
+    from: string;
+    to: string;
+    children: CustomText[];
+}
+
 export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock
 
 export const isCustomLineBreak = (item: CustomParagraphContents): item is CustomLineBreak => ('type' in item && item.type === 'lineBreak')
@@ -71,6 +79,7 @@ export const isCustomParagraph = (item: CustomElement): item is CustomParagraphE
 export const isCustomIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomIfBlock => ('type' in item && item.type === 'ifBase')
 export const isCustomElseIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseIfBlock => ('type' in item && item.type === 'elseif')
 export const isCustomElseBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseBlock => ('type' in item && item.type === 'else')
+export const isCustomExitBlock = (item: CustomBlock | CustomParagraphContents): item is CustomExitBlock => ('type' in item && item.type === 'exit')
 
 export const isCustomParagraphContents = (item: CustomElement | CustomText | CustomLineBreak): item is CustomParagraphContents => ((!('type' in item)) || ('type' in item && ['actionLink', 'featureLink', 'lineBreak', 'before', 'replace'].includes(item.type)))
 
@@ -89,9 +98,10 @@ type CustomElement = CustomLineElement |
     CustomReplaceBlock |
     CustomIfBlock |
     CustomElseIfBlock |
-    CustomElseBlock
+    CustomElseBlock |
+    CustomExitBlock
 
-export type CustomBlock = CustomParagraphElement | CustomIfBlock | CustomElseIfBlock | CustomElseBlock
+export type CustomBlock = CustomParagraphElement | CustomIfBlock | CustomElseIfBlock | CustomElseBlock | CustomExitBlock
 export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'ifBase', 'elseif', 'else'].includes(item.type))
 
 declare module 'slate' {

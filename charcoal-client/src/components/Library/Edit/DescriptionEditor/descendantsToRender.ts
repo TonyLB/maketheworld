@@ -11,6 +11,7 @@ import {
     isCustomIfBlock,
     isCustomLink,
     isCustomParagraph,
+    isCustomParagraphContents,
     isCustomReplaceBlock,
     isCustomText
 } from "../baseClasses"
@@ -63,7 +64,7 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
             runningConditions = []
             return returnVal
         }
-        else if (isCustomParagraph(item) || isCustomBeforeBlock(item) || isCustomReplaceBlock(item)) {
+        else if (isCustomParagraphContents(item) && (isCustomParagraph(item) || isCustomBeforeBlock(item) || isCustomReplaceBlock(item))) {
             return item.children
                 .filter((item) => (!(isCustomText(item) && !item.text)))
                 .reduce<ComponentRenderItem[]>((previous, item) => {

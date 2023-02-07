@@ -1,13 +1,12 @@
-import React, { FunctionComponent, ReactNode, ForwardedRef, useCallback, useMemo } from 'react'
+import React, { FunctionComponent, ReactNode, ForwardedRef, useMemo } from 'react'
 import { pink, green, blue } from '@mui/material/colors'
-import { LabelledIndentBox } from '../LabelledIndentBox'
+import { SlateIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
 import { ReactEditor, RenderElementProps, RenderLeafProps, useSlateStatic } from 'slate-react'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'
@@ -18,86 +17,13 @@ import {
     NodeEntry,
     Element as SlateElement,
     Range,
-    Path,
     Transforms
 } from 'slate'
-import { CustomBlock, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
-import CodeEditor from '../CodeEditor'
+import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
+import SlateIfElse from '../SlateIfElse'
 
-
-type SlateIndentBoxProps = {
-    color: Record<number | string, string>;
-    children: any;
-    label: ReactNode;
-    actions?: ReactNode;
-}
-
-const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color, children, label, actions, ...attributes }: T, ref: ForwardedRef<any>) => {
-    return <LabelledIndentBox
-        color={color}
-        label={label}
-        actions={actions}
-        slate
-        { ...attributes }
-        ref={ref}
-    >
-        <InlineChromiumBugfix />
-        {children}
-        <InlineChromiumBugfix />
-    </LabelledIndentBox>
-})
-
-const AddConditionalButton: FunctionComponent<{ editor: Editor; path: Path; defaultItem: CustomBlock; label: string }> = ({ editor, path, defaultItem, label }) => {
-    const onClick = useCallback(() => {
-        if (path.length) {
-            Transforms.insertNodes(
-                editor,
-                defaultItem,
-                { at: [...path.slice(0, -1), path.slice(-1)[0] + 1] }
-            )
-        }
-    }, [editor, path])
-    return <Chip
-        variant="filled"
-        size="small"
-        sx={{
-            backgroundColor: blue[50],
-            borderStyle: "solid",
-            borderWidth: "1px",
-            borderColor: blue[300],
-            '&:hover': {
-                backgroundColor: blue[100]
-            }
-        }}
-        label={`+ ${label}`}
-        onClick={onClick}
-    />
-}
-
-const AddElseIfButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ editor, path }) => (
-    <AddConditionalButton
-        editor={editor}
-        path={path}
-        defaultItem={{ type: 'elseif', source: '', children: [{ type: 'paragraph', children: [{ text: '' }]}]}}
-        label='Else If'
-    />
-)
-const AddElseButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ editor, path }) => (
-    <AddConditionalButton
-        editor={editor}
-        path={path}
-        defaultItem={{ type: 'else', children: [{ type: 'paragraph', children: [{ text: '' }]}]}}
-        label='Else'
-    />
-)
-
-//
-// TODO: Replace assignment of editor as property with useSlateStatic (see Checklists Slate JS example)
-//
 export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[]; }> = ({ inheritedRender, ...props }) => {
-    const editor = useSlateStatic()
     const { attributes, children, element } = props
-    const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
     switch(element.type) {
         case 'featureLink':
             return <span {...attributes}>
@@ -130,46 +56,8 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
             </SlateIndentBox>
         case 'ifBase':
         case 'elseif':
-            return <SlateIndentBox
-                    { ...attributes }
-                    color={blue}
-                    label={
-                        <React.Fragment>
-                            {element.type === 'ifBase' ? 'If ' : 'Else If '}
-                            <Box
-                                sx={{
-                                    display: 'inline-block',
-                                    borderRadius: '0.25em',
-                                    backgroundColor: blue[50],
-                                    paddingLeft: '0.25em',
-                                    paddingRight: '0.25em',
-                                    marginRight: '0.25em'
-                                }}
-                            >
-                                <CodeEditor
-                                    source={element.source}
-                                    onChange={(value: string) => {
-                                        Transforms.setNodes(editor, { source: value }, { at: path })
-                                    }}
-                                />
-                            </Box>
-                        </React.Fragment>
-                    }
-                    actions={<React.Fragment>
-                        <AddElseIfButton editor={editor} path={path ?? []} />
-                        { element.isElseValid && <AddElseButton editor={editor} path={path ?? []} />}
-                    </React.Fragment>}
-                >
-                    { children }
-            </SlateIndentBox>
         case 'else':
-            return <SlateIndentBox
-                    {...attributes}
-                    color={blue}
-                    label={<React.Fragment>Else</React.Fragment>}
-                >
-                    { children }
-            </SlateIndentBox>
+            return <SlateIfElse { ...props } />
         //
         // TODO: Build InheritedDescription into render base rather than into a Slate Element
         //
