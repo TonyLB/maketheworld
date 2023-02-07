@@ -14,12 +14,11 @@ import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import RoomExits from './RoomExits'
-import useDebounce from '../../../hooks/useDebounce'
+import { useDebouncedOnChange } from '../../../hooks/useDebounce'
 import { ComponentRenderItem, isNormalFeature, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { deepEqual } from '../../../lib/objects'
 import DraftLockout from './DraftLockout'
 
 type WMLComponentAppearanceProps = {
@@ -120,12 +119,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
     const changeName = useCallback((event) => {
         setName([{ tag: 'String', value: event.target.value }])
     }, [setName])
-    const debouncedName = useDebounce(name, 1000)
-    useEffect(() => {
-        if (!deepEqual(debouncedName, appearance?.name || [])) {
-            dispatchNameChange(debouncedName)
-        }
-    }, [debouncedName, appearance])
+    useDebouncedOnChange({ value: name, delay: 1000, onChange: dispatchNameChange })
     if (!component || !appearance) {
         return <Box />
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { deepEqual } from '../lib/objects';
 
 //
 // useDebounce lifted from https://usehooks.com/useDebounce/
@@ -22,6 +23,20 @@ export const useDebounce = <T>(value: T, delay: number) => {
         [value, delay] // Only re-call effect if value or delay changes
     )
     return debouncedValue
+}
+
+export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; delay: number; onChange: (value: T) => void }) => {
+    const [baseValue, setBaseValue] = useState<T>(value)
+    const debouncedValue = useDebounce(value, delay)
+    useEffect(
+        () => {
+            if (!deepEqual(baseValue, debouncedValue)) {
+                onChange(debouncedValue)
+                setBaseValue(debouncedValue)
+            }
+        },
+        [baseValue, debouncedValue, onChange, setBaseValue]
+    )
 }
 
 export default useDebounce

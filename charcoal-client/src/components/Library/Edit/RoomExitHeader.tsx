@@ -11,7 +11,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { isNormalExit, NormalExit, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { useLibraryAsset } from './LibraryAsset'
-import useDebounce from '../../../hooks/useDebounce'
+import { useDebouncedOnChange } from '../../../hooks/useDebounce'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
@@ -25,15 +25,10 @@ interface RoomExitHeaderBaseProps {
 
 const RoomExitHeaderBase: FunctionComponent<RoomExitHeaderBaseProps> = ({ defaultName, toTarget, targetName, onChanged=() => {}, onDelete=() => {} }) => {
     const [name, setName] = useState<string>(defaultName)
-    const debouncedName = useDebounce(name, 500)
-    useEffect(() => {
-        if (debouncedName !== defaultName) {
-            onChanged(debouncedName)
-        }
-    }, [debouncedName, defaultName])
+    useDebouncedOnChange({ value: name, delay: 500, onChange: onChanged })
     const onChange = useCallback((event) => {
         setName(event.target.value)
-    }, [setName, onChanged])
+    }, [setName])
     return <Box sx={{ width: "100%", display: "flex", flexDirection: "row" }}>
         <Box sx={{ maxWidth: "12em", flexGrow: 1, display: "flex", marginRight: "1em" }}>
             <TextField
