@@ -83,8 +83,6 @@ export const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({
         { ...attributes }
         ref={ref}
     >
-        <InlineChromiumBugfix />
         {children}
-        <InlineChromiumBugfix />
     </LabelledIndentBox>
 })

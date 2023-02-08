@@ -64,7 +64,7 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
             runningConditions = []
             return returnVal
         }
-        else if (isCustomParagraphContents(item) && (isCustomParagraph(item) || isCustomBeforeBlock(item) || isCustomReplaceBlock(item))) {
+        else if (isCustomParagraph(item) || (isCustomParagraphContents(item) && (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)))) {
             return item.children
                 .filter((item) => (!(isCustomText(item) && !item.text)))
                 .reduce<ComponentRenderItem[]>((previous, item) => {

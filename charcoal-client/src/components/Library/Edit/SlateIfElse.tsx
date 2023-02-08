@@ -3,7 +3,7 @@ import Chip from "@mui/material/Chip"
 import { blue } from "@mui/material/colors"
 import React, { FunctionComponent, useCallback, useMemo } from "react"
 import { Editor, Transforms, Path } from "slate"
-import { ReactEditor, RenderElementProps, useSlateStatic } from "slate-react"
+import { ReactEditor, RenderElementProps, useSlate } from "slate-react"
 import { CustomBlock } from "./baseClasses"
 import CodeEditor from "./CodeEditor"
 import { SlateIndentBox } from "./LabelledIndentBox"
@@ -53,7 +53,7 @@ const AddElseButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ edit
 )
 
 export const SlateIfElse: FunctionComponent<RenderElementProps> = ({ ...props }) => {
-    const editor = useSlateStatic()
+    const editor = useSlate()
     const { attributes, children, element } = props
     const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
     switch(element.type) {

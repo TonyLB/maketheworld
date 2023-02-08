@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactNode, ForwardedRef, useMemo } from 'reac
 import { pink, green, blue } from '@mui/material/colors'
 import { SlateIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
-import { ReactEditor, RenderElementProps, RenderLeafProps, useSlateStatic } from 'slate-react'
+import { RenderElementProps, RenderLeafProps } from 'slate-react'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 

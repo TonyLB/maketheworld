@@ -102,7 +102,7 @@ type CustomElement = CustomLineElement |
     CustomExitBlock
 
 export type CustomBlock = CustomParagraphElement | CustomIfBlock | CustomElseIfBlock | CustomElseBlock | CustomExitBlock
-export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'ifBase', 'elseif', 'else'].includes(item.type))
+export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'ifBase', 'elseif', 'else', 'exit'].includes(item.type))
 
 declare module 'slate' {
     interface CustomTypes {

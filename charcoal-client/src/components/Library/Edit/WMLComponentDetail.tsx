@@ -20,6 +20,7 @@ import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wm
 import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
+import RoomExitEditor from './RoomExitEditor'
 
 type WMLComponentAppearanceProps = {
     ComponentId: string;
@@ -157,7 +158,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
             />
         </Box>
         {
-            (tag === 'Room') && <RoomExits RoomId={ComponentId || ''} />
+            (tag === 'Room') && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
         }
     </Box>
 }
