@@ -9,11 +9,16 @@ import { withHistory } from "slate-history"
 import { Editable, ReactEditor, RenderElementProps, Slate, useSlate, withReact } from "slate-react"
 import { reduceItemsToTree } from "../conditionTree"
 import { useLibraryAsset } from "../LibraryAsset"
-import SlateIfElse from "../SlateIfElse"
+import SlateIfElse, { AddIfButton } from "../SlateIfElse"
 import exitTreeToSlate from "./exitTreeToSlate"
 import ExitIcon from '@mui/icons-material/CallMade'
 import DeleteIcon from '@mui/icons-material/Delete'
 import FlipIcon from '@mui/icons-material/Loop'
+import Select, { SelectChangeEvent } from "@mui/material/Select"
+import MenuItem from "@mui/material/MenuItem"
+import FormControl from "@mui/material/FormControl"
+import InputLabel from "@mui/material/InputLabel"
+import Toolbar from "@mui/material/Toolbar/Toolbar"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -31,6 +36,26 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
     )
 }
 
+const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: SelectChangeEvent<string>) => void }> = ({ target, onChange }) => {
+    const { rooms } = useLibraryAsset()
+    return <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
+        <InputLabel id="select-small">Target</InputLabel>
+        <Select
+            labelId="select-small"
+            id="select-small"
+            value={target}
+            label="Target"
+            onChange={onChange}
+        >
+            {
+                Object.entries(rooms).map(([key, { name }]) => (
+                    <MenuItem value={key}>{ name }</MenuItem>
+                ))
+            }
+        </Select>
+    </FormControl>
+}
+
 const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ RoomId, ...props }) => {
     const editor = useSlate()
     const { attributes, children, element } = props
@@ -43,6 +68,11 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
             Transforms.setNodes(editor, { to: element.from, from: element.to }, { at: path })
         }
     }, [element, editor, path])
+    const onTargetHandler = useCallback(({ to, from }: { to: string; from: string }) => {
+        if (element.type === 'exit') {
+            Transforms.setNodes(editor, { to, from }, { at: path })
+        }
+    }, [element, editor, path])
     switch(element.type) {
         case 'ifBase':
         case 'elseif':
@@ -52,10 +82,16 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
             const hereChip = <Chip icon={<FlipIcon />} label="here" onClick={onFlipHandler} />
             const fromElement = (element.from === RoomId)
                 ? hereChip
-                : element.from
+                : <ExitTargetSelector
+                    target={element.from}
+                    onChange={(event) => { onTargetHandler({ to: RoomId, from: event.target.value })}}
+                />
             const toElement = (element.to === RoomId)
                 ? hereChip
-                : element.to
+                : <ExitTargetSelector
+                    target={element.to}
+                    onChange={(event) => { onTargetHandler({ from: RoomId, to: event.target.value })}}
+                />
             return <Box sx={{
                 width: "calc(100% - 0.5em)",
                 display: "inline-flex",
@@ -108,6 +144,15 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId,
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
     return <Slate editor={editor} value={value} onChange={onChangeHandler}>
+        <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+            <AddIfButton defaultBlock={{
+                type: 'exit',
+                key: `${RoomId}#`,
+                from: RoomId,
+                to: '',
+                children: [{ text: '' }]
+            }} />
+        </Toolbar>
         <Editable
             renderElement={renderElement}
             renderLeaf={renderLeaf}

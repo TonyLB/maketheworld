@@ -1,12 +1,15 @@
 import Box from "@mui/material/Box"
+import Button from "@mui/material/Button"
 import Chip from "@mui/material/Chip"
 import { blue } from "@mui/material/colors"
 import React, { FunctionComponent, useCallback, useMemo } from "react"
 import { Editor, Transforms, Path } from "slate"
 import { ReactEditor, RenderElementProps, useSlate } from "slate-react"
-import { CustomBlock } from "./baseClasses"
+import { CustomBlock, CustomIfBlock } from "./baseClasses"
 import CodeEditor from "./CodeEditor"
 import { SlateIndentBox } from "./LabelledIndentBox"
+
+import IfIcon from '@mui/icons-material/Quiz'
 
 const AddConditionalButton: FunctionComponent<{ editor: Editor; path: Path; defaultItem: CustomBlock; label: string }> = ({ editor, path, defaultItem, label }) => {
     const onClick = useCallback(() => {
@@ -51,6 +54,34 @@ const AddElseButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ edit
         label='Else'
     />
 )
+
+const wrapIfBlock = (editor: Editor, defaultBlock: CustomBlock) => {
+    const block: CustomIfBlock = {
+        type: 'ifBase',
+        source: "",
+        children: [defaultBlock]
+    }
+    Transforms.insertNodes(editor, block)
+}
+
+type AddIfButton = {
+    defaultBlock: CustomBlock;
+}
+
+export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock}) => {
+    const editor = useSlate()
+    const { selection } = editor
+    const onClick = useCallback(() => {
+        wrapIfBlock(editor, defaultBlock)
+    }, [editor])
+    return <Button
+        variant="outlined"
+        disabled={!selection}
+        onClick={onClick}
+    >
+        <IfIcon />If
+    </Button>
+}
 
 export const SlateIfElse: FunctionComponent<RenderElementProps> = ({ ...props }) => {
     const editor = useSlate()
