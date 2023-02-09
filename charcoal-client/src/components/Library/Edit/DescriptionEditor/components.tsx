@@ -57,7 +57,7 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
         case 'ifBase':
         case 'elseif':
         case 'else':
-            return <SlateIfElse { ...props } />
+            return <SlateIfElse defaultBlock={{ type: 'paragraph', children: [{ text: '' }]}} { ...props } />
         //
         // TODO: Build InheritedDescription into render base rather than into a Slate Element
         //

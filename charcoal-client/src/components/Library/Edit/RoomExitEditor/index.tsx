@@ -3,8 +3,8 @@ import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import { blue } from "@mui/material/colors"
 import { isNormalExit, NormalExit } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import React, { FunctionComponent, useCallback, useMemo } from "react"
-import { createEditor, Descendant, Node, Transforms } from "slate"
+import React, { FunctionComponent, useCallback, useEffect, useMemo } from "react"
+import { createEditor, Descendant, Editor, Node, Transforms } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, ReactEditor, RenderElementProps, Slate, useSlate, withReact } from "slate-react"
 import { reduceItemsToTree } from "../conditionTree"
@@ -19,6 +19,7 @@ import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import Toolbar from "@mui/material/Toolbar/Toolbar"
+import withConditionals from "../DescriptionEditor/conditionals"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -77,7 +78,13 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
         case 'ifBase':
         case 'elseif':
         case 'else':
-            return <SlateIfElse { ...props } />
+            return <SlateIfElse defaultBlock={{
+                type: 'exit',
+                key: `${RoomId}#`,
+                from: RoomId,
+                to: '',
+                children: [{ text: '' }]
+            }} { ...props } />
         case 'exit':
             const hereChip = <Chip icon={<FlipIcon />} label="here" onClick={onFlipHandler} />
             const fromElement = (element.from === RoomId)
@@ -125,7 +132,7 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
     }
 }
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId, onChange }) => {
-    const editor = useMemo(() => withHistory(withReact(createEditor())), [])
+    const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
     const { normalForm } = useLibraryAsset()
     const relevantExits = useMemo(() => (
         Object.values(normalForm)
@@ -137,6 +144,9 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId,
                 transform: ({ key }: NormalExit) => (key)
             }), { items: [], conditionals: [] })
         ), [normalForm, RoomId])
+    useEffect(() => {
+        Editor.normalize(editor, { force: true })
+    }, [editor, relevantExits])    
     const value = useMemo(() => (exitTreeToSlate(normalForm)(relevantExits)), [normalForm, relevantExits])
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
         // onChange(slateToString(nodes))

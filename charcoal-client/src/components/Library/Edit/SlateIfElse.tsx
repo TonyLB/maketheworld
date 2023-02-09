@@ -38,19 +38,19 @@ const AddConditionalButton: FunctionComponent<{ editor: Editor; path: Path; defa
     />
 }
 
-const AddElseIfButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ editor, path }) => (
+const AddElseIfButton: FunctionComponent<{ editor: Editor; path: Path; defaultBlock: CustomBlock }> = ({ editor, path, defaultBlock }) => (
     <AddConditionalButton
         editor={editor}
         path={path}
-        defaultItem={{ type: 'elseif', source: '', children: [{ type: 'paragraph', children: [{ text: '' }]}]}}
+        defaultItem={{ type: 'elseif', source: '', children: [defaultBlock]}}
         label='Else If'
     />
 )
-const AddElseButton: FunctionComponent<{ editor: Editor; path: Path }> = ({ editor, path }) => (
+const AddElseButton: FunctionComponent<{ editor: Editor; path: Path; defaultBlock: CustomBlock }> = ({ editor, path, defaultBlock }) => (
     <AddConditionalButton
         editor={editor}
         path={path}
-        defaultItem={{ type: 'else', children: [{ type: 'paragraph', children: [{ text: '' }]}]}}
+        defaultItem={{ type: 'else', children: [defaultBlock]}}
         label='Else'
     />
 )
@@ -83,7 +83,10 @@ export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock}) => 
     </Button>
 }
 
-export const SlateIfElse: FunctionComponent<RenderElementProps> = ({ ...props }) => {
+//
+// TODO: Add defaultItem to SlateIfElse, to be provided to AddElseIf and AddElse buttons
+//
+export const SlateIfElse: FunctionComponent<RenderElementProps & { defaultBlock: CustomBlock }> = ({ defaultBlock, ...props }) => {
     const editor = useSlate()
     const { attributes, children, element } = props
     const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
@@ -116,8 +119,8 @@ export const SlateIfElse: FunctionComponent<RenderElementProps> = ({ ...props })
                         </React.Fragment>
                     }
                     actions={<React.Fragment>
-                        <AddElseIfButton editor={editor} path={path ?? []} />
-                        { element.isElseValid && <AddElseButton editor={editor} path={path ?? []} />}
+                        <AddElseIfButton editor={editor} path={path ?? []} defaultBlock={defaultBlock} />
+                        { element.isElseValid && <AddElseButton editor={editor} path={path ?? []} defaultBlock={defaultBlock} />}
                     </React.Fragment>}
                 >
                     { children }
