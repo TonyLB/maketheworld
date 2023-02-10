@@ -66,3 +66,23 @@ export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxPr
         </Box>}
     </Box>
 })
+
+type SlateIndentBoxProps = {
+    color: Record<number | string, string>;
+    children: any;
+    label: ReactNode;
+    actions?: ReactNode;
+}
+
+export const SlateIndentBox = React.forwardRef(<T extends SlateIndentBoxProps>({ color, children, label, actions, ...attributes }: T, ref: ForwardedRef<any>) => {
+    return <LabelledIndentBox
+        color={color}
+        label={label}
+        actions={actions}
+        slate
+        { ...attributes }
+        ref={ref}
+    >
+        {children}
+    </LabelledIndentBox>
+})

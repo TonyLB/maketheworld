@@ -44,6 +44,7 @@ import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
 import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
+import { AddIfButton } from '../SlateIfElse'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
@@ -183,32 +184,32 @@ const wrapReplaceBlock = (editor: Editor) => {
     }
 }
 
-const wrapIfBlock = (editor: Editor) => {
-    const block: CustomIfBlock = {
-        type: 'ifBase',
-        source: "",
-        children: [{
-            type: 'paragraph',
-            children: [{ text: '' }]
-        }]
-    }
-    Transforms.insertNodes(editor, block)
-}
+// const wrapIfBlock = (editor: Editor) => {
+//     const block: CustomIfBlock = {
+//         type: 'ifBase',
+//         source: "",
+//         children: [{
+//             type: 'paragraph',
+//             children: [{ text: '' }]
+//         }]
+//     }
+//     Transforms.insertNodes(editor, block)
+// }
 
-const AddIfButton: FunctionComponent<{}> = () => {
-    const editor = useSlate()
-    const { selection } = editor
-    const onClick = useCallback(() => {
-        wrapIfBlock(editor)
-    }, [editor])
-    return <Button
-        variant="outlined"
-        disabled={!selection}
-        onClick={onClick}
-    >
-        <IfIcon />If
-    </Button>
-}
+// const AddIfButton: FunctionComponent<{}> = () => {
+//     const editor = useSlate()
+//     const { selection } = editor
+//     const onClick = useCallback(() => {
+//         wrapIfBlock(editor)
+//     }, [editor])
+//     return <Button
+//         variant="outlined"
+//         disabled={!selection}
+//         onClick={onClick}
+//     >
+//         <IfIcon />If
+//     </Button>
+// }
 
 interface AddLinkButtonProps {
     openDialog: () => void;
@@ -389,7 +390,10 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
                 <RemoveLinkButton />
                 <DisplayTagRadio />
-                <AddIfButton />
+                <AddIfButton defaultBlock={{
+                    type: 'paragraph',
+                    children: [{ text: '' }]
+                }} />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <Editable

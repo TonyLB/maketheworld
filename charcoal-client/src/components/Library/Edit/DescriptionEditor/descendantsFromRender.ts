@@ -109,13 +109,14 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                     (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
                 if (matchesElseConditions) {
                     const remainingConditions = item.conditions.slice(elseContext.length)
+                    const children = descendantsFromRender(item.contents, { normalForm })
                     if (remainingConditions.length && currentIfSequence.length && !elseDefined) {
                         currentIfSequence = [
                             ...currentIfSequence,
                             {
                                 type: 'elseif',
                                 source: conditionsToSrc(remainingConditions),
-                                children: descendantsFromRender(item.contents, { normalForm }),
+                                children
                             }
                         ]
                     }
@@ -124,7 +125,7 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                             ...currentIfSequence,
                             {
                                 type: 'else',
-                                children: descendantsFromRender(item.contents, { normalForm })
+                                children
                             }
                         ]
                     }
@@ -139,7 +140,7 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                         currentIfSequence = [{
                             type: 'ifBase',
                             source: conditionsToSrc(item.conditions),
-                            children: descendantsFromRender(item.contents, { normalForm }),
+                            children
                         }]
                     }
                 }

@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import { FunctionComponent } from 'react';
-import { ReactEditor, useSlateStatic } from 'slate-react';
+import { ReactEditor, useSlate } from 'slate-react';
 import { useSelector } from 'react-redux';
 import { getNormalized } from '../../../../slices/personalAssets';
 import { useParams } from 'react-router-dom';
@@ -104,7 +104,7 @@ const wrapFeatureLink = (editor: Editor, to: string) => {
 }
 
 const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
-    const editor = useSlateStatic()
+    const editor = useSlate()
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
