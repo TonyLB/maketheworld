@@ -2,7 +2,7 @@ import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import { blue } from "@mui/material/colors"
-import { isNormalExit, NormalExit } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { isNormalExit, isNormalRoom, NormalExit, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
 import { createEditor, Descendant, Editor, Node, Transforms } from "slate"
 import { withHistory } from "slate-history"
@@ -134,9 +134,9 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
         )
     }
 }
-export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId, onChange }) => {
+export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
-    const { normalForm } = useLibraryAsset()
+    const { normalForm, updateNormal } = useLibraryAsset()
     const relevantExits = useMemo(() => (
         Object.values(normalForm)
             .filter(isNormalExit)
@@ -152,9 +152,41 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId,
     }, [editor, relevantExits])    
     const [value, setValue] = useState(exitTreeToSlate(normalForm)(relevantExits))
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
-        console.log(`slateToSchema: ${JSON.stringify(slateToExitSchema(nodes.filter(isCustomBlock)), null, 4)}`)
-        // onChange(slateToString(nodes))
-    }, [onChange])
+        const deleteReferences = Object.values(normalForm)
+            .filter(isNormalExit)
+            .filter(({ to, from }) => (to === RoomId || from === RoomId))
+            .reduce<NormalReference[]>((previous, { key, appearances = [] }) => ([
+                ...previous,
+                ...appearances.map((_, index) => ({ key, index, tag: 'Exit' as 'Exit' })).reverse()
+            ]), [])
+        if (deleteReferences.length) {
+            updateNormal({
+                type: 'delete',
+                references: deleteReferences
+            })
+        }
+        const exitSchemaByRoomId = slateToExitSchema(nodes.filter(isCustomBlock))
+        Object.keys(exitSchemaByRoomId).forEach((lookupRoomId) => {
+            const roomLookup = normalForm[lookupRoomId]
+            if (roomLookup && isNormalRoom(roomLookup)) {
+                exitSchemaByRoomId[lookupRoomId].forEach((item) => {
+                    //
+                    // TODO: Refactor slateToExitSchema to return separate node lists that need to be added into
+                    // the various rooms *from which* exits originate, then apply them appropriately
+                    // to those different rooms.
+                    //
+                    const firstUnconditionedAppearance = (roomLookup.appearances || []).findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If' || tag === 'Map'))))
+                    if (firstUnconditionedAppearance !== -1) {
+                        updateNormal({
+                            type: 'put',
+                            item,
+                            position: { contextStack: [{ key: lookupRoomId, index: firstUnconditionedAppearance, tag: 'Room' }] }
+                        })    
+                    }
+                })
+            }
+        })
+    }, [RoomId, normalForm, updateNormal])
     useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
