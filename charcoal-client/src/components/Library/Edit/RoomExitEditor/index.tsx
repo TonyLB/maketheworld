@@ -3,7 +3,7 @@ import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import { blue } from "@mui/material/colors"
 import { isNormalExit, NormalExit } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import React, { FunctionComponent, useCallback, useEffect, useMemo } from "react"
+import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
 import { createEditor, Descendant, Editor, Node, Transforms } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, ReactEditor, RenderElementProps, Slate, useSlate, withReact } from "slate-react"
@@ -20,6 +20,9 @@ import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import Toolbar from "@mui/material/Toolbar/Toolbar"
 import withConditionals from "../DescriptionEditor/conditionals"
+import slateToExitSchema from "./slateToExitTree"
+import { isCustomBlock } from "../baseClasses"
+import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -147,13 +150,15 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId,
     useEffect(() => {
         Editor.normalize(editor, { force: true })
     }, [editor, relevantExits])    
-    const value = useMemo(() => (exitTreeToSlate(normalForm)(relevantExits)), [normalForm, relevantExits])
+    const [value, setValue] = useState(exitTreeToSlate(normalForm)(relevantExits))
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
+        console.log(`slateToSchema: ${JSON.stringify(slateToExitSchema(nodes.filter(isCustomBlock)), null, 4)}`)
         // onChange(slateToString(nodes))
     }, [onChange])
+    useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
-    return <Slate editor={editor} value={value} onChange={onChangeHandler}>
+    return <Slate editor={editor} value={value} onChange={setValue}>
         <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
             <AddIfButton defaultBlock={{
                 type: 'exit',

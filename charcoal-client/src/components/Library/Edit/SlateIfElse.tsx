@@ -83,9 +83,6 @@ export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock}) => 
     </Button>
 }
 
-//
-// TODO: Add defaultItem to SlateIfElse, to be provided to AddElseIf and AddElse buttons
-//
 export const SlateIfElse: FunctionComponent<RenderElementProps & { defaultBlock: CustomBlock }> = ({ defaultBlock, ...props }) => {
     const editor = useSlate()
     const { attributes, children, element } = props
