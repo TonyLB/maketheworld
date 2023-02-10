@@ -53,7 +53,7 @@ const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: 
         >
             {
                 Object.entries(rooms).map(([key, { name }]) => (
-                    <MenuItem value={key}>{ name }</MenuItem>
+                    <MenuItem key={key} value={key}>{ name }</MenuItem>
                 ))
             }
         </Select>
