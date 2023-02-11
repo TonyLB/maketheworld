@@ -6,7 +6,9 @@ export interface PlayerInternal {
     incrementalBackoff: number;
 }
 
-export type PlayerPublic = Omit<AssetClientPlayerMessage, 'messageType' | 'RequestId'>
+export type PlayerPublic = Omit<AssetClientPlayerMessage, 'messageType' | 'RequestId'> & {
+    currentDraft?: string;
+}
 
 export type PlayerRecord = ISSMDataLayout<PlayerInternal, PlayerPublic>
 export type PlayerReturn = ISSMDataReturn<PlayerInternal, PlayerPublic>

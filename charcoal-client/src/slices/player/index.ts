@@ -1,4 +1,4 @@
-import { PlayerNodes } from './baseClasses'
+import { PlayerAction, PlayerNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
     fetchNotifications,
@@ -16,6 +16,7 @@ import {
     PlayerSelectors
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
+import { setCurrentDraft as setCurrentDraftReducer } from './reducers'
 
 export const {
     slice: playerSlice,
@@ -39,7 +40,8 @@ export const {
     },
     sliceSelector: ({ player }) => (player),
     publicReducers: {
-        receivePlayer
+        receivePlayer,
+        setCurrentDraft: setCurrentDraftReducer
     },
     publicSelectors: {
         getPlayer: getPlayerSelector,
@@ -101,7 +103,7 @@ export const {
     }
 })
 
-// export const { } = publicActions
+export const { setCurrentDraft } = publicActions
 export const {
     getPlayer,
     getMyCharacters,
