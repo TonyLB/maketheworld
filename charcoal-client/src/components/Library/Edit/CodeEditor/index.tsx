@@ -14,6 +14,7 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
         <span
             {...attributes}
             style={{ backgroundColor: leaf.error && '#ffeeba' }}
+            spellCheck={false}
         >
             {children}
         </span>
