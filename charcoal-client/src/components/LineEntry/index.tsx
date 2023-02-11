@@ -33,6 +33,7 @@ import { NarrateBubble } from '../Message/NarrateMessage'
 import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
+import { getPlayer, setCurrentDraft } from '../../slices/player'
 
 type LineEntryMode = ParseCommandModes | 'Options'
 
@@ -183,7 +184,9 @@ type EntryDispatcherProps = EntryFieldProps & EntryModeSpeedDialProps
 
 const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>((props, ref) => {
     const { CharacterId, entryMode } = useActiveCharacter()
+    const { currentDraft, Assets } = useSelector(getPlayer)
     const navigate = useNavigate()
+    const dispatch = useDispatch()
     switch(entryMode) {
         case 'Options':
             return <Box sx={{
@@ -218,17 +221,22 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>((props, 
                 }}>
                     <CreateIcon
                         sx={{ width:40, height: 50, fill: 'white' }}
-                        onClick={() => {}}
                     />
                     <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
-                        <InputLabel id="select-small">Target</InputLabel>
+                        <InputLabel id="select-small">Editing</InputLabel>
                         <Select
                             labelId="select-small"
                             id="select-small"
-                            value=""
+                            value={currentDraft || ''}
                             label="Edit Target"
+                            onChange={(event) => { dispatch(setCurrentDraft(event.target.value)) }}
                         >
                             <MenuItem value={""}><em>Not editing</em></MenuItem>
+                            {
+                                Assets.map(({ AssetId: key }) => (
+                                    <MenuItem key={key} value={key}>{key}</MenuItem>
+                                ))
+                            }
                         </Select>
                     </FormControl>
                 </Box>

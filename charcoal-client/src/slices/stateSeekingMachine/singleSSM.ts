@@ -45,6 +45,10 @@ const corePublicReducer =
         return wrapper
     }
 
+type wrappedPublicReducer<D> = {
+    (payload: D): (dispatch: any, getState: any) => void
+}
+    
 const wrapPublicSelector =
     <Nodes extends Record<string, any>, D>
         (sliceSelector: (state: any) => singleSSMSlice<Nodes>) =>
@@ -163,7 +167,7 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
             ...(Object.keys(publicReducers)
                 .reduce((previous, key) => ({ ...previous, [key]: ((slice.actions as any)[key]) }), {})
             )
-        },
+        } as Record<string, wrappedPublicReducer<any>>,
         selectors,
         iterateAllSSMs
     }
