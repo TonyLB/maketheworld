@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import React, { ReactChild, ReactChildren } from 'react'
-import { useDispatch } from 'react-redux'
+import React, { ReactChild, ReactChildren, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { css } from '@emotion/react'
 
 import {
@@ -22,7 +22,8 @@ import {
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import TaggedMessageContent from './TaggedMessageContent'
-import { useActiveCharacter } from '../ActiveCharacter'
+import { getPlayer } from '../../slices/player'
+import { getStatus } from '../../slices/personalAssets'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
@@ -33,7 +34,10 @@ interface RoomDescriptionProps {
 
 export const RoomDescription = ({ message, header, currentHeader }: RoomDescriptionProps) => {
     const { Description, Name, Characters = [], Exits = [] } = message
-    
+    const { currentDraft } = useSelector(getPlayer)
+    const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
+    const showEdit = useMemo(() => (currentHeader && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentHeader, status])
+
     return <MessageComponent
             sx={{
                 paddingTop: "10px",
@@ -42,7 +46,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                 color: (theme) => (theme.palette.getContrastText(blue[200]))
             }}
             leftIcon={<HouseIcon />}
-            toolActions={currentHeader ? <Chip label="Edit" /> : undefined}
+            toolActions={showEdit ? <Chip label="Edit" /> : undefined}
         >
             <Box css={css`
                 display: grid;
