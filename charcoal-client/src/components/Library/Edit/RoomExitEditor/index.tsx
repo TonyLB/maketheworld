@@ -124,7 +124,7 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
                     paddingLeft: '0.25em',
                     paddingRight: '0.25em'
                 }} { ...attributes }>{children}</Box>
-                <Box contentEditable={false} sx={{ display: 'flex', flexGrow: 1 }} > from { fromElement } to { toElement }</Box>
+                <Box contentEditable={false} sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }} > from { fromElement } to { toElement }</Box>
                 <Box contentEditable={false} sx={{ display: 'flex' }} ><IconButton onClick={onDeleteHandler}><DeleteIcon /></IconButton></Box>
             </Box>
         default: return (
