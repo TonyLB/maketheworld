@@ -116,7 +116,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
         }
         const updateLibraryPromise = address.zone === 'Personal'
             ? internalCache.PlayerLibrary.set(address.player, {
-                Assets: updatedAssets,
+                Assets: { [asset.key]: updatedAssets[AssetKey(asset.key)] },
                 Characters: {}
             })
             : address.zone === 'Library'
@@ -134,7 +134,9 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 instance: asset.instance,
                 importTree: [],
                 defaultExits,
-                defaultNames
+                defaultNames,
+                zone: address.zone,
+                ...(address.zone === 'Personal' ? { player: address.player } : {})
             }),
             mergeIntoDataRange({
                 table: 'assets',
