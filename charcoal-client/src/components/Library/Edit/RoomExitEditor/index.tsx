@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
+import Typography from "@mui/material/Typography"
 import { blue } from "@mui/material/colors"
 import { isNormalExit, isNormalRoom, NormalExit, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
@@ -191,21 +192,54 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
     useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
-    return <Slate editor={editor} value={value} onChange={setValue}>
-        <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-            <AddIfButton defaultBlock={{
-                type: 'exit',
-                key: `${RoomId}#`,
-                from: RoomId,
-                to: '',
-                children: [{ text: '' }]
-            }} />
-        </Toolbar>
-        <Editable
-            renderElement={renderElement}
-            renderLeaf={renderLeaf}
-        />
-    </Slate>
+    return <Box sx={{
+        display: 'flex',
+        flexDirection: 'row',
+        marginTop: '0.5em',
+        marginLeft: '0.5em'
+    }}>
+        <Box sx={{
+            display: 'flex',
+            width: '2em',
+            minHeight: '5em',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: blue[50],
+            borderTopColor: blue[500],
+            borderTopStyle: 'solid',
+            borderBottomColor: blue[500],
+            borderBottomStyle: 'solid',
+            marginRight: '0.5em'
+        }}>
+            <Typography
+                sx={{ transform: 'rotate(-90deg)' }}
+                variant="h5"
+            >
+                Exits
+            </Typography>
+        </Box>
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            flexGrow: 1,
+        }}>
+            <Slate editor={editor} value={value} onChange={setValue}>
+                <Editable
+                    renderElement={renderElement}
+                    renderLeaf={renderLeaf}
+                />
+                <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+                    <AddIfButton defaultBlock={{
+                        type: 'exit',
+                        key: `${RoomId}#`,
+                        from: RoomId,
+                        to: '',
+                        children: [{ text: '' }]
+                    }} />
+                </Toolbar>
+            </Slate>
+        </Box>
+    </Box>
 }
 
 export default RoomExitEditor
