@@ -106,7 +106,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
             .filter(({ name }) => (Boolean(name)))
             .map(({ tag, key, name }) => ({ [key]: { tag, name } }))
             .reduce((previous, entry) => (Object.assign(previous, entry)), {})
-        const updatedAssets = {
+        const updatedLibraryAssets = {
             [AssetKey(asset.key)]: {
                 AssetId: AssetKey(asset.key),
                 scopedId: asset.key,
@@ -114,14 +114,22 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 instance: asset.instance,
             }
         }
+        const updatedPlayerAssets = {
+            [asset.key]: {
+                AssetId: asset.key,
+                scopedId: asset.key,
+                Story: asset.Story,
+                instance: asset.instance,
+            }
+        }
         const updateLibraryPromise = address.zone === 'Personal'
             ? internalCache.PlayerLibrary.set(address.player, {
-                Assets: { [asset.key]: updatedAssets[AssetKey(asset.key)] },
+                Assets: updatedPlayerAssets,
                 Characters: {}
             })
             : address.zone === 'Library'
                 ? internalCache.Library.set({
-                    Assets: updatedAssets,
+                    Assets: updatedLibraryAssets,
                     Characters: {}
                 })
                 : Promise.resolve({})
