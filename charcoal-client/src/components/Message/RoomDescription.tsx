@@ -22,15 +22,18 @@ import {
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import TaggedMessageContent from './TaggedMessageContent'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
     children?: ReactChild | ReactChildren;
     header?: boolean;
+    currentHeader?: boolean;
 }
 
-export const RoomDescription = ({ message, header }: RoomDescriptionProps) => {
+export const RoomDescription = ({ message, header, currentHeader }: RoomDescriptionProps) => {
     const { Description, Name, Characters = [], Exits = [] } = message
+    
     return <MessageComponent
             sx={{
                 paddingTop: "10px",
@@ -39,6 +42,7 @@ export const RoomDescription = ({ message, header }: RoomDescriptionProps) => {
                 color: (theme) => (theme.palette.getContrastText(blue[200]))
             }}
             leftIcon={<HouseIcon />}
+            toolActions={currentHeader ? <Chip label="Edit" /> : undefined}
         >
             <Box css={css`
                 display: grid;

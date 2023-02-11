@@ -14,6 +14,7 @@ interface MessageComponentProps {
     leftGutter?: Number;
     rightIcon?: ReactElement;
     rightGutter?: Number;
+    toolActions?: ReactElement;
     sx?: SxProps<Theme>;
     children?: ReactChild | ReactChildren;
 }
@@ -24,9 +25,15 @@ export const MessageComponent: FunctionComponent<MessageComponentProps> = ({
     leftGutter = 70,
     rightIcon,
     rightGutter = 70,
+    toolActions,
     sx
 }) => {
-    return <Box sx={{ padding: "2px" }}>
+    return <Box sx={{ padding: "2px", position: "relative" }}>
+            { toolActions
+                ? <Box sx={{ position: "absolute", top: "0.25em", right: "0.5em" }}>
+                    { toolActions }
+                </Box>
+                : null}
             <Box
                 sx={sx}
                 css={css`
