@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react"
 import { blue } from "@mui/material/colors"
 import Box from "@mui/material/Box"
-import Select, { SelectChangeEvent } from "@mui/material/Select"
+import Select from "@mui/material/Select"
 import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
@@ -9,7 +9,8 @@ import CreateIcon from '@mui/icons-material/Create'
 import CancelIcon from '@mui/icons-material/HighlightOff'
 import { useDispatch, useSelector } from "react-redux"
 import { getPlayer, setCurrentDraft } from "../../slices/player"
-import { getStatus, setIntent } from "../../slices/personalAssets"
+import { addItem, getStatus } from "../../slices/personalAssets"
+import { heartbeat } from "../../slices/stateSeekingMachine/ssmHeartbeat"
 
 const InactiveDraftWrapper: FunctionComponent<{}> = ({ children }) => {
     return <Box sx={{
@@ -101,7 +102,12 @@ export const CurrentDraftSelector: FunctionComponent<{}> = () => {
                 value={currentDraft || ''}
                 label="Edit Target"
                 onChange={(event) => {
-                    dispatch(setCurrentDraft(event.target.value))
+                    const newDraft = event.target.value
+                    dispatch(setCurrentDraft(newDraft))
+                    if (newDraft) {
+                        dispatch(addItem({ key: `ASSET#${newDraft}` }))
+                        dispatch(heartbeat)
+                    }
                 }}
             >
                 <MenuItem value={""}><em>Not editing</em></MenuItem>
