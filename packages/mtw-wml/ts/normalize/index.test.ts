@@ -7,7 +7,7 @@ import { schemaFromParse } from '../schema'
 import parse from '../parser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
-import { isSchemaFeature, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
+import { isSchemaCondition, isSchemaExit, isSchemaFeature, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
 
 describe('WML normalize', () => {
 
@@ -616,6 +616,63 @@ describe('WML normalize', () => {
             const toAddSource = `<Room key=(testTwo) x="0" y="100" />`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             normalizer.put(toAddAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'testMap', tag: 'Map', index: 0 }] })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should successfully put a duplicate item', () => {
+            const testSource = `<Asset key=(TestAsset) fileName="Test">
+                <Variable key=(testVar) default={false} />
+                <Room key=(testRoom)>
+                    <If {testVar} />
+                    <If {testVar}><Exit to=(targetTwo)>two</Exit></If>
+                </Room>
+                <Room key=(targetOne) />
+                <Room key=(targetTwo) />
+                <Room key=(targetThree) />
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toAddSource = `<Room key=(testRoom)><If {testVar}><Exit to=(targetThree)>three</Exit></If></Room>`
+            const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
+            const toAddRoomWrapper = toAddAsset[0]
+            if (!isSchemaRoom(toAddRoomWrapper)) {
+                throw new Error()
+            }
+            const ifPredicate = toAddRoomWrapper.contents[0]
+            if (!isSchemaCondition(ifPredicate)) {
+                throw new Error()
+            }
+            const { key, ...unkeyedIf } = ifPredicate
+            normalizer.put(unkeyedIf, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'testRoom', tag: 'Room', index: 0 }], index: 2 })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should successfully replace a parent with duplicate contents', () => {
+            const testSource = `<Asset key=(TestAsset) fileName="Test">
+                <Variable key=(testVar) default={false} />
+                <Room key=(testRoom)>
+                    <If {testVar} />
+                    <If {testVar}><Exit to=(targetTwo)>two</Exit></If>
+                </Room>
+                <Room key=(targetOne) />
+                <Room key=(targetTwo) />
+                <Room key=(targetThree) />
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toAddSource = `<Room key=(testRoom)>
+                <If {testVar} />
+                <If {testVar}><Exit to=(targetTwo)>two</Exit></If>
+                <If {testVar}><Exit to=(targetThree)>three</Exit></If>
+            </Room>`
+            const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
+            const toAddRoomWrapper = toAddAsset[0]
+            if (!isSchemaRoom(toAddRoomWrapper)) {
+                throw new Error()
+            }
+            normalizer.put(toAddRoomWrapper, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }], index: 1, replace: true })
             expect(normalizer.normal).toMatchSnapshot()
         })
 

@@ -1319,6 +1319,572 @@ Object {
 }
 `;
 
+exports[`WML normalize positioned put method should successfully put a duplicate item 1`] = `
+Object {
+  "If-1": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testRoom#targetTwo",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testRoom#targetThree",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+        ],
+      },
+    ],
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "testVar",
+        ],
+        "if": "testVar",
+      },
+    ],
+    "key": "If-1",
+    "tag": "If",
+  },
+  "TestAsset": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testVar",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "targetOne",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "targetTwo",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "targetThree",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "TestAsset",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "targetOne": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "global": false,
+    "key": "targetOne",
+    "tag": "Room",
+  },
+  "targetThree": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "global": false,
+    "key": "targetThree",
+    "tag": "Room",
+  },
+  "targetTwo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "global": false,
+    "key": "targetTwo",
+    "tag": "Room",
+  },
+  "testRoom": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "If-1",
+            "tag": "If",
+          },
+          Object {
+            "index": 1,
+            "key": "If-1",
+            "tag": "If",
+          },
+          Object {
+            "index": 2,
+            "key": "If-1",
+            "tag": "If",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "global": false,
+    "key": "testRoom",
+    "tag": "Room",
+  },
+  "testRoom#targetThree": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+          Object {
+            "index": 2,
+            "key": "If-1",
+            "tag": "If",
+          },
+        ],
+      },
+    ],
+    "from": "testRoom",
+    "key": "testRoom#targetThree",
+    "name": "three",
+    "tag": "Exit",
+    "to": "targetThree",
+  },
+  "testRoom#targetTwo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "If-1",
+            "tag": "If",
+          },
+        ],
+      },
+    ],
+    "from": "testRoom",
+    "key": "testRoom#targetTwo",
+    "name": "two",
+    "tag": "Exit",
+    "to": "targetTwo",
+  },
+  "testVar": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "testVar",
+    "tag": "Variable",
+  },
+}
+`;
+
+exports[`WML normalize positioned put method should successfully replace a parent with duplicate contents 1`] = `
+Object {
+  "If-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testRoom#targetTwo",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testRoom#targetThree",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+        ],
+      },
+    ],
+    "conditions": Array [
+      Object {
+        "dependencies": Array [
+          "testVar",
+        ],
+        "if": "testVar",
+      },
+    ],
+    "key": "If-0",
+    "tag": "If",
+  },
+  "TestAsset": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testVar",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "targetOne",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "targetTwo",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "targetThree",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "TestAsset",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "targetOne": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "global": false,
+    "key": "targetOne",
+    "tag": "Room",
+  },
+  "targetThree": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "global": false,
+    "key": "targetThree",
+    "tag": "Room",
+  },
+  "targetTwo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "global": false,
+    "key": "targetTwo",
+    "tag": "Room",
+  },
+  "testRoom": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "If-0",
+            "tag": "If",
+          },
+          Object {
+            "index": 1,
+            "key": "If-0",
+            "tag": "If",
+          },
+          Object {
+            "index": 2,
+            "key": "If-0",
+            "tag": "If",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "global": false,
+    "key": "testRoom",
+    "tag": "Room",
+  },
+  "testRoom#targetThree": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+          Object {
+            "index": 2,
+            "key": "If-0",
+            "tag": "If",
+          },
+        ],
+      },
+    ],
+    "from": "testRoom",
+    "key": "testRoom#targetThree",
+    "name": "three",
+    "tag": "Exit",
+    "to": "targetThree",
+  },
+  "testRoom#targetTwo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "testRoom",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "If-0",
+            "tag": "If",
+          },
+        ],
+      },
+    ],
+    "from": "testRoom",
+    "key": "testRoom#targetTwo",
+    "name": "two",
+    "tag": "Exit",
+    "to": "targetTwo",
+  },
+  "testVar": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "testVar",
+    "tag": "Variable",
+  },
+}
+`;
+
 exports[`WML normalize positioned put method should update an item in place 1`] = `
 Object {
   "Test": Object {
