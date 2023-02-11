@@ -5,13 +5,14 @@ import Typography from "@mui/material/Typography"
 import { blue } from "@mui/material/colors"
 import { isNormalExit, isNormalRoom, NormalExit, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
-import { createEditor, Descendant, Editor, Node, Transforms } from "slate"
+import { createEditor, Descendant, Editor, Node, Path, Transforms } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, ReactEditor, RenderElementProps, Slate, useSlate, withReact } from "slate-react"
 import { reduceItemsToTree } from "../conditionTree"
 import { useLibraryAsset } from "../LibraryAsset"
 import SlateIfElse, { AddIfButton } from "../SlateIfElse"
 import exitTreeToSlate from "./exitTreeToSlate"
+import AddIcon from '@mui/icons-material/Add'
 import ExitIcon from '@mui/icons-material/CallMade'
 import DeleteIcon from '@mui/icons-material/Delete'
 import FlipIcon from '@mui/icons-material/Loop'
@@ -22,8 +23,9 @@ import InputLabel from "@mui/material/InputLabel"
 import Toolbar from "@mui/material/Toolbar/Toolbar"
 import withConditionals from "../DescriptionEditor/conditionals"
 import slateToExitSchema from "./slateToExitTree"
-import { isCustomBlock } from "../baseClasses"
+import { CustomExitBlock, isCustomBlock } from "../baseClasses"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
+import { Button } from "@mui/material"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -135,6 +137,33 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
         )
     }
 }
+
+const wrapExitBlock = (editor: Editor, RoomId: string) => {
+    const block: CustomExitBlock = {
+        type: 'exit',
+        key: `${RoomId}#`,
+        from: RoomId,
+        to: '',
+        children: [{ text: '' }]
+    }
+    Transforms.insertNodes(editor, block)
+}
+
+const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
+    const editor = useSlate()
+    const { selection } = editor
+    const onClick = useCallback(() => {
+        wrapExitBlock(editor, RoomId)
+    }, [editor])
+    return <Button
+        variant="outlined"
+        disabled={!selection}
+        onClick={onClick}
+    >
+        <AddIcon /><ExitIcon />
+    </Button>
+}
+
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
     const { normalForm, updateNormal } = useLibraryAsset()
@@ -229,6 +258,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                     renderLeaf={renderLeaf}
                 />
                 <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+                    <AddExitButton RoomId={RoomId} />
                     <AddIfButton defaultBlock={{
                         type: 'exit',
                         key: `${RoomId}#`,

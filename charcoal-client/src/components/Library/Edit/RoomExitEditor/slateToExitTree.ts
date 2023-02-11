@@ -35,7 +35,8 @@ export const slateToExitSchema = (nodes: CustomBlock[], options?: { roomId?: str
                     currentElseConditions = []
                 }
                 currentElseConditions = [...currentElseConditions, { ...conditionStatement, not: true }]
-                const contents = slateToExitSchema(node.children, { roomId })[roomId].filter((child: SchemaTag): child is SchemaExitTag | SchemaConditionTagRoomContext => (isSchemaExit(child) || isSchemaCondition(child)))
+                const childrenSchema = slateToExitSchema(node.children, { roomId })
+                const contents = (childrenSchema?.[roomId] || []).filter((child: SchemaTag): child is SchemaExitTag | SchemaConditionTagRoomContext => (isSchemaExit(child) || isSchemaCondition(child)))
                 if (contents.length) {
                     return [
                         ...accumulator,
