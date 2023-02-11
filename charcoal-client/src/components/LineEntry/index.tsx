@@ -15,6 +15,12 @@ import NarrateMessageIcon from '@mui/icons-material/Receipt'
 import OOCMessageIcon from '@mui/icons-material/CropFree'
 import CommandIcon from '@mui/icons-material/Code'
 import MapIcon from '@mui/icons-material/Explore'
+import CreateIcon from '@mui/icons-material/Create'
+
+import Select, { SelectChangeEvent } from "@mui/material/Select"
+import MenuItem from "@mui/material/MenuItem"
+import FormControl from "@mui/material/FormControl"
+import InputLabel from "@mui/material/InputLabel"
 
 import {
     // getServerSettings,
@@ -185,7 +191,10 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>((props, 
                     padding: '10px 15px 15px 15px',
                     borderRadius: '15px',
                     position: 'relative',
-                    marginRight: '10px'
+                    marginRight: '10px',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    columnGap: '1em'
                 }}
             >
                 <Avatar sx={{ width: 50, height: 50, bgcolor: blue[500] }}>
@@ -196,6 +205,33 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>((props, 
                         }}
                     />
                 </Avatar>
+                <Box sx={{
+                    height: 50,
+                    bgcolor: blue[500],
+                    borderRadius: 25,
+                    alignItems: 'center',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    columnGap: '0.5em',
+                    paddingLeft: '0.5em',
+                    paddingRight: '0.5em'
+                }}>
+                    <CreateIcon
+                        sx={{ width:40, height: 50, fill: 'white' }}
+                        onClick={() => {}}
+                    />
+                    <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
+                        <InputLabel id="select-small">Target</InputLabel>
+                        <Select
+                            labelId="select-small"
+                            id="select-small"
+                            value=""
+                            label="Edit Target"
+                        >
+                            <MenuItem value={""}><em>Not editing</em></MenuItem>
+                        </Select>
+                    </FormControl>
+                </Box>
             </Box>
         case 'SayMessage':
             return <SpeechBubble variant="right" tailOffset="30px">
