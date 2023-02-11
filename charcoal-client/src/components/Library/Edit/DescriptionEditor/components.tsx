@@ -220,16 +220,16 @@ export const decorateFactory = (editor: Editor) =>
                 const [firstChild, firstChildPath] = children[0]
                 if (isCustomParagraphContents(firstChild) && isCustomText(firstChild) && firstChild.text.match(/^\s/)) {
                     decorators.push({
-                        anchor: { path: firstChildPath, offset: 0 },
-                        focus: { path: firstChildPath, offset: 1 },
+                        anchor: { path: [...path, ...firstChildPath], offset: 0 },
+                        focus: { path: [...path, ...firstChildPath], offset: 1 },
                         highlight: true
                     })
                 }
                 const [lastChild, lastChildPath] = children.slice(-1)[0]
                 if (isCustomParagraphContents(lastChild) && isCustomText(lastChild) && lastChild.text.match(/\s$/)) {
                     decorators.push({
-                        anchor: { path: lastChildPath, offset: lastChild.text.length - 1 },
-                        focus: { path: lastChildPath, offset:  lastChild.text.length },
+                        anchor: { path: [...path, ...lastChildPath], offset: lastChild.text.length - 1 },
+                        focus: { path: [...path, ...lastChildPath], offset:  lastChild.text.length },
                         highlight: true
                     })
                 }
