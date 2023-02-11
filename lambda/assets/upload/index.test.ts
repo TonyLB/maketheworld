@@ -12,6 +12,7 @@ jest.mock('../utilities/stream')
 import { streamToString } from '../utilities/stream'
 jest.mock('../utilities/assets')
 import { assetWorkspaceFromAssetId } from '../utilities/assets'
+jest.mock('../clients', () => ({ ebClient: { send: jest.fn() } }))
 
 const mockSetWML = jest.fn()
 const mockLoadWMLFrom = jest.fn()

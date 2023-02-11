@@ -34,6 +34,7 @@ jest.mock('@tonylb/mtw-asset-workspace/dist', () => ({
         fileName: 'healTest.wml'
     })
 }))
+jest.mock('../clients', () => ({ ebClient: { send: jest.fn() } }))
 
 import { healAsset } from '.'
 

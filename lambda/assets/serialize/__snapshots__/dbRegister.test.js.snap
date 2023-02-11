@@ -49,6 +49,7 @@ Object {
   },
   "importTree": Array [],
   "instance": undefined,
+  "zone": "Library",
 }
 `;
 
@@ -124,6 +125,7 @@ Object {
   },
   "importTree": Array [],
   "instance": undefined,
+  "zone": "Library",
 }
 `;
 
@@ -184,6 +186,7 @@ Object {
   "defaultNames": Object {},
   "importTree": Array [],
   "instance": true,
+  "zone": "Library",
 }
 `;
 
@@ -217,6 +220,7 @@ Object {
   },
   "importTree": Array [],
   "instance": undefined,
+  "zone": "Library",
 }
 `;
 
@@ -277,6 +281,7 @@ Object {
   "defaultNames": Object {},
   "importTree": Array [],
   "instance": undefined,
+  "zone": "Library",
 }
 `;
 
