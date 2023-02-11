@@ -5,30 +5,38 @@ Object {
   "conditionals": Array [
     Object {
       "else": Object {
-        "conditionals": Array [],
-        "items": Array [
-          Object {
-            "key": "targetTwo#testRoom",
-            "name": "fromTwo",
-          },
-        ],
+        "key": "If-4",
+        "node": Object {
+          "conditionals": Array [],
+          "items": Array [
+            Object {
+              "key": "targetTwo#testRoom",
+              "name": "fromTwo",
+            },
+          ],
+        },
       },
       "elseIfs": Array [],
       "if": Object {
+        "key": "If-0",
         "node": Object {
           "conditionals": Array [
             Object {
               "else": Object {
-                "conditionals": Array [],
-                "items": Array [
-                  Object {
-                    "key": "testRoom#targetFour",
-                    "name": "target four",
-                  },
-                ],
+                "key": "If-3",
+                "node": Object {
+                  "conditionals": Array [],
+                  "items": Array [
+                    Object {
+                      "key": "testRoom#targetFour",
+                      "name": "target four",
+                    },
+                  ],
+                },
               },
               "elseIfs": Array [
                 Object {
+                  "key": "If-2",
                   "node": Object {
                     "conditionals": Array [],
                     "items": Array [
@@ -42,6 +50,7 @@ Object {
                 },
               ],
               "if": Object {
+                "key": "If-1",
                 "node": Object {
                   "conditionals": Array [],
                   "items": Array [
@@ -81,11 +90,13 @@ Object {
     Object {
       "elseIfs": Array [],
       "if": Object {
+        "key": "If-0",
         "node": Object {
           "conditionals": Array [
             Object {
               "elseIfs": Array [
                 Object {
+                  "key": "If-2",
                   "node": Object {
                     "conditionals": Array [],
                     "items": Array [
@@ -99,6 +110,7 @@ Object {
                 },
               ],
               "if": Object {
+                "key": "If-1",
                 "node": Object {
                   "conditionals": Array [],
                   "items": Array [
