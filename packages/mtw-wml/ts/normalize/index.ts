@@ -542,7 +542,13 @@ export class Normalizer {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
             const { contents } = appearance
-            contents.forEach((contentReference) => { this._removeAppearance(contentReference) })
+            //
+            // Remove contents in reverse order in case of duplicate appearances of the same key (since
+            // you *definitely* want to remove appearances in reverse order, or else the reindexing will
+            // destroy the validity of your references)
+            //
+            const reversedContents = [...contents].reverse()
+            reversedContents.forEach((contentReference) => { this._removeAppearance(contentReference) })
             this._normalForm = produce(this._normalForm, (draft) => {
                 draft[reference.key].appearances.splice(reference.index, 1)
                 if (!draft[reference.key].appearances.length) {
@@ -771,7 +777,6 @@ export class Normalizer {
     delete(reference: NormalReference): void {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
-            this._removeAppearance(reference)
             const parentReference = this._getParentReference(appearance.contextStack)
             if (parentReference) {
                 const { contents = [] } = this._lookupAppearance(parentReference)
@@ -780,6 +785,7 @@ export class Normalizer {
                     this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents.slice(0, index), ...contents.slice(index + 1)])
                 }
             }
+            this._removeAppearance(reference)
             this._renameAllConditions()
         }
     }

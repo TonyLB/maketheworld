@@ -177,10 +177,11 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                     //
                     const firstUnconditionedAppearance = (roomLookup.appearances || []).findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If' || tag === 'Map'))))
                     if (firstUnconditionedAppearance !== -1) {
+                        const contextStack = roomLookup.appearances[firstUnconditionedAppearance].contextStack
                         updateNormal({
                             type: 'put',
                             item,
-                            position: { contextStack: [{ key: lookupRoomId, index: firstUnconditionedAppearance, tag: 'Room' }] }
+                            position: { contextStack: [...contextStack, { key: lookupRoomId, index: firstUnconditionedAppearance, tag: 'Room' }] }
                         })    
                     }
                 })
