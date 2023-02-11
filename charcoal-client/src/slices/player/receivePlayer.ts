@@ -15,6 +15,9 @@ export const receivePlayer = (state: PlayerPublic, action: PayloadAction<PlayerP
     }
     state.Assets = Assets
     state.Characters = Characters
+    if (state.currentDraft && !(state.currentDraft in Assets)) {
+        state.currentDraft = undefined
+    }
 }
 
 export default receivePlayer
