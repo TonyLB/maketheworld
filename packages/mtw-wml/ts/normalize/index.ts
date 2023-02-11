@@ -786,6 +786,13 @@ export class Normalizer {
                 }
             }
             this._removeAppearance(reference)
+            const newParentReference = this._getParentReference(appearance.contextStack)
+            if (newParentReference && newParentReference.tag === 'If') {
+                const { contents = [] } = this._lookupAppearance(newParentReference)
+                if (!contents.length) {
+                    this.delete(newParentReference)
+                }
+            }
             this._renameAllConditions()
         }
     }

@@ -376,6 +376,24 @@ describe('WML normalize', () => {
             normalizer.delete({ key: 'If-1', index: 0, tag: 'If' })
             expect(normalizer.normal).toMatchSnapshot()
         })
+
+        it('should delete empty parent conditions', () => {
+            const testSource = `<Asset key=(TestAsset) fileName="Test">
+                <Variable key=(testVar) default={false} />
+                <If {testVar}>
+                    <Room key=(testRoom)>
+                        <Description>
+                            One
+                        </Description>
+                    </Room>
+                </If>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.delete({ key: 'testRoom', index: 0, tag: 'Room' })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
     })
 
     describe('positioned put method', () => {
