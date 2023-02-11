@@ -58,7 +58,7 @@ export class CachePlayerLibraryData {
             const Assets = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
                 .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
-                .reduce((previous, item) => ({ ...previous, [item.AssetId]: item }), {} as Record<string, LibraryAsset>)            
+                .reduce((previous, item) => ({ ...previous, [item.AssetId]: item }), {} as Record<string, LibraryAsset>)
             this.CharacterLibraries[player] = {
                 Characters,
                 Assets
