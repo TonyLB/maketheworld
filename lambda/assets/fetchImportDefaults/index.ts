@@ -1,12 +1,17 @@
-import { FetchImportDefaultsMessage, MessageBus } from "../messageBus/baseClasses"
+import { FetchImportDefaultsMessage, FetchImportsMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
 import { AssetClientImportDefaults, AssetClientImportDefaultsFeature, AssetClientImportDefaultsRoom } from "@tonylb/mtw-interfaces/dist/asset"
 import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
-import { isNormalExit, isNormalFeature, isNormalImport, isNormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { isNormalExit, isNormalFeature, isNormalImport, isNormalRoom, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { RoomExit } from "@tonylb/mtw-interfaces/dist/messages"
 import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { assetWorkspaceFromAssetId } from "../utilities/assets"
+import { SelectObjectContentCommand } from "@aws-sdk/client-s3"
+import { convertSelectDataToJson } from "../utilities/stream"
+
+const { S3_BUCKET } = process.env
 
 type AssetKey = `ASSET#${string}`
 
@@ -171,6 +176,56 @@ export const fetchImportDefaultsMessage = async ({ payloads, messageBus }: { pay
                 })
             })
     )
+}
+
+type RecursiveFetchImportArgument = {
+    assetId: `ASSET#${string}`;
+    keys: string[];
+    stubKeys: string[];
+}
+
+export const recursiveFetchImports = async ({ payload, messageBus }: { payload: Record<AssetKey, RecursiveFetchImportArgument>, messageBus: MessageBus }): Promise<void> => {
+    const fetches = Object.values(payload).map(async ({ assetId, keys, stubKeys }): Promise<Record<string, NormalItem>> => {
+        const { normal } = await internalCache.JSONFile.get(assetId)
+
+        return {}
+    //
+    // TODO: Parse items to determine whether the keys require any stubs not yet present
+    //
+
+    //
+    // TODO: Recurse to fetch stubs that are required but have not yet been fetched, either
+    // those passed as stubKeys, or those added to the necessary stubs by parsing of keys
+    //
+
+    //
+    // TODO: Once stubs are fetched, you know all further imports that are necessary. Recurse
+    // to fetch those as well
+    //
+    })
+
+}
+
+export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
+    const [ConnectionId, RequestId] = await Promise.all([
+        internalCache.Connection.get("connectionId"),
+        internalCache.Connection.get("RequestId")
+    ])
+    // await Promise.all(
+    //     payloads
+    //         .map(async (payload) => {
+    //             const defaultsByKey = await recursivePayloadDefault(payload)
+    //             await apiClient.send({
+    //                 ConnectionId,
+    //                 Data: JSON.stringify({
+    //                     RequestId,
+    //                     messageType: 'ImportDefaults',
+    //                     assetId: payload.assetId,
+    //                     defaultsByKey
+    //                 })
+    //             })
+    //         })
+    // )
 }
 
 export default fetchImportDefaultsMessage

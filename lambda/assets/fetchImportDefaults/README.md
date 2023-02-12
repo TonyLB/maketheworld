@@ -48,11 +48,15 @@ need to exist on some level), but which were not, themselves, requested.  Exampl
 values for Room A, which has an exit to Room B, then you need at least a stub to represent Room B and
 record the bare minimum information (i.e. its *name*).
 
+Note: All schema elements are encoded into WML for transit, and must be decoded on the far side.
+This allows communication in file fragments without requiring that the API and the client share
+exactly the same internal representation of Schema elements.
+
 ```ts
 type FetchImportOutputByAsset = {
     assetId: `ASSET#${string}`;
-    schemaByKey: Record<string, SchemaTag[]>;
-    stubsByKey: Record<string, SchemaTag[]>;
+    schemaByKey: Record<string, string>;
+    stubsByKey: Record<string, string>;
 }
 
 type FetchImportOutput = {

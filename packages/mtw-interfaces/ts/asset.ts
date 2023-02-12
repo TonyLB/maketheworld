@@ -158,6 +158,18 @@ export type AssetClientImportDefaults = {
     defaultsByKey: Record<string, AssetClientImportDefaultsRoom | AssetClientImportDefaultsFeature>;
 }
 
+type FetchImportOutputByAsset = {
+    assetId: `ASSET#${string}`;
+    schemaByKey: Record<string, string>;
+    stubsByKey: Record<string, string>;
+}
+
+export type AssetClientFetchImports = {
+    messageType: 'FetchImports';
+    RequestId?: string;
+    importsByAsset: FetchImportOutputByAsset[];
+}
+
 //
 // TODO: Create AssetClientParseWML message type, and add it to legal AssetClientMessage
 //    - Type should return the properties for images that have been added during the parse

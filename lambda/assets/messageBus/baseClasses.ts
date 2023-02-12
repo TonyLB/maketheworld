@@ -19,6 +19,16 @@ export type FetchImportDefaultsMessage = {
     keys: string[];
 }
 
+type ImportFromAssetArgument = {
+    assetId: `ASSET#${string}`;
+    keys: string[];
+}
+
+export type FetchImportsMessage = {
+    type: 'FetchImports';
+    importsFromAsset: ImportFromAssetArgument[];
+}
+
 export type FetchAssetMessage = {
     type: 'FetchAsset';
     AssetId?: string;
