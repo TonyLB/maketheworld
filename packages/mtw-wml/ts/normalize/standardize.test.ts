@@ -120,4 +120,26 @@ describe('standardizeNormal', () => {
 </Asset>`)
     })
 
+
+    it('should render bookmarks in unreferencing-first graph order', () => {
+        const testNormal = normalizeTestWML(`<Asset key=(Test)>
+            <Bookmark key=(testOne)>
+                TestOne<Bookmark key=(testThree) />
+            </Bookmark>
+            <Bookmark key=(testTwo)>
+                TestTwo<Bookmark key=(testOne) />
+            </Bookmark>
+            <Bookmark key=(testThree)>
+                TestThree
+            </Bookmark>
+        </Asset>`)
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(standardizeNormal(testNormal))
+        expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
+    <Bookmark key=(testThree)>TestThree</Bookmark>
+    <Bookmark key=(testOne)>TestOne<Bookmark key=(testThree) /></Bookmark>
+    <Bookmark key=(testTwo)>TestTwo<Bookmark key=(testOne) /></Bookmark>
+</Asset>`)
+    })
+
 })

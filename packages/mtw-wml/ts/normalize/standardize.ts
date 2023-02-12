@@ -4,8 +4,9 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents } from "../schema/baseClasses"
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark } from "./baseClasses"
+import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
+import { extractConditionedItemFromContents } from "../schema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
 
@@ -114,6 +115,23 @@ const extractConditionedExits = (contextNormalizer: Normalizer) => (item: Normal
     return returnContents
 }
 
+const extractBookmarkReferences = (items: SchemaTaggedMessageIncomingContents[]) => {
+    const returnContents = items.reduce<string[]>((previous, item ) => {
+        if (isSchemaBookmark(item)) {
+            return [...(new Set([...previous, item.key]))]
+        }
+        if (isSchemaCondition(item)) {
+            return [...(new Set([
+                ...previous,
+                extractBookmarkReferences(item.contents as SchemaTaggedMessageIncomingContents[])
+            ]))]
+        }
+        return previous
+    }, [])
+
+    return returnContents
+}
+
 export const standardizeNormal = (normal: NormalForm): NormalForm => {
     const argumentNormalizer = new Normalizer()
     argumentNormalizer.loadNormal(normal)
@@ -127,6 +145,46 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
     }
     const resultNormalizer = new Normalizer()
     resultNormalizer.put({ tag: 'Asset', key: rootNode.key, contents: [], Story: undefined }, { contextStack: [] })
+
+    //
+    // Add standardized view of all Bookmarks in graph-sorted order
+    //
+    const bookmarkValues: SchemaBookmarkTag[] = Object.values(normal)
+        .filter(isNormalBookmark)
+        .sort(normalAlphabeticKeySort)
+        .map((bookmark) => ({
+            tag: 'Bookmark',
+            key: bookmark.key,
+            contents: extractConditionedRender(argumentNormalizer)(bookmark),
+        }))
+    const bookmarkReferences: Record<string, string[]> = bookmarkValues
+        .reduce<Record<string, string[]>>((previous, { key, contents }) => {
+            return {
+                ...previous,
+                [key]: extractBookmarkReferences(contents)
+            }
+        }, {})
+    let alreadyWrittenKeys: string[] = []
+    while(alreadyWrittenKeys.length < bookmarkValues.length) {
+        let contentWritten = false
+        bookmarkValues
+            .filter(({ key }) => (!alreadyWrittenKeys.includes(key)))
+            .filter(({ key }) => (!(bookmarkReferences[key] || []).find((ref) => (!alreadyWrittenKeys.includes(ref)))))
+            .forEach((item) => {
+                resultNormalizer.put(item, { 
+                    contextStack: [{
+                        key: rootNode.key,
+                        tag: 'Asset',
+                        index: 0
+                    }]
+                })
+                alreadyWrittenKeys.push(item.key)
+                contentWritten = true
+            })
+        if (!contentWritten) {
+            break
+        }
+    }
 
     //
     // Add standardized view of all Rooms to the results
