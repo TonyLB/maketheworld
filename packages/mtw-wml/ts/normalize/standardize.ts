@@ -4,8 +4,8 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment } from "../schema/baseClasses"
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed } from "./baseClasses"
+import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag } from "../schema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../schema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
@@ -490,6 +490,47 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
             })
 
         })
+
+    //
+    // Add standardized view of all Bookmarks in graph-sorted order
+    //
+    const computedValues: SchemaComputedTag[] = Object.values(normal)
+        .filter(isNormalComputed)
+        .sort(normalAlphabeticKeySort)
+        .map((computed) => ({
+            tag: 'Computed',
+            key: computed.key,
+            src: computed.src,
+            dependencies: computed.dependencies
+        }))
+    const computedReferences: Record<string, string[]> = computedValues
+        .reduce<Record<string, string[]>>((previous, { key, dependencies }) => {
+            return {
+                ...previous,
+                [key]: dependencies.filter((depend) => (computedValues.map(({ key }) => (key)).includes(depend)))
+            }
+        }, {})
+    let alreadyWrittenComputes: string[] = []
+    while(alreadyWrittenComputes.length < computedValues.length) {
+        let contentWritten = false
+        computedValues
+            .filter(({ key }) => (!alreadyWrittenComputes.includes(key)))
+            .filter(({ key }) => (!(computedReferences[key] || []).find((ref) => (!alreadyWrittenComputes.includes(ref)))))
+            .forEach((item) => {
+                resultNormalizer.put(item, { 
+                    contextStack: [{
+                        key: rootNode.key,
+                        tag: 'Asset',
+                        index: 0
+                    }]
+                })
+                alreadyWrittenComputes.push(item.key)
+                contentWritten = true
+            })
+        if (!contentWritten) {
+            break
+        }
+    }
 
     return resultNormalizer.normal
 }

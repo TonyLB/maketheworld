@@ -256,4 +256,21 @@ describe('standardizeNormal', () => {
 </Asset>`)
     })
 
+    it('should render computes in dependency order', () => {
+        const testNormal = normalizeTestWML(`<Asset key=(Test)>
+            <Computed key=(computeOne) src={computeThree} />
+            <Computed key=(computeTwo) src={!computeOne} />
+            <Computed key=(computeThree) src={!testVar} />
+            <Variable key=(testVar) default={false} />
+        </Asset>`)
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(standardizeNormal(testNormal))
+        expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
+    <Variable key=(testVar) default={false} />
+    <Computed key=(computeThree) src={!testVar} />
+    <Computed key=(computeOne) src={computeThree} />
+    <Computed key=(computeTwo) src={!computeOne} />
+</Asset>`)
+    })
+
 })
