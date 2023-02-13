@@ -333,6 +333,7 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         return {}
     }
     const resultNormalizer = new Normalizer()
+    resultNormalizer._tags = { ...argumentNormalizer._tags }
     resultNormalizer.put({ tag: 'Asset', key: rootNode.key, contents: [], Story: undefined }, { contextStack: [] })
 
     //
