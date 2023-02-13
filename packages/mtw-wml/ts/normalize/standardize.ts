@@ -4,8 +4,8 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents } from "../schema/baseClasses"
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment } from "./baseClasses"
+import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment } from "../schema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../schema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
@@ -206,6 +206,45 @@ const extractConditionedMessageContents = (contextNormalizer: Normalizer) => (it
     return returnContents
 }
 
+const extractConditionedMomentContents = (contextNormalizer: Normalizer) => (item: NormalMoment) => {
+    const { appearances } = item
+    const returnContents = appearances.reduce<SchemaMessageTag[]>((previous, _, index ) => {
+        const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
+        if (!(schemaVersion && isSchemaMoment(schemaVersion))) {
+            return previous
+        }
+        const contents = stripComponentContents(schemaVersion.contents)
+        if (!contents.length) {
+            return previous
+        }
+        //
+        // TODO: Extend this functionality when Messages are refactored to include conditionals
+        //
+
+        // const newContents = contextStack
+        //     .filter(({ tag }) => (tag === 'If'))
+        //     .reduceRight<SchemaMessageLegalContents[]>((previous, { key }) => {
+        //         const ifReference = contextNormalizer.normal[key]
+        //         if (!(ifReference && isNormalCondition(ifReference))) {
+        //             return previous
+        //         }
+        //         const returnValue: SchemaConditionTagMapContext = {
+        //             tag: 'If' as 'If',
+        //             contextTag: 'Message',
+        //             conditions: ifReference.conditions,
+        //             contents: previous
+        //         }
+        //         return [returnValue]
+        //     }, contents)
+        return [
+            ...previous,
+            ...contents
+        ]
+    }, [])
+
+    return returnContents
+}
+
 const stripComponentContents = <T extends SchemaTag>(items: T[]): T[] => {
     return items.map((item) => {
         if (isSchemaRoom(item)) {
@@ -221,6 +260,14 @@ const stripComponentContents = <T extends SchemaTag>(items: T[]): T[] => {
                 ...item,
                 name: [],
                 render: []
+            }
+        }
+        if (isSchemaMessage(item)) {
+            return {
+                ...item,
+                render: [],
+                contents: [],
+                rooms: []
             }
         }
         if (isSchemaBookmark(item)) {
@@ -390,6 +437,29 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                     transform: ({ key }) => ({ conditions: [], key })
                 }),
                 render: extractConditionedRender(argumentNormalizer)(message)
+            }, { 
+                contextStack: [{
+                    key: rootNode.key,
+                    tag: 'Asset',
+                    index: 0
+                }]
+            })
+
+        })
+
+            //
+    // Add standardized view of all Messages to the results
+    //
+    Object.values(normal)
+        .filter(isNormalMoment)
+        .sort(normalAlphabeticKeySort)
+        .forEach((moment) => {
+            const contents = extractConditionedMomentContents(argumentNormalizer)(moment)
+            const componentContents = (stripComponentContents(contents) as SchemaTag[]).filter(isSchemaMessage)
+            resultNormalizer.put({
+                tag: 'Moment',
+                key: moment.key,
+                contents: componentContents,
             }, { 
                 contextStack: [{
                     key: rootNode.key,
