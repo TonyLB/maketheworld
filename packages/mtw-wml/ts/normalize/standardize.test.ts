@@ -288,4 +288,31 @@ describe('standardizeNormal', () => {
 </Asset>`)
     })
 
+    it('should render imports correctly', () => {
+        const testNormal = normalizeTestWML(`<Asset key=(Test)>
+            <Import from=(vanishingPoint)>
+                <Use key=(power) type="Variable" as=(testVar) />
+                <Use key=(testRoomOne) type="Room" />
+            </Import>
+            <Variable key=(testVar) />
+            <Room key=(testRoomOne)>
+                <Description>Test Room One</Description>
+                <Exit to=(testRoomTwo)>two</Exit>
+            </Room>
+        </Asset>`)
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(standardizeNormal(testNormal))
+        expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
+    <Room key=(testRoomOne)>
+        <Description>Test Room One</Description>
+        <Exit to=(testRoomTwo)>two</Exit>
+    </Room>
+    <Variable key=(testVar) />
+    <Import from=(vanishingPoint)>
+        <Use key=(power) as=(testVar) type="Variable" />
+        <Use key=(testRoomOne) type="Room" />
+    </Import>
+</Asset>`)
+    })
+
 })

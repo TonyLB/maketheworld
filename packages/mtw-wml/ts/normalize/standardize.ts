@@ -4,8 +4,8 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag } from "../schema/baseClasses"
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction, isNormalImport, NormalImport } from "./baseClasses"
+import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, SchemaUseTag, isSchemaImport, SchemaImportMapping } from "../schema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../schema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
@@ -241,6 +241,41 @@ const extractConditionedMomentContents = (contextNormalizer: Normalizer) => (ite
             ...contents
         ]
     }, [])
+
+    return returnContents
+}
+
+const extractImportMapping = (contextNormalizer: Normalizer) => (item: NormalImport) => {
+    const { appearances } = item
+    const returnContents = appearances.reduce<Record<string, SchemaImportMapping>>((previous, _, index ) => {
+        const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
+        if (!(schemaVersion && isSchemaImport(schemaVersion))) {
+            return previous
+        }
+        //
+        // TODO: Extend this functionality when Messages are refactored to include conditionals
+        //
+
+        // const newContents = contextStack
+        //     .filter(({ tag }) => (tag === 'If'))
+        //     .reduceRight<SchemaMessageLegalContents[]>((previous, { key }) => {
+        //         const ifReference = contextNormalizer.normal[key]
+        //         if (!(ifReference && isNormalCondition(ifReference))) {
+        //             return previous
+        //         }
+        //         const returnValue: SchemaConditionTagMapContext = {
+        //             tag: 'If' as 'If',
+        //             contextTag: 'Message',
+        //             conditions: ifReference.conditions,
+        //             contents: previous
+        //         }
+        //         return [returnValue]
+        //     }, contents)
+        return {
+            ...previous,
+            ...schemaVersion.mapping
+        }
+    }, {})
 
     return returnContents
 }
@@ -551,6 +586,26 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                 }]
             })
 
+        })
+
+    //
+    // Add standardized view of all Imports to the results
+    //
+    Object.values(normal)
+        .filter(isNormalImport)
+        .sort(normalAlphabeticKeySort)
+        .forEach((importItem) => {
+            resultNormalizer.put({
+                tag: 'Import',
+                from: importItem.from,
+                mapping: extractImportMapping(argumentNormalizer)(importItem)
+            }, { 
+                contextStack: [{
+                    key: rootNode.key,
+                    tag: 'Asset',
+                    index: 0
+                }]
+            })
         })
 
     return resultNormalizer.normal
