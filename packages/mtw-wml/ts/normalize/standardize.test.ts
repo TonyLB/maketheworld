@@ -213,7 +213,7 @@ describe('standardizeNormal', () => {
 </Asset>`)
     })
 
-    it('should render momentss correctly', () => {
+    it('should render moments correctly', () => {
         const testNormal = normalizeTestWML(`<Asset key=(Test)>
             <Moment key=(testMoment)>
                 <Message key=(testMessage)>
@@ -234,6 +234,25 @@ describe('standardizeNormal', () => {
     </Room>
     <Message key=(testMessage)>Test message<Room key=(testRoomOne) /></Message>
     <Moment key=(testMoment)><Message key=(testMessage) /></Moment>
+</Asset>`)
+    })
+
+    it('should render variables correctly', () => {
+        const testNormal = normalizeTestWML(`<Asset key=(Test)>
+            <Variable key=(testVar) default={false} />
+            <Room key=(testRoomOne)>
+                <Description>Test Room One</Description>
+                <Exit to=(testRoomTwo)>two</Exit>
+            </Room>
+        </Asset>`)
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(standardizeNormal(testNormal))
+        expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
+    <Room key=(testRoomOne)>
+        <Description>Test Room One</Description>
+        <Exit to=(testRoomTwo)>two</Exit>
+    </Room>
+    <Variable key=(testVar) default={false} />
 </Asset>`)
     })
 

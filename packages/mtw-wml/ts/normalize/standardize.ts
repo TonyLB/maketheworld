@@ -4,7 +4,7 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment } from "./baseClasses"
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable } from "./baseClasses"
 import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment } from "../schema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../schema/utils";
 
@@ -447,7 +447,7 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
 
         })
 
-            //
+    //
     // Add standardized view of all Messages to the results
     //
     Object.values(normal)
@@ -460,6 +460,27 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                 tag: 'Moment',
                 key: moment.key,
                 contents: componentContents,
+            }, { 
+                contextStack: [{
+                    key: rootNode.key,
+                    tag: 'Asset',
+                    index: 0
+                }]
+            })
+
+        })
+
+    //
+    // Add standardized view of all Variables to the results
+    //
+    Object.values(normal)
+        .filter(isNormalVariable)
+        .sort(normalAlphabeticKeySort)
+        .forEach((variable) => {
+            resultNormalizer.put({
+                tag: 'Variable',
+                key: variable.key,
+                default: variable.default
             }, { 
                 contextStack: [{
                     key: rootNode.key,
