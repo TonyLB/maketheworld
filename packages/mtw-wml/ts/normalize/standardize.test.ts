@@ -120,7 +120,6 @@ describe('standardizeNormal', () => {
 </Asset>`)
     })
 
-
     it('should render bookmarks in unreferencing-first graph order', () => {
         const testNormal = normalizeTestWML(`<Asset key=(Test)>
             <Bookmark key=(testOne)>
@@ -139,6 +138,43 @@ describe('standardizeNormal', () => {
     <Bookmark key=(testThree)>TestThree</Bookmark>
     <Bookmark key=(testOne)>TestOne<Bookmark key=(testThree) /></Bookmark>
     <Bookmark key=(testTwo)>TestTwo<Bookmark key=(testOne) /></Bookmark>
+</Asset>`)
+    })
+
+    it('should render maps correctly', () => {
+        const testNormal = normalizeTestWML(`<Asset key=(Test)>
+            <Map key=(testMap)>
+                <Name>Test map</Name>
+                <Room key=(testRoomOne) x="0" y="0">
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <If {false}>
+                    <Room key=(testRoomTwo) x="-100" y="0">
+                        <Description>Test Room Two</Description>
+                        <Exit to=(testRoomOne)>one</Exit>
+                    </Room>
+                </If>
+                <Image key=(mapBackground) />
+            </Map>
+        </Asset>`)
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(standardizeNormal(testNormal))
+        expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
+    <Room key=(testRoomOne)>
+        <Description>Test Room One</Description>
+        <Exit to=(testRoomTwo)>two</Exit>
+    </Room>
+    <Room key=(testRoomTwo)>
+        <Description><If {false}>Test Room Two</If></Description>
+        <If {false}><Exit to=(testRoomOne)>one</Exit></If>
+    </Room>
+    <Map key=(testMap)>
+        <Name />
+        <Image key=(mapBackground) />
+        <Room key=(testRoomOne) x="0" y="0" />
+        <If {false}><Room key=(testRoomTwo) x="-100" y="0" /></If>
+    </Map>
 </Asset>`)
     })
 

@@ -4,9 +4,9 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
-import { extractConditionedItemFromContents } from "../schema/utils";
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap } from "./baseClasses"
+import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage } from "../schema/baseClasses"
+import { extractConditionedItemFromContents, extractNameFromContents } from "../schema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
 
@@ -132,6 +132,74 @@ const extractBookmarkReferences = (items: SchemaTaggedMessageIncomingContents[])
     return returnContents
 }
 
+const extractConditionedMapContents = (contextNormalizer: Normalizer) => (item: NormalMap) => {
+    const { appearances } = item
+    const returnContents = appearances.reduce<SchemaMapLegalContents[]>((previous, { contextStack }, index ) => {
+        const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
+        if (!(schemaVersion && isSchemaMap(schemaVersion))) {
+            return previous
+        }
+        const contents = schemaVersion.contents
+        if (!contents.length) {
+            return previous
+        }
+        const newContents = contextStack
+            .filter(({ tag }) => (tag === 'If'))
+            .reduceRight<SchemaMapLegalContents[]>((previous, { key }) => {
+                const ifReference = contextNormalizer.normal[key]
+                if (!(ifReference && isNormalCondition(ifReference))) {
+                    return previous
+                }
+                const returnValue: SchemaConditionTagMapContext = {
+                    tag: 'If' as 'If',
+                    contextTag: 'Map',
+                    conditions: ifReference.conditions,
+                    contents: previous
+                }
+                return [returnValue]
+            }, contents)
+        return [
+            ...previous,
+            ...newContents
+        ]
+    }, [])
+
+    return returnContents
+}
+
+const stripComponentContents = <T extends SchemaTag>(items: T[]): T[] => {
+    return items.map((item) => {
+        if (isSchemaRoom(item)) {
+            return {
+                ...item,
+                render: [],
+                name: [],
+                contents: []
+            }
+        }
+        if (isSchemaFeature(item)) {
+            return {
+                ...item,
+                name: [],
+                render: []
+            }
+        }
+        if (isSchemaBookmark(item)) {
+            return {
+                ...item,
+                contents: []
+            }
+        }
+        if (isSchemaCondition(item)) {
+            return {
+                ...item,
+                contents: stripComponentContents(item.contents as T[])
+            }
+        }
+        return item
+    })
+}
+
 export const standardizeNormal = (normal: NormalForm): NormalForm => {
     const argumentNormalizer = new Normalizer()
     argumentNormalizer.loadNormal(normal)
@@ -224,6 +292,36 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                 render: extractConditionedRender(argumentNormalizer)(feature),
                 contents: [],
                 global: feature.global
+            }, { 
+                contextStack: [{
+                    key: rootNode.key,
+                    tag: 'Asset',
+                    index: 0
+                }]
+            })
+
+        })
+
+    //
+    // Add standardized view of all Maps to the results
+    //
+    Object.values(normal)
+        .filter(isNormalMap)
+        .sort(normalAlphabeticKeySort)
+        .forEach((map) => {
+            const contents = extractConditionedMapContents(argumentNormalizer)(map)
+            const componentContents = (stripComponentContents(contents) as SchemaTag[]).filter(isSchemaMapContents)
+            resultNormalizer.put({
+                tag: 'Map',
+                key: map.key,
+                name: extractNameFromContents(contents),
+                contents: componentContents,
+                rooms: extractConditionedItemFromContents({
+                    contents: contents as SchemaMapLegalContents[],
+                    typeGuard: isSchemaRoom,
+                    transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
+                }),
+                images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
             }, { 
                 contextStack: [{
                     key: rootNode.key,

@@ -36,10 +36,10 @@ render, name, and exits. All other appearances (for instance, within a Map or Me
 empty.
 - In order to facilitate this appearance-zero behavior, top-level items are listed in the following
 order (sorted by key alphabetically within their sections unless otherwise specified):
+    - *Images* are not mapped, as they need no top-level representation
     - *Bookmarks* (in an order determined by their directed acyclic graph)
     - *Features*
     - *Rooms*
-    - *Images*
     - *Maps*
     - *Messages*
     - *Moments*
