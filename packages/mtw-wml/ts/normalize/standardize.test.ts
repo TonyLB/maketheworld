@@ -98,6 +98,7 @@ describe('standardizeNormal', () => {
             </Room>
             <Room key=(testTwo) />
             <Message key=(testMessage)>
+                Test message
                 <Room key=(test)>
                     <Description>
                         Two
@@ -117,6 +118,7 @@ describe('standardizeNormal', () => {
         <Exit to=(testTwo)>Test Exit</Exit>
     </Room>
     <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
+    <Message key=(testMessage)>Test message<Room key=(test) /></Message>
 </Asset>`)
     })
 
@@ -175,6 +177,39 @@ describe('standardizeNormal', () => {
         <Room key=(testRoomOne) x="0" y="0" />
         <If {false}><Room key=(testRoomTwo) x="-100" y="0" /></If>
     </Map>
+</Asset>`)
+    })
+
+    it('should render messages correctly', () => {
+        const testNormal = normalizeTestWML(`<Asset key=(Test)>
+            <Message key=(testMessage)>
+                Test message
+                <Room key=(testRoomOne)>
+                    <Description>Test Room One</Description>
+                    <Exit to=(testRoomTwo)>two</Exit>
+                </Room>
+                <Room key=(testRoomTwo)>
+                    <Description>Test Room Two</Description>
+                    <Exit to=(testRoomOne)>one</Exit>
+                </Room>
+            </Message>
+        </Asset>`)
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(standardizeNormal(testNormal))
+        expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
+    <Room key=(testRoomOne)>
+        <Description>Test Room One</Description>
+        <Exit to=(testRoomTwo)>two</Exit>
+    </Room>
+    <Room key=(testRoomTwo)>
+        <Description>Test Room Two</Description>
+        <Exit to=(testRoomOne)>one</Exit>
+    </Room>
+    <Message key=(testMessage)>
+        Test message
+        <Room key=(testRoomOne) />
+        <Room key=(testRoomTwo) />
+    </Message>
 </Asset>`)
     })
 

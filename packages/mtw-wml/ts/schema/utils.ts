@@ -59,7 +59,7 @@ import {
     ParseBeforeTag,
     ParseReplaceTag
 } from "../parser/baseClasses"
-import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, isSchemaTag, SchemaConditionMixin, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaNameTag, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
+import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, isSchemaTag, SchemaConditionMixin, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaMessageLegalContents, SchemaNameTag, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
 
 export function *depthFirstParseTagGenerator(tree: ParseTag[]): Generator<ParseTag> {
     for (const node of tree) {
@@ -585,7 +585,7 @@ export const extractDescriptionFromContents = <T extends SchemaFeatureLegalConte
     }, [])
 }
 
-export const extractConditionedItemFromContents = <C extends SchemaMapLegalContents | SchemaNameTag, T extends C, O extends SchemaConditionMixin>(props: {
+export const extractConditionedItemFromContents = <C extends SchemaMapLegalContents | SchemaMessageLegalContents | SchemaNameTag, T extends C, O extends SchemaConditionMixin>(props: {
     contents: C[];
     typeGuard: (value: C) => value is T;
     transform: (value: T, index: number) => O;
