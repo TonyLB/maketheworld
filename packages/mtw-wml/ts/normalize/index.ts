@@ -81,6 +81,7 @@ import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
 import { objectFilterEntries } from '../lib/objects';
+import standardizeNormal from './standardize';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -1228,6 +1229,12 @@ export class Normalizer {
     referenceToSchema(reference: NormalReference): SchemaTag {
         return this._normalToSchema(reference.key, reference.index)
     }
+
+    standardize(): void {
+        const standardized = standardizeNormal(this._normalForm)
+        this.loadNormal(standardized)
+    }
+
 }
 
 export default Normalizer
