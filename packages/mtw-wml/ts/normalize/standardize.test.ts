@@ -273,4 +273,19 @@ describe('standardizeNormal', () => {
 </Asset>`)
     })
 
+    it('should render actions correctly', () => {
+        const testNormal = normalizeTestWML(`<Asset key=(Test)>
+            <Action key=(actionOne) src={testVar = !testVar} />
+            <Computed key=(computeOne) src={!testVar} />
+            <Variable key=(testVar) default={false} />
+        </Asset>`)
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(standardizeNormal(testNormal))
+        expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
+    <Variable key=(testVar) default={false} />
+    <Computed key=(computeOne) src={!testVar} />
+    <Action key=(actionOne) src={testVar = !testVar} />
+</Asset>`)
+    })
+
 })

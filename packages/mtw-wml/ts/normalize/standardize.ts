@@ -4,7 +4,7 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed } from "./baseClasses"
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction } from "./baseClasses"
 import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag } from "../schema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../schema/utils";
 
@@ -531,6 +531,27 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
             break
         }
     }
+
+    //
+    // Add standardized view of all Actions to the results
+    //
+    Object.values(normal)
+        .filter(isNormalAction)
+        .sort(normalAlphabeticKeySort)
+        .forEach((action) => {
+            resultNormalizer.put({
+                tag: 'Action',
+                key: action.key,
+                src: action.src
+            }, { 
+                contextStack: [{
+                    key: rootNode.key,
+                    tag: 'Asset',
+                    index: 0
+                }]
+            })
+
+        })
 
     return resultNormalizer.normal
 }
