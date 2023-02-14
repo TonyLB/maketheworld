@@ -3,13 +3,17 @@ import { FetchImportDefaultsMessage, FetchImportsMessage, MessageBus } from "../
 import internalCache from '../internalCache'
 import { AssetClientImportDefaults, AssetClientImportDefaultsFeature, AssetClientImportDefaultsRoom } from "@tonylb/mtw-interfaces/dist/asset"
 import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
-import { isNormalExit, isNormalFeature, isNormalImport, isNormalRoom, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { ComponentRenderItem, isNormalExit, isNormalFeature, isNormalImport, isNormalRoom, NormalComponent, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { RoomExit } from "@tonylb/mtw-interfaces/dist/messages"
 import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
 import { SelectObjectContentCommand } from "@aws-sdk/client-s3"
 import { convertSelectDataToJson } from "../utilities/stream"
+import AssetWorkspace from "@tonylb/mtw-asset-workspace"
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { componentRenderToSchemaTaggedMessage } from "@tonylb/mtw-wml/dist/normalize"
 
 const { S3_BUCKET } = process.env
 
@@ -184,11 +188,141 @@ type RecursiveFetchImportArgument = {
     stubKeys: string[];
 }
 
-export const recursiveFetchImports = async ({ payload, messageBus }: { payload: Record<AssetKey, RecursiveFetchImportArgument>, messageBus: MessageBus }): Promise<void> => {
-    const fetches = Object.values(payload).map(async ({ assetId, keys, stubKeys }): Promise<Record<string, NormalItem>> => {
-        const { normal } = await internalCache.JSONFile.get(assetId)
+type RecursiveFetchSelectReturnKeyItem = {
+    key: string; tag: 'Room' | 'Feature';
+    name: ComponentRenderItem[];
+    render: ComponentRenderItem[];
+}
 
-        return {}
+type RecursiveFetchSelectReturnStubItem = {
+    key: string; tag: 'Room' | 'Feature';
+    name: ComponentRenderItem[];
+    render: null;
+}
+
+type RecursiveFetchSelectReturnExitItem = {
+    key: string;
+    tag: 'Exit';
+    exitName: string;
+}
+
+type RecursiveFetchSelectReturn = RecursiveFetchSelectReturnKeyItem | RecursiveFetchSelectReturnStubItem | RecursiveFetchSelectReturnExitItem
+
+const isRecursiveFetchSelectReturnKeyItem = (value: RecursiveFetchSelectReturn): value is RecursiveFetchSelectReturnKeyItem => {
+    if (value.tag === 'Room' || value.tag === 'Feature') {
+        if (Array.isArray(value.render)) {
+            return true
+        }
+    }
+    return false
+}
+
+const isRecursiveFetchSelectReturnStubItem = (value: RecursiveFetchSelectReturn): value is RecursiveFetchSelectReturnStubItem => {
+    if (value.tag === 'Room' || value.tag === 'Feature') {
+        if (!Array.isArray(value.render)) {
+            return true
+        }
+    }
+    return false
+}
+
+const isRecursiveFetchSelectReturnExitItem = (value: RecursiveFetchSelectReturn): value is RecursiveFetchSelectReturnExitItem => (value.tag === 'Exit')
+
+export const recursiveFetchImports = async ({ payload, messageBus }: { payload: Record<AssetKey, RecursiveFetchImportArgument>, messageBus: MessageBus }): Promise<void> => {
+
+    //
+    // TODO:  ABORT!  ABORT!  Using S3Select for data as intricately interwoven as the NormalForm files is an exercise in frustration
+    // and inefficiency.  Until and unless I can think of a cleaner way to represent the data that would allow for easy
+    // disentangling of a specific subsection of the NormalForm to deliver, return to the original plan of pulling the JSON file
+    // from the internalCache and applying `normalSubset` to the (now guaranteed standardized) file format to pull out the
+    // relevant data.
+    //
+
+    const s3Client = await internalCache.Connection.get('s3Client')
+    if (!s3Client) {
+        return
+    }
+    const fetches = Object.assign({}, ...Object.values(payload).map(async ({ assetId, keys, stubKeys }): Promise<Record<string, SchemaTag[]>> => {
+        const assetWorkspace = await assetWorkspaceFromAssetId(assetId)
+        if (!assetWorkspace) {
+            return { [assetId]: [] }
+        }
+        const keysExpression = `(${keys.map((key) => (`'${key}'`)).join(',')})`
+        const selectExpression = `SELECT
+                _1."key", _1.tag, _1.name as exitName, _1.appearances[0].name,
+                CASE _1."key" IN ${keysExpression} WHEN true THEN _1.appearances[0].render END as render,
+                CASE (_1."key" IN ${keysExpression}) AND (_1.tag = 'Room') WHEN true THEN _1.appearances[0].contents END as contents
+            FROM s3Object[*].normal.*
+            WHERE
+                (_1."key" IN ${keysExpression}) OR
+                (_1.tag  = 'Room') OR
+                ((_1.tag = 'Exit') AND (_1."from" IN ${keysExpression} OR _1."to" in ${keysExpression}))`
+        const params = {
+            Bucket: S3_BUCKET,
+            Key: `${assetWorkspace.fileNameBase}.json`,
+            ExpressionType: 'SQL',
+            Expression: selectExpression,
+            InputSerialization: {
+                JSON: { Type: 'Document' }
+            },
+            OutputSerialization: {
+                JSON: { RecordDelimiter: ',' }
+            }
+        }
+        const s3SelectResponse = await s3Client.send(new SelectObjectContentCommand(params))
+        //
+        // TODO: Better error handling
+        //
+        if (s3SelectResponse.$metadata.httpStatusCode === 200 && s3SelectResponse.Payload) {
+            const convertedData = (await convertSelectDataToJson(s3SelectResponse.Payload)) as RecursiveFetchSelectReturn[]
+            const importItemByKey = convertedData.reduce<Record<string, RecursiveFetchSelectReturn>>((previous, item) => ({
+                ...previous,
+                [item.key]: item
+            }), {})
+            const keyImportItems = keys.map((key) => (importItemByKey[key])).filter(isRecursiveFetchSelectReturnKeyItem)
+            //
+            // TODO: Create a recursive tree-walker to pull out all conditional keys from the key item contents.
+            //
+            const exitItems = Object.values(importItemByKey)
+                .filter(isRecursiveFetchSelectReturnExitItem)
+                .map(({ key, exitName }) => {
+                    const [from, to] = splitType(key)
+                    return {
+                        key,
+                        from,
+                        to,
+                        name: exitName
+                    }
+                })
+            const exitStubs = [
+                    ...exitItems.map(({ to }) => (to)),
+                    ...exitItems.map(({ from }) => (from)),
+                ]
+            const allStubs = (unique(stubKeys, exitStubs) as string[]).filter((value) => (!keys.includes(value)))
+            //
+            // TODO: Use the list of allStubs and allIfs to run a second Select through the S3 file to get
+            // information needed to support the key elements.
+            //
+            const schemaTags: SchemaTag[] = [
+                ...keyImportItems.map(({ key, name, render }): SchemaTag => ({
+                    tag: 'Room',
+                    key,
+                    name: name.map(componentRenderToSchemaTaggedMessage),
+                    render: render.map(componentRenderToSchemaTaggedMessage),
+                    global: false,
+                    contents: []
+                })),
+                ...allStubs.map((key): SchemaTag => {
+                    
+                })
+            ]
+
+            return {}
+        }
+        else {
+            return { [assetId]: [] }
+        }
+    
     //
     // TODO: Parse items to determine whether the keys require any stubs not yet present
     //
