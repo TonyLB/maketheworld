@@ -7,6 +7,12 @@ export type FetchLibraryAPIMessage = {
     message: 'fetchLibrary';
 }
 
+export type FetchImportsAPIMessage = {
+    message: 'fetchImports';
+    assetId: `ASSET#${string}`;
+    keys: string[];
+}
+
 export type FetchImportDefaultsAPIMessage = {
     message: 'fetchImportDefaults';
     assetId: `ASSET#${string}`;
@@ -65,6 +71,7 @@ export type AssetWhoAmIAPIMessage = {
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
     FetchImportDefaultsAPIMessage |
+    FetchImportsAPIMessage |
     FetchAssetAPIMessage |
     UploadAssetLinkAPIMessage |
     ParseWMLAPIMessage |
@@ -76,6 +83,7 @@ export type AssetAPIMessage = { RequestId?: string } & (
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
 export const isFetchImportDefaultsAPIMessage = (message: AssetAPIMessage): message is FetchImportDefaultsAPIMessage => (message.message === 'fetchImportDefaults')
+export const isFetchImportsAPIMessage = (message: AssetAPIMessage): message is FetchImportsAPIMessage => (message.message === 'fetchImports')
 export const isFetchAssetAPIMessage = (message: AssetAPIMessage): message is FetchAssetAPIMessage => (message.message === 'fetch')
 export const isUploadAssetLinkAPIMessage = (message: AssetAPIMessage): message is UploadAssetLinkAPIMessage => (message.message === 'upload')
 export const isParseWMLAPIMessage = (message: AssetAPIMessage): message is ParseWMLAPIMessage => (message.message === 'parseWML')
@@ -158,6 +166,18 @@ export type AssetClientImportDefaults = {
     defaultsByKey: Record<string, AssetClientImportDefaultsRoom | AssetClientImportDefaultsFeature>;
 }
 
+type FetchImportOutputByAsset = {
+    assetId: `ASSET#${string}`;
+    schemaByKey: Record<string, string>;
+    stubsByKey: Record<string, string>;
+}
+
+export type AssetClientFetchImports = {
+    messageType: 'FetchImports';
+    RequestId?: string;
+    importsByAsset: FetchImportOutputByAsset[];
+}
+
 //
 // TODO: Create AssetClientParseWML message type, and add it to legal AssetClientMessage
 //    - Type should return the properties for images that have been added during the parse
@@ -174,6 +194,7 @@ export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientFetchURL |
     AssetClientUploadURL |
     AssetClientImportDefaults |
+    AssetClientFetchImports |
     AssetClientParseWML
 
 export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
@@ -291,6 +312,12 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                 ...Object.values(message.defaultsByKey || {}).map((item: any) => (
                     ['Room', 'Feature'].includes(item.tag) && validateTaggedMessageList(item.Name) && validateTaggedMessageList(item.Description)
                 ))
+            ) && message.assetId.split('#')[0] === 'ASSET'
+        case 'FetchImports':
+            return checkAll(
+                checkTypes(message, { assetId: 'string' }),
+                ...Object.values(message.schemaByKey || {}).map((item: any) => (typeof item === 'string')),
+                ...Object.values(message.stubsByKey || {}).map((item: any) => (typeof item === 'string'))
             ) && message.assetId.split('#')[0] === 'ASSET'
         case 'ParseWML':
             return checkAll(

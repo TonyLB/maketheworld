@@ -9,7 +9,8 @@ import {
     isParseWMLMessage,
     isPlayerLibraryUpdateMessage,
     isLibraryUpdateMessage,
-    isFormatImageMessage
+    isFormatImageMessage,
+    isFetchImportsAPIMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
@@ -19,6 +20,7 @@ import { librarySubscribeMessage } from "../subscribe"
 import playerLibraryUpdateMessage from "../playerLibraryUpdate"
 import libraryUpdateMessage from "../libraryUpdate"
 import formatImageMessage from "../formatImage"
+import { fetchImportsMessage } from "../fetchImportDefaults"
 
 export const messageBus = new MessageBus()
 
@@ -33,6 +35,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isFetchLibraryAPIMessage,
     callback: fetchLibraryMessage
+})
+messageBus.subscribe({
+    tag: 'FetchImports',
+    priority: 5,
+    filter: isFetchImportsAPIMessage,
+    callback: fetchImportsMessage
 })
 messageBus.subscribe({
     tag: 'FetchAsset',

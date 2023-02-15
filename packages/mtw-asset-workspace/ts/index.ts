@@ -188,20 +188,9 @@ export class AssetWorkspace {
     // reading in a stream, and processing it as it arrives
     //
     setWML(source: string): void {
-        const schema = schemaFromParse(parser(tokenizer(new SourceStream(source))))
-
-        //
-        // TEMPORARY PROVISION:  Until there's a proper architecture for having multiple
-        // assets defined in the same WML file, throw an exception here if a multi-asset
-        // file is encountered.
-        //
-        if (schema.length > 1) {
-            throw new ParseException('Multi-Asset files are not yet implemented', 0, 0)
-        }
         const normalizer = new Normalizer()
-        schema.forEach((item, index) => {
-            normalizer.put(item, { contextStack: [] })
-        })
+        normalizer.loadWML(source)
+        normalizer.standardize()
         if (!(this.normal && deepEqual(this.normal, normalizer.normal))) {
             this.status.json = 'Dirty'
         }
@@ -266,7 +255,7 @@ export class AssetWorkspace {
             namespaceIdToDB: this.namespaceIdToDB,
             normal: this.normal || {},
             properties: objectFilterEntries(this.properties, ([key]) => (key in (this.normal || {})))
-        }, null, 4)
+        })
         await s3Client.put({
             Key: filePath,
             Body: contents

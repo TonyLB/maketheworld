@@ -17,7 +17,8 @@ import {
     isAssetSubscribeAPIMessage,
     isAssetWhoAmIAPIMessage,
     isParseWMLAPIMessage,
-    isFetchImportDefaultsAPIMessage
+    isFetchImportDefaultsAPIMessage,
+    isFetchImportsAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset.js'
 
 import messageBus from "./messageBus/index.js"
@@ -81,7 +82,7 @@ export const handler = async (event, context) => {
     }
     
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
-    if (!request || !['fetch', 'fetchLibrary', 'fetchImportDefaults', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe', 'whoAmI', 'parseWML'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe', 'whoAmI', 'parseWML'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -98,6 +99,15 @@ export const handler = async (event, context) => {
                 type: 'FetchImportDefaults',
                 assetId: request.assetId,
                 keys: request.keys
+            })
+        }
+        if (isFetchImportsAPIMessage(request)) {
+            messageBus.send({
+                type: 'FetchImports',
+                importsFromAsset: [{
+                    assetId: request.assetId,
+                    keys: request.keys
+                }]
             })
         }
         if (isFetchAssetAPIMessage(request)) {

@@ -59,6 +59,9 @@ const fetchAssetProperties = ({ s3Client }: { s3Client: S3Client }) => async ({ 
     let derivedFileName: string | undefined
     if (AssetId) {
         const DataCategory = (splitType(AssetId)[0] === 'CHARACTER') ? 'Meta::Character' : 'Meta::Asset'
+        //
+        // TODO: Rewrite fetchAssetProperties to use assetWorkspaceFromAssetId
+        //
         if (DataCategory === 'Meta::Asset') {
             const { fileName: fetchFileName, zone, subFolder, player } = (await assetDB.getItem<{ fileName: string; zone: string; subFolder: string; player: string; }>({
                 AssetId,

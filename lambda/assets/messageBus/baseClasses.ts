@@ -19,6 +19,16 @@ export type FetchImportDefaultsMessage = {
     keys: string[];
 }
 
+type ImportFromAssetArgument = {
+    assetId: `ASSET#${string}`;
+    keys: string[];
+}
+
+export type FetchImportsMessage = {
+    type: 'FetchImports';
+    importsFromAsset: ImportFromAssetArgument[];
+}
+
 export type FetchAssetMessage = {
     type: 'FetchAsset';
     AssetId?: string;
@@ -90,6 +100,7 @@ export type LibraryUpdateMessage = {
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchImportDefaultsMessage |
+    FetchImportsMessage |
     FetchAssetMessage |
     UploadURLMessage |
     FormatImageMessage |
@@ -103,6 +114,7 @@ export type MessageType = ReturnValueMessage |
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
+export const isFetchImportsAPIMessage = (prop: MessageType): prop is FetchImportsMessage => (prop.type === 'FetchImports')
 export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
 export const isFormatImageMessage = (prop: MessageType): prop is FormatImageMessage => (prop.type === 'FormatImage')
 export const isParseWMLMessage = (prop: MessageType): prop is ParseWMLMessage => (prop.type === 'ParseWML')

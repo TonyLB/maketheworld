@@ -1,5 +1,5 @@
 import { produce } from 'immer'
-import { isLegalParseConditionContextTag } from '../parser/baseClasses';
+import { isLegalParseConditionContextTag, ParseException } from '../parser/baseClasses';
 import { schemaFromParse } from '../schema';
 import parser from '../parser'
 import tokenizer from '../parser/tokenizer';
@@ -81,6 +81,7 @@ import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
 import { objectFilterEntries } from '../lib/objects';
+import standardizeNormal from './standardize';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -1010,7 +1011,16 @@ export class Normalizer {
 
     loadWML(wml: string): void {
         this._normalForm = {}
+        this._tags = {}
         const schema = schemaFromParse(parser(tokenizer(new SourceStream(wml))))
+        //
+        // TEMPORARY PROVISION:  Until there's a proper architecture for having multiple
+        // assets defined in the same WML file, throw an exception here if a multi-asset
+        // file is encountered.
+        //
+        if (schema.length > 1) {
+            throw new ParseException('Multi-Asset files are not yet implemented', 0, 0)
+        }
         schema.forEach((item, index) => {
             this.put(item, { contextStack: [], index, replace: false })
         })
@@ -1228,6 +1238,12 @@ export class Normalizer {
     referenceToSchema(reference: NormalReference): SchemaTag {
         return this._normalToSchema(reference.key, reference.index)
     }
+
+    standardize(): void {
+        const standardized = standardizeNormal(this._normalForm)
+        this.loadNormal(standardized)
+    }
+
 }
 
 export default Normalizer
