@@ -107,6 +107,7 @@ describe('schemaFromParse', () => {
         const testParse = parse(tokenizer(new SourceStream(`
         <Asset key=(Test) fileName="test">
             <Map key=(testMap)>
+                <Name>Test Map</Name>
                 <Room key=(ABC) x="100" y="0" />
                 <If {open}>
                     <Room key=(DEF) x="-100" y="0" />

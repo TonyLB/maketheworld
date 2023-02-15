@@ -3180,6 +3180,7 @@ Object {
         "images": Array [
           "dungeonImage",
         ],
+        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],

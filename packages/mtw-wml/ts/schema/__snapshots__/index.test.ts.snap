@@ -210,7 +210,12 @@ Array [
         ],
         "images": Array [],
         "key": "testMap",
-        "name": Array [],
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Test Map",
+          },
+        ],
         "rooms": Array [
           Object {
             "conditions": Array [],

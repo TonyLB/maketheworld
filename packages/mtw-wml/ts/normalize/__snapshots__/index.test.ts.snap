@@ -620,6 +620,7 @@ Object {
           },
         ],
         "images": Array [],
+        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -707,6 +708,7 @@ Object {
           },
         ],
         "images": Array [],
+        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -1091,6 +1093,7 @@ Object {
           },
         ],
         "images": Array [],
+        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -1237,6 +1240,7 @@ Object {
           },
         ],
         "images": Array [],
+        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -1278,6 +1282,7 @@ Object {
           },
         ],
         "images": Array [],
+        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -3003,6 +3008,12 @@ Object {
         ],
         "images": Array [
           "ImageTest",
+        ],
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Test Map",
+          },
         ],
         "rooms": Array [
           Object {
