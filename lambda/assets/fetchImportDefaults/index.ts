@@ -199,26 +199,30 @@ type RecursiveFetchImportArgument = {
     stubKeys: string[];
 }
 
-export const recursiveFetchImports = async ({ payload, messageBus }: { payload: Record<AssetKey, RecursiveFetchImportArgument>, messageBus: MessageBus }): Promise<void> => {
-    const fetches = await Promise.all(Object.values(payload).map(async ({ assetId, keys, stubKeys }) => {
-        const { normal } = await internalCache.JSONFile.get(assetId)
-        //
-        // Coming straight from the datalake, this normal should already be in standardized form,
-        // and can be fed directly to normalSubset
-        //
+export const recursiveFetchImports = async ({ assetId, keys, stubKeys }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
+    const { normal } = await internalCache.JSONFile.get(assetId)
+    //
+    // Coming straight from the datalake, this normal should already be in standardized form,
+    // and can be fed directly to normalSubset
+    //
 
-        //
-        // TODO: Extend normalSubset to return an updated list of stubKeys, in addition to
-        // the SchemaTag main output, and use that to determine what needs to be looked up
-        // as possible imports from a different asset, to fill out yet more of the
-        // layers of inheritance.
-        //
-        return {
-            [assetId]: normalSubset({ normal, keys, stubKeys })
-        }
-    }))
+    //
+    // TODO: Extend normalSubset to return an updated list of stubKeys, in addition to
+    // the SchemaTag main output, and use that to determine what needs to be looked up
+    // as possible imports from a different asset, to fill out yet more of the
+    // layers of inheritance.
+    //
 
-    return Object.assign({}, ...fetches)
+    //
+    // TODO: Rename imports from recursive calls, to match them with their original aliases
+    //
+
+    //
+    // TODO: Rename stubKeys from recursive calls, if needed to avoid conflict with names
+    // in the original asset (or other imported stubKeys)
+    //
+    return normalSubset({ normal, keys, stubKeys })
+
 }
 
 export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
@@ -226,6 +230,17 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
         internalCache.Connection.get("connectionId"),
         internalCache.Connection.get("RequestId")
     ])
+
+    await Promise.all(
+        payloads.map(async ({ importsFromAsset }) => {
+            await Promise.all(
+                importsFromAsset.map(async ({ assetId, keys }) => {
+                    const schemaTags = await recursiveFetchImports({ assetId, keys, stubKeys: [] })
+                    console.log(`Asset[${assetId}]: ${JSON.stringify(schemaTags, null, 4)}`)
+                })
+            )
+        })
+    )
     // await Promise.all(
     //     payloads
     //         .map(async (payload) => {

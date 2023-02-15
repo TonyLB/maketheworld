@@ -4,6 +4,7 @@
 // needed in order to render the structure of the object specified by the given keys
 //
 
+import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { isNormalExit, NormalForm, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { isSchemaCondition } from "@tonylb/mtw-wml/dist/schema/baseClasses"
@@ -62,7 +63,7 @@ export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, k
         .map(({ from, to }) => [from, to])
         .flat()
         .filter((key) => (!keys.includes(key)))
-    const allStubKeys = [...stubKeys, ...newStubKeys]
+    const allStubKeys = unique([...stubKeys, ...newStubKeys]) as string[]
 
     //
     // Identify tags for all the keys, to facilitate looking them up by reference
