@@ -31,6 +31,7 @@ describe('WML normalize', () => {
             </Room>
             <Room key=(b456) />
             <Map key=(TestMap)>
+                <Name>Test Map</Name>
                 <Image key=(ImageTest) />
                 <Room key=(a123) x="200" y="150" />
             </Map>
@@ -225,6 +226,7 @@ describe('WML normalize', () => {
                 <Exit to=(b456) />
             </Room>
             <Map key=(TestMap)>
+                <Name>Test Map</Name>
                 <Room key=(a123) x="200" y="150" />
                 <Image key=(ImageTest) />
             </Map>

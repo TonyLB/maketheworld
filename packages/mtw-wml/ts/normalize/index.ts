@@ -973,7 +973,8 @@ export class Normalizer {
                     appearances: [{
                         ...appearance,
                         rooms: node.rooms,
-                        images: node.images
+                        images: node.images,
+                        name: node.name
                     }] as MapAppearance[]
                 }
             case 'Exit':
