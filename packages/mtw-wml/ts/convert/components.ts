@@ -357,7 +357,6 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 return {
                     tag: 'Room',
                     key: item.key,
-                    global: item.global,
                     display: item.display,
                     x: item.x,
                     y: item.y,
@@ -372,7 +371,6 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 return {
                     tag: 'Feature',
                     key: item.key,
-                    global: item.global,
                     name: extractNameFromContents(translatedContents),
                     render: extractDescriptionFromContents(translatedContents),
                     contents: componentContents
@@ -493,7 +491,6 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     tag: 'Room',
                     properties: [
                         { key: 'key', type: 'key', value: value.key },
-                        { key: 'global', type: 'boolean', value: value.global },
                         { key: 'x', type: 'literal', value: typeof value.x !== 'undefined' ? `${value.x}` : '' },
                         { key: 'y', type: 'literal', value: typeof value.y !== 'undefined' ? `${value.y}` : '' }
                     ],
@@ -511,8 +508,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     schemaToWML,
                     tag: 'Feature',
                     properties: [
-                        { key: 'key', type: 'key', value: value.key },
-                        { key: 'global', type: 'boolean', value: value.global },
+                        { key: 'key', type: 'key', value: value.key }
                     ],
                     contents: featureContents,
                 })
@@ -567,7 +563,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     ],
                     contents: [
                         ...value.render,
-                        ...(value.rooms.map(({ key }) => ({ tag: 'Room' as 'Room', key, name: [], render: [], global: false, contents: [] })))
+                        ...(value.rooms.map(({ key }) => ({ tag: 'Room' as 'Room', key, name: [], render: [], contents: [] })))
                     ],
                 })
             }

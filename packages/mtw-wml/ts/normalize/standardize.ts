@@ -389,7 +389,6 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                 name: extractConditionedName(argumentNormalizer)(room),
                 render: extractConditionedRender(argumentNormalizer)(room),
                 contents: extractConditionedExits(argumentNormalizer)(room),
-                global: undefined
             }, { 
                 contextStack: [{
                     key: rootNode.key,
@@ -413,7 +412,6 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                 name: extractConditionedName(argumentNormalizer)(feature),
                 render: extractConditionedRender(argumentNormalizer)(feature),
                 contents: [],
-                global: undefined
             }, { 
                 contextStack: [{
                     key: rootNode.key,

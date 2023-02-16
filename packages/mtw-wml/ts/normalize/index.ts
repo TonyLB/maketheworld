@@ -683,7 +683,6 @@ export class Normalizer {
                                         key,
                                         tag: 'Room',
                                         name: [],
-                                        global: undefined,
                                         contents: [],
                                         render: []
                                     },
@@ -695,7 +694,6 @@ export class Normalizer {
                                         key,
                                         tag: 'Feature',
                                         name: [],
-                                        global: undefined,
                                         contents: [],
                                         render: []
                                     },
@@ -1128,7 +1126,6 @@ export class Normalizer {
                 return {
                     key,
                     tag: 'Room',
-                    global: undefined,
                     ...(typeof roomAppearance.x !== 'undefined' ? { x: roomAppearance.x } : {}),
                     ...(typeof roomAppearance.y !== 'undefined' ? { y: roomAppearance.y } : {}),
                     render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
@@ -1143,7 +1140,6 @@ export class Normalizer {
                 return {
                     key,
                     tag: 'Feature',
-                    global: undefined,
                     render: (featureAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
                     name: (featureAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
                     contents: featureAppearance.contents
