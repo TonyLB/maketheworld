@@ -164,7 +164,6 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                         contents: [],
                         name: [],
                         render: [],
-                        global: false
                     },
                     position: { contextStack: [ ...normalMap.appearances[firstUnconditionedAppearance].contextStack, { key: mapId, tag: 'Map', index: firstUnconditionedAppearance }] }
                 })

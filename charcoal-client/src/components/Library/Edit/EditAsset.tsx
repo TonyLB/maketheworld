@@ -46,8 +46,7 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): Sch
                 key,
                 contents: [],
                 name: [],
-                render: [],
-                global: false
+                render: []
             }
         case 'Feature':
             return {
@@ -55,8 +54,7 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): Sch
                 key,
                 contents: [],
                 name: [],
-                render: [],
-                global: false
+                render: []
             }
         case 'Image':
             return {
