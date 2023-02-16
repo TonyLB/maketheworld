@@ -683,7 +683,7 @@ export class Normalizer {
                                         key,
                                         tag: 'Room',
                                         name: [],
-                                        global: false,
+                                        global: undefined,
                                         contents: [],
                                         render: []
                                     },
@@ -695,7 +695,7 @@ export class Normalizer {
                                         key,
                                         tag: 'Feature',
                                         name: [],
-                                        global: false,
+                                        global: undefined,
                                         contents: [],
                                         render: []
                                     },
@@ -930,7 +930,6 @@ export class Normalizer {
                 return {
                     key: node.key,
                     tag: node.tag,
-                    global: node.global ?? false,
                     appearances: [{
                         ...appearance,
                         render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
@@ -1129,7 +1128,7 @@ export class Normalizer {
                 return {
                     key,
                     tag: 'Room',
-                    global: node.global ? true : undefined,
+                    global: undefined,
                     ...(typeof roomAppearance.x !== 'undefined' ? { x: roomAppearance.x } : {}),
                     ...(typeof roomAppearance.y !== 'undefined' ? { y: roomAppearance.y } : {}),
                     render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
@@ -1144,7 +1143,7 @@ export class Normalizer {
                 return {
                     key,
                     tag: 'Feature',
-                    global: node.global ? true : undefined,
+                    global: undefined,
                     render: (featureAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
                     name: (featureAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
                     contents: featureAppearance.contents
