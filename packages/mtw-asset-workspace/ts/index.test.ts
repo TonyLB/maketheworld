@@ -194,18 +194,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.json',
-                Body: `{
-    "namespaceIdToDB": {},
-    "normal": {
-        "Test": {
-            "tag": "Asset",
-            "key": "Test",
-            "fileName": "Test",
-            "appearances": []
-        }
-    },
-    "properties": {}
-}`
+                Body: `{"namespaceIdToDB":{},"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"properties":{}}`
             })
         })
 
@@ -228,18 +217,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.json',
-                Body: `{
-    "namespaceIdToDB": {},
-    "normal": {
-        "Test": {
-            "tag": "Asset",
-            "key": "Test",
-            "fileName": "Test",
-            "appearances": []
-        }
-    },
-    "properties": {}
-}`
+                Body: `{"namespaceIdToDB":{},"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"properties":{}}`
             })
         })
 
@@ -267,22 +245,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.json',
-                Body: `{
-    "namespaceIdToDB": {},
-    "normal": {
-        "Test": {
-            "tag": "Asset",
-            "key": "Test",
-            "fileName": "Test",
-            "appearances": []
-        }
-    },
-    "properties": {
-        "Test": {
-            "fileName": "test"
-        }
-    }
-}`
+                Body: `{"namespaceIdToDB":{},"normal":{"Test":{"tag":"Asset","key":"Test","fileName":"Test","appearances":[]}},"properties":{"Test":{"fileName":"test"}}}`
             })
         })
     })

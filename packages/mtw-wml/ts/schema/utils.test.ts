@@ -39,7 +39,6 @@ describe('transformWithContext', () => {
                     key: 'ABC',
                     startTagToken: 0,
                     endTagToken: 0,
-                    global: false,
                     contents: [{
                         tag: 'Exit',
                         to: 'DEF',

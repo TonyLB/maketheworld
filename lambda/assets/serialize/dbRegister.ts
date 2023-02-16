@@ -159,7 +159,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                         return 'delete'
                     }
                     if (!current || (JSON.stringify(current) !== JSON.stringify(incoming))) {
-                        const { tag, key, global, ...rest } = incoming
+                        const { tag, key, ...rest } = incoming
                         return {
                             scopedId: key,
                             ...rest

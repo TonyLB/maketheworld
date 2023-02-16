@@ -145,13 +145,13 @@ describe('schemaFromParse', () => {
 //
 describe('schemaToWML', () => {
     it('should correctly round-trip the simplest asset', () => {
-        const testWML = `<Asset key=(Test)><Room key=(VORTEX) global /></Asset>`
+        const testWML = `<Asset key=(Test)><Room key=(VORTEX) /></Asset>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
     it('should correctly round-trip complicated rooms', () => {
         const testWML = `<Asset key=(Test)>
-    <Room key=(VORTEX) global>
+    <Room key=(VORTEX)>
         <Name>Vortex</Name>
         <Description>
             You float in a swirling mass of energy and debris.

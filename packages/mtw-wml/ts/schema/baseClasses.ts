@@ -251,7 +251,6 @@ export type SchemaRoomTag = {
     key: string;
     name: SchemaTaggedMessageLegalContents[];
     render: SchemaTaggedMessageLegalContents[];
-    global: boolean;
     display?: string;
     x?: number;
     y?: number;
@@ -262,7 +261,6 @@ export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag | 
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
-    global: boolean;
     name: SchemaTaggedMessageLegalContents[];
     render: SchemaTaggedMessageLegalContents[];
     contents: SchemaFeatureLegalContents[];

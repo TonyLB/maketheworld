@@ -163,7 +163,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
     \\"DEF\\": {
         \\"key\\": \\"DEF\\",
         \\"tag\\": \\"Room\\",
-        \\"global\\": false,
         \\"appearances\\": [
             {
                 \\"contextStack\\": [
@@ -210,7 +209,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
     \\"clockTower\\": {
         \\"key\\": \\"clockTower\\",
         \\"tag\\": \\"Feature\\",
-        \\"global\\": false,
         \\"appearances\\": [
             {
                 \\"contextStack\\": [
@@ -234,7 +232,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
     \\"ABC\\": {
         \\"key\\": \\"ABC\\",
         \\"tag\\": \\"Room\\",
-        \\"global\\": false,
         \\"appearances\\": [
             {
                 \\"contextStack\\": [

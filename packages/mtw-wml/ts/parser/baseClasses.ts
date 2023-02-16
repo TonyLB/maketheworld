@@ -250,7 +250,6 @@ export type ParseRoomLegalContents = ParseDescriptionTag | ParseNameTag | ParseE
 export type ParseRoomTag = {
     tag: 'Room';
     key: string;
-    global: boolean;
     display?: string;
     x?: number;
     y?: number;
@@ -261,7 +260,6 @@ export type ParseFeatureLegalContents = ParseDescriptionTag | ParseNameTag | Par
 export type ParseFeatureTag = {
     tag: 'Feature';
     key: string;
-    global: boolean;
     contents: ParseFeatureLegalContents[];
 } & ParseTagBase
 

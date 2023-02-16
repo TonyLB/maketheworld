@@ -59,7 +59,6 @@ Array [
           },
         ],
         "display": undefined,
-        "global": undefined,
         "key": "ABC",
         "name": Array [],
         "render": Array [
@@ -131,7 +130,6 @@ Array [
               },
             ],
             "display": undefined,
-            "global": undefined,
             "key": "ABC",
             "name": Array [],
             "render": Array [
@@ -174,7 +172,6 @@ Array [
           Object {
             "contents": Array [],
             "display": undefined,
-            "global": undefined,
             "key": "ABC",
             "name": Array [],
             "render": Array [],
@@ -195,7 +192,6 @@ Array [
               Object {
                 "contents": Array [],
                 "display": undefined,
-                "global": undefined,
                 "key": "DEF",
                 "name": Array [],
                 "render": Array [],
@@ -291,7 +287,6 @@ Array [
           },
         ],
         "display": undefined,
-        "global": undefined,
         "key": "ABC",
         "name": Array [
           Object {
@@ -516,7 +511,6 @@ Array [
           },
         ],
         "display": undefined,
-        "global": undefined,
         "key": "ABC",
         "name": Array [
           Object {
@@ -642,7 +636,6 @@ Array [
               },
             ],
             "display": undefined,
-            "global": undefined,
             "key": "ABC",
             "name": Array [],
             "render": Array [],
@@ -671,7 +664,6 @@ Array [
           },
         ],
         "display": undefined,
-        "global": undefined,
         "key": "DEF",
         "name": Array [
           Object {
@@ -709,7 +701,6 @@ Array [
               Object {
                 "contents": Array [],
                 "display": undefined,
-                "global": undefined,
                 "key": "ABC",
                 "name": Array [],
                 "render": Array [],

@@ -97,7 +97,7 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
         }
     }
     else {
-        return renderItem
+        return renderItem as TaggedMessageContent
     }
 }
 

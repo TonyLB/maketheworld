@@ -22,7 +22,7 @@ describe('tokenizer', () => {
     })
     it('should tokenize nested tags', () => {
         const testSource = `<Asset key=(Test)>
-            <Room global key=(ABC)>
+            <Room key=(ABC)>
                 <Feature key=(DEF) />
             </Room>
         </Asset>`

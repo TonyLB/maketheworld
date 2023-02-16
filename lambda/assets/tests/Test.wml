@@ -10,7 +10,7 @@
             <Name>Welcome Area</Name>
             <Exit to=(VORTEX)>vortex</Exit>
         </Room>
-        <Room global key=(VORTEX)>
+        <Room key=(VORTEX)>
             <Name>Vortex</Name>
             <Description>
                 A swirling pool of flickering energy, thick enough to stand on,
@@ -22,7 +22,7 @@
         </Room>
     </Layer>
     <If {true}>
-        <Room global key=(VORTEX)>
+        <Room key=(VORTEX)>
             <Description>Alternate</Description>
         </Room>
     </If>
