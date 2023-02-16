@@ -1,5 +1,5 @@
 <Asset key=(Dungeon) fileName="Dungeon" zone="Personal" player="TonyLB">
-    <Room global key=(VORTEX)>
+    <Room key=(VORTEX)>
         <Exit to=(cave)>cave</Exit>
         <Description>
             Natural rock formations rise in a jagged cliff-face. An asymmetric

@@ -159,7 +159,6 @@ Array [
           },
         ],
         "endTagToken": 0,
-        "global": false,
         "key": "ABC",
         "startTagToken": 0,
         "tag": "Room",

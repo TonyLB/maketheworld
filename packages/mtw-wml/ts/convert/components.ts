@@ -148,13 +148,10 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         },
                         optional: (context) => {
                             if (context.find(({ tag }) => (['Asset', 'Story'].includes(tag)))) {
-                                return {
-                                    global: ['boolean']
-                                }
+                                return {}
                             }
                             else {
                                 return {
-                                    global: ['boolean'],
                                     x: ['literal'],
                                     y: ['literal']
                                 }
@@ -197,9 +194,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         required: {
                             key: ['key']
                         },
-                        optional: {
-                            global: ['boolean']
-                        }
+                        optional: {}
                     },
                     contents: {
                         legal: ['Name', 'Description', 'If', 'Else', 'ElseIf'],
