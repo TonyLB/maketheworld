@@ -12,6 +12,9 @@ export const healAsset = async (fileName: string) => {
         if (assetWorkspace.status.json !== 'Clean') {
             return
         }
+        if (assetWorkspace.address.fileName === 'primitives' && assetWorkspace.address.zone === 'Canon') {
+            assetWorkspace._isGlobal = true
+        }
         await assetWorkspace.loadWML()
         await Promise.all([
             ...((assetWorkspace.status.json !== 'Clean') ? [assetWorkspace.pushJSON()] : []),
@@ -24,7 +27,7 @@ export const healAsset = async (fileName: string) => {
                 DetailType: 'Cache Asset',
                 Detail: JSON.stringify({
                     ...assetWorkspace.address,
-                    updateOnly: true
+                    updateOnly: !Boolean(assetWorkspace._isGlobal)
                 })
             }]
         }))

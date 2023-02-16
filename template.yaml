@@ -798,12 +798,15 @@ Resources:
           Environment:
               Variables:
                   CLIENT_BUCKET: !Sub '${TablePrefix}-client'
+                  ASSET_BUCKET: !Sub '${TablePrefix}-assets'
                   USER_POOL_CLIENT: !Ref UserPoolClient
                   USER_POOL_ID: !Ref UserPool
                   WEB_SOCKET_URI: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
           Policies:
               - S3FullAccessPolicy:
                   BucketName: !Ref ClientBucket
+              - S3FullAccessPolicy:
+                  BucketName: !Ref AssetBucket
           Events:
             Initialize:
               Type: CloudWatchEvent

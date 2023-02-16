@@ -514,4 +514,45 @@ describe('dbRegister', () => {
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
     })
+
+    it('should save primitive elements in global keys', async () => {
+        await dbRegister({
+            address: {
+                fileName: 'primitives',
+                zone: 'Canon'
+            },
+            status: {
+                json: 'Clean'
+            },
+            namespaceIdToDB: {},
+            normal: {
+                TEST: {
+                    tag: 'Asset',
+                    key: 'primitives',
+                    name: 'primitives',
+                    zone: 'Canon',
+                    appearances: [{
+                        contextStack: [],
+                        contents: [{
+                            tag: 'Room',
+                            key: 'VORTEX',
+                            index: 0
+                        }]
+                    }]
+                },
+                VORTEX: {
+                    tag: 'Room',
+                    key: 'VORTEX',
+                    appearances: [{
+                        contextStack: [{ key: 'primitives', tag: 'Asset', index: 0 }],
+                        contents: [],
+                        render: [],
+                        name: []
+                    }]
+                }
+            }
+        })
+        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
+        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
+    })
 })

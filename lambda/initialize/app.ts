@@ -1,6 +1,7 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client, ListObjectsCommand, DeleteObjectsCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { readdir, stat, readFile } from 'node:fs/promises'
+import primitivesData from "./primitives"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -56,15 +57,24 @@ const initializeClientData = async (subDir: string = ''): Promise<void> => {
     )
 }
 
+const initializePrimitivesData = async (): Promise<void> => {
+    await s3Client.send(new PutObjectCommand({
+        Bucket: process.env.ASSET_BUCKET,
+        Key: `Canon/Assets/primitives.wml`,
+        Body: primitivesData,
+        ContentType: 'text/plain'
+    }))
+}
+
 export const handler = async (event, context) => {
 
     // Handle EventBridge messages
     if (event?.source === 'mtw.diagnostics') {
         if (event["detail-type"] === 'Initialize') {
-            console.log(`Initializer called`)
             await clearClientBucket()
             await Promise.all([
                 initializeClientData(),
+                initializePrimitivesData(),
                 s3Client.send(new PutObjectCommand({
                     Bucket: process.env.CLIENT_BUCKET,
                     Key: 'config.json',
