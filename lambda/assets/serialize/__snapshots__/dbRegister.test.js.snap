@@ -302,3 +302,38 @@ Object {
   "table": "assets",
 }
 `;
+
+exports[`dbRegister should save primitive elements in global keys 1`] = `
+Object {
+  "AssetId": "ASSET#primitives",
+  "DataCategory": "Meta::Asset",
+  "Story": undefined,
+  "address": Object {
+    "fileName": "primitives",
+    "zone": "Canon",
+  },
+  "defaultExits": Array [],
+  "defaultNames": Object {},
+  "importTree": Array [],
+  "instance": undefined,
+  "zone": "Canon",
+}
+`;
+
+exports[`dbRegister should save primitive elements in global keys 2`] = `
+Object {
+  "extractKey": [Function],
+  "items": Array [
+    Object {
+      "defaultAppearances": Array [],
+      "key": "VORTEX",
+      "tag": "Room",
+    },
+  ],
+  "mergeFunction": [Function],
+  "search": Object {
+    "DataCategory": "ASSET#primitives",
+  },
+  "table": "assets",
+}
+`;

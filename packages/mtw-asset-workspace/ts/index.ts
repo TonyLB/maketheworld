@@ -121,6 +121,7 @@ export class AssetWorkspace {
     namespaceIdToDB: NamespaceMapping = {};
     properties: WorkspaceProperties = {};
     wml?: string;
+    _isGlobal?: boolean;
     
     constructor(args: AssetWorkspaceAddress) {
         if (!args.fileName) {
@@ -203,7 +204,7 @@ export class AssetWorkspace {
             .filter(({ key }) => (!(key in this.namespaceIdToDB)))
             .forEach(({ tag, key }) => {
                 this.status.json = 'Dirty'
-                this.namespaceIdToDB[key] = `${tag.toUpperCase()}#${uuidv4()}`
+                this.namespaceIdToDB[key] = `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`
             })
         //
         // TODO: Extend setWML to check for entries in namespaceIdToDB that no longer have a

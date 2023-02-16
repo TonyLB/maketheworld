@@ -168,7 +168,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
 
                     return 'ignore'
                 },
-                extractKey: ({ tag, global: isGlobal, key }) => {
+                extractKey: ({ tag, key }) => {
                     let prefix = ''
                     switch(tag) {
                         case 'Feature':
@@ -189,7 +189,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                         default:
                             prefix = 'ROOM'
                     }
-                    if (isGlobal) {
+                    if (assetWorkspace._isGlobal) {
                         return `${prefix}#${key}`
                     }
                     if (assetWorkspace.namespaceIdToDB[key]) {
