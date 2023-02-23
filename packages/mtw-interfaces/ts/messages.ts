@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraMessageId, EphemeraNotificationId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraActionId, EphemeraAssetId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraMessageId, EphemeraNotificationId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -419,6 +419,7 @@ const validateRoomCharacterList = (items: any) => {
 export type BookmarkDescribeData = {
     Description: TaggedMessageContentFlat[];
     BookmarkId: EphemeraBookmarkId;
+    assets: EphemeraAssetId[];
 }
 
 export type RoomDescribeData = {
@@ -427,6 +428,7 @@ export type RoomDescribeData = {
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];
     Characters: RoomCharacter[];
+    assets: EphemeraAssetId[];
 }
 
 export type RoomDescription = {
@@ -437,6 +439,7 @@ export type FeatureDescribeData = {
     Description: TaggedMessageContentFlat[];
     Name: TaggedMessageContentFlat[];
     FeatureId: EphemeraFeatureId;
+    assets: EphemeraAssetId[];
 }
 
 export type FeatureDescription = {
@@ -459,6 +462,7 @@ export type MapDescribeData = {
     Name: TaggedMessageContentFlat[];
     fileURL?: string;
     rooms: MapDescribeRoom[];
+    assets: EphemeraAssetId[];
 }
 
 const validateMapRoomList = (items: any) => {
@@ -575,6 +579,7 @@ export const isMessage = (message: any): message is Message => {
                 validateTaggedMessageList(message.Name),
                 validateTaggedMessageList(message.Description)
             ) && isEphemeraRoomId(message.RoomId)
+            && message.assets.all(isEphemeraAssetId)
         case 'RoomUpdate':
             return checkAll(
                 checkTypes(message, {}, { RoomId: 'string' }),
@@ -583,12 +588,14 @@ export const isMessage = (message: any): message is Message => {
                 validateTaggedMessageList(message.Name ?? []),
                 validateTaggedMessageList(message.Description ?? [])
             ) && isEphemeraRoomId(message.RoomId)
+            && message.assets.all(isEphemeraAssetId)
         case 'FeatureDescription':
             return checkAll(
                 checkTypes(message, { FeatureId: 'string' }),
                 validateTaggedMessageList(message.Name),
                 validateTaggedMessageList(message.Description)
             ) && isEphemeraFeatureId(message.FeatureId)
+            && message.assets.all(isEphemeraAssetId)
         case 'CharacterDescription':
             return checkAll(
                 checkTypes(message, 
