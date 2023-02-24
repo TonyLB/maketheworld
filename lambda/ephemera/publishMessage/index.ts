@@ -196,7 +196,8 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 Name: payload.Name,
                 Description: payload.Description,
                 Characters: payload.Characters,
-                Exits: payload.Exits
+                Exits: payload.Exits,
+                assets: payload.assets
             })
         }
         if (isFeatureDescriptionPublishMessage(payload)) {
@@ -207,7 +208,8 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 DisplayProtocol: payload.displayProtocol,
                 FeatureId: payload.FeatureId,
                 Name: payload.Name,
-                Description: payload.Description
+                Description: payload.Description,
+                assets: payload.assets
             })
         }
         if (isCharacterDescriptionPublishMessage(payload)) {

@@ -40,11 +40,12 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                 .map((mapEntry) => ({
                                     type: 'MapUpdate' as 'MapUpdate',
                                     targets: [characterId],
-                                    active: true,
+                                    active: true as true,
                                     MapId: mapEntry.MapId,
                                     Name: mapEntry.Name,
                                     fileURL: mapEntry.fileURL,
-                                    rooms: mapEntry.rooms
+                                    rooms: mapEntry.rooms,
+                                    assets: mapEntry.assets
                                 })),
                             ...previousPossibleMaps
                                 .filter((mapId) => (!(activeMaps.find(({ MapId }) => (MapId === mapId)))))
@@ -78,7 +79,8 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                     MapId: mapEntry.MapId,
                                     Name: mapEntry.Name,
                                     fileURL: mapEntry.fileURL,
-                                    rooms: mapEntry.rooms
+                                    rooms: mapEntry.rooms,
+                                    assets: mapEntry.assets
                                 })),
                             ...currentMapFetch
                                 .filter(({ MapId: check }) => (!(activeMaps.find(({ MapId }) => (MapId === check)))))

@@ -6,6 +6,7 @@ import { CacheGlobal, CacheGlobalData } from '.';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import AssetState, { EvaluateCodeAddress, EvaluateCodeData, StateItemId } from './assetState';
 import {
+    EphemeraAssetId,
     EphemeraBookmarkId,
     EphemeraCharacterId,
     EphemeraComputedId,
@@ -95,9 +96,9 @@ export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) =
     return allMappedAppearances.filter((value: T | undefined): value is T => (Boolean(value)))
 }
 
-type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters'>
-type RenderFeatureOutput = Omit<FeatureDescribeData, 'FeatureId'>
-type RenderBookmarkOutput = Omit<BookmarkDescribeData, 'BookmarkId'>
+type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters' | 'assets'>
+type RenderFeatureOutput = Omit<FeatureDescribeData, 'FeatureId' | 'assets'>
+type RenderBookmarkOutput = Omit<BookmarkDescribeData, 'BookmarkId' | 'assets'>
 type RenderMessageOutput = Omit<MessageDescribeData, 'MessageId'>
 
 const isEphemeraRoomAppearance = (value: EphemeraFeatureAppearance[] | EphemeraRoomAppearance[] | EphemeraBookmarkAppearance[] | EphemeraMessageAppearance[]): value is EphemeraRoomAppearance[] => (value.length === 0 || 'exits' in value[0])
@@ -268,7 +269,8 @@ export class ComponentRenderData {
                         description: {
                             FeatureId: cacheKey,
                             Description: [],
-                            Name: []
+                            Name: [],
+                            assets: []
                         }
                     }
                 }
@@ -280,7 +282,8 @@ export class ComponentRenderData {
                             Description: [],
                             Name: [],
                             Exits: [],
-                            Characters: []
+                            Characters: [],
+                            assets: []
                         }
                     }
                 }
@@ -299,7 +302,8 @@ export class ComponentRenderData {
                         dependencies: [],
                         description: {
                             BookmarkId: cacheKey,
-                            Description: []
+                            Description: [],
+                            assets: []
                         }
                     }
                 }
@@ -363,6 +367,9 @@ export class ComponentRenderData {
             ))) as StateItemId[]
 
         if (isEphemeraRoomId(EphemeraId)) {
+            const assets = [...(globalAssets || []), ...characterAssets]
+                .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
+                .map((assetId): EphemeraAssetId => (`ASSET#${assetId}`))
             const possibleRoomAppearances = [...(globalAssets || []), ...characterAssets]
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[]))
                 .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
@@ -370,17 +377,21 @@ export class ComponentRenderData {
                 this._roomCharacterList(EphemeraId),
                 filterAppearances(this._evaluateCode)(possibleRoomAppearances)
             ]))
-            const renderRoom = await componentAppearanceReduce(options, ...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters'>
+            const renderRoom = await componentAppearanceReduce(options, ...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters' | 'assets'>
             return {
                 dependencies: aggregateDependencies,
                 description: {
                     RoomId: EphemeraId,
                     Characters: roomCharacterList.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest })),
+                    assets,
                     ...renderRoom
                 }
             }
         }
         if (isEphemeraFeatureId(EphemeraId)) {
+            const assets = [...(globalAssets || []), ...characterAssets]
+                .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
+                .map((assetId): EphemeraAssetId => (`ASSET#${assetId}`))
             const possibleFeatureAppearances = [...(globalAssets || []), ...characterAssets]
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraFeatureAppearance[]))
                 .reduce<EphemeraFeatureAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
@@ -390,11 +401,15 @@ export class ComponentRenderData {
                 dependencies: aggregateDependencies,
                 description: {
                     FeatureId: EphemeraId,
+                    assets,
                     ...renderFeature
                 }
             }
         }
         if (isEphemeraBookmarkId(EphemeraId)) {
+            const assets = [...(globalAssets || []), ...characterAssets]
+                .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
+                .map((assetId): EphemeraAssetId => (`ASSET#${assetId}`))
             const possibleBookmarkAppearances = [...(globalAssets || []), ...characterAssets]
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraBookmarkAppearance[]))
                 .reduce<EphemeraBookmarkAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
@@ -404,6 +419,7 @@ export class ComponentRenderData {
                 dependencies: aggregateDependencies,
                 description: {
                     BookmarkId: EphemeraId,
+                    assets,
                     ...renderFeature
                 }
             }
@@ -423,6 +439,9 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraMapId(EphemeraId)) {
+            const assets = [...(globalAssets || []), ...characterAssets]
+                .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
+                .map((assetId): EphemeraAssetId => (`ASSET#${assetId}`))
             const possibleMapAppearances = [...(globalAssets || []), ...characterAssets]
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraMapAppearance[]))
                 .reduce<EphemeraMapAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
@@ -479,7 +498,8 @@ export class ComponentRenderData {
                         .map(({ fileURL }) => (fileURL))
                         .filter((value) => (value))
                         .reduce((previous, value) => (value || previous), ''),
-                    rooms: roomMetas
+                    rooms: roomMetas,
+                    assets
                 }
             }
 

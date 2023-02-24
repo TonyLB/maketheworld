@@ -390,7 +390,8 @@ describe('ComponentRender cache handler', () => {
             Name: [{ tag: 'String', value: 'TestRoom' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
-            Exits: []
+            Exits: [],
+            assets: ['ASSET#Base', 'ASSET#Personal']
         })
     })
 
@@ -450,6 +451,7 @@ describe('ComponentRender cache handler', () => {
             FeatureId: 'FEATURE#TestOne',
             Name: [{ tag: 'String', value: 'TestFeature' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
+            assets: ['ASSET#Base', 'ASSET#Personal']
         })
     })
 
@@ -568,7 +570,8 @@ describe('ComponentRender cache handler', () => {
                         name: 'First Room'
                     }]
                 }
-            ]
+            ],
+            assets: ['ASSET#Base', 'ASSET#Personal']
         })
     })
 
@@ -617,7 +620,8 @@ describe('ComponentRender cache handler', () => {
             Name: [{ tag: 'String', value: 'TestRoom' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'First' }],
-            Exits: []
+            Exits: [],
+            assets: ['ASSET#Base']
         })
 
         internalCache.AssetState.invalidate('VARIABLE#testVariable')
@@ -628,7 +632,8 @@ describe('ComponentRender cache handler', () => {
             Name: [{ tag: 'String', value: 'TestRoom' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
-            Exits: []
+            Exits: [],
+            assets: ['ASSET#Base']
         })
 
         internalCache.AssetState.invalidate('VARIABLE#otherVariable')
@@ -639,7 +644,8 @@ describe('ComponentRender cache handler', () => {
             Name: [{ tag: 'String', value: 'TestRoom' }],
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
-            Exits: []
+            Exits: [],
+            assets: ['ASSET#Base']
         })
     })
 })
