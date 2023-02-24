@@ -419,7 +419,7 @@ const validateRoomCharacterList = (items: any) => {
 export type BookmarkDescribeData = {
     Description: TaggedMessageContentFlat[];
     BookmarkId: EphemeraBookmarkId;
-    assets: EphemeraAssetId[];
+    assets?: EphemeraAssetId[];
 }
 
 export type RoomDescribeData = {
@@ -428,7 +428,7 @@ export type RoomDescribeData = {
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];
     Characters: RoomCharacter[];
-    assets: EphemeraAssetId[];
+    assets?: EphemeraAssetId[];
 }
 
 export type RoomDescription = {
@@ -439,7 +439,7 @@ export type FeatureDescribeData = {
     Description: TaggedMessageContentFlat[];
     Name: TaggedMessageContentFlat[];
     FeatureId: EphemeraFeatureId;
-    assets: EphemeraAssetId[];
+    assets?: EphemeraAssetId[];
 }
 
 export type FeatureDescription = {
@@ -462,7 +462,7 @@ export type MapDescribeData = {
     Name: TaggedMessageContentFlat[];
     fileURL?: string;
     rooms: MapDescribeRoom[];
-    assets: EphemeraAssetId[];
+    assets?: EphemeraAssetId[];
 }
 
 const validateMapRoomList = (items: any) => {
@@ -577,25 +577,25 @@ export const isMessage = (message: any): message is Message => {
                 validateRoomExitList(message.Exits),
                 validateRoomCharacterList(message.Characters),
                 validateTaggedMessageList(message.Name),
-                validateTaggedMessageList(message.Description)
+                validateTaggedMessageList(message.Description),
+                ...(message.assets || []).map(isEphemeraAssetId)
             ) && isEphemeraRoomId(message.RoomId)
-            && message.assets.all(isEphemeraAssetId)
         case 'RoomUpdate':
             return checkAll(
                 checkTypes(message, {}, { RoomId: 'string' }),
                 validateRoomExitList(message.Exits ?? []),
                 validateRoomCharacterList(message.Characters ?? []),
                 validateTaggedMessageList(message.Name ?? []),
-                validateTaggedMessageList(message.Description ?? [])
+                validateTaggedMessageList(message.Description ?? []),
+                ...(message.assets || []).map(isEphemeraAssetId)
             ) && isEphemeraRoomId(message.RoomId)
-            && message.assets.all(isEphemeraAssetId)
         case 'FeatureDescription':
             return checkAll(
                 checkTypes(message, { FeatureId: 'string' }),
                 validateTaggedMessageList(message.Name),
-                validateTaggedMessageList(message.Description)
+                validateTaggedMessageList(message.Description),
+                ...(message.assets || []).map(isEphemeraAssetId)
             ) && isEphemeraFeatureId(message.FeatureId)
-            && message.assets.all(isEphemeraAssetId)
         case 'CharacterDescription':
             return checkAll(
                 checkTypes(message, 
