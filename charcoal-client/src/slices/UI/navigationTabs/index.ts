@@ -6,6 +6,7 @@ export interface NavigationTab {
     label: string;
     href: string;
     iconName?: string;
+    closable: boolean;
 }
 
 const initialState = [] as NavigationTab[]
