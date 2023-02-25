@@ -58,6 +58,28 @@ export const navigationTabSelected = (pathname: string): Selector<NavigationTab 
     }
 )
 
+export const navigationTabSelectedIndex = (pathname: string): Selector<number | null> => createSelector(
+    navigationTabs,
+    (navigationTabs) => {
+        const matches = navigationTabs
+            .reduce<number[]>((previous, { href }, index) => {
+                if (pathname.startsWith(href)) {
+                    return [...previous, index]
+                }
+                else {
+                    return previous
+                }
+            }, [])
+            .sort((indexA, indexB) => (navigationTabs[indexB].href.length - navigationTabs[indexA].href.length))
+        if (matches) {
+            return matches[0]
+        }
+        else {
+            return null
+        }
+    }
+)
+
 export const navigationTabPinnedByHref = (hrefMatch: string): Selector<NavigationTab | undefined> => createSelector(
     navigationTabs,
     (tabs) => (tabs.find(({ href }) => (href === hrefMatch)))

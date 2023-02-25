@@ -3,7 +3,7 @@
 //
 
 /** @jsxImportSource @emotion/react */
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useContext } from 'react'
 import { css } from '@emotion/react'
 import { useSelector } from 'react-redux'
 import {
@@ -45,7 +45,7 @@ import HelpPage from '../Help'
 import Library from '../Library'
 import EditAsset from '../Library/Edit/EditAsset'
 
-import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
+import { NavigationTab, navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
 
@@ -151,6 +151,16 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
     </ActiveCharacter>
 }
 
+type NavigationContextType = {
+    pathname: string;
+    selectedTab: NavigationTab | null;
+}
+
+const NavigationContext = React.createContext<NavigationContextType>({
+    pathname: '',
+    selectedTab: null
+})
+
 const NavigationTabs = () => {
     const { pathname } = useLocation()
     const selectedTab = useSelector(navigationTabSelected(pathname))
@@ -158,28 +168,35 @@ const NavigationTabs = () => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     return (
-        <Box
-            css={css`
-                grid-area: tabs;
-                overflow: hidden;
-            `}
-        >
-            <Tabs
-                classes={{ vertical: 'tabRootVertical' }}
-                orientation={portrait ? "horizontal" : "vertical"}
-                variant="scrollable"
-                scrollButtons
-                value={selectedTab ? selectedTab.href : 'home'}
-                aria-label="Navigation"
-                indicatorColor="primary"
-                textColor="primary"
-                allowScrollButtonsMobile
+        <NavigationContext.Provider value={{
+            pathname,
+            selectedTab
+        }}>
+            <Box
+                css={css`
+                    grid-area: tabs;
+                    overflow: hidden;
+                `}
             >
-                { tabList({ large, navigationTabs: navigationTabsData }) }
-            </Tabs>
-        </Box>
+                <Tabs
+                    classes={{ vertical: 'tabRootVertical' }}
+                    orientation={portrait ? "horizontal" : "vertical"}
+                    variant="scrollable"
+                    scrollButtons
+                    value={selectedTab ? selectedTab.href : 'home'}
+                    aria-label="Navigation"
+                    indicatorColor="primary"
+                    textColor="primary"
+                    allowScrollButtonsMobile
+                >
+                    { tabList({ large, navigationTabs: navigationTabsData }) }
+                </Tabs>
+            </Box>
+        </NavigationContext.Provider>
     );
 }
+
+export const useNavigationContext = () => (useContext(NavigationContext))
 
 export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
