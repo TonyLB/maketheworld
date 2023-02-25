@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { ReactChild, ReactChildren, useMemo } from 'react'
+import React, { FunctionComponent, ReactChild, ReactChildren, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { css } from '@emotion/react'
 
@@ -7,7 +7,8 @@ import {
     Box,
     Chip,
     Typography,
-    Divider
+    Divider,
+    Popover
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
 import HouseIcon from '@mui/icons-material/House'
@@ -24,12 +25,53 @@ import RoomCharacter from './RoomCharacter'
 import TaggedMessageContent from './TaggedMessageContent'
 import { getPlayer } from '../../slices/player'
 import { getStatus } from '../../slices/personalAssets'
+import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import ListItemButton from '@mui/material/ListItemButton'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
     children?: ReactChild | ReactChildren;
     header?: boolean;
     currentHeader?: boolean;
+}
+
+const RoomEditButton: FunctionComponent<{ assets: EphemeraAssetId[] }> = ({ assets }) => {
+    const [open, setOpen] = useState<boolean>(false)
+    const ref = useRef(null)
+    return <React.Fragment>
+        <Chip
+            label="Edit"
+            onClick={() => { setOpen(true) }}
+            ref={ref}
+        />
+        <Popover
+            open={open}
+            onClose={() => { setOpen(false) }}
+            anchorEl={ref.current}
+            anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+            }}
+            transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+            }}
+        >
+            <List>
+                {
+                    assets.map((asset) => (
+                        <ListItem>
+                            <ListItemButton>
+                                { asset }
+                            </ListItemButton>
+                        </ListItem>
+                    ))
+                }
+            </List>
+        </Popover>
+    </React.Fragment>
 }
 
 export const RoomDescription = ({ message, header, currentHeader }: RoomDescriptionProps) => {
@@ -48,10 +90,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
             }}
             leftIcon={<HouseIcon />}
             toolActions={showEdit
-                ? <Chip
-                    label="Edit"
-                    onClick={() => { console.log(`Edit Assets: ${JSON.stringify(currentAssets, null, 4)}`)}}
-                />
+                ? <RoomEditButton assets={currentAssets} />
                 : undefined
             }
         >
