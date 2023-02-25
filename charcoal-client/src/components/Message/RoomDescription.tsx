@@ -36,7 +36,8 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     const { Description, Name, Characters = [], Exits = [] } = message
     const { currentDraft } = useSelector(getPlayer)
     const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
-    const showEdit = useMemo(() => (currentHeader && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentHeader, status])
+    const currentAssets = useMemo(() => (message.assets || []), [message])
+    const showEdit = useMemo(() => (currentHeader && currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentHeader, currentAssets, status])
 
     return <MessageComponent
             sx={{
@@ -46,7 +47,13 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                 color: (theme) => (theme.palette.getContrastText(blue[200]))
             }}
             leftIcon={<HouseIcon />}
-            toolActions={showEdit ? <Chip label="Edit" /> : undefined}
+            toolActions={showEdit
+                ? <Chip
+                    label="Edit"
+                    onClick={() => { console.log(`Edit Assets: ${JSON.stringify(currentAssets, null, 4)}`)}}
+                />
+                : undefined
+            }
         >
             <Box css={css`
                 display: grid;
