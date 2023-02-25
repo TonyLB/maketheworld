@@ -23,6 +23,7 @@ import {
 
 import messageBus from "./messageBus/index.js"
 import { extractReturnValue } from './returnValue'
+import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -94,11 +95,23 @@ export const handler = async (event, context) => {
                 type: 'FetchLibrary'
             })
         }
+        //
+        // TODO: Finish deprecating isFetchImportDefaults and replace in client with FetchImports
+        //
         if (isFetchImportDefaultsAPIMessage(request)) {
-            messageBus.send({
-                type: 'FetchImportDefaults',
-                assetId: request.assetId,
-                keys: request.keys
+            // messageBus.send({
+            //     type: 'FetchImportDefaults',
+            //     assetId: request.assetId,
+            //     keys: request.keys
+            // })
+            await apiClient.send({
+                ConnectionId: connectionId,
+                Data: JSON.stringify({
+                    RequestId: request.RequestId,
+                    messageType: 'ImportDefaults',
+                    assetId: request.assetId,
+                    defaultsByKey: {}
+                })
             })
         }
         if (isFetchImportsAPIMessage(request)) {
