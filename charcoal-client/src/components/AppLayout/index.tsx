@@ -69,19 +69,20 @@ const IconDispatcher = ({ iconName = 'Forum' }) => {
     }
 }
 
-const IconWrapper = ({ iconName = 'Forum' }) => {
+const IconWrapper = ({ iconName = 'Forum', closable=true }) => {
     return <Box sx={{ position: "relative", width: "100%" }}>
         <IconDispatcher iconName={iconName} />
-        <IconButton
-            sx={{ position: "absolute", top: "-0.75em", right: "-0.5em" }}
-            onClick={(event) => {
-                console.log(`Test closeIcon`)
-                event.stopPropagation()
-                event.preventDefault()
-            }}
-        >
-            <CloseIcon />
-        </IconButton>
+        { closable && <IconButton
+                sx={{ position: "absolute", top: "-0.75em", right: "-0.5em" }}
+                onClick={(event) => {
+                    console.log(`Test closeIcon`)
+                    event.stopPropagation()
+                    event.preventDefault()
+                }}
+            >
+                <CloseIcon />
+            </IconButton>
+        }
     </Box>
 }
 
@@ -95,13 +96,13 @@ const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTab
         component={Link}
         to="/"
     />,
-    ...(navigationTabs.map(({ href, label, iconName }, index) => (
+    ...(navigationTabs.map(({ href, label, iconName, closable }, index) => (
         <Tab
             key={href}
             label={label}
             value={href}
             {...a11yProps(index + 1)}
-            icon={<IconWrapper iconName={iconName} />}
+            icon={<IconWrapper iconName={iconName} closable={closable} />}
             component={Link}
             to={href}
         />

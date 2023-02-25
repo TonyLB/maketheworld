@@ -13,7 +13,7 @@ import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
     const { CharacterId, info: { Name = '???' } = {} } = useActiveCharacter()
-    useAutoPin({ href: `/Character/${CharacterId.split('#')[1]}/Play`, label: `Play: ${Name}`})
+    useAutoPin({ href: `/Character/${CharacterId.split('#')[1]}/Play`, label: `Play: ${Name}`, closable: false })
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
         dispatch(heartbeat)
