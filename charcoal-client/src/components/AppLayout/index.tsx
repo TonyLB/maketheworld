@@ -49,7 +49,6 @@ import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigatio
 import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
 
-
 const a11yProps = (index: number) => {
     return {
         id: `simple-tab-${index}`,
@@ -70,6 +69,22 @@ const IconDispatcher = ({ iconName = 'Forum' }) => {
     }
 }
 
+const IconWrapper = ({ iconName = 'Forum' }) => {
+    return <Box sx={{ position: "relative", width: "100%" }}>
+        <IconDispatcher iconName={iconName} />
+        <IconButton
+            sx={{ position: "absolute", top: "-0.75em", right: "-0.5em" }}
+            onClick={(event) => {
+                console.log(`Test closeIcon`)
+                event.stopPropagation()
+                event.preventDefault()
+            }}
+        >
+            <CloseIcon />
+        </IconButton>
+    </Box>
+}
+
 const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTabs: any[] }) => ([
     <Tab
         key="Home"
@@ -86,7 +101,7 @@ const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTab
             label={label}
             value={href}
             {...a11yProps(index + 1)}
-            icon={<IconDispatcher iconName={iconName} />}
+            icon={<IconWrapper iconName={iconName} />}
             component={Link}
             to={href}
         />
@@ -157,8 +172,9 @@ const NavigationTabs = () => {
                 aria-label="Navigation"
                 indicatorColor="primary"
                 textColor="primary"
-                allowScrollButtonsMobile>
-                {tabList({ large, navigationTabs: navigationTabsData })}
+                allowScrollButtonsMobile
+            >
+                { tabList({ large, navigationTabs: navigationTabsData }) }
             </Tabs>
         </Box>
     );
