@@ -49,7 +49,7 @@ export const isNavigationTabMessagePanel = (value: NavigationTab): value is Navi
 
 export const closeTab = createAsyncThunk(
     'navigationTabs/closeTab',
-    async (href: string, thunkAPI) => {
+    async ({ href, callback }: { href: string, callback: (newHref: string) => void }, thunkAPI) => {
         const { dispatch, getState } = thunkAPI
         const state: any = getState()
         const tab = navigationTabPinnedByHref(href)(state)
@@ -69,7 +69,11 @@ export const closeTab = createAsyncThunk(
                     dispatch(heartbeat)
                 }
         }
-        return href
+        //
+        // TODO: Use removed Hrefs to calculate the href that should be navigated to, and pass it to callback
+        //
+        callback('Test')
+        return [href]
     }
 )
 
@@ -97,10 +101,12 @@ const navigationSlice = createSlice({
         // Remove tab from list after completion of closeTab thunk
         //
         builder.addCase(closeTab.fulfilled, (state, action) => {
-            const matchIndex = state.findIndex(({ href }) => (href === action.payload))
-            if (matchIndex !== -1) {
-                state.splice(matchIndex, 1)
-            }
+            action.payload.forEach((removeHref) => {
+                const matchIndex = state.findIndex(({ href }) => (href === removeHref))
+                if (matchIndex !== -1) {
+                    state.splice(matchIndex, 1)
+                }    
+            })
         })
     }
 })

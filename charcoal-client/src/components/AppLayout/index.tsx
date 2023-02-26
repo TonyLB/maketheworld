@@ -78,7 +78,7 @@ const IconWrapper = ({ iconName = 'Forum', href, closable=true }: { iconName: st
         if (!selectedTab || selectedTab.href === href) {
             previousTab()
         }
-        dispatch(closeTab(href))
+        dispatch(closeTab({ href, callback: (value) => { console.log(`Callback: ${value}`) } }))
     }, [dispatch, href, selectedTab, previousTab])
     return <Box sx={{ position: "relative", width: "100%" }}>
         <IconDispatcher iconName={iconName} />
