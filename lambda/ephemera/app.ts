@@ -17,7 +17,8 @@ import {
     isEphemeraAPIMessage,
     isSyncNotificationAPIMessage,
     isUpdateNotificationsAPIMessage,
-    isMapUnsubscribeAPIMessage
+    isMapUnsubscribeAPIMessage,
+    isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
@@ -181,10 +182,11 @@ export const handler = async (event: any, context: any) => {
     }
     else {
         if (isEphemeraAPIMessage(request)) {
-            if (isRegisterCharacterAPIMessage(request)) {
+            if (isRegisterCharacterAPIMessage(request) || isUnregisterCharacterAPIMessage(request)) {
+                const messageType = isRegisterCharacterAPIMessage(request) ? 'RegisterCharacter' : 'UnregisterCharacter'
                 if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
                     messageBus.send({
-                        type: 'RegisterCharacter',
+                        type: messageType,
                         characterId: request.CharacterId
                     })
                 }

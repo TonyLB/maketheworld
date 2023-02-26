@@ -22,11 +22,13 @@ export type ActiveCharacterCondition = ISSMHoldCondition<ActiveCharacterInternal
 
 export interface ActiveCharacterNodes {
     INITIAL: ISSMHoldNode<ActiveCharacterInternal, ActiveCharacterPublic>;
+    INACTIVE: ISSMChoiceNode;
     FETCHFROMCACHE: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     REGISTER: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     SYNCHRONIZE: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     SYNCHRONIZEBACKOFF: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     CONNECTED: ISSMChoiceNode;
+    UNREGISTER: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     MAPSUBSCRIBE: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     MAPSUBSCRIBED: ISSMChoiceNode;
     MAPUNSUBSCRIBE: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;

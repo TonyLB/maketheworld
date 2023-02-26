@@ -66,12 +66,14 @@ export const closeTab = createAsyncThunk(
                         dispatch(heartbeat)
                     }
                     break
-                // @ts-expect-error
                 case 'MessagePanel':
                     removeHrefs = allTabs
                         .filter((tab: NavigationTab): tab is NavigationTabMessagePanel | NavigationTabMap => (['Map', 'MessagePanel'].includes(tab.type)))
                         .filter(({ characterId }) => (characterId === tab.characterId))
                         .map(({ href }) => (href))
+                    dispatch(activeCharacterSetIntent({ key: tab.characterId, intent: ['INACTIVE'] }))
+                    dispatch(heartbeat)
+                    break
                 case 'Map':
                     dispatch(activeCharacterSetIntent({ key: tab.characterId, intent: ['CONNECTED'] }))
                     dispatch(heartbeat)
@@ -119,7 +121,7 @@ const navigationSlice = createSlice({
     },
     extraReducers: (builder) => {
         //
-        // Remove tab from list after completion of closeTab thunk
+        // Remove tabs from list after completion of closeTab thunk
         //
         builder.addCase(closeTab.fulfilled, (state, action) => {
             action.payload.forEach((removeHref) => {

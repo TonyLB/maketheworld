@@ -25,12 +25,13 @@ import {
     isPublishNotification,
     isSyncNotificationRequest,
     isSyncNotificationResponse,
-    isMapUnsubscribe
+    isMapUnsubscribe,
+    isUnregisterCharacterMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
 import ephemeraUpdate from '../ephemeraUpdate'
-import disconnectMessage from '../disconnectMessage'
+import disconnectMessage, { unregisterCharacterMessage } from '../disconnectMessage'
 import connectMessage from '../connectMessage'
 import { syncNotificationRequest, syncNotificationResponse, syncRequest, syncResponse } from '../syncHandler'
 import registerCharacter from '../registerCharacter'
@@ -108,6 +109,12 @@ messageBus.subscribe({
     priority: 1,
     filter: isRegisterCharacterMessage,
     callback: registerCharacter
+})
+messageBus.subscribe({
+    tag: 'UnregisterCharacter',
+    priority: 1,
+    filter: isUnregisterCharacterMessage,
+    callback: unregisterCharacterMessage
 })
 messageBus.subscribe({
     tag: 'FetchPlayerEphemera',

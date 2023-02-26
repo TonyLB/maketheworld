@@ -63,6 +63,20 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
     return { internalData: { subscription: lifeLineSubscription } }
 }
 
+export const unregisterAction: ActiveCharacterAction = (incoming) => async (dispatch) => {
+    const { internalData: { id, subscription } } = incoming
+    if (subscription) {
+        LifeLinePubSub.unsubscribe(subscription)
+    }
+    if (id) {
+        await dispatch(socketDispatchPromise({ message: 'unregistercharacter', CharacterId: id }))
+    }
+    else {
+        console.log(`NO ID for ACTIVE CHARACTER`)
+    }
+    return { internalData: { subscription: undefined } }
+}
+
 //
 // sync synchronizes the store with the information since the last sync
 //
