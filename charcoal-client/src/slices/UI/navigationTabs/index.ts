@@ -16,8 +16,6 @@ const navigationSlice = createSlice({
     initialState,
     reducers: {
         //
-        // TODO:  Check before pushing that you will not generate duplicate tabs
-        //
         // TODO:  Create changeable sequencing for tabs
         //
         add(state, action: PayloadAction<NavigationTab>) {
