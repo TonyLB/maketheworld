@@ -45,7 +45,7 @@ import HelpPage from '../Help'
 import Library from '../Library'
 import EditAsset from '../Library/Edit/EditAsset'
 
-import { navigationTabs, navigationTabSelected, remove } from '../../slices/UI/navigationTabs'
+import { closeTab, navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
@@ -79,7 +79,7 @@ const IconWrapper = ({ iconName = 'Forum', href, closable=true }: { iconName: st
         if (!selectedTab || selectedTab.href === href) {
             previousTab()
         }
-        dispatch(remove(href))
+        dispatch(closeTab(href))
     }, [dispatch, href, selectedTab, previousTab])
     return <Box sx={{ position: "relative", width: "100%" }}>
         <IconDispatcher iconName={iconName} />
