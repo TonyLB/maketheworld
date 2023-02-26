@@ -1,4 +1,4 @@
-import { DisconnectMessage, MessageBus } from "../messageBus/baseClasses"
+import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
 import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { marshall } from "@aws-sdk/util-dynamodb"
@@ -7,7 +7,7 @@ import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
-const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
+export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
         const [currentConnections, characterFetch, mapSubscriptions] = await Promise.all([
             internalCache.CharacterConnections.get(characterId),
@@ -132,6 +132,27 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characte
         })
 
     }, { retryErrors: ['TransactionCanceledException']})
+}
+
+export const unregisterCharacterMessage = async ({ payloads }: { payloads: UnregisterCharacterMessage[], messageBus?: MessageBus }): Promise<void> => {
+    const connectionId = await internalCache.Global.get("ConnectionId")
+    const RequestId = await internalCache.Global.get("RequestId")
+    if (connectionId) {
+        await Promise.all(
+            payloads.map(async ({ characterId }) => {
+                await atomicallyRemoveCharacterAdjacency(connectionId, characterId)
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        messageType: 'Unregistration',
+                        CharacterId: characterId,
+                        RequestId
+                    }
+                })
+            })
+        )
+    }
+
 }
 
 export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMessage[], messageBus?: MessageBus }): Promise<void> => {

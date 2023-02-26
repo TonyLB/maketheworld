@@ -162,6 +162,11 @@ export type RegisterCharacterMessage = {
     characterId: EphemeraCharacterId;
 }
 
+export type UnregisterCharacterMessage = {
+    type: 'UnregisterCharacter';
+    characterId: EphemeraCharacterId;
+}
+
 export type EphemeraPublishTarget = PublishTargetCharacter | PublishTargetConnection | PublishTargetGlobal | PublishTargetExcludeCharacter | PublishTargetExcludeConnection
 
 export type EphemeraUpdateMessage = {
@@ -311,6 +316,7 @@ export type MessageType = PublishMessage |
     SyncNotificationRequest |
     SyncNotificationResponse |
     RegisterCharacterMessage |
+    UnregisterCharacterMessage |
     EphemeraUpdateMessage |
     FetchPlayerEphemeraMessage |
     MapSubscriptionMessage |
@@ -349,6 +355,7 @@ export const isSyncResponse = (prop: MessageType): prop is SyncResponse => (prop
 export const isSyncNotificationRequest = (prop: MessageType): prop is SyncNotificationRequest => (prop.type === 'SyncNotification')
 export const isSyncNotificationResponse = (prop: MessageType): prop is SyncNotificationResponse => (prop.type === 'SyncNotificationResponse')
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
+export const isUnregisterCharacterMessage = (prop: MessageType): prop is UnregisterCharacterMessage => (prop.type === 'UnregisterCharacter')
 
 export const isEphemeraUpdate = (prop: MessageType): prop is EphemeraUpdateMessage => (prop.type === 'EphemeraUpdate')
 export const isFetchPlayerEphemera = (prop: MessageType): prop is FetchPlayerEphemeraMessage => (prop.type === 'FetchPlayerEphemera')

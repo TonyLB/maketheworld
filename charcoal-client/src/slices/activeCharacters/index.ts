@@ -8,7 +8,8 @@ import {
     syncAction,
     backoffAction,
     mapSubscribeAction,
-    mapUnsubscribeAction
+    mapUnsubscribeAction,
+    unregisterAction
 } from './index.api'
 import receiveMapEphemera from './receiveMapEphemera'
 import { publicSelectors, PublicSelectors } from './selectors'
@@ -48,8 +49,12 @@ export const {
         states: {
             INITIAL: {
                 stateType: 'HOLD',
-                next: 'FETCHFROMCACHE',
+                next: 'INACTIVE',
                 condition: lifelineCondition
+            },
+            INACTIVE: {
+                stateType: 'CHOICE',
+                choices: ['FETCHFROMCACHE']
             },
             FETCHFROMCACHE: {
                 stateType: 'ATTEMPT',
@@ -77,7 +82,13 @@ export const {
             },
             CONNECTED: {
                 stateType: 'CHOICE',
-                choices: ['INITIAL', 'MAPSUBSCRIBE']
+                choices: ['UNREGISTER', 'MAPSUBSCRIBE']
+            },
+            UNREGISTER: {
+                stateType: 'ATTEMPT',
+                action: unregisterAction,
+                resolve: 'INACTIVE',
+                reject: 'INACTIVE'
             },
             MAPSUBSCRIBE: {
                 stateType: 'ATTEMPT',

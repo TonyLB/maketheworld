@@ -8,6 +8,11 @@ export type RegisterCharacterAPIMessage = {
     CharacterId: EphemeraCharacterId;
 }
 
+export type UnregisterCharacterAPIMessage = {
+    message: 'unregistercharacter';
+    CharacterId: EphemeraCharacterId;
+}
+
 export type FetchEphemeraAPIMessage = {
     message: 'fetchEphemera';
     CharacterId?: string;
@@ -133,6 +138,7 @@ export type CommandAPIMessage = {
 
 export type EphemeraAPIMessage = { RequestId?: string } & (
     RegisterCharacterAPIMessage |
+    UnregisterCharacterAPIMessage |
     FetchEphemeraAPIMessage |
     WhoAmIAPIMessage |
     SyncAPIMessage |
@@ -146,6 +152,7 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
 )
 
 export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is RegisterCharacterAPIMessage => (message.message === 'registercharacter')
+export const isUnregisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is UnregisterCharacterAPIMessage => (message.message === 'unregistercharacter')
 export const isFetchEphemeraAPIMessage = (message: EphemeraAPIMessage): message is FetchEphemeraAPIMessage => (message.message === 'fetchEphemera')
 export const isWhoAmIAPIMessage = (message: EphemeraAPIMessage): message is WhoAmIAPIMessage => (message.message === 'whoAmI')
 export const isSyncAPIMessage = (message: EphemeraAPIMessage): message is SyncAPIMessage => (message.message === 'sync')
@@ -166,6 +173,7 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
     }
     switch(message.message) {
         case 'registercharacter':
+        case 'unregistercharacter':
             return Boolean(
                 checkTypes(message, { CharacterId: 'string' })
                 && isEphemeraCharacterId(message.CharacterId)
@@ -374,6 +382,12 @@ export type EphemeraClientMessageRegisterMessage = {
     CharacterId: string;
 }
 
+export type EphemeraClientMessageUnregisterMessage = {
+    messageType: 'Unegistration';
+    RequestId?: string;
+    CharacterId: string;
+}
+
 export type EphemeraClientMessageSubscribeToMapsMessage = {
     messageType: 'SubscribeToMaps';
     RequestId?: string;
@@ -388,6 +402,7 @@ export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessagePublishMessages |
     EphemeraClientMessagePublishNotifications |
     EphemeraClientMessageRegisterMessage |
+    EphemeraClientMessageUnregisterMessage |
     EphemeraClientMessageSubscribeToMapsMessage |
     EphemeraClientMessageUnsubscribeFromMapsMessage
 
@@ -397,7 +412,8 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
     }
     switch(message.messageType) {
         case 'Registration':
-            return checkTypes(message, { CharacterId: 'string' }, { RequestId: 'string' })
+        case 'Unregistration':
+            return checkTypes(message, { CharacterId: 'string' }, { RequestId: 'string' })            
         case 'SubscribeToMaps':
         case 'UnsubscribeFromMaps':
             return checkTypes(message, {}, { RequestId: 'string' })
