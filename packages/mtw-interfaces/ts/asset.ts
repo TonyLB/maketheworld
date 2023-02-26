@@ -64,6 +64,10 @@ export type AssetSubscribeAPIMessage = {
     message: 'subscribe';
 }
 
+export type AssetUnsubscribeAPIMessage = {
+    message: 'unsubscribe';
+}
+
 export type AssetWhoAmIAPIMessage = {
     message: 'whoAmI';
 }
@@ -78,6 +82,7 @@ export type AssetAPIMessage = { RequestId?: string } & (
     AssetCheckinAPIMessage |
     AssetCheckoutAPIMessage |
     AssetSubscribeAPIMessage |
+    AssetUnsubscribeAPIMessage |
     AssetWhoAmIAPIMessage
 )
 
@@ -90,6 +95,7 @@ export const isParseWMLAPIMessage = (message: AssetAPIMessage): message is Parse
 export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
 export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
 export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is AssetSubscribeAPIMessage => (message.message === 'subscribe')
+export const isAssetUnsubscribeAPIMessage = (message: AssetAPIMessage): message is AssetUnsubscribeAPIMessage => (message.message === 'unsubscribe')
 export const isAssetWhoAmIAPIMessage = (message: AssetAPIMessage): message is AssetWhoAmIAPIMessage => (message.message === 'whoAmI')
 
 export type AssetClientPlayerAsset = {

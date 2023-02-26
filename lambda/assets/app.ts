@@ -18,7 +18,8 @@ import {
     isAssetWhoAmIAPIMessage,
     isParseWMLAPIMessage,
     isFetchImportDefaultsAPIMessage,
-    isFetchImportsAPIMessage
+    isFetchImportsAPIMessage,
+    isAssetUnsubscribeAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset.js'
 
 import messageBus from "./messageBus/index.js"
@@ -83,7 +84,7 @@ export const handler = async (event, context) => {
     }
     
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
-    if (!request || !['fetch', 'fetchLibrary', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe', 'whoAmI', 'parseWML'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -166,6 +167,11 @@ export const handler = async (event, context) => {
         if (isAssetSubscribeAPIMessage(request)) {
             messageBus.send({
                 type: 'LibrarySubscribe'
+            })
+        }
+        if (isAssetUnsubscribeAPIMessage(request)) {
+            messageBus.send({
+                type: 'LibraryUnsubscribe'
             })
         }
         if (isAssetWhoAmIAPIMessage(request)) {

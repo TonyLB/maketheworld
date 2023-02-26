@@ -87,6 +87,10 @@ export type LibrarySubscribeMessage = {
     type: 'LibrarySubscribe';
 }
 
+export type LibraryUnsubscribeMessage = {
+    type: 'LibraryUnsubscribe';
+}
+
 export type PlayerLibraryUpdateMessage = {
     type: 'PlayerLibraryUpdate';
     player?: string;
@@ -108,6 +112,7 @@ export type MessageType = ReturnValueMessage |
     MoveAssetMessage |
     MoveByAssetIdMessage |
     LibrarySubscribeMessage |
+    LibraryUnsubscribeMessage |
     PlayerLibraryUpdateMessage |
     LibraryUpdateMessage
 
@@ -121,6 +126,7 @@ export const isParseWMLMessage = (prop: MessageType): prop is ParseWMLMessage =>
 export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
 export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
+export const isLibraryUnsubscribeMessage = (prop: MessageType): prop is LibraryUnsubscribeMessage => (prop.type === 'LibraryUnsubscribe')
 export const isPlayerLibraryUpdateMessage = (prop: MessageType): prop is PlayerLibraryUpdateMessage => (prop.type === 'PlayerLibraryUpdate')
 export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdateMessage => (prop.type === 'LibraryUpdate')
 

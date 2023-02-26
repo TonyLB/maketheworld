@@ -2,6 +2,8 @@ import { createSlice, PayloadAction, createSelector, Dispatch, createAsyncThunk 
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { Selector } from '../../../store'
+import { setIntent as librarySetIntent } from '../../library';
+import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat';
 
 type NavigationTabBase = {
     label: string;
@@ -50,9 +52,17 @@ export const closeTab = createAsyncThunk(
         const { dispatch, getState } = thunkAPI
         const state: any = getState()
         const tab = navigationTabPinnedByHref(href)(state)
+        const allTabs = navigationTabs(state)
         if (tab) {
             switch(tab.type) {
-                
+                case 'Library':
+                case 'LibraryEdit':
+                    const libraryStillNeeded = Boolean(allTabs.find(({ href: checkHref, type }) => ((href !== checkHref) && (['Library', 'LibraryEdit'].includes(type)))))
+                    if (!libraryStillNeeded) {
+                        dispatch(librarySetIntent(['INACTIVE']))
+                        dispatch(heartbeat)
+                    }
+                    break
             }
         }
         return href
