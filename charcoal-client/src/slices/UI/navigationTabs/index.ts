@@ -66,21 +66,24 @@ export const closeTab = createAsyncThunk(
                         dispatch(heartbeat)
                     }
                     break
+                // @ts-expect-error
+                case 'MessagePanel':
+                    removeHrefs = allTabs
+                        .filter((tab: NavigationTab): tab is NavigationTabMessagePanel | NavigationTabMap => (['Map', 'MessagePanel'].includes(tab.type)))
+                        .filter(({ characterId }) => (characterId === tab.characterId))
+                        .map(({ href }) => (href))
                 case 'Map':
                     dispatch(activeCharacterSetIntent({ key: tab.characterId, intent: ['CONNECTED'] }))
                     dispatch(heartbeat)
+                    break
             }
             if (tabIndex !== null) {
-                console.log(`all Tabs: ${JSON.stringify(allTabs, null, 4)}`)
-                console.log(`Tab Index: ${tabIndex}`)
-                console.log(`removeHrefs: ${JSON.stringify(removeHrefs, null, 4)}`)
                 const lastValidIndex = allTabs.slice(0, tabIndex).reduce<number>((previous, { href }, index) => {
                     if (!removeHrefs.includes(href)) {
                         return index
                     }
                     return previous
                 }, -1)
-                console.log(`Last Valid Index: ${lastValidIndex}`)
                 if (lastValidIndex > -1) {
                     callback(allTabs[lastValidIndex].href)
                 }
@@ -154,7 +157,6 @@ export const navigationTabSelected = (pathname: string): Selector<NavigationTab 
 export const navigationTabSelectedIndex = (pathname: string): Selector<number | null> => createSelector(
     navigationTabs,
     (navigationTabs) => {
-        console.log(`pathname: ${pathname}`)
         if (pathname === '/') {
             return null
         }
