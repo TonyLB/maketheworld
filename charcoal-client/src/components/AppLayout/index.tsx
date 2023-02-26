@@ -186,7 +186,7 @@ const NavigationTabs = () => {
                     orientation={portrait ? "horizontal" : "vertical"}
                     variant="scrollable"
                     scrollButtons
-                    value={selectedTab ? selectedTab.href : 'home'}
+                    value={selectedTab ? selectedTab.href : pathname === '/Who/' ? '/Who/' : 'home'}
                     aria-label="Navigation"
                     indicatorColor="primary"
                     textColor="primary"
