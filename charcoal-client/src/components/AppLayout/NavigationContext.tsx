@@ -1,18 +1,20 @@
 import React, { FunctionComponent, useCallback, useContext } from "react";
 import { useSelector } from "react-redux";
-import { useLocation, useNavigate } from "react-router-dom";
+import { NavigateFunction, useLocation, useNavigate } from "react-router-dom";
 import { navigationTabSelected, navigationTabs, navigationTabSelectedIndex, NavigationTab } from "../../slices/UI/navigationTabs";
 
 type NavigationContextType = {
     pathname: string;
     selectedTab: NavigationTab | null;
     previousTab: () => void;
+    navigate: NavigateFunction;
 }
 
 const NavigationContext = React.createContext<NavigationContextType>({
     pathname: '',
     selectedTab: null,
-    previousTab: () => {}
+    previousTab: () => {},
+    navigate: () => {}
 })
 
 type NavigationContextProviderProps = {
@@ -38,7 +40,8 @@ export const NavigationContextProvider: FunctionComponent<NavigationContextProvi
         <NavigationContext.Provider value={{
             pathname,
             selectedTab,
-            previousTab
+            previousTab,
+            navigate
         }}>
             { children }
         </NavigationContext.Provider>

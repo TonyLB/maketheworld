@@ -54,7 +54,9 @@ export const closeTab = createAsyncThunk(
         const state: any = getState()
         const tab = navigationTabPinnedByHref(href)(state)
         const allTabs = navigationTabs(state)
-        if (tab) {
+        const tabIndex = navigationTabSelectedIndex(href)(state)
+        let removeHrefs = [href]
+        if (tab && (tabIndex !== null)) {
             switch(tab.type) {
                 case 'Library':
                 case 'LibraryEdit':
@@ -67,13 +69,23 @@ export const closeTab = createAsyncThunk(
                 case 'Map':
                     dispatch(activeCharacterSetIntent({ key: tab.characterId, intent: ['CONNECTED'] }))
                     dispatch(heartbeat)
+            }
+            const lastValidIndex = allTabs.slice(0, tabIndex).reduce<number>((previous, { href }, index) => {
+                if (!removeHrefs.includes(href)) {
+                    return index
                 }
+                return previous
+            }, -1)
+            if (lastValidIndex > -1) {
+                callback(allTabs[lastValidIndex].href)
+            }
+            else {
+                callback('/')
+            }
+
         }
-        //
-        // TODO: Use removed Hrefs to calculate the href that should be navigated to, and pass it to callback
-        //
-        callback('Test')
-        return [href]
+    
+        return removeHrefs
     }
 )
 
