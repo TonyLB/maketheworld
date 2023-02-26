@@ -16,7 +16,6 @@ export const MessagePanel: FunctionComponent<{}> = () => {
     useAutoPin({
         href: `/Character/${CharacterId.split('#')[1]}/Play`,
         label: `Play: ${Name}`,
-        closable: false,
         type: 'MessagePanel',
         characterId: CharacterId
     })
