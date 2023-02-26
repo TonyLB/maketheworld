@@ -1,5 +1,5 @@
-import { exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { LibrarySubscribeMessage, MessageBus } from "../messageBus/baseClasses"
+import { connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { LibrarySubscribeMessage, LibraryUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
@@ -66,4 +66,24 @@ export const librarySubscribeMessage = async ({ payloads, messageBus }: { payloa
             body: { messageType: 'Error' }
         })
     }
+}
+
+export const libraryUnsubscribeMessage = async ({ payloads, messageBus }: { payloads: LibraryUnsubscribeMessage[], messageBus: MessageBus }): Promise<void> => {
+    const connectionId = await internalCache.Connection.get('connectionId')
+
+    await connectionDB.optimisticUpdate({
+        key: {
+            ConnectionId: 'Library',
+            DataCategory: 'Subscriptions'
+        },
+        updateKeys: ['ConnectionIds'],
+        updateReducer: (draft) => {
+            draft.ConnectionIds = (draft.ConnectionIds || []).filter((value) => (value !== connectionId))
+        },
+    })
+
+    messageBus.send({
+        type: 'ReturnValue',
+        body: { messageType: 'Success' }
+    })    
 }

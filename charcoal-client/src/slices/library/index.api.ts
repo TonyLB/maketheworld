@@ -32,9 +32,10 @@ export const syncAction: LibraryAction = () => async (dispatch) => {
     return {}
 }
 
-export const unsubscribeAction: LibraryAction = ({ internalData: { subscription }}) => async () => {
+export const unsubscribeAction: LibraryAction = ({ internalData: { subscription }}) => async (dispatch) => {
     if (subscription) {
-        await subscription.unsubscribe()
+        await dispatch(socketDispatchPromise({ message: 'unsubscribe'}, { service: 'asset' }))
+        LifeLinePubSub.unsubscribe(subscription)
     }
     return {}
 }

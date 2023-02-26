@@ -10,13 +10,14 @@ import {
     isPlayerLibraryUpdateMessage,
     isLibraryUpdateMessage,
     isFormatImageMessage,
-    isFetchImportsAPIMessage
+    isFetchImportsAPIMessage,
+    isLibraryUnsubscribeMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
 import { uploadURLMessage, parseWMLMessage } from "../upload"
 import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
-import { librarySubscribeMessage } from "../subscribe"
+import { librarySubscribeMessage, libraryUnsubscribeMessage } from "../subscribe"
 import playerLibraryUpdateMessage from "../playerLibraryUpdate"
 import libraryUpdateMessage from "../libraryUpdate"
 import formatImageMessage from "../formatImage"
@@ -77,6 +78,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isLibrarySubscribeMessage,
     callback: librarySubscribeMessage
+})
+messageBus.subscribe({
+    tag: 'LibraryUnubscribe',
+    priority: 5,
+    filter: isLibraryUnsubscribeMessage,
+    callback: libraryUnsubscribeMessage
 })
 messageBus.subscribe({
     tag: 'PlayerLibraryUpdate',
