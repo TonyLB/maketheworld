@@ -3,9 +3,9 @@
 //
 
 /** @jsxImportSource @emotion/react */
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useCallback } from 'react'
 import { css } from '@emotion/react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import {
     BrowserRouter as Router,
     Routes,
@@ -45,10 +45,10 @@ import HelpPage from '../Help'
 import Library from '../Library'
 import EditAsset from '../Library/Edit/EditAsset'
 
-import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
+import { navigationTabs, navigationTabSelected, remove } from '../../slices/UI/navigationTabs'
 import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
-import NavigationContextProvider from './NavigationContext'
+import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
 
 const a11yProps = (index: number) => {
     return {
@@ -70,16 +70,22 @@ const IconDispatcher = ({ iconName = 'Forum' }) => {
     }
 }
 
-const IconWrapper = ({ iconName = 'Forum', closable=true }) => {
+const IconWrapper = ({ iconName = 'Forum', href, closable=true }: { iconName: string; href: string; closable: boolean }) => {
+    const dispatch = useDispatch()
+    const { selectedTab, previousTab } = useNavigationContext()
+    const onClose = useCallback((event) => {
+        event.stopPropagation()
+        event.preventDefault()
+        if (!selectedTab || selectedTab.href === href) {
+            previousTab()
+        }
+        dispatch(remove(href))
+    }, [dispatch, href, selectedTab, previousTab])
     return <Box sx={{ position: "relative", width: "100%" }}>
         <IconDispatcher iconName={iconName} />
         { closable && <IconButton
                 sx={{ position: "absolute", top: "-0.75em", right: "-0.5em" }}
-                onClick={(event) => {
-                    console.log(`Test closeIcon`)
-                    event.stopPropagation()
-                    event.preventDefault()
-                }}
+                onClick={onClose}
             >
                 <CloseIcon />
             </IconButton>
@@ -103,7 +109,7 @@ const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTab
             label={label}
             value={href}
             {...a11yProps(index + 1)}
-            icon={<IconWrapper iconName={iconName} closable={closable} />}
+            icon={<IconWrapper iconName={iconName} href={href} closable={closable} />}
             component={Link}
             to={href}
         />

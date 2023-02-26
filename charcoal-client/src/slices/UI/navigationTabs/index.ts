@@ -28,7 +28,10 @@ const navigationSlice = createSlice({
             }
         },
         remove(state, action: PayloadAction<string>) {
-            state = state.filter(({ href }) => (href !== action.payload))
+            const matchIndex = state.findIndex(({ href }) => (href === action.payload))
+            if (matchIndex !== -1) {
+                state.splice(matchIndex, 1)
+            }
         }
     }
 })
