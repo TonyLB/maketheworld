@@ -16,7 +16,8 @@ import {
     isMapSubscribeAPIMessage,
     isEphemeraAPIMessage,
     isSyncNotificationAPIMessage,
-    isUpdateNotificationsAPIMessage
+    isUpdateNotificationsAPIMessage,
+    isMapUnsubscribeAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
@@ -258,6 +259,15 @@ export const handler = async (event: any, context: any) => {
                 if (isEphemeraCharacterId(characterId)) {
                     messageBus.send({
                         type: 'SubscribeToMaps',
+                        characterId
+                    })
+                }
+            }
+            if (isMapUnsubscribeAPIMessage(request)) {
+                const characterId = request.CharacterId
+                if (isEphemeraCharacterId(characterId)) {
+                    messageBus.send({
+                        type: 'UnsubscribeFromMaps',
                         characterId
                     })
                 }

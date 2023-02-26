@@ -178,6 +178,11 @@ export type MapSubscriptionMessage = {
     characterId: EphemeraCharacterId;
 }
 
+export type MapUnsubscribeMessage = {
+    type: 'UnsubscribeFromMaps';
+    characterId: EphemeraCharacterId;
+}
+
 export type ImportDefaultsMessage = {
     type: 'ImportDefaults';
     components: Record<string, any>;
@@ -309,6 +314,7 @@ export type MessageType = PublishMessage |
     EphemeraUpdateMessage |
     FetchPlayerEphemeraMessage |
     MapSubscriptionMessage |
+    MapUnsubscribeMessage |
     ImportDefaultsMessage |
     FetchImportDefaultsMessage |
     PerceptionMessage |
@@ -347,6 +353,7 @@ export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterC
 export const isEphemeraUpdate = (prop: MessageType): prop is EphemeraUpdateMessage => (prop.type === 'EphemeraUpdate')
 export const isFetchPlayerEphemera = (prop: MessageType): prop is FetchPlayerEphemeraMessage => (prop.type === 'FetchPlayerEphemera')
 export const isMapSubscription = (prop: MessageType): prop is MapSubscriptionMessage => (prop.type === 'SubscribeToMaps')
+export const isMapUnsubscribe = (prop: MessageType): prop is MapUnsubscribeMessage => (prop.type === 'UnsubscribeFromMaps')
 export const isImportDefaults = (prop: MessageType): prop is ImportDefaultsMessage => (prop.type === 'ImportDefaults')
 export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDefaultsMessage => (prop.type === 'FetchImportDefaults')
 

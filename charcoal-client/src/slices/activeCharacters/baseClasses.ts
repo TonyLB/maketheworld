@@ -29,5 +29,6 @@ export interface ActiveCharacterNodes {
     CONNECTED: ISSMChoiceNode;
     MAPSUBSCRIBE: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     MAPSUBSCRIBED: ISSMChoiceNode;
+    MAPUNSUBSCRIBE: ISSMAttemptNode<ActiveCharacterInternal, ActiveCharacterPublic>;
     ERROR: ISSMChoiceNode;
 }

@@ -86,7 +86,7 @@ export class ComponentMetaData {
             callback: (key, value) => { this._setStore(key, value) },
             defaultValue: (cacheKey) => {
                 const { assetId, EphemeraId } = cacheKeyComponents(cacheKey)
-                if (!(isEphemeraFeatureId(EphemeraId) || isEphemeraRoomId(EphemeraId))) {
+                if (!(isEphemeraFeatureId(EphemeraId) || isEphemeraRoomId(EphemeraId) || isEphemeraMapId(EphemeraId))) {
                     throw new Error('Illegal tag in ComponentMeta internalCache')
                 }
                 return {

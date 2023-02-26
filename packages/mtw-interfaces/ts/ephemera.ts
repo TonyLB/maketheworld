@@ -60,6 +60,11 @@ export type MapSubscribeAPIMessage = {
     CharacterId: string;
 }
 
+export type MapUnsubscribeAPIMessage = {
+    message: 'unsubscribeFromMaps';
+    CharacterId: string;
+}
+
 type ActionAPILookMessage = {
     actionType: 'look';
     payload: {
@@ -134,6 +139,7 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     SyncNotificationAPIMessage |
     UpdateNotificationsAPIMessage |
     MapSubscribeAPIMessage |
+    MapUnsubscribeAPIMessage |
     ActionAPIMessage |
     LinkAPIMessage |
     CommandAPIMessage
@@ -146,6 +152,7 @@ export const isSyncAPIMessage = (message: EphemeraAPIMessage): message is SyncAP
 export const isSyncNotificationAPIMessage = (message: EphemeraAPIMessage): message is SyncNotificationAPIMessage => (message.message === 'syncNotification')
 export const isUpdateNotificationsAPIMessage = (message: EphemeraAPIMessage): message is UpdateNotificationsAPIMessage => (message.message === 'updateNotifications')
 export const isMapSubscribeAPIMessage = (message: EphemeraAPIMessage): message is MapSubscribeAPIMessage => (message.message === 'subscribeToMaps')
+export const isMapUnsubscribeAPIMessage = (message: EphemeraAPIMessage): message is MapUnsubscribeAPIMessage => (message.message === 'unsubscribeFromMaps')
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
 export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')
@@ -164,6 +171,7 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                 && isEphemeraCharacterId(message.CharacterId)
             )
         case 'subscribeToMaps':
+        case 'unsubscribeFromMaps':
         case 'fetchEphemera':
             return checkTypes(message, {}, { CharacterId: 'string' })
         case 'whoAmI':
@@ -371,11 +379,17 @@ export type EphemeraClientMessageSubscribeToMapsMessage = {
     RequestId?: string;
 }
 
+export type EphemeraClientMessageUnsubscribeFromMapsMessage = {
+    messageType: 'UnsubscribeFromMaps';
+    RequestId?: string;
+}
+
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessagePublishMessages |
     EphemeraClientMessagePublishNotifications |
     EphemeraClientMessageRegisterMessage |
-    EphemeraClientMessageSubscribeToMapsMessage
+    EphemeraClientMessageSubscribeToMapsMessage |
+    EphemeraClientMessageUnsubscribeFromMapsMessage
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {
@@ -385,6 +399,7 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
         case 'Registration':
             return checkTypes(message, { CharacterId: 'string' }, { RequestId: 'string' })
         case 'SubscribeToMaps':
+        case 'UnsubscribeFromMaps':
             return checkTypes(message, {}, { RequestId: 'string' })
         case 'Ephemera':
             if (!('updates' in message)) {

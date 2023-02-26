@@ -24,7 +24,8 @@ import {
     isMapUpdateMessage,
     isPublishNotification,
     isSyncNotificationRequest,
-    isSyncNotificationResponse
+    isSyncNotificationResponse,
+    isMapUnsubscribe
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -43,7 +44,7 @@ import roomUpdateMessage from '../roomUpdate'
 import dependentUpdateMessage from '../dependentMessages/dependentUpdate'
 import dependencyCascadeMessage from '../dependentMessages/dependencyCascade'
 import executeActionMessage from '../executeAction'
-import mapSubscriptionMessage from '../mapSubscription'
+import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
 import publishNotification from '../publishNotification'
 
@@ -119,6 +120,12 @@ messageBus.subscribe({
     priority: 2,
     filter: isMapSubscription,
     callback: mapSubscriptionMessage
+})
+messageBus.subscribe({
+    tag: 'MapUnsubscribe',
+    priority: 2,
+    filter: isMapUnsubscribe,
+    callback: mapUnsubscribeMessage
 })
 messageBus.subscribe({
     tag: 'Perception',
