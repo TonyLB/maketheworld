@@ -38,7 +38,6 @@ import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
 import ChoiceDialog from '../ChoiceDialog'
 
-import MapHome from '../Maps'
 import MapView from '../Maps/View'
 import CharacterEdit from '../CharacterEdit'
 import HelpPage from '../Help'
@@ -114,7 +113,17 @@ const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTab
             to={href}
         />
     ))),
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="/Who/" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} />])
+    ...(large ? [] : [
+        <Tab
+            key="Who"
+            label="Who is on"
+            value="/Who/"
+            {...a11yProps(2+navigationTabs.length)}
+            icon={<PeopleAltIcon />}
+            component={Link}
+            to="/Who/"
+        />
+    ])
 ])
 
 type FeedbackSnackbarProps = {
@@ -177,7 +186,7 @@ const NavigationTabs = () => {
                     orientation={portrait ? "horizontal" : "vertical"}
                     variant="scrollable"
                     scrollButtons
-                    value={selectedTab ? selectedTab.href : 'home'}
+                    value={selectedTab ? selectedTab.href : pathname === '/Who/' ? '/Who/' : 'home'}
                     aria-label="Navigation"
                     indicatorColor="primary"
                     textColor="primary"
