@@ -12,10 +12,13 @@ import MapEdit from './Edit/'
 // eslint-disable-next-line no-empty-pattern
 type MapHomeProps = {}
 
-// eslint-disable-next-line no-empty-pattern
-export const MapHome: FunctionComponent<MapHomeProps> = ({}) => {
+//
+// TODO: Either deprecate MapHome (not currently used) or extend it to deal with
+// general maps outside the context of a specific character
+//
+export const MapHome: FunctionComponent<MapHomeProps> = () => {
 
-    useAutoPin({ href: `/Maps/`, label: `Maps`})
+    useAutoPin({ href: `/Maps/`, label: `Maps`, type: 'Library' })
 
     //
     // TODO: Migrate to react-router-dom@6+, in order to get rid

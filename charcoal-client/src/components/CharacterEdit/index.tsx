@@ -20,7 +20,8 @@ export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
     const { CharacterKey } = useParams<{ CharacterKey: string }>()
     useAutoPin({
         href: `/Character/Edit/${CharacterKey}`,
-        label: CharacterKey === 'New' ? `New Character` : `Edit: ${CharacterKey}`
+        label: CharacterKey === 'New' ? `New Character` : `Edit: ${CharacterKey}`,
+        type: 'CharacterEdit'
     })
     const dispatch = useDispatch()
     useEffect(() => {

@@ -1,13 +1,46 @@
 import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { Selector } from '../../../store'
 
-export interface NavigationTab {
+type NavigationTabBase = {
     label: string;
     href: string;
     iconName?: string;
     closable: boolean;
 }
+
+type NavigationTabGeneral = {
+    type: 'CharacterEdit' | 'Notifications';
+} & NavigationTabBase
+
+type NavigationTabMap = {
+    type: 'Map';
+    characterId: EphemeraCharacterId;
+} & NavigationTabBase
+
+type NavigationTabMessagePanel = {
+    type: 'MessagePanel';
+    characterId: EphemeraCharacterId;
+} & NavigationTabBase
+
+type NavigationTabLibrary = {
+    type: 'Library';
+} & NavigationTabBase
+
+type NavigationTabLibraryEdit = {
+    type: 'LibraryEdit';
+    assetId: EphemeraCharacterId | EphemeraAssetId;
+} & NavigationTabBase
+
+export type NavigationTab = NavigationTabGeneral |
+    NavigationTabMap |
+    NavigationTabMessagePanel |
+    NavigationTabLibrary |
+    NavigationTabLibraryEdit
+
+export const isNavigationTabMap = (value: NavigationTab): value is NavigationTabMap => (value.type === 'Map')
+export const isNavigationTabLibrary = (value: NavigationTab): value is NavigationTabMap => (value.type === 'Library')
 
 const initialState = [] as NavigationTab[]
 

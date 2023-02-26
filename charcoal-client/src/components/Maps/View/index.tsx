@@ -26,7 +26,9 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     useAutoPin({
         href: `/Character/${CharacterId.split('#')[1]}/Map/`,
         label: `Map: ${Name}`,
-        iconName: 'Map'
+        iconName: 'Map',
+        type: 'Map',
+        characterId: CharacterId
     })
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))

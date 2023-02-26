@@ -16,7 +16,7 @@ interface NotificationsProps {
 }
 
 export const Notifications: FunctionComponent<NotificationsProps> = () => {
-    useAutoPin({ href: `/Notifications/`, label: `Notify`, iconName: 'Notifications' })
+    useAutoPin({ href: `/Notifications/`, label: `Notify`, iconName: 'Notifications', type: 'Notifications' })
     const [selectedNotificationId, setSelectedNotificationId] = useState<EphemeraNotificationId | undefined>()
 
     return <Box sx={{ flexGrow: 1, padding: "10px", height: "100%", display: 'flex', flexDirection: 'column' }}>

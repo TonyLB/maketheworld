@@ -483,10 +483,12 @@ type EditCharacterProps = {}
 export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
 
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-    const AssetId = `CHARACTER#${assetKey}`
+    const AssetId = `CHARACTER#${assetKey}` as const
     useAutoPin({
         href: `/Library/Edit/Character/${assetKey}`,
-        label: `${assetKey}`
+        label: `${assetKey}`,
+        type: 'LibraryEdit',
+        assetId: AssetId
     })
     const dispatch = useDispatch()
     useEffect(() => {

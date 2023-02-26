@@ -3,15 +3,17 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import { NavigationTab, add } from './index'
 import { navigationTabPinnedByHref } from '.'
+import { NarrowOmit } from '../../../lib/types'
 
-export const useAutoPin = ({ href, label, iconName, closable=true }: Omit<NavigationTab, 'closable'> & { closable?: boolean }) => {
+export const useAutoPin = (item: NarrowOmit<NavigationTab, 'closable'> & { closable?: boolean }) => {
+    const { href, label, closable=true } = item
     const { href: hrefData = null, label: labelData = '???' }: NavigationTab | any = useSelector(navigationTabPinnedByHref(href)) || {}
     const dispatch = useDispatch()
     useEffect(() => {
         if (href && (!hrefData || (labelData !== label))) {
-            dispatch(add({ href, label, iconName, closable }))
+            dispatch(add({ ...item, closable } as NavigationTab))
         }
-    }, [dispatch, hrefData, labelData, href, label, iconName])
+    }, [dispatch, hrefData, labelData, href, label, item, closable])
 }
 
 export default useAutoPin
