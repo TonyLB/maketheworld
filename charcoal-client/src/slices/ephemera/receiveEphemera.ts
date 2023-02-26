@@ -30,7 +30,7 @@ export const receiveEphemera = (state: any, action: PayloadAction<EphemeraChange
             }
         }
         else {
-            state.charactersInPlay[CharacterId] = undefined
+            delete state.charactersInPlay[CharacterId]
         }
     }
 }
