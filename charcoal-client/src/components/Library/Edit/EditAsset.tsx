@@ -35,6 +35,7 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
+import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type AssetEditFormProps = {}
 
@@ -160,10 +161,12 @@ type EditAssetProps = {}
 export const EditAsset: FunctionComponent<EditAssetProps> = () => {
 
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-    const AssetId = `ASSET#${assetKey}`
+    const AssetId = `ASSET#${assetKey}` as const
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}`,
-        label: `${assetKey}`
+        label: `${assetKey}`,
+        type: 'LibraryEdit',
+        assetId: AssetId
     })
     const dispatch = useDispatch()
     useEffect(() => {
