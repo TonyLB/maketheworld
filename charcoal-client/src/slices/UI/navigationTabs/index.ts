@@ -49,14 +49,14 @@ export const isNavigationTabMessagePanel = (value: NavigationTab): value is Navi
 
 export const closeTab = createAsyncThunk(
     'navigationTabs/closeTab',
-    async ({ href, callback }: { href: string, callback: (newHref: string) => void }, thunkAPI) => {
+    async ({ href, pathname, callback }: { href: string, pathname: string; callback: (newHref: string) => void }, thunkAPI) => {
         const { dispatch, getState } = thunkAPI
         const state: any = getState()
         const tab = navigationTabPinnedByHref(href)(state)
         const allTabs = navigationTabs(state)
-        const tabIndex = navigationTabSelectedIndex(href)(state)
+        const tabIndex = navigationTabSelectedIndex(pathname)(state)
         let removeHrefs = [href]
-        if (tab && (tabIndex !== null)) {
+        if (tab) {
             switch(tab.type) {
                 case 'Library':
                 case 'LibraryEdit':
@@ -70,17 +70,23 @@ export const closeTab = createAsyncThunk(
                     dispatch(activeCharacterSetIntent({ key: tab.characterId, intent: ['CONNECTED'] }))
                     dispatch(heartbeat)
             }
-            const lastValidIndex = allTabs.slice(0, tabIndex).reduce<number>((previous, { href }, index) => {
-                if (!removeHrefs.includes(href)) {
-                    return index
+            if (tabIndex !== null) {
+                console.log(`all Tabs: ${JSON.stringify(allTabs, null, 4)}`)
+                console.log(`Tab Index: ${tabIndex}`)
+                console.log(`removeHrefs: ${JSON.stringify(removeHrefs, null, 4)}`)
+                const lastValidIndex = allTabs.slice(0, tabIndex).reduce<number>((previous, { href }, index) => {
+                    if (!removeHrefs.includes(href)) {
+                        return index
+                    }
+                    return previous
+                }, -1)
+                console.log(`Last Valid Index: ${lastValidIndex}`)
+                if (lastValidIndex > -1) {
+                    callback(allTabs[lastValidIndex].href)
                 }
-                return previous
-            }, -1)
-            if (lastValidIndex > -1) {
-                callback(allTabs[lastValidIndex].href)
-            }
-            else {
-                callback('/')
+                else {
+                    callback('/')
+                }
             }
 
         }
@@ -130,6 +136,9 @@ export const navigationTabs: Selector<NavigationTab[]> = ({ UI: { navigationTabs
 export const navigationTabSelected = (pathname: string): Selector<NavigationTab | null> => createSelector(
     navigationTabs,
     (navigationTabs) => {
+        if (pathname === '/') {
+            return null
+        }
         const matches = navigationTabs
             .filter(({ href }) => (pathname.startsWith(href)))
             .sort(({ href: hrefA = '' }, { href: hrefB = '' }) => (hrefB.length - hrefA.length))
@@ -145,6 +154,10 @@ export const navigationTabSelected = (pathname: string): Selector<NavigationTab 
 export const navigationTabSelectedIndex = (pathname: string): Selector<number | null> => createSelector(
     navigationTabs,
     (navigationTabs) => {
+        console.log(`pathname: ${pathname}`)
+        if (pathname === '/') {
+            return null
+        }
         const matches = navigationTabs
             .reduce<number[]>((previous, { href }, index) => {
                 if (pathname.startsWith(href)) {

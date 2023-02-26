@@ -12,7 +12,9 @@ import {
     Route,
     Link,
     useParams,
-    useLocation
+    useLocation,
+    NavigateFunction,
+    useNavigate
 } from "react-router-dom"
 
 import './index.css'
@@ -71,15 +73,12 @@ const IconDispatcher = ({ iconName = 'Forum' }) => {
 
 const IconWrapper = ({ iconName = 'Forum', href, closable=true }: { iconName: string; href: string; closable: boolean }) => {
     const dispatch = useDispatch()
-    const { selectedTab, previousTab } = useNavigationContext()
+    const { selectedTab, navigate, pathname } = useNavigationContext()
     const onClose = useCallback((event) => {
         event.stopPropagation()
         event.preventDefault()
-        if (!selectedTab || selectedTab.href === href) {
-            previousTab()
-        }
-        dispatch(closeTab({ href, callback: (value) => { console.log(`Callback: ${value}`) } }))
-    }, [dispatch, href, selectedTab, previousTab])
+        dispatch(closeTab({ href, pathname, callback: (value) => { navigate(value) } }))
+    }, [dispatch, href, selectedTab, navigate])
     return <Box sx={{ position: "relative", width: "100%" }}>
         <IconDispatcher iconName={iconName} />
         { closable && <IconButton
@@ -169,6 +168,7 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
 
 const NavigationTabs = () => {
     const { pathname } = useLocation()
+    const navigate = useNavigate()
     const selectedTab = useSelector(navigationTabSelected(pathname))
     const navigationTabsData = useSelector(navigationTabs)
     const portrait = useMediaQuery('(orientation: portrait)')
