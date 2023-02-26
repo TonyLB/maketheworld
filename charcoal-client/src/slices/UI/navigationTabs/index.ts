@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit'
+import { createSlice, PayloadAction, createSelector, Dispatch, createAsyncThunk } from '@reduxjs/toolkit'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { Selector } from '../../../store'
@@ -40,7 +40,24 @@ export type NavigationTab = NavigationTabGeneral |
     NavigationTabLibraryEdit
 
 export const isNavigationTabMap = (value: NavigationTab): value is NavigationTabMap => (value.type === 'Map')
-export const isNavigationTabLibrary = (value: NavigationTab): value is NavigationTabMap => (value.type === 'Library')
+export const isNavigationTabLibrary = (value: NavigationTab): value is NavigationTabLibrary => (value.type === 'Library')
+export const isNavigationTabLibraryEdit = (value: NavigationTab): value is NavigationTabLibraryEdit => (value.type === 'LibraryEdit')
+export const isNavigationTabMessagePanel = (value: NavigationTab): value is NavigationTabMessagePanel => (value.type === 'MessagePanel')
+
+export const closeTab = createAsyncThunk(
+    'navigationTabs/closeTab',
+    async (href: string, thunkAPI) => {
+        const { dispatch, getState } = thunkAPI
+        const state: any = getState()
+        const tab = navigationTabPinnedByHref(href)(state)
+        if (tab) {
+            switch(tab.type) {
+                
+            }
+        }
+        return href
+    }
+)
 
 const initialState = [] as NavigationTab[]
 
@@ -59,17 +76,22 @@ const navigationSlice = createSlice({
             else {
                 state.push(action.payload)
             }
-        },
-        remove(state, action: PayloadAction<string>) {
+        }
+    },
+    extraReducers: (builder) => {
+        //
+        // Remove tab from list after completion of closeTab thunk
+        //
+        builder.addCase(closeTab.fulfilled, (state, action) => {
             const matchIndex = state.findIndex(({ href }) => (href === action.payload))
             if (matchIndex !== -1) {
                 state.splice(matchIndex, 1)
             }
-        }
+        })
     }
 })
 
-export const { add, remove } = navigationSlice.actions
+export const { add } = navigationSlice.actions
 
 export const navigationTabs: Selector<NavigationTab[]> = ({ UI: { navigationTabs = [] } }) => (navigationTabs)
 
