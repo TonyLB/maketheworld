@@ -3,7 +3,7 @@
 //
 
 /** @jsxImportSource @emotion/react */
-import React, { FunctionComponent, useContext } from 'react'
+import React, { FunctionComponent } from 'react'
 import { css } from '@emotion/react'
 import { useSelector } from 'react-redux'
 import {
@@ -45,9 +45,10 @@ import HelpPage from '../Help'
 import Library from '../Library'
 import EditAsset from '../Library/Edit/EditAsset'
 
-import { NavigationTab, navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
+import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
+import NavigationContextProvider from './NavigationContext'
 
 const a11yProps = (index: number) => {
     return {
@@ -151,16 +152,6 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
     </ActiveCharacter>
 }
 
-type NavigationContextType = {
-    pathname: string;
-    selectedTab: NavigationTab | null;
-}
-
-const NavigationContext = React.createContext<NavigationContextType>({
-    pathname: '',
-    selectedTab: null
-})
-
 const NavigationTabs = () => {
     const { pathname } = useLocation()
     const selectedTab = useSelector(navigationTabSelected(pathname))
@@ -168,10 +159,7 @@ const NavigationTabs = () => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     return (
-        <NavigationContext.Provider value={{
-            pathname,
-            selectedTab
-        }}>
+        <NavigationContextProvider>
             <Box
                 css={css`
                     grid-area: tabs;
@@ -192,11 +180,10 @@ const NavigationTabs = () => {
                     { tabList({ large, navigationTabs: navigationTabsData }) }
                 </Tabs>
             </Box>
-        </NavigationContext.Provider>
+        </NavigationContextProvider>
     );
 }
 
-export const useNavigationContext = () => (useContext(NavigationContext))
 
 export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
