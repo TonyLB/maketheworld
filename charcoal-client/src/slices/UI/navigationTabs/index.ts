@@ -2,6 +2,7 @@ import { createSlice, PayloadAction, createSelector, Dispatch, createAsyncThunk 
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { Selector } from '../../../store'
+import { setIntent as activeCharacterSetIntent } from '../../activeCharacters';
 import { setIntent as librarySetIntent } from '../../library';
 import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat';
 
@@ -63,7 +64,10 @@ export const closeTab = createAsyncThunk(
                         dispatch(heartbeat)
                     }
                     break
-            }
+                case 'Map':
+                    dispatch(activeCharacterSetIntent({ key: tab.characterId, intent: ['CONNECTED'] }))
+                    dispatch(heartbeat)
+                }
         }
         return href
     }

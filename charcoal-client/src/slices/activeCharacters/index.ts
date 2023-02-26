@@ -7,7 +7,8 @@ import {
     registerAction,
     syncAction,
     backoffAction,
-    mapSubscribeAction
+    mapSubscribeAction,
+    mapUnsubscribeAction
 } from './index.api'
 import receiveMapEphemera from './receiveMapEphemera'
 import { publicSelectors, PublicSelectors } from './selectors'
@@ -86,7 +87,13 @@ export const {
             },
             MAPSUBSCRIBED: {
                 stateType: 'CHOICE',
-                choices: ['INITIAL']
+                choices: ['MAPUNSUBSCRIBE']
+            },
+            MAPUNSUBSCRIBE: {
+                stateType: 'ATTEMPT',
+                action: mapUnsubscribeAction,
+                resolve: 'CONNECTED',
+                reject: 'CONNECTED'
             },
             ERROR: {
                 stateType: 'CHOICE',

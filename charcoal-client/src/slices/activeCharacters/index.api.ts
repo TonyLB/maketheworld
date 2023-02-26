@@ -107,3 +107,10 @@ export const mapSubscribeAction: ActiveCharacterAction = ({ internalData: { id }
     }
     return {}
 }
+
+export const mapUnsubscribeAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
+    if (id) {
+        await dispatch(socketDispatchPromise({ message: 'unsubscribeFromMaps', CharacterId: id }))
+    }
+    return {}
+}
