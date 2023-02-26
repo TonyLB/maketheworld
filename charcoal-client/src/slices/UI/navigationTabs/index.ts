@@ -47,6 +47,14 @@ export const isNavigationTabMessagePanel = (value: NavigationTab): value is Navi
 export const closeTab = createAsyncThunk(
     'navigationTabs/closeTab',
     async (href: string, thunkAPI) => {
+        const { dispatch, getState } = thunkAPI
+        const state: any = getState()
+        const tab = navigationTabPinnedByHref(href)(state)
+        if (tab) {
+            switch(tab.type) {
+                
+            }
+        }
         return href
     }
 )
@@ -69,12 +77,6 @@ const navigationSlice = createSlice({
                 state.push(action.payload)
             }
         }
-        // remove(state, action: PayloadAction<string>) {
-        //     const matchIndex = state.findIndex(({ href }) => (href === action.payload))
-        //     if (matchIndex !== -1) {
-        //         state.splice(matchIndex, 1)
-        //     }
-        // }
     },
     extraReducers: (builder) => {
         //
