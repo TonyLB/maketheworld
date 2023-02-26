@@ -1,4 +1,4 @@
-import { MapSubscriptionMessage, MessageBus } from "../messageBus/baseClasses"
+import { MapSubscriptionMessage, MapUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
 import { connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
@@ -145,6 +145,35 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
             }
         })
     }
+
+}
+
+export const mapUnsubscribeMessage = async ({ payloads, messageBus }: { payloads: MapUnsubscribeMessage[], messageBus: MessageBus }): Promise<void> => {
+
+    const connectionId = await internalCache.Global.get('ConnectionId')
+    const RequestId = await internalCache.Global.get('RequestId')
+
+    await connectionDB.optimisticUpdate({
+        key: {
+            ConnectionId: 'Map',
+            DataCategory: 'Subscriptions'
+        },
+        updateKeys: ['connections'],
+        updateReducer: (draft) => {
+            const connectionMatch = draft.connections.find(({ connectionId: checkConnection }) => (checkConnection === connectionId))
+            if (connectionMatch) {
+                connectionMatch.characterIds = (connectionMatch.characterIds || []).filter((CharacterId) => (!payloads.find(({ characterId }) => (CharacterId === characterId))))
+            }
+            draft.connections = draft.connections.filter(({ characterIds = [] }) => (characterIds.length))
+        },
+    })
+    messageBus.send({
+        type: 'ReturnValue',
+        body: {
+            messageType: 'UnsubscribeFromMaps',
+            RequestId
+        }
+    })
 
 }
 
