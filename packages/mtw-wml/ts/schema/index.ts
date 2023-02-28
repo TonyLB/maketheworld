@@ -59,6 +59,9 @@ import {
     SchemaVariableTag,
 } from "./baseClasses"
 import { transformWithContext, TransformWithContextCallback } from "./utils"
+import parser from '../parser'
+import tokenizer from '../parser/tokenizer';
+import SourceStream from "../parser/tokenizer/sourceStream"
 
 const schemaConvert = new WMLConverter()
 
@@ -128,6 +131,10 @@ export const schemaFromParse = (tags: ParseTag[]): SchemaTag[] => {
     const firstPass = transformWithContext(tags, exitContextCallback)
     return firstPass.map((item) => (schemaFromParseItem(item, [])))
 }
+
+export const schemaFromWML = (wml: string): SchemaTag[] => (
+    schemaFromParse(parser(tokenizer(new SourceStream(wml))))
+)
 
 export const schemaToWML = (tags: SchemaTag[]): string => {
     const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: SchemaTag[] }>((previous, tag) => {

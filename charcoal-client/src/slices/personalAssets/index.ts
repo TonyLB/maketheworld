@@ -31,6 +31,7 @@ export const {
         },
         publicData: {
             importDefaults: {},
+            importData: {},
             properties: {},
             loadedImages: {},
             normal: {}
@@ -53,6 +54,7 @@ export const {
             },
             publicData: {
                 importDefaults: {},
+                importData: {},
                 properties: {},
                 loadedImages: {},
                 normal: {}

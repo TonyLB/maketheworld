@@ -8,13 +8,14 @@ import delayPromise from '../../lib/delayPromise'
 import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
-import { AssetClientImportDefaults, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
-import { schemaFromParse, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
+import { AssetClientFetchImports, AssetClientImportDefaults, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
+import { schemaFromParse, schemaFromWML, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer'
 import parse from '@tonylb/mtw-wml/dist/parser'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isSchemaAssetContents, SchemaAssetTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -75,17 +76,19 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal
                 }), {})
         }), {} as ImportsByAssets)
 
-    const importFetches: AssetClientImportDefaults[] = await Promise.all(
+    const importAPICall: [AssetClientImportDefaults, AssetClientFetchImports][] = await Promise.all(
         Object.entries(importsByAssetId).map(([assetId, keys]) => (Promise.all([
             //
             // TODO: Deprecate fetchImportDefaults and use fetchImports return instead
             //
             dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' })),
             dispatch(socketDispatchPromise({ message: 'fetchImports', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
-        ]).then((items) => (items[0]))))
-    )
+        ])
+    )))
+    const importFetchDefaults = importAPICall.map((items) => (items[0]))
+    const importFetches = importAPICall.map((items) => (items[1]))
 
-    const importDefaults = importFetches.reduce<AssetClientImportDefaults["defaultsByKey"]>((previous, importFetch) => (
+    const importDefaults = importFetchDefaults.reduce<AssetClientImportDefaults["defaultsByKey"]>((previous, importFetch) => (
         Object.entries(importsByAssetId[importFetch.assetId.split('#')[1]] || {})
             .reduce<AssetClientImportDefaults["defaultsByKey"]>((accumulator, [localKey, awayKey]) => {
                 const defaultItem = importFetch.defaultsByKey[awayKey]
@@ -101,9 +104,30 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal
             }, previous)
     ), {})
 
+    //
+    // TODO: Figure out how to merge incoming importData with pre-existing importData, overriding stubs with
+    // full schema where necessary, but never overriding a full schema with a stub
+    //
+    const importData: Record<string, SchemaTag> = importFetches.map(({ importsByAsset }) => (importsByAsset)).flat().reduce<Record<string, SchemaTag>>((previous, { assetId, schemaByKey, stubsByKey }) => {
+        const aggregateSchema: SchemaAssetTag = {
+            tag: 'Asset',
+            Story: undefined,
+            key: assetId.split('#')[1],
+            contents: [
+                ...Object.values(stubsByKey).map(schemaFromWML).flat().filter(isSchemaAssetContents),
+                ...Object.values(schemaByKey).map(schemaFromWML).flat().filter(isSchemaAssetContents)
+            ]
+        }
+        return {
+            ...previous,
+            [assetId]: aggregateSchema
+        }
+    }, {})
+
     return {
         publicData: {
-            importDefaults
+            importDefaults,
+            importData
         }
     }
 }

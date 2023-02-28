@@ -1,8 +1,6 @@
 import { produce } from 'immer'
 import { isLegalParseConditionContextTag, ParseException } from '../parser/baseClasses';
-import { schemaFromParse } from '../schema';
-import parser from '../parser'
-import tokenizer from '../parser/tokenizer';
+import { schemaFromWML } from '../schema';
 import {
     isSchemaExit,
     isSchemaWithContents,
@@ -1010,7 +1008,7 @@ export class Normalizer {
     loadWML(wml: string): void {
         this._normalForm = {}
         this._tags = {}
-        const schema = schemaFromParse(parser(tokenizer(new SourceStream(wml))))
+        const schema = schemaFromWML(wml)
         //
         // TEMPORARY PROVISION:  Until there's a proper architecture for having multiple
         // assets defined in the same WML file, throw an exception here if a multi-asset

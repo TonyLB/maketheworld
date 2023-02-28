@@ -29,6 +29,7 @@ export interface PersonalAssetsPublic {
     draftWML?: string;
     normal: NormalForm;
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
+    importData: Record<string, SchemaTag>;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
 }
