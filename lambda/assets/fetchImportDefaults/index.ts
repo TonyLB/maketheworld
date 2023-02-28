@@ -25,6 +25,10 @@ import { isSchemaCondition } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaConditionTagRoomContext } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { SchemaConditionTagRoomContext } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import normalSubset from "./normalSubset"
+import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaAssetContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
+import { SchemaExitTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 const { S3_BUCKET } = process.env
 
@@ -233,29 +237,40 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
 
     await Promise.all(
         payloads.map(async ({ importsFromAsset }) => {
-            await Promise.all(
+            const importsByAsset = await Promise.all(
                 importsFromAsset.map(async ({ assetId, keys }) => {
                     const schemaTags = await recursiveFetchImports({ assetId, keys, stubKeys: [] })
-                    console.log(`Asset[${assetId}]: ${JSON.stringify(schemaTags, null, 4)}`)
+                    const schemaByKey = schemaTags
+                        .filter((item): item is SchemaRoomTag | SchemaFeatureTag | SchemaExitTag => (isSchemaRoom(item) || isSchemaFeature(item) || isSchemaExit(item)))
+                        .filter(({ key }) => (keys.includes(key)))
+                        .reduce<Record<string, string>>((previous, item) => ({
+                            ...previous,
+                            [item.key]: schemaToWML([item])
+                        }), {})
+                    const stubsByKey = schemaTags
+                        .filter((item): item is SchemaRoomTag | SchemaFeatureTag | SchemaExitTag => (isSchemaRoom(item) || isSchemaFeature(item) || isSchemaExit(item)))
+                        .filter(({ key }) => (!keys.includes(key)))
+                        .reduce<Record<string, string>>((previous, item) => ({
+                            ...previous,
+                            [item.key]: schemaToWML([item])
+                        }), {})
+                    return {
+                        assetId,
+                        schemaByKey,
+                        stubsByKey
+                    }
                 })
             )
+            await apiClient.send({
+                ConnectionId,
+                Data: JSON.stringify({
+                    RequestId,
+                    messageType: 'FetchImports',
+                    importsByAsset
+                })
+            })
         })
     )
-    // await Promise.all(
-    //     payloads
-    //         .map(async (payload) => {
-    //             const defaultsByKey = await recursivePayloadDefault(payload)
-    //             await apiClient.send({
-    //                 ConnectionId,
-    //                 Data: JSON.stringify({
-    //                     RequestId,
-    //                     messageType: 'ImportDefaults',
-    //                     assetId: payload.assetId,
-    //                     defaultsByKey
-    //                 })
-    //             })
-    //         })
-    // )
 }
 
 export default fetchImportDefaultsMessage
