@@ -76,9 +76,13 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal
         }), {} as ImportsByAssets)
 
     const importFetches: AssetClientImportDefaults[] = await Promise.all(
-        Object.entries(importsByAssetId).map(([assetId, keys]) => (
-            dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
-        ))        
+        Object.entries(importsByAssetId).map(([assetId, keys]) => (Promise.all([
+            //
+            // TODO: Deprecate fetchImportDefaults and use fetchImports return instead
+            //
+            dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' })),
+            dispatch(socketDispatchPromise({ message: 'fetchImports', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
+        ]).then((items) => (items[0]))))
     )
 
     const importDefaults = importFetches.reduce<AssetClientImportDefaults["defaultsByKey"]>((previous, importFetch) => (
