@@ -321,10 +321,13 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
             ) && message.assetId.split('#')[0] === 'ASSET'
         case 'FetchImports':
             return checkAll(
-                checkTypes(message, { assetId: 'string' }),
-                ...Object.values(message.schemaByKey || {}).map((item: any) => (typeof item === 'string')),
-                ...Object.values(message.stubsByKey || {}).map((item: any) => (typeof item === 'string'))
-            ) && message.assetId.split('#')[0] === 'ASSET'
+                'importsByAsset' in message,
+                Array.isArray(message.importsByAsset),
+                ...message.importsByAsset.map((importMessage) => (checkAll(
+                    checkTypes(importMessage, { assetId: 'string' }),
+                    ...Object.values(importMessage.schemaByKey || {}).map((item: any) => (typeof item === 'string')),
+                    ...Object.values(importMessage.stubsByKey || {}).map((item: any) => (typeof item === 'string'))
+                ) && importMessage.assetId.split('#')[0] === 'ASSET')))
         case 'ParseWML':
             return checkAll(
                 checkTypes(message, {}, { RequestId: 'string' }),
