@@ -24,11 +24,12 @@ import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaCondition } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaConditionTagRoomContext } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { SchemaConditionTagRoomContext } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import normalSubset from "./normalSubset"
+
 import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaAssetContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
 import { SchemaExitTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import recursiveFetchImports from "./recursiveFetchImports"
 
 const { S3_BUCKET } = process.env
 
@@ -195,38 +196,6 @@ export const fetchImportDefaultsMessage = async ({ payloads, messageBus }: { pay
                 })
             })
     )
-}
-
-type RecursiveFetchImportArgument = {
-    assetId: `ASSET#${string}`;
-    keys: string[];
-    stubKeys: string[];
-}
-
-export const recursiveFetchImports = async ({ assetId, keys, stubKeys }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
-    const { normal } = await internalCache.JSONFile.get(assetId)
-    //
-    // Coming straight from the datalake, this normal should already be in standardized form,
-    // and can be fed directly to normalSubset
-    //
-
-    //
-    // TODO: Extend normalSubset to return an updated list of stubKeys, in addition to
-    // the SchemaTag main output, and use that to determine what needs to be looked up
-    // as possible imports from a different asset, to fill out yet more of the
-    // layers of inheritance.
-    //
-
-    //
-    // TODO: Rename imports from recursive calls, to match them with their original aliases
-    //
-
-    //
-    // TODO: Rename stubKeys from recursive calls, if needed to avoid conflict with names
-    // in the original asset (or other imported stubKeys)
-    //
-    return normalSubset({ normal, keys, stubKeys })
-
 }
 
 export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
