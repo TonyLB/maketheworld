@@ -15,7 +15,7 @@ const testNormalFromWML = (wml: string): NormalForm => {
 }
 
 describe('recursiveFetchImports', () => {
-    const testNormal = testNormalFromWML(`<Asset key=(Test)>
+    const testFinal = testNormalFromWML(`<Asset key=(testFinal)>
         <Room key=(testNonImport)>
             <Description>
                 DescriptionOne
@@ -25,22 +25,60 @@ describe('recursiveFetchImports', () => {
         <Room key=(testNonImportStub)>
             <Name>StubOne</Name>
         </Room>
+        <Room key=(testImportOne)>
+            <Description>
+                Two
+            </Description>
+            <Exit to=(testImportStubOne)>test exit one</Exit>
+        </Room>
+        <Room key=(testImportStubOne) />
+        <Import from=(testImportAssetOne)>
+            <Use type="Room" key=(testImportOne) />
+            <Use type="Room" key=(testImportStubOne) />
+            <Use type="Room" key=(testImportFoo) as=(testImportTwo) />
+        </Import>
+    </Asset>`)
+    const testImportOne = testNormalFromWML(`<Asset key=(testImportAssetOne)>
+        <Room key=(testImportOne)>
+            <Description>
+                One
+            </Description>
+        </Room>
+        <Room key=(testImportStubOne)>
+            <Name>StubTwo</Name>
+        </Room>
+        <Room key=(testImportFoo)>
+            <Description>
+                Foo
+            </Description>
+        </Room>
     </Asset>`)
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCacheMock.JSONFile.get.mockResolvedValue({
-            normal: testNormal,
-            namespaceIdToDB: {}
+        internalCacheMock.JSONFile.get.mockImplementation(async (assetId: string) => {
+            let normal: NormalForm = {}
+            switch(assetId) {
+                case 'ASSET#testFinal':
+                    normal = testFinal
+                    break
+                case 'ASSET#testImportAssetOne':
+                    normal = testImportOne
+                    break
+            }
+            return {
+                normal,
+                namespaceIdToDB: {}
+            }
         })
     })
 
     it('should return empty when passed no keys', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#Test', keys: [], stubKeys: [] })).toEqual([])
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', keys: [], stubKeys: [] })).toEqual([])
     })
 
     it('should return element and stubs when passed non-import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#Test', keys: ['testNonImport'], stubKeys: [] })).toEqual([{
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', keys: ['testNonImport'], stubKeys: [] })).toEqual([{
             tag: 'Room',
             key: 'testNonImport',
             name: [],
@@ -58,6 +96,30 @@ describe('recursiveFetchImports', () => {
             tag: 'Room',
             key: 'testNonImportStub',
             name: [{ tag: 'String', value: 'StubOne' }],
+            render: [],
+            contents: []
+        }])
+    })
+
+    it('should recursive fetch one level of element and stubs when passed import key', async () => {
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', keys: ['testImportOne'], stubKeys: [] })).toEqual([{
+            tag: 'Room',
+            key: 'testImportOne',
+            name: [],
+            render: [{ tag: 'String', value: 'OneTwo' }],
+            contents: [{
+                key: 'testImportOne#testImportStubOne',
+                tag: 'Exit',
+                name: 'test exit one',
+                from: 'testImportOne',
+                to: 'testImportStubOne',
+                contents: []
+            }]
+        },
+        {
+            tag: 'Room',
+            key: 'testImportStubOne',
+            name: [{ tag: 'String', value: 'StubTwo' }],
             render: [],
             contents: []
         }])
