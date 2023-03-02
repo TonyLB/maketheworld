@@ -1,3 +1,4 @@
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import internalCache from "../internalCache";
 import normalSubset from "./normalSubset"
 
