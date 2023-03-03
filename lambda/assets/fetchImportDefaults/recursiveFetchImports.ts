@@ -1,56 +1,129 @@
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types";
-import { isNormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses";
+import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses";
+import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses";
+import { isSchemaRoomContents } from "@tonylb/mtw-wml/dist/schema/baseClasses";
+import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import internalCache from "../internalCache";
 import { objectMap } from "../lib/objects";
 import normalSubset from "./normalSubset"
 
-type RecursiveFetchImportArgument = {
-    assetId: `ASSET#${string}`;
-    keys: string[];
-    stubKeys: string[];
+//
+// TODO: ISS2251: Create an translateToFinal class that accepts:
+//    (a) a current set of occupied keys, and
+//    (b) a localToFinal mapping
+// and can:
+//    (a) Translate SchemaTags to their final key encoding
+//    (b) Create new, non-colliding, stub-keys from local keys
+//    (c) Push a new mapping that multiplies the existing localToFinal mapping by an importMapping
+//    (d) Pop a mapping
+// ... and then use that to handle fetchImport recursion mapping.
+//
+type NestedTranslateLocalToFinal = Record<string, string>
+export class NestedTranslateImportToFinal extends Object {
+    localToFinal: NestedTranslateLocalToFinal
+    localKeys: string[]
+    localStubKeys: string[]
+    occupiedFinalKeys: string[]
+    constructor(localKeys: string[], localStubKeys: string[], occupiedFinalKeys?: string[], localToFinal?: NestedTranslateLocalToFinal) {
+        super()
+        if (occupiedFinalKeys) {
+            this.occupiedFinalKeys = occupiedFinalKeys
+        }
+        else {
+            this.occupiedFinalKeys = [...localKeys, ...localStubKeys]
+        }
+        this.localKeys = localKeys
+        this.localStubKeys = localStubKeys
+        if (localToFinal) {
+            this.localToFinal = localToFinal
+        }
+        else {
+            this.localToFinal = [...localKeys, ...localStubKeys].reduce<Record<string, string>>((previous, key) => ({ ...previous, [key]: key }), {})
+        }
+    }
+    nestMapping(keys: string[], stubKeys: string[], mapping: NormalImport["mapping"]): NestedTranslateImportToFinal {
+        const localToImport = Object.assign({}, ...Object.entries(mapping).map(([from, { key }]) => ({ [key]: from }))) as Record<string, string>
+        const keyMapping = keys
+            .reduce<NestedTranslateLocalToFinal>((previous, key) => {
+                if (key in localToImport) {
+                    return {
+                        ...previous,
+                        [localToImport[key]]: this.localToFinal[key]
+                    }
+                }
+                return previous
+            }, {})
+        const stubKeyMapping = stubKeys
+            .reduce<NestedTranslateLocalToFinal>((previous, key) => {
+                if (key in localToImport) {
+                    return {
+                        ...previous,
+                        [localToImport[key]]: this.localToFinal[key]
+                    }
+                }
+                return previous
+            }, {})
+        const newTranslate = new NestedTranslateImportToFinal(Object.keys(keyMapping), Object.keys(stubKeyMapping), this.occupiedFinalKeys, { ...stubKeyMapping, ...keyMapping })
+        return newTranslate
+    }
+    translateKey(key: string): string {
+        if (key in this.localToFinal) {
+            return this.localToFinal[key]
+        }
+        //
+        // TODO: Create collision-detection and avoidance
+        //
+        return key
+    }
+    translateSchemaTag(tag: SchemaTag): SchemaTag {
+        if (isSchemaExit(tag)) {
+            return {
+                ...tag,
+                key: `${this.translateKey(tag.from)}#${this.translateKey(tag.to)}`,
+                to: this.translateKey(tag.to),
+                from: this.translateKey(tag.from)
+            }
+        }
+        if (isSchemaRoom(tag)) {
+            return {
+                ...tag,
+                key: this.translateKey(tag.key),
+                contents: tag.contents.map((value) => (this.translateSchemaTag(value))).filter(isSchemaRoomContents)
+            }
+        }
+        return tag
+    }
 }
 
-export const recursiveFetchImports = async ({ assetId, keys, stubKeys }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
+type RecursiveFetchImportArgument = {
+    assetId: `ASSET#${string}`;
+    translate: NestedTranslateImportToFinal;
+}
+
+export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
+    const { localKeys: keys, localStubKeys: stubKeys } = translate
     const { normal } = await internalCache.JSONFile.get(assetId)
-    const aggregateImportMapping = Object.values(normal)
-        .filter(isNormalImport)
-        .reduce<Record<`ASSET#${string}`, { importToLocal: Record<string, string>, localToImport: Record<string, string> }>>((previous, { mapping, from }) => {
-            const importToLocal = objectMap(mapping, ({ key }) => (key))
-            const localToImport = Object.assign({}, ...Object.entries(mapping).map(([from, { key }]) => ({ [key]: from }))) as Record<string, string>
-            return {
+    const relevantImports = Object.entries(normal)
+        .filter((tuple): tuple is [string, NormalImport] => (isNormalImport(tuple[1])))
+        .reduce<{ assetId: `ASSET#${string}`; mapping: NormalImport["mapping"] }[]>((previous, [from, { mapping }]) => {
+            return [
                 ...previous,
-                [from]: {
-                    importToLocal,
-                    localToImport
+                {
+                    assetId: `ASSET#${from}`,
+                    mapping
                 }
-            }
-        }, {})
+            ]
+        }, [])
     //
     // TODO: ISS2251: Use aggregateImportMapping to generate recursiveKeyFetches, and then to map
     // the return values to local names
     //
-    const recursiveKeyFetches = keys.reduce<Record<`ASSET#${string}`, RecursiveFetchImportArgument>>((previous, key) => {
-        const importReference = (normal[key]?.appearances || []).map(({ contextStack }) => (contextStack)).flat().find(({ tag }) => (tag === 'Import'))
-        if (importReference) {
-            const importItem = normal[importReference.key]
-            if (importItem.tag === 'Import') {
-                const importMapping = importItem.mapping[key]
-                const importAsset = `ASSET#${importItem.from}`
-                if (importMapping) {
-                    return {
-                        ...previous,
-                        [importAsset]: {
-                            assetId: importAsset,
-                            keys: [...(previous[importAsset]?.keys || []), importMapping.key],
-                            stubKeys: previous[importAsset]?.stubKeys || []
-                        }
-                    }
-                }
-            }
-        }
-        return previous
-    }, {})
+    const importSchema = (await Promise.all(relevantImports.map(async ({ assetId, mapping }) => {
+        const nestedTranslate = translate.nestMapping(keys, stubKeys, mapping)
+        const tags: SchemaTag[] = await recursiveFetchImports({ assetId, translate: nestedTranslate })
+        return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
+    }))).flat()
 
     //
     // TODO: ISS-2246: Extend normalSubset to return an updated list of stubKeys, in addition to
@@ -72,7 +145,10 @@ export const recursiveFetchImports = async ({ assetId, keys, stubKeys }: Recursi
     // Coming straight from the datalake, this normal should already be in standardized form,
     // and can be fed directly to normalSubset
     //
-    return normalSubset({ normal, keys, stubKeys })
+    return [
+        ...importSchema,
+        ...normalSubset({ normal, keys, stubKeys })
+    ]
 
 }
 

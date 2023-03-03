@@ -1,5 +1,5 @@
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import recursiveFetchImports from './recursiveFetchImports'
+import recursiveFetchImports, { NestedTranslateImportToFinal } from './recursiveFetchImports'
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
@@ -74,11 +74,11 @@ describe('recursiveFetchImports', () => {
     })
 
     it('should return empty when passed no keys', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', keys: [], stubKeys: [] })).toEqual([])
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal([], []) })).toEqual([])
     })
 
     it('should return element and stubs when passed non-import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', keys: ['testNonImport'], stubKeys: [] })).toEqual([{
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testNonImport'], []) })).toEqual([{
             tag: 'Room',
             key: 'testNonImport',
             name: [],
@@ -102,7 +102,7 @@ describe('recursiveFetchImports', () => {
     })
 
     it('should recursive fetch one level of element and stubs when passed import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', keys: ['testImportOne'], stubKeys: [] })).toEqual([{
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportOne'], []) })).toEqual([{
             tag: 'Room',
             key: 'testImportOne',
             name: [],
