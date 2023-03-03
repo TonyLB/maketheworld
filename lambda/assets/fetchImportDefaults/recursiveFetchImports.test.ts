@@ -84,17 +84,17 @@ describe('recursiveFetchImports', () => {
             name: [],
             render: [{ tag: 'String', value: 'DescriptionOne' }],
             contents: [{
-                key: 'testNonImport#testNonImportStub',
+                key: 'testNonImport#testFinal.testNonImportStub',
                 tag: 'Exit',
                 name: 'test exit',
                 from: 'testNonImport',
-                to: 'testNonImportStub',
+                to: 'testFinal.testNonImportStub',
                 contents: []
             }]
         },
         {
             tag: 'Room',
-            key: 'testNonImportStub',
+            key: 'testFinal.testNonImportStub',
             name: [{ tag: 'String', value: 'StubOne' }],
             render: [],
             contents: []
@@ -111,7 +111,7 @@ describe('recursiveFetchImports', () => {
         },
         {
             tag: 'Room',
-            key: 'testImportStubOne',
+            key: 'testFinal.testImportStubOne',
             name: [{ tag: 'String', value: 'StubTwo' }],
             render: [],
             contents: []
@@ -122,17 +122,17 @@ describe('recursiveFetchImports', () => {
             name: [],
             render: [{ tag: 'String', value: 'Two' }],
             contents: [{
-                key: 'testImportOne#testImportStubOne',
+                key: 'testImportOne#testFinal.testImportStubOne',
                 tag: 'Exit',
                 name: 'test exit one',
                 from: 'testImportOne',
-                to: 'testImportStubOne',
+                to: 'testFinal.testImportStubOne',
                 contents: []
             }]
         },
         {
             tag: 'Room',
-            key: 'testImportStubOne',
+            key: 'testFinal.testImportStubOne',
             name: [],
             render: [],
             contents: []

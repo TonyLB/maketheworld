@@ -50,7 +50,7 @@ const recursiveRoomContentsFilter = ({ contents, keys }: { contents: SchemaRoomL
     }, [])
 }
 
-export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, keys: string[], stubKeys: string[] }): SchemaTag[] => {
+export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; schema: SchemaTag[] } => {
     const normalizer = new Normalizer()
     normalizer.loadNormal(normal)
     //
@@ -110,7 +110,7 @@ export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, k
         .filter(([key]) => (keys.includes(key)))
         .map(([_, item]) => (item))
 
-    return [...keyItems, ...stubItems]
+    return { newStubKeys, schema: [...keyItems, ...stubItems] }
 }
 
 export default normalSubset

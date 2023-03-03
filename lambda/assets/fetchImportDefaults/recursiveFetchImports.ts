@@ -1,4 +1,4 @@
-import { AssetKey } from "@tonylb/mtw-utilities/dist/types";
+import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
 import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses";
 import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { isSchemaRoomContents } from "@tonylb/mtw-wml/dist/schema/baseClasses";
@@ -76,6 +76,9 @@ export class NestedTranslateImportToFinal extends Object {
         //
         return key
     }
+    addTranslation(key: string, final: string): void {
+        this.localToFinal[key] = final
+    }
     translateSchemaTag(tag: SchemaTag): SchemaTag {
         if (isSchemaExit(tag)) {
             return {
@@ -104,10 +107,19 @@ type RecursiveFetchImportArgument = {
 export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
     const { localKeys: keys, localStubKeys: stubKeys } = translate
     const { normal } = await internalCache.JSONFile.get(assetId)
+    //
+    // Coming straight from the datalake, this normal should already be in standardized form,
+    // and can be fed directly to normalSubset
+    //
+    const { newStubKeys, schema } = normalSubset({ normal, keys, stubKeys })
+    newStubKeys.forEach((key) => {
+        translate.addTranslation(key, `${splitType(assetId)[1]}.${key}`)
+    })
+
     const relevantImports = Object.values(normal)
         .filter(isNormalImport)
         .reduce<{ assetId: `ASSET#${string}`; mapping: NormalImport["mapping"] }[]>((previous, { from, mapping }) => {
-            if ([...keys, ...stubKeys].find((key) => (key in mapping))) {
+            if ([...keys, ...stubKeys, ...newStubKeys].find((key) => (key in mapping))) {
                 return [
                     ...previous,
                     {
@@ -125,7 +137,7 @@ export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFet
     // the return values to local names
     //
     const importSchema = (await Promise.all(relevantImports.map(async ({ assetId, mapping }) => {
-        const nestedTranslate = translate.nestMapping(keys, stubKeys, mapping)
+        const nestedTranslate = translate.nestMapping(keys, [...stubKeys, ...newStubKeys], mapping)
         const tags: SchemaTag[] = await recursiveFetchImports({ assetId, translate: nestedTranslate })
         return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
     }))).flat()
@@ -146,13 +158,9 @@ export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFet
     // in the original asset (or other imported stubKeys)
     //
 
-    //
-    // Coming straight from the datalake, this normal should already be in standardized form,
-    // and can be fed directly to normalSubset
-    //
     return [
         ...importSchema,
-        ...normalSubset({ normal, keys, stubKeys }).map((tag) => (translate.translateSchemaTag(tag)))
+        ...schema.map((tag) => (translate.translateSchemaTag(tag)))
     ]
 
 }
