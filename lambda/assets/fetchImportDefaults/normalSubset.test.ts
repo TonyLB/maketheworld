@@ -19,7 +19,7 @@ describe('normalSubset', () => {
     const testNormal = normalizer.normal
 
     it('should return only a wrapper when passed no keys', () => {
-        expect(normalSubset({ normal: testNormal, keys: [], stubKeys: [] })).toEqual([])
+        expect(normalSubset({ normal: testNormal, keys: [], stubKeys: [] })).toEqual({ newStubKeys: [], schema: [] })
     })
 
 })
