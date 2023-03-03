@@ -102,9 +102,10 @@ export class NestedTranslateImportToFinal extends Object {
 type RecursiveFetchImportArgument = {
     assetId: `ASSET#${string}`;
     translate: NestedTranslateImportToFinal;
+    prefixStubKeys?: boolean;
 }
 
-export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
+export const recursiveFetchImports = async ({ assetId, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
     const { localKeys: keys, localStubKeys: stubKeys } = translate
     const { normal } = await internalCache.JSONFile.get(assetId)
     //
@@ -113,7 +114,7 @@ export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFet
     //
     const { newStubKeys, schema } = normalSubset({ normal, keys, stubKeys })
     newStubKeys.forEach((key) => {
-        translate.addTranslation(key, `${splitType(assetId)[1]}.${key}`)
+        translate.addTranslation(key, prefixStubKeys ? `${splitType(assetId)[1]}.${key}` : key)
     })
 
     const relevantImports = Object.values(normal)
@@ -133,30 +134,14 @@ export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFet
             }
         }, [])
     //
-    // TODO: ISS2251: Use aggregateImportMapping to generate recursiveKeyFetches, and then to map
+    // Use nested translators from relevantImports to generate recursiveKeyFetches, and then to map
     // the return values to local names
     //
     const importSchema = (await Promise.all(relevantImports.map(async ({ assetId, mapping }) => {
         const nestedTranslate = translate.nestMapping(keys, [...stubKeys, ...newStubKeys], mapping)
-        const tags: SchemaTag[] = await recursiveFetchImports({ assetId, translate: nestedTranslate })
+        const tags: SchemaTag[] = await recursiveFetchImports({ assetId, translate: nestedTranslate, prefixStubKeys: true })
         return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
     }))).flat()
-
-    //
-    // TODO: ISS-2246: Extend normalSubset to return an updated list of stubKeys, in addition to
-    // the SchemaTag main output, and use that to determine what needs to be looked up
-    // as possible imports from a different asset, to fill out yet more of the
-    // layers of inheritance.
-    //
-
-    //
-    // TODO: ISS-2247: Rename imports from recursive calls, to match them with their original aliases
-    //
-
-    //
-    // TODO: ISS-2248: Rename stubKeys from recursive calls, if needed to avoid conflict with names
-    // in the original asset (or other imported stubKeys)
-    //
 
     return [
         ...importSchema,
