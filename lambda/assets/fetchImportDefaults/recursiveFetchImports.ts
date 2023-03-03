@@ -43,7 +43,7 @@ export class NestedTranslateImportToFinal extends Object {
         }
     }
     nestMapping(keys: string[], stubKeys: string[], mapping: NormalImport["mapping"]): NestedTranslateImportToFinal {
-        const localToImport = Object.assign({}, ...Object.entries(mapping).map(([from, { key }]) => ({ [key]: from }))) as Record<string, string>
+        const localToImport = Object.assign({}, ...Object.entries(mapping).map(([from, { key }]) => ({ [from]: key }))) as Record<string, string>
         const keyMapping = keys
             .reduce<NestedTranslateLocalToFinal>((previous, key) => {
                 if (key in localToImport) {
@@ -104,16 +104,21 @@ type RecursiveFetchImportArgument = {
 export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
     const { localKeys: keys, localStubKeys: stubKeys } = translate
     const { normal } = await internalCache.JSONFile.get(assetId)
-    const relevantImports = Object.entries(normal)
-        .filter((tuple): tuple is [string, NormalImport] => (isNormalImport(tuple[1])))
-        .reduce<{ assetId: `ASSET#${string}`; mapping: NormalImport["mapping"] }[]>((previous, [from, { mapping }]) => {
-            return [
-                ...previous,
-                {
-                    assetId: `ASSET#${from}`,
-                    mapping
-                }
-            ]
+    const relevantImports = Object.values(normal)
+        .filter(isNormalImport)
+        .reduce<{ assetId: `ASSET#${string}`; mapping: NormalImport["mapping"] }[]>((previous, { from, mapping }) => {
+            if ([...keys, ...stubKeys].find((key) => (key in mapping))) {
+                return [
+                    ...previous,
+                    {
+                        assetId: `ASSET#${from}`,
+                        mapping
+                    }
+                ]
+            }
+            else {
+                return previous
+            }
         }, [])
     //
     // TODO: ISS2251: Use aggregateImportMapping to generate recursiveKeyFetches, and then to map
@@ -147,7 +152,7 @@ export const recursiveFetchImports = async ({ assetId, translate }: RecursiveFet
     //
     return [
         ...importSchema,
-        ...normalSubset({ normal, keys, stubKeys })
+        ...normalSubset({ normal, keys, stubKeys }).map((tag) => (translate.translateSchemaTag(tag)))
     ]
 
 }
