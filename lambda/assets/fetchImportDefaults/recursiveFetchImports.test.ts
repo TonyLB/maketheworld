@@ -32,10 +32,18 @@ describe('recursiveFetchImports', () => {
             <Exit to=(testImportStubOne)>test exit one</Exit>
         </Room>
         <Room key=(testImportStubOne) />
+        <Room key=(testImportTwo) />
+        <Room key=(testNonImportTwo)>
+            <Exit to=(testImportTwo)>test exit</Exit>
+        </Room>
+        <Room key=(testImportThree) />
         <Import from=(testImportAssetOne)>
             <Use type="Room" key=(testImportOne) />
             <Use type="Room" key=(testImportStubOne) />
             <Use type="Room" key=(testImportFoo) as=(testImportTwo) />
+        </Import>
+        <Import from=(testImportAssetTwo)>
+            <Use type="Room" key=(basic) as=(testImportThree) />
         </Import>
     </Asset>`)
     const testImportOne = testNormalFromWML(`<Asset key=(testImportAssetOne)>
@@ -48,10 +56,31 @@ describe('recursiveFetchImports', () => {
             <Name>StubTwo</Name>
         </Room>
         <Room key=(testImportFoo)>
+            <Name>StubFoo</Name>
             <Description>
                 Foo
             </Description>
         </Room>
+    </Asset>`)
+    const testImportTwo = testNormalFromWML(`<Asset key=(testImportAssetTwo)>
+        <Room key=(basic)>
+            <Description>
+                Asset Two
+            </Description>
+            <Exit to=(stub)>test exit</Exit>
+        </Room>
+        <Room key=(stub) />
+        <Import from=(testImportAssetThree)>
+            <Use type="Room" key=(basicTwo) as=(stub) />
+            <Use type="Room" key=(basicOne) as=(basic) />
+        </Import>
+    </Asset>`)
+    const testImportThree = testNormalFromWML(`<Asset key=(testImportAssetThree)>
+        <Room key=(basicOne)>
+            <Exit to=(stub)>test exit</Exit>
+        </Room>
+        <Room key=(basicTwo)><Name>Asset Three</Name></Room>
+        <Room key=(stub)><Name>AssetThreeStub</Name></Room>
     </Asset>`)
     beforeEach(() => {
         jest.clearAllMocks()
@@ -64,6 +93,12 @@ describe('recursiveFetchImports', () => {
                     break
                 case 'ASSET#testImportAssetOne':
                     normal = testImportOne
+                    break
+                case 'ASSET#testImportAssetTwo':
+                    normal = testImportTwo
+                    break
+                case 'ASSET#testImportAssetThree':
+                    normal = testImportThree
                     break
             }
             return {
@@ -78,65 +113,19 @@ describe('recursiveFetchImports', () => {
     })
 
     it('should return element and stubs when passed non-import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testNonImport'], []) })).toEqual([{
-            tag: 'Room',
-            key: 'testNonImport',
-            name: [],
-            render: [{ tag: 'String', value: 'DescriptionOne' }],
-            contents: [{
-                key: 'testNonImport#testFinal.testNonImportStub',
-                tag: 'Exit',
-                name: 'test exit',
-                from: 'testNonImport',
-                to: 'testFinal.testNonImportStub',
-                contents: []
-            }]
-        },
-        {
-            tag: 'Room',
-            key: 'testFinal.testNonImportStub',
-            name: [{ tag: 'String', value: 'StubOne' }],
-            render: [],
-            contents: []
-        }])
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testNonImport'], []) })).toMatchSnapshot()
     })
 
     it('should recursive fetch one level of element and stubs when passed import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportOne'], []) })).toEqual([{
-            tag: 'Room',
-            key: 'testImportOne',
-            name: [],
-            render: [{ tag: 'String', value: 'One' }],
-            contents: []
-        },
-        {
-            tag: 'Room',
-            key: 'testFinal.testImportStubOne',
-            name: [{ tag: 'String', value: 'StubTwo' }],
-            render: [],
-            contents: []
-        },
-        {
-            tag: 'Room',
-            key: 'testImportOne',
-            name: [],
-            render: [{ tag: 'String', value: 'Two' }],
-            contents: [{
-                key: 'testImportOne#testFinal.testImportStubOne',
-                tag: 'Exit',
-                name: 'test exit one',
-                from: 'testImportOne',
-                to: 'testFinal.testImportStubOne',
-                contents: []
-            }]
-        },
-        {
-            tag: 'Room',
-            key: 'testFinal.testImportStubOne',
-            name: [],
-            render: [],
-            contents: []
-        }])
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportOne'], []) })).toMatchSnapshot()
+    })
+
+    it('should follow dynamic renames in imports', async () => {
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testNonImportTwo'], []) })).toMatchSnapshot()
+    })
+
+    it('should import multilevel and avoid colliding stub names', async () => {
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportThree'], []) })).toMatchSnapshot()
     })
 
 })
