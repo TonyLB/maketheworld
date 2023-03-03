@@ -106,7 +106,21 @@ describe('recursiveFetchImports', () => {
             tag: 'Room',
             key: 'testImportOne',
             name: [],
-            render: [{ tag: 'String', value: 'OneTwo' }],
+            render: [{ tag: 'String', value: 'One' }],
+            contents: []
+        },
+        {
+            tag: 'Room',
+            key: 'testImportStubOne',
+            name: [{ tag: 'String', value: 'StubTwo' }],
+            render: [],
+            contents: []
+        },
+        {
+            tag: 'Room',
+            key: 'testImportOne',
+            name: [],
+            render: [{ tag: 'String', value: 'Two' }],
             contents: [{
                 key: 'testImportOne#testImportStubOne',
                 tag: 'Exit',
@@ -119,7 +133,7 @@ describe('recursiveFetchImports', () => {
         {
             tag: 'Room',
             key: 'testImportStubOne',
-            name: [{ tag: 'String', value: 'StubTwo' }],
+            name: [],
             render: [],
             contents: []
         }])
