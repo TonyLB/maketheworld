@@ -29,7 +29,7 @@ import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaAssetContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
 import { SchemaExitTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import recursiveFetchImports from "./recursiveFetchImports"
+import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
 
 const { S3_BUCKET } = process.env
 
@@ -208,7 +208,7 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
         payloads.map(async ({ importsFromAsset }) => {
             const importsByAsset = await Promise.all(
                 importsFromAsset.map(async ({ assetId, keys }) => {
-                    const schemaTags = await recursiveFetchImports({ assetId, keys, stubKeys: [] })
+                    const schemaTags = await recursiveFetchImports({ assetId, translate: new NestedTranslateImportToFinal(keys, []) })
                     const schemaByKey = schemaTags
                         .filter((item): item is SchemaRoomTag | SchemaFeatureTag | SchemaExitTag => (isSchemaRoom(item) || isSchemaFeature(item) || isSchemaExit(item)))
                         .filter(({ key }) => (keys.includes(key)))
