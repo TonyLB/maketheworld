@@ -174,8 +174,7 @@ export type AssetClientImportDefaults = {
 
 type FetchImportOutputByAsset = {
     assetId: `ASSET#${string}`;
-    schemaByKey: Record<string, string>;
-    stubsByKey: Record<string, string>;
+    wml: string;
 }
 
 export type AssetClientFetchImports = {
@@ -323,11 +322,8 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
             return checkAll(
                 'importsByAsset' in message,
                 Array.isArray(message.importsByAsset),
-                ...message.importsByAsset.map((importMessage) => (checkAll(
-                    checkTypes(importMessage, { assetId: 'string' }),
-                    ...Object.values(importMessage.schemaByKey || {}).map((item: any) => (typeof item === 'string')),
-                    ...Object.values(importMessage.stubsByKey || {}).map((item: any) => (typeof item === 'string'))
-                ) && importMessage.assetId.split('#')[0] === 'ASSET')))
+                ...message.importsByAsset.map((importMessage) => (checkTypes(importMessage, { assetId: 'string', wml: 'string' })) &&
+                importMessage.assetId.split('#')[0] === 'ASSET'))
         case 'ParseWML':
             return checkAll(
                 checkTypes(message, {}, { RequestId: 'string' }),

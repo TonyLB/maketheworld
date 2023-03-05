@@ -5,14 +5,12 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "schemaByKey": Object {
-        "testNonImportTwo": "<Room key=(testNonImportTwo)>
-    <Exit from=(testNonImportTwo) to=(testImportTwo)>test exit</Exit>
-</Room>",
-      },
-      "stubsByKey": Object {
-        "testImportTwo": "<Room key=(testImportTwo) />",
-      },
+      "wml": "<Asset key=(testFinal)>
+    <Room key=(testImportTwo)><Name>StubFoo</Name></Room>
+    <Room key=(testNonImportTwo)>
+        <Exit to=(testImportTwo)>test exit</Exit>
+    </Room>
+</Asset>",
     },
   ],
   "messageType": "FetchImports",
@@ -24,13 +22,15 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "schemaByKey": Object {
-        "testImportThree": "<Room key=(testImportThree) />",
-      },
-      "stubsByKey": Object {
-        "testImportAssetThree.stub": "<Room key=(testImportAssetThree.stub)><Name>AssetThreeStub</Name></Room>",
-        "testImportAssetTwo.stub": "<Room key=(testImportAssetTwo.stub) />",
-      },
+      "wml": "<Asset key=(testFinal)>
+    <Room key=(testImportAssetThree.stub)><Name>AssetThreeStub</Name></Room>
+    <Room key=(testImportAssetTwo.stub)><Name>Asset Three</Name></Room>
+    <Room key=(testImportThree)>
+        <Description>Asset Two</Description>
+        <Exit to=(testImportAssetThree.stub)>test exit</Exit>
+        <Exit to=(testImportAssetTwo.stub)>test exit</Exit>
+    </Room>
+</Asset>",
     },
   ],
   "messageType": "FetchImports",
@@ -42,15 +42,13 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "schemaByKey": Object {
-        "testImportOne": "<Room key=(testImportOne)>
-    <Description>Two</Description>
-    <Exit from=(testImportOne) to=(testImportStubOne)>test exit one</Exit>
-</Room>",
-      },
-      "stubsByKey": Object {
-        "testImportStubOne": "<Room key=(testImportStubOne) />",
-      },
+      "wml": "<Asset key=(testFinal)>
+    <Room key=(testImportOne)>
+        <Description>OneTwo</Description>
+        <Exit to=(testImportStubOne)>test exit one</Exit>
+    </Room>
+    <Room key=(testImportStubOne)><Name>StubTwo</Name></Room>
+</Asset>",
     },
   ],
   "messageType": "FetchImports",
@@ -62,15 +60,13 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "schemaByKey": Object {
-        "testNonImport": "<Room key=(testNonImport)>
-    <Description>DescriptionOne</Description>
-    <Exit from=(testNonImport) to=(testNonImportStub)>test exit</Exit>
-</Room>",
-      },
-      "stubsByKey": Object {
-        "testNonImportStub": "<Room key=(testNonImportStub)><Name>StubOne</Name></Room>",
-      },
+      "wml": "<Asset key=(testFinal)>
+    <Room key=(testNonImport)>
+        <Description>DescriptionOne</Description>
+        <Exit to=(testNonImportStub)>test exit</Exit>
+    </Room>
+    <Room key=(testNonImportStub)><Name>StubOne</Name></Room>
+</Asset>",
     },
   ],
   "messageType": "FetchImports",
@@ -82,8 +78,7 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "schemaByKey": Object {},
-      "stubsByKey": Object {},
+      "wml": "<Asset key=(testFinal) />",
     },
   ],
   "messageType": "FetchImports",
