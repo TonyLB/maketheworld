@@ -1,0 +1,91 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`fetchImportsMessage should follow dynamic renames in imports 1`] = `
+Object {
+  "importsByAsset": Array [
+    Object {
+      "assetId": "ASSET#testFinal",
+      "schemaByKey": Object {
+        "testNonImportTwo": "<Room key=(testNonImportTwo)>
+    <Exit from=(testNonImportTwo) to=(testImportTwo)>test exit</Exit>
+</Room>",
+      },
+      "stubsByKey": Object {
+        "testImportTwo": "<Room key=(testImportTwo) />",
+      },
+    },
+  ],
+  "messageType": "FetchImports",
+}
+`;
+
+exports[`fetchImportsMessage should import multilevel and avoid colliding stub names 1`] = `
+Object {
+  "importsByAsset": Array [
+    Object {
+      "assetId": "ASSET#testFinal",
+      "schemaByKey": Object {
+        "testImportThree": "<Room key=(testImportThree) />",
+      },
+      "stubsByKey": Object {
+        "testImportAssetThree.stub": "<Room key=(testImportAssetThree.stub)><Name>AssetThreeStub</Name></Room>",
+        "testImportAssetTwo.stub": "<Room key=(testImportAssetTwo.stub) />",
+      },
+    },
+  ],
+  "messageType": "FetchImports",
+}
+`;
+
+exports[`fetchImportsMessage should recursive fetch one level of element and stubs when passed import key 1`] = `
+Object {
+  "importsByAsset": Array [
+    Object {
+      "assetId": "ASSET#testFinal",
+      "schemaByKey": Object {
+        "testImportOne": "<Room key=(testImportOne)>
+    <Description>Two</Description>
+    <Exit from=(testImportOne) to=(testImportStubOne)>test exit one</Exit>
+</Room>",
+      },
+      "stubsByKey": Object {
+        "testImportStubOne": "<Room key=(testImportStubOne) />",
+      },
+    },
+  ],
+  "messageType": "FetchImports",
+}
+`;
+
+exports[`fetchImportsMessage should return element and stubs when passed non-import key 1`] = `
+Object {
+  "importsByAsset": Array [
+    Object {
+      "assetId": "ASSET#testFinal",
+      "schemaByKey": Object {
+        "testNonImport": "<Room key=(testNonImport)>
+    <Description>DescriptionOne</Description>
+    <Exit from=(testNonImport) to=(testNonImportStub)>test exit</Exit>
+</Room>",
+      },
+      "stubsByKey": Object {
+        "testNonImportStub": "<Room key=(testNonImportStub)><Name>StubOne</Name></Room>",
+      },
+    },
+  ],
+  "messageType": "FetchImports",
+}
+`;
+
+exports[`fetchImportsMessage should return empty when passed no keys 1`] = `
+Object {
+  "importsByAsset": Array [
+    Object {
+      "assetId": "ASSET#testFinal",
+      "schemaByKey": Object {},
+      "stubsByKey": Object {},
+    },
+  ],
+  "messageType": "FetchImports",
+}
+`;
