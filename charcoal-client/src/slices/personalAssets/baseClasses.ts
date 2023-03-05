@@ -1,6 +1,5 @@
 import { AssetClientFetchURL, AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses';
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
 export interface PersonalAssetsInternal {
@@ -29,7 +28,7 @@ export interface PersonalAssetsPublic {
     draftWML?: string;
     normal: NormalForm;
     importDefaults: AssetClientImportDefaults["defaultsByKey"];
-    importData: Record<string, SchemaTag>;
+    importData: Record<string, NormalForm>;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
 }

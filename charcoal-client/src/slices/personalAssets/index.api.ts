@@ -5,7 +5,7 @@ import {
     getStatus
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
-import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalForm, NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientFetchImports, AssetClientImportDefaults, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
@@ -108,19 +108,12 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal
     // TODO: Figure out how to merge incoming importData with pre-existing importData, overriding stubs with
     // full schema where necessary, but never overriding a full schema with a stub
     //
-    const importData: Record<string, SchemaTag> = importFetches.map(({ importsByAsset }) => (importsByAsset)).flat().reduce<Record<string, SchemaTag>>((previous, { assetId, schemaByKey, stubsByKey }) => {
-        const aggregateSchema: SchemaAssetTag = {
-            tag: 'Asset',
-            Story: undefined,
-            key: assetId.split('#')[1],
-            contents: [
-                ...Object.values(stubsByKey).map(schemaFromWML).flat().filter(isSchemaAssetContents),
-                ...Object.values(schemaByKey).map(schemaFromWML).flat().filter(isSchemaAssetContents)
-            ]
-        }
+    const importData: Record<string, NormalForm> = importFetches.map(({ importsByAsset }) => (importsByAsset)).flat().reduce<Record<string, NormalForm>>((previous, { assetId, wml }) => {
+        const normalizer = new Normalizer()
+        normalizer.loadWML(wml)
         return {
             ...previous,
-            [assetId]: aggregateSchema
+            [assetId]: normalizer.normal
         }
     }, {})
 

@@ -209,24 +209,15 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
             const importsByAsset = await Promise.all(
                 importsFromAsset.map(async ({ assetId, keys }) => {
                     const schemaTags = await recursiveFetchImports({ assetId, translate: new NestedTranslateImportToFinal(keys, []) })
-                    const schemaByKey = schemaTags
-                        .filter((item): item is SchemaRoomTag | SchemaFeatureTag | SchemaExitTag => (isSchemaRoom(item) || isSchemaFeature(item) || isSchemaExit(item)))
-                        .filter(({ key }) => (keys.includes(key)))
-                        .reduce<Record<string, string>>((previous, item) => ({
-                            ...previous,
-                            [item.key]: schemaToWML([item])
-                        }), {})
-                    const stubsByKey = schemaTags
-                        .filter((item): item is SchemaRoomTag | SchemaFeatureTag | SchemaExitTag => (isSchemaRoom(item) || isSchemaFeature(item) || isSchemaExit(item)))
-                        .filter(({ key }) => (!keys.includes(key)))
-                        .reduce<Record<string, string>>((previous, item) => ({
-                            ...previous,
-                            [item.key]: schemaToWML([item])
-                        }), {})
+                    const assetSchema: SchemaAssetTag = {
+                        tag: 'Asset',
+                        Story: undefined,
+                        key: splitType(assetId)[1],
+                        contents: schemaTags.filter(isSchemaAssetContents)
+                    }
                     return {
                         assetId,
-                        schemaByKey,
-                        stubsByKey
+                        wml: schemaToWML([assetSchema])
                     }
                 })
             )
