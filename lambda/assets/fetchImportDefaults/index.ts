@@ -215,9 +215,12 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
                         key: splitType(assetId)[1],
                         contents: schemaTags.filter(isSchemaAssetContents)
                     }
+                    const normalizer = new Normalizer()
+                    normalizer.loadSchema([assetSchema])
+                    normalizer.standardize()
                     return {
                         assetId,
-                        wml: schemaToWML([assetSchema])
+                        wml: schemaToWML(normalizer.schema)
                     }
                 })
             )

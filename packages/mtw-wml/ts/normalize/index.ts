@@ -1005,10 +1005,9 @@ export class Normalizer {
         }
     }
 
-    loadWML(wml: string): void {
+    loadSchema(schema: SchemaTag[]): void {
         this._normalForm = {}
         this._tags = {}
-        const schema = schemaFromWML(wml)
         //
         // TEMPORARY PROVISION:  Until there's a proper architecture for having multiple
         // assets defined in the same WML file, throw an exception here if a multi-asset
@@ -1020,6 +1019,11 @@ export class Normalizer {
         schema.forEach((item, index) => {
             this.put(item, { contextStack: [], index, replace: false })
         })
+    }
+
+    loadWML(wml: string): void {
+        const schema = schemaFromWML(wml)
+        this.loadSchema(schema)
     }
 
     loadNormal(normal: NormalForm): void {

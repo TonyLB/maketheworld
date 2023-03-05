@@ -10,7 +10,6 @@ Object {
     <Room key=(testNonImportTwo)>
         <Exit to=(testImportTwo)>test exit</Exit>
     </Room>
-    <Room key=(testImportTwo) />
 </Asset>",
     },
   ],
@@ -24,17 +23,13 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room key=(testImportThree)>
-        <Exit to=(testImportAssetThree.stub)>test exit</Exit>
-    </Room>
-    <Room key=(testImportAssetTwo.stub)><Name>Asset Three</Name></Room>
     <Room key=(testImportAssetThree.stub)><Name>AssetThreeStub</Name></Room>
+    <Room key=(testImportAssetTwo.stub)><Name>Asset Three</Name></Room>
     <Room key=(testImportThree)>
         <Description>Asset Two</Description>
+        <Exit to=(testImportAssetThree.stub)>test exit</Exit>
         <Exit to=(testImportAssetTwo.stub)>test exit</Exit>
     </Room>
-    <Room key=(testImportAssetTwo.stub) />
-    <Room key=(testImportThree) />
 </Asset>",
     },
   ],
@@ -48,13 +43,11 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room key=(testImportOne)><Description>One</Description></Room>
-    <Room key=(testImportStubOne)><Name>StubTwo</Name></Room>
     <Room key=(testImportOne)>
-        <Description>Two</Description>
+        <Description>OneTwo</Description>
         <Exit to=(testImportStubOne)>test exit one</Exit>
     </Room>
-    <Room key=(testImportStubOne) />
+    <Room key=(testImportStubOne)><Name>StubTwo</Name></Room>
 </Asset>",
     },
   ],
