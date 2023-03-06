@@ -16,6 +16,7 @@ import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer'
 import parse from '@tonylb/mtw-wml/dist/parser'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { isSchemaAssetContents, SchemaAssetTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { getNormalized, setImport } from '.'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -59,7 +60,42 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
 
 type ImportsByAssets = Record<string, Record<string, string>>
 
-export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal }, internalData: { id } }) => async (dispatch) => {
+export const fetchImports = (id: string) => async (dispatch: any, getState: () => any) => {
+    if (!id) {
+        return {}
+    }
+    const normal = getNormalized(id)(getState())
+
+    const importsByAssetId = Object.values(normal || {})
+        .filter(({ tag }) => (tag === 'Import'))
+        .map((item) => (item as NormalImport))
+        .reduce((previous, { from, mapping }) => ({
+            ...previous,
+            [from]: Object.entries(mapping)
+                .reduce((previous, [localKey, { key: awayKey }]) => ({
+                    ...previous,
+                    [localKey]: awayKey
+                }), {})
+        }), {} as ImportsByAssets)
+
+    const importFetches: AssetClientFetchImports[] = await Promise.all(
+        Object.entries(importsByAssetId).map(([assetId, keys]) => (
+            //
+            // TODO: Generalize fetchImports to take a list of keys by assetId
+            //
+            dispatch(socketDispatchPromise({ message: 'fetchImports', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
+        )
+    ))
+
+    importFetches.map(({ importsByAsset }) => (importsByAsset)).flat().forEach(({ assetId, wml }) => {
+        const normalizer = new Normalizer()
+        normalizer.loadWML(wml)
+        dispatch(setImport(id)({ assetKey: assetId.split('#')[1], normal: normalizer.normal }))
+    })
+
+}
+
+export const fetchImportsAPIAction: PersonalAssetsAction = ({ publicData: { normal }, internalData: { id } }) => async (dispatch) => {
     if (!id) {
         return {}
     }
@@ -76,17 +112,15 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal
                 }), {})
         }), {} as ImportsByAssets)
 
-    const importAPICall: [AssetClientImportDefaults, AssetClientFetchImports][] = await Promise.all(
-        Object.entries(importsByAssetId).map(([assetId, keys]) => (Promise.all([
-            //
-            // TODO: Deprecate fetchImportDefaults and use fetchImports return instead
-            //
-            dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' })),
-            dispatch(socketDispatchPromise({ message: 'fetchImports', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
-        ])
-    )))
-    const importFetchDefaults = importAPICall.map((items) => (items[0]))
-    const importFetches = importAPICall.map((items) => (items[1]))
+    //
+    // TODO: Deprecate fetchImportDefaults and use fetchImports return instead
+    //
+    await dispatch(fetchImports(id))
+    const importFetchDefaults: AssetClientImportDefaults[] = await Promise.all(
+        Object.entries(importsByAssetId).map(([assetId, keys]) => (
+            dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
+        ))
+    )
 
     const importDefaults = importFetchDefaults.reduce<AssetClientImportDefaults["defaultsByKey"]>((previous, importFetch) => (
         Object.entries(importsByAssetId[importFetch.assetId.split('#')[1]] || {})
@@ -104,23 +138,9 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { normal
             }, previous)
     ), {})
 
-    //
-    // TODO: Figure out how to merge incoming importData with pre-existing importData, overriding stubs with
-    // full schema where necessary, but never overriding a full schema with a stub
-    //
-    const importData: Record<string, NormalForm> = importFetches.map(({ importsByAsset }) => (importsByAsset)).flat().reduce<Record<string, NormalForm>>((previous, { assetId, wml }) => {
-        const normalizer = new Normalizer()
-        normalizer.loadWML(wml)
-        return {
-            ...previous,
-            [assetId]: normalizer.normal
-        }
-    }, {})
-
     return {
         publicData: {
-            importDefaults,
-            importData
+            importDefaults
         }
     }
 }
