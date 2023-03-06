@@ -4,7 +4,7 @@ import {
     lifelineCondition,
     getFetchURL,
     fetchAction,
-    fetchDefaultsAction,
+    fetchImportsAPIAction,
     getSaveURL,
     saveWML,
     clearAction,
@@ -14,7 +14,7 @@ import {
     regenerateWMLAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
-import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer } from './reducers'
+import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
 
 export const {
     slice: personalAssetsSlice,
@@ -43,7 +43,8 @@ export const {
         setDraftWML: setDraftWMLReducer,
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
-        updateNormal: updateNormalReducer
+        updateNormal: updateNormalReducer,
+        setImport: setImportReducer,
     },
     publicSelectors,
     template: {
@@ -96,7 +97,7 @@ export const {
             },
             FETCHDEFAULTS: {
                 stateType: 'ATTEMPT',
-                action: fetchDefaultsAction,
+                action: fetchImportsAPIAction,
                 resolve: 'FRESH',
                 reject: 'FETCHDEFAULTSBACKOFF'
             },
@@ -201,7 +202,8 @@ export const {
     setDraftWML,
     revertDraftWML,
     setLoadedImage,
-    updateNormal
+    updateNormal,
+    setImport
 } = publicActions
 export const {
     getStatus,
