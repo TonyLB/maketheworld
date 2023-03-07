@@ -11,7 +11,8 @@ import {
     backoffAction,
     parseWML,
     locallyParseWMLAction,
-    regenerateWMLAction
+    regenerateWMLAction,
+    initializeNewAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
@@ -138,6 +139,12 @@ export const {
             DRAFTERROR: {
                 stateType: 'CHOICE',
                 choices: ['CLEAR', 'NEEDPARSE']
+            },
+            NEW: {
+                stateType: 'ATTEMPT',
+                action: initializeNewAction,
+                resolve: 'NORMALDIRTY',
+                reject: 'WMLERROR',
             },
             NORMALDIRTY: {
                 stateType: 'CHOICE',

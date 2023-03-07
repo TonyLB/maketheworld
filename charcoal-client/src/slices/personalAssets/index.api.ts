@@ -316,3 +316,27 @@ export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { normal
         throw err
     }
 }
+
+export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id } }) => async(dispatch) => {
+    if (!id) {
+        throw new Error()
+    }
+    const normalizer = new Normalizer()
+    normalizer.put({
+        tag: 'Asset',
+        key: `ASSET#${id}`,
+        Story: undefined,
+        contents: []
+    }, { contextStack: [] })
+    const newWML = schemaToWML(normalizer.schema)
+    return {
+        publicData: {
+            normal: normalizer.normal,
+            currentWML: newWML,
+            properties: {},
+            importDefaults: {},
+            importData: {},
+            loadedImages: {}
+        }
+    }
+}

@@ -25,7 +25,6 @@ import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
 import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 
-
 interface TableOfContentsProps {
     Characters: AssetClientPlayerCharacter[];
     Assets: AssetClientPlayerAsset[];
