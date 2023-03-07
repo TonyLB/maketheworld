@@ -322,12 +322,32 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
         throw new Error()
     }
     const normalizer = new Normalizer()
-    normalizer.put({
-        tag: 'Asset',
-        key: `ASSET#${id}`,
-        Story: undefined,
-        contents: []
-    }, { contextStack: [] })
+    if (isEphemeraAssetId(id)) {
+        normalizer.put({
+            tag: 'Asset',
+            key: id,
+            Story: undefined,
+            contents: []
+        }, { contextStack: [] })
+    }
+    else if (isEphemeraCharacterId(id)) {
+        normalizer.put({
+            tag: 'Character',
+            key: id,
+            contents: [],
+            Name: 'Unknown',
+            Pronouns: {
+                subject: 'they',
+                object: 'them',
+                possessive: 'theirs',
+                adjective: 'their',
+                reflexive: 'themself'
+            }
+        }, { contextStack: [] })
+    }
+    else {
+        throw new Error()
+    }
     const newWML = schemaToWML(normalizer.schema)
     return {
         publicData: {
