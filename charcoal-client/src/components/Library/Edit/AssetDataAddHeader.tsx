@@ -21,6 +21,12 @@ interface AssetDataAddHeaderProps<T extends Object> {
 export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () => { }, defaultFields, label, validate }: AssetDataAddHeaderProps<T>): ReactElement<any, any> | null => {
     const [enteringKey, setEnteringKey] = useState<boolean>(false)
     const [formState, setFormState] = useState<T>(defaultFields)
+    //
+    // TODO: Add a validatingKey state and an awaitingClick state, to permit asynchronous validation
+    // (with a potential separate display for the "item is being validated" state and a display for
+    // "item is awaiting click", *and* a click that only sets item is awaiting, and doesn't resolve
+    // onAdd until validation is complete)
+    //
     const errorMessage = useMemo(() => (validate(formState)), [validate, formState])
     const onClick = useCallback(() => {
         onAdd(formState)
