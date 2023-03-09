@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState, useMemo, useCallback, ReactElement } from 'react'
+import React, { FunctionComponent, useState, useMemo, useCallback, ReactElement, useEffect, useRef } from 'react'
 
 import {
     Box,
@@ -9,17 +9,26 @@ import {
     Button
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import useDebounce from '../../../hooks/useDebounce';
 
 interface AssetDataAddHeaderProps<T extends Object> {
     renderFields: FunctionComponent<T & { onChange: (props: T) => void }>;
     onAdd: (props: T) => void;
     defaultFields: T;
-    validate: (props: T) => string;
+    validate: (props: T) => Promise<string>;
+    validateDelay?: number;
     label: string;
 }
 
-export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () => { }, defaultFields, label, validate }: AssetDataAddHeaderProps<T>): ReactElement<any, any> | null => {
+//
+// TODO: Add a setErrorMessage argument to AssetDataAddHeader, and give it sole responsibility for running the
+// validation, then update everywhere that AssetDataAddHeader is used
+//
+export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () => { }, defaultFields, label, validate, validateDelay = 5 }: AssetDataAddHeaderProps<T>): ReactElement<any, any> | null => {
     const [enteringKey, setEnteringKey] = useState<boolean>(false)
+    const [validatingKey, setValidatingKey] = useState<boolean>(false)
+    const validationLock = useRef<number>(0)
+    const [awaitingClickResolve, setAwaitingClickResolve] = useState<boolean>(false)
     const [formState, setFormState] = useState<T>(defaultFields)
     //
     // TODO: Add a validatingKey state and an awaitingClick state, to permit asynchronous validation
@@ -27,7 +36,34 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
     // "item is awaiting click", *and* a click that only sets item is awaiting, and doesn't resolve
     // onAdd until validation is complete)
     //
-    const errorMessage = useMemo(() => (validate(formState)), [validate, formState])
+    const [errorMessage, setErrorMessageInternal] = useState<string>('')
+    //
+    // Send async validation events, debounced by the specified delay, and update the
+    // error message accordingly.
+    //
+    const debouncedState = useDebounce(formState, validateDelay)
+    useEffect(() => {
+        validationLock.current++
+        const saveValidationLock = validationLock.current
+        setValidatingKey(true)
+        validate(debouncedState).then((errorMessage: string) => {
+            if (validationLock.current = saveValidationLock) {
+                setErrorMessageInternal(errorMessage)
+                setValidatingKey(false)
+            }
+        })
+    }, [
+        debouncedState,
+        validate,
+        validationLock,
+        setErrorMessageInternal,
+        setValidatingKey
+    ])
+    //
+    // TODO: Refactor onClick to set awaitingClick when validatingKey is in progress, and
+    // refactor the validation useEffect to call the core onAddWrapper functionality if
+    // a click is being awaited when validation succeeds.
+    //
     const onClick = useCallback(() => {
         onAdd(formState)
         setEnteringKey(false)

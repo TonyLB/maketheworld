@@ -42,11 +42,14 @@ export const AddWMLComponent: FunctionComponent<AddWMLComponentProps> = ({ type,
         }
         return ''
     }, [normalForm])
+    const asynchronousValidate = useCallback(async ({ key }: { key: string }) => {
+        return await validate({key})
+    }, [validate])
     return <AssetDataAddHeader
         defaultFields={{ key: '' }}
         label={`Add ${type}`}
         renderFields={addWMLRenderFieldsGenerator(validate)}
-        validate={validate}
+        validate={asynchronousValidate}
         onAdd={onAddWrapper}
     />
 }

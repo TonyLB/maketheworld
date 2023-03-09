@@ -2,7 +2,7 @@ import TextField from "@mui/material/TextField"
 import { FunctionComponent, useCallback } from "react"
 import AssetDataAddHeader from "./AssetDataAddHeader"
 
-const addAssetGenerator: (validate: (props: { key: string }) => string) => FunctionComponent<{ key: string; onChange: (props: { key: string }) => void }> = (validate) => ({ key, onChange }) => {
+const addAssetGenerator: (validate: (props: { key: string }) => Promise<string>) => FunctionComponent<{ key: string; onChange: (props: { key: string }) => void }> = (validate) => ({ key, onChange }) => {
     const errorMessage = validate({ key })
     return <TextField
         required
@@ -24,7 +24,7 @@ type AddAssetProps = {
 
 export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () => { }}) => {
     const onAddWrapper = useCallback(({ key }: { key: string }) => { onAdd(key) }, [onAdd])
-    const validate = useCallback(({ key }: { key: string }) => {
+    const validate = useCallback(async ({ key }: { key: string }) => {
         if (key.length && (key.search(/^[A-Za-z][\w\_]*$/) === -1)) {
             return `Keys must start with a letter and be made of up letters, digits, and the "_" character`
         }
