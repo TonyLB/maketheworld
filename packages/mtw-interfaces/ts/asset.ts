@@ -1,10 +1,15 @@
-import { EphemeraAssetId, EphemeraCharacterId, isEphemeraCharacterId } from "./baseClasses";
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId } from "./baseClasses";
 import { LibraryAsset, LibraryCharacter } from "./library";
 import { FeatureDescribeData, RoomDescribeData, validateTaggedMessageList } from "./messages";
 import { checkAll, checkTypes } from "./utils";
 
 export type FetchLibraryAPIMessage = {
     message: 'fetchLibrary';
+}
+
+export type MetaDataAPIMessage = {
+    message: 'metaData';
+    assetId: `ASSET#${string}` | `CHARACTER#${string}`;
 }
 
 export type FetchImportsAPIMessage = {
@@ -74,6 +79,7 @@ export type AssetWhoAmIAPIMessage = {
 
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
+    MetaDataAPIMessage |
     FetchImportDefaultsAPIMessage |
     FetchImportsAPIMessage |
     FetchAssetAPIMessage |
@@ -87,6 +93,7 @@ export type AssetAPIMessage = { RequestId?: string } & (
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
+export const isMetaDataAPIMessage = (message: AssetAPIMessage): message is MetaDataAPIMessage => (message.message === 'metaData')
 export const isFetchImportDefaultsAPIMessage = (message: AssetAPIMessage): message is FetchImportDefaultsAPIMessage => (message.message === 'fetchImportDefaults')
 export const isFetchImportsAPIMessage = (message: AssetAPIMessage): message is FetchImportsAPIMessage => (message.message === 'fetchImports')
 export const isFetchAssetAPIMessage = (message: AssetAPIMessage): message is FetchAssetAPIMessage => (message.message === 'fetch')
@@ -138,6 +145,13 @@ export type AssetClientLibraryMessage = {
     Characters: LibraryCharacter[];
 }
 
+export type AssetClientMetaDataMessage = {
+    messageType: 'MetaData';
+    RequestId?: string;
+    AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
+    zone: 'Canon' | 'Library' | 'Personal' | 'None';
+}
+
 export type AssetClientFetchURL = {
     messageType: 'FetchURL';
     RequestId?: string;
@@ -183,11 +197,6 @@ export type AssetClientFetchImports = {
     importsByAsset: FetchImportOutputByAsset[];
 }
 
-//
-// TODO: Create AssetClientParseWML message type, and add it to legal AssetClientMessage
-//    - Type should return the properties for images that have been added during the parse
-//
-
 export type AssetClientParseWML = {
     messageType: 'ParseWML';
     RequestId?: string;
@@ -196,6 +205,7 @@ export type AssetClientParseWML = {
 
 export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientLibraryMessage |
+    AssetClientMetaDataMessage |
     AssetClientFetchURL |
     AssetClientUploadURL |
     AssetClientImportDefaults |
@@ -207,6 +217,15 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
         return false
     }
     switch(message.messageType) {
+        case 'MetaData':
+            return checkAll(
+                checkTypes(message, {
+                    AssetId: 'string',
+                    zone: 'string'
+                }),
+                isEphemeraAssetId(message.AssetId) || isEphemeraCharacterId(message.AssetId),
+                ['Canon', 'Library', 'Personal', 'None'].includes(message.zone)
+            )
         case 'Player':
             return checkAll(
                 checkTypes(message, {
