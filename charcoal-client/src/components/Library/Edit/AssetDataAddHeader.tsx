@@ -30,13 +30,27 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
     const validationLock = useRef<number>(0)
     const [awaitingClickResolve, setAwaitingClickResolve] = useState<boolean>(false)
     const [formState, setFormState] = useState<T>(defaultFields)
-    //
-    // TODO: Add a validatingKey state and an awaitingClick state, to permit asynchronous validation
-    // (with a potential separate display for the "item is being validated" state and a display for
-    // "item is awaiting click", *and* a click that only sets item is awaiting, and doesn't resolve
-    // onAdd until validation is complete)
-    //
     const [errorMessage, setErrorMessageInternal] = useState<string>('')
+
+    const addCurrent = useCallback(() => {
+        onAdd(formState)
+        setEnteringKey(false)
+        setFormState(defaultFields)
+        setAwaitingClickResolve(false)
+    }, [onAdd, setEnteringKey, formState, setFormState, defaultFields, setAwaitingClickResolve])
+    //
+    // onClick sets awaitingClick when validatingKey is in progress, and
+    // counts on the validation useEffect to call the core onAddWrapper functionality
+    // if a click is being awaited when validation succeeds.
+    //
+    const onClick = useCallback(() => {
+        if (validatingKey) {
+            setAwaitingClickResolve(true)
+        }
+        else {
+            addCurrent()
+        }
+    }, [addCurrent, validatingKey, setAwaitingClickResolve])
     //
     // Send async validation events, debounced by the specified delay, and update the
     // error message accordingly.
@@ -50,6 +64,9 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
             if (validationLock.current = saveValidationLock) {
                 setErrorMessageInternal(errorMessage)
                 setValidatingKey(false)
+                if (awaitingClickResolve) {
+                    addCurrent()
+                }
             }
         })
     }, [
@@ -57,18 +74,9 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
         validate,
         validationLock,
         setErrorMessageInternal,
-        setValidatingKey
+        setValidatingKey,
+        awaitingClickResolve
     ])
-    //
-    // TODO: Refactor onClick to set awaitingClick when validatingKey is in progress, and
-    // refactor the validation useEffect to call the core onAddWrapper functionality if
-    // a click is being awaited when validation succeeds.
-    //
-    const onClick = useCallback(() => {
-        onAdd(formState)
-        setEnteringKey(false)
-        setFormState(defaultFields)
-    }, [onAdd, setEnteringKey, formState, setFormState, defaultFields])
     const onEnter = useCallback(() => {
         if (!enteringKey) {
             setEnteringKey(true)
