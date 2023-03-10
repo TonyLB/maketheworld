@@ -31,6 +31,10 @@ export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () =>
         if (!key.length) {
             return 'You must specify a key'
         }
+        //
+        // TODO: Call to-be-created getMetaData outlet on Asset API, and only validate if there isn't
+        // anything yet by that key.
+        //
         return ''
     }, [])
     return <AssetDataAddHeader

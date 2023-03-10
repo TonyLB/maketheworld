@@ -3,6 +3,8 @@ import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/index'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
+import Meta, { MetaData } from './meta'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type JSONFileCache = {
     normal: NormalForm;
@@ -10,9 +12,11 @@ type JSONFileCache = {
 }
 
 export class JSONFileData {
+    _Meta: (key: EphemeraAssetId | EphemeraCharacterId) => Promise<{ address?: AssetWorkspaceAddress }>;
     _Cache: DeferredCache<JSONFileCache>;
     
-    constructor() {
+    constructor(meta: MetaData) {
+        this._Meta = (key: EphemeraAssetId | EphemeraCharacterId) => (meta.get(key))
         this._Cache = new DeferredCache<JSONFileCache>({
             defaultValue: (cacheKey) => {
                 return {
@@ -32,12 +36,8 @@ export class JSONFileData {
     }
 
     async _getPromiseFactory(AssetId: `ASSET#${string}`): Promise<JSONFileCache> {
-        const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
-            AssetId,
-            DataCategory: 'Meta::Asset',
-            ProjectionFields: ['address']
-        })) || {}
-        if (!isAssetWorkspaceAddress(address)) {
+        const { address } = await this._Meta(AssetId)
+        if (!address) {
             return {
                 normal: {},
                 namespaceIdToDB: {}
@@ -79,13 +79,13 @@ export class JSONFileData {
 
 }
 
-export const JSONFile = <GBase extends CacheConstructor>(Base: GBase) => {
+export const JSONFile = <GBase extends ReturnType<typeof Meta>>(Base: GBase) => {
     return class JSONFile extends Base {
         JSONFile: JSONFileData;
 
         constructor(...rest: any) {
             super(...rest)
-            this.JSONFile = new JSONFileData()
+            this.JSONFile = new JSONFileData(this.Meta)
         }
         override clear() {
             this.JSONFile.clear()
