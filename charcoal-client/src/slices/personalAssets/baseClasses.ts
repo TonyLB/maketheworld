@@ -55,6 +55,7 @@ export interface PersonalAssetsNodes {
     NEEDERROR: ISSMRedirectNode;
     DRAFTERROR: ISSMChoiceNode;
     WMLERROR: ISSMChoiceNode;
+    NEW: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     NORMALDIRTY: ISSMChoiceNode;
     REGENERATEWML: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     NEEDSAVE: ISSMRedirectNode;

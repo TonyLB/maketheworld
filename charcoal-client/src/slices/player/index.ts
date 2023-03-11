@@ -16,7 +16,7 @@ import {
     PlayerSelectors
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
-import { setCurrentDraft as setCurrentDraftReducer } from './reducers'
+import { setCurrentDraft as setCurrentDraftReducer, addAsset as addAssetReducer } from './reducers'
 
 export const {
     slice: playerSlice,
@@ -41,7 +41,8 @@ export const {
     sliceSelector: ({ player }) => (player),
     publicReducers: {
         receivePlayer,
-        setCurrentDraft: setCurrentDraftReducer
+        setCurrentDraft: setCurrentDraftReducer,
+        addAsset: addAssetReducer
     },
     publicSelectors: {
         getPlayer: getPlayerSelector,
@@ -103,7 +104,7 @@ export const {
     }
 })
 
-export const { setCurrentDraft } = publicActions
+export const { setCurrentDraft, addAsset } = publicActions
 export const {
     getPlayer,
     getMyCharacters,

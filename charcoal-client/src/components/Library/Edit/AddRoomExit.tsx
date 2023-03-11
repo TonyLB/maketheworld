@@ -91,6 +91,9 @@ export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId, onAdd
         }
         return ''
     }, [])
+    const asynchronousValidate = useCallback(async (props: AddExitFields) => {
+        return await validate(props)
+    }, [validate])
     const exitOptions = useMemo<ExitSelectOptions>(() => {
         const allPossibleOptions = Object.entries(rooms)
             .filter(([key]) => (key !== RoomId))
@@ -109,7 +112,7 @@ export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId, onAdd
     return <AssetDataAddHeader
         defaultFields={{ toTarget: true, targetId: '' }}
         renderFields={renderFields}
-        validate={validate}
+        validate={asynchronousValidate}
         label="Add Exit"
         onAdd={onAdd}
     />

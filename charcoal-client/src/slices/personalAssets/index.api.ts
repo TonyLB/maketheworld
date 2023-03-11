@@ -316,3 +316,47 @@ export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { normal
         throw err
     }
 }
+
+export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id } }) => async(dispatch) => {
+    if (!id) {
+        throw new Error()
+    }
+    const normalizer = new Normalizer()
+    if (isEphemeraAssetId(id)) {
+        normalizer.put({
+            tag: 'Asset',
+            key: id.split('#')[1],
+            Story: undefined,
+            contents: []
+        }, { contextStack: [] })
+    }
+    else if (isEphemeraCharacterId(id)) {
+        normalizer.put({
+            tag: 'Character',
+            key: id.split('#')[1],
+            contents: [],
+            Name: 'Unknown',
+            Pronouns: {
+                subject: 'they',
+                object: 'them',
+                possessive: 'theirs',
+                adjective: 'their',
+                reflexive: 'themself'
+            }
+        }, { contextStack: [] })
+    }
+    else {
+        throw new Error()
+    }
+    const newWML = schemaToWML(normalizer.schema)
+    return {
+        publicData: {
+            normal: normalizer.normal,
+            currentWML: newWML,
+            properties: {},
+            importDefaults: {},
+            importData: {},
+            loadedImages: {}
+        }
+    }
+}

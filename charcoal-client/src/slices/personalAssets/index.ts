@@ -11,10 +11,13 @@ import {
     backoffAction,
     parseWML,
     locallyParseWMLAction,
-    regenerateWMLAction
+    regenerateWMLAction,
+    initializeNewAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { addAsset } from '../player'
 
 export const {
     slice: personalAssetsSlice,
@@ -139,6 +142,12 @@ export const {
                 stateType: 'CHOICE',
                 choices: ['CLEAR', 'NEEDPARSE']
             },
+            NEW: {
+                stateType: 'ATTEMPT',
+                action: initializeNewAction,
+                resolve: 'NORMALDIRTY',
+                reject: 'WMLERROR',
+            },
             NORMALDIRTY: {
                 stateType: 'CHOICE',
                 choices: ['REGENERATEWML']
@@ -215,6 +224,11 @@ export const {
     getLoadedImages,
     getError
 } = selectors
+
+export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dispatch: any) => {
+    dispatch(addAsset(assetId))
+    dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
+}
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
 

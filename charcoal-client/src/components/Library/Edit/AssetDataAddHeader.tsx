@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState, useMemo, useCallback, ReactElement } from 'react'
+import React, { FunctionComponent, useState, useMemo, useCallback, ReactElement, useEffect, useRef } from 'react'
 
 import {
     Box,
@@ -9,30 +9,91 @@ import {
     Button
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import useDebounce from '../../../hooks/useDebounce';
+import { deepEqual } from '../../../lib/objects';
 
 interface AssetDataAddHeaderProps<T extends Object> {
-    renderFields: FunctionComponent<T & { onChange: (props: T) => void }>;
+    renderFields: FunctionComponent<T & { onChange: (props: T) => void; errorMessage: string; }>;
     onAdd: (props: T) => void;
     defaultFields: T;
-    validate: (props: T) => string;
+    validate: (props: T) => Promise<string>;
+    validateDelay?: number;
     label: string;
 }
 
-export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () => { }, defaultFields, label, validate }: AssetDataAddHeaderProps<T>): ReactElement<any, any> | null => {
+//
+// TODO: Add a setErrorMessage argument to AssetDataAddHeader, and give it sole responsibility for running the
+// validation, then update everywhere that AssetDataAddHeader is used
+//
+export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () => { }, defaultFields, label, validate, validateDelay = 5 }: AssetDataAddHeaderProps<T>): ReactElement<any, any> | null => {
     const [enteringKey, setEnteringKey] = useState<boolean>(false)
+    const [isValidating, setIsValidating] = useState<boolean>(false)
+    const [validatingKey, setValidatingKey] = useState<T>(defaultFields)
+    const validationLock = useRef<number>(0)
+    const [awaitingClickResolve, setAwaitingClickResolve] = useState<boolean>(false)
     const [formState, setFormState] = useState<T>(defaultFields)
-    const errorMessage = useMemo(() => (validate(formState)), [validate, formState])
-    const onClick = useCallback(() => {
+    const [errorMessage, setErrorMessageInternal] = useState<string>('')
+
+    const addCurrent = useCallback(() => {
         onAdd(formState)
         setEnteringKey(false)
         setFormState(defaultFields)
-    }, [onAdd, setEnteringKey, formState, setFormState, defaultFields])
+        setValidatingKey(defaultFields)
+        setAwaitingClickResolve(false)
+    }, [onAdd, setEnteringKey, formState, setFormState, setValidatingKey, defaultFields, setAwaitingClickResolve])
+    //
+    // onClick sets awaitingClick when validatingKey is in progress, and
+    // counts on the validation useEffect to call the core onAddWrapper functionality
+    // if a click is being awaited when validation succeeds.
+    //
+    const onClick = useCallback(() => {
+        if (isValidating) {
+            setAwaitingClickResolve(true)
+        }
+        else {
+            if (!errorMessage) {
+                addCurrent()
+            }
+        }
+    }, [addCurrent, isValidating, setAwaitingClickResolve, errorMessage])
+    //
+    // Send async validation events, debounced by the specified delay, and update the
+    // error message accordingly.
+    //
+    const debouncedState = useDebounce(formState, validateDelay)
+    useEffect(() => {
+        if (!deepEqual(validatingKey || defaultFields, debouncedState)) {
+            validationLock.current++
+            const saveValidationLock = validationLock.current
+            setValidatingKey(debouncedState)
+            setIsValidating(true)
+            validate(debouncedState).then((errorMessage: string) => {
+                if (validationLock.current = saveValidationLock) {
+                    setErrorMessageInternal(errorMessage)
+                    setIsValidating(false)
+                    if (awaitingClickResolve && !errorMessage) {
+                        addCurrent()
+                    }
+                }
+            })
+        }
+    }, [
+        debouncedState,
+        validate,
+        isValidating,
+        setIsValidating,
+        validatingKey,
+        setValidatingKey,
+        validationLock,
+        setErrorMessageInternal,
+        awaitingClickResolve
+    ])
     const onEnter = useCallback(() => {
         if (!enteringKey) {
             setEnteringKey(true)
         }
     }, [enteringKey, setEnteringKey])
-    const fieldsRender = renderFields({ ...formState, onChange: setFormState })
+    const fieldsRender = renderFields({ ...formState, onChange: setFormState, errorMessage })
 
     const contents = <React.Fragment>
         <ListItemIcon>
