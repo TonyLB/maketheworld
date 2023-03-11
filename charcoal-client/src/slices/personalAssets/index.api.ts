@@ -325,7 +325,7 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
     if (isEphemeraAssetId(id)) {
         normalizer.put({
             tag: 'Asset',
-            key: id,
+            key: id.split('#')[1],
             Story: undefined,
             contents: []
         }, { contextStack: [] })
@@ -333,7 +333,7 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
     else if (isEphemeraCharacterId(id)) {
         normalizer.put({
             tag: 'Character',
-            key: id,
+            key: id.split('#')[1],
             contents: [],
             Name: 'Unknown',
             Pronouns: {

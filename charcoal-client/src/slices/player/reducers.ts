@@ -9,7 +9,7 @@ export const setCurrentDraft = (state: PlayerPublic, action: PayloadAction<strin
 export const addAsset = (state: PlayerPublic, action: PayloadAction<EphemeraAssetId | EphemeraCharacterId>) => {
     if (isEphemeraAssetId(action.payload)) {
         state.Assets.push({
-            AssetId: action.payload,
+            AssetId: action.payload.split('#')[1],
             Story: undefined,
             instance: undefined
         })
