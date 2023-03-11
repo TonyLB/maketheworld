@@ -24,6 +24,7 @@ import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
 import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
+import AddAsset from './Edit/AddAsset'
 
 interface TableOfContentsProps {
     Characters: AssetClientPlayerCharacter[];
@@ -67,6 +68,7 @@ const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters =
                 <ListItemText primary={ AssetId } />
             </ListItemButton>
         ))}
+        <AddAsset type="Asset" onAdd={() => {}} />
         { (Characters.length > 0) && <ListSubheader>Characters</ListSubheader> }
         { Characters.map(({ CharacterId, Name, fileURL }, index) => (
             <ListItemButton

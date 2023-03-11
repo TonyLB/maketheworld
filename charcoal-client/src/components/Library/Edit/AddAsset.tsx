@@ -1,9 +1,10 @@
 import TextField from "@mui/material/TextField"
 import { FunctionComponent, useCallback } from "react"
+import { useDispatch } from "react-redux";
+import { socketDispatchPromise } from "../../../slices/lifeLine";
 import AssetDataAddHeader from "./AssetDataAddHeader"
 
-const addAssetGenerator: (validate: (props: { key: string }) => Promise<string>) => FunctionComponent<{ key: string; onChange: (props: { key: string }) => void }> = (validate) => ({ key, onChange }) => {
-    const errorMessage = validate({ key })
+const addAssetGenerator: FunctionComponent<{ key: string; onChange: (props: { key: string }) => void; errorMessage: string }> = ({ key, onChange, errorMessage }) => {
     return <TextField
         required
         id="component-key"
@@ -23,6 +24,7 @@ type AddAssetProps = {
 }
 
 export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () => { }}) => {
+    const dispatch = useDispatch()
     const onAddWrapper = useCallback(({ key }: { key: string }) => { onAdd(key) }, [onAdd])
     const validate = useCallback(async ({ key }: { key: string }) => {
         if (key.length && (key.search(/^[A-Za-z][\w\_]*$/) === -1)) {
@@ -31,17 +33,18 @@ export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () =>
         if (!key.length) {
             return 'You must specify a key'
         }
-        //
-        // TODO: Call to-be-created getMetaData outlet on Asset API, and only validate if there isn't
-        // anything yet by that key.
-        //
+        const { zone } = await dispatch(socketDispatchPromise({ message: 'metaData', assetId: `ASSET#${key}` }, { service: 'asset' })) as any
+        if (zone && zone !== 'None') {
+            return `Key '${key}' is already in use`
+        }
         return ''
-    }, [])
+    }, [dispatch])
     return <AssetDataAddHeader
         defaultFields={{ key: '' }}
         label={`Add ${type}`}
-        renderFields={addAssetGenerator(validate)}
+        renderFields={addAssetGenerator}
         validate={validate}
+        validateDelay={1000}
         onAdd={onAddWrapper}
     />
 }

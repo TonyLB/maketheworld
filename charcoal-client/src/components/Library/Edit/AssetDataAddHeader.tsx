@@ -10,9 +10,10 @@ import {
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import useDebounce from '../../../hooks/useDebounce';
+import { deepEqual } from '../../../lib/objects';
 
 interface AssetDataAddHeaderProps<T extends Object> {
-    renderFields: FunctionComponent<T & { onChange: (props: T) => void }>;
+    renderFields: FunctionComponent<T & { onChange: (props: T) => void; errorMessage: string; }>;
     onAdd: (props: T) => void;
     defaultFields: T;
     validate: (props: T) => Promise<string>;
@@ -26,7 +27,8 @@ interface AssetDataAddHeaderProps<T extends Object> {
 //
 export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () => { }, defaultFields, label, validate, validateDelay = 5 }: AssetDataAddHeaderProps<T>): ReactElement<any, any> | null => {
     const [enteringKey, setEnteringKey] = useState<boolean>(false)
-    const [validatingKey, setValidatingKey] = useState<boolean>(false)
+    const [isValidating, setIsValidating] = useState<boolean>(false)
+    const [validatingKey, setValidatingKey] = useState<T>(defaultFields)
     const validationLock = useRef<number>(0)
     const [awaitingClickResolve, setAwaitingClickResolve] = useState<boolean>(false)
     const [formState, setFormState] = useState<T>(defaultFields)
@@ -36,45 +38,54 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
         onAdd(formState)
         setEnteringKey(false)
         setFormState(defaultFields)
+        setValidatingKey(defaultFields)
         setAwaitingClickResolve(false)
-    }, [onAdd, setEnteringKey, formState, setFormState, defaultFields, setAwaitingClickResolve])
+    }, [onAdd, setEnteringKey, formState, setFormState, setValidatingKey, defaultFields, setAwaitingClickResolve])
     //
     // onClick sets awaitingClick when validatingKey is in progress, and
     // counts on the validation useEffect to call the core onAddWrapper functionality
     // if a click is being awaited when validation succeeds.
     //
     const onClick = useCallback(() => {
-        if (validatingKey) {
+        if (isValidating) {
             setAwaitingClickResolve(true)
         }
         else {
-            addCurrent()
+            if (!errorMessage) {
+                addCurrent()
+            }
         }
-    }, [addCurrent, validatingKey, setAwaitingClickResolve])
+    }, [addCurrent, isValidating, setAwaitingClickResolve, errorMessage])
     //
     // Send async validation events, debounced by the specified delay, and update the
     // error message accordingly.
     //
     const debouncedState = useDebounce(formState, validateDelay)
     useEffect(() => {
-        validationLock.current++
-        const saveValidationLock = validationLock.current
-        setValidatingKey(true)
-        validate(debouncedState).then((errorMessage: string) => {
-            if (validationLock.current = saveValidationLock) {
-                setErrorMessageInternal(errorMessage)
-                setValidatingKey(false)
-                if (awaitingClickResolve) {
-                    addCurrent()
+        if (!deepEqual(validatingKey || defaultFields, debouncedState)) {
+            validationLock.current++
+            const saveValidationLock = validationLock.current
+            setValidatingKey(debouncedState)
+            setIsValidating(true)
+            validate(debouncedState).then((errorMessage: string) => {
+                if (validationLock.current = saveValidationLock) {
+                    setErrorMessageInternal(errorMessage)
+                    setIsValidating(false)
+                    if (awaitingClickResolve && !errorMessage) {
+                        addCurrent()
+                    }
                 }
-            }
-        })
+            })
+        }
     }, [
         debouncedState,
         validate,
+        isValidating,
+        setIsValidating,
+        validatingKey,
+        setValidatingKey,
         validationLock,
         setErrorMessageInternal,
-        setValidatingKey,
         awaitingClickResolve
     ])
     const onEnter = useCallback(() => {
@@ -82,7 +93,7 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
             setEnteringKey(true)
         }
     }, [enteringKey, setEnteringKey])
-    const fieldsRender = renderFields({ ...formState, onChange: setFormState })
+    const fieldsRender = renderFields({ ...formState, onChange: setFormState, errorMessage })
 
     const contents = <React.Fragment>
         <ListItemIcon>

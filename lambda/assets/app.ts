@@ -19,7 +19,8 @@ import {
     isParseWMLAPIMessage,
     isFetchImportDefaultsAPIMessage,
     isFetchImportsAPIMessage,
-    isAssetUnsubscribeAPIMessage
+    isAssetUnsubscribeAPIMessage,
+    isMetaDataAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset.js'
 
 import messageBus from "./messageBus/index.js"
@@ -84,7 +85,7 @@ export const handler = async (event, context) => {
     }
     
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
-    if (!request || !['fetch', 'fetchLibrary', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -94,6 +95,18 @@ export const handler = async (event, context) => {
         if (isFetchLibraryAPIMessage(request)) {
             messageBus.send({
                 type: 'FetchLibrary'
+            })
+        }
+        if (isMetaDataAPIMessage(request)) {
+            const { address } = await internalCache.Meta.get(request.assetId)
+            await apiClient.send({
+                ConnectionId: connectionId,
+                Data: JSON.stringify({
+                    RequestId: request.RequestId,
+                    messageType: 'MetaData',
+                    AssetId: request.assetId,
+                    zone: address ? address.zone : 'None'
+                })
             })
         }
         //

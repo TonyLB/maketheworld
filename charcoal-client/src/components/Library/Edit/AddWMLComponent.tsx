@@ -12,8 +12,7 @@ interface AddWMLComponentProps {
     onAdd?: (key: string) => void;
 }
 
-const addWMLRenderFieldsGenerator: (validate: (props: { key: string }) => string) => FunctionComponent<{ key: string; onChange: (props: { key: string }) => void }> = (validate) => ({ key, onChange }) => {
-    const errorMessage = validate({ key })
+const AddWMLRenderFields: FunctionComponent<{ key: string; onChange: (props: { key: string }) => void; errorMessage: string; }> = ({ key, onChange, errorMessage }) => {
     return <TextField
         required
         id="component-key"
@@ -48,7 +47,7 @@ export const AddWMLComponent: FunctionComponent<AddWMLComponentProps> = ({ type,
     return <AssetDataAddHeader
         defaultFields={{ key: '' }}
         label={`Add ${type}`}
-        renderFields={addWMLRenderFieldsGenerator(validate)}
+        renderFields={AddWMLRenderFields}
         validate={asynchronousValidate}
         onAdd={onAddWrapper}
     />
