@@ -277,8 +277,6 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
             }
         }
         const position = { ...normalizer._referenceToInsertPosition(importRef), replace: true }
-        console.log(`Replace at position: ${JSON.stringify(position, null, 4)}`)
-        console.log(`Normal: ${JSON.stringify(normalizer.normal, null, 4)}`)
         dispatch((options?.overrideUpdateNormal ?? updateNormal)(assetId)({
             type: 'put',
             item: newItem,
