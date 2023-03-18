@@ -20,6 +20,7 @@ import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dis
 import { addAsset } from '../player'
 import { isNormalAction, isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
 export const {
     slice: personalAssetsSlice,
@@ -241,6 +242,8 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
 }, options?: { overrideGetNormalized?: typeof getNormalized, overrideUpdateNormal?: typeof updateNormal }) => (dispatch: any, getState: any) => {
     const normalSelector = (options?.overrideGetNormalized || getNormalized)(assetId)
     const normal = normalSelector(getState())
+    const normalizer = new Normalizer()
+    normalizer.loadNormal(normal)
     const topLevelItem = normal[assetId.split('#')[1]]
     if (!(topLevelItem && (isNormalAsset(topLevelItem) || isNormalCharacter(topLevelItem)))) {
         return
@@ -273,10 +276,13 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
                 [as || key]: { key, type }
             }
         }
+        const position = { ...normalizer._referenceToInsertPosition(importRef), replace: true }
+        console.log(`Replace at position: ${JSON.stringify(position, null, 4)}`)
+        console.log(`Normal: ${JSON.stringify(normalizer.normal, null, 4)}`)
         dispatch((options?.overrideUpdateNormal ?? updateNormal)(assetId)({
             type: 'put',
             item: newItem,
-            position: { contextStack: [{ key: assetId.split('#')[1], tag: 'Asset', index: 0 }], index: importIndex, replace: true }
+            position
         }))
     }
     else {

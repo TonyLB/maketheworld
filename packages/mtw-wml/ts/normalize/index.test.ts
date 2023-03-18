@@ -7,7 +7,7 @@ import { schemaFromParse } from '../schema'
 import parse from '../parser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
-import { isSchemaCondition, isSchemaExit, isSchemaFeature, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
+import { isSchemaCondition, isSchemaExit, isSchemaFeature, isSchemaImport, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
 
 describe('WML normalize', () => {
 
@@ -396,6 +396,19 @@ describe('WML normalize', () => {
             normalizer.delete({ key: 'testRoom', index: 0, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
+
+        it('should delete an import', () => {
+            const testSource = `<Asset key=(TestAsset) fileName="Test">
+                <Import from=(base)>
+                    <Use type="Room" key=(testOne) />
+                </Import>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.delete({ key: 'Import-0', index: 0, tag: 'Import' })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
     })
 
     describe('positioned put method', () => {
@@ -693,6 +706,28 @@ describe('WML normalize', () => {
                 throw new Error()
             }
             normalizer.put(toAddRoomWrapper, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }], index: 1, replace: true })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should successfully extend an import in place', () => {
+            const testSource = `<Asset key=(TestAsset) fileName="Test">
+                <Import from=(base)>
+                    <Use type="Room" key=(testOne) />
+                </Import>
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const toReplaceSource = `<Import from=(base)>
+                <Use type="Room" key=(testOne) />
+                <Use type="Room" key=(testTwo) />
+            </Import>`
+            const toReplaceAsset = schemaFromParse(parse(tokenizer(new SourceStream(toReplaceSource))))
+            const toReplaceWrapper = toReplaceAsset[0]
+            if (!isSchemaImport(toReplaceWrapper)) {
+                throw new Error()
+            }
+            normalizer.put(toReplaceWrapper, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }], index: 0, replace: true })
             expect(normalizer.normal).toMatchSnapshot()
         })
 

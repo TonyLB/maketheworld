@@ -37,7 +37,7 @@ interface RoomDescriptionProps {
     currentHeader?: boolean;
 }
 
-const RoomEditButton: FunctionComponent<{ assets: EphemeraAssetId[] }> = ({ assets }) => {
+const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string> }> = ({ assets }) => {
     const [open, setOpen] = useState<boolean>(false)
     const ref = useRef(null)
     const dispatch = useDispatch()
@@ -63,11 +63,11 @@ const RoomEditButton: FunctionComponent<{ assets: EphemeraAssetId[] }> = ({ asse
         >
             <List>
                 {
-                    assets.map((asset) => (
-                        <ListItem>
+                    Object.entries(assets).map(([asset, key]) => (
+                        <ListItem key={`Import-${asset}`} >
                             <ListItemButton
                                 onClick={() => {
-                                    dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset, type: 'Room', key: 'test' }))
+                                    dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset, type: 'Room', key }))
                                 }}
                             >
                                 { asset }
@@ -87,7 +87,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     //
     // TODO: Refactor message.assets to be a map from assetIDs to room scoped-keys
     //
-    const currentAssets = useMemo(() => (message.assets || []), [message])
+    const currentAssets = useMemo(() => (message.assets || {}), [message])
     const showEdit = useMemo(() => (currentHeader && currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentHeader, currentAssets, status])
 
     return <MessageComponent

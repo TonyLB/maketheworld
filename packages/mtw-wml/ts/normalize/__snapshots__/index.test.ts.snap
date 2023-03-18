@@ -93,6 +93,25 @@ Object {
 }
 `;
 
+exports[`WML normalize delete method should delete an import 1`] = `
+Object {
+  "TestAsset": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "TestAsset",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+}
+`;
+
 exports[`WML normalize delete method should delete empty parent conditions 1`] = `
 Object {
   "TestAsset": Object {
