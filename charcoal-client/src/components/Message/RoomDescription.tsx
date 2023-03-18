@@ -24,7 +24,7 @@ import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import TaggedMessageContent from './TaggedMessageContent'
 import { getPlayer } from '../../slices/player'
-import { getStatus } from '../../slices/personalAssets'
+import { addImport, getStatus } from '../../slices/personalAssets'
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import ListItemButton from '@mui/material/ListItemButton'
 import List from '@mui/material/List'
@@ -40,6 +40,8 @@ interface RoomDescriptionProps {
 const RoomEditButton: FunctionComponent<{ assets: EphemeraAssetId[] }> = ({ assets }) => {
     const [open, setOpen] = useState<boolean>(false)
     const ref = useRef(null)
+    const dispatch = useDispatch()
+    const { currentDraft } = useSelector(getPlayer)
     return <React.Fragment>
         <Chip
             label="Edit"
@@ -63,7 +65,11 @@ const RoomEditButton: FunctionComponent<{ assets: EphemeraAssetId[] }> = ({ asse
                 {
                     assets.map((asset) => (
                         <ListItem>
-                            <ListItemButton>
+                            <ListItemButton
+                                onClick={() => {
+                                    dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset, type: 'Room', key: 'test' }))
+                                }}
+                            >
                                 { asset }
                             </ListItemButton>
                         </ListItem>
@@ -78,6 +84,9 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     const { Description, Name, Characters = [], Exits = [] } = message
     const { currentDraft } = useSelector(getPlayer)
     const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
+    //
+    // TODO: Refactor message.assets to be a map from assetIDs to room scoped-keys
+    //
     const currentAssets = useMemo(() => (message.assets || []), [message])
     const showEdit = useMemo(() => (currentHeader && currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentHeader, currentAssets, status])
 
