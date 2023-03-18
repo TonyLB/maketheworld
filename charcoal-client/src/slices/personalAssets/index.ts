@@ -18,6 +18,8 @@ import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
+import { isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { SchemaImportTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 export const {
     slice: personalAssetsSlice,
@@ -228,6 +230,36 @@ export const {
 export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dispatch: any) => {
     dispatch(addAsset(assetId))
     dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
+}
+
+export const addImport = ({ assetId, fromAsset }: { assetId: EphemeraAssetId | EphemeraCharacterId, fromAsset: string }) => (dispatch: any, getState: any) => {
+    const normal = getNormalized(assetId)(getState())
+    const importItem = Object.values(normal)
+        .filter(isNormalImport)
+        .find(({ from: fromMatch }) => (fromMatch === fromAsset))
+    //
+    // TODO: Add arguments for the import item to be added within the import wrapper
+    //
+    if (importItem) {
+
+    }
+    else {
+        let nextSyntheticKey = 0
+        while(`Import-${nextSyntheticKey}` in normal) {
+            nextSyntheticKey++
+        }
+        const importItem: SchemaImportTag = {
+            tag: 'Import',
+            key: `Import-${nextSyntheticKey}`,
+            from: fromAsset,
+            mapping: {}
+        }
+        dispatch(updateNormal(assetId)({
+            type: 'put',
+            item: importItem,
+            position: { contextStack: [{ key: assetId.split('#')[1], tag: 'Asset', index: 0 }] }
+        }))
+    }
 }
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
