@@ -72,7 +72,8 @@ describe('ComponentMeta', () => {
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ],
-            ProjectionFields: ['DataCategory', 'appearances']
+            ProjectionFields: ['DataCategory', 'appearances', '#key'],
+            ExpressionAttributeNames: { '#key': 'key' }
         })
     })
 
@@ -80,6 +81,7 @@ describe('ComponentMeta', () => {
         internalCache.ComponentMeta.set('ROOM#TestOne', 'Layer', {
             EphemeraId: 'ROOM#TestOne',
             assetId: 'Layer',
+            key: 'testTwo',
             appearances: [{
                 name: [],
                 render: [{
@@ -100,7 +102,8 @@ describe('ComponentMeta', () => {
                 }],
                 exits: [],
                 conditions: []
-            }]
+            }],
+            key: 'test'
         }])
         const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['Base', 'Layer'])
         expect(output).toEqual({
@@ -115,7 +118,8 @@ describe('ComponentMeta', () => {
                     }],
                     exits: [],
                     conditions: []
-                }]
+                }],
+                key: 'test'
             },
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
@@ -128,7 +132,8 @@ describe('ComponentMeta', () => {
                     }],
                     exits: [],
                     conditions: []
-                }]
+                }],
+                key: 'testTwo'
             }
         })
         expect(ephemeraMock.batchGetItem).toHaveBeenCalledTimes(1)
@@ -136,7 +141,8 @@ describe('ComponentMeta', () => {
             Items: [
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' }
             ],
-            ProjectionFields: ['DataCategory', 'appearances']
+            ProjectionFields: ['DataCategory', 'appearances', '#key'],
+            ExpressionAttributeNames: { '#key': 'key' }
         })
     })
 
@@ -151,7 +157,8 @@ describe('ComponentMeta', () => {
                 }],
                 exits: [],
                 conditions: []
-            }]
+            }],
+            key: 'test'
         }])
         const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['Base', 'Layer'])
         expect(output).toEqual({
@@ -166,12 +173,14 @@ describe('ComponentMeta', () => {
                     }],
                     exits: [],
                     conditions: []
-                }]
+                }],
+                key: 'test'
             },
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Layer',
-                appearances: []
+                appearances: [],
+                key: ''
             }
         })
         expect(ephemeraMock.batchGetItem).toHaveBeenCalledTimes(1)
@@ -180,7 +189,8 @@ describe('ComponentMeta', () => {
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ],
-            ProjectionFields: ['DataCategory', 'appearances']
+            ProjectionFields: ['DataCategory', 'appearances', '#key'],
+            ExpressionAttributeNames: { '#key': 'key' }
         })
     })
 
