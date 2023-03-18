@@ -81,7 +81,8 @@ describe('Perception message', () => {
                         }],
                         rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
                         conditions: []
-                    }]
+                    }],
+                    key: 'testMessage'
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
@@ -132,7 +133,8 @@ describe('Perception message', () => {
                         }],
                         rooms: ['ROOM#ABC'],
                         conditions: []
-                    }]
+                    }],
+                    key: 'testMessage'
                 }
             })
             await perceptionMessage({ payloads: [
@@ -166,7 +168,8 @@ describe('Perception message', () => {
                         }],
                         rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
                         conditions: []
-                    }]
+                    }],
+                    key: 'testMessage'
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
@@ -205,7 +208,8 @@ describe('Perception message', () => {
                         }],
                         rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
                         conditions: []
-                    }]
+                    }],
+                    key: 'testMessage'
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({

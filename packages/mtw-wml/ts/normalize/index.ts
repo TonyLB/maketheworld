@@ -623,7 +623,8 @@ export class Normalizer {
             return returnValue
         }
         if (position.replace) {
-            this.delete(this._insertPositionToReference(position))
+            const deleteReference = this._insertPositionToReference(position)
+            this.delete(deleteReference)
         }
         const translateContext: NormalizerContext = {
             contextStack: position.contextStack
@@ -665,6 +666,7 @@ export class Normalizer {
                 const importContents = Object.entries(node.mapping).map<NormalReference>(([key, { type, key: from }], index) => {
                     const updatedContext: NormalizerInsertPosition = {
                         ...position,
+                        replace: false,
                         contextStack: [
                             ...translateContext.contextStack,
                             {

@@ -20,31 +20,37 @@ import {
 
 export type ComponentMetaRoomItem = {
     EphemeraId: EphemeraRoomId;
+    key: string;
     assetId: string;
     appearances: EphemeraRoomAppearance[];
 }
 export type ComponentMetaFeatureItem = {
     EphemeraId: EphemeraFeatureId;
+    key: string;
     assetId: string;
     appearances: EphemeraFeatureAppearance[];
 }
 export type ComponentMetaBookmarkItem = {
     EphemeraId: EphemeraBookmarkId;
+    key: string;
     assetId: string;
     appearances: EphemeraBookmarkAppearance[];
 }
 export type ComponentMetaMapItem = {
     EphemeraId: EphemeraMapId;
+    key: string;
     assetId: string;
     appearances: EphemeraMapAppearance[];
 }
 export type ComponentMetaMessageItem = {
     EphemeraId: EphemeraMessageId;
+    key: string;
     assetId: string;
     appearances: EphemeraMessageAppearance[];
 }
 export type ComponentMetaMomentItem = {
     EphemeraId: EphemeraMomentId;
+    key: string;
     assetId: string;
     appearances: EphemeraMomentAppearance[];
 }
@@ -92,6 +98,7 @@ export class ComponentMetaData {
                 return {
                     EphemeraId,
                     assetId,
+                    key: '',
                     appearances: []
                 }
             }
@@ -111,11 +118,14 @@ export class ComponentMetaData {
         this._Store[key] = value
     }
 
-    async _getPromiseFactory<T extends EphemeraRoomAppearance | EphemeraFeatureAppearance | EphemeraBookmarkAppearance | EphemeraMapAppearance | EphemeraMomentAppearance>(EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId, assetId: string): Promise<{ appearances: T[] } | undefined> {
-        return ephemeraDB.getItem<{ appearances: T[] }>({
+    async _getPromiseFactory<T extends EphemeraRoomAppearance | EphemeraFeatureAppearance | EphemeraBookmarkAppearance | EphemeraMapAppearance | EphemeraMomentAppearance>(EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId, assetId: string): Promise<{ key: string; appearances: T[] } | undefined> {
+        return ephemeraDB.getItem<{ key: string; appearances: T[] }>({
             EphemeraId,
             DataCategory: AssetKey(assetId),
-            ProjectionFields: ['appearances']
+            ProjectionFields: ['appearances', '#key'],
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            }
         })
     }
 
@@ -139,6 +149,7 @@ export class ComponentMetaData {
                                 [cacheKey]: {
                                     EphemeraId,
                                     assetId,
+                                    key: fetch.key,
                                     appearances: fetch.appearances
                                 }
                             }
@@ -159,6 +170,7 @@ export class ComponentMetaData {
                                 [cacheKey]: {
                                     EphemeraId,
                                     assetId,
+                                    key: fetch.key,
                                     appearances: fetch.appearances
                                 }
                             }
@@ -179,6 +191,7 @@ export class ComponentMetaData {
                                 [cacheKey]: {
                                     EphemeraId,
                                     assetId,
+                                    key: fetch.key,
                                     appearances: fetch.appearances
                                 }
                             }
@@ -199,6 +212,7 @@ export class ComponentMetaData {
                                 [cacheKey]: {
                                     EphemeraId,
                                     assetId,
+                                    key: fetch.key,
                                     appearances: fetch.appearances
                                 }
                             }
@@ -219,6 +233,7 @@ export class ComponentMetaData {
                                 [cacheKey]: {
                                     EphemeraId,
                                     assetId,
+                                    key: fetch.key,
                                     appearances: fetch.appearances
                                 }
                             }
@@ -239,6 +254,7 @@ export class ComponentMetaData {
                                 [cacheKey]: {
                                     EphemeraId,
                                     assetId,
+                                    key: fetch.key,
                                     appearances: fetch.appearances
                                 }
                             }
@@ -255,14 +271,17 @@ export class ComponentMetaData {
         if (isEphemeraRoomId(EphemeraId)) {
             this._Cache.add({
                 promiseFactory: (cacheKeys: string[]) => {
-                    return ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraRoomAppearance[] }>({
+                    return ephemeraDB.batchGetItem<{ key: string; DataCategory: string; appearances: EphemeraRoomAppearance[] }>({
                         Items: cacheKeys
                             .map(cacheKeyComponents)
                             .map(({ assetId }) => ({
                                 EphemeraId,
                                 DataCategory: AssetKey(assetId)
                             })),
-                        ProjectionFields: ['DataCategory', 'appearances']
+                        ProjectionFields: ['DataCategory', 'appearances', '#key'],
+                        ExpressionAttributeNames: {
+                            '#key': 'key'
+                        }
                     })
                 },
                 requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
@@ -274,6 +293,7 @@ export class ComponentMetaData {
                             [generateCacheKey(EphemeraId, assetId)]: {
                                 EphemeraId,
                                 assetId,
+                                key: fetch.key,
                                 appearances: fetch.appearances
                             }
                         }
@@ -288,15 +308,18 @@ export class ComponentMetaData {
         }
         if (isEphemeraFeatureId(EphemeraId)) {
             this._Cache.add({
-                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraFeatureAppearance[] }>({
+                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ key: string; DataCategory: string; appearances: EphemeraFeatureAppearance[] }>({
                     Items: cacheKeys
                         .map(cacheKeyComponents)
                         .map(({ assetId }) => ({
                             EphemeraId,
                             DataCategory: AssetKey(assetId)
                         })),
-                    ProjectionFields: ['DataCategory', 'appearances']
-                })),
+                    ProjectionFields: ['DataCategory', 'appearances', '#key'],
+                    ExpressionAttributeNames: {
+                        '#key': 'key'
+                    }
+            })),
                 requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
                 transform: (fetchList) => {
                     return fetchList.reduce<Record<string, ComponentMetaItem>>((previous, fetch) => {
@@ -306,6 +329,7 @@ export class ComponentMetaData {
                             [generateCacheKey(EphemeraId, assetId)]: {
                                 EphemeraId,
                                 assetId,
+                                key: fetch.key,
                                 appearances: fetch.appearances
                             }
                         }
@@ -320,14 +344,17 @@ export class ComponentMetaData {
         }
         if (isEphemeraBookmarkId(EphemeraId)) {
             this._Cache.add({
-                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraBookmarkAppearance[] }>({
+                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ key: string; DataCategory: string; appearances: EphemeraBookmarkAppearance[] }>({
                     Items: cacheKeys
                         .map(cacheKeyComponents)
                         .map(({ assetId }) => ({
                             EphemeraId,
                             DataCategory: AssetKey(assetId)
                         })),
-                    ProjectionFields: ['DataCategory', 'appearances']
+                    ProjectionFields: ['DataCategory', 'appearances', '#key'],
+                    ExpressionAttributeNames: {
+                        '#key': 'key'
+                    }
                 })),
                 requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
                 transform: (fetchList) => {
@@ -338,6 +365,7 @@ export class ComponentMetaData {
                             [generateCacheKey(EphemeraId, assetId)]: {
                                 EphemeraId,
                                 assetId,
+                                key: fetch.key,
                                 appearances: fetch.appearances
                             }
                         }
@@ -352,14 +380,17 @@ export class ComponentMetaData {
         }
         if (isEphemeraMessageId(EphemeraId)) {
             this._Cache.add({
-                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraMessageAppearance[] }>({
+                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ key: string; DataCategory: string; appearances: EphemeraMessageAppearance[] }>({
                     Items: cacheKeys
                         .map(cacheKeyComponents)
                         .map(({ assetId }) => ({
                             EphemeraId,
                             DataCategory: AssetKey(assetId)
                         })),
-                    ProjectionFields: ['DataCategory', 'appearances']
+                    ProjectionFields: ['DataCategory', 'appearances', '#key'],
+                    ExpressionAttributeNames: {
+                        '#key': 'key'
+                    }
                 })),
                 requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
                 transform: (fetchList) => {
@@ -370,6 +401,7 @@ export class ComponentMetaData {
                             [generateCacheKey(EphemeraId, assetId)]: {
                                 EphemeraId,
                                 assetId,
+                                key: fetch.key,
                                 appearances: fetch.appearances
                             }
                         }
@@ -384,14 +416,17 @@ export class ComponentMetaData {
         }
         if (isEphemeraMomentId(EphemeraId)) {
             this._Cache.add({
-                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraMomentAppearance[] }>({
+                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ key: string; DataCategory: string; appearances: EphemeraMomentAppearance[] }>({
                     Items: cacheKeys
                         .map(cacheKeyComponents)
                         .map(({ assetId }) => ({
                             EphemeraId,
                             DataCategory: AssetKey(assetId)
                         })),
-                    ProjectionFields: ['DataCategory', 'appearances']
+                    ProjectionFields: ['DataCategory', 'appearances', '#key'],
+                    ExpressionAttributeNames: {
+                        '#key': 'key'
+                    }
                 })),
                 requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
                 transform: (fetchList) => {
@@ -402,6 +437,7 @@ export class ComponentMetaData {
                             [generateCacheKey(EphemeraId, assetId)]: {
                                 EphemeraId,
                                 assetId,
+                                key: fetch.key,
                                 appearances: fetch.appearances
                             }
                         }
@@ -416,14 +452,17 @@ export class ComponentMetaData {
         }
         if (isEphemeraMapId(EphemeraId)) {
             this._Cache.add({
-                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraMapAppearance[] }>({
+                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ key: string; DataCategory: string; appearances: EphemeraMapAppearance[] }>({
                     Items: cacheKeys
                         .map(cacheKeyComponents)
                         .map(({ assetId }) => ({
                             EphemeraId,
                             DataCategory: AssetKey(assetId)
                         })),
-                    ProjectionFields: ['DataCategory', 'appearances']
+                    ProjectionFields: ['DataCategory', 'appearances', '#key'],
+                    ExpressionAttributeNames: {
+                        '#key': 'key'
+                    }
                 })),
                 requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
                 transform: (fetchList) => {
@@ -434,6 +473,7 @@ export class ComponentMetaData {
                             [generateCacheKey(EphemeraId, assetId)]: {
                                 EphemeraId,
                                 assetId,
+                                key: fetch.key,
                                 appearances: fetch.appearances
                             }
                         }

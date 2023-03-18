@@ -356,7 +356,8 @@ describe('ComponentRender cache handler', () => {
                         render: [{ tag: 'String', value: 'ERROR' }],
                         exits: []
                     }
-                ]
+                ],
+                key: 'testRoom'
             },
             Personal: {
                 EphemeraId: 'ROOM#TestOne',
@@ -374,7 +375,8 @@ describe('ComponentRender cache handler', () => {
                         render: [{ tag: 'String', value: 'Second' }],
                         exits: []
                     }
-                ]
+                ],
+                key: 'testRoom'
             }
         })
         jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
@@ -391,7 +393,10 @@ describe('ComponentRender cache handler', () => {
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: [],
-            assets: ['ASSET#Base', 'ASSET#Personal']
+            assets: {
+                ['ASSET#Base']: 'testRoom',
+                ['ASSET#Personal']: 'testRoom'
+            }
         })
     })
 
@@ -420,7 +425,8 @@ describe('ComponentRender cache handler', () => {
                         name: [],
                         render: [{ tag: 'String', value: 'ERROR' }],
                     }
-                ]
+                ],
+                key: 'testFeature'
             },
             Personal: {
                 EphemeraId: 'FEATURE#TestOne',
@@ -436,7 +442,8 @@ describe('ComponentRender cache handler', () => {
                         name: [],
                         render: [{ tag: 'String', value: 'Second' }],
                     }
-                ]
+                ],
+                key: 'testFeature'
             }
         })
         jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
@@ -451,7 +458,10 @@ describe('ComponentRender cache handler', () => {
             FeatureId: 'FEATURE#TestOne',
             Name: [{ tag: 'String', value: 'TestFeature' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
-            assets: ['ASSET#Base', 'ASSET#Personal']
+            assets: {
+                ['ASSET#Base']: 'testFeature',
+                ['ASSET#Personal']: 'testFeature'
+            }
         })
     })
 
@@ -481,7 +491,8 @@ describe('ComponentRender cache handler', () => {
                             y: 0
                         }
                     ]
-                }]
+                }],
+                key: 'testMap'
             },
             Personal: {
                 EphemeraId: 'MAP#TestOne',
@@ -498,7 +509,8 @@ describe('ComponentRender cache handler', () => {
                             y: 0
                         }
                     ]
-                }]
+                }],
+                key: 'testMap'
             }
         } as Record<string, ComponentMetaMapItem>).mockResolvedValueOnce({
             Base: {
@@ -520,11 +532,12 @@ describe('ComponentRender cache handler', () => {
                             name: 'Not in Map'
                         }
                     ]
-                }]
+                }],
+                key: 'testMap'
             },
-            Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', appearances: [] }
+            Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', appearances: [], key: 'testMap' }
         } as Record<string, ComponentMetaRoomItem>).mockResolvedValueOnce({
-            Base: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Base', appearances: [] },
+            Base: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Base', appearances: [], key: 'testMap' },
             Personal: {
                 EphemeraId: 'ROOM#TestRoomTwo',
                 assetId: 'Personal',
@@ -539,7 +552,8 @@ describe('ComponentRender cache handler', () => {
                             name: 'First Room'
                         }
                     ]
-                }]
+                }],
+                key: 'testMap'
             }
         } as Record<string, ComponentMetaRoomItem>)
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
@@ -571,7 +585,10 @@ describe('ComponentRender cache handler', () => {
                     }]
                 }
             ],
-            assets: ['ASSET#Base', 'ASSET#Personal']
+            assets: {
+                ['ASSET#Base']: 'testMap',
+                ['ASSET#Personal']: 'testMap'
+            }
         })
     })
 
@@ -602,7 +619,8 @@ describe('ComponentRender cache handler', () => {
                         render: [{ tag: 'String', value: 'Second' }],
                         exits: []
                     }
-                ]
+                ],
+                key: 'testRoom'
             }
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
@@ -621,7 +639,7 @@ describe('ComponentRender cache handler', () => {
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'First' }],
             Exits: [],
-            assets: ['ASSET#Base']
+            assets: { ['ASSET#Base']: 'testRoom' }
         })
 
         internalCache.AssetState.invalidate('VARIABLE#testVariable')
@@ -633,7 +651,7 @@ describe('ComponentRender cache handler', () => {
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: [],
-            assets: ['ASSET#Base']
+            assets: { ['ASSET#Base']: 'testRoom' }
         })
 
         internalCache.AssetState.invalidate('VARIABLE#otherVariable')
@@ -645,7 +663,7 @@ describe('ComponentRender cache handler', () => {
             Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
             Description: [{ tag: 'String', value: 'FirstSecond' }],
             Exits: [],
-            assets: ['ASSET#Base']
+            assets: { ['ASSET#Base']: 'testRoom' }
         })
     })
 })

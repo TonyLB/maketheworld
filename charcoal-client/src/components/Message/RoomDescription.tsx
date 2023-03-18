@@ -24,7 +24,7 @@ import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import TaggedMessageContent from './TaggedMessageContent'
 import { getPlayer } from '../../slices/player'
-import { getStatus } from '../../slices/personalAssets'
+import { addImport, getStatus } from '../../slices/personalAssets'
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import ListItemButton from '@mui/material/ListItemButton'
 import List from '@mui/material/List'
@@ -37,9 +37,11 @@ interface RoomDescriptionProps {
     currentHeader?: boolean;
 }
 
-const RoomEditButton: FunctionComponent<{ assets: EphemeraAssetId[] }> = ({ assets }) => {
+const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string> }> = ({ assets }) => {
     const [open, setOpen] = useState<boolean>(false)
     const ref = useRef(null)
+    const dispatch = useDispatch()
+    const { currentDraft } = useSelector(getPlayer)
     return <React.Fragment>
         <Chip
             label="Edit"
@@ -59,12 +61,19 @@ const RoomEditButton: FunctionComponent<{ assets: EphemeraAssetId[] }> = ({ asse
                 horizontal: 'right',
             }}
         >
+            <Typography variant="body2">Branch from?</Typography>
+            <Divider />
             <List>
                 {
-                    assets.map((asset) => (
-                        <ListItem>
-                            <ListItemButton>
-                                { asset }
+                    Object.entries(assets).map(([asset, key]) => (
+                        <ListItem key={`Import-${asset}`} >
+                            <ListItemButton
+                                onClick={() => {
+                                    dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset, type: 'Room', key }))
+                                    setOpen(false)
+                                }}
+                            >
+                                { asset.split('#')[1] }
                             </ListItemButton>
                         </ListItem>
                     ))
@@ -78,7 +87,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     const { Description, Name, Characters = [], Exits = [] } = message
     const { currentDraft } = useSelector(getPlayer)
     const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
-    const currentAssets = useMemo(() => (message.assets || []), [message])
+    const currentAssets = useMemo(() => (message.assets || {}), [message])
     const showEdit = useMemo(() => (currentHeader && currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentHeader, currentAssets, status])
 
     return <MessageComponent
