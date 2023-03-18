@@ -61,6 +61,8 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
                 horizontal: 'right',
             }}
         >
+            <Typography variant="body2">Branch from?</Typography>
+            <Divider />
             <List>
                 {
                     Object.entries(assets).map(([asset, key]) => (
@@ -68,9 +70,10 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
                             <ListItemButton
                                 onClick={() => {
                                     dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset, type: 'Room', key }))
+                                    setOpen(false)
                                 }}
                             >
-                                { asset }
+                                { asset.split('#')[1] }
                             </ListItemButton>
                         </ListItem>
                     ))
@@ -84,9 +87,6 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     const { Description, Name, Characters = [], Exits = [] } = message
     const { currentDraft } = useSelector(getPlayer)
     const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
-    //
-    // TODO: Refactor message.assets to be a map from assetIDs to room scoped-keys
-    //
     const currentAssets = useMemo(() => (message.assets || {}), [message])
     const showEdit = useMemo(() => (currentHeader && currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentHeader, currentAssets, status])
 
