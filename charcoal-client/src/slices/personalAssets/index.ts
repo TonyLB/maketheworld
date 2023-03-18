@@ -12,7 +12,8 @@ import {
     parseWML,
     locallyParseWMLAction,
     regenerateWMLAction,
-    initializeNewAction
+    initializeNewAction,
+    fetchImports
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
@@ -302,6 +303,7 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
             position: { contextStack: [{ key: assetId.split('#')[1], tag: 'Asset', index: 0 }] }
         }))
     }
+    dispatch(fetchImports(assetId))
 }
 
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
