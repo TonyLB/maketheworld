@@ -69,7 +69,7 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
                         <ListItem key={`Import-${asset}`} >
                             <ListItemButton
                                 onClick={() => {
-                                    dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset, type: 'Room', key }))
+                                    dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset.split('#')[1], type: 'Room', key }))
                                     setOpen(false)
                                 }}
                             >
