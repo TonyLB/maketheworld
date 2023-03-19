@@ -15,13 +15,13 @@ interface WMLComponentHeaderProps {
 }
 
 export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
-    const primaryBase: AssetDataHeaderRenderFunction = ({ item, defaultItem }) => {
+    const primaryBase: AssetDataHeaderRenderFunction = ({ item, inheritedItem: defaultItem }) => {
         if (isNormalComponent(item)) {
             const aggregateName = item.appearances
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .map(({ name = [] }) => name)
                 .reduce((previous, name) => ([ ...previous, ...name ]), [])
-            return `${taggedMessageToString(defaultItem?.Name || [])}${taggedMessageToString(aggregateName)}` || 'Untitled'
+            return `${taggedMessageToString(defaultItem?.appearances?.[0]?.name || [])}${taggedMessageToString(aggregateName)}` || 'Untitled'
 
         }
         return ''

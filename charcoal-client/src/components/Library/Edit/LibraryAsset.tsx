@@ -44,7 +44,7 @@ type LibraryAssetContextType = {
     currentWML: string;
     draftWML: string;
     normalForm: NormalForm;
-    importDefaults: AssetClientImportDefaults["defaultsByKey"];
+    importData: (assetKey: string) => NormalForm | undefined;
     updateNormal: (action: UpdateNormalPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -61,7 +61,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     currentWML: '',
     draftWML: '',
     normalForm: {},
-    importDefaults: {},
+    importData: () => (undefined),
     updateNormal: () => {},
     properties: {},
     loadedImages: {},
@@ -84,8 +84,6 @@ export type AssetComponent = {
     localRender: ComponentRenderItem[];
     inheritedName: ComponentRenderItem[];
     inheritedRender: ComponentRenderItem[];
-    defaultName: ComponentRenderItem[];
-    defaultRender?: ComponentRenderItem[];
     name: ComponentRenderItem[];
     render: ComponentRenderItem[];
 }
@@ -107,8 +105,6 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .map(({ render = [] }) => render)
                 .reduce((previous, render) => ([ ...previous, ...render ]), [])
-            const defaultName: ComponentRenderItem[] = []
-            const defaultRender: ComponentRenderItem[] = []
             const importRef = component.appearances.map(({ contextStack }) => (contextStack.find(({ tag }) => (tag === 'Import')))).find((value) => (Boolean(value)))
             const importItemCheck: NormalItem | undefined = importRef ? normalForm[importRef.key] : undefined
             const importItem: NormalImport | undefined = (importItemCheck && isNormalImport(importItemCheck)) ? importItemCheck : undefined
@@ -126,10 +122,8 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
                                 localRender,
                                 inheritedName,
                                 inheritedRender,
-                                defaultName,
-                                defaultRender,
-                                name: [ ...defaultName, ...inheritedName, { tag: 'String', value: localName } ],
-                                render: [...(defaultRender || []), ...inheritedRender, ...localRender]
+                                name: [ ...inheritedName, { tag: 'String', value: localName } ],
+                                render: [...inheritedRender, ...localRender]
                             }}
                         }
                     }
@@ -142,8 +136,6 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
                 localRender,
                 inheritedName: [],
                 inheritedRender: [],
-                defaultName,
-                defaultRender,
                 name: [{ tag: 'String', value: localName }],
                 render: localRender
             }}
@@ -158,7 +150,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
-    const importDefaults = useSelector(getImportDefaults(AssetId))
     const importData = useSelector(getImportData(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
@@ -184,7 +175,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             currentWML,
             draftWML,
             normalForm,
-            importDefaults,
+            importData,
             updateNormal,
             properties,
             loadedImages,

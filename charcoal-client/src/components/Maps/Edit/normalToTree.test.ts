@@ -138,7 +138,6 @@ describe('normalToTree', () => {
         const roomAssetFromName = (name: string) => ({
             tag: 'Room',
             localName: [],
-            defaultName: [{ tag: 'String' as 'String', value: name }],
             inheritedName: [{ tag: 'String' as 'String', value: name }],
             name: [{ tag: 'String' as 'String', value: name }],
             localRender: [],
