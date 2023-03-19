@@ -31,8 +31,8 @@ import IfIcon from '@mui/icons-material/Quiz'
 import {
     CustomBeforeBlock,
     CustomReplaceBlock,
-    CustomIfBlock,
-    isCustomBlock
+    isCustomBlock,
+    CustomInheritedReadOnlyElement
 } from '../baseClasses'
 
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -42,18 +42,20 @@ import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import descendantsToRender from './descendantsToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
-import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
+import { decorateFactory, Element, Leaf, withLockedContent, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
 import { AddIfButton } from '../SlateIfElse'
+import { useLibraryAsset } from '../LibraryAsset'
 
 interface DescriptionEditorProps {
+    ComponentId: string;
     inheritedRender?: ComponentRenderItem[];
     render: ComponentRenderItem[];
     onChange?: (items: ComponentRenderItem[]) => void;
 }
 
 const withInlines = (editor: Editor) => {
-    const { isInline, isVoid } = editor
+    const { isInline } = editor
 
     //
     // TODO: Refactor before and replace as blocks rather than inlines, so they can contain conditionals
@@ -62,17 +64,13 @@ const withInlines = (editor: Editor) => {
         ['actionLink', 'featureLink', 'before', 'replace'].includes(element.type) || isInline(element)
     )
 
-    editor.isVoid = (element: SlateElement) => (
-        ['inherited'].includes(element.type) || isVoid(element)
-    )
-
     return editor
 }
 
+//
+// TODO: Rewrite InheritedDescription as an inline VOID Slate type, with a read-only slate sub-editor
+//
 const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
-    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-    const AssetId = `ASSET#${assetKey}`
-    const normalForm = useSelector(getNormalized(AssetId))
     return <span
         contentEditable={false}
         style={{ background: 'lightgrey' }}
@@ -113,7 +111,6 @@ const isLinkActive = isInContextOf(['actionLink', 'featureLink'])
 
 const isBeforeBlock = isInContextOf(['before'])
 const isReplaceBlock = isInContextOf(['replace'])
-const isIfBlock = isInContextOf(['if'])
 
 const unwrapLink = (editor: Editor) => {
     Transforms.unwrapNodes(editor, {
@@ -183,33 +180,6 @@ const wrapReplaceBlock = (editor: Editor) => {
         editor.saveSelection = undefined
     }
 }
-
-// const wrapIfBlock = (editor: Editor) => {
-//     const block: CustomIfBlock = {
-//         type: 'ifBase',
-//         source: "",
-//         children: [{
-//             type: 'paragraph',
-//             children: [{ text: '' }]
-//         }]
-//     }
-//     Transforms.insertNodes(editor, block)
-// }
-
-// const AddIfButton: FunctionComponent<{}> = () => {
-//     const editor = useSlate()
-//     const { selection } = editor
-//     const onClick = useCallback(() => {
-//         wrapIfBlock(editor)
-//     }, [editor])
-//     return <Button
-//         variant="outlined"
-//         disabled={!selection}
-//         onClick={onClick}
-//     >
-//         <IfIcon />If
-//     </Button>
-// }
 
 interface AddLinkButtonProps {
     openDialog: () => void;
@@ -324,16 +294,22 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
     </React.Fragment>
 }
 
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, onChange = () => {} }) => {
-    const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, render, onChange = () => {} }) => {
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    const defaultValue = useMemo(() => (descendantsFromRender(render, { normalForm })), [render, normalForm])
-    const [value, setValue] = useState<Descendant[]>(defaultValue)
+    const { components } = useLibraryAsset()
+    const inheritedRender = components[ComponentId]?.inheritedRender || []
+    const inheritedValue = useMemo<CustomInheritedReadOnlyElement | undefined>(() => (inheritedRender.length ? {
+        type: 'inherited',
+        children: descendantsFromRender(inheritedRender)
+    } : undefined), [inheritedRender])
+    const editor = useMemo(() => withLockedContent(inheritedValue)(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))), [inheritedValue])
+    const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
+    const [value, setValue] = useState<Descendant[]>(inheritedValue ? [inheritedValue, ...defaultValue] : defaultValue)
     useEffect(() => {
         Editor.normalize(editor, { force: true })
-    }, [editor, defaultValue])
+    }, [editor, inheritedValue, defaultValue])
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element inheritedRender={inheritedRender} {...props} />, [inheritedRender, editor])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
@@ -383,6 +359,10 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
 
     const decorate = useCallback(decorateFactory(editor), [editor])
 
+    //
+    // TODO: Refactor Slate editor as a separate item from its controller, and use to
+    // also populate InheritedDescription
+    //
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
@@ -396,7 +376,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 }} />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
-                <InheritedDescription inheritedRender={inheritedRender} />
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}

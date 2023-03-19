@@ -152,7 +152,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         />
         <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
             <DescriptionEditor
-                inheritedRender={components[component.key]?.inheritedRender}
+                ComponentId={ComponentId}
                 render={appearance.render || []}
                 onChange={onChange}
             />

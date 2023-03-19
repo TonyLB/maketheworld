@@ -26,6 +26,7 @@ import slateToExitSchema from "./slateToExitTree"
 import { CustomExitBlock, isCustomBlock } from "../baseClasses"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { Button } from "@mui/material"
+import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -55,9 +56,9 @@ const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: 
             onChange={onChange}
         >
             {
-                Object.entries(rooms).map(([key, { name }]) => (
-                    <MenuItem key={key} value={key}>{ name }</MenuItem>
-                ))
+                Object.entries(rooms).map(([key, { name }]) => {
+                    return <MenuItem key={key} value={key}>{ taggedMessageToString(name) }</MenuItem>
+                })
             }
         </Select>
     </FormControl>
@@ -80,6 +81,7 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
             Transforms.setNodes(editor, { to, from }, { at: path })
         }
     }, [element, editor, path])
+    console.log(`element type: ${element.type}`)
     switch(element.type) {
         case 'ifBase':
         case 'elseif':
