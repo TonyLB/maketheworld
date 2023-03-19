@@ -39,6 +39,11 @@ export type CustomReplaceBlock = {
     children: CustomParagraphContents[];
 }
 
+export type CustomInheritedReadOnlyElement = {
+    type: 'inherited';
+    children: CustomBlock[];
+}
+
 export type CustomIfBlock = {
     type: 'ifBase';
     source: string;
@@ -76,6 +81,7 @@ export const isCustomText = (item: CustomParagraphContents): item is CustomText 
 export const isCustomBeforeBlock = (item: CustomParagraphContents): item is CustomBeforeBlock => ('type' in item && item.type === 'before')
 export const isCustomReplaceBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'replace')
 export const isCustomParagraph = (item: CustomElement): item is CustomParagraphElement => ('type' in item && item.type === 'paragraph')
+export const isCustomInherited = (item: CustomElement): item is CustomInheritedReadOnlyElement => ('type' in item && item.type === 'inherited')
 export const isCustomIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomIfBlock => ('type' in item && item.type === 'ifBase')
 export const isCustomElseIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseIfBlock => ('type' in item && item.type === 'elseif')
 export const isCustomElseBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseBlock => ('type' in item && item.type === 'else')
@@ -94,6 +100,7 @@ type CustomElement = CustomLineElement |
     CustomActionLinkElement |
     CustomFeatureLinkElement |
     CustomParagraphElement |
+    CustomInheritedReadOnlyElement |
     CustomBeforeBlock |
     CustomReplaceBlock |
     CustomIfBlock |
@@ -101,8 +108,8 @@ type CustomElement = CustomLineElement |
     CustomElseBlock |
     CustomExitBlock
 
-export type CustomBlock = CustomParagraphElement | CustomIfBlock | CustomElseIfBlock | CustomElseBlock | CustomExitBlock
-export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'ifBase', 'elseif', 'else', 'exit'].includes(item.type))
+export type CustomBlock = CustomParagraphElement | CustomInheritedReadOnlyElement | CustomIfBlock | CustomElseIfBlock | CustomElseBlock | CustomExitBlock
+export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'inherited', 'before', 'replace', 'ifBase', 'elseif', 'else', 'exit'].includes(item.type))
 
 declare module 'slate' {
     interface CustomTypes {

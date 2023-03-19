@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactNode, ForwardedRef, useMemo } from 'react'
-import { pink, green, blue } from '@mui/material/colors'
+import { pink, green, blue, grey } from '@mui/material/colors'
 import { SlateIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from './InlineChromiumBugfix'
 import { RenderElementProps, RenderLeafProps } from 'slate-react'
@@ -43,24 +43,25 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
             </span>
         case 'before':
         case 'replace':
-            const highlight = element.type === 'before' ? green : pink
+        //
+        // TODO: Build InheritedDescription into render base rather than into a Slate Element
+        //
+        case 'inherited':
+            const highlight = element.type === 'before' ? green : element.type === 'replace' ? pink : grey
             return <SlateIndentBox
                     { ...attributes }
                     color={highlight}
                     label={element.type === 'before'
                         ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
-                        : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment>
+                        : element.type === 'replace' ? <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment> : 'Inherited'
                     }
                 >
                     { children }
-            </SlateIndentBox>
+            </SlateIndentBox>        
         case 'ifBase':
         case 'elseif':
         case 'else':
             return <SlateIfElse defaultBlock={{ type: 'paragraph', children: [{ text: '' }]}} { ...props } />
-        //
-        // TODO: Build InheritedDescription into render base rather than into a Slate Element
-        //
         // case 'description':
         //     const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
         //         ...previous,
