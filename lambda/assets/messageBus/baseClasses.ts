@@ -13,12 +13,6 @@ export type FetchLibraryMessage = {
     type: 'FetchLibrary';
 }
 
-export type FetchImportDefaultsMessage = {
-    type: 'FetchImportDefaults';
-    assetId: `ASSET#${string}`;
-    keys: string[];
-}
-
 type ImportFromAssetArgument = {
     assetId: `ASSET#${string}`;
     keys: string[];
@@ -103,7 +97,6 @@ export type LibraryUpdateMessage = {
 
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
-    FetchImportDefaultsMessage |
     FetchImportsMessage |
     FetchAssetMessage |
     UploadURLMessage |
