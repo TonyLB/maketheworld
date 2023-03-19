@@ -4,6 +4,7 @@ import {
     useParams
 } from "react-router-dom"
 import { isKeyHotkey } from 'is-hotkey'
+import { grey } from '@mui/material/colors'
 
 import { useSlate } from 'slate-react'
 import {
@@ -26,7 +27,6 @@ import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import BeforeIcon from '@mui/icons-material/Reply'
 import ReplaceIcon from '@mui/icons-material/Backspace'
-import IfIcon from '@mui/icons-material/Quiz'
 
 import {
     CustomBeforeBlock,
@@ -42,10 +42,11 @@ import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import descendantsToRender from './descendantsToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
-import { decorateFactory, Element, Leaf, withLockedContent, withParagraphBR } from './components'
+import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
 import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
+import { LabelledIndentBox, SlateIndentBox } from '../LabelledIndentBox'
 
 interface DescriptionEditorProps {
     ComponentId: string;
@@ -71,32 +72,56 @@ const withInlines = (editor: Editor) => {
 // TODO: Rewrite InheritedDescription as an inline VOID Slate type, with a read-only slate sub-editor
 //
 const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
-    return <span
-        contentEditable={false}
-        style={{ background: 'lightgrey' }}
-    >
-        {
-            inheritedRender.map((item, index) => {
-                switch(item.tag) {
-                    case 'Link':
-                        switch(item.targetTag) {
-                            case 'Feature':
-                                return <DescriptionLinkFeatureChip key={`link-${item.to}-${index}`} tooltipTitle={`Feature: ${item.to}`} active={false}>
-                                        {item.text}
-                                    </DescriptionLinkFeatureChip>
-                            case 'Action':
-                                return <DescriptionLinkActionChip key={`link-${item.to}-${index}`} tooltipTitle={`Action: ${item.to}`} active={false}>
-                                        {item.text}
-                                    </DescriptionLinkActionChip>
-                            default:
-                                return null
-                        }
-                    case 'String':
-                        return item.value
-                }
-            })
-        }
-    </span>
+    const inheritedValue = useMemo<CustomInheritedReadOnlyElement[]>(() => ([{
+        type: 'inherited',
+        children: descendantsFromRender(inheritedRender)
+    }]), [inheritedRender])
+    const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
+    const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
+    const renderLeaf = useCallback(props => <Leaf {...props} />, [])
+    const decorate = useCallback(decorateFactory(editor), [editor])
+    useEffect(() => {
+        Editor.normalize(editor, { force: true })
+    }, [editor, inheritedRender])
+
+    return <Box sx={{ position: "relative", width: "calc(100% - 0.1em)", display: 'inline-block' }}>
+        <Box
+            sx={{
+                borderRadius: "0em 1em 1em 0em",
+                borderStyle: 'solid',
+                borderColor: grey[500],
+                background: grey[100],
+                display: 'inline',
+                paddingRight: '0.25em',
+                position: 'absolute',
+                top: 0,
+                left: 0
+            }}
+        >
+            Inherited
+        </Box>
+        <Box
+            sx={{
+                borderRadius: '0em 1em 1em 0em',
+                borderStyle: 'solid',
+                borderColor: grey[500],
+                background: grey[50],
+                paddingRight: '0.5em',
+                paddingLeft: '0.25em',
+                paddingTop: "0.5em",
+                marginTop: '1em',
+            }}
+        >
+            <Slate editor={editor} value={inheritedValue}>
+                <Editable
+                    readOnly
+                    renderElement={renderElement}
+                    renderLeaf={renderLeaf}
+                    decorate={decorate}
+                />
+            </Slate>
+        </Box>
+    </Box>
 }
 
 const isInContextOf = (tags: string[]) => (editor: Editor) => {
@@ -300,18 +325,14 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const normalForm = useSelector(getNormalized(AssetId))
     const { components } = useLibraryAsset()
     const inheritedRender = components[ComponentId]?.inheritedRender || []
-    const inheritedValue = useMemo<CustomInheritedReadOnlyElement | undefined>(() => (inheritedRender.length ? {
-        type: 'inherited',
-        children: descendantsFromRender(inheritedRender)
-    } : undefined), [inheritedRender])
-    const editor = useMemo(() => withLockedContent(inheritedValue)(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))), [inheritedValue])
+    const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
     const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
-    const [value, setValue] = useState<Descendant[]>(inheritedValue ? [inheritedValue, ...defaultValue] : defaultValue)
+    const [value, setValue] = useState<Descendant[]>(defaultValue)
     useEffect(() => {
         Editor.normalize(editor, { force: true })
-    }, [editor, inheritedValue, defaultValue])
+    }, [editor, defaultValue])
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const renderElement = useCallback((props: RenderElementProps) => <Element inheritedRender={inheritedRender} {...props} />, [inheritedRender, editor])
+    const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = useCallback((event) => {
         const { selection } = editor
@@ -376,6 +397,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
                 }} />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
+                <InheritedDescription inheritedRender={inheritedRender} />
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
