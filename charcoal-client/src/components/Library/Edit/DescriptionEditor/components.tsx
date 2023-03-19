@@ -19,8 +19,9 @@ import {
     Range,
     Transforms
 } from 'slate'
-import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
+import { CustomBlock, CustomInheritedReadOnlyElement, isCustomBlock, isCustomInherited, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 import SlateIfElse from '../SlateIfElse'
+import { deepEqual } from '../../../../lib/objects'
 
 export const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[]; }> = ({ inheritedRender, ...props }) => {
     const { attributes, children, element } = props
@@ -164,6 +165,61 @@ export const withParagraphBR = (editor: Editor) => {
             })
             if (errorNormalized) {
                 return
+            }
+        }
+        return normalizeNode([node, path])
+    }
+    return editor
+}
+
+const inheritDeepEqual = <T extends any>(itemA: T, itemB: T): boolean => {
+    if (itemA === itemB) {
+        return true
+    }
+    if (Array.isArray(itemA) && Array.isArray(itemB)) {
+        return (itemA.length === itemB.length) &&
+            itemA.every((item, index) => (inheritDeepEqual(item, itemB[index])))
+    }
+    if (typeof itemA === 'object' && typeof itemB === 'object') {
+        if (!inheritDeepEqual(Object.keys(itemA as any).filter((key) => (!['softBR', 'explicitBR'].includes(key))).sort(), Object.keys(itemB as any).filter((key) => (!['softBR', 'explicitBR'].includes(key))).sort())) {
+            return false
+        }
+        return Object.entries(itemA as any).filter(([key]) => (!['softBR', 'explicitBR'].includes(key))).every(([key, value]) => (inheritDeepEqual(value, (itemB as any)?.[key])))
+    }
+    return false
+}
+
+export const withLockedContent = (inheritedValue?: CustomInheritedReadOnlyElement) => (editor: Editor) => {
+    const { normalizeNode } = editor
+    //
+    // TODO: Refactor inherited content normalize to compare values of sub-nodes individually, and adjust as needed,
+    // rather than to replace the entire node every time.
+    //
+    editor.normalizeNode = ([node, path]) => {
+        //
+        // Confirm that the top level node has the correct inheritedRender as its first element
+        //
+        if (Editor.isEditor(node)) {
+            const allChildren = [...Node.children(node, [])]
+            const firstChild = allChildren[0]?.[0]
+            if (inheritedValue) {
+                if (!firstChild || !isCustomBlock(firstChild) || !isCustomInherited(firstChild)) {
+                    console.log(`Inserting`)
+                    Transforms.insertNodes(editor, inheritedValue, { at: { path: [], offset: 0 } })
+                    return
+                }
+                else if (!inheritDeepEqual(firstChild, inheritedValue))  {
+                    console.log(`Removing`)
+                    Transforms.removeNodes(editor, { at: [0], hanging: false })
+                    return
+                }
+                allChildren.forEach(([child, childPath]) => {
+                    if (childPath[0] > 0 && isCustomBlock(child) && isCustomInherited(child)) {
+                        console.log(`Removing redundancy`)
+                        Transforms.removeNodes(editor, { at: childPath, hanging: false })
+                    }
+                    return
+                })
             }
         }
         return normalizeNode([node, path])

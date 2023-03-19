@@ -42,7 +42,7 @@ import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import descendantsToRender from './descendantsToRender'
 import descendantsFromRender from './descendantsFromRender'
 import withConditionals from './conditionals'
-import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
+import { decorateFactory, Element, Leaf, withLockedContent, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
 import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
@@ -292,18 +292,18 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
 }
 
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, render, onChange = () => {} }) => {
-    const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const { components } = useLibraryAsset()
     const inheritedRender = components[ComponentId]?.inheritedRender || []
-    const inheritedValue = useMemo<CustomInheritedReadOnlyElement>(() => ({
+    const inheritedValue = useMemo<CustomInheritedReadOnlyElement | undefined>(() => (inheritedRender.length ? {
         type: 'inherited',
         children: descendantsFromRender(inheritedRender)
-    }), [inheritedRender])
+    } : undefined), [inheritedRender])
+    const editor = useMemo(() => withLockedContent(inheritedValue)(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))), [inheritedValue])
     const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
-    const [value, setValue] = useState<Descendant[]>(inheritedRender.length ? [inheritedValue, ...defaultValue] : defaultValue)
+    const [value, setValue] = useState<Descendant[]>(inheritedValue ? [inheritedValue, ...defaultValue] : defaultValue)
     useEffect(() => {
         Editor.normalize(editor, { force: true })
     }, [editor, inheritedValue, defaultValue])
