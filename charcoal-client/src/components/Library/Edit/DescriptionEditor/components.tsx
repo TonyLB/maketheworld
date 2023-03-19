@@ -43,21 +43,33 @@ export const Element: FunctionComponent<RenderElementProps & { inheritedRender?:
             </span>
         case 'before':
         case 'replace':
-        //
-        // TODO: Build InheritedDescription into render base rather than into a Slate Element
-        //
-        case 'inherited':
-            const highlight = element.type === 'before' ? green : element.type === 'replace' ? pink : grey
+            const highlight = element.type === 'before' ? green : pink
             return <SlateIndentBox
                     { ...attributes }
                     color={highlight}
                     label={element.type === 'before'
                         ? <React.Fragment><BeforeIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Before</React.Fragment>
-                        : element.type === 'replace' ? <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment> : 'Inherited'
+                        : <React.Fragment><ReplaceIcon sx={{ verticalAlign: "middle", paddingBottom: '0.2em' }} />Replace</React.Fragment>
                     }
                 >
                     { children }
             </SlateIndentBox>        
+        //
+        // TODO: Build InheritedDescription into render base rather than into a Slate Element
+        //
+        case 'inherited':
+            return <Box
+                component='span'
+                {...attributes}
+            >
+                <SlateIndentBox
+                    { ...attributes }
+                    color={grey}
+                    label={'Inherited'}
+                >
+                    { children }
+                </SlateIndentBox>
+            </Box>
         case 'ifBase':
         case 'elseif':
         case 'else':

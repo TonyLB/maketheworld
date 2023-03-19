@@ -18,12 +18,7 @@ import {
     isCustomParagraphContents
 } from "../baseClasses"
 
-type DescendantsTranslateOptions = {
-    normalForm: NormalForm;
-}
-
-const descendantsTranslate = function * (renderItems: ComponentRenderItem[], options: DescendantsTranslateOptions): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
-    const { normalForm } = options
+const descendantsTranslate = function * (renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
     let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
     const conditionElseContext: (current: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
         if (!current) {
@@ -68,9 +63,8 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                 } as CustomText
                 break
             case 'Link':
-                const targetTag = normalForm[item.to]?.tag || 'Action'
                 yield {
-                    type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
+                    type: item.targetTag === 'Feature' ? 'featureLink' : 'actionLink',
                     to: item.to,
                     children: [{
                         text: item.text || ''
@@ -84,14 +78,14 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                 yield { type: 'lineBreak' }
                 break
             case 'After':
-                const afterTranslate = [...descendantsTranslate(item.contents, { normalForm })]
+                const afterTranslate = [...descendantsTranslate(item.contents)]
                 yield* afterTranslate as any
                 break
             case 'Before':
             case 'Replace':
                 yield {
                     type: item.tag === 'Before' ? 'before' : 'replace',
-                    children: [...descendantsTranslate(item.contents, { normalForm })].filter(isCustomParagraphContents)
+                    children: [...descendantsTranslate(item.contents)].filter(isCustomParagraphContents)
                 }
                 break
             case 'Condition':
@@ -109,7 +103,7 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                     (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
                 if (matchesElseConditions) {
                     const remainingConditions = item.conditions.slice(elseContext.length)
-                    const children = descendantsFromRender(item.contents, { normalForm })
+                    const children = descendantsFromRender(item.contents)
                     if (remainingConditions.length && currentIfSequence.length && !elseDefined) {
                         currentIfSequence = [
                             ...currentIfSequence,
@@ -151,7 +145,7 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
                     currentIfSequence = [{
                         type: 'ifBase',
                         source: conditionsToSrc(item.conditions),
-                        children: descendantsFromRender(item.contents, { normalForm }),
+                        children: descendantsFromRender(item.contents),
                     }]
                 }
                 break
@@ -162,12 +156,11 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[], opt
     }
 }
 
-export const descendantsFromRender = (render: ComponentRenderItem[], options: DescendantsTranslateOptions): CustomBlock[] => {
-    const { normalForm } = options
+export const descendantsFromRender = (render: ComponentRenderItem[]): CustomBlock[] => {
     if (render.length > 0) {
         let returnValue = [] as CustomBlock[]
         let accumulator = [] as CustomParagraphContents[]
-        for (const item of descendantsTranslate(render, { normalForm })) {
+        for (const item of descendantsTranslate(render)) {
             if (isCustomBlock(item)) {
                 if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
                     if (accumulator.length) {

@@ -55,17 +55,13 @@ interface DescriptionEditorProps {
 }
 
 const withInlines = (editor: Editor) => {
-    const { isInline, isVoid } = editor
+    const { isInline } = editor
 
     //
     // TODO: Refactor before and replace as blocks rather than inlines, so they can contain conditionals
     //
     editor.isInline = (element: SlateElement) => (
         ['actionLink', 'featureLink', 'before', 'replace'].includes(element.type) || isInline(element)
-    )
-
-    editor.isVoid = (element: SlateElement) => (
-        ['inherited'].includes(element.type) || isVoid(element)
     )
 
     return editor
@@ -302,13 +298,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const normalForm = useSelector(getNormalized(AssetId))
     const { components } = useLibraryAsset()
     const inheritedRender = components[ComponentId]?.inheritedRender || []
-    console.log(`inheritedRender: ${JSON.stringify(inheritedRender, null, 4)}`)
     const inheritedValue = useMemo<CustomInheritedReadOnlyElement>(() => ({
         type: 'inherited',
-        children: descendantsFromRender(inheritedRender, { normalForm: {} })
+        children: descendantsFromRender(inheritedRender)
     }), [inheritedRender])
-    console.log(`inheritedValue: ${JSON.stringify(inheritedValue, null, 4)}`)
-    const defaultValue = useMemo(() => (descendantsFromRender(render, { normalForm })), [render, normalForm])
+    const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
     const [value, setValue] = useState<Descendant[]>(inheritedRender.length ? [inheritedValue, ...defaultValue] : defaultValue)
     useEffect(() => {
         Editor.normalize(editor, { force: true })
@@ -362,7 +356,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
 
     const decorate = useCallback(decorateFactory(editor), [editor])
 
-    console.log(`value: ${JSON.stringify(value, null, 4)}`)
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
