@@ -5,17 +5,16 @@ import {
     getStatus
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
-import { NormalForm, NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientFetchImports, AssetClientImportDefaults, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
-import { schemaFromParse, schemaFromWML, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
+import { schemaFromParse, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer'
 import parse from '@tonylb/mtw-wml/dist/parser'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { isSchemaAssetContents, SchemaAssetTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { getNormalized, setImport } from '.'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
@@ -93,56 +92,6 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
         dispatch(setImport(id)({ assetKey: assetId.split('#')[1], normal: normalizer.normal }))
     })
 
-}
-
-export const fetchImportsAPIAction: PersonalAssetsAction = ({ publicData: { normal }, internalData: { id } }) => async (dispatch) => {
-    if (!id) {
-        return {}
-    }
-
-    const importsByAssetId = Object.values(normal || {})
-        .filter(({ tag }) => (tag === 'Import'))
-        .map((item) => (item as NormalImport))
-        .reduce((previous, { from, mapping }) => ({
-            ...previous,
-            [from]: Object.entries(mapping)
-                .reduce((previous, [localKey, { key: awayKey }]) => ({
-                    ...previous,
-                    [localKey]: awayKey
-                }), {})
-        }), {} as ImportsByAssets)
-
-    //
-    // TODO: Deprecate fetchImportDefaults and use fetchImports return instead
-    //
-    await dispatch(fetchImports(id))
-    const importFetchDefaults: AssetClientImportDefaults[] = await Promise.all(
-        Object.entries(importsByAssetId).map(([assetId, keys]) => (
-            dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
-        ))
-    )
-
-    const importDefaults = importFetchDefaults.reduce<AssetClientImportDefaults["defaultsByKey"]>((previous, importFetch) => (
-        Object.entries(importsByAssetId[importFetch.assetId.split('#')[1]] || {})
-            .reduce<AssetClientImportDefaults["defaultsByKey"]>((accumulator, [localKey, awayKey]) => {
-                const defaultItem = importFetch.defaultsByKey[awayKey]
-                if (!defaultItem) {
-                    return accumulator
-                }
-                else {
-                    return {
-                        ...accumulator,
-                        [localKey]: defaultItem
-                    }
-                }
-            }, previous)
-    ), {})
-
-    return {
-        publicData: {
-            importDefaults
-        }
-    }
 }
 
 export const getSaveURL: PersonalAssetsAction = ({ internalData: { id }, publicData: { loadedImages } }) => async (dispatch) => {

@@ -19,7 +19,6 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import {
     getCurrentWML,
-    getImportDefaults,
     getNormalized,
     getLoadedImages,
     setIntent,
