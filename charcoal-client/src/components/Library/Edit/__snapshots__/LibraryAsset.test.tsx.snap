@@ -38,7 +38,9 @@ exports[`LibraryAsset context provider should provide features 1`] = `
 <div>
   <div>
     <div>
-      <span />
+      <span>
+        
+      </span>
       <span>
         String
       </span>
@@ -411,13 +413,7 @@ exports[`LibraryAsset context provider should provide rooms 1`] = `
   <div>
     <div>
       <span>
-        
-        
-        
-        
-        
-        
-        
+        Welcome
       </span>
       <span>
         String
@@ -428,12 +424,7 @@ exports[`LibraryAsset context provider should provide rooms 1`] = `
     </div>
     <div>
       <span>
-        
-        
-        
-        
-        
-        
+        Vortex
       </span>
       <span>
         String

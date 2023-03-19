@@ -42,15 +42,22 @@ const currentWML = `
 const normalizer = new Normalizer()
 normalizer.loadWML(currentWML)
 
+const inheritedNormalizer = new Normalizer()
+inheritedNormalizer.loadWML(`<Asset key=(BASE)>
+    <Room key=(DEF)>
+        <Description>A welcome area</Description>
+    </Room>
+</Asset>`)
+
 const store = mockStore({
    personalAssets: {
        byId: {
            ['ASSET#Test']: {
-               publicData: {
-                   originalWML: currentWML,
-                   currentWML,
-                   normal: normalizer.normal,
-                   importDefaults: {
+                publicData: {
+                    originalWML: currentWML,
+                    currentWML,
+                    normal: normalizer.normal,
+                    importDefaults: {
                         DEF: {
                             Description: [{
                                 tag: 'String',
@@ -58,12 +65,15 @@ const store = mockStore({
                             }],
                             Name: []
                         }
-                   }
-               },
-               meta: {
+                    },
+                    importData: {
+                        BASE: inheritedNormalizer.normal
+                    }
+                },
+                meta: {
                    currentState: 'FRESH',
                    desiredStates: ['FRESH', 'WMLDIRTY', 'NORMALDIRTY']
-               }
+                }
            }
        }
    }

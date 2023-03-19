@@ -139,9 +139,11 @@ describe('normalToTree', () => {
             tag: 'Room',
             localName: [],
             defaultName: [{ tag: 'String' as 'String', value: name }],
+            inheritedName: [{ tag: 'String' as 'String', value: name }],
             name: [{ tag: 'String' as 'String', value: name }],
             localRender: [],
             defaultRender: [],
+            inheritedRender: [],
             render: []
         })
         expect(normalToTree({

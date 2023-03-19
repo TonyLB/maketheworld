@@ -224,6 +224,7 @@ export const {
     getDraftWML,
     getNormalized,
     getImportDefaults,
+    getImportData,
     getProperties,
     getLoadedImages,
     getError

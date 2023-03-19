@@ -396,6 +396,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 }} />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
+                <InheritedDescription inheritedRender={inheritedRender} />
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
