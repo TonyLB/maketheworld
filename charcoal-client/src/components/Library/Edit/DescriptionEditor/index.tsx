@@ -67,6 +67,9 @@ const withInlines = (editor: Editor) => {
     return editor
 }
 
+//
+// TODO: Rewrite InheritedDescription as an inline VOID Slate type, with a read-only slate sub-editor
+//
 const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
     return <span
         contentEditable={false}
@@ -356,6 +359,10 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
 
     const decorate = useCallback(decorateFactory(editor), [editor])
 
+    //
+    // TODO: Refactor Slate editor as a separate item from its controller, and use to
+    // also populate InheritedDescription
+    //
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
