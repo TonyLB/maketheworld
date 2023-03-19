@@ -27,7 +27,7 @@ type WMLComponentAppearanceProps = {
     appearanceIndex: number;
 }
 
-const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = ({ ComponentId, appearanceIndex }) => {
+const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = ({ ComponentId }) => {
     const { normalForm, updateNormal, components } = useLibraryAsset()
     const component = normalForm[ComponentId || '']
     const { tag } = component || {}
@@ -67,8 +67,9 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
             ]
         }, []).map(componentRenderToSchemaTaggedMessage)
         const normalizer = new Normalizer()
-        normalizer._normalForm = normalForm
-        const reference: NormalReference = { tag, key: ComponentId, index: appearanceIndex }
+        normalizer.loadNormal(normalForm)
+        normalizer.standardize()
+        const reference: NormalReference = { tag, key: ComponentId, index: 0 }
         const baseSchema = normalizer.referenceToSchema(reference)
         if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
             updateNormal({
@@ -96,15 +97,15 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         if (!(component && (isNormalRoom(component) || isNormalFeature(component)))) {
             return undefined
         }
-        return component.appearances[appearanceIndex]
-    }, [normalForm, ComponentId, appearanceIndex])
+        return component.appearances[0]
+    }, [normalForm, ComponentId])
     const [name, setName] = useState(appearance?.name || [])
     const nameText = useMemo<string>(() => ((name || []).map((item) => ((item.tag === 'String') ? item.value : '')).join('')), [name])
 
     const dispatchNameChange = useCallback((value: ComponentRenderItem[]) => {
         const normalizer = new Normalizer()
         normalizer._normalForm = normalForm
-        const reference: NormalReference = { tag, key: ComponentId, index: appearanceIndex }
+        const reference: NormalReference = { tag, key: ComponentId, index: 0 }
         const baseSchema = normalizer.referenceToSchema(reference)
         if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
             updateNormal({
