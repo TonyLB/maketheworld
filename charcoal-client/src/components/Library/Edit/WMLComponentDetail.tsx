@@ -20,6 +20,7 @@ import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
+import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 
 type WMLComponentAppearanceProps = {
     ComponentId: string;
@@ -140,7 +141,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
                 display: 'inline'
             }}
         >
-            { components[ComponentId]?.defaultName || '' }
+            { taggedMessageToString(components[ComponentId]?.inheritedName || []) }
         </Box>
         <TextField
             id="name"
@@ -151,7 +152,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         />
         <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
             <DescriptionEditor
-                inheritedRender={components[component.key]?.defaultRender}
+                inheritedRender={components[component.key]?.inheritedRender}
                 render={appearance.render || []}
                 onChange={onChange}
             />
