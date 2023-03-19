@@ -57,15 +57,7 @@ const store = mockStore({
                     originalWML: currentWML,
                     currentWML,
                     normal: normalizer.normal,
-                    importDefaults: {
-                        DEF: {
-                            Description: [{
-                                tag: 'String',
-                                value: 'A welcome area'
-                            }],
-                            Name: []
-                        }
-                    },
+                    importDefaults: {},
                     importData: {
                         BASE: inheritedNormalizer.normal
                     }

@@ -4,7 +4,6 @@ import {
     lifelineCondition,
     getFetchURL,
     fetchAction,
-    fetchImportsAPIAction,
     getSaveURL,
     saveWML,
     clearAction,
@@ -19,7 +18,7 @@ import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
-import { isNormalAction, isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
@@ -37,7 +36,6 @@ export const {
             incrementalBackoff: 0.5
         },
         publicData: {
-            importDefaults: {},
             importData: {},
             properties: {},
             loadedImages: {},
@@ -61,7 +59,6 @@ export const {
                 incrementalBackoff: 0.5
             },
             publicData: {
-                importDefaults: {},
                 importData: {},
                 properties: {},
                 loadedImages: {},
@@ -93,22 +90,10 @@ export const {
             FETCH: {
                 stateType: 'ATTEMPT',
                 action: fetchAction,
-                resolve: 'FETCHDEFAULTS',
+                resolve: 'FRESH',
                 reject: 'FETCHBACKOFF'
             },
             FETCHBACKOFF: {
-                stateType: 'ATTEMPT',
-                action: backoffAction,
-                resolve: 'FETCH',
-                reject: 'FETCHERROR'
-            },
-            FETCHDEFAULTS: {
-                stateType: 'ATTEMPT',
-                action: fetchImportsAPIAction,
-                resolve: 'FRESH',
-                reject: 'FETCHDEFAULTSBACKOFF'
-            },
-            FETCHDEFAULTSBACKOFF: {
                 stateType: 'ATTEMPT',
                 action: backoffAction,
                 resolve: 'FETCH',
@@ -223,7 +208,6 @@ export const {
     getCurrentWML,
     getDraftWML,
     getNormalized,
-    getImportDefaults,
     getImportData,
     getProperties,
     getLoadedImages,

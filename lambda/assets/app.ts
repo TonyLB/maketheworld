@@ -109,25 +109,6 @@ export const handler = async (event, context) => {
                 })
             })
         }
-        //
-        // TODO: Finish deprecating isFetchImportDefaults and replace in client with FetchImports
-        //
-        if (isFetchImportDefaultsAPIMessage(request)) {
-            // messageBus.send({
-            //     type: 'FetchImportDefaults',
-            //     assetId: request.assetId,
-            //     keys: request.keys
-            // })
-            await apiClient.send({
-                ConnectionId: connectionId,
-                Data: JSON.stringify({
-                    RequestId: request.RequestId,
-                    messageType: 'ImportDefaults',
-                    assetId: request.assetId,
-                    defaultsByKey: {}
-                })
-            })
-        }
         if (isFetchImportsAPIMessage(request)) {
             messageBus.send({
                 type: 'FetchImports',

@@ -8,15 +8,13 @@ import {
     SxProps
 } from '@mui/material'
 
-import { NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalFeature, NormalItem, NormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { AssetComponent, useLibraryAsset } from './LibraryAsset'
-import { AssetClientImportDefaults, AssetClientImportDefaultsFeature, AssetClientImportDefaultsRoom } from '@tonylb/mtw-interfaces/dist/asset'
 
 type AssetDataHeaderRenderFunctionProps = {
     item: NormalItem;
-    defaultItem: AssetClientImportDefaultsFeature | AssetClientImportDefaultsRoom;
+    inheritedItem?: NormalRoom | NormalFeature;
     normalForm: Record<string, NormalItem>;
-    importDefaults: AssetClientImportDefaults["defaultsByKey"],
     rooms: Record<string, AssetComponent>;
 }
 
@@ -36,13 +34,14 @@ interface AssetDataHeaderProps {
 }
 
 export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, actions = null, primary, secondary, ItemId, onClick, sx, selected }) => {
-    const { normalForm, importDefaults, rooms } = useLibraryAsset()
+    const { normalForm, importData, rooms } = useLibraryAsset()
 
     const props = {
         item: normalForm[ItemId],
-        defaultItem: importDefaults[ItemId],
+        //
+        // TODO: Add inheritedItem to properties
+        //
         normalForm,
-        importDefaults,
         rooms
     }
     const primaryOutput = primary?.(props) || null

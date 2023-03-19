@@ -1,4 +1,4 @@
-import { AssetClientFetchURL, AssetClientImportDefaults, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
+import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
@@ -27,7 +27,6 @@ export interface PersonalAssetsPublic {
     currentWML?: string;
     draftWML?: string;
     normal: NormalForm;
-    importDefaults: AssetClientImportDefaults["defaultsByKey"];
     importData: Record<string, NormalForm>;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
@@ -45,8 +44,6 @@ export interface PersonalAssetsNodes {
     FETCHURLBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCH: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    FETCHDEFAULTS: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    FETCHDEFAULTSBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHERROR: ISSMChoiceNode;
     FRESH: ISSMChoiceNode;
     WMLDIRTY: ISSMChoiceNode;

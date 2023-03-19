@@ -1,7 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { WritableDraft } from 'immer/dist/internal'
 import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema'
 import parser from "@tonylb/mtw-wml/dist/parser"
