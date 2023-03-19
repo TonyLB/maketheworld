@@ -30,12 +30,10 @@ import {
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
-import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
 import { PersonalAssetsLoadedImage } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
 import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import { components } from '@aws-amplify/ui-react'
 
 type LibraryAssetContextType = {
     assetKey: string;

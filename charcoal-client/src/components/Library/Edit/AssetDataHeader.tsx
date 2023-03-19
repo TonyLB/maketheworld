@@ -10,7 +10,6 @@ import {
 
 import { NormalFeature, NormalItem, NormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { AssetComponent, useLibraryAsset } from './LibraryAsset'
-import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
 
 type AssetDataHeaderRenderFunctionProps = {
     item: NormalItem;

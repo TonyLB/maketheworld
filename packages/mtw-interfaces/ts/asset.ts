@@ -18,11 +18,6 @@ export type FetchImportsAPIMessage = {
     keys: string[];
 }
 
-export type FetchImportDefaultsAPIMessage = {
-    message: 'fetchImportDefaults';
-    assetId: `ASSET#${string}`;
-    keys: string[];
-}
 
 export type FetchAssetAPIMessage = {
     message: 'fetch';
@@ -80,7 +75,6 @@ export type AssetWhoAmIAPIMessage = {
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
     MetaDataAPIMessage |
-    FetchImportDefaultsAPIMessage |
     FetchImportsAPIMessage |
     FetchAssetAPIMessage |
     UploadAssetLinkAPIMessage |
@@ -94,7 +88,6 @@ export type AssetAPIMessage = { RequestId?: string } & (
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
 export const isMetaDataAPIMessage = (message: AssetAPIMessage): message is MetaDataAPIMessage => (message.message === 'metaData')
-export const isFetchImportDefaultsAPIMessage = (message: AssetAPIMessage): message is FetchImportDefaultsAPIMessage => (message.message === 'fetchImportDefaults')
 export const isFetchImportsAPIMessage = (message: AssetAPIMessage): message is FetchImportsAPIMessage => (message.message === 'fetchImports')
 export const isFetchAssetAPIMessage = (message: AssetAPIMessage): message is FetchAssetAPIMessage => (message.message === 'fetch')
 export const isUploadAssetLinkAPIMessage = (message: AssetAPIMessage): message is UploadAssetLinkAPIMessage => (message.message === 'upload')
@@ -171,21 +164,6 @@ export type AssetClientUploadURL = {
     }[];
 }
 
-export type AssetClientImportDefaultsRoom = {
-    tag: 'Room';
-} & Omit<RoomDescribeData, 'RoomId' | 'Characters'>
-
-export type AssetClientImportDefaultsFeature = {
-    tag: 'Feature';
-} & Omit<FeatureDescribeData, 'FeatureId'>
-
-export type AssetClientImportDefaults = {
-    messageType: 'ImportDefaults';
-    RequestId?: string;
-    assetId: `ASSET#${string}`;
-    defaultsByKey: Record<string, AssetClientImportDefaultsRoom | AssetClientImportDefaultsFeature>;
-}
-
 type FetchImportOutputByAsset = {
     assetId: `ASSET#${string}`;
     wml: string;
@@ -208,7 +186,6 @@ export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientMetaDataMessage |
     AssetClientFetchURL |
     AssetClientUploadURL |
-    AssetClientImportDefaults |
     AssetClientFetchImports |
     AssetClientParseWML
 
@@ -330,13 +307,6 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
         case 'UploadURL':
             return checkTypes(message, { url: 'string', s3Object: 'string' }, { RequestId: 'string' }) &&
                 ("images" in message && Array.isArray(message.images) && message.images.reduce((previous, item) => (previous && checkTypes(item, { key: 'string', presignedOutput: 'string', s3Object: 'string' })), true))
-        case 'ImportDefaults':
-            return checkAll(
-                checkTypes(message, { assetId: 'string' }),
-                ...Object.values(message.defaultsByKey || {}).map((item: any) => (
-                    ['Room', 'Feature'].includes(item.tag) && validateTaggedMessageList(item.Name) && validateTaggedMessageList(item.Description)
-                ))
-            ) && message.assetId.split('#')[0] === 'ASSET'
         case 'FetchImports':
             return checkAll(
                 'importsByAsset' in message,
