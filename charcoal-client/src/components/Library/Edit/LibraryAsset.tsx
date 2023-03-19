@@ -25,15 +25,18 @@ import {
     setIntent,
     getProperties,
     updateNormal as updateNormalAction,
-    getDraftWML
+    getDraftWML,
+    getImportData
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
 import { AssetClientImportDefaults } from '@tonylb/mtw-interfaces/dist/asset'
 import { PersonalAssetsLoadedImage } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
 import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import { components } from '@aws-amplify/ui-react'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -79,14 +82,18 @@ export type AssetComponent = {
     tag: string;
     localName: ComponentRenderItem[];
     localRender: ComponentRenderItem[];
+    inheritedName: ComponentRenderItem[];
+    inheritedRender: ComponentRenderItem[];
     defaultName: ComponentRenderItem[];
     defaultRender?: ComponentRenderItem[];
     name: ComponentRenderItem[];
     render: ComponentRenderItem[];
 }
 
-const assetComponents = ({ normalForm, importDefaults }: { normalForm: NormalForm, importDefaults: AssetClientImportDefaults["defaultsByKey"] }): Record<string, AssetComponent> => {
+const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, importData: (assetKey: string) => NormalForm | undefined }): Record<string, AssetComponent> => {
     const componentNormals = Object.values(normalForm).filter((item) => (isNormalComponent(item))) as NormalComponent[]
+    const normalizer = new Normalizer()
+    normalizer.loadNormal(normalForm)
 
     const roomReturns = componentNormals
         .map((component) => {
@@ -96,23 +103,49 @@ const assetComponents = ({ normalForm, importDefaults }: { normalForm: NormalFor
                 .reduce((previous, name) => ([ ...previous, ...name ]), [])
                 .map((item) => ((item.tag === 'String') ? item.value : ''))
                 .join('')) || ''
-            const countRenderAppearances = component.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-                .length
             const localRender = component.appearances
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
                 .map(({ render = [] }) => render)
                 .reduce((previous, render) => ([ ...previous, ...render ]), [])
-            const defaultName = importDefaults[component.key]?.Name || []
-            const defaultRender = importDefaults[component.key]?.Description || []
+            const defaultName: ComponentRenderItem[] = []
+            const defaultRender: ComponentRenderItem[] = []
+            const importRef = component.appearances.map(({ contextStack }) => (contextStack.find(({ tag }) => (tag === 'Import')))).find((value) => (Boolean(value)))
+            const importItemCheck: NormalItem | undefined = importRef ? normalForm[importRef.key] : undefined
+            const importItem: NormalImport | undefined = (importItemCheck && isNormalImport(importItemCheck)) ? importItemCheck : undefined
+            if (importItem) {
+                const awayKey = importItem.mapping[component.key]
+                if (awayKey) {
+                    const importedNormal = importData(importItem.from)
+                    if (importedNormal) {
+                        const inheritedItem = importedNormal[awayKey.key]
+                        if (inheritedItem && isNormalComponent(inheritedItem)) {
+                            const { name: inheritedName = [], render: inheritedRender = [] } = inheritedItem.appearances[0] || {}
+                            return { [component.key]: {
+                                tag: component.tag,
+                                localName,
+                                localRender,
+                                inheritedName,
+                                inheritedRender,
+                                defaultName,
+                                defaultRender,
+                                name: [ ...defaultName, ...inheritedName, { tag: 'String', value: localName } ],
+                                render: [...(defaultRender || []), ...inheritedRender, ...localRender]
+                            }}
+                        }
+                    }
+                }
+
+            }
             return { [component.key]: {
                 tag: component.tag,
                 localName,
                 localRender,
+                inheritedName: [],
+                inheritedRender: [],
                 defaultName,
                 defaultRender,
-                name: [ ...defaultName, ...localName ],
-                render: [...(defaultRender || []), ...localRender]
+                name: [{ tag: 'String', value: localName }],
+                render: localRender
             }}
         })
     
@@ -126,6 +159,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const draftWML = useSelector(getDraftWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
     const importDefaults = useSelector(getImportDefaults(AssetId))
+    const importData = useSelector(getImportData(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
     const dispatch = useDispatch()
@@ -134,7 +168,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
-    const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importDefaults }) ), [normalForm, importDefaults])
+    const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importData }) ), [normalForm, importData])
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
     const exits = useMemo<Record<string, NormalExit>>(() => ( objectFilter(normalForm, isNormalExit) ), [components])
     const features = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Feature')) ), [components])
