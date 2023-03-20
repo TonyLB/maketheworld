@@ -195,16 +195,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         />
         <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
             <Box sx={{ overflowY: 'auto' }}>
-                {
-                    (component.appearances || []).map(({ contextStack }, index) => {
-                        if (contextStack.find(({ tag }) => (['If', 'Map', 'Message'].includes(tag)))) {
-                            return null
-                        }
-                        else {
-                            return <WMLComponentAppearance key={`${ComponentId}-appearance-${index}`} ComponentId={ComponentId} appearanceIndex={index} />
-                        }
-                    })
-                }
+                <WMLComponentAppearance ComponentId={ComponentId} appearanceIndex={0} />
             </Box>
             <DraftLockout />
         </Box>
