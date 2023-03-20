@@ -252,25 +252,7 @@ const extractImportMapping = (contextNormalizer: Normalizer) => (item: NormalImp
         if (!(schemaVersion && isSchemaImport(schemaVersion))) {
             return previous
         }
-        //
-        // TODO: Extend this functionality when Messages are refactored to include conditionals
-        //
 
-        // const newContents = contextStack
-        //     .filter(({ tag }) => (tag === 'If'))
-        //     .reduceRight<SchemaMessageLegalContents[]>((previous, { key }) => {
-        //         const ifReference = contextNormalizer.normal[key]
-        //         if (!(ifReference && isNormalCondition(ifReference))) {
-        //             return previous
-        //         }
-        //         const returnValue: SchemaConditionTagMapContext = {
-        //             tag: 'If' as 'If',
-        //             contextTag: 'Message',
-        //             conditions: ifReference.conditions,
-        //             contents: previous
-        //         }
-        //         return [returnValue]
-        //     }, contents)
         return {
             ...previous,
             ...schemaVersion.mapping
