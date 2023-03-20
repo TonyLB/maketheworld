@@ -43,6 +43,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     if (id) {
         try {
             normalizer.loadWML(assetWML)
+            normalizer.standardize()
         }
         catch (err) {
             if (err instanceof TokenizeException) {
@@ -217,6 +218,7 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draf
         schema.forEach((tag, index) => {
             normalizer.put(tag, { contextStack: [], index, replace: false })
         })
+        normalizer.standardize()
         return {
             publicData: {
                 normal: normalizer.normal,
