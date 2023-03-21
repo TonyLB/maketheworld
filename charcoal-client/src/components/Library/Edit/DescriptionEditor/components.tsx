@@ -100,9 +100,9 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
                 </Box>
             }
         default: return (
-            <p {...attributes}>
+            <div {...attributes}>
                 {children}
-            </p>
+            </div>
         )
     }
 }
