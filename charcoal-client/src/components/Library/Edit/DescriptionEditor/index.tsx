@@ -81,8 +81,13 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const decorate = useCallback(decorateFactory(editor), [editor])
     useEffect(() => {
+        //
+        // Since slate-react doesn't seem to catch up to reactive changes in the value of a Slate
+        // object, we need to manually reset the value on a change
+        //
+        editor.children = inheritedValue
         Editor.normalize(editor, { force: true })
-    }, [editor, inheritedRender])
+    }, [editor, inheritedValue])
 
     return <Box sx={{ position: "relative", width: "calc(100% - 0.1em)", display: 'inline-block' }}>
         <Box
@@ -324,7 +329,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const { components } = useLibraryAsset()
-    const inheritedRender = components[ComponentId]?.inheritedRender || []
+    const inheritedRender = useMemo(() => (components[ComponentId]?.inheritedRender || []), [components, ComponentId])
     const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
     const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
