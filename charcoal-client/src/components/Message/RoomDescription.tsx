@@ -29,6 +29,7 @@ import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import ListItemButton from '@mui/material/ListItemButton'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
+import { useNavigate } from 'react-router-dom'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
@@ -38,6 +39,7 @@ interface RoomDescriptionProps {
 }
 
 const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string> }> = ({ assets }) => {
+    const navigate = useNavigate()
     const [open, setOpen] = useState<boolean>(false)
     const ref = useRef(null)
     const dispatch = useDispatch()
@@ -70,7 +72,7 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
                             <ListItemButton
                                 onClick={() => {
                                     dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset.split('#')[1], type: 'Room', key }))
-                                    setOpen(false)
+                                    navigate(`/Library/Edit/Asset/${currentDraft}/Room/${key}`)
                                 }}
                             >
                                 { asset.split('#')[1] }
