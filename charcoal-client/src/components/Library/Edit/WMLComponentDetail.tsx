@@ -14,13 +14,14 @@ import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import { useDebouncedOnChange } from '../../../hooks/useDebounce'
-import { ComponentRenderItem, isNormalFeature, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, isNormalComponent, isNormalFeature, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
+import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 
 type WMLComponentAppearanceProps = {
     ComponentId: string;
@@ -171,7 +172,15 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const { assetKey, normalForm, components } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component = normalForm[ComponentId || '']
-    const { tag } = component || {}
+    const { tag = '', appearances = [] } = isNormalComponent(component) ? component : {}
+    const name = taggedMessageToString(appearances[0]?.name || [])
+    useAutoPin({
+        href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}/`,
+        label: name,
+        type: 'ComponentEdit',
+        assetId: `ASSET#${assetKey}`,
+        componentId: ComponentId || ''
+    })
     if (!component || !ComponentId) {
         return <Box />
     }

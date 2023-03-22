@@ -334,6 +334,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     useEffect(() => {
+        editor.children = defaultValue
         Editor.normalize(editor, { force: true })
     }, [editor, defaultValue])
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)

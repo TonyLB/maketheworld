@@ -81,7 +81,6 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
             Transforms.setNodes(editor, { to, from }, { at: path })
         }
     }, [element, editor, path])
-    console.log(`element type: ${element.type}`)
     switch(element.type) {
         case 'ifBase':
         case 'elseif':
@@ -179,10 +178,12 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                 transform: ({ key }: NormalExit) => (key)
             }), { items: [], conditionals: [] })
         ), [normalForm, RoomId])
+    const defaultValue = useMemo(() => (exitTreeToSlate(normalForm)(relevantExits)), [normalForm, relevantExits])
+    const [value, setValue] = useState(defaultValue)
     useEffect(() => {
+        editor.children = defaultValue
         Editor.normalize(editor, { force: true })
-    }, [editor, relevantExits])    
-    const [value, setValue] = useState(exitTreeToSlate(normalForm)(relevantExits))
+    }, [editor, defaultValue])
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
         const deleteReferences = Object.values(normalForm)
             .filter(isNormalExit)
