@@ -1,5 +1,5 @@
-jest.mock('@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient')
-import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
+jest.mock('../clients')
+import { apiClient } from "../clients"
 jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
