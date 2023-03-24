@@ -89,6 +89,10 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
         Editor.normalize(editor, { force: true })
     }, [editor, inheritedValue])
 
+    if ((inheritedRender || []).length === 0) {
+        return null
+    }
+
     return <Box sx={{ position: "relative", width: "calc(100% - 0.1em)", display: 'inline-block' }}>
         <Box
             sx={{
