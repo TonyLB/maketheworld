@@ -15,7 +15,8 @@ import {
     Typography,
     IconButton
 } from '@mui/material'
-import EditIcon from '@mui/icons-material/Edit';
+import EditIcon from '@mui/icons-material/Edit'
+import PreviewIcon from '@mui/icons-material/Preview'
 
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
@@ -51,15 +52,29 @@ const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> 
                 </Avatar>
             }
             action={
-                personal && 
-                    <IconButton
+                <React.Fragment>
+                    {
+                        personal && 
+                        <Button
+                            onClick={() => {
+                                navigate(`/Library/Edit/Asset/${AssetId}/`)
+                            }}
+                            aria-label="edit"
+                        >
+                            <EditIcon />
+                            Edit
+                        </Button>
+                    }
+                    <Button
                         onClick={() => {
                             navigate(`/Library/Edit/Asset/${AssetId}/`)
                         }}
-                        aria-label="edit"
+                        aria-label="view"
                     >
-                        <EditIcon />
-                    </IconButton>
+                        <PreviewIcon />
+                        View
+                    </Button>
+                </React.Fragment>
             }
             title={
                 <Typography variant={large ? "h3" : medium ? "h5" : "h6"} component="div" gutterBottom>
