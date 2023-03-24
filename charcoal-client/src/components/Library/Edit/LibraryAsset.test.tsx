@@ -50,7 +50,7 @@ inheritedNormalizer.loadWML(`<Asset key=(BASE)>
 </Asset>`)
 
 const store = mockStore({
-   personalAssets: {
+    personalAssets: {
        byId: {
            ['ASSET#Test']: {
                 publicData: {
@@ -68,7 +68,8 @@ const store = mockStore({
                 }
            }
        }
-   }
+    },
+    player: {}
 })
 
 describe('LibraryAsset context provider', () => {

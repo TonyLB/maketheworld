@@ -27,6 +27,7 @@ import {
     getDraftWML,
     getImportData
 } from '../../../slices/personalAssets'
+import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
@@ -50,6 +51,7 @@ type LibraryAssetContextType = {
     exits: Record<string, NormalExit>;
     features: Record<string, AssetComponent>;
     save: () => void;
+    readonly: boolean;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -66,7 +68,8 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     rooms: {},
     exits: {},
     features: {},
-    save: () => {}
+    save: () => {},
+    readonly: true
 })
 
 type LibraryAssetProps = {
@@ -164,6 +167,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
+    const { currentDraft } = useSelector(getPlayer)
 
     return (
         <LibraryAssetContext.Provider value={{
@@ -180,7 +184,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             rooms,
             exits,
             features,
-            save
+            save,
+            readonly: !(currentDraft === assetKey)
         }}>
             {children}
         </LibraryAssetContext.Provider>
