@@ -17,7 +17,6 @@ import {
     isAssetSubscribeAPIMessage,
     isAssetWhoAmIAPIMessage,
     isParseWMLAPIMessage,
-    isFetchImportDefaultsAPIMessage,
     isFetchImportsAPIMessage,
     isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage
@@ -25,7 +24,7 @@ import {
 
 import messageBus from "./messageBus/index.js"
 import { extractReturnValue } from './returnValue'
-import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
+import { apiClient } from "./clients"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)

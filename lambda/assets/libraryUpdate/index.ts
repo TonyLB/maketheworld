@@ -1,4 +1,4 @@
-import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
+import { apiClient } from "../clients"
 import { LibraryUpdateMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'

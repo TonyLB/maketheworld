@@ -1,8 +1,8 @@
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { fetchImportsMessage } from '.'
 
-jest.mock('@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient')
-import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
+jest.mock('../clients')
+import { apiClient } from '../clients'
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('../internalCache')

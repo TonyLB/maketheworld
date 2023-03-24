@@ -1,7 +1,7 @@
 import { FetchImportsMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
-import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
+import { apiClient } from "../clients"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 
