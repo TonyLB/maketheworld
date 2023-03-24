@@ -36,15 +36,23 @@ type NavigationTabLibraryEdit = {
     assetId: EphemeraCharacterId | EphemeraAssetId;
 } & NavigationTabBase
 
+type NavigationTabComponentEdit = {
+    type: 'ComponentEdit';
+    assetId: EphemeraAssetId;
+    componentId: string;
+} & NavigationTabBase
+
 export type NavigationTab = NavigationTabGeneral |
     NavigationTabMap |
     NavigationTabMessagePanel |
     NavigationTabLibrary |
-    NavigationTabLibraryEdit
+    NavigationTabLibraryEdit |
+    NavigationTabComponentEdit
 
 export const isNavigationTabMap = (value: NavigationTab): value is NavigationTabMap => (value.type === 'Map')
 export const isNavigationTabLibrary = (value: NavigationTab): value is NavigationTabLibrary => (value.type === 'Library')
 export const isNavigationTabLibraryEdit = (value: NavigationTab): value is NavigationTabLibraryEdit => (value.type === 'LibraryEdit')
+export const isNavigationTabComponentEdit = (value: NavigationTab): value is NavigationTabLibraryEdit => (value.type === 'ComponentEdit')
 export const isNavigationTabMessagePanel = (value: NavigationTab): value is NavigationTabMessagePanel => (value.type === 'MessagePanel')
 
 export const closeTab = createAsyncThunk(
