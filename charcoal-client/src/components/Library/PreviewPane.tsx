@@ -23,6 +23,7 @@ import { CharacterAvatarDirect } from '../CharacterAvatar'
 
 import AssetIcon from '@mui/icons-material/Landscape'
 import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
+import { setCurrentDraft } from '../../slices/player'
 
 export type PreviewPaneContents = ({
     type: 'Asset'
@@ -52,11 +53,11 @@ const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> 
                 </Avatar>
             }
             action={
-                <React.Fragment>
-                    {
-                        personal && 
+                personal && 
+                    <React.Fragment>
                         <Button
                             onClick={() => {
+                                dispatch(setCurrentDraft(AssetId))
                                 navigate(`/Library/Edit/Asset/${AssetId}/`)
                             }}
                             aria-label="edit"
@@ -64,17 +65,16 @@ const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> 
                             <EditIcon />
                             Edit
                         </Button>
-                    }
-                    <Button
-                        onClick={() => {
-                            navigate(`/Library/Edit/Asset/${AssetId}/`)
-                        }}
-                        aria-label="view"
-                    >
-                        <PreviewIcon />
-                        View
-                    </Button>
-                </React.Fragment>
+                        <Button
+                            onClick={() => {
+                                navigate(`/Library/Edit/Asset/${AssetId}/`)
+                            }}
+                            aria-label="view"
+                        >
+                            <PreviewIcon />
+                            View
+                        </Button>
+                    </React.Fragment>
             }
             title={
                 <Typography variant={large ? "h3" : medium ? "h5" : "h6"} component="div" gutterBottom>
