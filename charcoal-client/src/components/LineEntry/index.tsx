@@ -44,7 +44,7 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ placeholder, callba
     const setEntry = activeCharacter.setLineEntry
     const onChange = activeCharacter.setLineEntry
     const { TextEntryLines } = useSelector(getClientSettings)
-    const empty = value === '' || (mode === 'NarrateMessage' && value.trim() === (activeCharacter.info?.Name || ''))
+    const empty = value.trim() === '' || (mode === 'NarrateMessage' && value.trim() === (activeCharacter.info?.Name || ''))
     return <TextField
         inputRef={ref}
         sx={{ bgcolor: 'background.default' }}
@@ -67,22 +67,22 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ placeholder, callba
             if (empty) {
                 if (mode !== 'SayMessage' && (event.key === '"' || event.key === "'")) {
                     event.preventDefault()
-                    setEntry('')
+                    // setEntry('')
                     setCurrentMode('SayMessage')
                 }
                 if (mode !== 'NarrateMessage' && (event.key === ':' || event.key === ";")) {
                     event.preventDefault()
-                    setEntry(activeCharacter.info?.Name ? `${activeCharacter.info?.Name} ` : '')
+                    // setEntry(activeCharacter.info?.Name ? `${activeCharacter.info?.Name} ` : '')
                     setCurrentMode('NarrateMessage')
                 }
                 if (mode !== 'OOCMessage' && (event.key === '\\' || event.key === "|")) {
                     event.preventDefault()
-                    setEntry('')
+                    // setEntry('')
                     setCurrentMode('OOCMessage')
                 }
                 if (mode !== 'Command' && (event.key === '/' || event.key === '?')) {
                     event.preventDefault()
-                    setEntry('')
+                    // setEntry('')
                     setCurrentMode('Command')
                 }
             }
