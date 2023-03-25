@@ -162,13 +162,12 @@ type EditAssetProps = {}
 export const EditAsset: FunctionComponent<EditAssetProps> = () => {
 
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-    const { currentDraft } = useSelector(getPlayer)
     const AssetId = `ASSET#${assetKey}` as const
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}`,
         label: `${assetKey}`,
         type: 'LibraryEdit',
-        iconName: currentDraft === assetKey ? 'EditAsset' : 'Asset',
+        iconName: 'Asset',
         assetId: AssetId
     })
     const dispatch = useDispatch()
