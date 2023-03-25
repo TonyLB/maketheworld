@@ -27,6 +27,7 @@ import { NarrateBubble } from '../Message/NarrateMessage'
 import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
+import EntryModeRoller from './EntryModeRoller'
 
 type LineEntryMode = ParseCommandModes | 'Options'
 
@@ -240,10 +241,12 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
         <CharacterColorWrapper color="blue">
             <MessageComponent
                 rightIcon={
-                    <EntryModeSpeedDial />
+                    // <EntryModeSpeedDial />
+                    <EntryModeRoller />
                 }
+                rightGutter={120}
             >
-                <Box sx={{ marginRight: "10px" }}>
+                <Box>
                     <EntryModeDispatcher
                         ref={ref}
                         callback={callback}

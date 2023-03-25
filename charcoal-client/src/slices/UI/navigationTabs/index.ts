@@ -74,9 +74,6 @@ export const closeTab = createAsyncThunk(
         if (tab) {
             switch(tab.type) {
                 case 'LibraryEdit':
-                    //
-                    // TODO: Check status of asset and don't bring up dialog if nothing can be saved
-                    //
                     const assetState = getStatus(tab.assetId)(state)
                     if (!(assetState === 'FRESH')) {
                         const dialogValue = await dispatch(pushChoice({
