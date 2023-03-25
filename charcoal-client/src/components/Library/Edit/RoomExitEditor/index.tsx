@@ -45,7 +45,12 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
 }
 
 const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: SelectChangeEvent<string>) => void }> = ({ target, onChange }) => {
-    const { rooms } = useLibraryAsset()
+    const { rooms, readonly } = useLibraryAsset()
+    const onChangeHandler = useCallback((event: SelectChangeEvent<string>) => {
+        if (!readonly) {
+            onChange(event)
+        }
+    }, [onChange, readonly])
     return <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
         <InputLabel id="select-small">Target</InputLabel>
         <Select
@@ -53,7 +58,8 @@ const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: 
             id="select-small"
             value={target}
             label="Target"
-            onChange={onChange}
+            onChange={onChangeHandler}
+            disabled={readonly}
         >
             {
                 Object.entries(rooms).map(([key, { name }]) => {
@@ -66,16 +72,17 @@ const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: 
 
 const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ RoomId, ...props }) => {
     const editor = useSlate()
+    const { readonly } = useLibraryAsset()
     const { attributes, children, element } = props
     const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
     const onDeleteHandler = useCallback(() => {
         Transforms.removeNodes(editor, { at: path })
     }, [editor, path])
     const onFlipHandler = useCallback(() => {
-        if (element.type === 'exit') {
+        if (!readonly && element.type === 'exit') {
             Transforms.setNodes(editor, { to: element.from, from: element.to }, { at: path })
         }
-    }, [element, editor, path])
+    }, [element, editor, path, readonly])
     const onTargetHandler = useCallback(({ to, from }: { to: string; from: string }) => {
         if (element.type === 'exit') {
             Transforms.setNodes(editor, { to, from }, { at: path })
@@ -129,7 +136,7 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
                     paddingRight: '0.25em',
                 }} { ...attributes } spellCheck={false} >{children}</Box>
                 <Box contentEditable={false} sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }} > from { fromElement } to { toElement }</Box>
-                <Box contentEditable={false} sx={{ display: 'flex' }} ><IconButton onClick={onDeleteHandler}><DeleteIcon /></IconButton></Box>
+                <Box contentEditable={false} sx={{ display: 'flex' }} ><IconButton onClick={onDeleteHandler} disabled={readonly}><DeleteIcon /></IconButton></Box>
             </Box>
         default: return (
             <p {...attributes}>
@@ -152,13 +159,14 @@ const wrapExitBlock = (editor: Editor, RoomId: string) => {
 
 const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
     const editor = useSlate()
+    const { readonly } = useLibraryAsset()
     const { selection } = editor
     const onClick = useCallback(() => {
         wrapExitBlock(editor, RoomId)
     }, [editor])
     return <Button
         variant="outlined"
-        disabled={!selection}
+        disabled={readonly || !selection}
         onClick={onClick}
     >
         <AddIcon /><ExitIcon />
@@ -167,7 +175,7 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
-    const { normalForm, updateNormal } = useLibraryAsset()
+    const { normalForm, updateNormal, readonly } = useLibraryAsset()
     const relevantExits = useMemo(() => (
         Object.values(normalForm)
             .filter(isNormalExit)
@@ -259,6 +267,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
+                    readOnly={readonly}
                 />
                 <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                     <AddExitButton RoomId={RoomId} />

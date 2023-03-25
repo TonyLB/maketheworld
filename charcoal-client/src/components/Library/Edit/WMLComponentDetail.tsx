@@ -29,7 +29,7 @@ type WMLComponentAppearanceProps = {
 }
 
 const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = ({ ComponentId }) => {
-    const { normalForm, updateNormal, components } = useLibraryAsset()
+    const { normalForm, updateNormal, components, readonly } = useLibraryAsset()
     const component = normalForm[ComponentId || '']
     const { tag } = component || {}
     const onChange = useCallback((newRender: ComponentRenderItem[]) => {
@@ -151,6 +151,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
             size="small"
             value={nameText}
             onChange={changeName}
+            disabled={readonly}
         />
         <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
             <DescriptionEditor

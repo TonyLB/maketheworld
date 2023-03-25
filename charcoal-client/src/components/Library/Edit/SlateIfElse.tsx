@@ -10,8 +10,10 @@ import CodeEditor from "./CodeEditor"
 import { SlateIndentBox } from "./LabelledIndentBox"
 
 import IfIcon from '@mui/icons-material/Quiz'
+import { useLibraryAsset } from "./LibraryAsset"
 
 const AddConditionalButton: FunctionComponent<{ editor: Editor; path: Path; defaultItem: CustomBlock; label: string }> = ({ editor, path, defaultItem, label }) => {
+    const { readonly } = useLibraryAsset()
     const onClick = useCallback(() => {
         if (path.length) {
             Transforms.insertNodes(
@@ -35,6 +37,7 @@ const AddConditionalButton: FunctionComponent<{ editor: Editor; path: Path; defa
         }}
         label={`+ ${label}`}
         onClick={onClick}
+        disabled={readonly}
     />
 }
 
@@ -70,13 +73,14 @@ type AddIfButton = {
 
 export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock}) => {
     const editor = useSlate()
+    const { readonly } = useLibraryAsset()
     const { selection } = editor
     const onClick = useCallback(() => {
         wrapIfBlock(editor, defaultBlock)
     }, [editor])
     return <Button
         variant="outlined"
-        disabled={!selection}
+        disabled={readonly || !selection}
         onClick={onClick}
     >
         <IfIcon />If
