@@ -221,10 +221,11 @@ interface AddLinkButtonProps {
 
 const AddLinkButton: FunctionComponent<AddLinkButtonProps> = ({ openDialog }) => {
     const editor = useSlate()
+    const { readonly } = useLibraryAsset()
     const { selection } = editor
     return <Button
         variant={isLinkActive(editor) ? "contained" : "outlined"}
-        disabled={!selection || Boolean(!isLinkActive(editor) && Range.isCollapsed(selection))}
+        disabled={readonly || !selection || Boolean(!isLinkActive(editor) && Range.isCollapsed(selection))}
         onClick={openDialog}
     >
         <LinkIcon />
@@ -236,6 +237,7 @@ interface RemoveLinkButtonProps {
 
 const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
     const editor = useSlate()
+    const { readonly } = useLibraryAsset()
     const { selection } = editor
     const handleClick = useCallback(() => {
         unwrapLink(editor)
@@ -245,7 +247,7 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
     }, [editor])
     return <Button
         variant={isLinkActive(editor) ? "contained" : "outlined"}
-        disabled={!selection || Boolean(!isLinkActive(editor) && Range.isCollapsed(selection))}
+        disabled={readonly || !selection || Boolean(!isLinkActive(editor) && Range.isCollapsed(selection))}
         onClick={handleClick}
     >
         <LinkOffIcon />
@@ -254,6 +256,7 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
 
 const DisplayTagRadio: FunctionComponent<{}> = () => {
     const editor = useSlate()
+    const { readonly } = useLibraryAsset()
     const { selection } = editor
     const handleBeforeClick = useCallback(() => {
         if (isBeforeBlock(editor)) {
@@ -306,21 +309,21 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
     return <React.Fragment>
         <Button
             variant={isBeforeBlock(editor) ? "contained" : "outlined"}
-            disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && selection && Range.isCollapsed(selection))}
+            disabled={readonly || !selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && selection && Range.isCollapsed(selection))}
             onClick={handleBeforeClick}
         >
             <BeforeIcon />
         </Button>
         <Button
             variant={isReplaceBlock(editor) ? "contained" : "outlined"}
-            disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
+            disabled={readonly || !selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
             onClick={handleReplaceClick}
         >
             <ReplaceIcon />
         </Button>
         <Button
             variant={(isReplaceBlock(editor) || isBeforeBlock(editor)) ? "outlined" : "contained"}
-            disabled={!selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
+            disabled={readonly || !selection || Boolean(!isBeforeBlock(editor) && !isReplaceBlock(editor) && Range.isCollapsed(selection))}
             onClick={handleAfterClick}
         >
             <BeforeIcon sx={{ transform: "scaleX(-1)" }} />
@@ -332,7 +335,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    const { components } = useLibraryAsset()
+    const { components, readonly } = useLibraryAsset()
     const inheritedRender = useMemo(() => (components[ComponentId]?.inheritedRender || []), [components, ComponentId])
     const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
     const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
@@ -412,6 +415,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
                     decorate={decorate}
+                    readOnly={readonly}
                     // onKeyDown={onKeyDown}
                 />
             </Box>
