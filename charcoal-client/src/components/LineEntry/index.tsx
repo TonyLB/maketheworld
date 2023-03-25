@@ -27,7 +27,6 @@ import { NarrateBubble } from '../Message/NarrateMessage'
 import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
-import CurrentDraftSelector from './CurrentDraftSelector'
 
 type LineEntryMode = ParseCommandModes | 'Options'
 
@@ -200,7 +199,6 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>((props, 
                         }}
                     />
                 </Avatar>
-                <CurrentDraftSelector />
             </Box>
         case 'SayMessage':
             return <SpeechBubble variant="right" tailOffset="30px">
