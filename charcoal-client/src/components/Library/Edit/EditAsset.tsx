@@ -168,7 +168,8 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
         label: `${assetKey}`,
         type: 'LibraryEdit',
         iconName: 'Asset',
-        assetId: AssetId
+        assetId: AssetId,
+        cascadingClose: true
     })
     const dispatch = useDispatch()
     useEffect(() => {
