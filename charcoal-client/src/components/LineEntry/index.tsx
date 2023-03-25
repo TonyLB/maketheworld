@@ -27,6 +27,7 @@ import { NarrateBubble } from '../Message/NarrateMessage'
 import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
+import EntryModeRoller from './EntryModeRoller'
 
 type LineEntryMode = ParseCommandModes | 'Options'
 
@@ -43,7 +44,7 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ placeholder, callba
     const setEntry = activeCharacter.setLineEntry
     const onChange = activeCharacter.setLineEntry
     const { TextEntryLines } = useSelector(getClientSettings)
-    const empty = value === '' || (mode === 'NarrateMessage' && value.trim() === (activeCharacter.info?.Name || ''))
+    const empty = value.trim() === '' || (mode === 'NarrateMessage' && value.trim() === (activeCharacter.info?.Name || ''))
     return <TextField
         inputRef={ref}
         sx={{ bgcolor: 'background.default' }}
@@ -66,22 +67,22 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ placeholder, callba
             if (empty) {
                 if (mode !== 'SayMessage' && (event.key === '"' || event.key === "'")) {
                     event.preventDefault()
-                    setEntry('')
+                    // setEntry('')
                     setCurrentMode('SayMessage')
                 }
                 if (mode !== 'NarrateMessage' && (event.key === ':' || event.key === ";")) {
                     event.preventDefault()
-                    setEntry(activeCharacter.info?.Name ? `${activeCharacter.info?.Name} ` : '')
+                    // setEntry(activeCharacter.info?.Name ? `${activeCharacter.info?.Name} ` : '')
                     setCurrentMode('NarrateMessage')
                 }
                 if (mode !== 'OOCMessage' && (event.key === '\\' || event.key === "|")) {
                     event.preventDefault()
-                    setEntry('')
+                    // setEntry('')
                     setCurrentMode('OOCMessage')
                 }
                 if (mode !== 'Command' && (event.key === '/' || event.key === '?')) {
                     event.preventDefault()
-                    setEntry('')
+                    // setEntry('')
                     setCurrentMode('Command')
                 }
             }
@@ -240,10 +241,12 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
         <CharacterColorWrapper color="blue">
             <MessageComponent
                 rightIcon={
-                    <EntryModeSpeedDial />
+                    // <EntryModeSpeedDial />
+                    <EntryModeRoller />
                 }
+                rightGutter={120}
             >
-                <Box sx={{ marginRight: "10px" }}>
+                <Box>
                     <EntryModeDispatcher
                         ref={ref}
                         callback={callback}

@@ -46,7 +46,7 @@ import { EphemeraCharacterInPlay } from '../../slices/ephemera/baseClasses'
 import { MessageRoomBreakdown } from '../../slices/messages/selectors'
 import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { ParseCommandModes } from '../../slices/lifeLine/baseClasses'
-import { getLineEntry, getLineEntryMode, setCurrentMode, setEntry } from '../../slices/UI/lineEntry'
+import { getLineEntry, getLineEntryMode, setCurrentMode, setEntry, moveCurrentMode } from '../../slices/UI/lineEntry'
 
 type ActiveCharacterContextType = {
     CharacterId: EphemeraCharacterId;
@@ -57,6 +57,7 @@ type ActiveCharacterContextType = {
     entryMode: ParseCommandModes | 'Options';
     setLineEntry: (value: string) => void;
     setEntryMode: (value: ParseCommandModes | 'Options') => void;
+    moveEntryMode: (up: boolean) => void;
 }
 
 const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
@@ -69,7 +70,8 @@ const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
     lineEntry: '',
     entryMode: 'Command',
     setLineEntry: () => {},
-    setEntryMode: () => {}
+    setEntryMode: () => {},
+    moveEntryMode: () => {}
 })
 
 type ActiveCharacterProps = {
@@ -83,11 +85,13 @@ export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ Chara
     const maps = useSelector(getActiveCharacterMaps(CharacterId))
     const messageBreakdown = useSelector(getMessagesByRoom(CharacterId))
     const info = useSelector(getCharactersInPlay)[CharacterId]
+    const { Name: name } = info
     const lineEntry = useSelector(getLineEntry(CharacterId))
     const entryMode = useSelector(getLineEntryMode(CharacterId))
     const dispatch = useDispatch()
     const setLineEntry = (entry: string) => { dispatch(setEntry({ characterId: CharacterId, entry }))}
-    const setEntryMode = (mode: ParseCommandModes | 'Options') => { dispatch(setCurrentMode({ characterId: CharacterId, mode }))}
+    const setEntryMode = (mode: ParseCommandModes | 'Options') => { dispatch(setCurrentMode({ characterId: CharacterId, mode, name }))}
+    const moveEntryMode = (up: boolean) => { dispatch(moveCurrentMode({ characterId: CharacterId, up, name }))}
     return (
         <ActiveCharacterContext.Provider value={{
             CharacterId,
@@ -98,6 +102,7 @@ export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ Chara
             entryMode,
             setLineEntry,
             setEntryMode,
+            moveEntryMode,
             ...characterState
         }}>
             {children}
