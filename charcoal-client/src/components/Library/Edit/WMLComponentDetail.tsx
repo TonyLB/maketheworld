@@ -179,6 +179,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
         label: name,
         type: 'ComponentEdit',
+        iconName: 'Room',
         assetId: `ASSET#${assetKey}`,
         componentId: ComponentId || ''
     })

@@ -35,6 +35,8 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import LibraryIcon from '@mui/icons-material/ArtTrack'
+import AssetIcon from '@mui/icons-material/Landscape'
+import EditIcon from '@mui/icons-material/Edit'
 
 import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
@@ -50,6 +52,7 @@ import { closeTab, navigationTabs, navigationTabSelected } from '../../slices/UI
 import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
+import { getPlayer } from '../../slices/player'
 
 const a11yProps = (index: number) => {
     return {
@@ -58,7 +61,8 @@ const a11yProps = (index: number) => {
     }
 }
 
-const IconDispatcher = ({ iconName = 'Forum' }) => {
+const IconDispatcher = ({ iconName = 'Forum', assetId }: { iconName: string; assetId?: string }) => {
+    const { currentDraft } = useSelector(getPlayer)
     switch(iconName) {
         case 'Map':
             return <MapIcon />
@@ -66,12 +70,23 @@ const IconDispatcher = ({ iconName = 'Forum' }) => {
             return <NotificationsActiveIcon />
         case 'Library':
             return <LibraryIcon />
+        case 'Asset':
+        case 'EditAsset':
+            return <React.Fragment>
+                {(currentDraft === assetId?.split('#')[1]) && <EditIcon />}
+                <AssetIcon />
+            </React.Fragment>
+        case 'Room':
+            return <React.Fragment>
+                {(currentDraft === assetId?.split('#')[1]) && <EditIcon />}
+                <HomeIcon />
+            </React.Fragment>
         default:
             return <ForumIcon />
     }
 }
 
-const IconWrapper = ({ iconName = 'Forum', href, closable=true }: { iconName: string; href: string; closable: boolean }) => {
+const IconWrapper = ({ iconName = 'Forum', href, closable=true, assetId }: { iconName: string; href: string; closable: boolean; assetId?: string }) => {
     const dispatch = useDispatch()
     const { selectedTab, navigate, pathname } = useNavigationContext()
     const onClose = useCallback((event) => {
@@ -80,7 +95,7 @@ const IconWrapper = ({ iconName = 'Forum', href, closable=true }: { iconName: st
         dispatch(closeTab({ href, pathname, callback: (value) => { navigate(value) } }))
     }, [dispatch, href, selectedTab, navigate])
     return <Box sx={{ position: "relative", width: "100%" }}>
-        <IconDispatcher iconName={iconName} />
+        <IconDispatcher iconName={iconName} assetId={assetId} />
         { closable && <IconButton
                 sx={{ position: "absolute", top: "-0.75em", right: "-0.5em" }}
                 onClick={onClose}
@@ -101,13 +116,13 @@ const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTab
         component={Link}
         to="/"
     />,
-    ...(navigationTabs.map(({ href, label, iconName, closable }, index) => (
+    ...(navigationTabs.map(({ href, label, iconName, closable, assetId }, index) => (
         <Tab
             key={href}
             label={label}
             value={href}
             {...a11yProps(index + 1)}
-            icon={<IconWrapper iconName={iconName} href={href} closable={closable} />}
+            icon={<IconWrapper iconName={iconName} href={href} closable={closable} assetId={assetId} />}
             component={Link}
             to={href}
         />
