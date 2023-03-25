@@ -35,6 +35,8 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import LibraryIcon from '@mui/icons-material/ArtTrack'
+import AssetIcon from '@mui/icons-material/Landscape'
+import EditIcon from '@mui/icons-material/Edit'
 
 import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
@@ -66,6 +68,10 @@ const IconDispatcher = ({ iconName = 'Forum' }) => {
             return <NotificationsActiveIcon />
         case 'Library':
             return <LibraryIcon />
+        case 'Asset':
+            return <AssetIcon />
+        case 'EditAsset':
+            return <React.Fragment><EditIcon /><AssetIcon /></React.Fragment>
         default:
             return <ForumIcon />
     }

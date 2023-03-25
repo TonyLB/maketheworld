@@ -121,6 +121,7 @@ const navigationSlice = createSlice({
             const current = state.find(({ href }) => (href === action.payload.href))
             if (current) {
                 current.label = action.payload.label
+                current.iconName = action.payload.iconName
             }
             else {
                 state.push(action.payload)
