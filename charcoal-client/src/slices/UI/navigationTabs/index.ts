@@ -5,6 +5,7 @@ import { unique } from '../../../lib/lists';
 import { Selector } from '../../../store'
 import { setIntent as activeCharacterSetIntent } from '../../activeCharacters';
 import { setIntent as librarySetIntent } from '../../library';
+import { getPlayer, setCurrentDraft } from '../../player';
 import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat';
 
 type NavigationTabBase = {
@@ -65,12 +66,21 @@ export const closeTab = createAsyncThunk(
         const tab = navigationTabPinnedByHref(href)(state)
         const allTabs = navigationTabs(state)
         const tabIndex = navigationTabSelectedIndex(pathname)(state)
+        const { currentDraft } = getPlayer(state)
         let removeHrefs = [href]
+        const libraryStillNeeded = Boolean(allTabs.find(({ href: checkHref, type }) => ((href !== checkHref) && (['Library', 'LibraryEdit'].includes(type)))))
         if (tab) {
             switch(tab.type) {
-                case 'Library':
                 case 'LibraryEdit':
-                    const libraryStillNeeded = Boolean(allTabs.find(({ href: checkHref, type }) => ((href !== checkHref) && (['Library', 'LibraryEdit'].includes(type)))))
+                    if (tab.assetId.split('#')[1] === currentDraft) {
+                        dispatch(setCurrentDraft(undefined))
+                    }
+                    if (!libraryStillNeeded) {
+                        dispatch(librarySetIntent(['INACTIVE']))
+                        dispatch(heartbeat)
+                    }
+                    break
+                case 'Library':
                     if (!libraryStillNeeded) {
                         dispatch(librarySetIntent(['INACTIVE']))
                         dispatch(heartbeat)
@@ -87,7 +97,7 @@ export const closeTab = createAsyncThunk(
                 case 'Map':
                     dispatch(activeCharacterSetIntent({ key: tab.characterId, intent: ['CONNECTED'] }))
                     dispatch(heartbeat)
-                    break
+                    break                    
             }
             if (tab && tab.cascadingClose) {
                 removeHrefs = unique(
