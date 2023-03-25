@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction, createSelector, Dispatch, createAsyncThunk } from '@reduxjs/toolkit'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { unique } from '../../../lib/lists';
 
 import { Selector } from '../../../store'
 import { setIntent as activeCharacterSetIntent } from '../../activeCharacters';
@@ -11,6 +12,7 @@ type NavigationTabBase = {
     href: string;
     iconName?: string;
     closable: boolean;
+    cascadingClose?: boolean;
 }
 
 type NavigationTabGeneral = {
@@ -86,6 +88,12 @@ export const closeTab = createAsyncThunk(
                     dispatch(activeCharacterSetIntent({ key: tab.characterId, intent: ['CONNECTED'] }))
                     dispatch(heartbeat)
                     break
+            }
+            if (tab && tab.cascadingClose) {
+                removeHrefs = unique(
+                    removeHrefs,
+                    allTabs.map(({ href }) => (href)).filter((hrefMatch) => (hrefMatch.startsWith(href)))
+                )
             }
             if (tabIndex !== null) {
                 const lastValidIndex = allTabs.slice(0, tabIndex).reduce<number>((previous, { href }, index) => {
