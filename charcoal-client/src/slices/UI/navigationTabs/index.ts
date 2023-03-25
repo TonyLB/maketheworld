@@ -5,7 +5,7 @@ import { unique } from '../../../lib/lists';
 import { Selector } from '../../../store'
 import { setIntent as activeCharacterSetIntent } from '../../activeCharacters';
 import { setIntent as librarySetIntent } from '../../library';
-import { setIntent as personalAssetSetIntent } from '../../personalAssets'
+import { setIntent as personalAssetSetIntent, getStatus } from '../../personalAssets'
 import { getPlayer, setCurrentDraft } from '../../player';
 import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat';
 import { pushChoice } from '../choiceDialog';
@@ -77,20 +77,23 @@ export const closeTab = createAsyncThunk(
                     //
                     // TODO: Check status of asset and don't bring up dialog if nothing can be saved
                     //
-                    const dialogValue = await dispatch(pushChoice({
-                        title: `Do you want to save ${tab.assetId.split('#')[1]}`,
-                        message: 'There are outstanding changes in this asset.  Do you want to save?',
-                        options: [
-                            { label: 'Save', returnValue: 'Save' },
-                            { label: `Don't Save`, returnValue: 'NoSave' },
-                            { label: 'Cancel', returnValue: 'Cancel' }
-                        ]
-                    }))
-                    if (dialogValue === 'Cancel') {
-                        return []
-                    }
-                    if (dialogValue === 'Save') {
-                        dispatch(personalAssetSetIntent({ key: tab.assetId, intent: ['NEEDSAVE'] }))
+                    const assetState = getStatus(tab.assetId)(state)
+                    if (!(assetState === 'FRESH')) {
+                        const dialogValue = await dispatch(pushChoice({
+                            title: `Do you want to save ${tab.assetId.split('#')[1]}`,
+                            message: 'There are outstanding changes in this asset.  Do you want to save?',
+                            options: [
+                                { label: 'Save', returnValue: 'Save' },
+                                { label: `Don't Save`, returnValue: 'NoSave' },
+                                { label: 'Cancel', returnValue: 'Cancel' }
+                            ]
+                        }))
+                        if (dialogValue === 'Cancel') {
+                            return []
+                        }
+                        if (dialogValue === 'Save') {
+                            dispatch(personalAssetSetIntent({ key: tab.assetId, intent: ['NEEDSAVE'] }))
+                        }
                     }
                     if (tab.assetId.split('#')[1] === currentDraft) {
                         dispatch(setCurrentDraft(undefined))
