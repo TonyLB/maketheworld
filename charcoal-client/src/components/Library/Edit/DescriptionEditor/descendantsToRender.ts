@@ -92,6 +92,16 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
                         ]
                     }
                     if ('text' in item) {
+                        if ((accumulator.at(-1) || { tag: 'Space' }).tag === 'String') {
+                            return [
+                                ...previous,
+                                { tag: 'LineBreak' },
+                                {
+                                    tag: 'String',
+                                    value: item.text
+                                }
+                            ]
+                        }
                         return [
                             ...previous,
                             {
@@ -101,7 +111,7 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
                         ]
                     }
                     return previous
-                }, (index > 0) ? [...accumulator, { tag: 'LineBreak' }] : accumulator)
+                }, accumulator)
         }
         return accumulator
     }, [] as ComponentRenderItem[])
