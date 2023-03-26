@@ -1244,8 +1244,10 @@ export class Normalizer {
     }
 
     standardize(): void {
-        const standardized = standardizeNormal(this._normalForm)
-        this.loadNormal(standardized)
+        if (this.rootNode && isNormalAsset(this.rootNode)) {
+            const standardized = standardizeNormal(this._normalForm)
+            this.loadNormal(standardized)
+        }
     }
 
 }
