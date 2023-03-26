@@ -6,15 +6,12 @@ import {
     Box,
     SpeedDial,
     SpeedDialAction,
+    Stack,
     TextField
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
-import OptionsIcon from '@mui/icons-material/MoreHoriz'
-import SayMessageIcon from '@mui/icons-material/Chat'
-import NarrateMessageIcon from '@mui/icons-material/Receipt'
-import OOCMessageIcon from '@mui/icons-material/CropFree'
-import CommandIcon from '@mui/icons-material/Code'
 import MapIcon from '@mui/icons-material/Explore'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
 
 import {
     // getServerSettings,
@@ -28,8 +25,6 @@ import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import EntryModeRoller from './EntryModeRoller'
-
-type LineEntryMode = ParseCommandModes | 'Options'
 
 interface EntryFieldProps {
     placeholder?: string;
@@ -96,82 +91,28 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ placeholder, callba
 
 interface EntryModeSpeedDialProps {}
 
+type EntryModeSpeedDialOptions = 'Map'
+
 const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = () => {
-    const activeCharacter = useActiveCharacter()
-    const mode = activeCharacter.entryMode
-    const entry = activeCharacter.lineEntry
-    const setMode = activeCharacter.setEntryMode
-    const setEntry = activeCharacter.setLineEntry
-    const name = activeCharacter.info?.Name || ''
-    const icons: Record<LineEntryMode, ReactElement> = {
-        Options: <OptionsIcon sx={{ width: "30px", height: "30px" }} />,
-        SayMessage: <SayMessageIcon sx={{ width: "30px", height: "30px" }} />,
-        NarrateMessage: <NarrateMessageIcon sx={{ width: "30px", height: "30px" }} />,
-        OOCMessage: <OOCMessageIcon sx={{ width: "30px", height: "30px" }} />,
-        Command: <CommandIcon sx={{ width: "30px", height: "30px" }} />,
-    }
-    return <SpeedDial
-        ariaLabel="Text entry mode"
-        sx={{ position: 'absolute', bottom: '10px', right: '10px' }}
-        FabProps={{ sx: { width: "60px", height: "60px" } }}        
-        icon={icons[mode]}
-    >
-        <SpeedDialAction
-            key="SayMessage"
-            icon={<SayMessageIcon />}
-            tooltipTitle={`Say (")`}
-            onClick={() => {
-                if (mode === 'NarrateMessage' && entry.trim() === name) {
-                    setEntry('')
-                }
-                setMode('SayMessage')
-            }}
-        />
-        <SpeedDialAction
-            key="NarrateMessage"
-            icon={<NarrateMessageIcon />}
-            tooltipTitle="Narrate (:)"
-            onClick={() => {
-                if (entry.trim() === '' && name) {
-                    setEntry(`${name} `)
-                }
-                setMode('NarrateMessage')
-            }}
-        />
-        <SpeedDialAction
-            key="OOCMessage"
-            icon={<OOCMessageIcon />}
-            tooltipTitle="Out of Character (\)"
-            onClick={() => {
-                if (mode === 'NarrateMessage' && entry.trim() === name) {
-                    setEntry('')
-                }
-                setMode('OOCMessage')
-            }}
-        />
-        <SpeedDialAction
-            key="Command"
-            icon={<CommandIcon />}
-            tooltipTitle="Command (/)"
-            onClick={() => {
-                if (mode === 'NarrateMessage' && entry.trim() === name) {
-                    setEntry('')
-                }
-                setMode('Command')
-            }}
-        />
-        <SpeedDialAction
-            key="Options"
-            icon={<OptionsIcon />}
-            tooltipTitle="More"
-            onClick={() => {
-                if (mode === 'NarrateMessage' && entry.trim() === name) {
-                    setEntry('')
-                }
-                setMode('Options')
-            }}
-        />
-    </SpeedDial>
+    const { CharacterId } = useActiveCharacter()
+    const navigate = useNavigate()
+    return <Box sx={{ position: "relative", width: "60px", height: "60px" }}>
+        <SpeedDial
+            ariaLabel="Extra Options"
+            sx={{ position: 'absolute', bottom: '10px', right: '0px' }}
+            FabProps={{ sx: { width: "40px", height: "40px" } }}        
+            icon={<MoreVertIcon fontSize='small' sx={{ width: "20px", height: "20px" }} />}
+        >
+            <SpeedDialAction
+                key="Map"
+                icon={<MapIcon />}
+                tooltipTitle={`Map`}
+                onClick={() => {
+                    navigate(`/Character/${CharacterId.split('#')[1]}/Map/`)
+                }}
+            />
+        </SpeedDial>
+    </Box>
 }
 
 type EntryDispatcherProps = EntryFieldProps & EntryModeSpeedDialProps
@@ -241,17 +182,17 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
         <CharacterColorWrapper color="blue">
             <MessageComponent
                 rightIcon={
-                    // <EntryModeSpeedDial />
-                    <EntryModeRoller />
+                    <Stack direction="row">
+                        <EntryModeRoller />
+                        <EntryModeSpeedDial />
+                    </Stack>
                 }
-                rightGutter={120}
+                rightGutter={160}
             >
-                <Box>
-                    <EntryModeDispatcher
-                        ref={ref}
-                        callback={callback}
-                    />
-                </Box>
+                <EntryModeDispatcher
+                    ref={ref}
+                    callback={callback}
+                />
             </MessageComponent>
         </CharacterColorWrapper>
     )
