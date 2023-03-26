@@ -62,6 +62,9 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
         })
         return { mapD3, rooms, exits, tree }
     })
+    useEffect(() => () => {
+        mapDispatch({ type: 'UNMOUNT' })
+    }, [])
     const onSaveDialog = useCallback(() => {
         if (clickPosition) {
             onAddRoom({ ...clickPosition, roomId: addRoomId })
