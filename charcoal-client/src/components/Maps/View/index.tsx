@@ -50,7 +50,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                     <Select
                         sx={{ maxWidth: "400px" }}
                         labelId="map-view-select-label"
-                        value={MapId}
+                        value={MapId || 'none'}
                         label="Which Map"
                         onChange={(event) => {
                             const mapId = event.target.value
@@ -60,7 +60,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                         }}
                     >
                         {
-                            Object.entries(maps || {})
+                            Object.entries({ ...maps, ...(MapId ? {} : { none: { Name: 'None selected' }}) })
                                 .map(([key, { Name }]) => (
                                     <MenuItem key={key} value={key}>{Name || 'Unnamed map'}</MenuItem>
                                 ))
