@@ -9,6 +9,7 @@ import {
     Button
 } from '@mui/material'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
+import SaveIcon from '@mui/icons-material/Save'
 import {
     Routes,
     Route,
@@ -67,7 +68,7 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): Sch
 }
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { normalForm, updateNormal, save, AssetId } = useLibraryAsset()
+    const { normalForm, updateNormal, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
@@ -91,9 +92,12 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             primary={asset?.key || 'Untitled'}
             secondary={asset?.Story ? 'Story' : 'Asset'}
             commands={
-                <IconButton onClick={() => { navigate(`WML`) }}>
-                    <TextSnippetIcon />
-                </IconButton>
+                <React.Fragment>
+                    <Button onClick={save} disabled={status === 'FRESH'}><SaveIcon />Save</Button>
+                    <IconButton onClick={() => { navigate(`WML`) }}>
+                        <TextSnippetIcon />
+                    </IconButton>
+                </React.Fragment>
             }
             breadCrumbProps={[{
                     href: '/Library',
@@ -153,7 +157,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             </Box>
             <DraftLockout />
         </Box>
-        <Button onClick={save}>Save</Button>
     </Box>
 }
 

@@ -25,13 +25,14 @@ import {
     getProperties,
     updateNormal as updateNormalAction,
     getDraftWML,
-    getImportData
+    getImportData,
+    getStatus
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
-import { PersonalAssetsLoadedImage } from '../../../slices/personalAssets/baseClasses'
+import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
 import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
@@ -52,6 +53,7 @@ type LibraryAssetContextType = {
     features: Record<string, AssetComponent>;
     save: () => void;
     readonly: boolean;
+    status?: keyof PersonalAssetsNodes;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -153,6 +155,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const importData = useSelector(getImportData(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
+    const status = useSelector(getStatus(AssetId))
     const dispatch = useDispatch()
     const updateNormal = useCallback((updateAction: UpdateNormalPayload) => {
         dispatch(updateNormalAction(AssetId)(updateAction))
@@ -185,7 +188,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             exits,
             features,
             save,
-            readonly: !(currentDraft === assetKey)
+            readonly: !(currentDraft === assetKey),
+            status
         }}>
             {children}
         </LibraryAssetContext.Provider>
