@@ -156,6 +156,9 @@ export const mapAreaReducer: MapAreaReducer = (state, action) => {
             // TODO: Transfer nodes repositioning information into local tree state
             //
             return stabilize(state)
+        case 'UNMOUNT':
+            state.mapD3.unmount()
+            return state
         default:
             return state
     }

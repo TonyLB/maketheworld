@@ -28,6 +28,8 @@ export type MapAreaReducerAction = {
     type: 'ENDDRAG';
 } | {
     type: 'STABILIZE';
+} | {
+    type: 'UNMOUNT';
 }
 export type MapAreaReducerState = VisibleMapItems & {
     mapD3: MapDThree;

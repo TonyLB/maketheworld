@@ -191,6 +191,9 @@ export class MapDThree extends Object {
             this.exitDragLayer = undefined
         }
     }
+    unmount(): void {
+        this.stack.unmount()
+    }
 }
 
 export type { SimNode }

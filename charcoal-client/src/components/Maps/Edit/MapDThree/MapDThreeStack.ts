@@ -244,6 +244,12 @@ export class MapDThreeStack extends Object {
             })
         }
     }
+
+    unmount() {
+        this.layers.forEach((layer) => {
+            layer.simulation.stop()
+        })
+    }
 }
 
 export default MapDThreeStack
