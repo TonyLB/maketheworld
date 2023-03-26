@@ -10,9 +10,9 @@ export const getCharactersInPlay = (state: EphemeraPublic) => {
     const { charactersInPlay } = state
     const defaultValues = {
         Name: '??????',
-        RoomId: 'ROOM#VORTEX',
+        RoomId: 'ROOM#VORTEX' as const,
         color: {
-            name: 'grey',
+            name: 'grey' as const,
             primary: 'grey',
             light: 'grey',
             recap: 'grey',

@@ -20,7 +20,7 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
     const dispatch = useDispatch()
     // const localClasses = useCharacterEditFormStyles()
 
-    const value = useSelector(getCharacterEditValues(characterKey)) || {}
+    const value: any = useSelector(getCharacterEditValues(characterKey)) || {}
     const dirty = useSelector(getCharacterEditDirty(characterKey))
 
     const updateLabel = (label: CharacterEditKeys) => (event: { target: { value: string }}) => {
