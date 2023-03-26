@@ -31,7 +31,7 @@ export const CharacterAvatarDirect: FunctionComponent<CharacterAvatarDirectProps
     }, [appBaseURL, fileURL])
     return <CharacterStyleWrapper key={CharacterId} CharacterId={CharacterId}>
         <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid", width, height } : { bgcolor: 'primary.main', width, height }} alt={Name} src={dressedFileURL}>
-            { Name[0].toUpperCase() }
+            { (Name[0] || '?').toUpperCase() }
         </Avatar>
     </CharacterStyleWrapper>
 }

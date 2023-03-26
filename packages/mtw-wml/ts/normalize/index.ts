@@ -48,6 +48,7 @@ import {
     BaseAppearance,
     ComponentAppearance,
     ComponentRenderItem,
+    isNormalAsset,
     isNormalCharacter,
     isNormalCondition,
     isNormalMap,
@@ -265,14 +266,13 @@ export class Normalizer {
         }
         const parent = this._getParentReference(position.contextStack)
         if (!parent) {
-            const rootNode = Object.values(this._normalForm).find(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
-            const index = rootNode.appearances.findIndex(({ contextStack }) => (contextStack.length === 0))
-            if (!rootNode || index === -1) {
+            const index = this.rootNode.appearances.findIndex(({ contextStack }) => (contextStack.length === 0))
+            if (!this.rootNode || index === -1) {
                 return undefined
             }
             return {
-                key: rootNode.key,
-                tag: rootNode.tag,
+                key: this.rootNode.key,
+                tag: this.rootNode.tag,
                 index
             }
         }
@@ -1239,9 +1239,15 @@ export class Normalizer {
         return this._normalToSchema(reference.key, reference.index)
     }
 
+    get rootNode(): NormalAsset | NormalCharacter | undefined {
+        return Object.values(this._normalForm).filter((node): node is NormalAsset | NormalCharacter => (isNormalAsset(node) || isNormalCharacter(node))).find(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
+    }
+
     standardize(): void {
-        const standardized = standardizeNormal(this._normalForm)
-        this.loadNormal(standardized)
+        if (this.rootNode && isNormalAsset(this.rootNode)) {
+            const standardized = standardizeNormal(this._normalForm)
+            this.loadNormal(standardized)
+        }
     }
 
 }
