@@ -7,14 +7,13 @@ import { dbRegister } from '../serialize/dbRegister'
 import { MessageBus, UploadURLMessage, ParseWMLMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
-import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
-import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 import { formatImage } from "../formatImage"
 import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/dist/asset"
 import { isNormalAsset } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
 import { ebClient } from "../clients"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 const { UPLOAD_BUCKET } = process.env;
 
@@ -92,14 +91,15 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
         messageBus.send({
             type: 'ReturnValue',
             body: {
-                messageType: 'Error'
+                messageType: 'Error',
+                message: 'Assets handler failed to deduce player and s3Client'
             }
         })
         return
     }
     await Promise.all(
         payloads.map(async (payload) => (asyncSuppressExceptions(async () => {
-            const assetWorkspace = await assetWorkspaceFromAssetId(payload.AssetId, true)
+            const assetWorkspace = await assetWorkspaceFromAssetId(payload.AssetId, isEphemeraCharacterId(payload.AssetId))
             //
             // TODO: If assetWorkspace does not exist, check "create" property for address at which
             // to create it.
@@ -108,7 +108,8 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
-                        messageType: 'Error'
+                        messageType: 'Error',
+                        message: `Asset (${payload.AssetId}) not legal target`
                     }
                 })
             }
@@ -170,7 +171,8 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
             messageBus.send({
                 type: 'ReturnValue',
                 body: {
-                    messageType: 'Error'
+                    messageType: 'Error',
+                    message: 'Unknown parseWML error'
                 }
             })
         })))
