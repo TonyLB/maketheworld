@@ -31,6 +31,7 @@ export class CacheCharacterMetaData {
                 }) || { Name: '', RoomId: 'VORTEX', Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
             this.CharacterMetaById[characterId] = {
                 ...characterData,
+                assets: characterData.assets || [],
                 RoomId: `ROOM#${characterData.RoomId || characterData.HomeId || 'VORTEX'}`,
                 HomeId: `ROOM#${characterData.HomeId || 'VORTEX'}`,
                 EphemeraId: characterId
