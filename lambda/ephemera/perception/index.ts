@@ -100,6 +100,20 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 }
             })
         }
+        else if (isPerceptionRoomMessage(payload)) {
+            if (isEphemeraRoomId(payload.ephemeraId)) {
+                const characterList = payload.characterId ? [payload.characterId] : (await internalCache.RoomCharacterList.get(payload.ephemeraId)).map(({ EphemeraId }) => (EphemeraId))
+                await Promise.all(characterList.map(async (characterId) => {
+                    const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [characterId],
+                        displayProtocol: payload.header ? 'RoomHeader' : 'RoomDescription',
+                        ...roomDescribe,
+                    })
+                }))
+            }
+        }
         else {
             const { characterId, ephemeraId } = payload
             if (isEphemeraCharacterId(ephemeraId)) {
@@ -124,15 +138,6 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 })
             }
             else {
-                if (isPerceptionRoomMessage(payload) && isEphemeraRoomId(ephemeraId)) {
-                    const roomDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
-                    messageBus.send({
-                        type: 'PublishMessage',
-                        targets: [characterId],
-                        displayProtocol: payload.header ? 'RoomHeader' : 'RoomDescription',
-                        ...roomDescribe,
-                    })
-                }
                 if (isEphemeraFeatureId(ephemeraId)) {
                     const featureDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     messageBus.send({
