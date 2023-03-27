@@ -1,6 +1,6 @@
 import { TransactWriteItem } from "@aws-sdk/client-dynamodb"
 import { marshall } from "@aws-sdk/util-dynamodb"
-import { isEphemeraComputedId, isEphemeraMapId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { isEphemeraComputedId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
@@ -129,12 +129,24 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                 mapId: targetId
             })
         }
+        if (isEphemeraRoomId(targetId)) {
+            messageBus.send({
+                type: 'Perception',
+                ephemeraId: targetId,
+                header: true
+            })
+            const roomDescendants = internalCache.Descent.getPartial(targetId)
+                .filter(({ EphemeraId }) => (EphemeraId !== targetId))
+                .map(({ EphemeraId }) => (EphemeraId))
+            roomDescendants.forEach((EphemeraId) => {
+                deferredPayloads[EphemeraId] = {
+                    type: 'DependencyCascade',
+                    targetId: EphemeraId
+                }
+            })
+        }
     }
     await Promise.all(readyPayloads.map(processOneMessage))
-
-    //
-    // TODO: Design DependencyCascade handling for Room dependencyNodes
-    //
 
     Object.values(deferredPayloads).forEach((payload) => { messageBus.send(payload) })
 }

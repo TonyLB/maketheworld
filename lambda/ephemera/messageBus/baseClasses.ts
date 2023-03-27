@@ -202,7 +202,7 @@ export type FetchImportDefaultsMessage = {
 
 export type PerceptionRoomMessage = {
     type: 'Perception';
-    characterId: EphemeraCharacterId;
+    characterId?: EphemeraCharacterId;
     ephemeraId: EphemeraRoomId;
     header?: boolean;
 }
@@ -273,6 +273,7 @@ export type PlayerUpdateMessage = {
 export type RoomUpdateMessage = {
     type: 'RoomUpdate';
     roomId: EphemeraRoomId;
+    render?: boolean;
 }
 
 export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
