@@ -5,7 +5,7 @@ import WMLConverter from './index'
 
 describe('description schemaToWML', () => {
     const convert = new WMLConverter()
-    const schemaToWML = convert.schemaToWML.bind(this)
+    const schemaToWML = convert.schemaToWML.bind(convert)
     it('should properly render a non-breaking line', () => {
         expect(schemaDescriptionToWML(schemaToWML)(
             [{
@@ -56,6 +56,37 @@ describe('description schemaToWML', () => {
         {
             tag: 'String',
             value: "tags directly adjacent. Finally a long text section to make sure that wrapping still works when the text is adjacent after a nested tag."
+        }]
+        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })).toMatchSnapshot()
+    })
+
+    it('should correctly handle sequential complex conditions', () => {
+        const testSchema: SchemaTaggedMessageLegalContents[] = [{
+            tag: 'String',
+            value: 'Test'
+        },
+        {
+            tag: 'If',
+            contextTag: 'Description',
+            conditions: [{ if: 'testVar', dependencies: ['testVar'] }],
+            contents: [
+                { tag: 'Space' },
+                { tag: 'String', value: 'TestTwo' }
+            ]
+        },
+        {
+            tag: 'If',
+            contextTag: 'Description',
+            conditions: [{ if: '!testVar', dependencies: ['testVar'] }],
+            contents: [
+                { tag: 'Space' },
+                { tag: 'String', value: 'TestThree' }
+            ]
+        },
+        {
+            tag: 'Bookmark',
+            key: 'testBookmark',
+            contents: []
         }]
         expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })).toMatchSnapshot()
     })
