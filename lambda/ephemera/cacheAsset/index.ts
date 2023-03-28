@@ -371,7 +371,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         const assetItem = Object.values(assetWorkspace.normal || {}).find(isNormalAsset)
         if (assetItem) {
             if (check || updateOnly) {
-                const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || ''
+                const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || `ASSET#${assetItem.key}`
                 if (!assetEphemeraId) {
                     continue
                 }
