@@ -279,4 +279,24 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schema)).toEqual(testWML)
     })
 
+    it('should correctly round-trip space tags in connected conditionals', () => {
+        const testWML = `<Asset key=(Test)>
+    <Variable key=(testVar) default={false} />
+    <Room key=(test)>
+        <Description>
+            Test
+            <If {testVar}>
+                <Space />
+                TestTwo
+            </If><If {!testVar}>
+                <Space />
+                TestThree
+            </If><Bookmark key=(testBookmark) />
+        </Description>
+    </Room>
+</Asset>`
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        expect(schemaToWML(schema)).toEqual(testWML)
+    })
+
 })
