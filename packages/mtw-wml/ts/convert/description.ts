@@ -157,6 +157,7 @@ const printQueuedTags = (schemaToWML: (value: SchemaTag, options: SchemaToWMLOpt
     })
     if (tagsBeingConsidered.length) {
         outputLines.push(`${prefix}${naivePrint(schemaToWML)(tagsBeingConsidered, { indent: 0, context: options.context, siblings: currentSiblings })}`.trimEnd())
+        prefix = ''
     }
     //
     // Remove indents (which were needed in order to calculate line length) before applying indents in schemaDescriptionToWML,
