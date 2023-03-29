@@ -880,6 +880,7 @@ Object {
         "contextStack": Array [],
       },
     ],
+    "assets": Array [],
     "fileName": "test",
     "images": Array [],
     "key": "Tess",
@@ -2930,6 +2931,24 @@ Object {
 
 exports[`WML normalize should normalize a character 1`] = `
 Object {
+  "Import-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Tess",
+            "tag": "Character",
+          },
+        ],
+      },
+    ],
+    "from": "base",
+    "key": "Import-0",
+    "mapping": Object {},
+    "tag": "Import",
+  },
   "Tess": Object {
     "FirstImpression": "Frumpy goth",
     "Name": "Tess",
@@ -2944,9 +2963,18 @@ Object {
     },
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "Import-0",
+            "tag": "Import",
+          },
+        ],
         "contextStack": Array [],
       },
+    ],
+    "assets": Array [
+      "base",
     ],
     "fileName": "test",
     "images": Array [],

@@ -71,7 +71,7 @@ export type SchemaOutfitTag = {
     parse?: ParseTag;
 } & SchemaBase
 
-export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag
+export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag
 //
 // TODO: Refactor unnecessary capitalization on schema fields
 //

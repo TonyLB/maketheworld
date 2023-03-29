@@ -205,6 +205,7 @@ describe('schemaToWML', () => {
     </Outfit>
     <OneCoolThing>Fuchsia Eyes</OneCoolThing>
     <Image key=(TESSIcon) />
+    <Import from=(base) />
 </Character>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })

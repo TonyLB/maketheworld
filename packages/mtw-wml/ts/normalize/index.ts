@@ -1000,6 +1000,7 @@ export class Normalizer {
                     Outfit: node.Outfit,
                     fileName: node.fileName,
                     images: node.contents.filter(isSchemaImage).map(({ key }) => (key)),
+                    assets: node.contents.filter(isSchemaImport).map(({ from }) => (from)),
                     appearances: [appearance]
                 }
             // default:
@@ -1218,7 +1219,7 @@ export class Normalizer {
                         tag: 'Image',
                         key
                     })),
-                    fileName: node.fileName
+                    fileName: node.fileName,
                 }
         }
     }
