@@ -68,6 +68,7 @@ describe('WML normalize', () => {
             />
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A battered frock-coat</Outfit>
+            <Import from=(base) />
         </Character>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))

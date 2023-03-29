@@ -1,5 +1,5 @@
-import { isParseCharacter, isParseFirstImpression, isParseOneCoolThing, isParseOutfit, isParsePronouns, ParseCharacterTag, ParseFirstImpressionTag, ParseImageTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
-import { isSchemaCharacter, isSchemaFirstImpression, isSchemaImage, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaLiteralLegalContents, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses"
+import { isParseCharacter, isParseFirstImpression, isParseOneCoolThing, isParseOutfit, isParsePronouns, ParseCharacterTag, ParseFirstImpressionTag, ParseImageTag, ParseImportTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited } from "../parser/baseClasses"
+import { isSchemaCharacter, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaLiteralLegalContents, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag } from "../schema/baseClasses"
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins"
 import { tagRender } from "./utils/tagRender"
 
@@ -32,7 +32,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
             // Convert Character tag-opens
             //
             if (isTypedParseTagOpen('Character')(value)) {
-                return parseConverterMixin<ParseCharacterTag, ParseNameTag | ParsePronounsTag | ParseOutfitTag | ParseOneCoolThingTag | ParseImageTag>({
+                return parseConverterMixin<ParseCharacterTag, ParseNameTag | ParsePronounsTag | ParseOutfitTag | ParseOneCoolThingTag | ParseImageTag | ParseImportTag>({
                     tag: 'Character',
                     properties: {
                         required: {
@@ -46,7 +46,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                         }
                     },
                     contents: {
-                        legal: ['Name', 'Pronouns', 'Outfit', 'OneCoolThing', 'Image', 'FirstImpression'],
+                        legal: ['Name', 'Pronouns', 'Outfit', 'OneCoolThing', 'Image', 'FirstImpression', 'Import'],
                         ignore: ['Whitespace', 'Comment']
                     }
                 })(value)
@@ -250,7 +250,7 @@ export const ParseCharacterMixin = <C extends Constructor<BaseConverter>>(Base: 
                         ...stringToLiteral(value.FirstImpression, 'FirstImpression'),
                         ...stringToLiteral(value.Outfit, 'Outfit'),
                         ...stringToLiteral(value.OneCoolThing, 'OneCoolThing'),
-                        ...value.contents.filter(isSchemaImage).map((node) => (schemaToWML(node, options)))
+                        ...value.contents.filter((value) => (isSchemaImage(value) || isSchemaImport(value))).map((node) => (schemaToWML(node, options)))
                     ],
                 })
             }

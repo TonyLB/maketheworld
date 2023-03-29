@@ -60,6 +60,7 @@ export type NormalCharacter = {
     Outfit: string;
     fileName?: string;
     images: CharacterImage[];
+    assets: string[];
     appearances: BaseAppearance[];
 } & NormalBase
 
