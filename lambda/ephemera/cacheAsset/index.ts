@@ -413,6 +413,26 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     scopeMap: assetWorkspace.namespaceIdToDB
                 })
             ])
+
+            //
+            // Use MessageBus to queue RoomHeader messages for any room that has a person to
+            // report to
+            //
+            // TODO: Optimize RoomHeader messages to only deliver to characters who have
+            // the asset that is being cached
+            //
+            Object.values(assetWorkspace.normal || {})
+                .filter(isNormalRoom)
+                .map(({ key }) => (assetWorkspace.namespaceIdToDB[key]))
+                .filter((value) => (value))
+                .filter(isEphemeraRoomId)
+                .forEach((roomId) => {
+                    messageBus.send({
+                        type: 'Perception',
+                        ephemeraId: roomId,
+                        header: true
+                    })
+                })
         }
 
         //
