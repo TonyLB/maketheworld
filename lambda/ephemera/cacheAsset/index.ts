@@ -286,6 +286,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             FirstImpression: item.FirstImpression,
             OneCoolThing: item.OneCoolThing,
             Outfit: item.Outfit,
+            assets: item.assets,
             Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,
             fileURL,
             Connected: false,
@@ -337,7 +338,7 @@ export const pushEphemera = async({
 }
 
 export const pushCharacterEphemera = async (character: EphemeraCharacter) => {
-    const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
+    const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'assets']
     await ephemeraDB.optimisticUpdate({
         key: {
             EphemeraId: character.EphemeraId,
@@ -444,7 +445,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             if (ephemeraItem) {
                 if (check || updateOnly) {
                     const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
-                    if (!characterEphemeraId) {
+                    if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
                         continue
                     }
                     const { EphemeraId = null } = await ephemeraDB.getItem<{ EphemeraId: string }>({
@@ -454,6 +455,12 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                         continue
                     }
+                    messageBus.send({
+                        type: 'Perception',
+                        ephemeraId: `ROOM#${(ephemeraItem as EphemeraCharacter).RoomId}`,
+                        characterId: characterEphemeraId,
+                        header: true
+                    })
                 }
                 await pushCharacterEphemera(ephemeraItem as EphemeraCharacter)
             }
