@@ -338,7 +338,7 @@ export const pushEphemera = async({
 }
 
 export const pushCharacterEphemera = async (character: EphemeraCharacter) => {
-    const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
+    const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'assets']
     await ephemeraDB.optimisticUpdate({
         key: {
             EphemeraId: character.EphemeraId,
