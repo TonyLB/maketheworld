@@ -263,7 +263,7 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
 
 type LiteralTagFieldProps = {
     required?: boolean;
-    tag: keyof Omit<NormalCharacter, 'Pronouns' | 'appearances' | 'images'>;
+    tag: keyof Omit<NormalCharacter, 'Pronouns' | 'appearances' | 'images' | 'assets'>;
     label: string;
 }
 
@@ -500,7 +500,7 @@ export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
 
     const currentStatus = useSelector(getStatus(AssetId))
 
-    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'DRAFTERROR'].includes(currentStatus || ''))
+    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
         ? 
             <LibraryAsset assetKey={assetKey || ''} character>
                 <Routes>
