@@ -35,7 +35,7 @@ import {
     setLoadedImage
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { isNormalImage, NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalImage, isNormalImport, NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'
@@ -49,6 +49,8 @@ import { SchemaCharacterTag, SchemaImageTag } from '@tonylb/mtw-wml/dist/schema/
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { deepEqual } from '../../../lib/objects'
 import Checkbox from '@mui/material/Checkbox'
+import { getLibrary } from '../../../slices/library'
+import { getMyAssets } from '../../../slices/player'
 
 type ReplaceLiteralTagProps = {
     normalForm: NormalForm;
@@ -307,13 +309,33 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, ta
 type EditCharacterAssetListProps = {}
 
 const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = () => {
+    const { Assets: libraryAssets } = useSelector(getLibrary)
+    const personalAssets = useSelector(getMyAssets)
+    const assetsAvailable = [
+        ...personalAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
+        ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
+    ]
+    const { normalForm, updateNormal } = useLibraryAsset()
+    const [assetsImported, setAssetsImported] = useState(Object.values(normalForm)
+        .filter(isNormalImport)
+        .map(({ from }) => (from))
+        //
+        // TODO: Find each asset in the Library and determine its zone
+        //
+        .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
+        .filter((value) => (value))
+    )
+    //
+    // TODO: Create an onChange handler to add or delete asset imports as needed
+    //
     return <Autocomplete
         multiple
         id="asset-list"
-        options={[{ key: 'Test', zone: 'Personal' }, { key: 'Test2', zone: 'Library' }] as const}
+        options={assetsAvailable}
         groupBy={({ zone }) => (zone)}
         disableCloseOnSelect
         getOptionLabel={(option) => (((typeof option === 'object') && option.key) || ((typeof option === 'string') && option))}
+        isOptionEqualToValue={({ key: keyA }, { key: keyB }) => (keyA === keyB)}
         renderOption={(props, option, { selected }) => (
             <li {...props}>
             <Checkbox
@@ -327,8 +349,12 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         )}
         style={{ width: 500 }}
         renderInput={(params) => (
-            <TextField {...params} label="View Assets" />
+            <TextField {...params} label="View Non-Canon Assets" />
         )}
+        value={assetsImported}
+        onChange={(_, newAssets) => {
+            setAssetsImported(newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')))
+        }}
     />
 }
 
