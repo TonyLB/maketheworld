@@ -36,8 +36,6 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
-import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { getPlayer } from '../../../slices/player'
 
 type AssetEditFormProps = {}
 
