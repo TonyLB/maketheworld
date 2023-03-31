@@ -51,6 +51,7 @@ import {
     isNormalAsset,
     isNormalCharacter,
     isNormalCondition,
+    isNormalImport,
     isNormalMap,
     isNormalRoom,
     MapAppearance,
@@ -475,6 +476,20 @@ export class Normalizer {
                             ...previous,
                             ...contents.filter(({ tag }) => (tag === 'Image'))
                                 .map(({ key }) => (key))
+                        ]), [])))]
+                        characterItem.assets = [...(new Set(characterItem.appearances.reduce<string[]>((previous, { contents }) => ([
+                            ...previous,
+                            ...contents.filter(({ tag }) => (tag === 'Import'))
+                                .map(({ key }) => {
+                                    const importItem = this._normalForm[key]
+                                    if (isNormalImport(importItem)) {
+                                        return importItem.from
+                                    }
+                                    else {
+                                        return undefined
+                                    }
+                                })
+                                .filter((value) => (value))
                         ]), [])))]
                     }
                 })

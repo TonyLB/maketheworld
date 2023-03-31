@@ -315,7 +315,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         ...personalAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
     ]
-    const { normalForm, updateNormal } = useLibraryAsset()
+    const { normalForm, updateNormal, assetKey } = useLibraryAsset()
     const [assetsImported, setAssetsImported] = useState(Object.values(normalForm)
         .filter(isNormalImport)
         .map(({ from }) => (from))
@@ -325,9 +325,28 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
         .filter((value) => (value))
     )
-    //
-    // TODO: Create an onChange handler to add or delete asset imports as needed
-    //
+    const onChange = useCallback((_, newAssets) => {
+        const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object'))
+        setAssetsImported(saveableAssets)
+        // updateNormal({
+        //     type: 'delete',
+        //     references: Object.values(normalForm)
+        //         .filter(isNormalImport)
+        //         .map(({ key, appearances }) => (appearances.map((_, index) => ({ key, index, tag: 'Import' as const }))))
+        //         .flat()
+        // })
+        saveableAssets.forEach(({ key }) => {
+            updateNormal({
+                type: 'put',
+                item: {
+                    tag: 'Import',
+                    from: key,
+                    mapping: {}
+                },
+                position: { contextStack: [{ tag: 'Character', key: assetKey, index: 0 }] }
+            })
+        })
+    }, [setAssetsImported, normalForm, updateNormal])
     return <Autocomplete
         multiple
         id="asset-list"
@@ -352,9 +371,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
             <TextField {...params} label="View Non-Canon Assets" />
         )}
         value={assetsImported}
-        onChange={(_, newAssets) => {
-            setAssetsImported(newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object')))
-        }}
+        onChange={onChange}
     />
 }
 

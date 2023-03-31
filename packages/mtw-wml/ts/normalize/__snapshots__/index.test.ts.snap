@@ -1759,6 +1759,61 @@ Object {
 }
 `;
 
+exports[`WML normalize positioned put method should successfully put an import in a character 1`] = `
+Object {
+  "Import-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Tess",
+            "tag": "Character",
+          },
+        ],
+      },
+    ],
+    "from": "base",
+    "key": "Import-0",
+    "mapping": Object {},
+    "tag": "Import",
+  },
+  "Tess": Object {
+    "FirstImpression": "Frumpy goth",
+    "Name": "Tess",
+    "OneCoolThing": "Fuchsia eyes",
+    "Outfit": "A battered frock-coat",
+    "Pronouns": Object {
+      "adjective": "hers",
+      "object": "her",
+      "possessive": "her",
+      "reflexive": "herself",
+      "subject": "she",
+    },
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "Import-0",
+            "tag": "Import",
+          },
+        ],
+        "contextStack": Array [],
+      },
+    ],
+    "assets": Array [
+      "base",
+    ],
+    "fileName": "test",
+    "images": Array [],
+    "key": "Tess",
+    "tag": "Character",
+  },
+}
+`;
+
 exports[`WML normalize positioned put method should successfully replace a parent with duplicate contents 1`] = `
 Object {
   "If-0": Object {
