@@ -14,8 +14,12 @@ import {
     SelectChangeEvent,
     MenuItem
 } from '@mui/material'
+import Autocomplete from '@mui/material/Autocomplete'
 import UploadIcon from '@mui/icons-material/Upload'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
+import CheckBoxIcon from '@mui/icons-material/CheckBox'
+import SaveIcon from '@mui/icons-material/Save'
 import {
     Routes,
     Route,
@@ -31,7 +35,7 @@ import {
     setLoadedImage
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { isNormalImage, NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalImage, isNormalImport, NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'
@@ -44,6 +48,9 @@ import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
 import { SchemaCharacterTag, SchemaImageTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { deepEqual } from '../../../lib/objects'
+import Checkbox from '@mui/material/Checkbox'
+import { getLibrary } from '../../../slices/library'
+import { getMyAssets } from '../../../slices/player'
 
 type ReplaceLiteralTagProps = {
     normalForm: NormalForm;
@@ -299,6 +306,75 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, ta
 
 }
 
+type EditCharacterAssetListProps = {}
+
+const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = () => {
+    const { Assets: libraryAssets } = useSelector(getLibrary)
+    const personalAssets = useSelector(getMyAssets)
+    const assetsAvailable = [
+        ...personalAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
+        ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
+    ]
+    const { normalForm, updateNormal, assetKey } = useLibraryAsset()
+    const [assetsImported, setAssetsImported] = useState(Object.values(normalForm)
+        .filter(isNormalImport)
+        .map(({ from }) => (from))
+        //
+        // TODO: Find each asset in the Library and determine its zone
+        //
+        .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
+        .filter((value) => (value))
+    )
+    const onChange = useCallback((_, newAssets) => {
+        const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object'))
+        setAssetsImported(saveableAssets)
+        updateNormal({
+            type: 'delete',
+            references: Object.values(normalForm)
+                .filter(isNormalImport)
+                .map(({ key, appearances }) => (appearances.map((_, index) => ({ key, index, tag: 'Import' as const }))))
+                .flat()
+        })
+        saveableAssets.forEach(({ key }) => {
+            updateNormal({
+                type: 'put',
+                item: {
+                    tag: 'Import',
+                    from: key,
+                    mapping: {}
+                },
+                position: { contextStack: [{ tag: 'Character', key: assetKey, index: 0 }] }
+            })
+        })
+    }, [setAssetsImported, normalForm, updateNormal])
+    return <Autocomplete
+        multiple
+        id="asset-list"
+        options={assetsAvailable}
+        groupBy={({ zone }) => (zone)}
+        disableCloseOnSelect
+        getOptionLabel={(option) => (((typeof option === 'object') && option.key) || ((typeof option === 'string') && option))}
+        isOptionEqualToValue={({ key: keyA }, { key: keyB }) => (keyA === keyB)}
+        renderOption={(props, option, { selected }) => (
+            <li {...props}>
+            <Checkbox
+                icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                checkedIcon={<CheckBoxIcon fontSize="small" />}
+                style={{ marginRight: 8 }}
+                checked={selected}
+            />
+            {option.key}
+            </li>
+        )}
+        style={{ width: 500 }}
+        renderInput={(params) => (
+            <TextField {...params} label="View Non-Canon Assets" />
+        )}
+        value={assetsImported}
+        onChange={onChange}
+    />
+}
+
 interface ImageHeaderProps {
     ItemId: `CHARACTER#${string}`;
     Name: string;
@@ -339,7 +415,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name, 
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { normalForm, updateNormal, save, AssetId } = useLibraryAsset()
+    const { normalForm, updateNormal, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
     const character = Object.values(normalForm || {}).find(({ tag }) => (['Character'].includes(tag))) as NormalCharacter | undefined
@@ -425,9 +501,12 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             primary={character?.Name || 'Unnamed'}
             secondary={character?.key || ''}
             commands={
-                <IconButton onClick={() => { navigate(`WML`) }}>
-                    <TextSnippetIcon />
-                </IconButton>
+                <React.Fragment>
+                    <Button onClick={save} disabled={status === 'FRESH'}><SaveIcon />Save</Button>
+                    <IconButton onClick={() => { navigate(`WML`) }}>
+                        <TextSnippetIcon />
+                    </IconButton>
+                </React.Fragment>
             }
             breadCrumbProps={[{
                     href: '/Library',
@@ -473,8 +552,8 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                 tag="Outfit"
                 label="Outfit"
             />
+            <EditCharacterAssetList />
         </Stack>
-        <Button onClick={save}>Save</Button>
     </Box>
 }
 

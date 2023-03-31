@@ -732,6 +732,33 @@ describe('WML normalize', () => {
             expect(normalizer.normal).toMatchSnapshot()
         })
 
+        it('should successfully put an import in a character', () => {
+            const testSource = `<Character key=(Tess) fileName="test">
+                <Name>Tess</Name>
+                <FirstImpression>Frumpy goth</FirstImpression>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+                <OneCoolThing>Fuchsia eyes</OneCoolThing>
+                <Outfit>A battered frock-coat</Outfit>
+            </Character>`
+            const normalizer = new Normalizer()
+            const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
+            const toAddSource = `<Import from=(base) />`
+            const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
+            const toAddWrapper = toAddAsset[0]
+            if (!isSchemaImport(toAddWrapper)) {
+                throw new Error()
+            }
+            normalizer.put(toAddWrapper, { contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }] })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
     })
 
 })
