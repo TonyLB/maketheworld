@@ -328,13 +328,13 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
     const onChange = useCallback((_, newAssets) => {
         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object'))
         setAssetsImported(saveableAssets)
-        // updateNormal({
-        //     type: 'delete',
-        //     references: Object.values(normalForm)
-        //         .filter(isNormalImport)
-        //         .map(({ key, appearances }) => (appearances.map((_, index) => ({ key, index, tag: 'Import' as const }))))
-        //         .flat()
-        // })
+        updateNormal({
+            type: 'delete',
+            references: Object.values(normalForm)
+                .filter(isNormalImport)
+                .map(({ key, appearances }) => (appearances.map((_, index) => ({ key, index, tag: 'Import' as const }))))
+                .flat()
+        })
         saveableAssets.forEach(({ key }) => {
             updateNormal({
                 type: 'put',

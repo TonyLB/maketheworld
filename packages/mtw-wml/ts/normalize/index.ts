@@ -80,7 +80,7 @@ import {
 import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
-import { objectFilterEntries } from '../lib/objects';
+import { objectFilterEntries, objectMap } from '../lib/objects';
 import standardizeNormal from './standardize';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
@@ -1045,7 +1045,16 @@ export class Normalizer {
     }
 
     loadNormal(normal: NormalForm): void {
-        this._normalForm = normal
+        const deepCopy: <T extends any>(value: T) => T = <T>(value) => {
+            if (Array.isArray(value)) {
+                return [...value.map(deepCopy)]
+            }
+            else if (typeof value === 'object') {
+                return objectMap(value as Record<string, any>, deepCopy) as T
+            }
+            else return value
+        }
+        this._normalForm = deepCopy(normal)
         this._tags = Object.values(normal).reduce((previous, { key, tag }) => ({ ...previous, [key]: tag }), {})
     }
 
@@ -1230,10 +1239,17 @@ export class Normalizer {
                     FirstImpression: node.FirstImpression,
                     OneCoolThing: node.OneCoolThing,
                     Outfit: node.Outfit,
-                    contents: node.images.map((key) => ({
-                        tag: 'Image',
-                        key
-                    })),
+                    contents: [
+                        ...node.images.map((key): SchemaImageTag => ({
+                            tag: 'Image',
+                            key
+                        })),
+                        ...node.assets.map((key): SchemaImportTag => ({
+                            tag: 'Import',
+                            from: key,
+                            mapping: {}
+                        }))
+                    ],
                     fileName: node.fileName,
                 }
         }
