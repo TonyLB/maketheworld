@@ -444,36 +444,47 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         if (characterItem) {
             const ephemeraItem = ephemeraItemFromNormal(assetWorkspace)(characterItem)
             if (ephemeraItem) {
+                const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
+                if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
+                    continue
+                }
                 if (check || updateOnly) {
-                    const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
-                    if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
-                        continue
-                    }
-                    const { EphemeraId = null } = await ephemeraDB.getItem<{ EphemeraId: string }>({
+                    const { EphemeraId = null, RoomId: fetchedRoomId } = await ephemeraDB.getItem<{ EphemeraId: string; RoomId: string }>({
                         EphemeraId: characterEphemeraId,
                         DataCategory: 'Meta::Character',
+                        ProjectionFields: ['EphemeraId', 'RoomId']
                     }) || {}
                     if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                         continue
                     }
-                    const RoomId = `ROOM#${(ephemeraItem as EphemeraCharacter).RoomId}` as const
-                    const { assets = {} } = await internalCache.ComponentRender.get(characterEphemeraId, RoomId)
-                    if (Object.values(assets).length) {
-                        messageBus.send({
-                            type: 'Perception',
-                            ephemeraId: RoomId,
-                            characterId: characterEphemeraId,
-                            header: true
+                    if (updateOnly) {
+                        const RoomId = `ROOM#${fetchedRoomId || 'VORTEX'}` as const
+                        internalCache.CharacterMeta.set({
+                            EphemeraId: characterEphemeraId,
+                            Name: characterItem.Name,
+                            RoomId,
+                            HomeId: `ROOM#VORTEX`,
+                            assets: characterItem.assets,
+                            Pronouns: characterItem.Pronouns
                         })
-                    }
-                    else {
-                        const { HomeId } = await internalCache.CharacterMeta.get(characterEphemeraId)
-                        messageBus.send({
-                            type: 'MoveCharacter',
-                            characterId: characterEphemeraId,
-                            roomId: HomeId,
-                            leaveMessage: ' left to return home.'
-                        })            
+                        const { assets = {} } = await internalCache.ComponentRender.get(characterEphemeraId, RoomId)
+                        if (Object.values(assets).length) {
+                            messageBus.send({
+                                type: 'Perception',
+                                ephemeraId: RoomId,
+                                characterId: characterEphemeraId,
+                                header: true
+                            })
+                        }
+                        else {
+                            const { HomeId } = await internalCache.CharacterMeta.get(characterEphemeraId)
+                            messageBus.send({
+                                type: 'MoveCharacter',
+                                characterId: characterEphemeraId,
+                                roomId: HomeId,
+                                leaveMessage: ' left to return home.'
+                            })            
+                        }
                     }
                 }
                 await pushCharacterEphemera(ephemeraItem as EphemeraCharacter)

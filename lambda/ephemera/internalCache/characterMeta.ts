@@ -39,6 +39,9 @@ export class CacheCharacterMetaData {
         }
         return this.CharacterMetaById[characterId]
     }
+    set(characterItem: CharacterMetaItem): void {
+        this.CharacterMetaById[characterItem.EphemeraId] = characterItem
+    }
 }
 
 export const CacheCharacterMeta = <GBase extends CacheConstructor>(Base: GBase) => {
