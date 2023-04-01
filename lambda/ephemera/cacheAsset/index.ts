@@ -37,6 +37,7 @@ import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
 import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
+import internalCache from '../internalCache'
 
 //
 // TODO:
@@ -455,12 +456,25 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                         continue
                     }
-                    messageBus.send({
-                        type: 'Perception',
-                        ephemeraId: `ROOM#${(ephemeraItem as EphemeraCharacter).RoomId}`,
-                        characterId: characterEphemeraId,
-                        header: true
-                    })
+                    const RoomId = `ROOM#${(ephemeraItem as EphemeraCharacter).RoomId}` as const
+                    const { assets = {} } = await internalCache.ComponentRender.get(characterEphemeraId, RoomId)
+                    if (Object.values(assets).length) {
+                        messageBus.send({
+                            type: 'Perception',
+                            ephemeraId: RoomId,
+                            characterId: characterEphemeraId,
+                            header: true
+                        })
+                    }
+                    else {
+                        const { HomeId } = await internalCache.CharacterMeta.get(characterEphemeraId)
+                        messageBus.send({
+                            type: 'MoveCharacter',
+                            characterId: characterEphemeraId,
+                            roomId: HomeId,
+                            leaveMessage: ' left to return home.'
+                        })            
+                    }
                 }
                 await pushCharacterEphemera(ephemeraItem as EphemeraCharacter)
             }
