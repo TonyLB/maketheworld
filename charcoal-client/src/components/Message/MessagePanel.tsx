@@ -7,7 +7,7 @@ import { parseCommand } from '../../slices/lifeLine'
 import LineEntry from '../LineEntry'
 import { useActiveCharacter } from '../ActiveCharacter'
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
-import { addItem } from '../../slices/activeCharacters'
+import { addItem, setIntent } from '../../slices/activeCharacters'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
@@ -21,6 +21,7 @@ export const MessagePanel: FunctionComponent<{}> = () => {
     })
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
+        dispatch(setIntent({ key: CharacterId, intent: ['CONNECTED', 'MAPSUBSCRIBED']}))
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
     const handleInput = useCallback(({ entry, mode }) => {
