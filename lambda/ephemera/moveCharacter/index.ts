@@ -20,6 +20,9 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 internalCache.RoomCharacterList.get(payload.roomId),
                 internalCache.CharacterConnections.get(payload.characterId)
             ])
+            if (payload.roomId === characterMeta.RoomId) {
+                return
+            }
             internalCache.RoomCharacterList.invalidate(characterMeta.RoomId)
             const departingCharacters = await internalCache.RoomCharacterList.get(characterMeta.RoomId)
             const newDepartingCharacters = departingCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId))
