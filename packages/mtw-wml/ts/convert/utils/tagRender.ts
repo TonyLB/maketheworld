@@ -3,6 +3,7 @@ import { isSchemaTaggedMessageLegalContents, SchemaTag, SchemaTaggedMessageLegal
 import { schemaDescriptionToWML } from "../description";
 import { BaseConverter, SchemaToWMLOptions } from "../functionMixins";
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses";
+import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters";
 
 type TagRenderProperty = {
     key?: string;
@@ -28,16 +29,16 @@ const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] => {
 export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, properties, contents }: { schemaToWML: (value: SchemaTag, options: SchemaToWMLOptions) => string; indent: number, forceNest?: 'closed' | 'contents' | 'properties', tag: string, context: SchemaTag[], properties: TagRenderProperty[]; contents: (string | SchemaTag)[]; }): string => {
     const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(context))
     const propertyRender = properties.map((property) => {
-        const propertyKeyLead = `${property.key ? `${property.key}=` : '' }`
+        const propertyKeyLead = `${property.key ? `${escapeWMLCharacters(property.key)}=` : '' }`
         switch(property.type) {
             case 'boolean':
-                return property.value ? `${property.key}` : ''
+                return property.value ? `${escapeWMLCharacters(property.key)}` : ''
             case 'expression':
-                return property.value ? `${propertyKeyLead}{${property.value}}` : ''
+                return property.value ? `${propertyKeyLead}{${escapeWMLCharacters(property.value)}}` : ''
             case 'key':
-                return property.value ? `${propertyKeyLead}(${property.value})` : ''
+                return property.value ? `${propertyKeyLead}(${escapeWMLCharacters(property.value)})` : ''
             case 'literal':
-                return property.value ? `${propertyKeyLead}"${property.value}"` : ''
+                return property.value ? `${propertyKeyLead}"${escapeWMLCharacters(property.value)}"` : ''
         }
     }).filter((value) => (value))
 

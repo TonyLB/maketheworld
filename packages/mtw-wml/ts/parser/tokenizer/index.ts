@@ -85,7 +85,7 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                                 type: 'Description',
                                 startIdx: currentDescription.startIdx,
                                 endIdx: token.endIdx,
-                                value: `${currentDescription.value} ${sourceStream.source.slice(token.startIdx, token.endIdx)}`
+                                value: `${currentDescription.value} ${token.value}`
                             }
                             currentWhitespace = undefined
                         }

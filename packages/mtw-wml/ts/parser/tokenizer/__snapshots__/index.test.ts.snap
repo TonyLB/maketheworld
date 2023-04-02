@@ -419,6 +419,107 @@ Array [
 ]
 `;
 
+exports[`tokenizer should tokenize escaped characters in descriptions 1`] = `
+Array [
+  Object {
+    "endIdx": 5,
+    "startIdx": 0,
+    "tag": "Asset",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 6,
+    "startIdx": 6,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 10,
+    "isBoolean": false,
+    "key": "key",
+    "startIdx": 7,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 16,
+    "startIdx": 11,
+    "type": "KeyValue",
+    "value": "Test",
+  },
+  Object {
+    "endIdx": 17,
+    "selfClosing": false,
+    "startIdx": 17,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 35,
+    "startIdx": 31,
+    "tag": "Room",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 36,
+    "startIdx": 36,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 40,
+    "isBoolean": false,
+    "key": "key",
+    "startIdx": 37,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 45,
+    "startIdx": 41,
+    "type": "KeyValue",
+    "value": "ABC",
+  },
+  Object {
+    "endIdx": 46,
+    "selfClosing": false,
+    "startIdx": 46,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 75,
+    "startIdx": 64,
+    "tag": "Description",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 76,
+    "selfClosing": false,
+    "startIdx": 76,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 85,
+    "startIdx": 77,
+    "type": "Description",
+    "value": "\\\\ < >",
+  },
+  Object {
+    "endIdx": 98,
+    "startIdx": 85,
+    "tag": "Description",
+    "type": "TagClose",
+  },
+  Object {
+    "endIdx": 118,
+    "startIdx": 112,
+    "tag": "Room",
+    "type": "TagClose",
+  },
+  Object {
+    "endIdx": 135,
+    "startIdx": 128,
+    "tag": "Asset",
+    "type": "TagClose",
+  },
+]
+`;
+
 exports[`tokenizer should tokenize nested tags 1`] = `
 Array [
   Object {
