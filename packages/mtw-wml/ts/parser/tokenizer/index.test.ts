@@ -49,6 +49,16 @@ describe('tokenizer', () => {
         const testStream = new SourceStream(testSource)
         expect(tokenizer(testStream)).toMatchSnapshot()
     })
+    it('should tokenize escaped characters in descriptions', () => {
+        const testSource = `<Asset key=(Test)>
+            <Room key=(ABC)>
+                <Description>\\\\ \\< \\></Description>
+            </Room>
+        </Asset>`
+        console.log(`testSource: ${testSource}`)
+        const testStream = new SourceStream(testSource)
+        expect(tokenizer(testStream)).toMatchSnapshot()
+    })
     it('should tokenize comments', () => {
         const testSource = `<Asset key=(Test)>
             <Room /* Comment */ key=(ABC)>

@@ -300,4 +300,16 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schema)).toEqual(testWML)
     })
 
+    it('should correctly escape special characters', () => {
+        const testWML = `<Asset key=(Test)>
+    <Room key=(test)>
+        <Description>
+            Test \\\\ \\< \\>
+        </Description>
+    </Room>
+</Asset>`
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        expect(schemaToWML(schema)).toMatchSnapshot()
+    })
+
 })

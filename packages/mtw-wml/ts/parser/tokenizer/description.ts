@@ -2,6 +2,7 @@ import { Tokenizer, TokenDescription } from "./baseClasses"
 
 export const descriptionTokenizer: Tokenizer<TokenDescription> = (sourceStream) => {
     const startIdx = sourceStream.position
+    let value = ''
     while (![' ', '\n', '\t', '\r', '<'].includes(sourceStream.lookAhead(1))) {
         if (['/*', '//'].includes(sourceStream.lookAhead(2))) {
             break
@@ -10,11 +11,9 @@ export const descriptionTokenizer: Tokenizer<TokenDescription> = (sourceStream) 
             break
         }
         if (sourceStream.lookAhead(1) === '\\') {
-            sourceStream.consume(2)
-        }
-        else {
             sourceStream.consume(1)
         }
+        value = `${value}${sourceStream.consume(1)}`
     }
     const endIdx = sourceStream.position
     if (startIdx === endIdx) {
@@ -25,10 +24,7 @@ export const descriptionTokenizer: Tokenizer<TokenDescription> = (sourceStream) 
             type: 'Description',
             startIdx,
             endIdx,
-            //
-            // TODO: Remove excess whitespace in value
-            //
-            value: sourceStream.source.slice(startIdx, endIdx)
+            value
         }
     }
 }

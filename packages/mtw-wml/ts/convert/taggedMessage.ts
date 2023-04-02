@@ -1,3 +1,4 @@
+import { escapeWMLCharacters } from "../lib/escapeWMLCharacters";
 import { isParseLineBreak, isParseLink, isParseSpacer, isParseString, isParseWhitespace, ParseLineBreakTag, ParseLinkLegalContents, ParseLinkTag, ParseSpacerTag, ParseStackTagEntry, ParseStringTag, ParseTagFactoryPropsLimited, ParseWhitespaceTag } from "../parser/baseClasses";
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, isSchemaWhitespace, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaWhitespaceTag } from "../schema/baseClasses";
 import { BaseConverter, Constructor, parseConverterMixin, isTypedParseTagOpen, MixinInheritedParseParameters, MixinInheritedParseReturn, MixinInheritedSchemaParameters, MixinInheritedSchemaContents, MixinInheritedSchemaReturn, SchemaToWMLOptions } from "./functionMixins";
@@ -112,7 +113,7 @@ export const ParseTaggedMessageMixin = <C extends Constructor<BaseConverter>>(Ba
         override schemaToWML(value: SchemaTag, options: SchemaToWMLOptions): string {
             const schemaToWML = (value: SchemaTag, passedOptions: SchemaToWMLOptions) => (this.schemaToWML(value, { ...passedOptions, indent: options.indent + 1, context: [ ...options.context, value ] }))
             if (isSchemaString(value)) {
-                return value.value
+                return escapeWMLCharacters(value.value)
             }
             else if (isSchemaLink(value)) {
                 return tagRender({
