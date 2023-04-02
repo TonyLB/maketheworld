@@ -119,7 +119,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                     padding-bottom: 5px;
                 `}>
                     <Typography variant='h5' align='left'>
-                        { Name.filter(isTaggedText).map(({ value }) => (value)).join('') }
+                        { Name.filter(isTaggedText).length ? Name.filter(isTaggedText).map(({ value }) => (value)).join('') : 'Untitled' }
                     </Typography>
                     <Box sx={header ? {
                         WebkitBoxOrient: 'vertical',
@@ -127,7 +127,11 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                         display: '-webkit-box',
                         overflow: 'hidden'
                     }: {}}>
-                        <TaggedMessageContent list={Description} />
+                        {
+                            Description.length
+                                ? <TaggedMessageContent list={Description} />
+                                : <em>No description</em>
+                        }
                     </Box>
                     <Divider />
                 </Box>
