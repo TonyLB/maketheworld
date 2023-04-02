@@ -34,7 +34,7 @@ export const tagRender = ({ schemaToWML, indent, forceNest, context, tag, proper
             case 'boolean':
                 return property.value ? `${escapeWMLCharacters(property.key)}` : ''
             case 'expression':
-                return property.value ? `${propertyKeyLead}{${escapeWMLCharacters(property.value)}}` : ''
+                return property.value ? `${propertyKeyLead}{${property.value}}` : ''
             case 'key':
                 return property.value ? `${propertyKeyLead}(${escapeWMLCharacters(property.value)})` : ''
             case 'literal':
