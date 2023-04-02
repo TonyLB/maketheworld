@@ -38,6 +38,7 @@ import { mergeIntoEphemera } from './perAsset'
 import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 import internalCache from '../internalCache'
+import { CharacterMetaItem } from '../internalCache/characterMeta'
 
 //
 // TODO:
@@ -338,6 +339,21 @@ export const pushEphemera = async({
     })
 }
 
+const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter): Promise<CharacterMetaItem | undefined> => {
+    const previous = await internalCache.CharacterMeta.get(character.EphemeraId, { check: true })
+    if (!previous) {
+        return undefined
+    }
+    const updated: CharacterMetaItem = {
+        ...previous,
+        Pronouns: character.Pronouns,
+        Name: character.Name,
+        assets: character.assets,
+    }
+    internalCache.CharacterMeta.set(updated)
+    return updated
+}
+
 export const pushCharacterEphemera = async (character: EphemeraCharacter) => {
     const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'assets']
     await ephemeraDB.optimisticUpdate({
@@ -449,24 +465,13 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     continue
                 }
                 if (check || updateOnly) {
-                    const { EphemeraId = null, RoomId: fetchedRoomId } = await ephemeraDB.getItem<{ EphemeraId: string; RoomId: string }>({
-                        EphemeraId: characterEphemeraId,
-                        DataCategory: 'Meta::Character',
-                        ProjectionFields: ['EphemeraId', 'RoomId']
-                    }) || {}
+                    const ephemeraToCache = await pushCharacterEphemeraToInternalCache(ephemeraItem as EphemeraCharacter)
+                    console.log(`ephemeraToCache: ${JSON.stringify(ephemeraToCache, null, 4)}`)
+                    const { EphemeraId = null, RoomId = 'ROOM#VORTEX' } = ephemeraToCache || {}
                     if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                         continue
                     }
                     if (updateOnly) {
-                        const RoomId = `ROOM#${fetchedRoomId || 'VORTEX'}` as const
-                        internalCache.CharacterMeta.set({
-                            EphemeraId: characterEphemeraId,
-                            Name: characterItem.Name,
-                            RoomId,
-                            HomeId: `ROOM#VORTEX`,
-                            assets: characterItem.assets,
-                            Pronouns: characterItem.Pronouns
-                        })
                         const { assets = {} } = await internalCache.ComponentRender.get(characterEphemeraId, RoomId)
                         if (Object.values(assets).length) {
                             messageBus.send({
