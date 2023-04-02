@@ -38,6 +38,7 @@ import { mergeIntoEphemera } from './perAsset'
 import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 import internalCache from '../internalCache'
+import { CharacterMetaItem } from '../internalCache/characterMeta'
 
 //
 // TODO:
@@ -338,6 +339,21 @@ export const pushEphemera = async({
     })
 }
 
+const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter): Promise<CharacterMetaItem | undefined> => {
+    const previous = await internalCache.CharacterMeta.get(character.EphemeraId, { check: true })
+    if (!previous) {
+        return undefined
+    }
+    const updated: CharacterMetaItem = {
+        ...previous,
+        Pronouns: character.Pronouns,
+        Name: character.Name,
+        assets: character.assets,
+    }
+    internalCache.CharacterMeta.set(updated)
+    return updated
+}
+
 export const pushCharacterEphemera = async (character: EphemeraCharacter) => {
     const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'assets']
     await ephemeraDB.optimisticUpdate({
@@ -444,36 +460,36 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         if (characterItem) {
             const ephemeraItem = ephemeraItemFromNormal(assetWorkspace)(characterItem)
             if (ephemeraItem) {
+                const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
+                if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
+                    continue
+                }
                 if (check || updateOnly) {
-                    const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
-                    if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
-                        continue
-                    }
-                    const { EphemeraId = null } = await ephemeraDB.getItem<{ EphemeraId: string }>({
-                        EphemeraId: characterEphemeraId,
-                        DataCategory: 'Meta::Character',
-                    }) || {}
+                    const ephemeraToCache = await pushCharacterEphemeraToInternalCache(ephemeraItem as EphemeraCharacter)
+                    console.log(`ephemeraToCache: ${JSON.stringify(ephemeraToCache, null, 4)}`)
+                    const { EphemeraId = null, RoomId = 'ROOM#VORTEX' } = ephemeraToCache || {}
                     if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                         continue
                     }
-                    const RoomId = `ROOM#${(ephemeraItem as EphemeraCharacter).RoomId}` as const
-                    const { assets = {} } = await internalCache.ComponentRender.get(characterEphemeraId, RoomId)
-                    if (Object.values(assets).length) {
-                        messageBus.send({
-                            type: 'Perception',
-                            ephemeraId: RoomId,
-                            characterId: characterEphemeraId,
-                            header: true
-                        })
-                    }
-                    else {
-                        const { HomeId } = await internalCache.CharacterMeta.get(characterEphemeraId)
-                        messageBus.send({
-                            type: 'MoveCharacter',
-                            characterId: characterEphemeraId,
-                            roomId: HomeId,
-                            leaveMessage: ' left to return home.'
-                        })            
+                    if (updateOnly) {
+                        const { assets = {} } = await internalCache.ComponentRender.get(characterEphemeraId, RoomId)
+                        if (Object.values(assets).length) {
+                            messageBus.send({
+                                type: 'Perception',
+                                ephemeraId: RoomId,
+                                characterId: characterEphemeraId,
+                                header: true
+                            })
+                        }
+                        else {
+                            const { HomeId } = await internalCache.CharacterMeta.get(characterEphemeraId)
+                            messageBus.send({
+                                type: 'MoveCharacter',
+                                characterId: characterEphemeraId,
+                                roomId: HomeId,
+                                leaveMessage: ' left to return home.'
+                            })            
+                        }
                     }
                 }
                 await pushCharacterEphemera(ephemeraItem as EphemeraCharacter)
