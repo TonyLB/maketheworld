@@ -740,6 +740,6 @@ Array [
 
 exports[`schemaToWML should correctly escape special characters 1`] = `
 "<Asset key=(Test)>
-    <Room key=(test)><Description>Test \\\\\\\\ \\< \\></Description></Room>
+    <Room key=(test)><Description>Test \\\\\\\\ \\\\< \\\\></Description></Room>
 </Asset>"
 `;

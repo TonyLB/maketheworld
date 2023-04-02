@@ -1,3 +1,3 @@
 export const escapeWMLCharacters = (value: string): string => {
-    return value
+    return value.replace(/[\\<>]/g, '\\$&')
 }
