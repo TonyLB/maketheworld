@@ -40,11 +40,11 @@ import VariableHeader from './VariableHeader'
 
 type AssetEditFormProps = {}
 
-const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): SchemaTag => {
+const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable', key: string): SchemaTag => {
     switch(tag) {
         case 'Room':
             return {
-                tag: 'Room' as 'Room',
+                tag: 'Room' as const,
                 key,
                 contents: [],
                 name: [],
@@ -52,7 +52,7 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): Sch
             }
         case 'Feature':
             return {
-                tag: 'Feature' as 'Feature',
+                tag: 'Feature' as const,
                 key,
                 contents: [],
                 name: [],
@@ -60,8 +60,14 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): Sch
             }
         case 'Image':
             return {
-                tag: 'Image' as 'Image',
+                tag: 'Image' as const,
                 key
+            }
+        case 'Variable':
+            return {
+                tag: 'Variable' as const,
+                key,
+                default: 'false'
             }
     }
 }
@@ -76,7 +82,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
     const variables = useMemo<NormalVariable[]>(() => (Object.values(normalForm || {}).filter(isNormalVariable)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
-    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image') => (componentId: string) => {
+    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image' | 'Variable') => (componentId: string) => {
         const rootItem = Object.values(normalForm)
             .find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
         if (rootItem) {
@@ -160,6 +166,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             />))
                         : null
                     }
+                    <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} />
                 </List>
             </Box>
             <DraftLockout />
