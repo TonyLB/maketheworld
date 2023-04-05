@@ -23,7 +23,7 @@ import {
     getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem, isNormalVariable, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
@@ -36,6 +36,7 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
+import VariableHeader from './VariableHeader'
 
 type AssetEditFormProps = {}
 
@@ -73,6 +74,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
+    const variables = useMemo<NormalVariable[]>(() => (Object.values(normalForm || {}).filter(isNormalVariable)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image') => (componentId: string) => {
         const rootItem = Object.values(normalForm)
@@ -150,6 +152,15 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             : null
                         }
                         <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
+                        <ListSubheader>Variables</ListSubheader>
+                        { variables.length
+                            ? variables.map((variable) => (<VariableHeader
+                                    key={variable.key}
+                                    ItemId={variable.key}
+                                    onClick={() => {}}
+                                />))
+                            : null
+                        }
                     </List>
                 </Box>
             </Box>
