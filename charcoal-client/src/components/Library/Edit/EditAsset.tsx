@@ -23,7 +23,7 @@ import {
     getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem, isNormalVariable, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
@@ -36,14 +36,15 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
+import VariableHeader from './VariableHeader'
 
 type AssetEditFormProps = {}
 
-const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): SchemaTag => {
+const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable', key: string): SchemaTag => {
     switch(tag) {
         case 'Room':
             return {
-                tag: 'Room' as 'Room',
+                tag: 'Room' as const,
                 key,
                 contents: [],
                 name: [],
@@ -51,7 +52,7 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): Sch
             }
         case 'Feature':
             return {
-                tag: 'Feature' as 'Feature',
+                tag: 'Feature' as const,
                 key,
                 contents: [],
                 name: [],
@@ -59,8 +60,14 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image', key: string): Sch
             }
         case 'Image':
             return {
-                tag: 'Image' as 'Image',
+                tag: 'Image' as const,
                 key
+            }
+        case 'Variable':
+            return {
+                tag: 'Variable' as const,
+                key,
+                default: 'false'
             }
     }
 }
@@ -73,8 +80,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
+    const variables = useMemo<NormalVariable[]>(() => (Object.values(normalForm || {}).filter(isNormalVariable)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
-    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image') => (componentId: string) => {
+    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image' | 'Variable') => (componentId: string) => {
         const rootItem = Object.values(normalForm)
             .find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
         if (rootItem) {
@@ -85,7 +93,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             })
         }
     }, [updateNormal, normalForm])
-    return <Box sx={{ display: 'flex', flexDirection: 'column', width: "100%", height: "100%", overflowY: "hidden" }}>
+    return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
             primary={asset?.key || 'Untitled'}
             secondary={asset?.Story ? 'Story' : 'Asset'}
@@ -105,53 +113,61 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     label: asset?.key || 'Untitled'
             }]}
         />
-        <Box sx={{ display: 'flex', position: "relative", width: "100%", height: "100%" }}>
-            <Box sx={{ display: 'flex', overflowY: 'auto', flexGrow: 1 }}>
-                <Box sx={{ marginLeft: "20px" }}>
-                    <List>
-                        { maps.length
-                            ? <React.Fragment>
-                                <ListSubheader>Maps</ListSubheader>
-                                { maps.map((mapItem) => (<MapHeader
-                                    key={mapItem.key}
-                                    mapItem={mapItem}
-                                    onClick={() => { navigate(`Map/${mapItem.key}`)}}
-                                />))}
-                            </React.Fragment>
-                            : null
-                        }
-                        <ListSubheader>Rooms</ListSubheader>
-                        { rooms.length
-                            ? rooms.map((room) => (<WMLComponentHeader
-                                    key={room.key}
-                                    ItemId={room.key}
-                                    onClick={() => { navigate(`Room/${room.key}`)}}
-                                />))
-                            : null
-                        }
-                        <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
-                        <ListSubheader>Features</ListSubheader>
-                        { features.length
-                            ? features.map((feature) => (<WMLComponentHeader
-                                    key={feature.key}
-                                    ItemId={feature.key}
-                                    onClick={() => { navigate(`Feature/${feature.key}`)}}
-                                />))
-                            : null
-                        }
-                        <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
-                        <ListSubheader>Images</ListSubheader>
-                        { images.length
-                            ? images.map((image) => (<ImageHeader
-                                    key={image.key}
-                                    ItemId={image.key}
-                                    onClick={() => {}}
-                                />))
-                            : null
-                        }
-                        <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
-                    </List>
-                </Box>
+        <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
+            <Box sx={{ marginLeft: "20px" }}>
+                <List>
+                    { maps.length
+                        ? <React.Fragment>
+                            <ListSubheader>Maps</ListSubheader>
+                            { maps.map((mapItem) => (<MapHeader
+                                key={mapItem.key}
+                                mapItem={mapItem}
+                                onClick={() => { navigate(`Map/${mapItem.key}`)}}
+                            />))}
+                        </React.Fragment>
+                        : null
+                    }
+                    <ListSubheader>Rooms</ListSubheader>
+                    { rooms.length
+                        ? rooms.map((room) => (<WMLComponentHeader
+                                key={room.key}
+                                ItemId={room.key}
+                                onClick={() => { navigate(`Room/${room.key}`)}}
+                            />))
+                        : null
+                    }
+                    <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
+                    <ListSubheader>Features</ListSubheader>
+                    { features.length
+                        ? features.map((feature) => (<WMLComponentHeader
+                                key={feature.key}
+                                ItemId={feature.key}
+                                onClick={() => { navigate(`Feature/${feature.key}`)}}
+                            />))
+                        : null
+                    }
+                    <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
+                    <ListSubheader>Images</ListSubheader>
+                    { images.length
+                        ? images.map((image) => (<ImageHeader
+                                key={image.key}
+                                ItemId={image.key}
+                                onClick={() => {}}
+                            />))
+                        : null
+                    }
+                    <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
+                    <ListSubheader>Variables</ListSubheader>
+                    { variables.length
+                        ? variables.map((variable) => (<VariableHeader
+                                key={variable.key}
+                                ItemId={variable.key}
+                                onClick={() => {}}
+                            />))
+                        : null
+                    }
+                    <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} />
+                </List>
             </Box>
             <DraftLockout />
         </Box>
