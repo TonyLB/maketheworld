@@ -25,10 +25,10 @@ const VariableHeaderInterior: FunctionComponent<VariableHeaderProps> = ({ ItemId
             <MemoryIcon />
         </ListItemIcon>
         <Box sx={{ padding: '2px', display: 'flex', width: "100%", position: "relative" }}>
-            <Box sx={{ flexGrow: 1, flexShrink: 1 }}>
+            <Box sx={{ flexGrow: 2, flexShrink: 2, width: "0px" }}>
                 <Typography>{ item?.key }</Typography>
             </Box>
-            <Box sx={{ flexGrow: 3, flexShring: 3 }}>
+            <Box sx={{ flexGrow: 3, flexShrink: 3, width: "0px" }}>
                 <JSEdit />
             </Box>
         </Box>

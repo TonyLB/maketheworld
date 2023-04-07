@@ -30,12 +30,11 @@ export const JSEdit: FunctionComponent<JSEditProps> = () => {
             <Slate
                 editor={editor}
                 value={value}
-                // onChange={setValue}
+                onChange={setValue}
             >
                 <Editable
                     {...({ spellCheck: "false" } as any)}
                     renderLeaf={renderLeaf}
-                    readOnly
                 />
             </Slate>
         </Box>
