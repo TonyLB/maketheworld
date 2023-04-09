@@ -19,6 +19,9 @@ interface VariableHeaderProps {
 const VariableHeaderInterior: FunctionComponent<VariableHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
     const { normalForm, importData, rooms } = useLibraryAsset()
     const item = useMemo(() => (normalForm[ItemId]), [normalForm, ItemId])
+    const src = isNormalVariable(item)
+        ? item.default
+        : ''
 
     return <ListItem>
         <ListItemIcon>
@@ -29,7 +32,7 @@ const VariableHeaderInterior: FunctionComponent<VariableHeaderProps> = ({ ItemId
                 <Typography>{ item?.key }</Typography>
             </Box>
             <Box sx={{ flexGrow: 3, flexShrink: 3, width: "0px" }}>
-                <JSEdit />
+                <JSEdit src={src} />
             </Box>
         </Box>
 

@@ -4,11 +4,28 @@ import { Descendant, createEditor } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, Slate, withReact } from "slate-react"
 import { useDebouncedState } from "../../../hooks/useDebounce"
+import wmlToSlate from "./wmlToSlate"
+import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
+import { expressionValueTokenizer } from "@tonylb/mtw-wml/dist/parser/tokenizer/expression"
 
-interface JSEditProps {}
+interface JSEditProps {
+    src: string;
+}
 
 type SlateUnit = 'character' | 'word' | 'line' | 'block'
 type Decoration = Range & { error: boolean }
+
+export const isValidExpression = (value: string): boolean => {
+    const sourceStream = new SourceStream(`{${value}}`)
+    try {
+        const expressionToken = expressionValueTokenizer(sourceStream)
+        if (expressionToken && expressionToken.type === 'ExpressionValue' && expressionToken.value === value) {
+            return true
+        }
+    }
+    catch {}
+    return false
+}
 
 const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, leaf: any }) => {
     return (
@@ -20,10 +37,14 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
     )
 }
 
-export const JSEdit: FunctionComponent<JSEditProps> = () => {
+export const JSEdit: FunctionComponent<JSEditProps> = ({ src }) => {
     const [editor] = useState(() => withHistory(withReact(createEditor())))
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
-    const [value, setValue] = useDebouncedState<Descendant[]>({ value: [{ type: 'line', children: [{ text: 'false' }] }], delay: 500, onChange: () => {} })
+    const [value, setValue] = useDebouncedState<Descendant[]>({
+        value: wmlToSlate(src),
+        delay: 500,
+        onChange: () => {}
+    })
 
     return <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
         <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em", display: "flex", flexGrow: 1, overflow: "auto" }}>

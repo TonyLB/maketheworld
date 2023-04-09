@@ -66,7 +66,9 @@ export const expressionValueTokenizer: Tokenizer<TokenExpressionValue> = (source
         if (checkSubTokens) {
             continue
         }
-        sourceStream.consume(1)
+        if (!sourceStream.consume(1)) {
+            return undefined
+        }
     }
     sourceStream.consume(1)
     return {
