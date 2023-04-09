@@ -32,7 +32,12 @@ const VariableHeaderInterior: FunctionComponent<VariableHeaderProps> = ({ ItemId
                 <Typography>{ item?.key }</Typography>
             </Box>
             <Box sx={{ flexGrow: 3, flexShrink: 3, width: "0px" }}>
-                <JSEdit src={src} />
+                <JSEdit
+                    src={src}
+                    onChange={(value) => {
+                        console.log(`OnChange: "${value}"`)
+                    }}
+                />
             </Box>
         </Box>
 

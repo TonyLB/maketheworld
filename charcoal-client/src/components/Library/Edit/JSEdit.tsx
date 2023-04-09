@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box"
-import { FunctionComponent, useCallback, useState } from "react"
+import { FunctionComponent, useCallback, useMemo, useState } from "react"
 import { Descendant, createEditor } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, Slate, withReact } from "slate-react"
@@ -7,9 +7,11 @@ import { useDebouncedState } from "../../../hooks/useDebounce"
 import wmlToSlate from "./wmlToSlate"
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 import { expressionValueTokenizer } from "@tonylb/mtw-wml/dist/parser/tokenizer/expression"
+import { sourceStringFromSlate } from "./wmlToSlate"
 
 interface JSEditProps {
     src: string;
+    onChange: (value: string) => void;
 }
 
 type SlateUnit = 'character' | 'word' | 'line' | 'block'
@@ -37,14 +39,20 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
     )
 }
 
-export const JSEdit: FunctionComponent<JSEditProps> = ({ src }) => {
+export const JSEdit: FunctionComponent<JSEditProps> = ({ src, onChange }) => {
     const [editor] = useState(() => withHistory(withReact(createEditor())))
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     const [value, setValue] = useDebouncedState<Descendant[]>({
         value: wmlToSlate(src),
         delay: 500,
-        onChange: () => {}
+        onChange: (value) => {
+            const src = sourceStringFromSlate(value)
+            if (isValidExpression(src)) {
+                onChange(src)
+            }
+        }
     })
+    const validExpression = useMemo(() => (isValidExpression(sourceStringFromSlate(value))), [value])
 
     return <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
         <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em", display: "flex", flexGrow: 1, overflow: "auto" }}>
@@ -60,7 +68,7 @@ export const JSEdit: FunctionComponent<JSEditProps> = ({ src }) => {
             </Slate>
         </Box>
         <Box>
-            statusMessage
+            { (!validExpression) && 'Invalid expression' }
         </Box>
     </Box>
 
