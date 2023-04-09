@@ -17,8 +17,9 @@ interface VariableHeaderProps {
 }
 
 const VariableHeaderInterior: FunctionComponent<VariableHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
-    const { normalForm, importData, rooms } = useLibraryAsset()
+    const { normalForm, updateNormal, importData, rooms } = useLibraryAsset()
     const item = useMemo(() => (normalForm[ItemId]), [normalForm, ItemId])
+    const definingAppearance = useMemo<number>(() => ((item.appearances || []).findIndex(({ contextStack }) => (contextStack.every(({ tag }) => (['Asset', 'Character'].includes(tag)))))), [item])
     const src = isNormalVariable(item)
         ? item.default
         : ''
@@ -35,7 +36,22 @@ const VariableHeaderInterior: FunctionComponent<VariableHeaderProps> = ({ ItemId
                 <JSEdit
                     src={src}
                     onChange={(value) => {
-                        console.log(`OnChange: "${value}"`)
+                        if (definingAppearance >= -1) {
+                            updateNormal({
+                                type: 'put',
+                                item: {
+                                    key: ItemId,
+                                    tag: 'Variable',
+                                    default: value
+                                },
+                                reference: {
+                                    key: ItemId,
+                                    tag: 'Variable',
+                                    index: definingAppearance
+                                },
+                                replace: true
+                            })    
+                        }
                     }}
                 />
             </Box>

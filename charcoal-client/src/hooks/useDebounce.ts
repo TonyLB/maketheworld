@@ -41,16 +41,18 @@ export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; 
 
 export const useDebouncedState = <T>({ value, delay, onChange }: { value: T; delay: number; onChange: (value: T) => void }): [T, (value: T) => void] => {
     const [baseValue, setBaseValue] = useState<T>(value)
-    const debouncedValue = useDebounce(baseValue, delay)
+    const [currentValue, setCurrentValue] = useState<T>(value)
+    const debouncedValue = useDebounce(currentValue, delay)
     useEffect(
         () => {
             if (!deepEqual(baseValue, debouncedValue)) {
+                setBaseValue(debouncedValue)
                 onChange(debouncedValue)
             }
         },
-        [baseValue, debouncedValue, onChange]
+        [baseValue, debouncedValue, onChange, setBaseValue]
     )
-    return [baseValue, setBaseValue]
+    return [currentValue, setCurrentValue]
 }
 
 export default useDebounce
