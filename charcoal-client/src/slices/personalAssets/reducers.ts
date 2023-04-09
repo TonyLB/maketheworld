@@ -35,11 +35,21 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
-type UpdateNormalPayloadPut = {
+type UpdateNormalPayloadPutPosition = {
     type: 'put';
     item: SchemaTag;
     position: NormalizerInsertPosition;
 }
+
+type UpdateNormalPayloadPutReference = {
+    type: 'put';
+    item: SchemaTag;
+    reference: NormalReference;
+    replace?: boolean;
+}
+
+type UpdateNormalPayloadPut = UpdateNormalPayloadPutPosition | UpdateNormalPayloadPutReference
+const isUpdateNormalPayloadPutReference = (payload: UpdateNormalPayloadPut): payload is UpdateNormalPayloadPutReference => ('reference' in payload)
 
 type UpdateNormalPayloadDelete = {
     type: 'delete';
@@ -54,7 +64,16 @@ export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<
     normalizer.loadNormal(state.normal)
     switch(action.payload.type) {
         case 'put':
-            normalizer.put(action.payload.item, action.payload.position)
+            if (isUpdateNormalPayloadPutReference(action.payload)) {
+                const position = {
+                    ...normalizer._referenceToInsertPosition(action.payload.reference),
+                    replace: action.payload.replace
+                }
+                normalizer.put(action.payload.item, position)
+            }
+            else {
+                normalizer.put(action.payload.item, action.payload.position)
+            }
             break
         case 'delete':
             action.payload.references.forEach((reference) => { normalizer.delete(reference) })

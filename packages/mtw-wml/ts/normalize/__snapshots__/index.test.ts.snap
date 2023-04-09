@@ -768,6 +768,48 @@ Object {
 }
 `;
 
+exports[`WML normalize positioned put method should recalculate Variable default property on update 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testVar",
+            "tag": "Variable",
+          },
+        ],
+        "contextStack": Array [],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "testVar": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+      },
+    ],
+    "default": "true",
+    "key": "testVar",
+    "tag": "Variable",
+  },
+}
+`;
+
 exports[`WML normalize positioned put method should replace a nest that includes an item with the item itself 1`] = `
 Object {
   "Test": Object {

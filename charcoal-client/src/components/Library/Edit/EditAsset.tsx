@@ -114,7 +114,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             }]}
         />
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
-            <Box sx={{ marginLeft: "20px" }}>
+            <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
                 <List>
                     { maps.length
                         ? <React.Fragment>

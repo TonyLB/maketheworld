@@ -759,6 +759,22 @@ describe('WML normalize', () => {
             expect(normalizer.normal).toMatchSnapshot()
         })
 
+        it('should recalculate Variable default property on update', () => {
+            const testSource = `<Asset key=(Test) fileName="Test">
+                <Variable key=(testVar) default={false} />
+            </Asset>`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const variableUpdate: SchemaTag = {
+                tag: 'Variable',
+                key: 'testVar',
+                default: 'true'
+            }
+            normalizer.put(variableUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 0, replace: true })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
+
     })
 
 })
