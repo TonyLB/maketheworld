@@ -36,8 +36,8 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
-import VariableHeader from './VariableHeader'
-import ComputedHeader from './ComputedHeader'
+import JSHeader from './JSHeader'
+import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
 
 type AssetEditFormProps = {}
 
@@ -167,23 +167,34 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     }
                     <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
                     <ListSubheader>Variables</ListSubheader>
-                    { variables.length
-                        ? variables.map((variable) => (<VariableHeader
-                                key={variable.key}
-                                ItemId={variable.key}
-                                onClick={() => {}}
-                            />))
-                        : null
+                    { (variables || []).map((variable) => (<JSHeader
+                            key={variable.key}
+                            item={variable}
+                            typeGuard={isNormalVariable}
+                            getJS={(item) => (item.default)}
+                            schema={(key, value) => ({
+                                key,
+                                tag: 'Variable',
+                                default: value
+                            })}
+                            onClick={() => {}}
+                        />))
                     }
                     <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} />
                     <ListSubheader>Computes</ListSubheader>
-                    { computes.length
-                        ? computes.map((compute) => (<ComputedHeader
-                                key={compute.key}
-                                ItemId={compute.key}
-                                onClick={() => {}}
-                            />))
-                        : null
+                    { (computes || []).map((compute) => (<JSHeader
+                            key={compute.key}
+                            item={compute}
+                            typeGuard={isNormalComputed}
+                            getJS={(item) => (item.src)}
+                            schema={(key, value) => ({
+                                key,
+                                tag: 'Computed',
+                                src: value,
+                                dependencies: extractDependenciesFromJS(value)
+                            })}
+                            onClick={() => {}}
+                        />))
                     }
                     <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} />
                 </List>
