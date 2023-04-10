@@ -12,6 +12,7 @@ import { sourceStringFromSlate } from "./wmlToSlate"
 interface JSEditProps {
     src: string;
     onChange: (value: string) => void;
+    maxHeight?: string;
 }
 
 type SlateUnit = 'character' | 'word' | 'line' | 'block'
@@ -39,7 +40,7 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
     )
 }
 
-export const JSEdit: FunctionComponent<JSEditProps> = ({ src, onChange }) => {
+export const JSEdit: FunctionComponent<JSEditProps> = ({ src, onChange, maxHeight }) => {
     const [editor] = useState(() => withHistory(withReact(createEditor())))
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     const [value, setValue] = useDebouncedState<Descendant[]>({
@@ -55,7 +56,7 @@ export const JSEdit: FunctionComponent<JSEditProps> = ({ src, onChange }) => {
     const validExpression = useMemo(() => (isValidExpression(sourceStringFromSlate(value))), [value])
 
     return <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
-        <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em", display: "flex", flexGrow: 1, overflow: "auto" }}>
+        <Box sx={{ maxHeight, margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em", display: "flex", flexGrow: 1, overflow: "auto" }}>
             <Slate
                 editor={editor}
                 value={value}
