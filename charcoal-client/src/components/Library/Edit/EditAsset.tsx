@@ -23,7 +23,7 @@ import {
     getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem, isNormalVariable, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem, isNormalVariable, NormalVariable, NormalComputed, isNormalComputed } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
@@ -37,10 +37,11 @@ import ImageHeader from './ImageHeader'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import VariableHeader from './VariableHeader'
+import ComputedHeader from './ComputedHeader'
 
 type AssetEditFormProps = {}
 
-const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable', key: string): SchemaTag => {
+const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Computed', key: string): SchemaTag => {
     switch(tag) {
         case 'Room':
             return {
@@ -69,6 +70,13 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable', key:
                 key,
                 default: 'false'
             }
+        case 'Computed':
+            return {
+                tag: 'Computed' as const,
+                key,
+                src: '',
+                dependencies: []
+            }
     }
 }
 
@@ -81,8 +89,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
     const variables = useMemo<NormalVariable[]>(() => (Object.values(normalForm || {}).filter(isNormalVariable)), [normalForm])
+    const computes = useMemo<NormalComputed[]>(() => (Object.values(normalForm || {}).filter(isNormalComputed)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
-    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image' | 'Variable') => (componentId: string) => {
+    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Computed') => (componentId: string) => {
         const rootItem = Object.values(normalForm)
             .find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
         if (rootItem) {
@@ -167,6 +176,16 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         : null
                     }
                     <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} />
+                    <ListSubheader>Computes</ListSubheader>
+                    { computes.length
+                        ? computes.map((compute) => (<ComputedHeader
+                                key={compute.key}
+                                ItemId={compute.key}
+                                onClick={() => {}}
+                            />))
+                        : null
+                    }
+                    <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} />
                 </List>
             </Box>
             <DraftLockout />
