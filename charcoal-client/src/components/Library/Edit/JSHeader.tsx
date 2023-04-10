@@ -35,7 +35,7 @@ const JSHeader = <T extends JSTags, V extends T>({ item, typeGuard, getJS, schem
             <CalculateIcon />
         </ListItemIcon>
         <Box sx={{ padding: '2px', display: 'flex', width: "100%", position: "relative" }}>
-            <Box sx={{ flexGrow: 2, flexShrink: 2, width: "0px" }}>
+            <Box sx={{ flexGrow: 2, flexShrink: 2, width: "0px", alignItems: "center", display: "inline-flex" }}>
                 <Typography>{ item?.key }</Typography>
             </Box>
             <Box sx={{ flexGrow: 3, flexShrink: 3, width: "0px" }}>
