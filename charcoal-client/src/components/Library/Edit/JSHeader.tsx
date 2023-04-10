@@ -1,27 +1,33 @@
-import { FunctionComponent, useMemo } from 'react'
+import { ReactElement, useMemo } from 'react'
 
 import CalculateIcon from '@mui/icons-material/Calculate'
 import { Box, ListItem, ListItemIcon, SxProps, Typography } from '@mui/material'
 
 import { useLibraryAsset } from './LibraryAsset';
-import { isNormalComputed } from '@tonylb/mtw-wml/dist/normalize/baseClasses';
-import { JSEdit } from './JSEdit';
-import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils';
+import { NormalAction, NormalComputed, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { JSEdit } from './JSEdit'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
 
-interface ComputedHeaderProps {
-    ItemId: string;
+type JSTags = NormalAction | NormalComputed | NormalVariable
+
+type JSHeaderProps<T extends JSTags, V extends T> = {
+    item: T;
+    typeGuard: (item: T) => item is V;
+    getJS: (item: V) => string;
+    schema: (key: string, value: string) => SchemaTag;
     onClick: () => void;
     sx?: SxProps;
     selected?: boolean;
 }
 
-const ComputedHeaderInterior: FunctionComponent<ComputedHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
-    const { normalForm, updateNormal, importData, rooms } = useLibraryAsset()
-    const item = useMemo(() => (normalForm[ItemId]), [normalForm, ItemId])
+const JSHeader = <T extends JSTags, V extends T>({ item, typeGuard, getJS, schema, onClick }: JSHeaderProps<T, V>, context?: any): ReactElement<any, any> | null => {
+    const { updateNormal } = useLibraryAsset()
     const definingAppearance = useMemo<number>(() => ((item.appearances || []).findIndex(({ contextStack }) => (contextStack.every(({ tag }) => (['Asset', 'Character'].includes(tag)))))), [item])
-    const src = isNormalComputed(item)
-        ? item.src
-        : ''
+    const src = useMemo<string>(() => (
+        typeGuard(item)
+            ? getJS(item)
+            : ''
+    ), [item, getJS, typeGuard])
 
     return <ListItem>
         <ListItemIcon>
@@ -38,15 +44,10 @@ const ComputedHeaderInterior: FunctionComponent<ComputedHeaderProps> = ({ ItemId
                         if (definingAppearance >= -1) {
                             updateNormal({
                                 type: 'put',
-                                item: {
-                                    key: ItemId,
-                                    tag: 'Computed',
-                                    src: value,
-                                    dependencies: extractDependenciesFromJS(value)
-                                },
+                                item: schema(item.key, value),
                                 reference: {
-                                    key: ItemId,
-                                    tag: 'Computed',
+                                    key: item.key,
+                                    tag: item.tag,
                                     index: definingAppearance
                                 },
                                 replace: true
@@ -60,8 +61,4 @@ const ComputedHeaderInterior: FunctionComponent<ComputedHeaderProps> = ({ ItemId
     </ListItem>
 }
 
-export const ComputedHeader: FunctionComponent<ComputedHeaderProps> = (props) => {
-    return <ComputedHeaderInterior {...props} />
-}
-
-export default ComputedHeader
+export default JSHeader
