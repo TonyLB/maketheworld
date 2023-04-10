@@ -8,7 +8,7 @@ import { useLibraryAsset } from './LibraryAsset'
 import AssetDataAddHeader from './AssetDataAddHeader'
 
 interface AddWMLComponentProps {
-    type: 'Room' | 'Feature' | 'Image' | 'Variable';
+    type: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Computed';
     onAdd?: (key: string) => void;
 }
 
