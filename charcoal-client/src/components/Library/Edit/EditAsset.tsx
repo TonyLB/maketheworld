@@ -178,6 +178,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                                 default: value
                             })}
                             onClick={() => {}}
+                            maxHeight="4em"
                         />))
                     }
                     <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} />
@@ -194,6 +195,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                                 dependencies: extractDependenciesFromJS(value)
                             })}
                             onClick={() => {}}
+                            maxHeight="8em"
                         />))
                     }
                     <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} />
