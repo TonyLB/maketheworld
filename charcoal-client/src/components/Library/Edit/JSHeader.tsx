@@ -22,7 +22,7 @@ type JSHeaderProps<T extends JSTags, V extends T> = {
 }
 
 const JSHeader = <T extends JSTags, V extends T>({ item, typeGuard, getJS, schema, maxHeight, onClick }: JSHeaderProps<T, V>, context?: any): ReactElement<any, any> | null => {
-    const { updateNormal } = useLibraryAsset()
+    const { updateNormal, readonly } = useLibraryAsset()
     const definingAppearance = useMemo<number>(() => ((item.appearances || []).findIndex(({ contextStack }) => (contextStack.every(({ tag }) => (['Asset', 'Character'].includes(tag)))))), [item])
     const src = useMemo<string>(() => (
         typeGuard(item)
@@ -56,6 +56,7 @@ const JSHeader = <T extends JSTags, V extends T>({ item, typeGuard, getJS, schem
                         }
                     }}
                     maxHeight={maxHeight}
+                    readonly={readonly}
                 />
             </Box>
         </Box>

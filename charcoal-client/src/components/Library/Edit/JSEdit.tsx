@@ -13,6 +13,7 @@ interface JSEditProps {
     src: string;
     onChange: (value: string) => void;
     maxHeight?: string;
+    readonly?: boolean;
 }
 
 type SlateUnit = 'character' | 'word' | 'line' | 'block'
@@ -40,18 +41,19 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
     )
 }
 
-export const JSEdit: FunctionComponent<JSEditProps> = ({ src, onChange, maxHeight }) => {
+export const JSEdit: FunctionComponent<JSEditProps> = ({ src, onChange, maxHeight, readonly }) => {
     const [editor] = useState(() => withHistory(withReact(createEditor())))
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
+    const debounceOnChange = useCallback((value) => {
+        const src = sourceStringFromSlate(value)
+        if (!readonly && isValidExpression(src)) {
+            onChange(src)
+        }
+    }, [readonly])
     const [value, setValue] = useDebouncedState<Descendant[]>({
         value: wmlToSlate(src),
         delay: 500,
-        onChange: (value) => {
-            const src = sourceStringFromSlate(value)
-            if (isValidExpression(src)) {
-                onChange(src)
-            }
-        }
+        onChange: debounceOnChange
     })
     const validExpression = useMemo(() => (isValidExpression(sourceStringFromSlate(value))), [value])
 
@@ -65,6 +67,7 @@ export const JSEdit: FunctionComponent<JSEditProps> = ({ src, onChange, maxHeigh
                 <Editable
                     {...({ spellCheck: "false" } as any)}
                     renderLeaf={renderLeaf}
+                    readOnly={readonly}
                 />
             </Slate>
         </Box>
