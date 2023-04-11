@@ -49,8 +49,13 @@ export const useDebouncedState = <T>({ value, delay, onChange }: { value: T; del
                 setBaseValue(debouncedValue)
                 onChange(debouncedValue)
             }
+            return () => {
+                if (!deepEqual(baseValue, currentValue)) {
+                    onChange(currentValue)
+                }    
+            }
         },
-        [baseValue, debouncedValue, onChange, setBaseValue]
+        [baseValue, debouncedValue, onChange, setBaseValue, currentValue]
     )
     return [currentValue, setCurrentValue]
 }
