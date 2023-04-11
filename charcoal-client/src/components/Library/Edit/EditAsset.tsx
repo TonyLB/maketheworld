@@ -23,7 +23,7 @@ import {
     getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem, isNormalVariable, NormalVariable, NormalComputed, isNormalComputed } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem, isNormalVariable, NormalVariable, NormalComputed, isNormalComputed, NormalAction, isNormalAction } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
@@ -41,7 +41,7 @@ import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
 
 type AssetEditFormProps = {}
 
-const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Computed', key: string): SchemaTag => {
+const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
     switch(tag) {
         case 'Room':
             return {
@@ -77,6 +77,12 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Co
                 src: '',
                 dependencies: []
             }
+        case 'Action':
+            return {
+                tag: 'Action' as const,
+                key,
+                src: ''
+            }
     }
 }
 
@@ -90,8 +96,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
     const variables = useMemo<NormalVariable[]>(() => (Object.values(normalForm || {}).filter(isNormalVariable)), [normalForm])
     const computes = useMemo<NormalComputed[]>(() => (Object.values(normalForm || {}).filter(isNormalComputed)), [normalForm])
+    const actions = useMemo<NormalAction[]>(() => (Object.values(normalForm || {}).filter(isNormalAction)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
-    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Computed') => (componentId: string) => {
+    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Computed' | 'Action') => (componentId: string) => {
         const rootItem = Object.values(normalForm)
             .find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
         if (rootItem) {
@@ -199,6 +206,22 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         />))
                     }
                     <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} />
+                    <ListSubheader>Actions</ListSubheader>
+                    { (actions || []).map((action) => (<JSHeader
+                            key={action.key}
+                            item={action}
+                            typeGuard={isNormalAction}
+                            getJS={(item) => (item.src)}
+                            schema={(key, value) => ({
+                                key,
+                                tag: 'Action',
+                                src: value
+                            })}
+                            onClick={() => {}}
+                            maxHeight="32em"
+                        />))
+                    }
+                    <AddWMLComponent type="Action" onAdd={addAsset('Action')} />
                 </List>
             </Box>
             <DraftLockout />
