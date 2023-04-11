@@ -8,13 +8,28 @@ to create the platform as a whole:
 holds all of the *creative assets* of the game ... the blueprints that underlie and structure
 the world in action.  Broadly, when MTW needs to know *"How do I build this part of the world?"*
 the Asset Manager is tasked with having that information on hand, and when a creator makes
-something new the Asset Manager is there to save it and file it.
+something new the Asset Manager is there to save it and file it.\
+\
+Subsections of Asset Manager:
+    - *Image Manager*: A simple utility function that accepts EventBridge commands to process
+    a file in the *upload* bucket, resize and reformat it, and place it in the *images* bucket,
+    then delete the original.
+
+    - *WML Manager*: Functions associated with the .wml and associated .json files for each asset,
+    which allows parsing new WML from the *upload* bucket and either rejecting invalid syntax or
+    updating the WML and JSON files in the Assets bucket.
+
 - ***Ephemera Manager***:  A Lambda function and associated storage (DynamoDB) that holds
 the specific *instances* of the game's creative assets ... the actual places built from
 the theoretical blueprints, and how they have been changed by player actions.  When MTW
 needs to know *"What is the state of this place right now?" the Ephemera Manager is tasked
 with having that information on hand, and when a player does something to change the world,
-the Ephemera Manager is there to calculate all the consequences.
+the Ephemera Manager is there to calculate all the consequences.\
+\
+Subsections of Ephemera Manager:
+    - *Perception System*: Tasked with taking the current state of the world, and rendering
+    a particular object as seen from the perspective of a particular character.
+
 - ***Image Manager***: A simple utility Lambda function and associated *upload* and *images*
 S3 buckets.  Image Manager accepts EventBridge commands to process a file in the *upload*
 bucket, resize and reformat it, and place it in the *images* bucket, then delete the original.
@@ -24,10 +39,6 @@ from the Asset Manager, or Asset Manager needs to pass on changes and updates, t
 is the way they communicate.
 - ***Charcoal Client***:  The front-end web application that presents the entire 
 user-interface of Make The World.
-- ***Control Channel***:  An APIGateway Websocket service that connects the Charcoal client
-in real-time to the back-end systems, letting creators create and players play.  By
-relaying real-time update, the control channel also lets users see the impact of other
-users in the same space (independent of their own commands).
 
 ( To-Do:  Create a diagram that demonstrates how all of the subsystems connect together )
 
