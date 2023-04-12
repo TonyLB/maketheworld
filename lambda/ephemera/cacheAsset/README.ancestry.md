@@ -1,19 +1,22 @@
 ---
 ---
 
-# Ancestry Layer
+# Graph Layer
 
-The Ancestry layer stores quick-fetch denormalizations for Ancestry and Descent, which maintain the
-entire DAG of dependency connection, going "backward" from a given node to ancestors that it depends
-upon, references, and imports, and "forward" from the node to descendants that (in turn) import it.
+The Graph layer stores a (?) directed graph with table items (Asset or Ephemera, respectively)
+as its nodes. This facilitates storing and querying the relationships between items, and (especially)
+querying on extended paths (a feature reached by looking at another feature which is in turn visible
+within a room).
 
+Because the graph is universally directed, each node has two distinct sub-graphs that can be derived
+from it: An Ancestry graph that is derived by recursively following all links in the direction From-To,
+and a Descent graph that is derived by recursively following all links in the reverse direction To-From.
 Ancestry information is useful for deriving the entire behavior of an asset (including everything it
-inherits).
+inherits). Descent information is useful for updating and rerendering assets in response to a change in an
+asset from which they inherit, for updating computed items that depend upon variable values, and for
+aggregating information for an entire tree of containers.
 
-Descent information is useful for updating and rerendering assets in response to a change in an
-asset from which they inherit, or for updating computed items that depend upon variable values.
-
-Descent is stored for anything that can depend upon another item, or be depended upon in turn:
+Graph relationships are stored for anything that can depend upon another item, or be depended upon in turn:
 - Assets
 - Variables (can only have Descendants)
 - Computed
@@ -34,7 +37,7 @@ added, removed, or their connections updated
 
 ---
 
-## Tree Storage
+## Tree Storage (Current)
 
 ---
 
