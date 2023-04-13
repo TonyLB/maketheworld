@@ -18,11 +18,13 @@ aggregating information for an entire tree of containers.
 
 Graph relationships are stored for anything that can depend upon another item, or be depended upon in turn:
 - Assets
-- Variables (can only have Descendants)
+- Variables (can only have Assets as Ancestors, and most anything as Descendants)
 - Computed
 - Room (can have state variables as Ancestors, and Maps as Descendants)
-- Feature (can only have Ancestors)
+- Feature (can only have other Features as Descendants, can include cyclic loops)
 - Map (can only have Ancestors)
+
+![MTW Graphs](images/mtwGraphs.jpg)
 
 ---
 
