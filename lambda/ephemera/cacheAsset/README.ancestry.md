@@ -170,6 +170,55 @@ The *lightsOn* Compute is referenced by the *Cathedral* room in the base asset, 
 
 ---
 
+## Tree Storage (New)
+
+---
+
+*Any tree is stored as a set of Nodes and a set of Edges.  An Edge is a connection*
+*between the source node (that it's defined on) and a target node ... optionally with a name*
+*remapping key assigned to the operation, and context information about the nature of the*
+*edge. Two nodes may have multiple similarly-directed edges between them, if those edges have*
+*different context information.*
+
+*A tree is stored in the database partitioned by its Nodes: Each node contains two edge-set*
+*properties, which contain a non-sorted set (childEdges) of the edges for which the node is*
+*a source, and another non-sorted set (parentEdges) of the edges for which the node is a target.*
+
+```ts
+type DependencyEdge = {
+    source: EphemeraKey;
+    target: EphemeraKey;
+    context: string;
+}
+type DependencyAncestorKey = `${EphemeraKey}::${DependencyContext}`
+type DependencyDescendantKey = `${EphemeraKey}::${DependencyContext}`
+const unpackAncestorEdge = (baseNode: DependencyNode, edgeKey: DependencyAncestorKey): DependencyEdge => {
+    return {
+        target: baseNode.EphemeraId,
+        source: edgeKey.split('::')[0],
+        context: edgeKey.split('::')[1]
+    }
+}
+const unpackDescendantEdge = (baseNode: DependencyNode, edgeKey: DependencyDescendantKey): DependencyEdge => {
+    return {
+        source: baseNode.EphemeraId,
+        target: edgeKey.split('::')[0],
+        context: edgeKey.split('::')[1]
+    }
+}
+
+type DependencyNode = {
+    EphemeraId: EphemeraKey;
+    childEdges: DependencyAncestorKey[];
+    parentEdges: DependencyDescendantKey[];
+}
+```
+
+Whenever an edge is added, it must be added to both nodes with an atomic transaction. Likewise when an edge is
+removed.
+
+---
+
 ## Updates
 
 *Whenever an item which either (a) is depended upon, (b) depends upon other assets, or (c) both is updated in a way that*
