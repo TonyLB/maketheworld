@@ -174,6 +174,8 @@ The *lightsOn* Compute is referenced by the *Cathedral* room in the base asset, 
 
 ---
 
+### Source of Truth storage
+
 *Any tree is stored as a set of Nodes and a set of Edges.  An Edge is a connection*
 *between the source node (that it's defined on) and a target node ... optionally with a name*
 *remapping key assigned to the operation, and context information about the nature of the*
@@ -211,11 +213,71 @@ type DependencyNode = {
     EphemeraId: EphemeraKey;
     childEdges: DependencyAncestorKey[];
     parentEdges: DependencyDescendantKey[];
+    //
+    // For information about caching, see next section
+    //
+    ancestorCache?: DependencyBestGuessCache;
+    descendantCache?: DependencyBestGuessCache;
 }
 ```
 
 Whenever an edge is added, it must be added to both nodes with an atomic transaction. Likewise when an edge is
 removed.
+
+---
+
+### Best-Guess Caching
+
+*In addition to directly storing authoritative data about child and parent edges, each node may optionally store*
+*a cache (either partial or complete) of **only** the edge keys of a graph rooted in the node and stretching*
+*in one of two directions (ancestor or descendant). These are termed "Best-Guess caches" and their accuracy should*
+*never be assumed. They will frequently be inaccurate. Their usefulness is that they can permit fetches of the*
+*entire graph to proceed with several levels being queried in parallel, rather than requiring that each level of*
+*recursion must round-trip to DynamoDB before getting the information to check the next level.*
+
+Example:
+
+Suppose a genuine source of truth that has the following structure:
+    - Node A has children B and C,
+    - Node B has children D and E,
+    - Node C has children F and G
+
+Suppose further that NodeA has a descendantCache with the following edges: ['A::B::', 'A::C::', 'B::G::', 'B::D::', 'C::F::', 'C::G::']
+
+To query the entire edge-set of the graph descending from A, using the best-guess cache, would proceed as follows:
+    - Query Nodes B, C, H, D, F, and G.
+    - On a single round-trip, confirm that nodes C, H, D, F, and G have the children that the cache expects them to have.
+    - Because B does *not* have the children it is expected to have, check B for a cache (none found), and then directly
+    query node E.
+    - Upon return trip of the second round-trip, the process would have information about the child edgesets of nodes A-H,
+    and could confirm possession of the entire graph (as well as confirm that NodeA's descendantCache is incorrect and
+    in need of invalidation or update)
+
+Again: A Best-Guess Cache does not replace querying the underlying values to check source-of-truth. It only gives you
+a probable chance to query those values in parallel rather than in a number of back-and-forths proportional to the depth
+of the graph.
+
+Because the Best-Guess Cache is only a short-cut to queries, it can be deliberately incomplete without fouling the algorithm.
+As such, it is stored in the following structure:
+
+```ts
+type BestGuessCacheEdgeKey = `${EphemeraKey}::${EphemeraKey}::${DependencyContext}`
+enum BestGuessNodeKnowledgeLevels {
+    Complete,
+    Partial
+}
+type BestGuessNode = {
+    EphemeraId: EphemeraKey;
+    knowledge: BestGuessNodeKnowledgeLevels;
+}
+type DependencyBestGuessCache = {
+    treeEdges: BestGuessCacheEdgeKey[];
+    nodes: BestGuessNode[];
+}
+```
+
+Working out the most efficient way to partially cache graphs (or partially invalidate) is a work in progress, but the capability
+is there for future development.
 
 ---
 
