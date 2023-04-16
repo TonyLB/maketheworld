@@ -8,7 +8,8 @@ import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
-import DependencyGraph, { DependencyGraphData, tagFromEphemeraId } from './dependencyGraph';
+import GraphCache, { GraphCacheData } from '@tonylb/mtw-utilities/dist/graphStorage/cache'
+import { tagFromEphemeraId } from './dependencyGraph';
 
 export type StateItemId = EphemeraVariableId | EphemeraComputedId
 
@@ -140,8 +141,8 @@ export class EvaluateCodeData {
 }
 
 class AssetMap {
-    _Ancestry: DependencyGraphData;
-    constructor(Ancestry: DependencyGraphData) {
+    _Ancestry: GraphCacheData;
+    constructor(Ancestry: GraphCacheData) {
         this._Ancestry = Ancestry
     }
 
@@ -200,7 +201,7 @@ class AssetMap {
     }
 }
 
-export const AssetState = <GBase extends ReturnType<typeof DependencyGraph>>(Base: GBase) => {
+export const AssetState = <GBase extends ReturnType<typeof GraphCache>>(Base: GBase) => {
     return class AssetState extends Base {
         AssetState: AssetStateData
         EvaluateCode: EvaluateCodeData
