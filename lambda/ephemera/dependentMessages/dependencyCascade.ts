@@ -4,8 +4,8 @@ import { isEphemeraComputedId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVari
 import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
-import { DependencyNode } from "../internalCache/baseClasses"
-import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
+import { DependencyNode, isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
+import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 import { DependencyCascadeMessage, MessageBus } from "../messageBus/baseClasses"
 
 export const dependencyCascadeMessage = async ({ payloads, messageBus }: { payloads: DependencyCascadeMessage[]; messageBus: MessageBus }): Promise<void> => {
@@ -57,7 +57,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                             TableName: 'Ephemera',
                             Key: marshall({
                                 EphemeraId: assetStateMap[key],
-                                DataCategory: `Meta::${tagFromEphemeraId(assetStateMap[key])}`
+                                DataCategory: `Meta::${extractConstrainedTag(isLegalDependencyTag)(assetStateMap[key])}`
                             }),
                             ConditionExpression: '#value = :value',
                             ExpressionAttributeNames: {

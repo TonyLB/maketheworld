@@ -9,7 +9,8 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import GraphCache, { GraphCacheData } from '@tonylb/mtw-utilities/dist/graphStorage/cache'
-import { tagFromEphemeraId } from './dependencyGraph';
+import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
+import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 
 export type StateItemId = EphemeraVariableId | EphemeraComputedId
 
@@ -39,7 +40,7 @@ export class AssetStateData {
         this._StateCache.add({
             promiseFactory: async (keys: string[]) => {
                 return await ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
-                    Items: keys.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}` })),
+                    Items: keys.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${extractConstrainedTag(isLegalDependencyTag)(EphemeraId)}` })),
                     ProjectionFields: ['EphemeraId', '#value'],
                     ExpressionAttributeNames: {
                         '#value': 'value'
@@ -147,7 +148,7 @@ class AssetMap {
     }
 
     async get(EphemeraId: string): Promise<AssetStateMapping> {
-        if (tagFromEphemeraId(EphemeraId) === 'Asset') {
+        if (extractConstrainedTag(isLegalDependencyTag)(EphemeraId) === 'Asset') {
             const [computedLookups, variableLookups] = await Promise.all([
                 ephemeraDB.query<{ EphemeraId: string; key: string; }[]>({
                     IndexName: 'DataCategoryIndex',

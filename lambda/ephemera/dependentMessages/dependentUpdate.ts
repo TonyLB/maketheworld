@@ -4,8 +4,8 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { reduceDependencyGraph, extractTree } from "../internalCache/dependencyGraph"
-import { DependencyEdge, DependencyGraphAction, DependencyNode, isDependencyGraphDelete, isDependencyGraphPut } from "../internalCache/baseClasses"
-import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
+import { DependencyNode, DependencyEdge, DependencyGraphAction, isDependencyGraphPut, isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
+import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 
 const getAntiDependency = (dependencyTag: 'Descent' | 'Ancestry') => async (EphemeraId: string): Promise<DependencyEdge[]> => {
     const antiDependencyTag = dependencyTag === 'Descent' ? 'Ancestry' : 'Descent'
@@ -61,7 +61,7 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
     })
 
     await Promise.all(Object.entries(payloadsByTarget).map(async ([targetId, payloadList]) => {
-        const tag = tagFromEphemeraId(targetId)
+        const tag = extractConstrainedTag(isLegalDependencyTag)(targetId)
         //
         // Because we only update the Descent (and need the Ancestry's unchanged value), we run getItem and update
         // in parallel rather than suffer the hit for requesting ALL_NEW ReturnValue

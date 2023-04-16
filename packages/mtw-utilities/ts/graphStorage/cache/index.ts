@@ -1,6 +1,6 @@
 import { ephemeraDB } from '../../dynamoDB'
 import { unique } from '../../lists';
-import { splitType } from '../../types';
+import { extractConstrainedTag, splitType } from '../../types';
 import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
 import { DeferredCache } from './deferredCache';
 
@@ -63,19 +63,7 @@ export class DependencyTreeWalker<T extends Omit<DependencyNode, 'completeness'>
 
 }
 
-export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
-    const [upperTag] = splitType(EphemeraId)
-    if (!upperTag) {
-        throw new Error(`No dependency tag: '${EphemeraId}'`)
-    }
-    const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
-    if (isLegalDependencyTag(tag)) {
-        return tag
-    }
-    else {
-        throw new Error(`Invalid dependency tag: ${tag}`)
-    }
-}
+export const tagFromEphemeraId = extractConstrainedTag(isLegalDependencyTag)
 
 export const extractTree = <T extends Omit<DependencyNode, 'completeness'>>(tree: T[], EphemeraId: string): T[] => {
     let returnValue: T[] = []

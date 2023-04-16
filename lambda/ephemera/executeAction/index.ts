@@ -7,7 +7,8 @@ import { ExecuteActionMessage, MessageBus, PerceptionShowMessage, PerceptionShow
 import { EphemeraMessageId, EphemeraMomentId, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
-import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
+import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
+import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 import { defaultColorFromCharacterId } from "../lib/characterColor"
 import { EphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
@@ -177,10 +178,10 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
             sandboxedExecution(src)(transform)(draftSandbox)
         })
         const changedVariables = Object.keys(assetState)
-            .filter((key) => (tagFromEphemeraId(assetMap[key]) === 'Variable'))
+            .filter((key) => (extractConstrainedTag(isLegalDependencyTag)(assetMap[key]) === 'Variable'))
             .filter((key) => (executionOutput[key] !== assetState[key]))
         const unchangedVariables = Object.keys(assetState)
-            .filter((key) => (tagFromEphemeraId(assetMap[key]) === 'Variable'))
+            .filter((key) => (extractConstrainedTag(isLegalDependencyTag)(assetMap[key]) === 'Variable'))
             .filter((key) => (executionOutput[key] === assetState[key]))
     
         if (changedVariables.length > 0) {
