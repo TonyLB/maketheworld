@@ -3,7 +3,7 @@ import { AncestryUpdateMessage, DescentUpdateMessage, MessageBus } from "../mess
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
-import { reduceDependencyGraph, extractTree } from "../internalCache/dependencyGraph"
+import { reduceDependencyGraph, extractTree } from "@tonylb/mtw-utilities/dist/graphStorage/cache"
 import { DependencyNode, DependencyEdge, DependencyGraphAction, isDependencyGraphPut, isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 

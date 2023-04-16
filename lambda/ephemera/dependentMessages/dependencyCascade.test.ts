@@ -9,7 +9,7 @@ import internalCache from '../internalCache'
 
 import dependencyCascadeMessage from './dependencyCascade'
 import { DependencyNode } from '../internalCache/baseClasses'
-import { extractTree } from '../internalCache/dependencyGraph'
+import { extractTree } from "@tonylb/mtw-utilities/dist/graphStorage/cache"
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
