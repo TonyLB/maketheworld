@@ -7,7 +7,7 @@ import CacheCharacterMeta from './characterMeta';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
 import CacheCharacterConnections from './characterConnections';
 import AssetState from './assetState';
-import DependencyGraph from './dependencyGraph';
+import GraphCache from '@tonylb/mtw-utilities/dist/graphStorage/cache';
 import ComponentMeta from './componentMeta';
 import ComponentRender from './componentRender';
 import CacheCharacterPossibleMaps from './characterPossibleMaps';
@@ -132,6 +132,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = CacheCharacterPossibleMaps(ComponentRender(ComponentMeta(AssetState(DependencyGraph(CachePlayerConnections(CacheCharacterConnections(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))))))
+const InternalCache = CacheCharacterPossibleMaps(ComponentRender(ComponentMeta(AssetState(GraphCache(CachePlayerConnections(CacheCharacterConnections(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))))))
 export const internalCache = new InternalCache()
 export default internalCache

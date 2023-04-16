@@ -1,8 +1,7 @@
 import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
-import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
 import { DeferredCache } from './deferredCache';
-import DependencyGraph, { DependencyGraphData } from './dependencyGraph';
+import GraphCache, { GraphCacheData } from '@tonylb/mtw-utilities/dist/graphStorage/cache';
 
 const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId) => (`${CharacterId}::${EphemeraId}`)
 
@@ -14,8 +13,8 @@ export type CharacterPossibleMapsItem = {
 export class CacheCharacterPossibleMapsData {
     _Cache: DeferredCache<CharacterPossibleMapsItem> = new DeferredCache();
     _CharacterMeta: CacheCharacterMetaData;
-    _Descent: DependencyGraphData
-    constructor(characterMeta: CacheCharacterMetaData, descent: DependencyGraphData) {
+    _Descent: GraphCacheData
+    constructor(characterMeta: CacheCharacterMetaData, descent: GraphCacheData) {
         this._CharacterMeta = characterMeta
         this._Descent = descent
     }
@@ -54,7 +53,7 @@ export class CacheCharacterPossibleMapsData {
     }
 }
 
-export const CacheCharacterPossibleMaps = <GBase extends ReturnType<typeof CacheCharacterMeta> & ReturnType<typeof DependencyGraph>>(Base: GBase) => {
+export const CacheCharacterPossibleMaps = <GBase extends ReturnType<typeof CacheCharacterMeta> & ReturnType<typeof GraphCache>>(Base: GBase) => {
     return class CacheCharacterPossibleMaps extends Base {
         CharacterPossibleMaps: CacheCharacterPossibleMapsData;
 

@@ -1,16 +1,18 @@
-jest.mock('../messageBus')
-import messageBus from '../messageBus'
+jest.mock('../../dynamoDB')
+import { ephemeraDB } from "../../dynamoDB"
 
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { CacheBase } from '../cache/baseClasses'
+import { GraphCache } from '../cache/'
+import updateGraphStorage from './'
 
-import dependentUpdateMessage from './dependentUpdate'
-import internalCache from '../internalCache'
+const internalCache = new (GraphCache(CacheBase))()
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
-const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
+const messageBus = {
+    send: jest.fn()
+}
 
-describe('DescentUpdateMessage', () => {
+describe('graphStore update', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -21,7 +23,7 @@ describe('DescentUpdateMessage', () => {
 
     it('should call all unreferenced updates in a first wave', async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({ Ancestry: [] })
-        await dependentUpdateMessage('Descent')({
+        await updateGraphStorage(internalCache, 'Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'ASSET#ImportOne',
@@ -110,7 +112,7 @@ describe('DescentUpdateMessage', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await dependentUpdateMessage('Descent')({
+        await updateGraphStorage(internalCache, 'Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'ASSET#ImportOne',
@@ -165,7 +167,7 @@ describe('DescentUpdateMessage', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await dependentUpdateMessage('Descent')({
+        await updateGraphStorage(internalCache, 'Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'ASSET#ImportOne',
@@ -232,7 +234,7 @@ describe('DescentUpdateMessage', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await dependentUpdateMessage('Descent')({
+        await updateGraphStorage(internalCache, 'Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'VARIABLE#XYZ',
@@ -315,7 +317,7 @@ describe('DescentUpdateMessage', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await dependentUpdateMessage('Descent')({
+        await updateGraphStorage(internalCache, 'Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'VARIABLE#XYZ',
@@ -373,7 +375,7 @@ describe('DescentUpdateMessage', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await dependentUpdateMessage('Descent')({
+        await updateGraphStorage(internalCache, 'Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'VARIABLE#XYZ',
@@ -433,7 +435,7 @@ describe('DescentUpdateMessage', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await dependentUpdateMessage('Descent')({
+        await updateGraphStorage(internalCache, 'Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'VARIABLE#XYZ',

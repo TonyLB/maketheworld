@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`DependencyGraph delete should correctly delete a connection 1`] = `
+exports[`GraphCache delete should correctly delete a connection 1`] = `
 Array [
   Object {
     "EphemeraId": "VARIABLE#testOne",
@@ -33,7 +33,7 @@ Array [
 ]
 `;
 
-exports[`DependencyGraph delete should decrement connection assets when redundancies exist 1`] = `
+exports[`GraphCache delete should decrement connection assets when redundancies exist 1`] = `
 Array [
   Object {
     "EphemeraId": "VARIABLE#testOne",
@@ -55,7 +55,7 @@ Array [
 ]
 `;
 
-exports[`DependencyGraph generationOrder should correctly calculate generation order for a complex graph 1`] = `
+exports[`GraphCache generationOrder should correctly calculate generation order for a complex graph 1`] = `
 Array [
   Array [
     "VARIABLE#One",
@@ -73,7 +73,7 @@ Array [
 ]
 `;
 
-exports[`DependencyGraph get should correctly fetch a tree 1`] = `
+exports[`GraphCache get should correctly fetch a tree 1`] = `
 Array [
   Object {
     "EphemeraId": "COMPUTED#testTwo",
@@ -98,7 +98,7 @@ Array [
 ]
 `;
 
-exports[`DependencyGraph getPartial should correctly decipher a partial tree 1`] = `
+exports[`GraphCache getPartial should correctly decipher a partial tree 1`] = `
 Array [
   Object {
     "EphemeraId": "VARIABLE#testOne",
@@ -139,7 +139,7 @@ Array [
 ]
 `;
 
-exports[`DependencyGraph put should backpopulate antidependency links 1`] = `
+exports[`GraphCache put should backpopulate antidependency links 1`] = `
 Array [
   Object {
     "EphemeraId": "COMPUTED#testTwo",
@@ -164,7 +164,7 @@ Array [
 ]
 `;
 
-exports[`DependencyGraph put should correctly add a complete tree 1`] = `
+exports[`GraphCache put should correctly add a complete tree 1`] = `
 Array [
   Object {
     "EphemeraId": "COMPUTED#testFour",
@@ -200,7 +200,7 @@ Array [
 ]
 `;
 
-exports[`DependencyGraph put should correctly add a single graph item 1`] = `
+exports[`GraphCache put should correctly add a single graph item 1`] = `
 Array [
   Object {
     "EphemeraId": "COMPUTED#testFour",

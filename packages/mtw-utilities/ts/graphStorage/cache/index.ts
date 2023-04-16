@@ -1,6 +1,6 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { unique } from '@tonylb/mtw-utilities/dist/lists';
-import { splitType } from '@tonylb/mtw-utilities/dist/types';
+import { ephemeraDB } from '../../dynamoDB'
+import { unique } from '../../lists';
+import { extractConstrainedTag, splitType } from '../../types';
 import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
 import { DeferredCache } from './deferredCache';
 
@@ -63,19 +63,7 @@ export class DependencyTreeWalker<T extends Omit<DependencyNode, 'completeness'>
 
 }
 
-export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
-    const [upperTag] = splitType(EphemeraId)
-    if (!upperTag) {
-        throw new Error(`No dependency tag: '${EphemeraId}'`)
-    }
-    const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
-    if (isLegalDependencyTag(tag)) {
-        return tag
-    }
-    else {
-        throw new Error(`Invalid dependency tag: ${tag}`)
-    }
-}
+export const tagFromEphemeraId = extractConstrainedTag(isLegalDependencyTag)
 
 export const extractTree = <T extends Omit<DependencyNode, 'completeness'>>(tree: T[], EphemeraId: string): T[] => {
     let returnValue: T[] = []
@@ -194,9 +182,9 @@ export const reduceDependencyGraph = (state: Record<string, DependencyNode>, act
 
 }
 
-export class DependencyGraphData {
+export class GraphCacheData {
     dependencyTag: 'Descent' | 'Ancestry';
-    _antiDependency?: DependencyGraphData;
+    _antiDependency?: GraphCacheData;
     _Cache: DeferredCache<DependencyNode>;
     _Store: Record<string, DependencyNode> = {}
     
@@ -373,15 +361,15 @@ export class DependencyGraphData {
 
 }
 
-export const DependencyGraph = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class DependencyGraph extends Base {
-        Descent: DependencyGraphData;
-        Ancestry: DependencyGraphData;
+export const GraphCache = <GBase extends CacheConstructor>(Base: GBase) => {
+    return class GraphCache extends Base {
+        Descent: GraphCacheData;
+        Ancestry: GraphCacheData;
 
         constructor(...rest: any) {
             super(...rest)
-            this.Descent = new DependencyGraphData('Descent')
-            this.Ancestry = new DependencyGraphData('Ancestry')
+            this.Descent = new GraphCacheData('Descent')
+            this.Ancestry = new GraphCacheData('Ancestry')
             this.Descent._antiDependency = this.Ancestry
             this.Ancestry._antiDependency = this.Descent
         }
@@ -400,4 +388,4 @@ export const DependencyGraph = <GBase extends CacheConstructor>(Base: GBase) => 
     }
 }
 
-export default DependencyGraph
+export default GraphCache
