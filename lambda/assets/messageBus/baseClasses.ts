@@ -85,8 +85,8 @@ export type LibraryUnsubscribeMessage = {
     type: 'LibraryUnsubscribe';
 }
 
-export type PlayerLibraryUpdateMessage = {
-    type: 'PlayerLibraryUpdate';
+export type PlayerInfoMessage = {
+    type: 'PlayerInfo';
     player?: string;
     RequestId?: string;
 }
@@ -106,7 +106,7 @@ export type MessageType = ReturnValueMessage |
     MoveByAssetIdMessage |
     LibrarySubscribeMessage |
     LibraryUnsubscribeMessage |
-    PlayerLibraryUpdateMessage |
+    PlayerInfoMessage |
     LibraryUpdateMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
@@ -120,7 +120,7 @@ export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage 
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
 export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
 export const isLibraryUnsubscribeMessage = (prop: MessageType): prop is LibraryUnsubscribeMessage => (prop.type === 'LibraryUnsubscribe')
-export const isPlayerLibraryUpdateMessage = (prop: MessageType): prop is PlayerLibraryUpdateMessage => (prop.type === 'PlayerLibraryUpdate')
+export const isPlayerInfoMessage = (prop: MessageType): prop is PlayerInfoMessage => (prop.type === 'PlayerInfo')
 export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdateMessage => (prop.type === 'LibraryUpdate')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

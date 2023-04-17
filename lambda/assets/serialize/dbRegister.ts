@@ -250,7 +250,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
         ])
         if (address.zone === 'Personal') {
             messageBus.send({
-                type: 'PlayerLibraryUpdate',
+                type: 'PlayerInfo',
                 player: address.player
             })
 

@@ -171,7 +171,7 @@ export const handler = async (event, context) => {
             const player = await internalCache.Connection.get('player')
             if (player) {
                 messageBus.send({
-                    type: 'PlayerLibraryUpdate',
+                    type: 'PlayerInfo',
                     player,
                     RequestId: request.RequestId
                 })
