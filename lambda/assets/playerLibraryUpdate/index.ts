@@ -3,6 +3,15 @@ import { PlayerLibraryUpdateMessage, MessageBus } from "../messageBus/baseClasse
 
 import internalCache from '../internalCache'
 
+//
+// TODO: Add storage layer for onboarding settings: ISS2387
+//
+//   - Rename playerLibraryUpdate to "PlayerInfoMessage"
+//   - Create playerUpdateMessage message that accepts incoming changes (so far, add or remove completed onboarding tags)
+//   - Create message handler to update player in Assets table and trigger PlayerInfoMessage broadcast
+//   - SettingsByPlayer to internalCache
+//   - Lookup info from SettingsByPlayer here, and include it in the PlayerInfoMessage
+//
 export const playerLibraryUpdateMessage = async ({ payloads, messageBus }: { payloads: PlayerLibraryUpdateMessage[], messageBus: MessageBus }): Promise<void> => {
     internalCache.ConnectionsByPlayer.clear()
     await Promise.all(payloads.map(async ({ player, RequestId }) => {
