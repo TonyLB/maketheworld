@@ -122,6 +122,10 @@ export type AssetClientPlayerCharacter = {
     Outfit?: string;
 }
 
+export type AssetClientPlayerSettings = {
+    onboardCompleteTags: string[];
+}
+
 export type AssetClientPlayerMessage = {
     messageType: 'Player';
     RequestId?: string;
@@ -129,6 +133,7 @@ export type AssetClientPlayerMessage = {
     CodeOfConductConsent: boolean;
     Assets: AssetClientPlayerAsset[];
     Characters: AssetClientPlayerCharacter[];
+    Settings: AssetClientPlayerSettings;
 }
 
 export type AssetClientLibraryMessage = {
@@ -248,7 +253,8 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                             reflexive: 'string'
                         })
                     ) && isEphemeraCharacterId(characterItem.CharacterId)
-                ))
+                )),
+                ...message.Settings.onboardCompleteTags.map((item) => (typeof item === 'string'))
             )
         case 'Library':
             return checkAll(

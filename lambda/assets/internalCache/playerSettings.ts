@@ -1,12 +1,9 @@
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
-
-type PlayerSettings = {
-    onboardCompleteTags: string[];
-}
+import { AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/dist/asset'
 
 export class CachePlayerSettingData {
-    PlayerSettings: Record<string, PlayerSettings> = {}
+    PlayerSettings: Record<string, AssetClientPlayerSettings> = {}
     clear() {
         this.PlayerSettings = {}
     }
@@ -18,9 +15,9 @@ export class CachePlayerSettingData {
             this.PlayerSettings[player].onboardCompleteTags = override.onboardCompleteTags
         }
     }
-    async get(player: string): Promise<PlayerSettings> {
+    async get(player: string): Promise<AssetClientPlayerSettings> {
         if (!(player in this.PlayerSettings)) {
-            const { settings = { onboardCompleteTags: [] } } = (await assetDB.getItem<{ settings?: PlayerSettings }>({
+            const { settings = { onboardCompleteTags: [] } } = (await assetDB.getItem<{ settings?: AssetClientPlayerSettings }>({
                 AssetId: `PLAYER#${player}`,
                 DataCategory: 'Meta::Player',
                 ProjectionFields: ['settings']
