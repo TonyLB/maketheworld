@@ -1,6 +1,6 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
-import { ParseWMLAPIImage } from '@tonylb/mtw-interfaces/dist/asset';
+import { AssetPlayerSettingsAPIMessage, ParseWMLAPIImage } from '@tonylb/mtw-interfaces/dist/asset';
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library';
 
@@ -91,6 +91,12 @@ export type PlayerInfoMessage = {
     RequestId?: string;
 }
 
+export type PlayerSettingsMessage = {
+    type: 'PlayerSettings';
+    player?: string;
+    RequestId?: string;
+} & Omit<AssetPlayerSettingsAPIMessage, 'message'>
+
 export type LibraryUpdateMessage = {
     type: 'LibraryUpdate';
 }
@@ -107,6 +113,7 @@ export type MessageType = ReturnValueMessage |
     LibrarySubscribeMessage |
     LibraryUnsubscribeMessage |
     PlayerInfoMessage |
+    PlayerSettingsMessage |
     LibraryUpdateMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
@@ -121,6 +128,7 @@ export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetId
 export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
 export const isLibraryUnsubscribeMessage = (prop: MessageType): prop is LibraryUnsubscribeMessage => (prop.type === 'LibraryUnsubscribe')
 export const isPlayerInfoMessage = (prop: MessageType): prop is PlayerInfoMessage => (prop.type === 'PlayerInfo')
+export const isPlayerSettingMessage = (prop: MessageType): prop is PlayerSettingsMessage => (prop.type === 'PlayerSettings')
 export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdateMessage => (prop.type === 'LibraryUpdate')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

@@ -72,6 +72,20 @@ export type AssetWhoAmIAPIMessage = {
     message: 'whoAmI';
 }
 
+type AssetPlayerSettingsAddOnboarding = {
+    action: 'addOnboarding';
+    values: string[];
+}
+
+type AssetPlayerSettingsRemoveOnboarding = {
+    action: 'removeOnboarding';
+    values: string[];
+}
+
+export type AssetPlayerSettingsAPIMessage = {
+    message: 'updatePlayerSettings';
+} & (AssetPlayerSettingsAddOnboarding | AssetPlayerSettingsRemoveOnboarding)
+
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
     MetaDataAPIMessage |
@@ -83,7 +97,8 @@ export type AssetAPIMessage = { RequestId?: string } & (
     AssetCheckoutAPIMessage |
     AssetSubscribeAPIMessage |
     AssetUnsubscribeAPIMessage |
-    AssetWhoAmIAPIMessage
+    AssetWhoAmIAPIMessage |
+    AssetPlayerSettingsAPIMessage
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
@@ -97,6 +112,7 @@ export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is 
 export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is AssetSubscribeAPIMessage => (message.message === 'subscribe')
 export const isAssetUnsubscribeAPIMessage = (message: AssetAPIMessage): message is AssetUnsubscribeAPIMessage => (message.message === 'unsubscribe')
 export const isAssetWhoAmIAPIMessage = (message: AssetAPIMessage): message is AssetWhoAmIAPIMessage => (message.message === 'whoAmI')
+export const isAssetPlayerSettingsAPIMessage = (message: AssetAPIMessage): message is AssetPlayerSettingsAPIMessage => (message.message === 'updatePlayerSettings')
 
 export type AssetClientPlayerAsset = {
     AssetId: string;

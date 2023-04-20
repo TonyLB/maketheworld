@@ -19,7 +19,8 @@ import {
     isParseWMLAPIMessage,
     isFetchImportsAPIMessage,
     isAssetUnsubscribeAPIMessage,
-    isMetaDataAPIMessage
+    isMetaDataAPIMessage,
+    isAssetPlayerSettingsAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset.js'
 
 import messageBus from "./messageBus/index.js"
@@ -174,6 +175,18 @@ export const handler = async (event, context) => {
                     type: 'PlayerInfo',
                     player,
                     RequestId: request.RequestId
+                })
+            }
+        }
+        if (isAssetPlayerSettingsAPIMessage(request)) {
+            const player = await internalCache.Connection.get('player')
+            if (player) {
+                messageBus.send({
+                    type: 'PlayerSettings',
+                    player,
+                    RequestId: request.RequestId,
+                    action: request.action,
+                    values: request.values
                 })
             }
         }
