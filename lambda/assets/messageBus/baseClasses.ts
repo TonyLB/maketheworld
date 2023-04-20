@@ -1,6 +1,6 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
-import { ParseWMLAPIImage } from '@tonylb/mtw-interfaces/dist/asset';
+import { AssetPlayerSettingsAPIMessage, ParseWMLAPIImage } from '@tonylb/mtw-interfaces/dist/asset';
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library';
 
@@ -85,11 +85,17 @@ export type LibraryUnsubscribeMessage = {
     type: 'LibraryUnsubscribe';
 }
 
-export type PlayerLibraryUpdateMessage = {
-    type: 'PlayerLibraryUpdate';
+export type PlayerInfoMessage = {
+    type: 'PlayerInfo';
     player?: string;
     RequestId?: string;
 }
+
+export type PlayerSettingsMessage = {
+    type: 'PlayerSettings';
+    player?: string;
+    RequestId?: string;
+} & Omit<AssetPlayerSettingsAPIMessage, 'message'>
 
 export type LibraryUpdateMessage = {
     type: 'LibraryUpdate';
@@ -106,7 +112,8 @@ export type MessageType = ReturnValueMessage |
     MoveByAssetIdMessage |
     LibrarySubscribeMessage |
     LibraryUnsubscribeMessage |
-    PlayerLibraryUpdateMessage |
+    PlayerInfoMessage |
+    PlayerSettingsMessage |
     LibraryUpdateMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
@@ -120,7 +127,8 @@ export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage 
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
 export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
 export const isLibraryUnsubscribeMessage = (prop: MessageType): prop is LibraryUnsubscribeMessage => (prop.type === 'LibraryUnsubscribe')
-export const isPlayerLibraryUpdateMessage = (prop: MessageType): prop is PlayerLibraryUpdateMessage => (prop.type === 'PlayerLibraryUpdate')
+export const isPlayerInfoMessage = (prop: MessageType): prop is PlayerInfoMessage => (prop.type === 'PlayerInfo')
+export const isPlayerSettingMessage = (prop: MessageType): prop is PlayerSettingsMessage => (prop.type === 'PlayerSettings')
 export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdateMessage => (prop.type === 'LibraryUpdate')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

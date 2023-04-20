@@ -72,7 +72,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                                 Characters: rootNodes.filter(isNormalCharacter).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
                             })
                             messageBus.send({
-                                type: 'PlayerLibraryUpdate',
+                                type: 'PlayerInfo',
                                 player: from.player
                             })
                         }
@@ -81,7 +81,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         //
                         if (to.zone === 'Personal') {
                             messageBus.send({
-                                type: 'PlayerLibraryUpdate',
+                                type: 'PlayerInfo',
                                 player: to.player
                             })
                         }
