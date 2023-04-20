@@ -13,6 +13,7 @@ import {
     getMyAssets as getMyAssetsSelector,
     getMyCharacterById as getMyCharacterByIdSelector,
     getMyCharacterByKey as getMyCharacterByKeySelector,
+    getMySettings as getMySettingsSelector,
     PlayerSelectors
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
@@ -48,7 +49,8 @@ export const {
     publicSelectors: {
         getPlayer: getPlayerSelector,
         getMyCharacters: getMyCharactersSelector,
-        getMyAssets: getMyAssetsSelector
+        getMyAssets: getMyAssetsSelector,
+        getMySettings: getMySettingsSelector
     },
     template: {
         initialState: 'INITIAL',
