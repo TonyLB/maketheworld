@@ -6,7 +6,7 @@ export interface PlayerInternal {
     incrementalBackoff: number;
 }
 
-export type PlayerPublic = Omit<AssetClientPlayerMessage, 'Settings' | 'messageType' | 'RequestId'> & {
+export type PlayerPublic = Omit<AssetClientPlayerMessage, 'messageType' | 'RequestId'> & {
     currentDraft?: string;
 }
 
