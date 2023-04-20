@@ -1,4 +1,4 @@
-import { PlayerCondition, PlayerAction } from './baseClasses'
+import { PlayerCondition, PlayerAction, PlayerPublic } from './baseClasses'
 import {
     socketDispatchPromise,
     getStatus,
@@ -45,4 +45,20 @@ export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }
         await subscription.unsubscribe()
     }
     return {}
+}
+
+export const removeOnboardingComplete = (tags: PlayerPublic["Settings"]["onboardCompleteTags"]) => async (dispatch) => {
+    await dispatch(socketDispatchPromise({
+        message: 'updatePlayerSettings',
+        action: 'removeOnboarding',
+        values: tags
+    }, { service: 'asset' }))
+}
+
+export const addOnboardingComplete = (tags: PlayerPublic["Settings"]["onboardCompleteTags"]) => async (dispatch) => {
+    await dispatch(socketDispatchPromise({
+        message: 'updatePlayerSettings',
+        action: 'addOnboarding',
+        values: tags
+    }, { service: 'asset' }))
 }
