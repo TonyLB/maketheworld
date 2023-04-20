@@ -8,13 +8,14 @@ import { PlayerPublic } from './baseClasses'
 //
 
 export const receivePlayer = (state: PlayerPublic, action: PayloadAction<PlayerPublic>) => {
-    const { PlayerName, CodeOfConductConsent, Assets, Characters } = action.payload
+    const { PlayerName, CodeOfConductConsent, Assets, Characters, Settings } = action.payload
     state.PlayerName = PlayerName
     if (CodeOfConductConsent !== undefined) {
         state.CodeOfConductConsent = CodeOfConductConsent
     }
     state.Assets = Assets
     state.Characters = Characters
+    state.Settings = Settings
     if (state.currentDraft && !(state.currentDraft in Assets)) {
         state.currentDraft = undefined
     }

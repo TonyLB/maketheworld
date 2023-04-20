@@ -35,7 +35,8 @@ export const {
             PlayerName: '',
             CodeOfConductConsent: false,
             Assets: [],
-            Characters: []
+            Characters: [],
+            Settings: { onboardCompleteTags: [] }
         }
     },
     sliceSelector: ({ player }) => (player),
@@ -59,7 +60,8 @@ export const {
                 PlayerName: '',
                 CodeOfConductConsent: false,
                 Assets: [],
-                Characters: []                    
+                Characters: [],
+                Settings: { onboardCompleteTags: [] }
             }
         },
         states: {
