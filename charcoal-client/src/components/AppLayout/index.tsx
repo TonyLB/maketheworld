@@ -53,6 +53,7 @@ import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
 import { getPlayer } from '../../slices/player'
+import OnboardingDisplay from '../Onboarding'
 
 const a11yProps = (index: number) => {
     return {
@@ -183,7 +184,6 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
 
 const NavigationTabs = () => {
     const { pathname } = useLocation()
-    const navigate = useNavigate()
     const selectedTab = useSelector(navigationTabSelected(pathname))
     const navigationTabsData = useSelector(navigationTabs)
     const portrait = useMediaQuery('(orientation: portrait)')
@@ -252,6 +252,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
             `}
             sx={{ bgcolor: 'background.paper' }}
         >
+            <OnboardingDisplay />
             <ChoiceDialog />
             <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
             <NavigationTabs />

@@ -112,7 +112,8 @@ export const { setCurrentDraft, addAsset } = publicActions
 export const {
     getPlayer,
     getMyCharacters,
-    getMyAssets
+    getMyAssets,
+    getMySettings
 } = selectors
 
 export const getMyCharacterById = getMyCharacterByIdSelector(getMyCharacters)

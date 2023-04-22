@@ -29,7 +29,7 @@ type AppControllerProps = {
 export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }) => {
     useStateSeekingMachines()
     const myCharacters = useSelector(getMyCharacters)
-    const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
+    const { TextEntryLines } = useSelector(getClientSettings)
     const dispatch = useDispatch()
 
     useEffect(() => {
@@ -41,10 +41,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }
     //
     const profileArgs = {
         myCharacters,
-        // onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
-        // connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
         textEntryLines: TextEntryLines,
-        showNeighborhoodHeaders: ShowNeighborhoodHeaders,
         onTextEntryChange: (value: number) => { dispatch(putClientSettings({ TextEntryLines: value })) },
         onShowNeighborhoodChange: (value: boolean) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) },
         signOut
