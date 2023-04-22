@@ -143,7 +143,7 @@ const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTab
     <Tab
         key="Settings"
         label="Settings"
-        value="settings"
+        value="/Settings/"
         {...a11yProps(3+navigationTabs.length)}
         icon={<SettingsIcon />}
         component={Link}
@@ -211,7 +211,7 @@ const NavigationTabs = () => {
                     orientation={portrait ? "horizontal" : "vertical"}
                     variant="scrollable"
                     scrollButtons
-                    value={selectedTab ? selectedTab.href : pathname === '/Who/' ? '/Who/' : 'home'}
+                    value={selectedTab ? selectedTab.href : pathname === '/Who/' ? '/Who/' : pathname === '/Settings/' ? '/Settings/' : 'home'}
                     aria-label="Navigation"
                     indicatorColor="primary"
                     textColor="primary"
