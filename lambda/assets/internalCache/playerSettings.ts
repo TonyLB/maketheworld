@@ -17,12 +17,12 @@ export class CachePlayerSettingData {
     }
     async get(player: string): Promise<AssetClientPlayerSettings> {
         if (!(player in this.PlayerSettings)) {
-            const { settings = { onboardCompleteTags: [] } } = (await assetDB.getItem<{ settings?: AssetClientPlayerSettings }>({
+            const { Settings = { onboardCompleteTags: [] } } = (await assetDB.getItem<{ Settings?: AssetClientPlayerSettings }>({
                 AssetId: `PLAYER#${player}`,
                 DataCategory: 'Meta::Player',
-                ProjectionFields: ['settings']
+                ProjectionFields: ['Settings']
             })) || {}
-            this.PlayerSettings[player] = settings
+            this.PlayerSettings[player] = Settings
         }
         return this.PlayerSettings[player] || { onboardCompleteTags: [] }
     }

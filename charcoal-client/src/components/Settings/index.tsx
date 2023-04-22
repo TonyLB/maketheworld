@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useCallback, useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useNavigate } from 'react-router-dom'
 
@@ -6,9 +6,14 @@ import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import CardActions from '@mui/material/CardActions/CardActions'
 import CardHeader from '@mui/material/CardHeader'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
+import Button from '@mui/material/Button'
+import { useDispatch, useSelector } from 'react-redux'
+import { getMySettings } from '../../slices/player'
+import { socketDispatch } from '../../slices/lifeLine'
 
 type SettingsProps = {
     signOut?: () => void;
@@ -17,7 +22,28 @@ type SettingsProps = {
 export const Settings: FunctionComponent<SettingsProps> = ({
     signOut = () => {}
 }) => {
-    const navigate = useNavigate()
+    const { onboardCompleteTags } = useSelector(getMySettings)
+    const dispatch = useDispatch()
+    const restartOnboarding = useCallback(() => {
+        if (onboardCompleteTags.length) {
+            dispatch(socketDispatch({
+                message: 'updatePlayerSettings',
+                action: 'removeOnboarding',
+                values: onboardCompleteTags
+            }, { service: 'asset' }))
+        }
+    }, [onboardCompleteTags, dispatch])
+    const [alreadyDispatched, setAlreadyDispatched] = useState(false)
+    useEffect(() => {
+        if (!(onboardCompleteTags.includes('navigateSettings') || alreadyDispatched)) {
+            dispatch(socketDispatch({
+                message: 'updatePlayerSettings',
+                action: 'addOnboarding',
+                values: ['navigateSettings']
+            }, { service: 'asset' }))
+            setAlreadyDispatched(true)
+        }
+    }, [onboardCompleteTags, dispatch, alreadyDispatched])
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <Grid
@@ -33,36 +59,29 @@ export const Settings: FunctionComponent<SettingsProps> = ({
                     <h2>Settings</h2>
                 <Divider />
             </Grid>
-            {[
-                {
-                    icon: null,
-                    title: 'Logout',
-                    onClick: () => {
-                        signOut()
-                    },
-                    href: undefined
-                }
-            ].map(({ icon, title, href, onClick }) => (
-                <Grid key={title} item sm={3}>
-                    <Card onClick={() => {
-                        if (href) {
-                            navigate(href)
-                        }
-                        else {
-                            if (onClick) {
-                                onClick()
-                            }
-                        }
-                    }}>
-                        <CardHeader
-                            avatar={<Avatar>{icon}</Avatar>}
-                            title={title}
-                        />
-                        <CardContent>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            )) }
+            <Grid item xs={1} md={2} lg={3} />
+            <Grid item xs={10} md={8} lg={6}>
+                <Card>
+                    <CardHeader title="Onboarding" />
+                    <CardContent>
+                        The onboarding tutorials help you learn your way around the Make the World application. You
+                        can restart them at any time if you need a refresher.
+                    </CardContent>
+                    <CardActions>
+                        <Button onClick={restartOnboarding}>
+                            Restart onboarding
+                        </Button>
+                    </CardActions>
+                </Card>
+            </Grid>
+            <Grid item xs={1} md={2} lg={3} />
+            <Grid item xs={4} />
+            <Grid item xs={4} sx={{ textAlign: 'center' }}>
+                <Button variant='outlined' onClick={() => { signOut() }}>
+                    Sign Out
+                </Button>
+            </Grid>
+            <Grid item xs={4} />
         </Grid>
     </Box>
 }

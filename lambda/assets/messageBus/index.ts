@@ -11,7 +11,8 @@ import {
     isLibraryUpdateMessage,
     isFormatImageMessage,
     isFetchImportsAPIMessage,
-    isLibraryUnsubscribeMessage
+    isLibraryUnsubscribeMessage,
+    isPlayerSettingMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
@@ -22,6 +23,7 @@ import playerInfoMessage from "../player/info"
 import libraryUpdateMessage from "../libraryUpdate"
 import formatImageMessage from "../formatImage"
 import { fetchImportsMessage } from "../fetchImportDefaults"
+import playerSettingMessage from "../player/update"
 
 export const messageBus = new MessageBus()
 
@@ -90,6 +92,12 @@ messageBus.subscribe({
     priority: 6,
     filter: isPlayerInfoMessage,
     callback: playerInfoMessage
+})
+messageBus.subscribe({
+    tag: 'PlayerSettings',
+    priority: 5,
+    filter: isPlayerSettingMessage,
+    callback: playerSettingMessage
 })
 messageBus.subscribe({
     tag: 'LibraryUpdate',
