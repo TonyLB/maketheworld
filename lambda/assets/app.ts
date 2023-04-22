@@ -85,7 +85,7 @@ export const handler = async (event, context) => {
     }
     
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
-    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML', 'updatePlayerSettings'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {

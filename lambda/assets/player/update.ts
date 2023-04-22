@@ -15,12 +15,16 @@ export const playerSettingMessage = async ({ payloads, messageBus }: { payloads:
             ]
         }), {})
         await Promise.all(Object.entries(settingsUpdate).map(async ([player, updates]) => {
-            await assetDB.optimisticUpdate({
+            const { Settings } = await assetDB.optimisticUpdate({
                 key: {
                     AssetId: `PLAYER#${player}`,
                     DataCategory: 'Meta::Player'
                 },
-                updateKeys: ['Settings'],
+                //
+                // TODO: Allow optimisticUpdate to distinguish between a no-record return, and a return that has a record but none
+                // of the requested keys are defined, and remove DataCategory from below
+                //
+                updateKeys: ['Settings', 'DataCategory'],
                 updateReducer: (draft) => {
                     if (!draft.Settings) {
                         draft.Settings = { onboardCompleteTags: [] }
@@ -30,14 +34,17 @@ export const playerSettingMessage = async ({ payloads, messageBus }: { payloads:
                     }
                     updates.forEach(({ action, values }) => {
                         if (action === 'addOnboarding') {
-                            draft.Settings.onboardCompleteTags = unique(draft.onboardCompleteTags, values)
+                            draft.Settings.onboardCompleteTags = unique(draft.Settings.onboardCompleteTags, values)
                         }
                         if (action === 'removeOnboarding') {
-                            draft.Settings.onboardCompleteTags = draft.onboardCompleteTags.filter((tag) => (!values.includes(tag)))
+                            draft.Settings.onboardCompleteTags = draft.Settings.onboardCompleteTags.filter((tag) => (!values.includes(tag)))
                         }
                     })
                 }
             })
+            if (Settings) {
+                internalCache.PlayerSettings.set(player, Settings)
+            }
         }))
         payloads.forEach(({ player, RequestId }) => {
             messageBus.send({
