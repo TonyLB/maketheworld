@@ -6,9 +6,11 @@ import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import CardActions from '@mui/material/CardActions/CardActions'
 import CardHeader from '@mui/material/CardHeader'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
+import Button from '@mui/material/Button'
 
 type SettingsProps = {
     signOut?: () => void;
@@ -33,36 +35,29 @@ export const Settings: FunctionComponent<SettingsProps> = ({
                     <h2>Settings</h2>
                 <Divider />
             </Grid>
-            {[
-                {
-                    icon: null,
-                    title: 'Logout',
-                    onClick: () => {
-                        signOut()
-                    },
-                    href: undefined
-                }
-            ].map(({ icon, title, href, onClick }) => (
-                <Grid key={title} item sm={3}>
-                    <Card onClick={() => {
-                        if (href) {
-                            navigate(href)
-                        }
-                        else {
-                            if (onClick) {
-                                onClick()
-                            }
-                        }
-                    }}>
-                        <CardHeader
-                            avatar={<Avatar>{icon}</Avatar>}
-                            title={title}
-                        />
-                        <CardContent>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            )) }
+            <Grid item xs={1} md={2} lg={3} />
+            <Grid item xs={10} md={8} lg={6}>
+                <Card>
+                    <CardHeader title="Onboarding" />
+                    <CardContent>
+                        The onboarding tutorials help you learn your way around the Make the World application. You
+                        can restart them at any time if you need a refresher.
+                    </CardContent>
+                    <CardActions>
+                        <Button>
+                            Restart onboarding
+                        </Button>
+                    </CardActions>
+                </Card>
+            </Grid>
+            <Grid item xs={1} md={2} lg={3} />
+            <Grid item xs={4} />
+            <Grid item xs={4} sx={{ textAlign: 'center' }}>
+                <Button variant='outlined' onClick={() => { signOut() }}>
+                    Sign Out
+                </Button>
+            </Grid>
+            <Grid item xs={4} />
         </Grid>
     </Box>
 }
