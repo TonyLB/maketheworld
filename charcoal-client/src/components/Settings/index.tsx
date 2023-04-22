@@ -14,6 +14,7 @@ import Button from '@mui/material/Button'
 import { useDispatch, useSelector } from 'react-redux'
 import { getMySettings } from '../../slices/player'
 import { socketDispatch } from '../../slices/lifeLine'
+import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 type SettingsProps = {
     signOut?: () => void;
@@ -33,17 +34,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({
             }, { service: 'asset' }))
         }
     }, [onboardCompleteTags, dispatch])
-    const [alreadyDispatched, setAlreadyDispatched] = useState(false)
-    useEffect(() => {
-        if (!(onboardCompleteTags.includes('navigateSettings') || alreadyDispatched)) {
-            dispatch(socketDispatch({
-                message: 'updatePlayerSettings',
-                action: 'addOnboarding',
-                values: ['navigateSettings']
-            }, { service: 'asset' }))
-            setAlreadyDispatched(true)
-        }
-    }, [onboardCompleteTags, dispatch, alreadyDispatched])
+    useOnboardingCheckpoint('navigateSettings')
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <Grid
