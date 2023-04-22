@@ -20,6 +20,7 @@ import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import { getConfiguration } from '../../slices/configuration'
 import { useSelector } from 'react-redux'
 import { Typography } from '@mui/material'
+import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -37,6 +38,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     myCharacters = [],
     signOut = () => {}
 }) => {
+    useOnboardingCheckpoint('navigateHome', { requireSequence: true })
     const navigate = useNavigate()
     const medium = useMediaQuery('(min-width: 600px)')
     const large = useMediaQuery('(min-width: 1200px)')

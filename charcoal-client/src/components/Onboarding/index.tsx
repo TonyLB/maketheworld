@@ -16,6 +16,7 @@ import {
     ListItemText
 } from "@mui/material"
 import CheckIcon from '@mui/icons-material/Check'
+import useOnboarding from "./useOnboarding"
 
 type DenseOnboardingProgressListItemProperties = {
     text: string;
@@ -36,16 +37,18 @@ type DenseOnboardingProgressListProperties = {
 
 const DenseOnboardingProgressList: FunctionComponent<DenseOnboardingProgressListProperties> = () => {
     const portrait = useMediaQuery('(orientation: portrait)')
+    const [settings] = useOnboarding('navigateSettings')
+    const [home] = useOnboarding('navigateHome')
     return <List sx={{ marginRight: "auto", marginLeft: "auto" }}>
         <DenseOnboardingProgressListItem
             text={`Select the "Settings" tab ${ portrait ? "above" : "to the left" }.`}
             index={0}
-            completed={true}
+            completed={settings}
         />
         <DenseOnboardingProgressListItem
             text={`Select the "Home" tab ${ portrait ? "above" : "to the left" }.`}
             index={1}
-            completed={false}
+            completed={home}
         />
     </List>
 }
