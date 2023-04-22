@@ -16,11 +16,12 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import MapIcon from '@mui/icons-material/Explore'
+import LockIcon from '@mui/icons-material/Lock'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import { getConfiguration } from '../../slices/configuration'
 import { useSelector } from 'react-redux'
 import { Typography } from '@mui/material'
-import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
+import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -45,6 +46,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     const iconSize = large ? 80 : medium ? 60 : 40
     const { AppBaseURL = '' } = useSelector(getConfiguration)
     const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+    const [charactersUnlocked] = useOnboarding('closeTab')
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <Grid
@@ -62,7 +64,34 @@ export const Home: FunctionComponent<HomeProps> = ({
                     </Typography>
                 <Divider />
             </Grid>
-            { myCharacters.map(({ Name, CharacterId, fileURL }) => (
+            {
+                !charactersUnlocked && <Grid
+                    container
+                    item
+                    sm={3}
+                    sx={{
+                        justifyContent: 'center',
+                        alignContent: 'center',
+                        cursor: 'pointer'
+                    }}
+                >
+                    <Stack
+                        direction="column"
+                        justifyContent="center"
+                        alignItems="center"
+                        spacing={2}
+                    >
+                        <Avatar
+                            sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                            alt={'Locked'}
+                        >
+                            <LockIcon sx={{ fontSize: iconSize * 0.6 }} />
+                        </Avatar>
+                        <React.Fragment>Locked</React.Fragment>
+                    </Stack>
+                </Grid>
+            }
+            { charactersUnlocked && myCharacters.map(({ Name, CharacterId, fileURL }) => (
                 CharacterId && 
                 <Grid
                     key={`${Name}:${CharacterId}`}
@@ -97,40 +126,41 @@ export const Home: FunctionComponent<HomeProps> = ({
                     </Stack>
                 </Grid>))
             }
-            <Grid key='NewCharacter'
-                    container
-                    item
-                    sm={3}
-                    sx={{
-                        justifyContent: 'center',
-                        alignContent: 'center',
-                        cursor: 'pointer'
-                    }}
-                    onClick={() => {
-                        navigate(`/Library`)
-                    }}
-            >
-                <Stack
-                    direction="column"
-                    justifyContent="center"
-                    alignItems="center"
-                    spacing={2}
-                >
-                    <Avatar
+            { charactersUnlocked && <Grid key='NewCharacter'
+                        container
+                        item
+                        sm={3}
                         sx={{
-                            width: `${iconSize}px`,
-                            height: `${iconSize}px`
+                            justifyContent: 'center',
+                            alignContent: 'center',
+                            cursor: 'pointer'
                         }}
-                        alt='New Character'
+                        onClick={() => {
+                            navigate(`/Library`)
+                        }}
+                >
+                    <Stack
+                        direction="column"
+                        justifyContent="center"
+                        alignItems="center"
+                        spacing={2}
                     >
-                        <AddIcon sx={{
-                            fontSize: iconSize,
-                            color: 'grey'
-                        }} />
-                    </Avatar>
-                    <React.Fragment>New Character</React.Fragment>
-                </Stack>
-            </Grid>
+                        <Avatar
+                            sx={{
+                                width: `${iconSize}px`,
+                                height: `${iconSize}px`
+                            }}
+                            alt='New Character'
+                        >
+                            <AddIcon sx={{
+                                fontSize: iconSize,
+                                color: 'grey'
+                            }} />
+                        </Avatar>
+                        <React.Fragment>New Character</React.Fragment>
+                    </Stack>
+                </Grid>
+            }
             <Grid item xs={12} sx={{ textAlign: "center" }}>
                 <Divider />
                     <Typography variant="h4" sx={{ margin: "0.5em" }}>

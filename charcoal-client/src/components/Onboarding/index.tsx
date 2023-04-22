@@ -89,7 +89,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
                     listItems: {
                         navigateKnowledge: `Select the "Knowledge" button below.`,
                         knowledgeDetail: `Select any sub-heading in the Knowledge display, to navigate within the tab.`,
-                        closeTab: `Close the knowledge tab (${ portrait ? "above" : "at left" }) by pressing the 'X' on it.`
+                        closeTab: `Browse knowledge as long as you like, and when you're ready to explore the world directly, close the knowledge tab (${ portrait ? "above" : "at left" }) by pressing the 'X' on it.`
                     }
                 }
         }
