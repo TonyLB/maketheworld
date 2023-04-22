@@ -33,6 +33,7 @@ import ForumIcon from '@mui/icons-material/Forum'
 import MapIcon from '@mui/icons-material/Explore'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
+import SettingsIcon from '@mui/icons-material/Settings'
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import AssetIcon from '@mui/icons-material/Landscape'
@@ -138,7 +139,16 @@ const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTab
             component={Link}
             to="/Who/"
         />
-    ])
+    ]),
+    <Tab
+        key="Settings"
+        label="Settings"
+        value="settings"
+        {...a11yProps(3+navigationTabs.length)}
+        icon={<SettingsIcon />}
+        component={Link}
+        to="/Settings/"
+    />
 ])
 
 type FeedbackSnackbarProps = {
@@ -215,7 +225,7 @@ const NavigationTabs = () => {
 }
 
 
-export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }: any) => {
+export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
 
     return <Router>
@@ -252,7 +262,6 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
             `}
             sx={{ bgcolor: 'background.paper' }}
         >
-            <OnboardingDisplay />
             <ChoiceDialog />
             <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
             <NavigationTabs />
@@ -264,21 +273,24 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                     overflow-y: auto;
                 `}
             >
-                <Box sx={{ width: "100%", height: "100%" }}>
-                    <Routes>
-                        <Route path="/Character/Archived" element={<InDevelopment />} />
-                        <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
-                        <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
-                        <Route path="/Library/" element={<Library />} />
-                        <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
-                        <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
-                        <Route path="/Help/" element={<HelpPage />} />
-                        <Route path="/Who/" element={whoPanel} />
-                        <Route path="/Notifications/" element={<Notifications />} />
-                        <Route path="/index.html" element={homePanel} />
-                        <Route path="/" element={homePanel} />
-                    </Routes>
-                </Box>
+                <OnboardingDisplay>
+                    <Box sx={{ width: "100%", height: "100%" }}>
+                        <Routes>
+                            <Route path="/Character/Archived" element={<InDevelopment />} />
+                            <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
+                            <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
+                            <Route path="/Library/" element={<Library />} />
+                            <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
+                            <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
+                            <Route path="/Help/" element={<HelpPage />} />
+                            <Route path="/Who/" element={whoPanel} />
+                            <Route path="/Notifications/" element={<Notifications />} />
+                            <Route path="/Settings/" element={settingsPanel} />
+                            <Route path="/index.html" element={homePanel} />
+                            <Route path="/" element={homePanel} />
+                        </Routes>
+                    </Box>
+                </OnboardingDisplay>
             </Box>
             {large
                 ? <Box

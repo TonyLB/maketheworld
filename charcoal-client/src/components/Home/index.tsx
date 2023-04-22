@@ -166,15 +166,8 @@ export const Home: FunctionComponent<HomeProps> = ({
                 {
                     icon: <NotificationsActiveIcon />,
                     title: 'Notifications',
-                    href: '/Notifications/'
-                },
-                {
-                    icon: null,
-                    title: 'Logout',
-                    onClick: () => {
-                        signOut()
-                    },
-                    href: undefined
+                    href: '/Notifications/',
+                    onClick: undefined
                 }
             ].map(({ icon, title, href, onClick }) => (
                 <Grid key={title} item sm={3}>

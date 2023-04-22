@@ -1,5 +1,4 @@
-import { useDispatch, useSelector } from "react-redux"
-import { getFirstChoiceDialog } from "../../slices/UI/choiceDialog"
+import React from "react"
 
 // MaterialUI imports
 import {
@@ -10,20 +9,20 @@ import {
     Button,
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
+import { FunctionComponent } from "react"
 
-export const OnboardingDisplay = () => {
-    const currentDialog = useSelector(getFirstChoiceDialog)
-    // const dispatch = useDispatch()
+export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
 
-    return <Dialog
-        maxWidth="lg"
-        open={!Boolean(currentDialog)}
-    >
-        <DialogTitle id="confirm-dialog-title" sx={{ bgcolor: blue[50] }}>Test Title</DialogTitle>
-        <DialogContent>
-            Test Dialog
-        </DialogContent>
-    </Dialog>
+    //
+    // TODO: Create Settings navigation tab
+    // TODO: Move "Logout" from Home page to Settings tab
+    // TODO: Move Play above Create
+    // TODO: Create Lockout mode for Create and Play
+    // TODO: Add Header message creating narrative and call-to-action
+    //
+    return <React.Fragment>
+        { children }
+    </React.Fragment>
 
 }
 

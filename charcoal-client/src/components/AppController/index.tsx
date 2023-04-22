@@ -21,6 +21,7 @@ import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
+import Settings from '../Settings'
 
 type AppControllerProps = {
     signOut: () => void;
@@ -44,7 +45,6 @@ export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }
         textEntryLines: TextEntryLines,
         onTextEntryChange: (value: number) => { dispatch(putClientSettings({ TextEntryLines: value })) },
         onShowNeighborhoodChange: (value: boolean) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) },
-        signOut
     }
 
     const feedbackMessage = useSelector(getFirstFeedback)
@@ -54,6 +54,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }
 
     return <AppLayout
         homePanel={<Home {...profileArgs} />}
+        settingsPanel={<Settings signOut={signOut} />}
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
