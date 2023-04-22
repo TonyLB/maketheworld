@@ -273,8 +273,8 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, ma
                     overflow-y: auto;
                 `}
             >
-                <OnboardingDisplay>
-                    <Box sx={{ width: "100%", height: "100%" }}>
+                <Box sx={{ width: "100%", height: "100%" }}>
+                    <OnboardingDisplay>
                         <Routes>
                             <Route path="/Character/Archived" element={<InDevelopment />} />
                             <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
@@ -289,8 +289,8 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, ma
                             <Route path="/index.html" element={homePanel} />
                             <Route path="/" element={homePanel} />
                         </Routes>
-                    </Box>
-                </OnboardingDisplay>
+                    </OnboardingDisplay>
+                </Box>
             </Box>
             {large
                 ? <Box
