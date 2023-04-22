@@ -19,6 +19,7 @@ import MapIcon from '@mui/icons-material/Explore'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import { getConfiguration } from '../../slices/configuration'
 import { useSelector } from 'react-redux'
+import { Typography } from '@mui/material'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -44,10 +45,6 @@ export const Home: FunctionComponent<HomeProps> = ({
     const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
-        <div style={{ textAlign: "center" }}>
-            <h2>Make the World</h2>
-            Make stories together
-        </div>
         <Grid
             sx={{ width: "100%", padding: "10px" }}
             container
@@ -58,34 +55,9 @@ export const Home: FunctionComponent<HomeProps> = ({
         >
             <Grid item xs={12} sx={{ textAlign: "center" }}>
                 <Divider />
-                    <h2>Create</h2>
-                <Divider />
-            </Grid>
-            {[
-                {
-                    icon: <LibraryIcon />,
-                    title: 'Library',
-                    href: '/Library/'
-                }
-            ].map(({ icon, title, href }) => (
-                <Grid key={title} item sm={3}>
-                    <Card onClick={() => {
-                        if (href) {
-                            navigate(href)
-                        }
-                    }}>
-                        <CardHeader
-                            avatar={<Avatar>{icon}</Avatar>}
-                            title={title}
-                        />
-                        <CardContent>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            )) }
-            <Grid item xs={12} sx={{ textAlign: "center" }}>
-                <Divider />
-                    <h2>Play</h2>
+                    <Typography variant="h4" sx={{ margin: "0.5em" }}>
+                        Play
+                    </Typography>
                 <Divider />
             </Grid>
             { myCharacters.map(({ Name, CharacterId, fileURL }) => (
@@ -159,6 +131,35 @@ export const Home: FunctionComponent<HomeProps> = ({
             </Grid>
             <Grid item xs={12} sx={{ textAlign: "center" }}>
                 <Divider />
+                    <Typography variant="h4" sx={{ margin: "0.5em" }}>
+                        Create
+                    </Typography>
+                <Divider />
+            </Grid>
+            {[
+                {
+                    icon: <LibraryIcon />,
+                    title: 'Library',
+                    href: '/Library/'
+                }
+            ].map(({ icon, title, href }) => (
+                <Grid key={title} item sm={3}>
+                    <Card onClick={() => {
+                        if (href) {
+                            navigate(href)
+                        }
+                    }}>
+                        <CardHeader
+                            avatar={<Avatar>{icon}</Avatar>}
+                            title={title}
+                        />
+                        <CardContent>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            )) }
+            {/* <Grid item xs={12} sx={{ textAlign: "center" }}>
+                <Divider />
                     <h2>Administer</h2>
                 <Divider />
             </Grid>
@@ -166,15 +167,8 @@ export const Home: FunctionComponent<HomeProps> = ({
                 {
                     icon: <NotificationsActiveIcon />,
                     title: 'Notifications',
-                    href: '/Notifications/'
-                },
-                {
-                    icon: null,
-                    title: 'Logout',
-                    onClick: () => {
-                        signOut()
-                    },
-                    href: undefined
+                    href: '/Notifications/',
+                    onClick: undefined
                 }
             ].map(({ icon, title, href, onClick }) => (
                 <Grid key={title} item sm={3}>
@@ -196,9 +190,12 @@ export const Home: FunctionComponent<HomeProps> = ({
                         </CardContent>
                     </Card>
                 </Grid>
-            )) }
+            )) } */}
         </Grid>
     </Box>
 }
+//
+// TODO: Re-enable Notifications when there is a more complete workflow including them
+//
 
 export default Home

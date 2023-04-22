@@ -33,6 +33,7 @@ import ForumIcon from '@mui/icons-material/Forum'
 import MapIcon from '@mui/icons-material/Explore'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
+import SettingsIcon from '@mui/icons-material/Settings'
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import AssetIcon from '@mui/icons-material/Landscape'
@@ -53,6 +54,7 @@ import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
 import { getPlayer } from '../../slices/player'
+import OnboardingDisplay from '../Onboarding'
 
 const a11yProps = (index: number) => {
     return {
@@ -137,7 +139,16 @@ const tabList = ({ large, navigationTabs = [] }: { large: boolean; navigationTab
             component={Link}
             to="/Who/"
         />
-    ])
+    ]),
+    <Tab
+        key="Settings"
+        label="Settings"
+        value="/Settings/"
+        {...a11yProps(3+navigationTabs.length)}
+        icon={<SettingsIcon />}
+        component={Link}
+        to="/Settings/"
+    />
 ])
 
 type FeedbackSnackbarProps = {
@@ -183,7 +194,6 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
 
 const NavigationTabs = () => {
     const { pathname } = useLocation()
-    const navigate = useNavigate()
     const selectedTab = useSelector(navigationTabSelected(pathname))
     const navigationTabsData = useSelector(navigationTabs)
     const portrait = useMediaQuery('(orientation: portrait)')
@@ -201,7 +211,7 @@ const NavigationTabs = () => {
                     orientation={portrait ? "horizontal" : "vertical"}
                     variant="scrollable"
                     scrollButtons
-                    value={selectedTab ? selectedTab.href : pathname === '/Who/' ? '/Who/' : 'home'}
+                    value={selectedTab ? selectedTab.href : pathname === '/Who/' ? '/Who/' : pathname === '/Settings/' ? '/Settings/' : 'home'}
                     aria-label="Navigation"
                     indicatorColor="primary"
                     textColor="primary"
@@ -215,7 +225,7 @@ const NavigationTabs = () => {
 }
 
 
-export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }: any) => {
+export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
 
     return <Router>
@@ -264,19 +274,22 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                 `}
             >
                 <Box sx={{ width: "100%", height: "100%" }}>
-                    <Routes>
-                        <Route path="/Character/Archived" element={<InDevelopment />} />
-                        <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
-                        <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
-                        <Route path="/Library/" element={<Library />} />
-                        <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
-                        <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
-                        <Route path="/Help/" element={<HelpPage />} />
-                        <Route path="/Who/" element={whoPanel} />
-                        <Route path="/Notifications/" element={<Notifications />} />
-                        <Route path="/index.html" element={homePanel} />
-                        <Route path="/" element={homePanel} />
-                    </Routes>
+                    <OnboardingDisplay>
+                        <Routes>
+                            <Route path="/Character/Archived" element={<InDevelopment />} />
+                            <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
+                            <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
+                            <Route path="/Library/" element={<Library />} />
+                            <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
+                            <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
+                            <Route path="/Help/" element={<HelpPage />} />
+                            <Route path="/Who/" element={whoPanel} />
+                            <Route path="/Notifications/" element={<Notifications />} />
+                            <Route path="/Settings/" element={settingsPanel} />
+                            <Route path="/index.html" element={homePanel} />
+                            <Route path="/" element={homePanel} />
+                        </Routes>
+                    </OnboardingDisplay>
                 </Box>
             </Box>
             {large

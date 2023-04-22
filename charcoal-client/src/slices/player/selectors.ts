@@ -23,6 +23,11 @@ export const getMyAssets = (player: PlayerPublic): PlayerPublic['Assets'] => {
     return Assets
 }
 
+export const getMySettings = (player: PlayerPublic): PlayerPublic['Settings'] => {
+    const { Settings = { onboardCompleteTags: [] } } = player || {}
+    return Settings
+}
+
 export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Characters']>) => (key: string | undefined): Selector<any> => (state) => {
     const Characters = getMyCharacters(state)
     return Characters.find(({ scopedId }) => (scopedId === key))
@@ -40,4 +45,5 @@ export type PlayerSelectors = {
     getPlayer: (player: PlayerPublic) => PlayerPublic;
     getMyCharacters: (player: PlayerPublic) => PlayerPublic['Characters'];
     getMyAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
+    getMySettings: (player: PlayerPublic) => PlayerPublic['Settings'];
 }
