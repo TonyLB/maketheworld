@@ -58,33 +58,6 @@ export const Home: FunctionComponent<HomeProps> = ({
         >
             <Grid item xs={12} sx={{ textAlign: "center" }}>
                 <Divider />
-                    <h2>Create</h2>
-                <Divider />
-            </Grid>
-            {[
-                {
-                    icon: <LibraryIcon />,
-                    title: 'Library',
-                    href: '/Library/'
-                }
-            ].map(({ icon, title, href }) => (
-                <Grid key={title} item sm={3}>
-                    <Card onClick={() => {
-                        if (href) {
-                            navigate(href)
-                        }
-                    }}>
-                        <CardHeader
-                            avatar={<Avatar>{icon}</Avatar>}
-                            title={title}
-                        />
-                        <CardContent>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            )) }
-            <Grid item xs={12} sx={{ textAlign: "center" }}>
-                <Divider />
                     <h2>Play</h2>
                 <Divider />
             </Grid>
@@ -159,6 +132,33 @@ export const Home: FunctionComponent<HomeProps> = ({
             </Grid>
             <Grid item xs={12} sx={{ textAlign: "center" }}>
                 <Divider />
+                    <h2>Create</h2>
+                <Divider />
+            </Grid>
+            {[
+                {
+                    icon: <LibraryIcon />,
+                    title: 'Library',
+                    href: '/Library/'
+                }
+            ].map(({ icon, title, href }) => (
+                <Grid key={title} item sm={3}>
+                    <Card onClick={() => {
+                        if (href) {
+                            navigate(href)
+                        }
+                    }}>
+                        <CardHeader
+                            avatar={<Avatar>{icon}</Avatar>}
+                            title={title}
+                        />
+                        <CardContent>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            )) }
+            {/* <Grid item xs={12} sx={{ textAlign: "center" }}>
+                <Divider />
                     <h2>Administer</h2>
                 <Divider />
             </Grid>
@@ -189,9 +189,12 @@ export const Home: FunctionComponent<HomeProps> = ({
                         </CardContent>
                     </Card>
                 </Grid>
-            )) }
+            )) } */}
         </Grid>
     </Box>
 }
+//
+// TODO: Re-enable Notifications when there is a more complete workflow including them
+//
 
 export default Home

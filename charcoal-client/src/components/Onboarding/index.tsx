@@ -14,11 +14,8 @@ import { FunctionComponent } from "react"
 export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
 
     //
-    // TODO: Create Settings navigation tab
-    // TODO: Move "Logout" from Home page to Settings tab
-    // TODO: Move Play above Create
-    // TODO: Create Lockout mode for Create and Play
     // TODO: Add Header message creating narrative and call-to-action
+    // TODO: Create Lockout mode for Create and Play
     //
     return <React.Fragment>
         { children }

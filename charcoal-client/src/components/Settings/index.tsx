@@ -10,11 +10,11 @@ import CardHeader from '@mui/material/CardHeader'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
 
-type HomeProps = {
+type SettingsProps = {
     signOut?: () => void;
 }
 
-export const Settings: FunctionComponent<HomeProps> = ({
+export const Settings: FunctionComponent<SettingsProps> = ({
     signOut = () => {}
 }) => {
     const navigate = useNavigate()
