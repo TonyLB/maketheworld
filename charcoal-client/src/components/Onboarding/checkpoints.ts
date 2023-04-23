@@ -1,6 +1,9 @@
 export const onboardingCheckpointSequence = [
     'navigateSettings',
-    'navigateHome'
+    'navigateHome',
+    'navigateKnowledge',
+    'knowledgeDetail',
+    'closeTab',
 ] as const
 
 export type OnboardingKey = typeof onboardingCheckpointSequence[number]

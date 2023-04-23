@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from "react"
+import React, { FunctionComponent, useMemo } from "react"
 
 // MaterialUI imports
 import { blue } from '@mui/material/colors'
@@ -16,7 +16,7 @@ import {
     ListItemText
 } from "@mui/material"
 import CheckIcon from '@mui/icons-material/Check'
-import useOnboarding from "./useOnboarding"
+import useOnboarding, { useNextOnboarding } from "./useOnboarding"
 import { getMySettings } from "../../slices/player"
 import { useSelector } from "react-redux"
 import { OnboardingKey, onboardingCheckpointSequence } from "./checkpoints"
@@ -64,23 +64,52 @@ const DenseOnboardingProgressList: FunctionComponent<DenseOnboardingProgressList
     </List>
 }
 
+export const useOnboardingDispatcher = (): undefined | { text: string; listItems: Partial<Record<OnboardingKey, string>>} => {
+    const portrait = useMediaQuery('(orientation: portrait)')
+    const next = useNextOnboarding()
+    return useMemo(() => {
+        if (!next) {
+            return undefined
+        }
+        switch(next) {
+            case 'navigateSettings':
+            case 'navigateHome':
+                return {
+                    text: 'Welcome to this Make The World instance. Familiarize yourself with the way that you can navigate around the application itself',
+                    listItems: {
+                        navigateSettings: `Select the "Settings" tab ${ portrait ? "above" : "to the left" }.`,
+                        navigateHome: `Select the "Home" tab ${ portrait ? "above" : "to the left" }.`
+                    }
+                }
+            case 'navigateKnowledge':
+            case 'knowledgeDetail':
+            case "closeTab":
+                return {
+                    text: 'Good job! The navigation bar will let you navigate in the application, and keep track of any content windows you open. Examine opening temporary content windows',
+                    listItems: {
+                        navigateKnowledge: `Select the "Knowledge" button below.`,
+                        knowledgeDetail: `Select any sub-heading in the Knowledge display, to navigate within the tab.`,
+                        closeTab: `Browse knowledge as long as you like, and when you're ready to explore the world directly, close the knowledge tab (${ portrait ? "above" : "at left" }) by pressing the 'X' on it.`
+                    }
+                }
+        }
+    }, [next])
+}
+
 export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     //
     // TODO: Create Lockout mode for Create and Play
     //
+    const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const portrait = useMediaQuery('(orientation: portrait)')
     return <React.Fragment>
         <Box sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
             <Typography variant='body1' align='left'>
-                Welcome to this Make The World instance. Familiarize yourself with the way that you can navigate around
-                the application itself:
+                {text}:
             </Typography>
             <Box sx={{ width: "100%" }}>
                 <DenseOnboardingProgressList
-                    listItems={{
-                        navigateSettings: `Select the "Settings" tab ${ portrait ? "above" : "to the left" }.`,
-                        navigateHome: `Select the "Home" tab ${ portrait ? "above" : "to the left" }.`
-                    }}
+                    listItems={listItems}
                 />
             </Box>
         </Box>
