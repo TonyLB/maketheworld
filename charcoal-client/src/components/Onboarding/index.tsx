@@ -94,12 +94,30 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
                 }
         }
     }, [next])
+    //
+    // TODO: Add further progression of onboarding
+    //
+    //    - navigatePlay
+    //    - commandMode
+    //    - sayMode
+    //    - narrateMode
+    //    - OOCMode
+    //    - featureLink
+    //    - exitLink
+    //    - actionLink
+    //    - navigateHomeInPlay
+    //    - navigateLibrary
+    //    - createAsset
+    //    - navigatePlayWithAsset
+    //    - importRoom
+    //    - addRoom
+    //    - addExit
+    //    - addExitBack
+    //    - navigatePersonalRoom
+    //
 }
 
 export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
-    //
-    // TODO: Create Lockout mode for Create
-    //
     const next = useNextOnboarding()
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     return <React.Fragment>
