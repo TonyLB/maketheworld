@@ -47,6 +47,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     const { AppBaseURL = '' } = useSelector(getConfiguration)
     const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
     const [charactersUnlocked] = useOnboarding('closeTab')
+    const [libraryUnlocked] = useOnboarding('closeTab')
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <Grid
@@ -168,28 +169,44 @@ export const Home: FunctionComponent<HomeProps> = ({
                     </Typography>
                 <Divider />
             </Grid>
-            {[
-                {
-                    icon: <LibraryIcon />,
-                    title: 'Library',
-                    href: '/Library/'
-                }
-            ].map(({ icon, title, href }) => (
-                <Grid key={title} item sm={3}>
-                    <Card onClick={() => {
-                        if (href) {
-                            navigate(href)
-                        }
-                    }}>
-                        <CardHeader
-                            avatar={<Avatar>{icon}</Avatar>}
-                            title={title}
-                        />
-                        <CardContent>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            )) }
+            <Grid
+                container
+                item
+                sm={3}
+                sx={{
+                    justifyContent: 'center',
+                    alignContent: 'center',
+                    cursor: 'pointer'
+                }}
+            >
+                <Stack
+                    direction="column"
+                    justifyContent="center"
+                    alignItems="center"
+                    spacing={2}
+                >
+                    { libraryUnlocked && <React.Fragment>
+                        <Avatar
+                            sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                            alt={'Library'}
+                            onClick={() => { navigate('/Library/') }}
+                        >
+                            <LibraryIcon sx={{ fontSize: iconSize * 0.6 }} />
+                        </Avatar>
+                        Library
+                    </React.Fragment> }
+                    { !libraryUnlocked && <React.Fragment>
+                        <Avatar
+                            sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                            alt={'Locked'}
+                        >
+                            <LockIcon sx={{ fontSize: iconSize * 0.6 }} />
+                        </Avatar>
+                        Locked
+                    </React.Fragment> }
+                </Stack>
+            </Grid>
+
             {/* <Grid item xs={12} sx={{ textAlign: "center" }}>
                 <Divider />
                     <h2>Administer</h2>

@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { socketDispatch } from '../../slices/lifeLine'
-import { getMySettings } from '../../slices/player'
+import { getMySettings, getStatus } from '../../slices/player'
 import { OnboardingKey, onboardingCheckpointSequence } from './checkpoints'
 
 export const useNextOnboarding = () => {
+    const playerState = useSelector(getStatus)
     const { onboardCompleteTags } = useSelector(getMySettings)
-    const nextOnboard = useMemo(() => (onboardingCheckpointSequence.find((check) => (!onboardCompleteTags.includes(check)))), [onboardingCheckpointSequence, onboardCompleteTags])
+    const nextOnboard = useMemo(() => (playerState === 'CONNECTED' ? onboardingCheckpointSequence.find((check) => (!onboardCompleteTags.includes(check))) : undefined), [onboardingCheckpointSequence, onboardCompleteTags, playerState])
     return nextOnboard
 }
 
