@@ -13,7 +13,10 @@ import {
     ListItem,
     ListItemAvatar,
     Avatar,
-    ListItemText
+    ListItemText,
+    Card,
+    CardContent,
+    Stack
 } from "@mui/material"
 import CheckIcon from '@mui/icons-material/Check'
 import useOnboarding, { useNextOnboarding } from "./useOnboarding"
@@ -200,21 +203,25 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
 export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     const next = useNextOnboarding()
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
-    return <React.Fragment>
+    return <Stack sx={{ height: "100%" }}>
             { next && 
-                <Box sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
-                    <Typography variant='body1' align='left'>
-                        {text}:
-                    </Typography>
-                    <Box sx={{ width: "100%" }}>
-                        <DenseOnboardingProgressList
-                            listItems={listItems}
-                        />
-                    </Box>
-                </Box>
+                <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
+                        <CardContent>
+                        <Typography variant='body1' align='left'>
+                            {text}:
+                        </Typography>
+                        <Box sx={{ width: "100%" }}>
+                            <DenseOnboardingProgressList
+                                listItems={listItems}
+                            />
+                        </Box>
+                    </CardContent>
+                </Card>
             }
-            { children }
-        </React.Fragment>
+            <Box sx={{ position: "relative", flexGrow: 1 }}>
+                { children }
+            </Box>
+        </Stack>
 }
 
 export default OnboardingDisplay
