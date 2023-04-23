@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo } from "react"
+import React, { FunctionComponent, useCallback, useMemo } from "react"
 
 // MaterialUI imports
 import { blue } from '@mui/material/colors'
@@ -16,13 +16,16 @@ import {
     ListItemText,
     Card,
     CardContent,
-    Stack
+    Stack,
+    CardActions,
+    Button
 } from "@mui/material"
 import CheckIcon from '@mui/icons-material/Check'
 import useOnboarding, { useNextOnboarding } from "./useOnboarding"
 import { getMySettings } from "../../slices/player"
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingCheckpointSequence } from "./checkpoints"
+import { removeOnboardingComplete } from "../../slices/player/index.api"
 
 type DenseOnboardingProgressListItemProperties = {
     text: string;
@@ -203,25 +206,53 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
 export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     const next = useNextOnboarding()
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
-    return <Stack sx={{ height: "100%" }}>
-            { next && 
-                <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
-                        <CardContent>
-                        <Typography variant='body1' align='left'>
-                            {text}:
-                        </Typography>
-                        <Box sx={{ width: "100%" }}>
-                            <DenseOnboardingProgressList
-                                listItems={listItems}
-                            />
-                        </Box>
-                    </CardContent>
-                </Card>
+    const { output: previous } = onboardingCheckpointSequence.reduce<{ output?: string; finished: boolean }>((previous, key) => {
+        if (key in listItems) {
+            return {
+                ...previous,
+                finished: true
             }
-            <Box sx={{ position: "relative", flexGrow: 1 }}>
-                { children }
-            </Box>
-        </Stack>
+        }
+        else {
+            if (previous.finished) {
+                return previous
+            }
+            else {
+                return {
+                    ...previous,
+                    output: key,
+                }
+            }
+        }
+    }, { finished: false })
+    const dispatch = useDispatch()
+    const backOnClick = useCallback(() => {
+        if (previous) {
+            dispatch(removeOnboardingComplete([previous, ...Object.keys(listItems)]))
+        }
+    }, [previous, listItems])
+    return <Stack sx={{ height: "100%" }}>
+        { next && 
+            <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
+                <CardContent>
+                    <Typography variant='body1' align='left'>
+                        {text}:
+                    </Typography>
+                    <Box sx={{ width: "100%" }}>
+                        <DenseOnboardingProgressList
+                            listItems={listItems}
+                        />
+                    </Box>
+                </CardContent>
+                <CardActions>
+                    { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
+                </CardActions>
+            </Card>
+        }
+        <Box sx={{ position: "relative", flexGrow: 1 }}>
+            { children }
+        </Box>
+    </Stack>
 }
 
 export default OnboardingDisplay
