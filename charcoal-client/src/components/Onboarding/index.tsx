@@ -92,29 +92,109 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
                         closeTab: `Browse knowledge as long as you like, and when you're ready to explore the world directly, close the knowledge tab (${ portrait ? "above" : "at left" }) by pressing the 'X' on it.`
                     }
                 }
+            case 'navigatePlay':
+                return {
+                    text: `Congratulations! Navigation tabs will help keep things organized if you start doing a lot with the application, and Knowledge will tell you about the specific world of this instance. But that's not the only way to learn about the world. You can also explore by taking on the role of a character in the world itself`,
+                    listItems: {
+                        navigatePlay: `On the Home tab, select a character to play them in the virtual world.`
+                    }
+                }
+            case 'commandMode':
+            case 'sayMode':
+            case 'narrateMode':
+            case 'OOCMode':
+                return {
+                    text: 'Here you are, playing a role in the world alongside everybody else. You control your character, and "see" through their eyes. One of the ways you can make things happen is through the input field at the bottom of the page. Give it a try',
+                    listItems: {
+                        commandMode: `Your input field (bottom) defaults to Command mode. Focus into that field, type 'look' and hit enter.`,
+                        sayMode: `The input field has a mode selector (bottom right) with up and down arrows. Press the up arrow once to enter Say mode, and type something for your character to say (like "Hi!")`,
+                        narrateMode: `Press the up arrow twice to enter Narrate mode, and type something that should be narrated happening in the room (like "Nathan looks around.")`,
+                        OOCMode: `Press the up arrow three times to enter out-of-character mode, and type something that should be shared with other players nearby, outside the story (like "I'm new here")`
+                    }
+                }
+            case 'featureLink':
+            case 'exitLink':
+            case 'actionLink':
+                return {
+                    text: `Looks like you've got the hang of the input field! You can also explore many things (and make things happen) through links embedded directly in the text that you see describing the world. Explore those options`,
+                    listItems: {
+                        featureLink: `Some features in the description of the room are highlighted. Press one of those highlights to see a description of further detail.`,
+                        exitLink: `On the right, below the description of the room, are exits to other places. Press one of those exits to leave this room and go to another.`,
+                        actionLink: `Somewhere in the details of this room you will find highlights on something you could DO (like "ring the bell"). Press one of those highlights to take action in the world.`
+                    }
+                }
+            case 'navigateHomeInPlay':
+            case 'navigateLibrary':
+                return {
+                    text: `You're really getting how to play a role in the world. Plenty of people enjoy doing that alone (and if that's you, you can skip the rest of the onboarding). Others enjoy adding to the world as well. Explore the options for expanding the world`,
+                    listItems: {
+                        navigateHomeInPlay: `Use the navigation tabs to return to the Home page.`,
+                        navigateLibrary: `Select the "Library" button in the "Create" section below.`
+                    }
+                }
+            case 'createAsset':
+            case 'nameAsset':
+            case 'editAsset':
+                return {
+                    text: `This is the Library in which Make The World organizes the Assets that make the game. Assets are layers of description on rooms, features, etc., that are laid on one another successively to create the final world. You can create Personal Assets whose content is seen only by you, to test out creations. Let's give it a try:`,
+                    listItems: {
+                        createAsset: 'In the Personal section, below, click Add Asset.',
+                        nameAsset: 'Give the new Asset an unique name (this may take some trying ... the name must be globally unique)',
+                        editAsset: 'Select the Asset in the list, and you will see a preview pane appear. Click the "Edit" button on that preview pane to make this Asset the one you are globally editing.'
+                    }
+                }
+            case 'addRoom':
+            case 'navigateRoom':
+            case 'nameRoom':
+            case 'describeRoom':
+                return {
+                    text: `You have created a personal asset that you can make private changes in. The Asset Editor can be daunting, but you'll start small. Create a new room of your own invention to include in the world`,
+                    listItems: {
+                        addRoom: `In the Rooms subsection, below, click the Add Room button, and give the room an internal key.`,
+                        navigateRoom: `Click the new (Untitled) room item to navigate to its detail editor.`,
+                        nameRoom: 'Enter a name for the room.',
+                        describeRoom: 'Enter a description for the room.'
+                    }
+                }
+            case 'navigatePlayWithAsset':
+            case 'importRoom':
+                return {
+                    text: `Now you can find a place already in the world, and attach your room nearby. The easiest way to do that is straight from the world itself. Give it a go`,
+                    listItems: {
+                        navigatePlayWithAsset: 'Use the Navigation tabs to go back to the page where you are playing a character.',
+                        importRoom: 'You will note that room descriptions now include an "Edit" button. Pick a room you want to expand the world from, and click the Edit button on that room.'
+                    }
+                }
+            case 'navigateAssetWithImport':
+            case 'addExit':
+            case 'addExitBack':
+                return {
+                    text: `You've told Make The World that your Personal Asset will not only create your new room, it will also add content to an already existing room. Now you can change that room to make it possible to travel from there to your new room`,
+                    listItems: {
+                        navigateAssetWithImports: `If needed, navigate back to the library and select the imported room to get to its detail editor.`,
+                        addExit: `In the Exits section, click "Add Exit". Give the exit a descriptive name, and select the key of the room you created as a destination.`,
+                        addExitBack: `Click enter in the exit name, and you should be given an exit back from your created room to the room you imported. Give that a descriptive name as well.`
+                    }
+                }
+            case 'saveAsset':
+            case 'navigatePlayWithPersonalRoom':
+            case 'navigatePersonalRoom':
+                return {
+                    text: `You have a draft of a new creation for the shared world, now it's time to let the system know about it, and see it in play`,
+                    listItems: {
+                        saveAsset: `Close the detail editor and return to the main table-of-contents for your new Asset. Press the "Save" button at upper right to send your draft to the system.`,
+                        navigatePlayWithPersonalRoom: `Close the Asset, and navigate back to your In-Play window. The new exit you created should be visible in the room you chose.`,
+                        navigatePersonalRoom: 'Press that exit to travel to your new room.'
+                    }
+                }
+            case 'closeOnboarding':
+                return {
+                    text: `Congratulations!  You have learned how to use the Make The World application. You can restart this tutorial in the Settings tab any time you need a refresher, and you can always ask your fellow players for advice on the details of the system. Otherwise, you're ready to enjoy telling stories and creating settings together, in Make The World.`,
+                    listItems: {
+                    }
+                }
         }
     }, [next])
-    //
-    // TODO: Add further progression of onboarding
-    //
-    //    - navigatePlay
-    //    - commandMode
-    //    - sayMode
-    //    - narrateMode
-    //    - OOCMode
-    //    - featureLink
-    //    - exitLink
-    //    - actionLink
-    //    - navigateHomeInPlay
-    //    - navigateLibrary
-    //    - createAsset
-    //    - navigatePlayWithAsset
-    //    - importRoom
-    //    - addRoom
-    //    - addExit
-    //    - addExitBack
-    //    - navigatePersonalRoom
-    //
 }
 
 export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
