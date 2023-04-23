@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { socketDispatch } from '../../slices/lifeLine'
 import { getMySettings, getStatus } from '../../slices/player'
 import { OnboardingKey, onboardingCheckpointSequence } from './checkpoints'
+import { addOnboardingComplete } from '../../slices/player/index.api'
 
 export const useNextOnboarding = () => {
     const playerState = useSelector(getStatus)
@@ -18,11 +19,7 @@ export const useOnboarding = (key: OnboardingKey): [boolean, () => void] => {
     const checked = useMemo(() => (onboardCompleteTags.includes(key)), [onboardCompleteTags, key])
     const addOnboarding = useCallback(() => {
         if (!(alreadyDispatched || checked)) {
-            dispatch(socketDispatch({
-                    message: 'updatePlayerSettings',
-                    action: 'addOnboarding',
-                    values: [key]
-                }, { service: 'asset' }))
+            dispatch(addOnboardingComplete([key]))
             setAlreadyDispatched(true)
         }
     }, [key, dispatch])

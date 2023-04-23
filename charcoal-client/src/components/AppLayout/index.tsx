@@ -55,6 +55,7 @@ import Notifications from '../Notifications'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
 import { getPlayer } from '../../slices/player'
 import OnboardingDisplay from '../Onboarding'
+import Knowledge from '../Knowledge'
 
 const a11yProps = (index: number) => {
     return {
@@ -282,6 +283,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, ma
                             <Route path="/Library/" element={<Library />} />
                             <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
                             <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
+                            <Route path="/Knowledge/" element={<Knowledge />} />
                             <Route path="/Help/" element={<HelpPage />} />
                             <Route path="/Who/" element={whoPanel} />
                             <Route path="/Notifications/" element={<Notifications />} />

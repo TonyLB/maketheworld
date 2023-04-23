@@ -1,8 +1,5 @@
-import React, { FunctionComponent, useCallback, useEffect, useState } from 'react'
-import PropTypes from 'prop-types'
-import { useNavigate } from 'react-router-dom'
+import React, { FunctionComponent, useCallback } from 'react'
 
-import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -14,7 +11,7 @@ import Button from '@mui/material/Button'
 import { useDispatch, useSelector } from 'react-redux'
 import { getMySettings } from '../../slices/player'
 import { socketDispatch } from '../../slices/lifeLine'
-import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
+import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 type SettingsProps = {
     signOut?: () => void;

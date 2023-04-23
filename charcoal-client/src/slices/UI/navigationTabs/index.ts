@@ -9,6 +9,7 @@ import { setIntent as personalAssetSetIntent, getStatus } from '../../personalAs
 import { getPlayer, setCurrentDraft } from '../../player';
 import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat';
 import { pushChoice } from '../choiceDialog';
+import { addOnboardingComplete } from '../../player/index.api';
 
 type NavigationTabBase = {
     label: string;
@@ -47,12 +48,17 @@ type NavigationTabComponentEdit = {
     componentId: string;
 } & NavigationTabBase
 
+type NavigationTabKnowledge = {
+    type: 'Knowledge';
+} & NavigationTabBase
+
 export type NavigationTab = NavigationTabGeneral |
     NavigationTabMap |
     NavigationTabMessagePanel |
     NavigationTabLibrary |
     NavigationTabLibraryEdit |
-    NavigationTabComponentEdit
+    NavigationTabComponentEdit |
+    NavigationTabKnowledge
 
 export const isNavigationTabMap = (value: NavigationTab): value is NavigationTabMap => (value.type === 'Map')
 export const isNavigationTabLibrary = (value: NavigationTab): value is NavigationTabLibrary => (value.type === 'Library')
@@ -64,6 +70,7 @@ export const closeTab = createAsyncThunk(
     'navigationTabs/closeTab',
     async ({ href, pathname, callback }: { href: string, pathname: string; callback: (newHref: string) => void }, thunkAPI) => {
         const { dispatch, getState } = thunkAPI
+        dispatch(addOnboardingComplete(['closeTab']))
         const state: any = getState()
         const tab = navigationTabPinnedByHref(href)(state)
         const allTabs = navigationTabs(state)
