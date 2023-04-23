@@ -113,7 +113,8 @@ export const {
     getPlayer,
     getMyCharacters,
     getMyAssets,
-    getMySettings
+    getMySettings,
+    getStatus
 } = selectors
 
 export const getMyCharacterById = getMyCharacterByIdSelector(getMyCharacters)

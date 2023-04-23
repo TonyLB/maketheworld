@@ -100,22 +100,22 @@ export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     //
     // TODO: Create Lockout mode for Create and Play
     //
+    const next = useNextOnboarding()
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const portrait = useMediaQuery('(orientation: portrait)')
     return <React.Fragment>
-        <Box sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
-            <Typography variant='body1' align='left'>
-                {text}:
-            </Typography>
-            <Box sx={{ width: "100%" }}>
-                <DenseOnboardingProgressList
-                    listItems={listItems}
-                />
-            </Box>
-        </Box>
-        { children }
-    </React.Fragment>
-
+            { next && <Box sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
+                <Typography variant='body1' align='left'>
+                    {text}:
+                </Typography>
+                <Box sx={{ width: "100%" }}>
+                    <DenseOnboardingProgressList
+                        listItems={listItems}
+                    />
+                </Box>
+            </Box>}
+            { children }
+        </React.Fragment>
 }
 
 export default OnboardingDisplay
