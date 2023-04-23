@@ -4,6 +4,7 @@ import {
     getStatus,
     LifeLinePubSub
 } from '../lifeLine'
+import { getMySettings } from './selectors'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
@@ -51,14 +52,18 @@ export const removeOnboardingComplete = (tags: PlayerPublic["Settings"]["onboard
     await dispatch(socketDispatchPromise({
         message: 'updatePlayerSettings',
         action: 'removeOnboarding',
-        values: tags
-    }, { service: 'asset' }))
+    values: tags
+    }, { service: 'asset' }))    
 }
 
-export const addOnboardingComplete = (tags: PlayerPublic["Settings"]["onboardCompleteTags"]) => async (dispatch) => {
-    await dispatch(socketDispatchPromise({
-        message: 'updatePlayerSettings',
-        action: 'addOnboarding',
-        values: tags
-    }, { service: 'asset' }))
+export const addOnboardingComplete = (tags: PlayerPublic["Settings"]["onboardCompleteTags"]) => async (dispatch, getState) => {
+    const { onboardCompleteTags } = getMySettings(getState())
+    const updateTags = tags.filter((tag) => (!onboardCompleteTags.includes(tag)))
+    if (updateTags.length) {
+        await dispatch(socketDispatchPromise({
+            message: 'updatePlayerSettings',
+            action: 'addOnboarding',
+            values: updateTags
+        }, { service: 'asset' }))
+    }
 }
