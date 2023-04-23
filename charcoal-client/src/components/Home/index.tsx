@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react'
 import PropTypes from 'prop-types'
 import { useNavigate } from 'react-router-dom'
 
+import { blue } from '@mui/material/colors'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
@@ -16,6 +17,7 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import MapIcon from '@mui/icons-material/Explore'
+import KnowledgeIcon from '@mui/icons-material/MenuBook'
 import LockIcon from '@mui/icons-material/Lock'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import { getConfiguration } from '../../slices/configuration'
@@ -46,6 +48,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     const iconSize = large ? 80 : medium ? 60 : 40
     const { AppBaseURL = '' } = useSelector(getConfiguration)
     const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
+    const [knowledgeUnlocked] = useOnboarding('navigateHome')
     const [charactersUnlocked] = useOnboarding('closeTab')
     const [libraryUnlocked] = useOnboarding('closeTab')
 
@@ -55,7 +58,6 @@ export const Home: FunctionComponent<HomeProps> = ({
             container
             direction="row"
             justifyContent="center"
-            alignItems="center"
             spacing={3}
         >
             <Grid item xs={12} sx={{ textAlign: "center" }}>
@@ -162,49 +164,98 @@ export const Home: FunctionComponent<HomeProps> = ({
                     </Stack>
                 </Grid>
             }
-            <Grid item xs={12} sx={{ textAlign: "center" }}>
+            <Grid item xs={12} />
+            <Grid item xs={12} md={6} sx={{ alignItems: "start" }}>
                 <Divider />
-                    <Typography variant="h4" sx={{ margin: "0.5em" }}>
-                        Create
+                    <Typography variant="h4" sx={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "center" }}>
+                        Explore
                     </Typography>
                 <Divider />
+                <Grid container justifyContent="center">
+                    <Grid
+                        item
+                        sm={3}
+                        sx={{
+                            marginTop: "1em",
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <Stack
+                            direction="column"
+                            justifyContent="center"
+                            alignItems="center"
+                            spacing={2}
+                            sx={{ marginTop: "1em", width: "100%" }}
+                        >
+                            { knowledgeUnlocked && <React.Fragment>
+                                <Avatar
+                                    sx={{ width: `${iconSize}px`, height: `${iconSize}px`, bgcolor: blue[300] }}
+                                    alt={'Knowledge'}
+                                    onClick={() => { navigate('/Knowledge/') }}
+                                >
+                                    <KnowledgeIcon sx={{ fontSize: iconSize * 0.6 }} />
+                                </Avatar>
+                                Knowledge
+                            </React.Fragment> }
+                            { !knowledgeUnlocked && <React.Fragment>
+                                <Avatar
+                                    sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                                    alt={'Locked'}
+                                >
+                                    <LockIcon sx={{ fontSize: iconSize * 0.6 }} />
+                                </Avatar>
+                                Locked
+                            </React.Fragment> }
+                        </Stack>
+                    </Grid>
+                </Grid>
+
             </Grid>
-            <Grid
-                container
-                item
-                sm={3}
-                sx={{
-                    justifyContent: 'center',
-                    alignContent: 'center',
-                    cursor: 'pointer'
-                }}
-            >
-                <Stack
-                    direction="column"
-                    justifyContent="center"
-                    alignItems="center"
-                    spacing={2}
-                >
-                    { libraryUnlocked && <React.Fragment>
-                        <Avatar
-                            sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
-                            alt={'Library'}
-                            onClick={() => { navigate('/Library/') }}
+            <Grid item xs={12} md={6}>
+                <Divider />
+                <Typography variant="h4" sx={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "center" }}>
+                    Create
+                </Typography>
+                <Divider />
+                <Grid container justifyContent="center">
+                    <Grid
+                        item
+                        sm={3}
+                        sx={{
+                            marginTop: "1em",
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <Stack
+                            direction="column"
+                            justifyContent="center"
+                            alignItems="center"
+                            spacing={2}
+                            sx={{ marginTop: "1em", width: "100%" }}
                         >
-                            <LibraryIcon sx={{ fontSize: iconSize * 0.6 }} />
-                        </Avatar>
-                        Library
-                    </React.Fragment> }
-                    { !libraryUnlocked && <React.Fragment>
-                        <Avatar
-                            sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
-                            alt={'Locked'}
-                        >
-                            <LockIcon sx={{ fontSize: iconSize * 0.6 }} />
-                        </Avatar>
-                        Locked
-                    </React.Fragment> }
-                </Stack>
+                            { libraryUnlocked && <React.Fragment>
+                                <Avatar
+                                    sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                                    alt={'Library'}
+                                    onClick={() => { navigate('/Library/') }}
+                                >
+                                    <LibraryIcon sx={{ fontSize: iconSize * 0.6 }} />
+                                </Avatar>
+                                Library
+                            </React.Fragment> }
+                            { !libraryUnlocked && <React.Fragment>
+                                <Avatar
+                                    sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                                    alt={'Locked'}
+                                >
+                                    <LockIcon sx={{ fontSize: iconSize * 0.6 }} />
+                                </Avatar>
+                                Locked
+                            </React.Fragment> }
+                        </Stack>
+                    </Grid>
+                </Grid>
+
             </Grid>
 
             {/* <Grid item xs={12} sx={{ textAlign: "center" }}>

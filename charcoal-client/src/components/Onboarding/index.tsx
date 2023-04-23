@@ -85,9 +85,9 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
             case 'knowledgeDetail':
             case "closeTab":
                 return {
-                    text: 'Good job! The navigation bar will let you navigate in the application, and keep track of any content windows you open. Examine opening temporary content windows',
+                    text: 'Good job! The navigation bar will let you navigate in the application, and keep track of any content windows you open. Explore opening temporary content windows',
                     listItems: {
-                        navigateKnowledge: `Select the "Knowledge" button below.`,
+                        navigateKnowledge: `Select the "Knowledge" button in the "Explore" section below.`,
                         knowledgeDetail: `Select any sub-heading in the Knowledge display, to navigate within the tab.`,
                         closeTab: `Browse knowledge as long as you like, and when you're ready to explore the world directly, close the knowledge tab (${ portrait ? "above" : "at left" }) by pressing the 'X' on it.`
                     }
