@@ -142,7 +142,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
             case 'nameAsset':
             case 'editAsset':
                 return {
-                    text: `This is the Library in which Make The World organizes the Assets that make the game. Assets are layers of description on rooms, features, etc., that are laid on one another successively to create the final world. You can create Personal Assets whose content is seen only by you, to test out creations. Let's give it a try:`,
+                    text: `This is the Library in which Make The World organizes the Assets that make the game. Assets are layers of description on rooms, features, etc., that are laid on one another successively to create the final world. You can create Personal Assets whose content is seen only by you, to test out creations. Let's give it a try`,
                     listItems: {
                         createAsset: 'In the Personal section, below, click Add Asset.',
                         nameAsset: 'Give the new Asset an unique name (this may take some trying ... the name must be globally unique)',
