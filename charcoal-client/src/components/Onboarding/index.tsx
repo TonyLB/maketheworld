@@ -245,7 +245,11 @@ export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
                     </Box>
                 </CardContent>
                 <CardActions>
-                    { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
+                    <Stack direction="row" sx={{ width: "100%" }}>
+                        { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
+                        <Box sx={{ flexGrow: 1 }} />
+                        { next !== 'closeOnboarding' && <Button variant="contained">Skip</Button> }
+                    </Stack>
                 </CardActions>
             </Card>
         }
