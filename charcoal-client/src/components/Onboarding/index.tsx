@@ -113,9 +113,9 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
                     text: 'Here you are, playing a role in the world alongside everybody else. You control your character, and "see" through their eyes. One of the ways you can make things happen is through the input field at the bottom of the page. Give it a try',
                     listItems: {
                         commandMode: `Your input field (bottom) defaults to Command mode. Focus into that field, type 'look' and hit enter.`,
-                        sayMode: `The input field has a mode selector (bottom right) with up and down arrows. Press the up arrow once to enter Say mode, and type something for your character to say (like "Hi!")`,
-                        narrateMode: `Press the up arrow twice to enter Narrate mode, and type something that should be narrated happening in the room (like "Nathan looks around.")`,
-                        OOCMode: `Press the up arrow three times to enter out-of-character mode, and type something that should be shared with other players nearby, outside the story (like "I'm new here")`
+                        sayMode: `The input field has a mode selector (bottom right) with up and down arrows. Press the up arrow once (or press the " key) to enter Say mode, and type something for your character to say (like "Hi!")`,
+                        narrateMode: `Press the up arrow twice (or press the : key) to enter Narrate mode, and type something that should be narrated happening in the room (like "Nathan looks around.")`,
+                        OOCMode: `Press the up arrow three times (or press the \\ key) to enter out-of-character mode, and type something that should be shared with other players nearby, outside the story (like "I'm new here")`
                     }
                 }
             case 'featureLink':

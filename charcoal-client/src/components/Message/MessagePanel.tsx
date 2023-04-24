@@ -12,6 +12,7 @@ import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import { ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
+import { OnboardingKey } from '../Onboarding/checkpoints'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
@@ -29,10 +30,14 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
     const handleInput = useCallback(({ entry, mode }: { entry: string; mode: ParseCommandProps["mode"]}) => {
-        switch(mode) {
-            case 'Command':
-                dispatch(addOnboardingComplete(['commandMode']))
-                break
+        const modeMapping: Record<ParseCommandProps["mode"], OnboardingKey> = {
+            Command: 'commandMode',
+            SayMessage: 'sayMode',
+            NarrateMessage: 'narrateMode',
+            OOCMessage: 'OOCMode'
+        }
+        if (mode in modeMapping) {
+            dispatch(addOnboardingComplete([modeMapping[mode]]))
         }
         dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
         return true
