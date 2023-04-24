@@ -15,6 +15,7 @@ import { deepEqual } from '../../../lib/objects';
 interface AssetDataAddHeaderProps<T extends Object> {
     renderFields: FunctionComponent<T & { onChange: (props: T) => void; errorMessage: string; }>;
     onAdd: (props: T) => void;
+    onEnter?: () => void;
     defaultFields: T;
     validate: (props: T) => Promise<string>;
     validateDelay?: number;
@@ -25,7 +26,7 @@ interface AssetDataAddHeaderProps<T extends Object> {
 // TODO: Add a setErrorMessage argument to AssetDataAddHeader, and give it sole responsibility for running the
 // validation, then update everywhere that AssetDataAddHeader is used
 //
-export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () => { }, defaultFields, label, validate, validateDelay = 5 }: AssetDataAddHeaderProps<T>): ReactElement<any, any> | null => {
+export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () => { }, onEnter = () => {}, defaultFields, label, validate, validateDelay = 5 }: AssetDataAddHeaderProps<T>): ReactElement<any, any> | null => {
     const [enteringKey, setEnteringKey] = useState<boolean>(false)
     const [isValidating, setIsValidating] = useState<boolean>(false)
     const [validatingKey, setValidatingKey] = useState<T>(defaultFields)
@@ -88,11 +89,12 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
         setErrorMessageInternal,
         awaitingClickResolve
     ])
-    const onEnter = useCallback(() => {
+    const onEnterClick = useCallback(() => {
         if (!enteringKey) {
+            onEnter()
             setEnteringKey(true)
         }
-    }, [enteringKey, setEnteringKey])
+    }, [enteringKey, setEnteringKey, onEnter])
     const fieldsRender = renderFields({ ...formState, onChange: setFormState, errorMessage })
 
     const contents = <React.Fragment>
@@ -120,7 +122,7 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
         ? <ListItem>
             { contents }
         </ListItem>
-        : <ListItemButton onClick={onEnter}>
+        : <ListItemButton onClick={onEnterClick}>
             { contents }
         </ListItemButton>
 }
