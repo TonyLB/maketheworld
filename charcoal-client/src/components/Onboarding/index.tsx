@@ -125,7 +125,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
                     text: `Looks like you've got the hang of the input field! You'll see a description of the room your character is in, below (and pinned to the top if it scrolls too far). You can explore many things (and make things happen) through links embedded directly in description text. Explore those options`,
                     listItems: {
                         featureLink: `Some features in the description of the room are highlighted. Press one of those highlights to see a description of further detail.`,
-                        exitLink: `On the right, below the description of the room, are exits to other places. Press one of those exits to leave this room and go to another.`,
+                        exitLink: `On the left, below the description of the room, are exits to other places. Press one of those exits to leave this room and go to another.`,
                         actionLink: `Somewhere in the details of this room you will find highlights on something you could DO (like "ring the bell"). Press one of those highlights to take action in the world.`
                     }
                 }
