@@ -10,6 +10,8 @@ import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { addItem, setIntent } from '../../slices/activeCharacters'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
+import { ParseCommandProps } from '../../slices/lifeLine/baseClasses'
+import { addOnboardingComplete } from '../../slices/player/index.api'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
@@ -26,7 +28,12 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         dispatch(setIntent({ key: CharacterId, intent: ['CONNECTED', 'MAPSUBSCRIBED']}))
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
-    const handleInput = useCallback(({ entry, mode }) => {
+    const handleInput = useCallback(({ entry, mode }: { entry: string; mode: ParseCommandProps["mode"]}) => {
+        switch(mode) {
+            case 'Command':
+                dispatch(addOnboardingComplete(['commandMode']))
+                break
+        }
         dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
         return true
     }, [dispatch, CharacterId])
