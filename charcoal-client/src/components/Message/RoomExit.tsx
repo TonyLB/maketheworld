@@ -9,6 +9,7 @@ import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { RoomExit as RoomExitType } from '@tonylb/mtw-interfaces/dist/messages'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { addOnboardingComplete } from '../../slices/player/index.api'
 
 interface RoomExitProps {
     exit: RoomExitType;
@@ -26,6 +27,7 @@ export const RoomExit = ({ exit: { Name, Visibility, RoomId } }: RoomExitProps) 
     const clickable = true
     const clickHandler = clickable ? () => {
         if (isEphemeraCharacterId(CharacterId) && isEphemeraRoomId(RoomId)) {
+            dispatch(addOnboardingComplete(['exitLink']))
             dispatch(moveCharacter(CharacterId)({ RoomId, ExitName: Name }))
         }
     } : () => {}
