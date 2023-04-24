@@ -9,6 +9,7 @@ import { useActiveCharacter } from '../ActiveCharacter'
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { addItem, setIntent } from '../../slices/activeCharacters'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
+import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
@@ -19,6 +20,7 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         type: 'MessagePanel',
         characterId: CharacterId
     })
+    useOnboardingCheckpoint('navigatePlay')
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
         dispatch(setIntent({ key: CharacterId, intent: ['CONNECTED', 'MAPSUBSCRIBED']}))

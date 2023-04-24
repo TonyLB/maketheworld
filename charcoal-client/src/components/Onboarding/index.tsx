@@ -236,15 +236,17 @@ export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     }, [listItems])
     return <Stack sx={{ height: "100%" }}>
         { next && 
-            <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
-                <CardContent>
-                    <Typography variant='body1' align='left'>
-                        {text}:
-                    </Typography>
-                    <Box sx={{ width: "100%" }}>
-                        <DenseOnboardingProgressList
-                            listItems={listItems}
-                        />
+            <Card sx={{ width: "80%", maxWidth: "40em", maxHeight: "40%", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
+                <CardContent sx={{ position: "relative", height: "100%", paddingBottom: "3em", marginBottom: "-3em" }}>
+                    <Box sx={{ overflowY: "auto", maxHeight: "100%" }}>
+                        <Typography variant='body1' align='left'>
+                            {text}:
+                        </Typography>
+                        <Box sx={{ width: "100%" }}>
+                            <DenseOnboardingProgressList
+                                listItems={listItems}
+                            />
+                        </Box>
                     </Box>
                 </CardContent>
                 <CardActions>
