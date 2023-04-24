@@ -5,6 +5,7 @@ import { socketDispatchPromise } from "../../../slices/lifeLine";
 import { newAsset, setIntent } from "../../../slices/personalAssets";
 import { heartbeat } from "../../../slices/stateSeekingMachine/ssmHeartbeat";
 import AssetDataAddHeader from "./AssetDataAddHeader"
+import { addOnboardingComplete } from "../../../slices/player/index.api";
 
 const addAssetGenerator: FunctionComponent<{ key: string; onChange: (props: { key: string }) => void; errorMessage: string }> = ({ key, onChange, errorMessage }) => {
     return <TextField
@@ -29,6 +30,7 @@ export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () =>
     const dispatch = useDispatch()
     const onAddWrapper = useCallback(({ key }: { key: string }) => {
         const assetId = `${type === 'Character' ? 'CHARACTER' : 'ASSET'}#${key}` as const
+        dispatch(addOnboardingComplete(['nameAsset']))
         dispatch(newAsset(assetId))
         dispatch(setIntent({ key: assetId, intent: ['NORMALDIRTY'] }))
         dispatch(heartbeat)
@@ -46,6 +48,9 @@ export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () =>
         }
         return ''
     }, [dispatch])
+    const onEnter = useCallback(() => {
+        dispatch(addOnboardingComplete(['createAsset']))
+    }, [dispatch])
     return <AssetDataAddHeader
         defaultFields={{ key: '' }}
         label={`Add ${type}`}
@@ -53,6 +58,7 @@ export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () =>
         validate={validate}
         validateDelay={1000}
         onAdd={onAddWrapper}
+        onEnter={onEnter}
     />
 }
 
