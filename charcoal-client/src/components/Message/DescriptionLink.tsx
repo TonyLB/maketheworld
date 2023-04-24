@@ -18,6 +18,8 @@ import {
 
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
+import { isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { addOnboardingComplete } from '../../slices/player/index.api'
 
 interface DescriptionLinkChipProps {
     text?: string;
@@ -100,6 +102,12 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
     return <DescriptionLinkActionChip
         text={link.text}
         onClick={() => {
+            if (isEphemeraFeatureId(link.to)) {
+                dispatch(addOnboardingComplete(['featureLink']))
+            }
+            if (isEphemeraActionId(link.to)) {
+                dispatch(addOnboardingComplete(['actionLink']))
+            }
             dispatch(socketDispatchPromise({
                 message: 'link',
                 to: link.to,
