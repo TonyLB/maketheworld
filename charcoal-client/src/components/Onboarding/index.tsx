@@ -25,7 +25,7 @@ import useOnboarding, { useNextOnboarding } from "./useOnboarding"
 import { getMySettings } from "../../slices/player"
 import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingCheckpointSequence } from "./checkpoints"
-import { removeOnboardingComplete } from "../../slices/player/index.api"
+import { addOnboardingComplete, removeOnboardingComplete } from "../../slices/player/index.api"
 
 type DenseOnboardingProgressListItemProperties = {
     text: string;
@@ -177,7 +177,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
                 return {
                     text: `You've told Make The World that your Personal Asset will not only create your new room, it will also add content to an already existing room. Now you can change that room to make it possible to travel from there to your new room`,
                     listItems: {
-                        navigateAssetWithImports: `If needed, navigate back to the library and select the imported room to get to its detail editor.`,
+                        navigateAssetWithImport: `If needed, navigate back to the library and select the imported room to get to its detail editor.`,
                         addExit: `In the Exits section, click "Add Exit". Give the exit a descriptive name, and select the key of the room you created as a destination.`,
                         addExitBack: `Click enter in the exit name, and you should be given an exit back from your created room to the room you imported. Give that a descriptive name as well.`
                     }
@@ -206,7 +206,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
 export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     const next = useNextOnboarding()
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
-    const { output: previous } = onboardingCheckpointSequence.reduce<{ output?: string; finished: boolean }>((previous, key) => {
+    const { output: previous } = onboardingCheckpointSequence.slice(0, -1).reduce<{ output?: string; finished: boolean }>((previous, key) => {
         if (key in listItems) {
             return {
                 ...previous,
@@ -231,6 +231,9 @@ export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
             dispatch(removeOnboardingComplete([previous, ...Object.keys(listItems)]))
         }
     }, [previous, listItems])
+    const skipOnClick = useCallback(() => {
+        dispatch(addOnboardingComplete(Object.keys(listItems)))
+    }, [listItems])
     return <Stack sx={{ height: "100%" }}>
         { next && 
             <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
@@ -245,7 +248,11 @@ export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
                     </Box>
                 </CardContent>
                 <CardActions>
-                    { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
+                    <Stack direction="row" sx={{ width: "100%" }}>
+                        { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
+                        <Box sx={{ flexGrow: 1 }} />
+                        { next !== 'closeOnboarding' && <Button variant="contained" onClick={skipOnClick}>Skip</Button> }
+                    </Stack>
                 </CardActions>
             </Card>
         }
