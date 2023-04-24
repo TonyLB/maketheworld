@@ -42,6 +42,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     signOut = () => {}
 }) => {
     useOnboardingCheckpoint('navigateHome', { requireSequence: true })
+    useOnboardingCheckpoint('navigateHomeInPlay', { requireSequence: true })
     const navigate = useNavigate()
     const medium = useMediaQuery('(min-width: 600px)')
     const large = useMediaQuery('(min-width: 1200px)')
