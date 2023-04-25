@@ -46,12 +46,26 @@ export const playerSettingMessage = async ({ payloads, messageBus }: { payloads:
                 internalCache.PlayerSettings.set(player, Settings)
             }
         }))
-        payloads.forEach(({ player, RequestId }) => {
-            messageBus.send({
-                type: 'PlayerInfo',
-                player,
-                RequestId
-            })
+        const requestsByPlayerId = payloads.reduce<Record<string, string[]>>((previous, { player, RequestId }) => ({
+            ...previous,
+            [player || basePlayer]: unique(previous[player || basePlayer] || [], RequestId ? [RequestId] : []) as string[]
+        }), {})
+        Object.entries(requestsByPlayerId).forEach(([player, requestList]) => {
+            if (requestList.length) {
+                requestList.forEach((RequestId) => {
+                    messageBus.send({
+                        type: 'PlayerInfo',
+                        player,
+                        RequestId
+                    })
+                })
+            }
+            else {
+                messageBus.send({
+                    type: 'PlayerInfo',
+                    player
+                })
+            }
         })
     }
 }
