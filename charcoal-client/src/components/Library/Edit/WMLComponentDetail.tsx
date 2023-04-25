@@ -77,6 +77,9 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         const reference: NormalReference = { tag, key: ComponentId, index: 0 }
         const baseSchema = normalizer.referenceToSchema(reference)
         if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
+            if (isSchemaRoom(baseSchema) && adjustedRender?.length)  {
+                dispatch(addOnboardingComplete(['describeRoom']))
+            }
             updateNormal({
                 type: 'put',
                 item: {
