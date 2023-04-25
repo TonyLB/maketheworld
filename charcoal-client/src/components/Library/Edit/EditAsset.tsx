@@ -38,6 +38,8 @@ import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import { addOnboardingComplete } from '../../../slices/player/index.api'
 
 type AssetEditFormProps = {}
 
@@ -87,8 +89,9 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Co
 }
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { normalForm, updateNormal, save, AssetId, status } = useLibraryAsset()
+    const { normalForm, updateNormal, save, AssetId, status, readonly } = useLibraryAsset()
     const navigate = useNavigate()
+    useOnboardingCheckpoint('editAsset', { requireSequence: true, condition: !readonly })
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
     const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
@@ -98,7 +101,13 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const computes = useMemo<NormalComputed[]>(() => (Object.values(normalForm || {}).filter(isNormalComputed)), [normalForm])
     const actions = useMemo<NormalAction[]>(() => (Object.values(normalForm || {}).filter(isNormalAction)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
+    const dispatch = useDispatch()
     const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Computed' | 'Action') => (componentId: string) => {
+        switch(tag) {
+            case 'Room':
+                dispatch(addOnboardingComplete(['addRoom']))
+                break
+        }
         const rootItem = Object.values(normalForm)
             .find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
         if (rootItem) {
