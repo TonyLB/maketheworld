@@ -30,6 +30,7 @@ export interface PersonalAssetsPublic {
     importData: Record<string, NormalForm>;
     properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
+    serialized?: boolean;
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>

@@ -4,7 +4,9 @@ import {
     getStatus,
     LifeLinePubSub
 } from '../lifeLine'
-import { getMySettings } from './selectors'
+import { LifeLinePubSubData } from '../lifeLine/lifeLine'
+import { getMyAssets, getMySettings } from './selectors'
+import { getSerialized } from '../personalAssets'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
@@ -12,11 +14,27 @@ export const lifelineCondition: PlayerCondition = (_, getState) => {
     return (status === 'CONNECTED')
 }
 
+const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch, getState) => {
+    const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings } = payload
+    const state = getState()
+    const currentAssets = getMyAssets(state?.player?.publicData)
+    const assetsToPreserve = currentAssets
+        .map(({ AssetId }) => (AssetId))
+        .filter((checkId) => (
+            Assets.find(({ AssetId }) => (AssetId === checkId)) ||
+            !Boolean(getSerialized(checkId)(state))
+        ))
+    const newAssets = [
+        ...currentAssets.filter(({ AssetId }) => (assetsToPreserve.includes(AssetId))),
+        ...Assets.filter(({ AssetId }) => (!assetsToPreserve.includes(AssetId)))
+    ]
+    dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings }))
+}
+
 export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch) => {
     const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
         if (payload.messageType === 'Player') {
-            const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings } = payload
-            dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets, Characters, Settings }))
+            dispatch(mergePlayerInfo(receivePlayer, payload))
         }
     })
 
@@ -57,7 +75,7 @@ export const removeOnboardingComplete = (tags: PlayerPublic["Settings"]["onboard
 }
 
 export const addOnboardingComplete = (tags: PlayerPublic["Settings"]["onboardCompleteTags"]) => async (dispatch, getState) => {
-    const { onboardCompleteTags } = getMySettings(getState())
+    const { onboardCompleteTags } = getMySettings(getState()?.player?.publicData)
     const updateTags = tags.filter((tag) => (!onboardCompleteTags.includes(tag)))
     if (updateTags.length) {
         await dispatch(socketDispatchPromise({

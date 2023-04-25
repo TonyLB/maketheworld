@@ -55,7 +55,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             throw err
         }
     }
-    return { publicData: { originalWML: assetWML, currentWML: assetWML, normal: normalizer.normal }}
+    return { publicData: { originalWML: assetWML, currentWML: assetWML, normal: normalizer.normal, serialized: true }}
 }
 
 type ImportsByAssets = Record<string, Record<string, string>>
@@ -189,7 +189,8 @@ export const parseWML: PersonalAssetsAction = ({
                 ...previous,
                 [key]: { fileName }
             }), properties),
-            loadedImages: {}
+            loadedImages: {},
+            serialized: true,
         }
     }
 }

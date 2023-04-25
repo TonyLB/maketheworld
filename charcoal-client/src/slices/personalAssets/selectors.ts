@@ -8,6 +8,7 @@ export type PublicSelectors = {
     getLoadedImages: (state: PersonalAssetsPublic) => Record<string, PersonalAssetsLoadedImage>;
     getProperties: (state: PersonalAssetsPublic) => Record<string, { fileName: string }>;
     getImportData: (state: PersonalAssetsPublic) => (assetKey: string) => NormalForm | undefined;
+    getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;
 }
 
 const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
@@ -24,11 +25,16 @@ const getImportData = ({ importData = {} }: PersonalAssetsPublic) => (assetKey: 
     return importData[assetKey]
 }
 
+const getSerialized = ({ serialized }: PersonalAssetsPublic): boolean | undefined => {
+    return serialized
+}
+
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
     getDraftWML,
     getNormalized,
     getProperties,
     getLoadedImages,
-    getImportData
+    getImportData,
+    getSerialized
 }

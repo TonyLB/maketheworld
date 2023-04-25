@@ -38,13 +38,8 @@ export const {
         }
     },
     sliceSelector: ({ lifeLine }) => (lifeLine),
-    publicReducers: {
-        // receivePlayer
-    },
-    publicSelectors: {
-        // getPlayer: getPlayerSelector,
-        // getMyCharacters: getMyCharactersSelector,
-    },
+    publicReducers: {},
+    publicSelectors: {},
     template: {
         initialState: 'INITIAL',
         initialData: {
