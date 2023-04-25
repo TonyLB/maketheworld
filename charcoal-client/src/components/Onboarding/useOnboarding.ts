@@ -28,14 +28,15 @@ export const useOnboarding = (key: OnboardingKey): [boolean, () => void] => {
 
 type UseOnboardingCheckpointOptions = {
     requireSequence?: boolean;
+    condition?: boolean;
 }
 
 export const useOnboardingCheckpoint = (key: OnboardingKey, options: UseOnboardingCheckpointOptions = {}) => {
-    const { requireSequence = false } = options
+    const { requireSequence = false, condition = true } = options
     const next = useNextOnboarding()
     const [_, checkOnboard] = useOnboarding(key)
     useEffect(() => {
-        if (next === key || !requireSequence) {
+        if (condition && (next === key || !requireSequence)) {
             checkOnboard()
         }
     }, [checkOnboard, requireSequence, next])

@@ -22,6 +22,7 @@ import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 
 type WMLComponentAppearanceProps = {
     ComponentId: string;
@@ -32,6 +33,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
     const { normalForm, updateNormal, components, readonly } = useLibraryAsset()
     const component = normalForm[ComponentId || '']
     const { tag } = component || {}
+    useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     const onChange = useCallback((newRender: ComponentRenderItem[]) => {
         //
         // TODO: Figure out how to stop out-of-control looping on onChange in the case of minor
