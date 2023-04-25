@@ -185,7 +185,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const name = taggedMessageToString(appearances[0]?.name || [])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
-        label: name,
+        label: name || 'Untitled',
         type: 'ComponentEdit',
         iconName: 'Room',
         assetId: `ASSET#${assetKey}`,
