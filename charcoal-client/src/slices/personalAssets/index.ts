@@ -211,6 +211,7 @@ export const {
     getImportData,
     getProperties,
     getLoadedImages,
+    getSerialized,
     getError
 } = selectors
 
