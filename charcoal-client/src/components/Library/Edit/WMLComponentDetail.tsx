@@ -23,6 +23,8 @@ import RoomExitEditor from './RoomExitEditor'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import { addOnboardingComplete } from '../../../slices/player/index.api'
+import { useDispatch } from 'react-redux'
 
 type WMLComponentAppearanceProps = {
     ComponentId: string;
@@ -104,6 +106,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
     }, [normalForm, ComponentId])
     const [name, setName] = useState(appearance?.name || [])
     const nameText = useMemo<string>(() => ((name || []).map((item) => ((item.tag === 'String') ? item.value : '')).join('')), [name])
+    const dispatch = useDispatch()
 
     const dispatchNameChange = useCallback((value: ComponentRenderItem[]) => {
         const normalizer = new Normalizer()
@@ -111,6 +114,9 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         const reference: NormalReference = { tag, key: ComponentId, index: 0 }
         const baseSchema = normalizer.referenceToSchema(reference)
         if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
+            if (isSchemaRoom(baseSchema) && value?.length)  {
+                dispatch(addOnboardingComplete(['nameRoom']))
+            }
             updateNormal({
                 type: 'put',
                 item: {
