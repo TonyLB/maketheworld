@@ -42,7 +42,7 @@ export const VirtualMessageList = () => {
         ), [messageBreakdown.Messages])
 
     const groupContent = useCallback((index: number) => (
-            <RoomDescription message={messageBreakdown.Groups[index].header} currentHeader={index >= messageBreakdown.Groups.length - 1} />
+            <RoomDescription message={messageBreakdown.Groups[index].header} header currentHeader={index >= messageBreakdown.Groups.length - 1} />
         ), [messageBreakdown.Groups])
 
     return (
