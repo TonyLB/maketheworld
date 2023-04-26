@@ -90,8 +90,13 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     const { currentDraft } = useSelector(getPlayer)
     const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
     const currentAssets = useMemo(() => (message.assets || {}), [message])
-    const showEdit = useMemo(() => (currentHeader && currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentHeader, currentAssets, status])
+    const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentAssets, status])
 
+    //
+    // TODO: Make "Live" indicator to show the user which description is the current header (and gets updates)
+    //
+    // TODO: Change margins of non-header descriptions to visually distinguish them
+    //
     return <MessageComponent
             sx={{
                 paddingTop: "10px",
