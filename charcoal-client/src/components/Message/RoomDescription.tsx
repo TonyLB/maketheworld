@@ -124,7 +124,14 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                 paddingTop: "10px",
                 paddingBottom: "10px",
                 background: `linear-gradient(75deg, ${blue[200]}, #ffffff)`,
-                color: (theme) => (theme.palette.getContrastText(blue[200]))
+                color: (theme) => (theme.palette.getContrastText(blue[200])),
+                ...(header
+                    ? {}
+                    : {
+                        marginLeft: "70px",
+                        marginRight: "70px"
+                    }
+                )
             }}
             leftIcon={<HouseIcon />}
             toolActions={showEdit
