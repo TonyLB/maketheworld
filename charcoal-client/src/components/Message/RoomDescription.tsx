@@ -85,6 +85,28 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
     </React.Fragment>
 }
 
+export const LiveRoomChip: FunctionComponent<{}> = () => {
+    const linearGradient = (color: Record<string | number, string>, low: number, high: number) => `linear-gradient(${color[low]}, ${color[high]})`
+    return <Box
+        component="span"
+        sx={{
+            display: "inline-block",
+            background: linearGradient(blue, 500, 700),
+            color: "white",
+            borderRadius: '200px',
+            paddingTop: '0.125em',
+            paddingBottom: '0.125em',
+            paddingLeft: '0.35em',
+            paddingRight: '0.35em',
+            position: "relative",
+            top: "-0.125em",
+            marginLeft: "0.5em"
+        }}
+    >
+        <Typography variant="body2">Live</Typography>
+    </Box>
+}
+
 export const RoomDescription = ({ message, header, currentHeader }: RoomDescriptionProps) => {
     const { Description, Name, Characters = [], Exits = [] } = message
     const { currentDraft } = useSelector(getPlayer)
@@ -125,6 +147,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                 `}>
                     <Typography variant='h5' align='left'>
                         { Name.filter(isTaggedText).length ? Name.filter(isTaggedText).map(({ value }) => (value)).join('') : 'Untitled' }
+                        { currentHeader && <LiveRoomChip /> }
                     </Typography>
                     <Box sx={header ? {
                         WebkitBoxOrient: 'vertical',
