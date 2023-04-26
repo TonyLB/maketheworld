@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, FunctionComponent } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Box } from '@mui/material'
 
 import VirtualMessageList from './VirtualMessageList'
@@ -13,6 +13,7 @@ import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import { ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { OnboardingKey } from '../Onboarding/checkpoints'
+import { getPlayer } from '../../slices/player'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
@@ -23,7 +24,9 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         type: 'MessagePanel',
         characterId: CharacterId
     })
+    const { currentDraft } = useSelector(getPlayer)
     useOnboardingCheckpoint('navigatePlay')
+    useOnboardingCheckpoint('navigatePlayWithAsset', { requireSequence: true, condition: Boolean(currentDraft) })
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
         dispatch(setIntent({ key: CharacterId, intent: ['CONNECTED', 'MAPSUBSCRIBED']}))
