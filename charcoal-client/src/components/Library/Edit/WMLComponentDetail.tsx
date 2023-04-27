@@ -185,11 +185,11 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const { assetKey, normalForm, components } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component = normalForm[ComponentId || '']
-    const { tag = '', appearances = [] } = isNormalComponent(component) ? component : {}
-    const name = taggedMessageToString(appearances[0]?.name || [])
+    const { tag = '' } = isNormalComponent(component) ? component : {}
+    const componentName = taggedMessageToString(components[component.key]?.name ?? [{ tag: 'String', value: 'Untitled' }])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
-        label: name || 'Untitled',
+        label: componentName || 'Untitled',
         type: 'ComponentEdit',
         iconName: 'Room',
         assetId: `ASSET#${assetKey}`,
@@ -198,7 +198,6 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     if (!component || !ComponentId) {
         return <Box />
     }
-    const componentName = (components[component.key]?.name ?? [{ tag: 'String', value: 'Untitled' }]).map((item) => ((item.tag === 'String') ? item.value : '')).join('')
     return <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
         <LibraryBanner
             primary={componentName}
