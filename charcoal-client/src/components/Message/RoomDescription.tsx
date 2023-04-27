@@ -30,6 +30,7 @@ import ListItemButton from '@mui/material/ListItemButton'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import { useNavigate } from 'react-router-dom'
+import { addOnboardingComplete } from '../../slices/player/index.api'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
@@ -71,6 +72,7 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
                         <ListItem key={`Import-${asset}`} >
                             <ListItemButton
                                 onClick={() => {
+                                    dispatch(addOnboardingComplete(['importRoom']))
                                     dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset.split('#')[1], type: 'Room', key }))
                                     navigate(`/Library/Edit/Asset/${currentDraft}/Room/${key}`)
                                 }}

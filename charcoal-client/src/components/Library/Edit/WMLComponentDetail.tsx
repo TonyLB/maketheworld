@@ -36,6 +36,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
     const component = normalForm[ComponentId || '']
     const { tag } = component || {}
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
+    useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
     const onChange = useCallback((newRender: ComponentRenderItem[]) => {
         //
         // TODO: Figure out how to stop out-of-control looping on onChange in the case of minor
