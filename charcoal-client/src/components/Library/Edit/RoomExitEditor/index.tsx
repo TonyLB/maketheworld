@@ -271,12 +271,6 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
     </Button>
 }
 
-//
-// TODO: Make conditionals in description normalize to have empty lines before and after them if at edge of block contents
-//
-// TODO: Make text entry in a paragraph normalize to entry of an exit
-// TODO: Make AddExit button correctly target the current cursor position
-//
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const [editor] = useState(() => withConditionals(withHistory(withReact(createEditor()))))
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
