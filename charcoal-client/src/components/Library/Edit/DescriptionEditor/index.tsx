@@ -68,9 +68,6 @@ const withInlines = (editor: Editor) => {
     return editor
 }
 
-//
-// TODO: Rewrite InheritedDescription as an inline VOID Slate type, with a read-only slate sub-editor
-//
 const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
     const inheritedValue = useMemo<CustomInheritedReadOnlyElement[]>(() => ([{
         type: 'inherited',

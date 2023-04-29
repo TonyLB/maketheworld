@@ -2,7 +2,7 @@ import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
-import { blue } from "@mui/material/colors"
+import { blue, grey } from "@mui/material/colors"
 import { isNormalExit, isNormalRoom, NormalExit, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
 import { createEditor, Descendant, Editor, Node, Path, Transforms } from "slate"
@@ -23,7 +23,7 @@ import InputLabel from "@mui/material/InputLabel"
 import Toolbar from "@mui/material/Toolbar/Toolbar"
 import withConditionals from "../DescriptionEditor/conditionals"
 import slateToExitSchema from "./slateToExitTree"
-import { CustomExitBlock, isCustomBlock } from "../baseClasses"
+import { CustomBlock, CustomExitBlock, isCustomBlock } from "../baseClasses"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { Button } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
@@ -68,6 +68,82 @@ const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: 
             }
         </Select>
     </FormControl>
+}
+
+const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> = ({ importFrom, RoomId }) => {
+
+    //
+    // TODO: Add "inherited" property to Element, and use it to remove delete button, deactivate swap button, and read-only selects
+    //
+    const { importData } = useLibraryAsset()
+    const importNormal = useMemo(() => (importData(importFrom)), [importData, importFrom])
+    const inheritedExits = useMemo<Descendant[]>(() => {
+        if (!importNormal) {
+            return []
+        }
+        const relevantExits = Object.values(importNormal)
+            .filter(isNormalExit)
+            .filter(({ to, from }) => (to === RoomId || from === RoomId))
+            .reduce(reduceItemsToTree({
+                compare: (A: string, B: string) => (A === B),
+                normalForm: importNormal,
+                transform: ({ key }: NormalExit) => (key)
+            }), { items: [], conditionals: [] })
+        return exitTreeToSlate(importNormal)(relevantExits)
+    }, [importNormal, RoomId])
+    const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
+    const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
+    const renderLeaf = useCallback(props => <Leaf {...props} />, [])
+    useEffect(() => {
+        //
+        // Since slate-react doesn't seem to catch up to reactive changes in the value of a Slate
+        // object, we need to manually reset the value on a change
+        //
+        editor.children = inheritedExits
+        Editor.normalize(editor, { force: true })
+    }, [editor, inheritedExits])
+
+    if ((inheritedExits || []).length === 0) {
+        return null
+    }
+
+    return <Box sx={{ position: "relative", width: "calc(100% - 0.1em)", display: 'inline-block' }}>
+        <Box
+            sx={{
+                borderRadius: "0em 1em 1em 0em",
+                borderStyle: 'solid',
+                borderColor: grey[500],
+                background: grey[100],
+                display: 'inline',
+                paddingRight: '0.25em',
+                position: 'absolute',
+                top: 0,
+                left: 0
+            }}
+        >
+            Inherited
+        </Box>
+        <Box
+            sx={{
+                borderRadius: '0em 1em 1em 0em',
+                borderStyle: 'solid',
+                borderColor: grey[500],
+                background: grey[50],
+                paddingRight: '0.5em',
+                paddingLeft: '0.25em',
+                paddingTop: "0.5em",
+                marginTop: '1em',
+            }}
+        >
+            <Slate editor={editor} value={inheritedExits}>
+                <Editable
+                    readOnly
+                    renderElement={renderElement}
+                    renderLeaf={renderLeaf}
+                />
+            </Slate>
+        </Box>
+    </Box>
 }
 
 const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ RoomId, ...props }) => {
@@ -175,7 +251,8 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
-    const { normalForm, updateNormal, readonly } = useLibraryAsset()
+    const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
+    const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
     const relevantExits = useMemo(() => (
         Object.values(normalForm)
             .filter(isNormalExit)
@@ -264,6 +341,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             flexGrow: 1,
         }}>
             <Slate editor={editor} value={value} onChange={setValue}>
+                <InheritedExits importFrom={importFrom} RoomId={RoomId} />
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}

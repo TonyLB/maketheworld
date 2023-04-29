@@ -88,6 +88,7 @@ export type AssetComponent = {
     inheritedRender: ComponentRenderItem[];
     name: ComponentRenderItem[];
     render: ComponentRenderItem[];
+    importFrom?: string;
 }
 
 const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, importData: (assetKey: string) => NormalForm | undefined }): Record<string, AssetComponent> => {
@@ -125,7 +126,8 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
                                 inheritedName,
                                 inheritedRender,
                                 name: [ ...inheritedName, { tag: 'String', value: localName } ],
-                                render: [...inheritedRender, ...localRender]
+                                render: [...inheritedRender, ...localRender],
+                                importFrom: importItem.from
                             }}
                         }
                     }
