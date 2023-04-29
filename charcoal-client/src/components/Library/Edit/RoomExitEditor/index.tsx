@@ -276,7 +276,6 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
 }
 
 //
-// TODO: Add cleanup procedure argument to AddIfButton, and use it to clean up empty text fields when If is inserted
 // TODO: Make text entry in a paragraph normalize to entry of an exit
 // TODO: Make AddExit button correctly target the current cursor position
 //
@@ -284,6 +283,9 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
     const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
+    const ifCleanup = useCallback((editor: Editor) => {
+        Transforms.removeNodes(editor, { at: [], match: (node) => (SlateElement.isElement(node) && Editor.isBlock(editor, node) && isCustomParagraph(node))})
+    }, [])
     const relevantExits = useMemo(() => (
         Object.values(normalForm)
             .filter(isNormalExit)
@@ -380,13 +382,16 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                 />
                 <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                     <AddExitButton RoomId={RoomId} />
-                    <AddIfButton defaultBlock={{
-                        type: 'exit',
-                        key: `${RoomId}#`,
-                        from: RoomId,
-                        to: '',
-                        children: [{ text: '' }]
-                    }} />
+                    <AddIfButton
+                        defaultBlock={{
+                            type: 'exit',
+                            key: `${RoomId}#`,
+                            from: RoomId,
+                            to: '',
+                            children: [{ text: '' }]
+                        }}
+                        cleanup={ifCleanup}
+                    />
                 </Toolbar>
             </Slate>
         </Box>

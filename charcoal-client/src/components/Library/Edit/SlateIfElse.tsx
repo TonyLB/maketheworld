@@ -69,14 +69,16 @@ const wrapIfBlock = (editor: Editor, defaultBlock: CustomBlock) => {
 
 type AddIfButton = {
     defaultBlock: CustomBlock;
+    cleanup?: (editor: Editor) => void;
 }
 
-export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock}) => {
+export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock, cleanup = () => {} }) => {
     const editor = useSlate()
     const { readonly } = useLibraryAsset()
     const onClick = useCallback(() => {
         wrapIfBlock(editor, defaultBlock)
-    }, [editor])
+        cleanup(editor)
+    }, [editor, cleanup])
     return <Button
         variant="outlined"
         disabled={readonly}
