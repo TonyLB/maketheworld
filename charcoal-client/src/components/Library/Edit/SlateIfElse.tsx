@@ -108,7 +108,8 @@ export const SlateIfElse: FunctionComponent<RenderElementProps & { defaultBlock:
                                     backgroundColor: blue[50],
                                     paddingLeft: '0.25em',
                                     paddingRight: '0.25em',
-                                    marginRight: '0.25em'
+                                    marginRight: '0.25em',
+                                    minWidth: '1.5em'
                                 }}
                             >
                                 <CodeEditor
