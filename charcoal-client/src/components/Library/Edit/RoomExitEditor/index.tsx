@@ -27,7 +27,7 @@ import { CustomBlock, CustomExitBlock, isCustomBlock, isCustomParagraph } from "
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { Button } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
-import { objectMap } from "../../../../lib/objects"
+import { objectFilterEntries, objectMap } from "../../../../lib/objects"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -45,17 +45,20 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
     )
 }
 
-const ExitTargetSelector: FunctionComponent<{ target: string; inherited?: boolean; AssetId?: string; onChange: (event: SelectChangeEvent<string>) => void }> = ({ target, inherited, AssetId, onChange }) => {
+const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; AssetId?: string; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, AssetId, onChange }) => {
     const { rooms, readonly, importData } = useLibraryAsset()
-    const roomNamesInScope: Record<string, ComponentRenderItem[]> = AssetId
-        ? Object.entries(importData(AssetId))
-            .filter(([_, item]) => (isNormalRoom(item)))
-            .map(([key, { appearances }]): [string, ComponentRenderItem[]] => ([key, (appearances as NormalRoom["appearances"])
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-                .map(({ name = [] }) => name)
-                .reduce((previous, name) => ([ ...previous, ...name ]), [])]))
-            .reduce((previous, [key, item]) => ({ ...previous, [key]: item }), {})
-        : objectMap(rooms, ({ name }) => (name))
+    const roomNamesInScope: Record<string, ComponentRenderItem[]> = objectFilterEntries(
+        AssetId
+            ? Object.entries(importData(AssetId))
+                .filter(([_, item]) => (isNormalRoom(item)))
+                .map(([key, { appearances }]): [string, ComponentRenderItem[]] => ([key, (appearances as NormalRoom["appearances"])
+                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
+                    .map(({ name = [] }) => name)
+                    .reduce((previous, name) => ([ ...previous, ...name ]), [])]))
+                .reduce((previous, [key, item]) => ({ ...previous, [key]: item }), {})
+            : objectMap(rooms, ({ name }) => (name)),
+        ([key]) => (key !== RoomId)
+    )
     const onChangeHandler = useCallback((event: SelectChangeEvent<string>) => {
         if (!readonly) {
             onChange(event)
@@ -197,6 +200,7 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string; inherite
             const fromElement = (element.from === RoomId)
                 ? hereChip
                 : <ExitTargetSelector
+                    RoomId={RoomId}
                     target={element.from}
                     inherited={inherited}
                     AssetId={AssetId}
@@ -205,6 +209,7 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string; inherite
             const toElement = (element.to === RoomId)
                 ? hereChip
                 : <ExitTargetSelector
+                    RoomId={RoomId}
                     target={element.to}
                     inherited={inherited}
                     AssetId={AssetId}
