@@ -3,7 +3,7 @@ import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import { blue, grey } from "@mui/material/colors"
-import { isNormalExit, isNormalRoom, NormalExit, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit, NormalReference, NormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
 import { createEditor, Descendant, Editor, Node, Path, Transforms } from "slate"
 import { withHistory } from "slate-history"
@@ -27,6 +27,7 @@ import { CustomBlock, CustomExitBlock, isCustomBlock } from "../baseClasses"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { Button } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
+import { objectMap } from "../../../../lib/objects"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -44,8 +45,17 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
     )
 }
 
-const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: SelectChangeEvent<string>) => void }> = ({ target, onChange }) => {
-    const { rooms, readonly } = useLibraryAsset()
+const ExitTargetSelector: FunctionComponent<{ target: string; inherited?: boolean; AssetId?: string; onChange: (event: SelectChangeEvent<string>) => void }> = ({ target, inherited, AssetId, onChange }) => {
+    const { rooms, readonly, importData } = useLibraryAsset()
+    const roomNamesInScope: Record<string, ComponentRenderItem[]> = AssetId
+        ? Object.entries(importData(AssetId))
+            .filter(([_, item]) => (isNormalRoom(item)))
+            .map(([key, { appearances }]): [string, ComponentRenderItem[]] => ([key, (appearances as NormalRoom["appearances"])
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
+                .map(({ name = [] }) => name)
+                .reduce((previous, name) => ([ ...previous, ...name ]), [])]))
+            .reduce((previous, [key, item]) => ({ ...previous, [key]: item }), {})
+        : objectMap(rooms, ({ name }) => (name))
     const onChangeHandler = useCallback((event: SelectChangeEvent<string>) => {
         if (!readonly) {
             onChange(event)
@@ -59,10 +69,10 @@ const ExitTargetSelector: FunctionComponent<{ target: string; onChange: (event: 
             value={target}
             label="Target"
             onChange={onChangeHandler}
-            disabled={readonly}
+            disabled={readonly || inherited}
         >
             {
-                Object.entries(rooms).map(([key, { name }]) => {
+                Object.entries(roomNamesInScope).map(([key, name]) => {
                     return <MenuItem key={key} value={key}>{ taggedMessageToString(name) }</MenuItem>
                 })
             }
@@ -92,7 +102,7 @@ const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> 
         return exitTreeToSlate(importNormal)(relevantExits)
     }, [importNormal, RoomId])
     const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
-    const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
+    const renderElement = useCallback(props => (<Element inherited RoomId={RoomId} { ...props } />), [RoomId])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     useEffect(() => {
         //
@@ -146,19 +156,20 @@ const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> 
     </Box>
 }
 
-const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ RoomId, ...props }) => {
+const Element: FunctionComponent<RenderElementProps & { RoomId: string; inherited?: boolean }> = ({ RoomId, inherited, ...props }) => {
     const editor = useSlate()
-    const { readonly } = useLibraryAsset()
+    const { readonly, rooms } = useLibraryAsset()
     const { attributes, children, element } = props
     const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
+    const AssetId = useMemo(() => (rooms[RoomId].importFrom), [rooms, RoomId])
     const onDeleteHandler = useCallback(() => {
         Transforms.removeNodes(editor, { at: path })
     }, [editor, path])
     const onFlipHandler = useCallback(() => {
-        if (!readonly && element.type === 'exit') {
+        if (!(readonly || inherited) && element.type === 'exit') {
             Transforms.setNodes(editor, { to: element.from, from: element.to }, { at: path })
         }
-    }, [element, editor, path, readonly])
+    }, [element, editor, path, readonly, inherited])
     const onTargetHandler = useCallback(({ to, from }: { to: string; from: string }) => {
         if (element.type === 'exit') {
             Transforms.setNodes(editor, { to, from }, { at: path })
@@ -181,12 +192,16 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
                 ? hereChip
                 : <ExitTargetSelector
                     target={element.from}
+                    inherited={inherited}
+                    AssetId={AssetId}
                     onChange={(event) => { onTargetHandler({ to: RoomId, from: event.target.value })}}
                 />
             const toElement = (element.to === RoomId)
                 ? hereChip
                 : <ExitTargetSelector
                     target={element.to}
+                    inherited={inherited}
+                    AssetId={AssetId}
                     onChange={(event) => { onTargetHandler({ from: RoomId, to: event.target.value })}}
                 />
             return <Box sx={{
@@ -212,7 +227,7 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string }> = ({ R
                     paddingRight: '0.25em',
                 }} { ...attributes } spellCheck={false} >{children}</Box>
                 <Box contentEditable={false} sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }} > from { fromElement } to { toElement }</Box>
-                <Box contentEditable={false} sx={{ display: 'flex' }} ><IconButton onClick={onDeleteHandler} disabled={readonly}><DeleteIcon /></IconButton></Box>
+                { !inherited && <Box contentEditable={false} sx={{ display: 'flex' }} ><IconButton onClick={onDeleteHandler} disabled={readonly}><DeleteIcon /></IconButton></Box> }
             </Box>
         default: return (
             <p {...attributes}>
