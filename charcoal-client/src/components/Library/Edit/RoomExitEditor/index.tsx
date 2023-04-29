@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography"
 import { blue, grey } from "@mui/material/colors"
 import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit, NormalReference, NormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
-import { createEditor, Descendant, Editor, Node, Path, Transforms, Element as SlateElement } from "slate"
+import { createEditor, Descendant, Editor, Transforms, Element as SlateElement } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, ReactEditor, RenderElementProps, Slate, useSlate, withReact } from "slate-react"
 import { reduceItemsToTree } from "../conditionTree"
@@ -23,11 +23,12 @@ import InputLabel from "@mui/material/InputLabel"
 import Toolbar from "@mui/material/Toolbar/Toolbar"
 import withConditionals from "../DescriptionEditor/conditionals"
 import slateToExitSchema from "./slateToExitTree"
-import { CustomBlock, CustomExitBlock, isCustomBlock, isCustomParagraph } from "../baseClasses"
+import { CustomExitBlock, isCustomBlock, isCustomParagraph } from "../baseClasses"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { Button } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { objectFilterEntries, objectMap } from "../../../../lib/objects"
+import useUpdatedSlate from "../../../../hooks/useUpdatedSlate"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -104,17 +105,12 @@ const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> 
             }), { items: [], conditionals: [] })
         return exitTreeToSlate(importNormal)(relevantExits)
     }, [importNormal, RoomId])
-    const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
     const renderElement = useCallback(props => (<Element inherited RoomId={RoomId} { ...props } />), [RoomId])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
-    useEffect(() => {
-        //
-        // Since slate-react doesn't seem to catch up to reactive changes in the value of a Slate
-        // object, we need to manually reset the value on a change
-        //
-        editor.children = inheritedExits
-        Editor.normalize(editor, { force: true })
-    }, [editor, inheritedExits])
+    const editor = useUpdatedSlate({
+        initializeEditor: () => withConditionals(withHistory(withReact(createEditor()))),
+        value: inheritedExits
+    })
 
     if ((inheritedExits || []).length === 0) {
         return null
@@ -265,7 +261,7 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
     const { readonly } = useLibraryAsset()
     const onClick = useCallback(() => {
         wrapExitBlock(editor, RoomId)
-    }, [editor])
+    }, [editor, RoomId])
     return <Button
         variant="outlined"
         disabled={readonly}
@@ -276,9 +272,12 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
 }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
+    const [editor] = useState(() => withConditionals(withHistory(withReact(createEditor()))))
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
+    const ifCleanup = useCallback((editor: Editor) => {
+        Transforms.removeNodes(editor, { at: [], match: (node) => (SlateElement.isElement(node) && Editor.isBlock(editor, node) && isCustomParagraph(node))})
+    }, [])
     const relevantExits = useMemo(() => (
         Object.values(normalForm)
             .filter(isNormalExit)
@@ -375,13 +374,16 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                 />
                 <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                     <AddExitButton RoomId={RoomId} />
-                    <AddIfButton defaultBlock={{
-                        type: 'exit',
-                        key: `${RoomId}#`,
-                        from: RoomId,
-                        to: '',
-                        children: [{ text: '' }]
-                    }} />
+                    <AddIfButton
+                        defaultBlock={{
+                            type: 'exit',
+                            key: `${RoomId}#`,
+                            from: RoomId,
+                            to: '',
+                            children: [{ text: '' }]
+                        }}
+                        cleanup={ifCleanup}
+                    />
                 </Toolbar>
             </Slate>
         </Box>

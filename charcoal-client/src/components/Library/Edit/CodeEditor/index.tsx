@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useMemo } from "react";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { createEditor, Descendant } from "slate";
 import { withHistory } from "slate-history";
 import { Editable, Slate, withReact } from "slate-react";
@@ -22,7 +22,7 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
 }
 
 export const CodeEditor: FunctionComponent<CodeEditorProps> = ({ source, onChange }) => {
-    const editor = useMemo(() => withHistory(withReact(createEditor())), [])
+    const [editor] = useState(() => withHistory(withReact(createEditor())))
     const value = useMemo(() => (stringToSlate(source)), [source])
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
         onChange(slateToString(nodes))

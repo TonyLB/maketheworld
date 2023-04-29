@@ -69,14 +69,16 @@ const wrapIfBlock = (editor: Editor, defaultBlock: CustomBlock) => {
 
 type AddIfButton = {
     defaultBlock: CustomBlock;
+    cleanup?: (editor: Editor) => void;
 }
 
-export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock}) => {
+export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock, cleanup = () => {} }) => {
     const editor = useSlate()
     const { readonly } = useLibraryAsset()
     const onClick = useCallback(() => {
         wrapIfBlock(editor, defaultBlock)
-    }, [editor])
+        cleanup(editor)
+    }, [editor, cleanup])
     return <Button
         variant="outlined"
         disabled={readonly}
@@ -89,7 +91,7 @@ export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock}) => 
 export const SlateIfElse: FunctionComponent<RenderElementProps & { defaultBlock: CustomBlock }> = ({ defaultBlock, ...props }) => {
     const editor = useSlate()
     const { attributes, children, element } = props
-    const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
+    const path = ReactEditor.findPath(editor, element)
     switch(element.type) {
         case 'ifBase':
         case 'elseif':
@@ -112,7 +114,7 @@ export const SlateIfElse: FunctionComponent<RenderElementProps & { defaultBlock:
                                 <CodeEditor
                                     source={element.source}
                                     onChange={(value: string) => {
-                                        Transforms.setNodes(editor, { source: value }, { at: path })
+                                        Transforms.setNodes(editor, { source: value }, { at: ReactEditor.findPath(editor, element) })
                                     }}
                                 />
                             </Box>

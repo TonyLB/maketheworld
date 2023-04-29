@@ -47,6 +47,7 @@ import LinkDialog from './LinkDialog'
 import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
 import { LabelledIndentBox, SlateIndentBox } from '../LabelledIndentBox'
+import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 
 interface DescriptionEditorProps {
     ComponentId: string;
@@ -73,18 +74,13 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
         type: 'inherited',
         children: descendantsFromRender(inheritedRender)
     }]), [inheritedRender])
-    const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
+    const editor = useUpdatedSlate({
+        initializeEditor: () => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))),
+        value: inheritedValue
+    })
     const decorate = useCallback(decorateFactory(editor), [editor])
-    useEffect(() => {
-        //
-        // Since slate-react doesn't seem to catch up to reactive changes in the value of a Slate
-        // object, we need to manually reset the value on a change
-        //
-        editor.children = inheritedValue
-        Editor.normalize(editor, { force: true })
-    }, [editor, inheritedValue])
 
     if ((inheritedRender || []).length === 0) {
         return null
@@ -334,13 +330,12 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const normalForm = useSelector(getNormalized(AssetId))
     const { components, readonly } = useLibraryAsset()
     const inheritedRender = useMemo(() => (components[ComponentId]?.inheritedRender || []), [components, ComponentId])
-    const editor = useMemo(() => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))), [])
     const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
-    useEffect(() => {
-        editor.children = defaultValue
-        Editor.normalize(editor, { force: true })
-    }, [editor, defaultValue])
+    const editor = useUpdatedSlate({
+        initializeEditor: () => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))),
+        value: defaultValue
+    })
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
