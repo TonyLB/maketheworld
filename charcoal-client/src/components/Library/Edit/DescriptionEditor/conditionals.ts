@@ -29,9 +29,25 @@ export const withConditionals = (editor: Editor): Editor => {
     editor.normalizeNode = ([node, path]) => {
         //
         // Check all nodes that could, conceivably, have strings of if/else blocks inside of them,
-        // so (currently) the top level editor itself, and 
+        // so (currently) the top level editor itself, and any non-paragraph blocks
         //
         if ((SlateElement.isElement(node) && Editor.isBlock(editor, node) && !isCustomParagraph(node)) || Editor.isEditor(node)) {
+            //
+            // Check if an ifBase element is nestled up to the start of a block, and if so add an empty paragraph as buffer
+            //
+            const children = [...Node.children(node, [])]
+            if (children.length) {
+                const firstChild = children[0]
+                if (SlateElement.isElement(firstChild) && firstChild.type === 'ifBase') {
+                    Transforms.insertNodes(editor, { type: 'paragraph', children: [{ text: '' }] }, { at: path })
+                    return
+                }
+            }
+
+            //
+            // Check if a conditional element is nestled up to the end of a block, and if so add an empty paragraph as buffer
+            //
+
             //
             // Accumulate strings of If-related blocks that are connected to each other, to evaluate their
             // interdependent properties.
