@@ -251,13 +251,12 @@ const wrapExitBlock = (editor: Editor, RoomId: string) => {
 const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
     const editor = useSlate()
     const { readonly } = useLibraryAsset()
-    const { selection } = editor
     const onClick = useCallback(() => {
         wrapExitBlock(editor, RoomId)
     }, [editor])
     return <Button
         variant="outlined"
-        disabled={readonly || !selection}
+        disabled={readonly}
         onClick={onClick}
     >
         <AddIcon /><ExitIcon />

@@ -74,13 +74,12 @@ type AddIfButton = {
 export const AddIfButton: FunctionComponent<AddIfButton> = ({ defaultBlock}) => {
     const editor = useSlate()
     const { readonly } = useLibraryAsset()
-    const { selection } = editor
     const onClick = useCallback(() => {
         wrapIfBlock(editor, defaultBlock)
     }, [editor])
     return <Button
         variant="outlined"
-        disabled={readonly || !selection}
+        disabled={readonly}
         onClick={onClick}
     >
         <IfIcon />If
