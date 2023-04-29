@@ -355,12 +355,12 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             flexDirection: 'column',
             flexGrow: 1,
         }}>
+            <InheritedExits importFrom={importFrom} RoomId={RoomId} />
             <Slate editor={editor} value={value} onChange={setValue}>
-                <InheritedExits importFrom={importFrom} RoomId={RoomId} />
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
-                    readOnly={readonly}
+                    readOnly={readonly || !value.find((item) => (isCustomBlock(item) && ["ifBase", "elseIf", "else", "exit"].includes(item.type))) }
                 />
                 <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                     <AddExitButton RoomId={RoomId} />
