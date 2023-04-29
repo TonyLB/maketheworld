@@ -42,6 +42,7 @@ export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxPr
                 paddingLeft: '0.25em',
                 paddingTop: "0.5em",
                 marginTop: '1em',
+                minWidth: '1.5em',
                 ...actions ? {
                     marginBottom: '0.35em'
                 } : {},
