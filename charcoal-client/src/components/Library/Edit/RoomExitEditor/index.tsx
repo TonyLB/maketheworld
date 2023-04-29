@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography"
 import { blue, grey } from "@mui/material/colors"
 import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit, NormalReference, NormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
-import { createEditor, Descendant, Editor, Node, Path, Transforms } from "slate"
+import { createEditor, Descendant, Editor, Node, Path, Transforms, Element as SlateElement } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, ReactEditor, RenderElementProps, Slate, useSlate, withReact } from "slate-react"
 import { reduceItemsToTree } from "../conditionTree"
@@ -23,7 +23,7 @@ import InputLabel from "@mui/material/InputLabel"
 import Toolbar from "@mui/material/Toolbar/Toolbar"
 import withConditionals from "../DescriptionEditor/conditionals"
 import slateToExitSchema from "./slateToExitTree"
-import { CustomBlock, CustomExitBlock, isCustomBlock } from "../baseClasses"
+import { CustomBlock, CustomExitBlock, isCustomBlock, isCustomParagraph } from "../baseClasses"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { Button } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
@@ -160,10 +160,16 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string; inherite
     const editor = useSlate()
     const { readonly, rooms } = useLibraryAsset()
     const { attributes, children, element } = props
-    const path = useMemo(() => (ReactEditor.findPath(editor, element)), [editor, element])
+    const path = ReactEditor.findPath(editor, element)
     const AssetId = useMemo(() => (rooms[RoomId].importFrom), [rooms, RoomId])
     const onDeleteHandler = useCallback(() => {
         Transforms.removeNodes(editor, { at: path })
+        if (editor.children.length === 0) {
+            Transforms.insertNodes(editor, {
+                type: 'paragraph',
+                children: [{ text: '' }]
+            })
+        }
     }, [editor, path])
     const onFlipHandler = useCallback(() => {
         if (!(readonly || inherited) && element.type === 'exit') {
@@ -246,6 +252,7 @@ const wrapExitBlock = (editor: Editor, RoomId: string) => {
         children: [{ text: '' }]
     }
     Transforms.insertNodes(editor, block)
+    Transforms.removeNodes(editor, { at: [], match: (node) => (SlateElement.isElement(node) && Editor.isBlock(editor, node) && isCustomParagraph(node))})
 }
 
 const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
