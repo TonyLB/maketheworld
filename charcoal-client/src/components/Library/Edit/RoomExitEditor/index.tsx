@@ -275,6 +275,11 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
     </Button>
 }
 
+//
+// TODO: Add cleanup procedure argument to AddIfButton, and use it to clean up empty text fields when If is inserted
+// TODO: Make text entry in a paragraph normalize to entry of an exit
+// TODO: Make AddExit button correctly target the current cursor position
+//
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const editor = useMemo(() => withConditionals(withHistory(withReact(createEditor()))), [])
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
