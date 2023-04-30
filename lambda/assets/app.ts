@@ -82,6 +82,20 @@ export const handler = async (event, context) => {
                 return JSON.stringify(`Invalid arguments specified for Format Image event`)
             }
         }
+        if (event["detail-type"] === 'Remove Asset') {
+            const { AssetId } = event.detail
+            if (AssetId) {
+                messageBus.send({
+                    type: 'RemoveAsset',
+                    AssetId
+                })
+                await messageBus.flush()
+                return await extractReturnValue(messageBus)
+            }
+            else {
+                return JSON.stringify(`Invalid arguments specified for Remove Asset event`)
+            }
+        }
     }
     
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined

@@ -12,7 +12,8 @@ import {
     isFormatImageMessage,
     isFetchImportsAPIMessage,
     isLibraryUnsubscribeMessage,
-    isPlayerSettingMessage
+    isPlayerSettingMessage,
+    isRemoveAssetMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
@@ -24,6 +25,7 @@ import libraryUpdateMessage from "../libraryUpdate"
 import formatImageMessage from "../formatImage"
 import { fetchImportsMessage } from "../fetchImportDefaults"
 import playerSettingMessage from "../player/update"
+import removeAssetMessage from "../removeAsset"
 
 export const messageBus = new MessageBus()
 
@@ -74,6 +76,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isMoveAssetMessage,
     callback: moveAssetMessage
+})
+messageBus.subscribe({
+    tag: 'RemoveAsset',
+    priority: 5,
+    filter: isRemoveAssetMessage,
+    callback: removeAssetMessage
 })
 messageBus.subscribe({
     tag: 'LibrarySubscribe',
