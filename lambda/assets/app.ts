@@ -151,7 +151,8 @@ export const handler = async (event, context) => {
                 type: 'ParseWML',
                 AssetId: request.AssetId,
                 uploadName: request.uploadName,
-                images: request.images
+                images: request.images,
+                create: request.create
             })
         }
         if (isAssetCheckinAPIMessage(request)) {
