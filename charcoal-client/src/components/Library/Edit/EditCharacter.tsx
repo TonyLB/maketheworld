@@ -52,7 +52,7 @@ import { deepEqual } from '../../../lib/objects'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets } from '../../../slices/player'
-import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import { useNextOnboarding, useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 
 type ReplaceLiteralTagProps = {
@@ -510,6 +510,13 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             dispatch(heartbeat)
         }
     }, [dispatch, character?.key, normalForm, updateNormal])
+    const next = useNextOnboarding()
+    const saveHandler = useCallback(() => {
+        if (next === 'saveCharacter') {
+            dispatch(addOnboardingComplete(['saveCharacter']))
+        }
+        save()
+    }, [save, next])
 
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
@@ -517,7 +524,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             secondary={character?.key || ''}
             commands={
                 <React.Fragment>
-                    <Button onClick={save} disabled={status === 'FRESH'}><SaveIcon />Save</Button>
+                    <Button onClick={saveHandler} disabled={status === 'FRESH'}><SaveIcon />Save</Button>
                     <IconButton onClick={() => { navigate(`WML`) }}>
                         <TextSnippetIcon />
                     </IconButton>
