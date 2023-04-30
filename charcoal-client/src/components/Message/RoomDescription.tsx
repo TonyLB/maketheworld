@@ -31,6 +31,7 @@ import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import { useNavigate } from 'react-router-dom'
 import { addOnboardingComplete } from '../../slices/player/index.api'
+import { useNextOnboarding, useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
@@ -111,16 +112,13 @@ export const LiveRoomChip: FunctionComponent<{}> = () => {
 
 export const RoomDescription = ({ message, header, currentHeader }: RoomDescriptionProps) => {
     const { Description, Name, Characters = [], Exits = [] } = message
-    const { currentDraft } = useSelector(getPlayer)
+    const { currentDraft, Assets } = useSelector(getPlayer)
     const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
     const currentAssets = useMemo(() => (message.assets || {}), [message])
+    const inPersonalRoom = useMemo(() => (currentHeader && Boolean(Object.keys(currentAssets).map((assetId) => (assetId.split('#')[1])).find((key) => (Assets.map(({ AssetId }) => (AssetId)).includes(key))))), [currentHeader, Assets, currentAssets])
     const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentAssets, status])
+    useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
 
-    //
-    // TODO: Make "Live" indicator to show the user which description is the current header (and gets updates)
-    //
-    // TODO: Change margins of non-header descriptions to visually distinguish them
-    //
     return <MessageComponent
             sx={{
                 paddingTop: "10px",
