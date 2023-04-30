@@ -50,7 +50,7 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
 const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; AssetId?: string; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, AssetId, onChange }) => {
     const { rooms, readonly, importData } = useLibraryAsset()
     const roomNamesInScope: Record<string, ComponentRenderItem[]> = objectFilterEntries(
-        AssetId
+        (inherited && AssetId)
             ? Object.entries(importData(AssetId))
                 .filter(([_, item]) => (isNormalRoom(item)))
                 .map(([key, { appearances }]): [string, ComponentRenderItem[]] => ([key, (appearances as NormalRoom["appearances"])
