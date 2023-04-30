@@ -200,6 +200,7 @@ export type AssetClientParseWML = {
     messageType: 'ParseWML';
     RequestId?: string;
     images: ParseWMLAPIImage[];
+    create?: boolean;
 }
 
 export type AssetClientMessage = AssetClientPlayerMessage |
@@ -337,8 +338,8 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                 importMessage.assetId.split('#')[0] === 'ASSET'))
         case 'ParseWML':
             return checkAll(
-                checkTypes(message, {}, { RequestId: 'string' }),
-                ...message.images.map((image) => (checkTypes(image, { key: 'string', fileName: 'string' })))
+                checkTypes(message, {}, { RequestId: 'string', create: 'boolean' }),
+                ...message.images.map((image) => (checkTypes(image, { key: 'string', fileName: 'string' }))),
             )
         default: return false
     }
