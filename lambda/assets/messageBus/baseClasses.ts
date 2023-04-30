@@ -103,7 +103,7 @@ export type LibraryUpdateMessage = {
 
 export type RemoveAssetMessage = {
     type: 'RemoveAsset';
-    AssetId: string;
+    assetId: string;
 }
 
 export type MessageType = ReturnValueMessage |

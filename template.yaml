@@ -172,6 +172,7 @@ Resources:
                 - mtw.coordination
               detail-type:
                 - Decache Asset
+                - Remove Asset
                 - Cache Asset
                 - Update Player
         Development:
@@ -899,7 +900,7 @@ Resources:
                       - "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
                       - UserPoolId: !Ref UserPool
           Events:
-            HealAsset:
+            Diagnostics:
               Type: CloudWatchEvent
               Properties:
                 EventBusName: !Sub ${TablePrefix}-bus
@@ -909,7 +910,7 @@ Resources:
                   detail-type:
                     - Heal Asset
                     - Heal Player
-            FormatImage:
+            Coordination:
               Type: CloudWatchEvent
               Properties:
                 EventBusName: !Sub ${TablePrefix}-bus
@@ -918,14 +919,6 @@ Resources:
                     - mtw.coordination
                   detail-type:
                     - Format Image
-            RemoveAsset:
-              Type: CloudWatchEvent
-              Properties:
-                EventBusName: !Sub ${TablePrefix}-bus
-                Pattern:
-                  source:
-                    - mtw.coordination
-                  detail-type:
                     - Remove Asset
 
 Outputs:

@@ -83,11 +83,11 @@ export const handler = async (event, context) => {
             }
         }
         if (event["detail-type"] === 'Remove Asset') {
-            const { AssetId } = event.detail
-            if (AssetId) {
+            const { assetId } = event.detail
+            if (assetId) {
                 messageBus.send({
                     type: 'RemoveAsset',
-                    AssetId
+                    assetId
                 })
                 await messageBus.flush()
                 return await extractReturnValue(messageBus)
