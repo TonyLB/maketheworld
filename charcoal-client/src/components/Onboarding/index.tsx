@@ -219,7 +219,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
 export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     const next = useNextOnboarding()
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
-    const { output: previous } = onboardingCheckpointSequence.slice(0, -1).reduce<{ output?: string; finished: boolean }>((previous, key) => {
+    const { output: previous } = onboardingCheckpointSequence.slice(0, -1).reduce<{ output?: OnboardingKey; finished: boolean }>((previous, key) => {
         if (key in listItems) {
             return {
                 ...previous,
@@ -241,11 +241,11 @@ export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     const dispatch = useDispatch()
     const backOnClick = useCallback(() => {
         if (previous) {
-            dispatch(removeOnboardingComplete([previous, ...Object.keys(listItems)]))
+            dispatch(removeOnboardingComplete([previous, ...Object.keys(listItems) as OnboardingKey[]]))
         }
     }, [previous, listItems])
     const skipOnClick = useCallback(() => {
-        dispatch(addOnboardingComplete(Object.keys(listItems)))
+        dispatch(addOnboardingComplete(Object.keys(listItems) as OnboardingKey[]))
     }, [listItems])
     return <Stack sx={{ height: "100%" }}>
         { next && 
