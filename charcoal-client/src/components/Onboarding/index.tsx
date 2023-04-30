@@ -267,6 +267,7 @@ export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
                         { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
                         <Box sx={{ flexGrow: 1 }} />
                         { next !== 'closeOnboarding' && <Button variant="contained" onClick={skipOnClick}>Skip</Button> }
+                        { next === 'closeOnboarding' && <Button variant="contained" onClick={() => { dispatch(addOnboardingComplete(['closeOnboarding'])) }}>Close Onboarding</Button> }
                     </Stack>
                 </CardActions>
             </Card>
