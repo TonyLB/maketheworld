@@ -110,7 +110,8 @@ const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> 
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useUpdatedSlate({
         initializeEditor: () => withConditionals(withHistory(withReact(createEditor()))),
-        value: inheritedExits
+        value: inheritedExits,
+        comparisonOutput: () => 'Test'
     })
 
     if ((inheritedExits || []).length === 0) {
@@ -274,7 +275,6 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
 }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const [editor] = useState(() => withConditionals(withHistory(withReact(createEditor()))))
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
     const ifCleanup = useCallback((editor: Editor) => {
@@ -292,10 +292,15 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         ), [normalForm, RoomId])
     const defaultValue = useMemo(() => (exitTreeToSlate(normalForm)(relevantExits)), [normalForm, relevantExits])
     const [value, setValue] = useState(defaultValue)
-    useEffect(() => {
-        editor.children = defaultValue
-        Editor.normalize(editor, { force: true })
-    }, [editor, defaultValue])
+    const editor = useUpdatedSlate({
+        initializeEditor: () => withConditionals(withHistory(withReact(createEditor()))),
+        value: defaultValue,
+        comparisonOutput: () => 'Test'
+    })
+    //
+    // TODO: Abstract logic to generate normal changes into a generateChanges function that takes RoomId, normalForm, and nodes,
+    // and returns a list of updateNormal arguments
+    //
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
         const deleteReferences = Object.values(normalForm)
             .filter(isNormalExit)
