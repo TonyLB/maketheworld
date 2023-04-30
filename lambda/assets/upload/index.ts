@@ -14,7 +14,7 @@ import { assetWorkspaceFromAssetId } from "../utilities/assets"
 import { ebClient } from "../clients"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
-import AssetWorkspace from "@tonylb/mtw-asset-workspace"
+import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 const { UPLOAD_BUCKET } = process.env;
