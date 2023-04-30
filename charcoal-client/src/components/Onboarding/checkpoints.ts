@@ -27,6 +27,10 @@ export const onboardingCheckpointSequence = [
     'addExit',
     'addExitBack',
     'saveAsset',
+    'navigateLibraryAfterAsset',
+    'editCharacter',
+    'editCharacterAssets',
+    'saveCharacter',
     'navigatePlayWithPersonalRoom',
     'navigatePersonalRoom',
     'closeOnboarding'

@@ -183,13 +183,26 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
                     }
                 }
             case 'saveAsset':
+            case 'navigateLibraryAfterAsset':
+            case 'editCharacter':
+            case 'editCharacterAssets':
+            case 'saveCharacter':
+                return {
+                    text: `You have a draft of a new creation for the shared world, now it's time to let the system know about it`,
+                    listItems: {
+                        saveAsset: `Close the detail editor and return to the main table-of-contents for your new Asset. Press the "Save" button at upper right to send your draft to the system.`,
+                        navigateLibraryAfterAsset: `Select the main Library on the navigation tabs.`,
+                        editCharacter: `Select the player you are playing with, and click the edit button the preview pane.`,
+                        editCharacterAssets: 'Click the "Assets" field at bottom, and add your new asset to the selection to see for this character.',
+                        saveCharacter: `At upper right, click the "Save" button to save the change.`
+                    }
+                }
             case 'navigatePlayWithPersonalRoom':
             case 'navigatePersonalRoom':
                 return {
-                    text: `You have a draft of a new creation for the shared world, now it's time to let the system know about it, and see it in play`,
+                    text: `You've updated the system to know about your asset and to show it for your character. Time to go take a look`,
                     listItems: {
-                        saveAsset: `Close the detail editor and return to the main table-of-contents for your new Asset. Press the "Save" button at upper right to send your draft to the system.`,
-                        navigatePlayWithPersonalRoom: `Close the Asset, and navigate back to your In-Play window. The new exit you created should be visible in the room you chose.`,
+                        navigatePlayWithPersonalRoom: `Navigate back to your In-Play window. The new exit you created should be visible in the room you chose.`,
                         navigatePersonalRoom: 'Press that exit to travel to your new room.'
                     }
                 }
