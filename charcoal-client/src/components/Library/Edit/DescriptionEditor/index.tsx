@@ -78,7 +78,8 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const editor = useUpdatedSlate({
         initializeEditor: () => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))),
-        value: inheritedValue
+        value: inheritedValue,
+        comparisonOutput: descendantsToRender
     })
     const decorate = useCallback(decorateFactory(editor), [editor])
 
@@ -334,7 +335,8 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
         initializeEditor: () => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))),
-        value: defaultValue
+        value: defaultValue,
+        comparisonOutput: descendantsToRender
     })
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
