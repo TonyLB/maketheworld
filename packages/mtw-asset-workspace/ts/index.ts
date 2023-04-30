@@ -188,7 +188,7 @@ export class AssetWorkspace {
     // TODO: Refactor tokenizer, parser, and schema to accept generators, then make setWML capable of
     // reading in a stream, and processing it as it arrives
     //
-    setWML(source: string): void {
+    async setWML(source: string): Promise<void> {
         const normalizer = new Normalizer()
         normalizer.loadWML(source)
         normalizer.standardize()
@@ -197,7 +197,8 @@ export class AssetWorkspace {
         }
         this.normal = normalizer.normal
         //
-        // TODO: Add any imported-but-not-yet-mapped keys to the namespaceToDB mapping
+        // TODO: For any imports, pull in the JSON for the asset being imported from, and extract
+        // the namespaceIdToDB 
         //
         Object.values(this.normal)
             .filter(isMappableNormalItem)
@@ -229,7 +230,7 @@ export class AssetWorkspace {
             throw err
         }
 
-        this.setWML(contents)
+        await this.setWML(contents)
         this.status.wml = 'Clean'
     }
 
@@ -246,7 +247,7 @@ export class AssetWorkspace {
             throw err
         }
 
-        this.setWML(contents)
+        await this.setWML(contents)
         this.status.wml = 'Clean'
     }
 

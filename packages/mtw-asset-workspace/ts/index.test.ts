@@ -135,7 +135,7 @@ describe('AssetWorkspace', () => {
                 'a123': 'TestA'
             }
             uuidv4Mock.mockImplementation(uuidMockFactory())
-            testWorkspace.setWML(`
+            await testWorkspace.setWML(`
                 <Asset key=(Test) fileName="Test">
                     <Room key=(a123)>
                         <Exit to=(b456)>welcome</Exit>
@@ -159,8 +159,8 @@ describe('AssetWorkspace', () => {
                 'a123': 'TestA'
             }
             uuidv4Mock.mockImplementation(uuidMockFactory())
-            expect(() => {
-                testWorkspace.setWML(`
+            await expect(async () => {
+                await testWorkspace.setWML(`
                     <Asset key=(TestOne) fileName="Test">
                         <Room key=(a123) />
                     </Asset>
@@ -168,7 +168,7 @@ describe('AssetWorkspace', () => {
                         <Room key=(a123) />
                     </Asset>
                 `)
-            }).toThrowError()
+            }).rejects.toThrowError()
         })
     
     })
@@ -270,7 +270,7 @@ describe('AssetWorkspace', () => {
                     </Room>
                 </Asset>
             `
-            testWorkspace.setWML(testSource)
+            await testWorkspace.setWML(testSource)
 
             await testWorkspace.pushWML()
             expect(testWorkspace.status.wml).toEqual('Clean')
@@ -284,7 +284,7 @@ describe('AssetWorkspace', () => {
     })
 
     describe('setWML', () => {
-        it('should not set JSON dirty on no-op', () => {
+        it('should not set JSON dirty on no-op', async () => {
             const testWorkspace = new AssetWorkspace({
                 fileName: 'Test',
                 zone: 'Library'
@@ -303,12 +303,12 @@ describe('AssetWorkspace', () => {
                     </Room>
                 </Asset>
             `
-            testWorkspace.setWML(testSource)
+            await testWorkspace.setWML(testSource)
 
             expect(testWorkspace.status.json).toEqual('Dirty')
             testWorkspace.status.json = 'Clean'
 
-            testWorkspace.setWML(testSource)
+            await testWorkspace.setWML(testSource)
             expect(testWorkspace.status.json).toEqual('Clean')
 
         })
