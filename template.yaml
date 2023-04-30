@@ -920,6 +920,7 @@ Resources:
                   detail-type:
                     - Format Image
                     - Remove Asset
+                    - Canonize Asset
 
 Outputs:
   UserPoolClient:

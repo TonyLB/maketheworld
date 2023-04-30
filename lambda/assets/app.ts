@@ -96,6 +96,21 @@ export const handler = async (event, context) => {
                 return JSON.stringify(`Invalid arguments specified for Remove Asset event`)
             }
         }
+        if (event["detail-type"] === 'Canonize Asset') {
+            const { assetId } = event.detail
+            if (assetId) {
+                messageBus.send({
+                    type: 'MoveByAssetId',
+                    AssetId: `ASSET#${assetId}`,
+                    toZone: 'Canon'
+                })
+                await messageBus.flush()
+                return await extractReturnValue(messageBus)
+            }
+            else {
+                return JSON.stringify(`Invalid arguments specified for Canonize Asset event`)
+            }
+        }
     }
     
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
