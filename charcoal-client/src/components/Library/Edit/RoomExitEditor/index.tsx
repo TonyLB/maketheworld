@@ -29,6 +29,7 @@ import { Button } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { objectFilterEntries, objectMap } from "../../../../lib/objects"
 import useUpdatedSlate from "../../../../hooks/useUpdatedSlate"
+import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -180,6 +181,7 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string; inherite
             Transforms.setNodes(editor, { to, from }, { at: path })
         }
     }, [element, editor, path])
+    useOnboardingCheckpoint('addExit', { requireSequence: true, condition: (!inherited && element.type === 'exit' && element.from === RoomId && children.find((item) => ('text' in item && item.text)))})
     switch(element.type) {
         case 'ifBase':
         case 'elseif':
