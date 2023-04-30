@@ -25,7 +25,7 @@ import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
 import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import AddAsset from './Edit/AddAsset'
-import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
+import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 interface TableOfContentsProps {
     Characters: AssetClientPlayerCharacter[];
@@ -92,6 +92,7 @@ interface LibraryProps {
 
 export const Library: FunctionComponent<LibraryProps> = () => {
     useOnboardingCheckpoint('navigateLibrary')
+    useOnboardingCheckpoint('navigateLibraryAfterAsset', { requireSequence: true })
     const dispatch = useDispatch()
     useEffect(() => {
         dispatch(setIntent(['CONNECTED']))
