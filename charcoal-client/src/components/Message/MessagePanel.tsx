@@ -27,6 +27,7 @@ export const MessagePanel: FunctionComponent<{}> = () => {
     const { currentDraft } = useSelector(getPlayer)
     useOnboardingCheckpoint('navigatePlay')
     useOnboardingCheckpoint('navigatePlayWithAsset', { requireSequence: true, condition: Boolean(currentDraft) })
+    useOnboardingCheckpoint('navigatePlayWithPersonalRoom', { requireSequence: true })
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
         dispatch(setIntent({ key: CharacterId, intent: ['CONNECTED', 'MAPSUBSCRIBED']}))
