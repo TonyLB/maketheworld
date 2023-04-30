@@ -22,10 +22,6 @@ export const useUpdatedSlate = <T>({ initializeEditor, value, comparisonOutput }
             Editor.normalize(editor, { force: true })
             const previousSelection = editor.selection ? { ...editor.selection } : null
             Transforms.select(editor, (previousSelection && Range.intersection(previousSelection, Editor.range(editor, []))) || { anchor: Editor.end(editor, []), focus: Editor.end(editor, []) })
-            console.log('Diff detected!')
-        }
-        else {
-            console.log('No diff detected!')
         }
     }, [editor, value])
     return editor

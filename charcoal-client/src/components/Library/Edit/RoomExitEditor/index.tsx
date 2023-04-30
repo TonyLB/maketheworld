@@ -3,7 +3,7 @@ import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import { blue, grey } from "@mui/material/colors"
-import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit, NormalReference, NormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit, NormalForm, NormalReference, NormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
 import { createEditor, Descendant, Editor, Transforms, Element as SlateElement } from "slate"
 import { withHistory } from "slate-history"
@@ -30,6 +30,7 @@ import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { objectFilterEntries, objectMap } from "../../../../lib/objects"
 import useUpdatedSlate from "../../../../hooks/useUpdatedSlate"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
+import { UpdateNormalPayload } from "../../../../slices/personalAssets/reducers"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -85,11 +86,48 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
     </FormControl>
 }
 
-const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> = ({ importFrom, RoomId }) => {
+const generateNormalChanges = ({ nodes, RoomId, normalForm }: { nodes: Descendant[]; RoomId: string; normalForm: NormalForm }) => {
+    let changes: UpdateNormalPayload[] = []
+    const deleteReferences = Object.values(normalForm)
+        .filter(isNormalExit)
+        .filter(({ to, from }) => (to === RoomId || from === RoomId))
+        .reduce<NormalReference[]>((previous, { key, appearances = [] }) => ([
+            ...previous,
+            ...appearances.map((_, index) => ({ key, index, tag: 'Exit' as 'Exit' })).reverse()
+        ]), [])
+    if (deleteReferences.length) {
+        changes = [
+            ...changes,
+            {
+                type: 'delete',
+                references: deleteReferences
+            }
+        ]
+    }
+    const exitSchemaByRoomId = slateToExitSchema(nodes.filter(isCustomBlock))
+    Object.keys(exitSchemaByRoomId).forEach((lookupRoomId) => {
+        const roomLookup = normalForm[lookupRoomId]
+        if (roomLookup && isNormalRoom(roomLookup)) {
+            exitSchemaByRoomId[lookupRoomId].forEach((item) => {
+                const firstUnconditionedAppearance = (roomLookup.appearances || []).findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If' || tag === 'Map'))))
+                if (firstUnconditionedAppearance !== -1) {
+                    const contextStack = roomLookup.appearances[firstUnconditionedAppearance].contextStack
+                    changes = [
+                        ...changes,
+                        {
+                            type: 'put',
+                            item,
+                            position: { contextStack: [...contextStack, { key: lookupRoomId, index: firstUnconditionedAppearance, tag: 'Room' }] }
+                        }
+                    ]
+                }
+            })
+        }
+    })
+    return changes
+}
 
-    //
-    // TODO: Add "inherited" property to Element, and use it to remove delete button, deactivate swap button, and read-only selects
-    //
+const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> = ({ importFrom, RoomId }) => {
     const { importData } = useLibraryAsset()
     const importNormal = useMemo(() => (importData(importFrom)), [importData, importFrom])
     const inheritedExits = useMemo<Descendant[]>(() => {
@@ -292,50 +330,20 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         ), [normalForm, RoomId])
     const defaultValue = useMemo(() => (exitTreeToSlate(normalForm)(relevantExits)), [normalForm, relevantExits])
     const [value, setValue] = useState(defaultValue)
+    const comparisonOutput = useCallback((nodes: Descendant[]) => (generateNormalChanges({ nodes, normalForm, RoomId })), [normalForm, RoomId])
     const editor = useUpdatedSlate({
         initializeEditor: () => withConditionals(withHistory(withReact(createEditor()))),
         value: defaultValue,
-        comparisonOutput: () => 'Test'
+        comparisonOutput
     })
     //
     // TODO: Abstract logic to generate normal changes into a generateChanges function that takes RoomId, normalForm, and nodes,
     // and returns a list of updateNormal arguments
     //
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
-        const deleteReferences = Object.values(normalForm)
-            .filter(isNormalExit)
-            .filter(({ to, from }) => (to === RoomId || from === RoomId))
-            .reduce<NormalReference[]>((previous, { key, appearances = [] }) => ([
-                ...previous,
-                ...appearances.map((_, index) => ({ key, index, tag: 'Exit' as 'Exit' })).reverse()
-            ]), [])
-        if (deleteReferences.length) {
-            updateNormal({
-                type: 'delete',
-                references: deleteReferences
-            })
-        }
-        const exitSchemaByRoomId = slateToExitSchema(nodes.filter(isCustomBlock))
-        Object.keys(exitSchemaByRoomId).forEach((lookupRoomId) => {
-            const roomLookup = normalForm[lookupRoomId]
-            if (roomLookup && isNormalRoom(roomLookup)) {
-                exitSchemaByRoomId[lookupRoomId].forEach((item) => {
-                    //
-                    // TODO: Refactor slateToExitSchema to return separate node lists that need to be added into
-                    // the various rooms *from which* exits originate, then apply them appropriately
-                    // to those different rooms.
-                    //
-                    const firstUnconditionedAppearance = (roomLookup.appearances || []).findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If' || tag === 'Map'))))
-                    if (firstUnconditionedAppearance !== -1) {
-                        const contextStack = roomLookup.appearances[firstUnconditionedAppearance].contextStack
-                        updateNormal({
-                            type: 'put',
-                            item,
-                            position: { contextStack: [...contextStack, { key: lookupRoomId, index: firstUnconditionedAppearance, tag: 'Room' }] }
-                        })    
-                    }
-                })
-            }
+        const changes = generateNormalChanges({ nodes, normalForm, RoomId })
+        changes.forEach((change) => {
+            updateNormal(change)
         })
     }, [RoomId, normalForm, updateNormal])
     useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
