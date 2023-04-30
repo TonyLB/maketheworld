@@ -7,6 +7,7 @@ import {
 import { LifeLinePubSubData } from '../lifeLine/lifeLine'
 import { getMyAssets, getMySettings } from './selectors'
 import { getSerialized } from '../personalAssets'
+import { OnboardingKey } from '../../components/Onboarding/checkpoints'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
@@ -66,7 +67,7 @@ export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }
     return {}
 }
 
-export const removeOnboardingComplete = (tags: PlayerPublic["Settings"]["onboardCompleteTags"]) => async (dispatch) => {
+export const removeOnboardingComplete = (tags: OnboardingKey[]) => async (dispatch) => {
     await dispatch(socketDispatchPromise({
         message: 'updatePlayerSettings',
         action: 'removeOnboarding',
@@ -74,7 +75,7 @@ export const removeOnboardingComplete = (tags: PlayerPublic["Settings"]["onboard
     }, { service: 'asset' }))    
 }
 
-export const addOnboardingComplete = (tags: PlayerPublic["Settings"]["onboardCompleteTags"]) => async (dispatch, getState) => {
+export const addOnboardingComplete = (tags: OnboardingKey[]) => async (dispatch, getState) => {
     const { onboardCompleteTags } = getMySettings(getState()?.player?.publicData)
     const updateTags = tags.filter((tag) => (!onboardCompleteTags.includes(tag)))
     if (updateTags.length) {

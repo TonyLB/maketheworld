@@ -38,7 +38,7 @@ import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
-import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import { useNextOnboarding, useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 
 type AssetEditFormProps = {}
@@ -118,13 +118,20 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
             })
         }
     }, [updateNormal, normalForm])
+    const next = useNextOnboarding()
+    const saveHandler = useCallback(() => {
+        if (next === 'saveAsset') {
+            dispatch(addOnboardingComplete(['saveAsset']))
+        }
+        save()
+    }, [save, next])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
             primary={asset?.key || 'Untitled'}
             secondary={asset?.Story ? 'Story' : 'Asset'}
             commands={
                 <React.Fragment>
-                    <Button onClick={save} disabled={status === 'FRESH'}><SaveIcon />Save</Button>
+                    <Button onClick={saveHandler} disabled={status === 'FRESH'}><SaveIcon />Save</Button>
                     <IconButton onClick={() => { navigate(`WML`) }}>
                         <TextSnippetIcon />
                     </IconButton>
