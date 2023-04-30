@@ -52,6 +52,7 @@ import { deepEqual } from '../../../lib/objects'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets } from '../../../slices/player'
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 
 type ReplaceLiteralTagProps = {
     normalForm: NormalForm;
@@ -573,6 +574,7 @@ export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
         type: 'LibraryEdit',
         assetId: AssetId
     })
+    useOnboardingCheckpoint('editCharacter', { requireSequence: true })
     const dispatch = useDispatch()
     useEffect(() => {
         if (assetKey) {
