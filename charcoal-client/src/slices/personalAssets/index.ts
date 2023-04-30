@@ -212,7 +212,8 @@ export const {
     getProperties,
     getLoadedImages,
     getSerialized,
-    getError
+    getError,
+    getAll
 } = selectors
 
 export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dispatch: any) => {

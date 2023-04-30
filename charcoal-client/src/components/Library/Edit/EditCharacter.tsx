@@ -30,6 +30,7 @@ import {
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
+    getAll,
     getStatus,
     setIntent,
     setLoadedImage
@@ -311,8 +312,11 @@ type EditCharacterAssetListProps = {}
 const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = () => {
     const { Assets: libraryAssets } = useSelector(getLibrary)
     const personalAssets = useSelector(getMyAssets)
+    const allPersonalAssets = useSelector(getAll)
     const assetsAvailable = [
-        ...personalAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
+        ...personalAssets
+            .filter(({ AssetId }) => ((`ASSET#${AssetId}` in allPersonalAssets && allPersonalAssets[`ASSET#${AssetId}`].serialized) || !(`ASSET#${AssetId}` in allPersonalAssets)))
+            .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
     ]
     const { normalForm, updateNormal, assetKey } = useLibraryAsset()
