@@ -338,7 +338,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
         case 'ParseWML':
             return checkAll(
                 checkTypes(message, {}, { RequestId: 'string' }),
-                ...message.images.map((image) => (checkTypes(image, { key: 'string', fileName: 'string' })))
+                ...message.images.map((image) => (checkTypes(image, { key: 'string', fileName: 'string' }))),
             )
         default: return false
     }

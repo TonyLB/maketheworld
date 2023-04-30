@@ -14,6 +14,8 @@ import { assetWorkspaceFromAssetId } from "../utilities/assets"
 import { ebClient } from "../clients"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/index"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 const { UPLOAD_BUCKET } = process.env;
 
@@ -99,22 +101,22 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
     }
     await Promise.all(
         payloads.map(async (payload) => (asyncSuppressExceptions(async () => {
-            const assetWorkspace = await assetWorkspaceFromAssetId(payload.AssetId, isEphemeraCharacterId(payload.AssetId))
-            //
-            // TODO: If assetWorkspace does not exist, check "create" property for address at which
-            // to create it.
-            //         
+            let assetWorkspace = await assetWorkspaceFromAssetId(payload.AssetId, isEphemeraCharacterId(payload.AssetId))
             if (!(assetWorkspace && assetWorkspace.address.zone === 'Personal' && assetWorkspace.address.player === player)) {
-                messageBus.send({
-                    type: 'ReturnValue',
-                    body: {
-                        messageType: 'Error',
-                        message: `Asset (${payload.AssetId}) not legal target`
-                    }
-                })
+                const [tag, key] = splitType(payload.AssetId)
+                if (payload.create && ['ASSET', 'CHARACTER'].includes(tag)) {
+                    assetWorkspace = new AssetWorkspace({
+                        zone: 'Personal',
+                        player,
+                        subFolder: tag === 'ASSET' ? 'Assets' : 'Characters',
+                        fileName: key
+                    })
+                }
             }
             else {
                 await assetWorkspace.loadJSON()
+            }
+            if (assetWorkspace) {
                 const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
                 const imageFiles = (await Promise.all([
                     assetWorkspace.loadWMLFrom(payload.uploadName, true),
@@ -126,7 +128,7 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                 if (imageFiles.length) {
                     assetWorkspace.status.json = 'Dirty'
                     imageFiles.forEach(({ key, fileName }) => {
-                        assetWorkspace.properties[key] = { fileName }
+                        (assetWorkspace as AssetWorkspace).properties[key] = { fileName }
                     })
                 }
                 if (assetWorkspace.status.json !== 'Clean') {
@@ -166,6 +168,16 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                         images: imageFiles
                     }
                 })
+            }
+            else {
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        messageType: 'Error',
+                        message: `Asset (${payload.AssetId}) not legal target`
+                    }
+                })
+                return
             }
         }, async () => {
             messageBus.send({

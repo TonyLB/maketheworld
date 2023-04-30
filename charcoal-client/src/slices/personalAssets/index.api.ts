@@ -151,7 +151,8 @@ export const parseWML: PersonalAssetsAction = ({
     },
     publicData: {
         loadedImages = {},
-        properties = {}
+        properties = {},
+        serialized
     }
 }) => async (dispatch, getState) => {
     if (!s3Object || !id || !(isEphemeraAssetId(id) || isEphemeraCharacterId(id))) {
@@ -176,7 +177,8 @@ export const parseWML: PersonalAssetsAction = ({
             else {
                 return previous
             }
-        }, [])
+        }, []),
+        ...(serialized ? {} : { create: true })
     }, { service: 'asset' })) as AssetClientParseWML
 
     return {
