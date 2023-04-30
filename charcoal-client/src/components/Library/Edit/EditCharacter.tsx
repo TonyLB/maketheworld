@@ -53,6 +53,7 @@ import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets } from '../../../slices/player'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import { addOnboardingComplete } from '../../../slices/player/index.api'
 
 type ReplaceLiteralTagProps = {
     normalForm: NormalForm;
@@ -310,11 +311,16 @@ const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, ta
 
 type EditCharacterAssetListProps = {}
 
+type ZonedAssets = {
+    key: string;
+    zone: string;
+}
+
 const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = () => {
     const { Assets: libraryAssets } = useSelector(getLibrary)
     const personalAssets = useSelector(getMyAssets)
     const allPersonalAssets = useSelector(getAll)
-    const assetsAvailable = [
+    const assetsAvailable: ZonedAssets[] = [
         ...personalAssets
             .filter(({ AssetId }) => ((`ASSET#${AssetId}` in allPersonalAssets && allPersonalAssets[`ASSET#${AssetId}`].serialized) || !(`ASSET#${AssetId}` in allPersonalAssets)))
             .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
@@ -330,6 +336,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
         .map((key) => (assetsAvailable.find(({ key: checkKey }) => (key === checkKey))))
         .filter((value) => (value))
     )
+    const dispatch = useDispatch()
     const onChange = useCallback((_, newAssets) => {
         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object'))
         setAssetsImported(saveableAssets)
@@ -351,7 +358,10 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
                 position: { contextStack: [{ tag: 'Character', key: assetKey, index: 0 }] }
             })
         })
-    }, [setAssetsImported, normalForm, updateNormal])
+        if (saveableAssets.filter((item) => (typeof item === 'object' && 'zone' in item && item.zone === 'Personal')).length) {
+            dispatch(addOnboardingComplete(['editCharacterAssets']))
+        }
+    }, [setAssetsImported, normalForm, updateNormal, dispatch])
     return <Autocomplete
         multiple
         id="asset-list"
