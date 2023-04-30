@@ -101,6 +101,11 @@ export type LibraryUpdateMessage = {
     type: 'LibraryUpdate';
 }
 
+export type RemoveAssetMessage = {
+    type: 'RemoveAsset';
+    assetId: string;
+}
+
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchImportsMessage |
@@ -114,7 +119,8 @@ export type MessageType = ReturnValueMessage |
     LibraryUnsubscribeMessage |
     PlayerInfoMessage |
     PlayerSettingsMessage |
-    LibraryUpdateMessage
+    LibraryUpdateMessage |
+    RemoveAssetMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
@@ -130,5 +136,6 @@ export const isLibraryUnsubscribeMessage = (prop: MessageType): prop is LibraryU
 export const isPlayerInfoMessage = (prop: MessageType): prop is PlayerInfoMessage => (prop.type === 'PlayerInfo')
 export const isPlayerSettingMessage = (prop: MessageType): prop is PlayerSettingsMessage => (prop.type === 'PlayerSettings')
 export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdateMessage => (prop.type === 'LibraryUpdate')
+export const isRemoveAssetMessage = (prop: MessageType): prop is RemoveAssetMessage => (prop.type === 'RemoveAsset')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

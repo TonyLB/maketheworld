@@ -83,6 +83,7 @@ export const handler = async (event: any, context: any) => {
     // Handle EventBridge messages
     if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
+            case 'Remove Asset':
             case 'Decache Asset':
                 if (event.detail?.assetId) {
                     messageBus.send({
