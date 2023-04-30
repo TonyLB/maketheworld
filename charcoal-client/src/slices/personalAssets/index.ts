@@ -16,7 +16,7 @@ import {
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
-import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
 import { isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
@@ -294,6 +294,32 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
     dispatch(fetchImports(assetId))
 }
 
+export const removeImport = ({ assetId, fromAsset }: {
+    assetId: EphemeraAssetId | EphemeraCharacterId,
+    fromAsset: string,
+}, options?: { overrideGetNormalized?: typeof getNormalized, overrideUpdateNormal?: typeof updateNormal }) => (dispatch: any, getState: any) => {
+    const normalSelector = (options?.overrideGetNormalized || getNormalized)(assetId)
+    const normal = normalSelector(getState())
+    const topLevelItem = normal[assetId.split('#')[1]]
+    if (!(topLevelItem && (isNormalAsset(topLevelItem) || isNormalCharacter(topLevelItem)))) {
+        return
+    }
+    const importItem = topLevelItem.appearances[0].contents
+        .filter(({ tag }) => (tag === 'Import'))
+        .map(({ key }) => (normal[key]))
+        .filter((value) => (value))
+        .filter(isNormalImport)
+        .find(({ from }) => (from === fromAsset))
+    if (importItem) {
+        dispatch((options?.overrideUpdateNormal ?? updateNormal)(assetId)({
+            type: 'delete',
+            references: importItem.appearances.map((_, index) => ({ key: importItem.key, tag: importItem.tag, index }))
+        }))
+    }
+    if (isEphemeraAssetId(assetId)) {
+        dispatch(fetchImports(assetId))
+    }
+}
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
 
 export default personalAssetsSlice.reducer
