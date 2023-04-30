@@ -220,7 +220,8 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string; inherite
             Transforms.setNodes(editor, { to, from }, { at: path })
         }
     }, [element, editor, path])
-    useOnboardingCheckpoint('addExit', { requireSequence: true, condition: (!inherited && element.type === 'exit' && element.from === RoomId && children.find((item) => ('text' in item && item.text)))})
+    useOnboardingCheckpoint('addExit', { requireSequence: true, condition: (!inherited && (element.type === 'exit') && (element.from === RoomId) && children.find((item) => ('text' in item && item.text)))})
+    useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: (!inherited && (element.type === 'exit') && (element.to === RoomId) && children.find((item) => ('text' in item && item.text)))})
     switch(element.type) {
         case 'ifBase':
         case 'elseif':
