@@ -1,5 +1,6 @@
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { addImport, getNormalized } from "."
+import { addImport, getNormalized, removeImport } from "."
+import { NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 
 const normalizer = new Normalizer()
 normalizer.loadWML(`<Asset key=(testAsset)>
@@ -91,5 +92,71 @@ describe('personalAssets slice', () => {
                 }
             })
         })
+
+        it('should add new import item to character', () => {
+            const normalizer = new Normalizer()
+            normalizer.loadWML(`<Character key=(testCharacter)>
+                <Name>Test</Name>
+                <Import from=(testImportOne) />
+            </Character>`)
+
+            addImport({
+                assetId: 'CHARACTER#testCharacter',
+                fromAsset: 'testImportTwo'
+            }, { overrideGetNormalized: jest.fn().mockReturnValue((): NormalForm => (normalizer.normal)), overrideUpdateNormal })(dispatch, getState)
+            expect(overrideUpdateNormalInternal).toHaveBeenCalledWith({
+                type: 'put',
+                position: { contextStack: [{ key: 'testCharacter', tag: 'Character', index: 0 }] },
+                item: {
+                    key: 'Import-2',
+                    tag: 'Import',
+                    from: 'testImportTwo',
+                    mapping: {}
+                }
+            })
+        })
+    })
+
+    describe('removeImport', () => {
+
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            overrideGetNormalizedInternal.mockReturnValue(normalizer.normal)
+            overrideGetNormalized.mockReturnValue(overrideGetNormalizedInternal)
+            overrideUpdateNormal.mockReturnValue(overrideUpdateNormalInternal)
+        })
+
+        it('should remove import from character', () => {
+            const normalizer = new Normalizer()
+            normalizer.loadWML(`<Character key=(testCharacter)>
+                <Name>Test</Name>
+                <Import from=(testImportOne) />
+            </Character>`)
+
+            removeImport({
+                assetId: 'CHARACTER#testCharacter',
+                fromAsset: 'testImportOne'
+            }, { overrideGetNormalized: jest.fn().mockReturnValue((): NormalForm => (normalizer.normal)), overrideUpdateNormal })(dispatch, getState)
+            expect(overrideUpdateNormalInternal).toHaveBeenCalledWith({
+                type: 'delete',
+                references: [{ key: 'Import-1', tag: 'Import', index: 0 }]
+            })
+        })
+
+        it('should no-op when asked to remove an import that is not present', () => {
+            const normalizer = new Normalizer()
+            normalizer.loadWML(`<Character key=(testCharacter)>
+                <Name>Test</Name>
+                <Import from=(testImportOne) />
+            </Character>`)
+
+            removeImport({
+                assetId: 'CHARACTER#testCharacter',
+                fromAsset: 'testImportTwo'
+            }, { overrideGetNormalized: jest.fn().mockReturnValue((): NormalForm => (normalizer.normal)), overrideUpdateNormal })(dispatch, getState)
+            expect(overrideUpdateNormalInternal).not.toHaveBeenCalled()
+        })
+
     })
 })

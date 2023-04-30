@@ -16,7 +16,7 @@ import {
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
-import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
 import { isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
@@ -212,7 +212,8 @@ export const {
     getProperties,
     getLoadedImages,
     getSerialized,
-    getError
+    getError,
+    getAll
 } = selectors
 
 export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dispatch: any) => {
@@ -223,9 +224,9 @@ export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dis
 export const addImport = ({ assetId, fromAsset, as, key, type }: {
     assetId: EphemeraAssetId | EphemeraCharacterId,
     fromAsset: string,
-    key: string;
+    key?: string;
     as?: string;
-    type: SchemaImportMapping["type"];
+    type?: SchemaImportMapping["type"];
 }, options?: { overrideGetNormalized?: typeof getNormalized, overrideUpdateNormal?: typeof updateNormal }) => (dispatch: any, getState: any) => {
     const normalSelector = (options?.overrideGetNormalized || getNormalized)(assetId)
     const normal = normalSelector(getState())
@@ -246,32 +247,34 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
         return importItem.from === fromAsset
     })
     if (importIndex !== -1) {
-        const importRef = topLevelItem.appearances[0].contents[importIndex]
-        const importItem = normal[importRef.key]
-        if (!isNormalImport(importItem)) {
-            throw new Error('addImport error')
-        }
-        const newItem: SchemaImportTag = {
-            tag: 'Import',
-            key: importItem.key,
-            from: fromAsset,
-            mapping: {
-                ...Object.entries(importItem.mapping)
-                    .map(([outerKey, { key, type }]): [string, SchemaImportMapping] | undefined => (['Room', 'Feature', 'Variable', 'Computed', 'Action', 'Map'].includes(type) ? [outerKey, { key, type: type as SchemaImportMapping["type"] }] : undefined))
-                    .filter((value): value is [string, SchemaImportMapping] => (Boolean(value)))
-                    .reduce<Record<string, SchemaImportMapping>>((previous, [key, value]) => ({ ...previous, [key]: value }), {}),
-                [as || key]: { key, type }
+        if (key) {
+            const importRef = topLevelItem.appearances[0].contents[importIndex]
+            const importItem = normal[importRef.key]
+            if (!isNormalImport(importItem)) {
+                throw new Error('addImport error')
             }
+            const newItem: SchemaImportTag = {
+                tag: 'Import',
+                key: importItem.key,
+                from: fromAsset,
+                mapping: {
+                    ...Object.entries(importItem.mapping)
+                        .map(([outerKey, { key, type }]): [string, SchemaImportMapping] | undefined => (['Room', 'Feature', 'Variable', 'Computed', 'Action', 'Map'].includes(type) ? [outerKey, { key, type: type as SchemaImportMapping["type"] }] : undefined))
+                        .filter((value): value is [string, SchemaImportMapping] => (Boolean(value)))
+                        .reduce<Record<string, SchemaImportMapping>>((previous, [key, value]) => ({ ...previous, [key]: value }), {}),
+                    [as || key]: { key, type }
+                }
+            }
+            const position = { ...normalizer._referenceToInsertPosition(importRef), replace: true }
+            dispatch((options?.overrideUpdateNormal ?? updateNormal)(assetId)({
+                type: 'put',
+                item: newItem,
+                position
+            }))
         }
-        const position = { ...normalizer._referenceToInsertPosition(importRef), replace: true }
-        dispatch((options?.overrideUpdateNormal ?? updateNormal)(assetId)({
-            type: 'put',
-            item: newItem,
-            position
-        }))
     }
     else {
-        let nextSyntheticKey = 0
+        let nextSyntheticKey = 1
         while(`Import-${nextSyntheticKey}` in normal) {
             nextSyntheticKey++
         }
@@ -279,19 +282,45 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
             tag: 'Import',
             key: `Import-${nextSyntheticKey}`,
             from: fromAsset,
-            mapping: {
-                [as || key]: { key, type }
-            }
+            mapping: key
+                ? { [as || key]: { key, type } }
+                : {}
         }
         dispatch((options?.overrideUpdateNormal ?? updateNormal)(assetId)({
             type: 'put',
             item: newItem,
-            position: { contextStack: [{ key: assetId.split('#')[1], tag: 'Asset', index: 0 }] }
+            position: { contextStack: [{ key: assetId.split('#')[1], tag: assetId.split('#')[0] === 'ASSET' ? 'Asset' : 'Character', index: 0 }] }
         }))
     }
     dispatch(fetchImports(assetId))
 }
 
+export const removeImport = ({ assetId, fromAsset }: {
+    assetId: EphemeraAssetId | EphemeraCharacterId,
+    fromAsset: string,
+}, options?: { overrideGetNormalized?: typeof getNormalized, overrideUpdateNormal?: typeof updateNormal }) => (dispatch: any, getState: any) => {
+    const normalSelector = (options?.overrideGetNormalized || getNormalized)(assetId)
+    const normal = normalSelector(getState())
+    const topLevelItem = normal[assetId.split('#')[1]]
+    if (!(topLevelItem && (isNormalAsset(topLevelItem) || isNormalCharacter(topLevelItem)))) {
+        return
+    }
+    const importItem = topLevelItem.appearances[0].contents
+        .filter(({ tag }) => (tag === 'Import'))
+        .map(({ key }) => (normal[key]))
+        .filter((value) => (value))
+        .filter(isNormalImport)
+        .find(({ from }) => (from === fromAsset))
+    if (importItem) {
+        dispatch((options?.overrideUpdateNormal ?? updateNormal)(assetId)({
+            type: 'delete',
+            references: importItem.appearances.map((_, index) => ({ key: importItem.key, tag: importItem.tag, index }))
+        }))
+    }
+    if (isEphemeraAssetId(assetId)) {
+        dispatch(fetchImports(assetId))
+    }
+}
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
 
 export default personalAssetsSlice.reducer

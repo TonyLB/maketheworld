@@ -9,7 +9,7 @@ import {
     InferredInternalDataTypeAggregateFromNodes
 } from './baseClasses'
 import { iterateOneSSM } from './index'
-import { Entries } from '../../lib/objects'
+import { Entries, objectMap } from '../../lib/objects'
 import { Selector } from '../../store'
 
 type multipleSSMItem<Nodes extends Record<string, any>> = InferredDataTypeAggregateFromNodes<Nodes> & {
@@ -234,6 +234,10 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         return {}
     }
 
+    const getAll: Selector<Record<string, any>> = (state) => {
+        return objectMap(sliceSelector(state).byId, ({ publicData }) => (publicData))
+    }
+
     type SelectorAggregate = {
         [T in keyof typeof publicSelectors]: (key: string) => Selector<ReturnType<typeof publicSelectors[T]>>
     }
@@ -241,6 +245,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         getStatus: (key: string) => Selector<keyof Nodes | undefined>;
         getIntent: (key: string) => Selector<(keyof Nodes)[]>;
         getError: (key: string) => Selector<Record<string, any>>;
+        getAll: Selector<Record<string, any>>
     } = {
         ...(Object.entries(publicSelectors) as Entries<typeof publicSelectors>)
             .reduce((previous, [name, selector]) => ({
@@ -249,7 +254,8 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
             }), {} as Partial<SelectorAggregate>) as SelectorAggregate,
         getStatus,
         getIntent,
-        getError
+        getError,
+        getAll
     }
 
     return {
