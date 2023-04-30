@@ -179,7 +179,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
                     listItems: {
                         navigateAssetWithImport: `If needed, navigate back to the library and select the imported room to get to its detail editor.`,
                         addExit: `In the Exits section, click "Add Exit". Give the exit a descriptive name, and select the key of the room you created as a destination.`,
-                        addExitBack: `Click enter in the exit name, and you should be given an exit back from your created room to the room you imported. Give that a descriptive name as well.`
+                        addExitBack: `Click enter in the exit name, and you should be given an identical exit. Click the "here" button in it to reverse it to point back from your created room to the room you imported. Give that a descriptive name as well.`
                     }
                 }
             case 'saveAsset':
