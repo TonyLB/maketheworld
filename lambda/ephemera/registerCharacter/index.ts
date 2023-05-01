@@ -136,6 +136,10 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         }]
                     })
                     messageBus.send({
+                        type: 'CacheCharacterAssets',
+                        characterId: CharacterId
+                    })
+                    messageBus.send({
                         type: 'RoomUpdate',
                         roomId: RoomId
                     })
