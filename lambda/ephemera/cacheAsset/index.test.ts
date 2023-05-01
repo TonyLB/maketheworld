@@ -10,9 +10,14 @@ import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
 jest.mock('./perAsset')
 import { mergeIntoEphemera } from './perAsset'
 
+jest.mock('../internalCache')
+import internalCache from '../internalCache'
+
 import { cacheAssetMessage } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+
+const internalCacheMock = jest.mocked(internalCache, true)
 
 let mockTestAsset: NormalForm = {
     'Import-0': {
@@ -99,12 +104,11 @@ describe('cacheAsset', () => {
         mockNamespaceMap = {
             Test: 'ASSET#Test'
         }
+        internalCacheMock.CharacterConnections.get.mockResolvedValue([])
     })
 
     it('should skip processing when check option and already present', async () => {
-        ephemeraDBMock.getItem.mockResolvedValue({
-            EphemeraId: 'ASSET#Test'
-        })
+        internalCacheMock.AssetMeta.get.mockResolvedValue({ EphemeraId: 'ASSET#Test' })
         await cacheAssetMessage({
             payloads: [{
                 type: 'CacheAsset',
@@ -119,9 +123,7 @@ describe('cacheAsset', () => {
     })
 
     it('should skip processing when asset is an instanced story', async () => {
-        ephemeraDBMock.getItem.mockResolvedValue({
-            EphemeraId: 'ASSET#Test'
-        })
+        internalCacheMock.AssetMeta.get.mockResolvedValue({ EphemeraId: 'ASSET#Test' })
         mockTestAsset = {
             'Import-0': {
                 tag: 'Import',

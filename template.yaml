@@ -133,6 +133,7 @@ Resources:
               -
                   Region: !Ref AWS::Region
                   CognitoUserPool: !Ref UserPool
+          EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
@@ -142,6 +143,11 @@ Resources:
             TableName: !Sub '${TablePrefix}_messages'
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_message_delta'
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - events:PutEvents  
         - Statement:
           - Effect: Allow
             Action:

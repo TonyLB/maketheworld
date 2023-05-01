@@ -116,7 +116,8 @@ export const handler = async (event, context) => {
         }
         if (event["detail-type"] === 'Cache Asset By Id') {
             const { assetId } = event.detail
-            const assetWorkspace = await assetWorkspaceFromAssetId(AssetKey(assetId))
+            const assetKey = AssetKey(assetId)
+            const assetWorkspace = await assetWorkspaceFromAssetId(assetKey)
             if (assetWorkspace) {
                 await ebClient.send(new PutEventsCommand({
                     Entries: [{
