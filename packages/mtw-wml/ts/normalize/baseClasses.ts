@@ -129,14 +129,14 @@ export type NormalBookmark = {
 } & NormalBase
 
 type NormalImportMapping = {
-    key: string;
+    key: string; // The key of the import in the namespace it is being imported FROM
     type: string;
 }
 
 export type NormalImport = {
     tag: 'Import';
     from: string;
-    mapping: Record<string, NormalImportMapping>;
+    mapping: Record<string, NormalImportMapping>; // Key of the mapping is the key of the import in the namespace it is being imported TO
     appearances: BaseAppearance[];
 } & NormalBase
 

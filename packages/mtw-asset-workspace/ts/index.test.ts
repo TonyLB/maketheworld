@@ -312,5 +312,39 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Clean')
 
         })
+
+        it('should look up import namespace mappings', async () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Library'
+            })
+            testWorkspace.setWorkspaceLookup(() => ({
+                loadJSON: jest.fn(),
+                namespaceIdToDB: {
+                    base: 'testImport'
+                }
+            } as any))
+            testWorkspace.namespaceIdToDB = {
+                'b456': 'TestB'
+            }
+            uuidv4Mock.mockImplementation(uuidMockFactory())
+            const testSource = `
+                <Asset key=(Test) fileName="Test">
+                    <Import from=(testAsset)>
+                        <Use key=(base) type="Room" as=(a123) />
+                    </Import>
+                    <Room key=(a123)>
+                        <Exit to=(b456)>welcome</Exit>
+                    </Room>
+                    <Room key=(b456)>
+                        <Exit to=(a123)>vortex</Exit>
+                    </Room>
+                </Asset>
+            `
+            await testWorkspace.setWML(testSource)
+
+            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
+
+        })
     })
 })

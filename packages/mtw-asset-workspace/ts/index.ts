@@ -5,7 +5,7 @@ import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
 import parser from '@tonylb/mtw-wml/dist/parser/index'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { isNormalAsset, isNormalCharacter, NormalAction, NormalAsset, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAction, NormalAsset, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 
 import { AssetWorkspaceException } from "./errors"
@@ -111,6 +111,10 @@ export type WorkspaceProperties = {
 
 const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage | NormalMoment) => (['Room', 'Feature', 'Bookmark', 'Message', 'Moment', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
 
+type AddressLookup = {
+    (key: `ASSET#${string}` | `CHARACTER#${string}`): AssetWorkspace | undefined;
+}
+
 export class AssetWorkspace {
     address: AssetWorkspaceAddress;
     status: AssetWorkspaceStatus = {
@@ -122,6 +126,7 @@ export class AssetWorkspace {
     properties: WorkspaceProperties = {};
     wml?: string;
     _isGlobal?: boolean;
+    _workspaceFromKey?: AddressLookup;
     
     constructor(args: AssetWorkspaceAddress) {
         if (!args.fileName) {
@@ -156,6 +161,10 @@ export class AssetWorkspace {
         const presignedOutput = await getSignedUrl(s3Client.internalClient, getCommand, { expiresIn: 60 })
         return presignedOutput
     
+    }
+
+    setWorkspaceLookup(lookup: AddressLookup) {
+        this._workspaceFromKey = lookup
     }
 
     async loadJSON() {
@@ -200,6 +209,24 @@ export class AssetWorkspace {
         // TODO: For any imports, pull in the JSON for the asset being imported from, and extract
         // the namespaceIdToDB 
         //
+        if (this._workspaceFromKey) {
+            await Promise.all(Object.values(this.normal)
+                .filter(isNormalImport)
+                .map(async ({ from, mapping }) => {
+                    const importWorkspace = this._workspaceFromKey?.(`ASSET#${from}`)
+                    if (importWorkspace) {
+                        await importWorkspace.loadJSON()
+                        const importNamespaceIdToDB = importWorkspace.namespaceIdToDB || {}
+                        Object.entries(mapping)
+                            .forEach(([localKey, { key: sourceKey }]) => {
+                                if (importNamespaceIdToDB[sourceKey]) {
+                                    this.namespaceIdToDB[localKey] = importNamespaceIdToDB[sourceKey]
+                                }
+                            })
+                    }
+                })
+            )
+        }
         Object.values(this.normal)
             .filter(isMappableNormalItem)
             .filter(({ key }) => (!(key in this.namespaceIdToDB)))
