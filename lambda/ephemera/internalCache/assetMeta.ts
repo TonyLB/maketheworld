@@ -5,6 +5,7 @@ import { CacheConstructor } from './baseClasses'
 
 export type AssetMetaItem = {
     EphemeraId: EphemeraAssetId;
+    found: boolean;
 }
 
 export class CacheAssetMetaData {
@@ -12,7 +13,7 @@ export class CacheAssetMetaData {
     clear() {
         this.AssetMetaById = {}
     }
-    async get(assetId: EphemeraAssetId): Promise<AssetMetaItem | undefined> {
+    async get(assetId: EphemeraAssetId): Promise<Omit<AssetMetaItem, 'found'> | undefined> {
         if (!(this.AssetMetaById[assetId])) {
             const assetData = await ephemeraDB.getItem<AssetMetaItem>({
                     EphemeraId: assetId,
@@ -20,13 +21,31 @@ export class CacheAssetMetaData {
                     ProjectionFields: ['EphemeraId'],
                 })
             if (assetData) {
-                this.AssetMetaById[assetId] = assetData
+                this.AssetMetaById[assetId] = {
+                    ...assetData,
+                    found: true
+                }
+            }
+            else {
+                this.AssetMetaById[assetId] = {
+                    EphemeraId: assetId,
+                    found: false
+                }
             }
         }
-        return this.AssetMetaById[assetId]
+        if (this.AssetMetaById[assetId]?.found) {
+            const { found, ...rest } = this.AssetMetaById[assetId]
+            return rest
+        }
+        else {
+            return undefined
+        }
     }
-    set(assetItem: AssetMetaItem): void {
-        this.AssetMetaById[assetItem.EphemeraId] = assetItem
+    set(assetItem: Omit<AssetMetaItem, 'found'>): void {
+        this.AssetMetaById[assetItem.EphemeraId] = {
+            ...assetItem,
+            found: true
+        }
     }
 }
 

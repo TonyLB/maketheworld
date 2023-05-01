@@ -26,7 +26,8 @@ import {
     isSyncNotificationRequest,
     isSyncNotificationResponse,
     isMapUnsubscribe,
-    isUnregisterCharacterMessage
+    isUnregisterCharacterMessage,
+    isCacheAssetByIdMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -39,7 +40,7 @@ import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
 import decacheAssetMessage from '../decacheMessage'
-import { cacheAssetMessage } from '../cacheAsset'
+import { cacheAssetByIdMessage, cacheAssetMessage } from '../cacheAsset'
 import playerUpdateMessage from '../playerUpdate'
 import roomUpdateMessage from '../roomUpdate'
 import dependentUpdateMessage from '../dependentMessages/dependentUpdate'
@@ -157,6 +158,12 @@ messageBus.subscribe({
     priority: 1,
     filter: isCacheAssetMessage,
     callback: cacheAssetMessage
+})
+messageBus.subscribe({
+    tag: 'CacheAssetById',
+    priority: 10,
+    filter: isCacheAssetByIdMessage,
+    callback: cacheAssetByIdMessage
 })
 messageBus.subscribe({
     tag: 'UpdatePlayer',

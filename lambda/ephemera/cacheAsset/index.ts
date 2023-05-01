@@ -33,12 +33,15 @@ import {
 import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
-import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
+import { CacheAssetByIdMessage, CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
-import { EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId, EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
+import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
+import { ebClient } from '../clients.js'
+import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 
 //
 // TODO:
@@ -493,4 +496,19 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         }
     }
 
+}
+
+export const cacheAssetByIdMessage = async ({ payloads, messageBus }: { payloads: CacheAssetByIdMessage[], messageBus: MessageBus }): Promise<void> => {
+    const assetsNeedingCache = await Promise.all(
+        (unique(payloads.map(({ assetId }) => (assetId))) as EphemeraAssetId[])
+            .filter(async (assetId: EphemeraAssetId) => (Boolean(await internalCache.AssetMeta.get(assetId))))
+    )
+    await ebClient.send(new PutEventsCommand({
+        Entries: assetsNeedingCache.map((assetId) => ({
+            EventBusName: process.env.EVENT_BUS_NAME,
+            Source: 'mtw.coordination',
+            DetailType: 'Cache Asset By Id',
+            Detail: JSON.stringify({ assetId })
+        }))
+    }))
 }
