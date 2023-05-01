@@ -35,7 +35,7 @@ import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
-import { EphemeraError, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
@@ -390,13 +390,10 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         if (assetItem) {
             if (check || updateOnly) {
                 const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || `ASSET#${assetItem.key}`
-                if (!assetEphemeraId) {
+                if (!(assetEphemeraId && isEphemeraAssetId(assetEphemeraId))) {
                     continue
                 }
-                const { EphemeraId = null } = await ephemeraDB.getItem<{ EphemeraId: string }>({
-                    EphemeraId: assetEphemeraId,
-                    DataCategory: 'Meta::Asset',
-                }) || {}
+                const { EphemeraId = null } = await internalCache.AssetMeta.get(assetEphemeraId) || {}
                 if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                     continue
                 }
