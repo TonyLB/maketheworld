@@ -25,7 +25,10 @@ import {
 
 import messageBus from "./messageBus/index.js"
 import { extractReturnValue } from './returnValue'
-import { apiClient } from "./clients"
+import { apiClient, ebClient } from "./clients"
+import { assetWorkspaceFromAssetId } from "./utilities/assets"
+import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -109,6 +112,24 @@ export const handler = async (event, context) => {
             }
             else {
                 return JSON.stringify(`Invalid arguments specified for Canonize Asset event`)
+            }
+        }
+        if (event["detail-type"] === 'Cache Asset By Id') {
+            const { assetId } = event.detail
+            const assetWorkspace = await assetWorkspaceFromAssetId(AssetKey(assetId))
+            if (assetWorkspace) {
+                await ebClient.send(new PutEventsCommand({
+                    Entries: [{
+                        EventBusName: process.env.EVENT_BUS_NAME,
+                        Source: 'mtw.coordination',
+                        DetailType: 'Cache Asset',
+                        Detail: JSON.stringify(assetWorkspace.address)
+                    }]
+                }))
+                return await extractReturnValue(messageBus)
+            }
+            else {
+                return JSON.stringify(`Invalid arguments specified for Cache Asset By Id event`)
             }
         }
     }

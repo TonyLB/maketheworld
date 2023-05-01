@@ -921,6 +921,7 @@ Resources:
                     - Format Image
                     - Remove Asset
                     - Canonize Asset
+                    - Cache Asset By Id
 
 Outputs:
   UserPoolClient:
