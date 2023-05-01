@@ -33,7 +33,7 @@ import {
 import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
-import { CacheAssetByIdMessage, CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
+import { CacheAssetByIdMessage, CacheAssetMessage, CacheCharacterAssetsMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
 import { EphemeraAssetId, EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
@@ -511,4 +511,19 @@ export const cacheAssetByIdMessage = async ({ payloads, messageBus }: { payloads
             Detail: JSON.stringify({ assetId })
         }))
     }))
+}
+
+export const cacheCharacterAssetsMessage = async ({ payloads, messageBus }: { payloads: CacheCharacterAssetsMessage[], messageBus: MessageBus }): Promise<void> => {
+    const assetsNeedingCache = (await Promise.all(
+        payloads.map(async ({ characterId }) => {
+            const { assets } = await internalCache.CharacterMeta.get(characterId)
+            return assets.map(AssetKey)
+        }))
+    ).flat()
+    assetsNeedingCache.forEach((assetId) => {
+        messageBus.send({
+            type: 'CacheAssetById',
+            assetId
+        })    
+    })
 }

@@ -268,6 +268,11 @@ export type CacheAssetByIdMessage = {
     assetId: EphemeraAssetId;
 }
 
+export type CacheCharacterAssetsMessage = {
+    type: 'CacheCharacterAssets';
+    characterId: EphemeraCharacterId;
+}
+
 export type PlayerUpdateMessage = {
     type: 'PlayerUpdate';
     player: string;
@@ -334,6 +339,7 @@ export type MessageType = PublishMessage |
     DecacheAssetMessage |
     CacheAssetMessage |
     CacheAssetByIdMessage |
+    CacheCharacterAssetsMessage |
     PlayerUpdateMessage |
     RoomUpdateMessage |
     DescentUpdateMessage |
@@ -377,6 +383,7 @@ export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage
 export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
 export const isCacheAssetByIdMessage = (prop: MessageType): prop is CacheAssetByIdMessage => (prop.type === 'CacheAssetById')
+export const isCacheCharacterAssetsMessage = (prop: MessageType): prop is CacheCharacterAssetsMessage => (prop.type === 'CacheCharacterAssets')
 
 export const isPlayerUpdateMessage = (prop: MessageType): prop is PlayerUpdateMessage => (prop.type === 'PlayerUpdate')
 export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')
