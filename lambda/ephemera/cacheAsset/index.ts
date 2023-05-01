@@ -466,7 +466,6 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 }
                 if (check || updateOnly) {
                     const ephemeraToCache = await pushCharacterEphemeraToInternalCache(ephemeraItem as EphemeraCharacter)
-                    console.log(`ephemeraToCache: ${JSON.stringify(ephemeraToCache, null, 4)}`)
                     const { EphemeraId = null, RoomId = 'ROOM#VORTEX' } = ephemeraToCache || {}
                     if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                         continue
