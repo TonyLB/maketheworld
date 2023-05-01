@@ -491,7 +491,16 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                         }
                     }
                 }
-                await pushCharacterEphemera(ephemeraItem as EphemeraCharacter)
+                const [characterConnections] = await Promise.all([
+                    internalCache.CharacterConnections.get(characterEphemeraId),
+                    pushCharacterEphemera(ephemeraItem as EphemeraCharacter)
+                ])
+                if (characterConnections && characterConnections.length) {
+                    messageBus.send({
+                        type: 'CacheCharacterAssets',
+                        characterId: characterEphemeraId
+                    })
+                }
             }
         }
     }

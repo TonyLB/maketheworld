@@ -8,9 +8,20 @@ export const splitType = (value: string) => {
     return ['', '']
 }
 
-export const AssetKey = (assetId: string): `ASSET#${string}` => (`ASSET#${assetId}`)
-export const CharacterKey = (characterId: string): `CHARACTER#${string}` => (`CHARACTER#${characterId}`)
-export const RoomKey = (roomId: string): `ROOM#${string}` => (`ROOM#${roomId}`)
+export const enforceTypedKey = <T extends 'ASSET' | 'CHARACTER' | 'ROOM'>(key: T) => (value: string): `${T}#${string}` => {
+    const [checkType, checkForTwoSections] = splitType(value)
+    if (checkForTwoSections) {
+        if (checkType !== key) {
+            throw new Error(`Invalid type (${checkType}) in typed string`)
+        }
+        return value as `${T}#${string}`
+    }
+    return `${key}#${value}`
+}
+
+export const AssetKey = enforceTypedKey('ASSET')
+export const CharacterKey = enforceTypedKey('CHARACTER')
+export const RoomKey = enforceTypedKey('ROOM')
 
 export const extractConstrainedTag = <O extends string>(typeGuard: (value: string) => value is O) =>  (value: string): O => {
     const [upperTag] = splitType(value)
