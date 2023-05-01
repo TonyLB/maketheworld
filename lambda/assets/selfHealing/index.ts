@@ -3,6 +3,7 @@ import { asyncSuppressExceptions } from '@tonylb/mtw-utilities/dist/errors'
 import AssetWorkspace, { parseAssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/"
 import { ebClient } from "../clients"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import { assetWorkspaceFromAssetId } from "../utilities/assets"
 
 export const healAsset = async (fileName: string) => {
     const address = parseAssetWorkspaceAddress(fileName.replace(/\.wml$/, ''))
@@ -15,6 +16,7 @@ export const healAsset = async (fileName: string) => {
         if (assetWorkspace.address.fileName === 'primitives' && assetWorkspace.address.zone === 'Canon') {
             assetWorkspace._isGlobal = true
         }
+        assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
         await assetWorkspace.loadWML()
         await Promise.all([
             ...((assetWorkspace.status.json !== 'Clean') ? [assetWorkspace.pushJSON()] : []),

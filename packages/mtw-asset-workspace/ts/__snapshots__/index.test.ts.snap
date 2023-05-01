@@ -148,3 +148,10 @@ Object {
   "b456": "ROOM#UUID-0",
 }
 `;
+
+exports[`AssetWorkspace setWML should look up import namespace mappings 1`] = `
+Object {
+  "a123": "testImport",
+  "b456": "TestB",
+}
+`;

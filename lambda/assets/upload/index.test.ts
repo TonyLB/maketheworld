@@ -31,6 +31,7 @@ const mockAssetWorkspace = (address) => ({
     normal: {
         'Import-0': {
             tag: 'Import',
+            mapping: {}
         },
         TestAsset: {
             tag: 'Asset',
@@ -40,7 +41,8 @@ const mockAssetWorkspace = (address) => ({
     },
     namespaceIdToDB: {
         test: 'ROOM#123'
-    }
+    },
+    setWorkspaceLookup: jest.fn()
 })
 
 import { parseWMLMessage } from '.'
@@ -93,6 +95,7 @@ describe('parseWMLMessage', () => {
             normal: {
                 'Import-0': {
                     tag: 'Import',
+                    mapping: {}
                 },
                 TestAsset: {
                     tag: 'Asset',
@@ -102,7 +105,8 @@ describe('parseWMLMessage', () => {
             },
             namespaceIdToDB: {
                 test: 'ROOM#123'
-            }
+            },
+            setWorkspaceLookup: expect.any(Function)
         })
         expect(mockLoadWMLFrom).toHaveBeenCalledWith(`upload/TestABC.wml`, true)
         expect(messageBusMock.send).toHaveBeenCalledWith({

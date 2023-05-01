@@ -117,6 +117,7 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                 await assetWorkspace.loadJSON()
             }
             if (assetWorkspace) {
+                assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
                 const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
                 const imageFiles = (await Promise.all([
                     assetWorkspace.loadWMLFrom(payload.uploadName, true),
