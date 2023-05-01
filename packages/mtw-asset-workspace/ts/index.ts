@@ -112,7 +112,7 @@ export type WorkspaceProperties = {
 const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage | NormalMoment) => (['Room', 'Feature', 'Bookmark', 'Message', 'Moment', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
 
 type AddressLookup = {
-    (key: `ASSET#${string}` | `CHARACTER#${string}`): AssetWorkspace | undefined;
+    (key: `ASSET#${string}` | `CHARACTER#${string}`): Promise<AssetWorkspace | undefined>;
 }
 
 export class AssetWorkspace {
@@ -213,7 +213,7 @@ export class AssetWorkspace {
             await Promise.all(Object.values(this.normal)
                 .filter(isNormalImport)
                 .map(async ({ from, mapping }) => {
-                    const importWorkspace = this._workspaceFromKey?.(`ASSET#${from}`)
+                    const importWorkspace = await this._workspaceFromKey?.(`ASSET#${from}`)
                     if (importWorkspace) {
                         await importWorkspace.loadJSON()
                         const importNamespaceIdToDB = importWorkspace.namespaceIdToDB || {}

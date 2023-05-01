@@ -318,7 +318,7 @@ describe('AssetWorkspace', () => {
                 fileName: 'Test',
                 zone: 'Library'
             })
-            testWorkspace.setWorkspaceLookup(() => ({
+            testWorkspace.setWorkspaceLookup(async () => ({
                 loadJSON: jest.fn(),
                 namespaceIdToDB: {
                     base: 'testImport'

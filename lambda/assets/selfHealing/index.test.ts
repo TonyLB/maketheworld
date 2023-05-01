@@ -17,6 +17,7 @@ jest.mock('@tonylb/mtw-asset-workspace/dist', () => ({
             normal: {
                 'Import-0': {
                     tag: 'Import',
+                    mapping: {}
                 },
                 TestAsset: {
                     tag: 'Asset',
@@ -25,14 +26,15 @@ jest.mock('@tonylb/mtw-asset-workspace/dist', () => ({
             },
             namespaceIdToDB: {
                 test: 'ROOM#123'
-            }
+            },
+            setWorkspaceLookup: jest.fn()
         }
     }),
     parseAssetWorkspaceAddress: jest.fn().mockReturnValue({
         zone: 'Personal',
         player: 'Test',
         fileName: 'healTest.wml'
-    })
+    }),
 }))
 jest.mock('../clients', () => ({ ebClient: { send: jest.fn() } }))
 
@@ -65,6 +67,7 @@ describe('healAsset', () => {
             normal: {
                 'Import-0': {
                     tag: 'Import',
+                    mapping: {}
                 },
                 TestAsset: {
                     tag: 'Asset',
@@ -73,7 +76,8 @@ describe('healAsset', () => {
             },
             namespaceIdToDB: {
                 test: 'ROOM#123'
-            }
+            },
+            setWorkspaceLookup: expect.any(Function)
         })
     })
 
