@@ -1,4 +1,4 @@
-import { Editor, Element, Node, Path } from "slate";
+import { Editor, Element, Node, Path, path } from "slate";
 import { CustomExitBlock } from "../baseClasses";
 import { unique } from "../../../../lib/lists";
 import { isCustomExitBlock } from "../baseClasses";
@@ -14,29 +14,22 @@ export class ExitTreeWalker {
         this._currentLevel = Editor.above(editor, { at: path })?.[1]
     }
     get isComplete(): boolean {
-        return typeof this._currentFocus === undefined
+        return !this._currentFocus
     }
     walk(): Node | undefined {
         if (!this._currentFocus) {
             return undefined
         }
-        let next = Editor.before(this._editor, this._currentFocus, { unit: 'block' })
-        while(!next) {
-            const currentLevel = this._currentLevel
-            if (currentLevel) {
-                this._currentFocus = currentLevel
-                const [_, above] = Editor.above(this._editor, { at: currentLevel })
-                this._currentLevel = above
-                let next = Editor.before(this._editor, this._currentFocus, { unit: 'block' })
-                continue
-            }
-            break
-        }
-        if (next) {
-            this._currentFocus = next.path
-            const [node] = Editor.node(this._editor, next)
+        if (Path.hasPrevious(this._currentFocus)) {
+            this._currentFocus = Path.previous(this._currentFocus)
+            const [node] = Editor.node(this._editor, this._currentFocus)
             return node
         }
+        if (this._currentFocus.length) {
+            this._currentFocus = Path.parent(this._currentFocus)
+            return this.walk()
+        }
+        this._currentFocus = undefined
         return undefined
     }
 }
@@ -53,3 +46,5 @@ export const duplicateExitTargets = (editor: Editor, path: Path, key: 'to' | 'fr
     }
     return unique(accumulator) as string[]
 }
+
+export default duplicateExitTargets
