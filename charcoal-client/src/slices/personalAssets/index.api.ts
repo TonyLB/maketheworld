@@ -5,7 +5,7 @@ import {
     getStatus
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
-import { NormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalImport, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
@@ -93,6 +93,13 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
         dispatch(setImport(id)({ assetKey: assetId.split('#')[1], normal: normalizer.normal }))
     })
 
+}
+
+export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData: { normal = {} }}) => async (dispatch) => {
+    if (isEphemeraAssetId(id) && Object.values(normal).filter(isNormalImport)) {
+        await dispatch(fetchImports(id))
+    }
+    return {}
 }
 
 export const getSaveURL: PersonalAssetsAction = ({ internalData: { id }, publicData: { loadedImages } }) => async (dispatch) => {

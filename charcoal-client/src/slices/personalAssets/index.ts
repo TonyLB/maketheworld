@@ -12,7 +12,8 @@ import {
     locallyParseWMLAction,
     regenerateWMLAction,
     initializeNewAction,
-    fetchImports
+    fetchImports,
+    fetchImportsStateAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
@@ -90,8 +91,14 @@ export const {
             FETCH: {
                 stateType: 'ATTEMPT',
                 action: fetchAction,
-                resolve: 'FRESH',
+                resolve: 'FETCHIMPORTS',
                 reject: 'FETCHBACKOFF'
+            },
+            FETCHIMPORTS: {
+                stateType: 'ATTEMPT',
+                action: fetchImportsStateAction,
+                resolve: 'FRESH',
+                reject: 'FRESH'
             },
             FETCHBACKOFF: {
                 stateType: 'ATTEMPT',

@@ -46,6 +46,7 @@ export interface PersonalAssetsNodes {
     FETCH: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHERROR: ISSMChoiceNode;
+    FETCHIMPORTS: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FRESH: ISSMChoiceNode;
     WMLDIRTY: ISSMChoiceNode;
     NEEDPARSE: ISSMRedirectNode;
