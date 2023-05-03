@@ -23,7 +23,7 @@ import InputLabel from "@mui/material/InputLabel"
 import Toolbar from "@mui/material/Toolbar/Toolbar"
 import withConditionals from "../DescriptionEditor/conditionals"
 import slateToExitSchema from "./slateToExitTree"
-import { CustomExitBlock, isCustomBlock, isCustomParagraph } from "../baseClasses"
+import { CustomExitBlock, isCustomBlock, isCustomExitBlock, isCustomParagraph } from "../baseClasses"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { Button } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
@@ -31,6 +31,7 @@ import { objectFilterEntries, objectMap } from "../../../../lib/objects"
 import useUpdatedSlate from "../../../../hooks/useUpdatedSlate"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 import { UpdateNormalPayload } from "../../../../slices/personalAssets/reducers"
+import duplicateExitTargets from "./duplicateExitTargets"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -313,6 +314,53 @@ const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
     </Button>
 }
 
+export const withExits = (RoomId: string) => (editor: Editor): Editor => {
+    const { insertBreak, insertSoftBreak } = editor
+
+    editor.insertBreak = () => {
+        const { selection } = editor
+
+        if (selection) {
+            const [exit] = Editor.nodes(editor, {
+                match: n =>
+                !Editor.isEditor(n) &&
+                SlateElement.isElement(n) &&
+                (n.type === 'exit')
+            })
+        
+            if (exit) {
+                const [node, path] = exit
+                if (SlateElement.isElement(node) && isCustomBlock(node) && isCustomExitBlock(node)) {
+                    if (
+                        (node.from === RoomId && !duplicateExitTargets(editor, path, 'from').includes(node.to)) ||
+                        (node.to === RoomId && !duplicateExitTargets(editor, path, 'to').includes(node.from))
+                    ) {
+                        Transforms.insertNodes(editor, {
+                            children: [{text: ""}],
+                            type: 'exit',
+                            to: node.from,
+                            from: node.to,
+                            key: `${node.to}#${node.from}`
+                        })
+                        return
+                    }
+                    Transforms.insertNodes(editor, {
+                        children: [{text: ""}],
+                        type: 'exit',
+                        to: '',
+                        from: RoomId,
+                        key: `${RoomId}#`
+                    })
+                    return
+                }
+            }
+        }
+        insertBreak()
+    }
+
+    return editor
+}
+
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
@@ -333,7 +381,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
     const [value, setValue] = useState(defaultValue)
     const comparisonOutput = useCallback((nodes: Descendant[]) => (generateNormalChanges({ nodes, normalForm, RoomId })), [normalForm, RoomId])
     const editor = useUpdatedSlate({
-        initializeEditor: () => withConditionals(withHistory(withReact(createEditor()))),
+        initializeEditor: () => withExits(RoomId)(withConditionals(withHistory(withReact(createEditor())))),
         value: defaultValue,
         comparisonOutput
     })
