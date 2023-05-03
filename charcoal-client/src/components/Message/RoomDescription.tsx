@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { FunctionComponent, ReactChild, ReactChildren, useMemo, useRef, useState } from 'react'
+import React, { FunctionComponent, ReactChild, ReactChildren, useMemo, useCallback, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { css } from '@emotion/react'
 
@@ -46,10 +46,36 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
     const ref = useRef(null)
     const dispatch = useDispatch()
     const { currentDraft } = useSelector(getPlayer)
+    const importOptions = useMemo(() => {
+        if (Object.entries(assets).length > 1) {
+            return Object.entries(assets)
+                .filter(([asset]) => (asset !== 'ASSET#primitives'))
+                .map(([asset, key]) => ({ asset: asset as EphemeraAssetId, key }))
+        }
+        else {
+            return Object.entries(assets)
+                .map(([asset, key]) => ({ asset: asset as EphemeraAssetId, key }))
+        }
+    }, [assets])
+    const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
+        dispatch(addOnboardingComplete(['importRoom']))
+        dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset.split('#')[1], type: 'Room', key }))
+        navigate(`/Library/Edit/Asset/${currentDraft}/Room/${key}`)
+    }, [navigate])
+    const onClick = useCallback(() => {
+        if (importOptions.length > 1) {
+            setOpen(true)
+        }
+        else {
+            if (importOptions.length) {
+                onImportListItemClick(importOptions[0])
+            }
+        }
+    }, [importOptions, setOpen, onImportListItemClick])
     return <React.Fragment>
         <Chip
             label="Edit"
-            onClick={() => { setOpen(true) }}
+            onClick={onClick}
             ref={ref}
         />
         <Popover
@@ -69,14 +95,10 @@ const RoomEditButton: FunctionComponent<{ assets: Record<EphemeraAssetId, string
             <Divider />
             <List>
                 {
-                    Object.entries(assets).map(([asset, key]) => (
+                    importOptions.map(({ asset, key }) => (
                         <ListItem key={`Import-${asset}`} >
                             <ListItemButton
-                                onClick={() => {
-                                    dispatch(addOnboardingComplete(['importRoom']))
-                                    dispatch(addImport({ assetId: `ASSET#${currentDraft}`, fromAsset: asset.split('#')[1], type: 'Room', key }))
-                                    navigate(`/Library/Edit/Asset/${currentDraft}/Room/${key}`)
-                                }}
+                                onClick={() => { onImportListItemClick({ asset, key }) }}
                             >
                                 { asset.split('#')[1] }
                             </ListItemButton>
