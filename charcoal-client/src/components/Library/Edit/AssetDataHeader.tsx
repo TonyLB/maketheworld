@@ -8,7 +8,7 @@ import {
     SxProps
 } from '@mui/material'
 
-import { NormalFeature, NormalItem, NormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalFeature, NormalItem, NormalRoom, isNormalFeature, isNormalImport, isNormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { AssetComponent, useLibraryAsset } from './LibraryAsset'
 
 type AssetDataHeaderRenderFunctionProps = {
@@ -36,11 +36,30 @@ interface AssetDataHeaderProps {
 export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, actions = null, primary, secondary, ItemId, onClick, sx, selected }) => {
     const { normalForm, importData, rooms } = useLibraryAsset()
 
+    const getInheritedItem = (ItemId: string): NormalRoom | NormalFeature | undefined => {
+        const importLookupList = (normalForm[ItemId]?.appearances || [])
+            .map(({ contextStack }) => (contextStack.find(({ tag }) => (tag === 'Import'))))
+            .filter((value) => (value))
+            .map(({ key }) => (normalForm[key]))
+            .filter((value) => (value))
+            .filter(isNormalImport)
+        if (!importLookupList.length) {
+            return undefined
+        }
+        const inheritedNormal = importData(importLookupList[0].from)
+        const lookupKey = importLookupList[0].mapping[ItemId].key
+        if (!lookupKey) {
+            return undefined
+        }
+        const inheritedItem = inheritedNormal[lookupKey]
+        if (!(inheritedItem && (isNormalRoom(inheritedItem) || isNormalFeature(inheritedItem)))) {
+            return undefined
+        }
+        return inheritedItem
+    }
     const props = {
         item: normalForm[ItemId],
-        //
-        // TODO: Add inheritedItem to properties
-        //
+        inheritedItem: getInheritedItem(ItemId),
         normalForm,
         rooms
     }
