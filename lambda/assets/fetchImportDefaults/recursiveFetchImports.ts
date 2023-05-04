@@ -9,7 +9,7 @@ import { objectMap } from "../lib/objects";
 import normalSubset from "./normalSubset"
 
 //
-// TODO: ISS2251: Create an translateToFinal class that accepts:
+// The translateToFinal class accepts:
 //    (a) a current set of occupied keys, and
 //    (b) a localToFinal mapping
 // and can:
@@ -17,7 +17,6 @@ import normalSubset from "./normalSubset"
 //    (b) Create new, non-colliding, stub-keys from local keys
 //    (c) Push a new mapping that multiplies the existing localToFinal mapping by an importMapping
 //    (d) Pop a mapping
-// ... and then use that to handle fetchImport recursion mapping.
 //
 type NestedTranslateLocalToFinal = Record<string, string>
 export class NestedTranslateImportToFinal extends Object {

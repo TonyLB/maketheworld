@@ -50,6 +50,15 @@ describe('fetchImportsMessage', () => {
         <Import from=(testImportAssetTwo)>
             <Use type="Room" key=(basic) as=(testImportThree) />
         </Import>
+        <Room key=(testFeatures)>
+            <Description>
+                <Link to=(featureImport)>Test</Link>
+            </Description>
+        </Room>
+        <Import from=(testImportAssetFour)>
+            <Use type="Feature" key=(testFeature) as=(featureImport) />
+            <Use type="Room" key=(testRoomWithFeatures) />
+        </Import>
     </Asset>`)
     const testImportOne = testNormalFromWML(`<Asset key=(testImportAssetOne)>
         <Room key=(testImportOne)>
@@ -87,6 +96,14 @@ describe('fetchImportsMessage', () => {
         <Room key=(basicTwo)><Name>Asset Three</Name></Room>
         <Room key=(stub)><Name>AssetThreeStub</Name></Room>
     </Asset>`)
+    const testImportFour = testNormalFromWML(`<Asset key=(testImportAssetFour)>
+        <Feature key=(testFeature)>
+            <Description>Feature test</Description>
+        </Feature>
+        <Room key=(testRoomWithFeatures)>
+            <Description><Link to=(testFeature)>Test</Link></Description>
+        </Room>
+    </Asset>`)
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -104,6 +121,9 @@ describe('fetchImportsMessage', () => {
                     break
                 case 'ASSET#testImportAssetThree':
                     normal = testImportThree
+                    break
+                case 'ASSET#testImportAssetFour':
+                    normal = testImportFour
                     break
             }
             return {
@@ -135,6 +155,11 @@ describe('fetchImportsMessage', () => {
 
     it('should import multilevel and avoid colliding stub names', async () => {
         await fetchImportsMessage({ messageBus: messageBusMock, payloads: [{ type: 'FetchImports', importsFromAsset: [{ assetId: 'ASSET#testFinal', keys: ['testImportThree'] }] }] })
+        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
+    })
+
+    it('should properly stub out features in room description', async () => {
+        await fetchImportsMessage({ messageBus: messageBusMock, payloads: [{ type: 'FetchImports', importsFromAsset: [{ assetId: 'ASSET#testFinal', keys: ['testRoomWithFeatures'] }] }] })
         expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
     })
 
