@@ -37,6 +37,23 @@ Object {
 }
 `;
 
+exports[`fetchImportsMessage should properly stub out features in room description 1`] = `
+Object {
+  "importsByAsset": Array [
+    Object {
+      "assetId": "ASSET#testFinal",
+      "wml": "<Asset key=(testFinal)>
+    <Room key=(testRoomWithFeatures)>
+        <Description><Link to=(testFeature)>Test</Link></Description>
+    </Room>
+    <Feature key=(testFeature) />
+</Asset>",
+    },
+  ],
+  "messageType": "FetchImports",
+}
+`;
+
 exports[`fetchImportsMessage should recursive fetch one level of element and stubs when passed import key 1`] = `
 Object {
   "importsByAsset": Array [

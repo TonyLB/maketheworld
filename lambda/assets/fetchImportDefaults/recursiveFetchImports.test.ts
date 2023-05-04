@@ -45,6 +45,15 @@ describe('recursiveFetchImports', () => {
         <Import from=(testImportAssetTwo)>
             <Use type="Room" key=(basic) as=(testImportThree) />
         </Import>
+        <Room key=(testFeatures)>
+            <Description>
+                <Link to=(featureImport)>Test</Link>
+            </Description>
+        </Room>
+        <Import from=(testImportAssetFour)>
+            <Use type="Feature" key=(testFeature) as=(featureImport) />
+            <Use type="Room" key=(testRoomWithFeatures) />
+        </Import>
     </Asset>`)
     const testImportOne = testNormalFromWML(`<Asset key=(testImportAssetOne)>
         <Room key=(testImportOne)>
@@ -82,6 +91,14 @@ describe('recursiveFetchImports', () => {
         <Room key=(basicTwo)><Name>Asset Three</Name></Room>
         <Room key=(stub)><Name>AssetThreeStub</Name></Room>
     </Asset>`)
+    const testImportFour = testNormalFromWML(`<Asset key=(testImportAssetFour)>
+        <Feature key=(testFeature)>
+            <Description>Feature test</Description>
+        </Feature>
+        <Room key=(testRoomWithFeatures)>
+            <Description><Link to=(testFeature)>Test</Link></Description>
+        </Room>
+    </Asset>`)
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -99,6 +116,9 @@ describe('recursiveFetchImports', () => {
                     break
                 case 'ASSET#testImportAssetThree':
                     normal = testImportThree
+                    break
+                case 'ASSET#testImportAssetFour':
+                    normal = testImportFour
                     break
             }
             return {
@@ -126,6 +146,10 @@ describe('recursiveFetchImports', () => {
 
     it('should import multilevel and avoid colliding stub names', async () => {
         expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportThree'], []) })).toMatchSnapshot()
+    })
+
+    it('should properly stub out features in room description', async () => {
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testRoomWithFeatures'], []) })).toMatchSnapshot()
     })
 
 })

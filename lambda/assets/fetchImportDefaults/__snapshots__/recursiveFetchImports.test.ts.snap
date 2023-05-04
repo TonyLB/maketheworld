@@ -120,6 +120,38 @@ Array [
 ]
 `;
 
+exports[`recursiveFetchImports should properly stub out features in room description 1`] = `
+Array [
+  Object {
+    "contents": Array [],
+    "key": "testRoomWithFeatures",
+    "name": Array [],
+    "render": Array [
+      Object {
+        "tag": "Link",
+        "text": "Test",
+        "to": "testFeature",
+      },
+    ],
+    "tag": "Room",
+  },
+  Object {
+    "contents": Array [],
+    "key": "testFeature",
+    "name": Array [],
+    "render": Array [],
+    "tag": "Feature",
+  },
+  Object {
+    "contents": Array [],
+    "key": "testRoomWithFeatures",
+    "name": Array [],
+    "render": Array [],
+    "tag": "Room",
+  },
+]
+`;
+
 exports[`recursiveFetchImports should recursive fetch one level of element and stubs when passed import key 1`] = `
 Array [
   Object {

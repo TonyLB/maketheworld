@@ -6,8 +6,8 @@
 
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { isNormalExit, NormalForm, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { isSchemaCondition } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isNormalAction, isNormalExit, isNormalFeature, NormalForm, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { isSchemaAfter, isSchemaBefore, isSchemaCondition, isSchemaDescription, isSchemaLink, isSchemaReplace, SchemaTaggedMessageLegalContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { SchemaFeatureTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaFeature } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
@@ -45,6 +45,22 @@ const recursiveRoomContentsFilter = ({ contents, keys }: { contents: SchemaRoomL
                     conditionRecurse
                 ]
             }
+        }
+        return previous
+    }, [])
+}
+
+//
+// extractLinksFromRoomDescription recursively parses the room description and returns the list of "to" keys
+// in all links present
+//
+const extractLinksFromRoomDescription = (contents: SchemaTaggedMessageLegalContents[]): string[] => {
+    return contents.reduce<string[]>((previous, item) => {
+        if (isSchemaBefore(item) || isSchemaAfter(item) || isSchemaReplace(item) || isSchemaCondition(item)) {
+            return unique(previous, extractLinksFromRoomDescription(item.contents as SchemaTaggedMessageLegalContents[])) as string[]
+        }
+        if (isSchemaLink(item)) {
+            return unique(previous, [item.to]) as string[]
         }
         return previous
     }, [])
@@ -110,7 +126,41 @@ export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, k
         .filter(([key]) => (keys.includes(key)))
         .map(([_, item]) => (item))
 
-    return { newStubKeys, schema: [...keyItems, ...stubItems] }
+    //
+    // Tree-walk the renders of keyItems, to find links that need at least an empty stub in the normal (even though they
+    // do not need to be added to the stub list)
+    //
+    const descriptionAggregate = keyItems
+        .filter(isSchemaRoom)
+        .map(({ render }) => (render))
+        .flat()
+    const linkTargets = extractLinksFromRoomDescription(descriptionAggregate)
+        .filter((key) => (!keys.includes(key)))
+
+    const linkItems = linkTargets
+        .map((key) => (normal[key]))
+        .filter((value) => (value))
+        .map((item): SchemaTag | undefined => {
+            if (isNormalFeature(item)) {
+                return {
+                    tag: 'Feature',
+                    key: item.key,
+                    render: [],
+                    name: [],
+                    contents: []
+                }
+            }
+            if (isNormalAction(item)) {
+                return {
+                    tag: 'Action',
+                    key: item.key,
+                    src: ''
+                }
+            }
+        })
+        .filter((value): value is SchemaTag => (Boolean(value)))
+
+    return { newStubKeys, schema: [...keyItems, ...stubItems, ...linkItems] }
 }
 
 export default normalSubset
