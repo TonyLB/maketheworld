@@ -6,6 +6,8 @@ import { newAsset, setIntent } from "../../../slices/personalAssets";
 import { heartbeat } from "../../../slices/stateSeekingMachine/ssmHeartbeat";
 import AssetDataAddHeader from "./AssetDataAddHeader"
 import { addOnboardingComplete } from "../../../slices/player/index.api";
+import { useNavigate } from "react-router-dom";
+import { setCurrentDraft } from "../../../slices/player";
 
 const addAssetGenerator: FunctionComponent<{ key: string; onChange: (props: { key: string }) => void; errorMessage: string }> = ({ key, onChange, errorMessage }) => {
     return <TextField
@@ -28,12 +30,17 @@ type AddAssetProps = {
 
 export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () => { }}) => {
     const dispatch = useDispatch()
+    const navigate = useNavigate()
     const onAddWrapper = useCallback(({ key }: { key: string }) => {
         const assetId = `${type === 'Character' ? 'CHARACTER' : 'ASSET'}#${key}` as const
         dispatch(addOnboardingComplete(['nameAsset']))
         dispatch(newAsset(assetId))
         dispatch(setIntent({ key: assetId, intent: ['NORMALDIRTY'] }))
         dispatch(heartbeat)
+        if (type === 'Asset') {
+            dispatch(setCurrentDraft(key))
+            navigate(`/Library/Edit/Asset/${key}/`)
+        }
     }, [onAdd])
     const validate = useCallback(async ({ key }: { key: string }) => {
         if (key.length && (key.search(/^[A-Za-z][\w\_]*$/) === -1)) {
