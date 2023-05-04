@@ -91,7 +91,6 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Image' | 'Variable' | 'Co
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const { normalForm, updateNormal, save, AssetId, status, readonly } = useLibraryAsset()
     const navigate = useNavigate()
-    useOnboardingCheckpoint('editAsset', { requireSequence: true, condition: !readonly })
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
     const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
