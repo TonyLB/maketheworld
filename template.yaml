@@ -927,6 +927,7 @@ Resources:
                     - Format Image
                     - Remove Asset
                     - Canonize Asset
+                    - Decanonize Asset
                     - Cache Asset By Id
 
 Outputs:
