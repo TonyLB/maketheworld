@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactChild } from 'react'
+import React, { FunctionComponent, ReactChild } from 'react'
 
 import {
     ListItemButton,
@@ -10,6 +10,7 @@ import {
 
 import { NormalFeature, NormalItem, NormalRoom, isNormalFeature, isNormalImport, isNormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { AssetComponent, useLibraryAsset } from './LibraryAsset'
+import MiniChip from '../../MiniChip'
 
 type AssetDataHeaderRenderFunctionProps = {
     item: NormalItem;
@@ -57,13 +58,17 @@ export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon,
         }
         return inheritedItem
     }
+    const inheritedItem = getInheritedItem(ItemId)
     const props = {
         item: normalForm[ItemId],
-        inheritedItem: getInheritedItem(ItemId),
+        inheritedItem,
         normalForm,
         rooms
     }
-    const primaryOutput = primary?.(props) || null
+    const primaryOutput = <React.Fragment>
+        { primary?.(props) || null }
+        { inheritedItem && <MiniChip text="Import" /> }
+    </React.Fragment>
     const secondaryOutput = secondary?.(props) || null
     if (onClick) {
         return <ListItem sx={sx} secondaryAction={actions}>
