@@ -99,19 +99,19 @@ export const handler = async (event, context) => {
                 return JSON.stringify(`Invalid arguments specified for Remove Asset event`)
             }
         }
-        if (event["detail-type"] === 'Canonize Asset') {
+        if (['Canonize Asset', 'Decanonize Asset'].includes(event["detail-type"])) {
             const { assetId } = event.detail
             if (assetId) {
                 messageBus.send({
                     type: 'MoveByAssetId',
                     AssetId: `ASSET#${assetId}`,
-                    toZone: 'Canon'
+                    toZone: event["detail-type"] === 'Canonize Asset' ? 'Canon' : 'Library'
                 })
                 await messageBus.flush()
                 return await extractReturnValue(messageBus)
             }
             else {
-                return JSON.stringify(`Invalid arguments specified for Canonize Asset event`)
+                return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
             }
         }
         if (event["detail-type"] === 'Cache Asset By Id') {
