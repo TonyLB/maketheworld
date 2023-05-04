@@ -16,7 +16,6 @@ export const onboardingCheckpointSequence = [
     'navigateLibrary',
     'createAsset',
     'nameAsset',
-    'editAsset',
     'addRoom',
     'navigateRoom',
     'nameRoom',
