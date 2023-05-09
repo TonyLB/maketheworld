@@ -228,10 +228,10 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                     targetId: assetMap[key]
                 })
             })
-            executeMessageQueue.forEach((message) => {
-                messageBus.send(message)
-            })
         }
+        executeMessageQueue.forEach((message) => {
+            messageBus.send(message)
+        })
     }, {
         retryErrors: ['TransactionCanceledException'],
         retryCallback: async () => {
