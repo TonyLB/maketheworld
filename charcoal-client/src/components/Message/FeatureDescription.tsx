@@ -14,17 +14,18 @@ import MessageComponent from './MessageComponent'
 import {
     FeatureDescription as FeatureDescriptionType,
     isTaggedText,
-    TaggedMessageContent
+    TaggedMessageContent as TaggedMessageContentType
 } from '@tonylb/mtw-interfaces/dist/messages'
 
 import DescriptionLink from './DescriptionLink'
+import TaggedMessageContent from './TaggedMessageContent'
 
 interface FeatureDescriptionProps {
     message: FeatureDescriptionType;
     children?: ReactChild | ReactChildren;
 }
 
-const renderFeatureDescriptionItem = (item: TaggedMessageContent, index: number) => {
+const renderFeatureDescriptionItem = (item: TaggedMessageContentType, index: number) => {
     switch(item.tag) {
         case 'Link':
             return <DescriptionLink link={item} key={index} />
@@ -54,7 +55,11 @@ export const FeatureDescription = ({ message }: FeatureDescriptionProps) => {
                     { Name.filter(isTaggedText).map(({ value }) => (value)).join('') }
                 </Typography>
                 <Divider />
-                { Description.map(renderFeatureDescriptionItem) }
+                {
+                    Description.length
+                        ? <TaggedMessageContent list={Description} />
+                        : <em>No description</em>
+                }
             </Box>
         </MessageComponent>
 }
