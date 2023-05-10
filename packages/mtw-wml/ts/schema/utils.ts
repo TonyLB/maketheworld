@@ -57,7 +57,9 @@ import {
     ParseMomentTag,
     ParseAfterTag,
     ParseBeforeTag,
-    ParseReplaceTag
+    ParseReplaceTag,
+    ParseKnowledgeTag,
+    ParseKnowledgeLegalContents
 } from "../parser/baseClasses"
 import { isSchemaCondition, isSchemaConditionTagFeatureContext, isSchemaConditionTagMapContext, isSchemaConditionTagRoomContext, isSchemaDescription, isSchemaName, isSchemaTag, SchemaConditionMixin, SchemaConditionTag, SchemaConditionTagRoomContext, SchemaException, SchemaFeatureLegalContents, SchemaMapLegalContents, SchemaMessageLegalContents, SchemaNameTag, SchemaRoomLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "./baseClasses"
 
@@ -98,6 +100,7 @@ export type TransformWithContextCallback = {
     (item: ParseLinkTag, context: ParseTag[]): ParseLinkTag;
     (item: ParseRoomTag, context: ParseTag[]): ParseRoomTag;
     (item: ParseFeatureTag, context: ParseTag[]): ParseFeatureTag;
+    (item: ParseKnowledgeTag, context: ParseTag[]): ParseKnowledgeTag;
     (item: ParseMapTag, context: ParseTag[]): ParseMapTag;
     (item: ParseStringTag, context: ParseTag[]): ParseStringTag;
     (item: ParseWhitespaceTag, context: ParseTag[]): ParseWhitespaceTag;
@@ -408,6 +411,15 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     {
                         ...featureItem,
                         contents: transformWithContext(item.contents, callback, [...context, featureItem]) as ParseFeatureLegalContents[]
+                    }
+                ]
+            case 'Knowledge':
+                const knowledgeItem = callback(item, context)
+                return [
+                    ...previous,
+                    {
+                        ...knowledgeItem,
+                        contents: transformWithContext(item.contents, callback, [...context, knowledgeItem]) as ParseKnowledgeLegalContents[]
                     }
                 ]
             case 'Map':
