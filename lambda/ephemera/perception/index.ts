@@ -5,7 +5,7 @@ import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import {
     EphemeraMessageId,
     EphemeraRoomId,
-    isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId
+    isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { isTaggedLink, isTaggedText } from "@tonylb/mtw-interfaces/dist/messages"
 
@@ -146,6 +146,16 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         displayProtocol: 'FeatureDescription',
                         ...featureDescribe,
                         FeatureId: ephemeraId
+                    })
+                }
+                if (isEphemeraKnowledgeId(ephemeraId)) {
+                    const knowledgeDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [characterId],
+                        displayProtocol: 'KnowledgeDescription',
+                        ...knowledgeDescribe,
+                        KnowledgeId: ephemeraId
                     })
                 }
                 if (isPerceptionMapMessage(payload)) {

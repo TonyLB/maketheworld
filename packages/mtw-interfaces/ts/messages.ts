@@ -446,6 +446,17 @@ export type FeatureDescription = {
     DisplayProtocol: 'FeatureDescription';
 } & FeatureDescribeData & MessageAddressing
 
+export type KnowledgeDescribeData = {
+    Description: TaggedMessageContentFlat[];
+    Name: TaggedMessageContentFlat[];
+    KnowledgeId: EphemeraKnowledgeId;
+    assets?: Record<EphemeraAssetId, string>;
+}
+
+export type KnowledgeDescription = {
+    DisplayProtocol: 'KnowledgeDescription';
+} & KnowledgeDescribeData & MessageAddressing
+
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
     name: TaggedMessageContentFlat[];
@@ -547,7 +558,7 @@ export type OutOfCharacterMessage = {
     Message: TaggedMessageContentFlat[];
 } & MessageAddressing & MessageCharacterInfo
 
-export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
+export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | KnowledgeDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
 
 export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
@@ -596,6 +607,13 @@ export const isMessage = (message: any): message is Message => {
                 validateTaggedMessageList(message.Description),
                 ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
             ) && isEphemeraFeatureId(message.FeatureId)
+        case 'KnowledgeDescription':
+            return checkAll(
+                checkTypes(message, { KnowledgeId: 'string' }),
+                validateTaggedMessageList(message.Name),
+                validateTaggedMessageList(message.Description),
+                ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
+            ) && isEphemeraKnowledgeId(message.KnowledgeId)
         case 'CharacterDescription':
             return checkAll(
                 checkTypes(message, 

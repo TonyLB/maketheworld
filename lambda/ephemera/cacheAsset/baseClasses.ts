@@ -5,6 +5,7 @@ import {
     EphemeraCharacterId,
     EphemeraComputedId,
     EphemeraFeatureId,
+    EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
     EphemeraMomentId,
@@ -39,6 +40,14 @@ export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
     key: string;
     appearances: EphemeraFeatureAppearance[];
+}
+
+export type EphemeraKnowledgeAppearance = EphemeraFeatureAppearance
+
+export type EphemeraKnowledge = {
+    EphemeraId: EphemeraKnowledgeId;
+    key: string;
+    appearances: EphemeraKnowledgeAppearance[];
 }
 
 export type EphemeraBookmarkAppearance = {
