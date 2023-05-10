@@ -1,5 +1,5 @@
-import { isParseAfter, isParseBefore, isParseBookmark, isParseDescription, isParseFeature, isParseMap, isParseMessage, isParseMoment, isParseName, isParseReplace, isParseRoom, ParseAfterTag, ParseBeforeTag, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseReplaceTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses"
-import { isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaReplace, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaAfterTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
+import { isParseAfter, isParseBefore, isParseBookmark, isParseDescription, isParseFeature, isParseKnowledge, isParseMap, isParseMessage, isParseMoment, isParseName, isParseReplace, isParseRoom, ParseAfterTag, ParseBeforeTag, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseKnowledgeLegalContents, ParseKnowledgeTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseReplaceTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses"
+import { isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaKnowledgeContents, isSchemaKnowledgeIncomingContents, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaReplace, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaAfterTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
 import { translateTaggedMessageContents } from "../schema/taggedMessage"
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils"
 import { schemaDescriptionToWML } from "./description"
@@ -16,6 +16,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
         override parseConvert(value: ParseTagFactoryPropsLimited<'Name'>): ParseStackTagEntry<ParseNameTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Room'>): ParseStackTagEntry<ParseRoomTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Feature'>): ParseStackTagEntry<ParseFeatureTag>
+        override parseConvert(value: ParseTagFactoryPropsLimited<'Knowledge'>): ParseStackTagEntry<ParseKnowledgeTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Map'>): ParseStackTagEntry<ParseMapTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Bookmark'>): ParseStackTagEntry<ParseBookmarkTag>
         override parseConvert(value: ParseTagFactoryPropsLimited<'Message'>): ParseStackTagEntry<ParseMessageTag>
@@ -28,6 +29,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             | ParseTagFactoryPropsLimited<'Name'>
             | ParseTagFactoryPropsLimited<'Room'>
             | ParseTagFactoryPropsLimited<'Feature'>
+            | ParseTagFactoryPropsLimited<'Knowledge'>
             | ParseTagFactoryPropsLimited<'Map'>
             | ParseTagFactoryPropsLimited<'Bookmark'>
             | ParseTagFactoryPropsLimited<'Message'>
@@ -40,6 +42,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
             | ParseStackTagEntry<ParseNameTag>
             | ParseStackTagEntry<ParseRoomTag>
             | ParseStackTagEntry<ParseFeatureTag>
+            | ParseStackTagEntry<ParseKnowledgeTag>
             | ParseStackTagEntry<ParseMapTag>
             | ParseStackTagEntry<ParseBookmarkTag>
             | ParseStackTagEntry<ParseMessageTag>
@@ -203,6 +206,24 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 })(value)
             }
             //
+            // Convert Knowledge tag-opens
+            //
+            else if (isTypedParseTagOpen('Knowledge')(value)) {
+                return parseConverterMixin<ParseKnowledgeTag, ParseKnowledgeLegalContents>({
+                    tag: 'Knowledge',
+                    properties: {
+                        required: {
+                            key: ['key']
+                        },
+                        optional: {}
+                    },
+                    contents: {
+                        legal: ['Name', 'Description', 'If', 'Else', 'ElseIf'],
+                        ignore: ['Whitespace', 'Comment']
+                    }
+                })(value)
+            }
+            //
             // Convert Map tag-opens
             //
             else if (isTypedParseTagOpen('Map')(value)) {
@@ -284,6 +305,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
         override schemaConvert(item: ParseNameTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaNameTag
         override schemaConvert(item: ParseRoomTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaRoomTag
         override schemaConvert(item: ParseFeatureTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaFeatureTag
+        override schemaConvert(item: ParseKnowledgeTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaKnowledgeTag
         override schemaConvert(item: ParseBookmarkTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaBookmarkTag
         override schemaConvert(item: ParseMapTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaMapTag
         override schemaConvert(item: ParseMessageTag, siblings: SchemaTag[], contents: SchemaTag[]): SchemaMessageTag
@@ -297,6 +319,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                     | ParseNameTag
                     | ParseRoomTag
                     | ParseFeatureTag
+                    | ParseKnowledgeTag
                     | ParseBookmarkTag
                     | ParseMapTag
                     | ParseMessageTag
@@ -312,6 +335,7 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 | SchemaNameTag
                 | SchemaRoomTag
                 | SchemaFeatureTag
+                | SchemaKnowledgeTag
                 | SchemaBookmarkTag
                 | SchemaMapTag
                 | SchemaMessageTag
@@ -365,6 +389,17 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 const translatedContents = (contents as SchemaTag[]).filter(isSchemaFeatureIncomingContents)
                 return {
                     tag: 'Feature',
+                    key: item.key,
+                    name: extractNameFromContents(translatedContents),
+                    render: extractDescriptionFromContents(translatedContents),
+                    contents: componentContents
+                }            
+            }
+            else if (isParseKnowledge(item)) {
+                const componentContents = (contents as SchemaTag[]).filter(isSchemaKnowledgeContents)
+                const translatedContents = (contents as SchemaTag[]).filter(isSchemaKnowledgeIncomingContents)
+                return {
+                    tag: 'Knowledge',
                     key: item.key,
                     name: extractNameFromContents(translatedContents),
                     render: extractDescriptionFromContents(translatedContents),

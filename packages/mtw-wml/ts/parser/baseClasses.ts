@@ -25,6 +25,7 @@ export type ParseAssetLegalContents = ParseActionTag |
     ParseElseTag |
     ParseElseIfTag |
     ParseFeatureTag |
+    ParseKnowledgeTag |
     ParseImageTag |
     ParseImportTag |
     ParseMapTag |
@@ -125,7 +126,7 @@ export type ParseImportTag = {
     contents: ParseImportLegalContents[];
 } & ParseTagBase
 
-export type ParseConditionLegalContextTag = 'Asset' | 'Description' | 'Room' | 'Feature' | 'Map' | 'Bookmark'
+export type ParseConditionLegalContextTag = 'Asset' | 'Description' | 'Room' | 'Feature' | 'Knowledge' | 'Map' | 'Bookmark'
 
 export type ParseConditionContentsFromContextTag<T extends ParseConditionLegalContextTag> =
     T extends ('Description' | 'Bookmark')
@@ -134,9 +135,11 @@ export type ParseConditionContentsFromContextTag<T extends ParseConditionLegalCo
             ? ParseRoomLegalContents
             : T extends 'Feature'
                 ? ParseFeatureLegalContents
-                : T extends 'Map'
-                    ? ParseMapLegalContents
-                    : ParseAssetLegalContents
+                : T extends 'Knowledge'
+                    ? ParseKnowledgeLegalContents
+                    : T extends 'Map'
+                        ? ParseMapLegalContents
+                        : ParseAssetLegalContents
 
 export type ParseConditionTypeFromContextTag<K extends 'If' | 'Else' | 'ElseIf', T extends ParseConditionLegalContextTag> = {
     tag: K;
@@ -151,21 +154,24 @@ export type ParseConditionTagAssetContext = ParseConditionTypeFromContextTag<'If
 export type ParseConditionTagDescriptionContext = ParseConditionTypeFromContextTag<'If', 'Description'>
 export type ParseConditionTagRoomContext = ParseConditionTypeFromContextTag<'If', 'Room'>
 export type ParseConditionTagFeatureContext = ParseConditionTypeFromContextTag<'If', 'Feature'>
+export type ParseConditionTagKnowledgeContext = ParseConditionTypeFromContextTag<'If', 'Knowledge'>
 export type ParseConditionTagMapContext = ParseConditionTypeFromContextTag<'If', 'Map'>
 
 export type ParseConditionTag = ParseConditionTypeFromContextTag<'If', ParseConditionLegalContextTag>
 
-export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description', 'Room', 'Feature', 'Bookmark', 'Map'].includes(value))
+export const isLegalParseConditionContextTag = (value: string): value is ParseConditionLegalContextTag => (['Asset', 'Description', 'Room', 'Feature', 'Knowledge', 'Bookmark', 'Map'].includes(value))
 export const isParseConditionTagAssetContext = (value: ParseConditionTag): value is ParseConditionTagAssetContext => (value.contextTag === 'Asset')
 export const isParseConditionTagDescriptionContext = (value: ParseConditionTag): value is ParseConditionTagDescriptionContext => (value.contextTag === 'Description')
 export const isParseConditionTagRoomContext = (value: ParseConditionTag): value is ParseConditionTagRoomContext => (value.contextTag === 'Room')
 export const isParseConditionTagFeatureContext = (value: ParseConditionTag): value is ParseConditionTagFeatureContext => (value.contextTag === 'Feature')
+export const isParseConditionTagKnowledgeContext = (value: ParseConditionTag): value is ParseConditionTagKnowledgeContext => (value.contextTag === 'Knowledge')
 export const isParseConditionTagMapContext = (value: ParseConditionTag): value is ParseConditionTagMapContext => (value.contextTag === 'Map')
 
 export type ParseElseTagAssetContext = ParseConditionTypeFromContextTag<'Else', 'Asset'>
 export type ParseElseTagDescriptionContext = ParseConditionTypeFromContextTag<'Else', 'Description'>
 export type ParseElseTagRoomContext = ParseConditionTypeFromContextTag<'Else', 'Room'>
 export type ParseElseTagFeatureContext = ParseConditionTypeFromContextTag<'Else', 'Feature'>
+export type ParseElseTagKnowledgeContext = ParseConditionTypeFromContextTag<'Else', 'Knowledge'>
 export type ParseElseTagMapContext = ParseConditionTypeFromContextTag<'Else', 'Map'>
 
 export type ParseElseTag = ParseConditionTypeFromContextTag<'Else', ParseConditionLegalContextTag>
@@ -174,12 +180,14 @@ export const isParseElseTagAssetContext = (value: ParseElseTag): value is ParseE
 export const isParseElseTagDescriptionContext = (value: ParseElseTag): value is ParseElseTagDescriptionContext => (value.contextTag === 'Description')
 export const isParseElseTagRoomContext = (value: ParseElseTag): value is ParseElseTagRoomContext => (value.contextTag === 'Room')
 export const isParseElseTagFeatureContext = (value: ParseElseTag): value is ParseElseTagFeatureContext => (value.contextTag === 'Feature')
+export const isParseElseTagKnowledgeContext = (value: ParseElseTag): value is ParseElseTagKnowledgeContext => (value.contextTag === 'Knowledge')
 export const isParseElseTagMapContext = (value: ParseElseTag): value is ParseElseTagMapContext => (value.contextTag === 'Map')
 
 export type ParseElseIfTagAssetContext = ParseConditionTypeFromContextTag<'ElseIf', 'Asset'>
 export type ParseElseIfTagDescriptionContext = ParseConditionTypeFromContextTag<'ElseIf', 'Description'>
 export type ParseElseIfTagRoomContext = ParseConditionTypeFromContextTag<'ElseIf', 'Room'>
 export type ParseElseIfTagFeatureContext = ParseConditionTypeFromContextTag<'ElseIf', 'Feature'>
+export type ParseElseIfTagKnowledgeContext = ParseConditionTypeFromContextTag<'ElseIf', 'Knowledge'>
 export type ParseElseIfTagMapContext = ParseConditionTypeFromContextTag<'ElseIf', 'Map'>
 
 export type ParseElseIfTag = ParseConditionTypeFromContextTag<'ElseIf', ParseConditionLegalContextTag>
@@ -188,14 +196,16 @@ export const isParseElseIfTagAssetContext = (value: ParseElseIfTag): value is Pa
 export const isParseElseIfTagDescriptionContext = (value: ParseElseIfTag): value is ParseElseIfTagDescriptionContext => (value.contextTag === 'Description')
 export const isParseElseIfTagRoomContext = (value: ParseElseIfTag): value is ParseElseIfTagRoomContext => (value.contextTag === 'Room')
 export const isParseElseIfTagFeatureContext = (value: ParseElseIfTag): value is ParseElseIfTagFeatureContext => (value.contextTag === 'Feature')
+export const isParseElseIfTagKnowledgeContext = (value: ParseElseIfTag): value is ParseElseIfTagKnowledgeContext => (value.contextTag === 'Knowledge')
 export const isParseElseIfTagMapContext = (value: ParseElseIfTag): value is ParseElseIfTagMapContext => (value.contextTag === 'Map')
 
 export const parseDifferentiatingTags: Record<ParseConditionLegalContextTag,  ParseTag["tag"][]> = {
-    Asset: ['Exit', 'Feature', 'Room', 'If', 'Else', 'ElseIf', 'Image', 'Map', 'Message'],
+    Asset: ['Exit', 'Feature', 'Knowledge', 'Room', 'If', 'Else', 'ElseIf', 'Image', 'Map', 'Message'],
     Description: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'Bookmark', 'br', 'Whitespace'],
     Bookmark: ['If', 'Else', 'ElseIf', 'Space', 'String', 'Link', 'Bookmark',  'br', 'Whitespace'],
     Room: ['If', 'Else', 'ElseIf', 'Description', 'Name', 'Exit'],
     Feature: ['If', 'Else', 'ElseIf', 'Description', 'Name'],
+    Knowledge: ['If', 'Else', 'ElseIf', 'Description', 'Name'],
     Map: ['If', 'Else', 'ElseIf', 'Image', 'Room', 'Name', 'Exit']
 }
 
@@ -263,6 +273,13 @@ export type ParseFeatureTag = {
     contents: ParseFeatureLegalContents[];
 } & ParseTagBase
 
+export type ParseKnowledgeLegalContents = ParseDescriptionTag | ParseNameTag | ParseConditionTagKnowledgeContext | ParseElseTagKnowledgeContext | ParseElseIfTagKnowledgeContext
+export type ParseKnowledgeTag = {
+    tag: 'Knowledge';
+    key: string;
+    contents: ParseKnowledgeLegalContents[];
+} & ParseTagBase
+
 export type ParseBookmarkTag = ParseTaggedMessageTag<"Bookmark"> & { key: string; }
 
 export type ParseMapLegalContents = ParseNameTag | ParseRoomTag | ParseImageTag | ParseConditionTagMapContext | ParseElseTagMapContext | ParseElseIfTagMapContext
@@ -322,6 +339,7 @@ export type ParseTag = ParseAssetTag |
     ParseBookmarkTag |
     ParseRoomTag |
     ParseFeatureTag |
+    ParseKnowledgeTag |
     ParseMapTag |
     ParseMessageTag |
     ParseMomentTag |
@@ -359,6 +377,7 @@ export const isParseLegalTag = (tag: string): tag is ParseLegalTag => ([
     'Link',
     'Room',
     'Feature',
+    'Knowledge',
     'Map',
     'Bookmark',
     'Message',
@@ -401,8 +420,8 @@ export class ParseException extends Error {
     }
 }
 
-export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseElseTag | ParseLinkTag | ParseBookmarkTag | ParseMapTag | ParseExitTag | ParseNameTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag | ParseMessageTag | ParseMomentTag  | ParseAfterTag | ParseBeforeTag | ParseReplaceTag) => (
-    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Else', 'ElseIf', 'Link', 'Bookmark', 'Map', 'Message', 'Moment', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit', 'After', 'Before', 'Replace'].includes(value.tag)
+export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseKnowledgeTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseElseTag | ParseLinkTag | ParseBookmarkTag | ParseMapTag | ParseExitTag | ParseNameTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag | ParseMessageTag | ParseMomentTag  | ParseAfterTag | ParseBeforeTag | ParseReplaceTag) => (
+    ['Room', 'Feature', 'Knowledge', 'Asset', 'Story', 'Character', 'Import', 'Description', 'If', 'Else', 'ElseIf', 'Link', 'Bookmark', 'Map', 'Message', 'Moment', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit', 'After', 'Before', 'Replace'].includes(value.tag)
 )
 
 export const isParseTypeFromTag = <T extends ParseTag>(tag: T["tag"]) => (item: ParseTag | {}): item is T => ("tag" in item && item.tag === tag)
@@ -431,6 +450,7 @@ export const isParseReplace = isParseTypeFromTag<ParseReplaceTag>('Replace')
 export const isParseName = isParseTypeFromTag<ParseNameTag>('Name')
 export const isParseRoom = isParseTypeFromTag<ParseRoomTag>('Room')
 export const isParseFeature = isParseTypeFromTag<ParseFeatureTag>('Feature')
+export const isParseKnowledge = isParseTypeFromTag<ParseKnowledgeTag>('Knowledge')
 export const isParseBookmark = isParseTypeFromTag<ParseBookmarkTag>('Bookmark')
 export const isParseMap = isParseTypeFromTag<ParseMapTag>('Map')
 export const isParseMessage = isParseTypeFromTag<ParseMessageTag>('Message')
