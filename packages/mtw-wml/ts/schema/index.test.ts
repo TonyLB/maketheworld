@@ -195,6 +195,16 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly round-trip knowledge items', () => {
+        const testWML = `<Asset key=(Test)>
+    <Knowledge key=(test)>
+        <Name>Learning is power!</Name>
+        <Description>There is so very much to see and discover!</Description>
+    </Knowledge>
+</Asset>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
     it('should correctly round-trip a character', () => {
         const testWML = `<Character key=(TESS)>
     <Name>Tess</Name>
