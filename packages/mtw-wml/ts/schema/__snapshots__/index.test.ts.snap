@@ -677,6 +677,33 @@ Array [
         "y": undefined,
       },
       Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "tag": "String",
+                "value": "There is so much to know!",
+              },
+            ],
+            "tag": "Description",
+          },
+        ],
+        "key": "GHI",
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Learn",
+          },
+        ],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "There is so much to know!",
+          },
+        ],
+        "tag": "Knowledge",
+      },
+      Object {
         "default": "false",
         "key": "open",
         "tag": "Variable",
