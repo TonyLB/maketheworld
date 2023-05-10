@@ -465,6 +465,71 @@ describe('ComponentRender cache handler', () => {
         })
     })
 
+    it('should render only knowledge correctly', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: ['Personal'],
+            RoomId: 'ROOM#VORTEX',
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+            Base: {
+                EphemeraId: 'KNOWLEDGE#TestOne',
+                assetId: 'Base',
+                appearances: [
+                    {
+                        conditions: [{ if: 'testOne', dependencies: [] }],
+                        name: [{ tag: 'String', value: 'TestKnowledge' }],
+                        render: [{ tag: 'String', value: 'First' }],
+                    },
+                    {
+                        conditions: [{ if: 'testTwo', dependencies: [] }],
+                        name: [],
+                        render: [{ tag: 'String', value: 'ERROR' }],
+                    }
+                ],
+                key: 'testKnowledge'
+            },
+            Personal: {
+                EphemeraId: 'KNOWLEDGE#TestOne',
+                assetId: 'Base',
+                appearances: [
+                    {
+                        conditions: [{ if: 'testThree', dependencies: [] }],
+                        name: [{ tag: 'String', value: 'ERROR' }],
+                        render: [{ tag: 'String', value: 'ERROR' }],
+                    },
+                    {
+                        conditions: [{ if: 'testFour', dependencies: [] }],
+                        name: [],
+                        render: [{ tag: 'String', value: 'Second' }],
+                    }
+                ],
+                key: 'testKnowledge'
+            }
+        })
+        jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
+            return Boolean(['testOne', 'testFour'].includes(source))
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
+        ])
+        const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
+        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['Base', 'Personal'])
+        expect(output).toEqual({
+            KnowledgeId: 'KNOWLEDGE#TestOne',
+            Name: [{ tag: 'String', value: 'TestKnowledge' }],
+            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            assets: {
+                ['ASSET#Base']: 'testKnowledge',
+                ['ASSET#Personal']: 'testKnowledge'
+            }
+        })
+    })
+
     it('should update maps correctly', async () => {
         jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
