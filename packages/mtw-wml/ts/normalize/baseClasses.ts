@@ -6,6 +6,7 @@ type TagType = 'Asset' |
     'Description' |
     'Room' |
     'Feature' |
+    'Knowledge' |
     'Bookmark' |
     'Image' |
     'Map' |
@@ -106,7 +107,7 @@ export type ComponentAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseA
     y?: number;
 }
 
-type ComponentTypes = 'Room' | 'Feature'
+type ComponentTypes = 'Room' | 'Feature' | 'Knowledge'
 
 export type NormalComponent = {
     tag: ComponentTypes;
@@ -119,6 +120,10 @@ export type NormalRoom = NormalComponent & {
 
 export type NormalFeature = NormalComponent & {
     tag: 'Feature';
+}
+
+export type NormalKnowledge = NormalComponent & {
+    tag: 'Knowledge';
 }
 
 export type NormalBookmarkAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseAppearance
@@ -278,9 +283,10 @@ export class NormalizeKeyMismatchError extends WMLNormalizeError {
 
 export const isNormalExit = (arg: NormalItem): arg is NormalExit => (arg?.tag === 'Exit')
 export const isNormalImage = (arg: NormalItem): arg is NormalImage => (arg?.tag === 'Image')
-export const isNormalComponent = (arg: NormalItem): arg is NormalComponent => (['Room', 'Feature'].includes(arg?.tag))
+export const isNormalComponent = (arg: NormalItem): arg is NormalComponent => (['Room', 'Feature', 'Knowledge'].includes(arg?.tag))
 export const isNormalRoom = (arg: NormalItem): arg is NormalRoom => (arg?.tag === 'Room')
 export const isNormalFeature = (arg: NormalItem): arg is NormalFeature => (arg?.tag === 'Feature')
+export const isNormalKnowledge = (arg: NormalItem): arg is NormalFeature => (arg?.tag === 'Knowledge')
 export const isNormalBookmark = (arg: NormalItem): arg is NormalBookmark => (arg?.tag === 'Bookmark')
 export const isNormalMessage = (arg: NormalItem): arg is NormalMessage => (arg?.tag === 'Message')
 export const isNormalMoment = (arg: NormalItem): arg is NormalMoment => (arg?.tag === 'Moment')
