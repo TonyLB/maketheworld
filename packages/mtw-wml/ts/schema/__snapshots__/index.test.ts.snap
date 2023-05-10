@@ -677,17 +677,7 @@ Array [
         "y": undefined,
       },
       Object {
-        "contents": Array [
-          Object {
-            "contents": Array [
-              Object {
-                "tag": "String",
-                "value": "There is so much to know!",
-              },
-            ],
-            "tag": "Description",
-          },
-        ],
+        "contents": Array [],
         "key": "GHI",
         "name": Array [
           Object {

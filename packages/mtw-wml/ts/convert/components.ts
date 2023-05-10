@@ -396,14 +396,13 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                 }            
             }
             else if (isParseKnowledge(item)) {
-                const componentContents = (contents as SchemaTag[]).filter(isSchemaKnowledgeContents)
                 const translatedContents = (contents as SchemaTag[]).filter(isSchemaKnowledgeIncomingContents)
                 return {
                     tag: 'Knowledge',
                     key: item.key,
                     name: extractNameFromContents(translatedContents),
                     render: extractDescriptionFromContents(translatedContents),
-                    contents: componentContents
+                    contents: []
                 }            
             }
             else if (isParseBookmark(item)) {

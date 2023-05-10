@@ -43,7 +43,8 @@ import {
     SchemaAfterTag,
     SchemaBeforeTag,
     SchemaReplaceTag,
-    SchemaKnowledgeTag
+    SchemaKnowledgeTag,
+    isSchemaKnowledgeContents
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -1190,6 +1191,18 @@ export class Normalizer {
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
                         .filter(isSchemaFeatureContents)
+                }
+            case 'Knowledge':
+                const knowledgeAppearance = baseAppearance as ComponentAppearance
+                return {
+                    key,
+                    tag: 'Knowledge',
+                    render: (knowledgeAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                    name: (knowledgeAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                    contents: knowledgeAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
+                        .filter(isSchemaKnowledgeContents)
                 }
             case 'Bookmark':
                 const bookmarkAppearance = baseAppearance as ComponentAppearance
