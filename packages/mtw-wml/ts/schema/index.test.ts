@@ -41,6 +41,12 @@ describe('schemaFromParse', () => {
                 <Name>Welcome</Name>
                 <Exit to=(DEF)>vortex</Exit>
             </Room>
+            <Knowledge key=(GHI)>
+                <Name>Learn</Name>
+                <Description>
+                    There is so much to know!
+                </Description>
+            </Knowledge>
             <Variable key=(open) default={false} />
             <Action key=(toggleOpen) src={open = !open} />
             <Computed key=(closed) src={!open} />
