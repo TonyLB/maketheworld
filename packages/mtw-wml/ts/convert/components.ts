@@ -1,5 +1,5 @@
 import { isParseAfter, isParseBefore, isParseBookmark, isParseDescription, isParseFeature, isParseKnowledge, isParseMap, isParseMessage, isParseMoment, isParseName, isParseReplace, isParseRoom, ParseAfterTag, ParseBeforeTag, ParseBookmarkTag, ParseDescriptionTag, ParseException, ParseFeatureLegalContents, ParseFeatureTag, ParseKnowledgeLegalContents, ParseKnowledgeTag, ParseMapLegalContents, ParseMapTag, ParseMessageTag, ParseMomentTag, ParseNameTag, ParseReplaceTag, ParseRoomLegalContents, ParseRoomTag, ParseStackTagEntry, ParseTagFactoryPropsLimited, ParseTaggedMessageLegalContents } from "../parser/baseClasses"
-import { isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaKnowledgeContents, isSchemaKnowledgeIncomingContents, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaReplace, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaAfterTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
+import { isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaDescription, isSchemaFeature, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaImage, isSchemaKnowledge, isSchemaKnowledgeContents, isSchemaKnowledgeIncomingContents, isSchemaMap, isSchemaMapContents, isSchemaMessage, isSchemaMoment, isSchemaName, isSchemaReplace, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaTaggedMessageLegalContents, SchemaAfterTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaConditionTag, SchemaDescriptionTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaTag, SchemaTaggedMessageIncomingContents } from "../schema/baseClasses"
 import { translateTaggedMessageContents } from "../schema/taggedMessage"
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils"
 import { schemaDescriptionToWML } from "./description"
@@ -541,6 +541,22 @@ export const ParseComponentsMixin = <C extends Constructor<BaseConverter>>(Base:
                         { key: 'key', type: 'key', value: value.key }
                     ],
                     contents: featureContents,
+                })
+            }
+            else if (isSchemaKnowledge(value)) {
+                const knowledgeContents: SchemaTag[] = [
+                    ...((value.name ?? []).length ? [{ tag: 'Name' as 'Name', contents: value.name}] : []),
+                    ...((value.render ?? []).length ? [{ tag: 'Description' as 'Description', contents: value.render }] : []),
+                    ...value.contents.filter((tag) => (!(isSchemaName(tag) || isSchemaDescription(tag))))
+                ]
+                return tagRender({
+                    ...options,
+                    schemaToWML,
+                    tag: 'Knowledge',
+                    properties: [
+                        { key: 'key', type: 'key', value: value.key }
+                    ],
+                    contents: knowledgeContents,
                 })
             }
             else if (isSchemaBookmark(value)) {
