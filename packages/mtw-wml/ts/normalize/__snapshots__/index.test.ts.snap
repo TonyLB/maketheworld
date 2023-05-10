@@ -3174,6 +3174,11 @@ Object {
           },
           Object {
             "index": 0,
+            "key": "town",
+            "tag": "Knowledge",
+          },
+          Object {
+            "index": 0,
             "key": "active",
             "tag": "Variable",
           },
@@ -3589,6 +3594,34 @@ Object {
     "key": "toggleActive",
     "src": "active = !active",
     "tag": "Action",
+  },
+  "town": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Waverly",
+          },
+        ],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "The town of Waverly is a pleasant place to live.",
+          },
+        ],
+      },
+    ],
+    "key": "town",
+    "tag": "Knowledge",
   },
 }
 `;
