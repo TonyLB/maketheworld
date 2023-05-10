@@ -38,6 +38,10 @@ describe('WML normalize', () => {
             <Feature key=(clockTower)>
                 <Name>Clock Tower</Name>
             </Feature>
+            <Knowledge key=(town)>
+                <Name>Waverly</Name>
+                <Description>The town of Waverly is a pleasant place to live.</Description>
+            </Knowledge>
             <Variable key=(active) default={true} />
             <Computed key=(inactive) src={!active} />
             <Action key=(toggleActive) src={active = !active} />

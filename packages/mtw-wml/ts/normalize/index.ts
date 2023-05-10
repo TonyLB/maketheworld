@@ -42,7 +42,8 @@ import {
     SchemaConditionMixin,
     SchemaAfterTag,
     SchemaBeforeTag,
-    SchemaReplaceTag
+    SchemaReplaceTag,
+    SchemaKnowledgeTag
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -70,6 +71,7 @@ import {
     NormalItem,
     NormalizeKeyMismatchError,
     NormalizeTagMismatchError,
+    NormalKnowledge,
     NormalMap,
     NormalMessage,
     NormalMoment,
@@ -714,6 +716,17 @@ export class Normalizer {
                                     },
                                     updatedContext
                                 )
+                        case 'Knowledge':
+                            return this.put(
+                                    {
+                                        key,
+                                        tag: 'Knowledge',
+                                        name: [],
+                                        contents: [],
+                                        render: []
+                                    },
+                                    updatedContext
+                                )
                         case 'Variable':
                             return this.put(
                                     {
@@ -867,6 +880,7 @@ export class Normalizer {
     _translate(appearance: BaseAppearance, node: SchemaImportTag): NormalImport
     _translate(appearance: BaseAppearance, node: SchemaRoomTag): NormalRoom
     _translate(appearance: BaseAppearance, node: SchemaFeatureTag): NormalFeature
+    _translate(appearance: BaseAppearance, node: SchemaKnowledgeTag): NormalKnowledge
     _translate(appearance: BaseAppearance, node: SchemaBookmarkTag): NormalBookmark
     _translate(appearance: BaseAppearance, node: SchemaMessageTag): NormalMessage
     _translate(appearance: BaseAppearance, node: SchemaMomentTag): NormalMoment
@@ -940,6 +954,7 @@ export class Normalizer {
                 }
             case 'Room':
             case 'Feature':
+            case 'Knowledge':
                 return {
                     key: node.key,
                     tag: node.tag,
