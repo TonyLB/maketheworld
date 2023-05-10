@@ -59,6 +59,29 @@ describe('WML normalize', () => {
         expect(normalizer.normal).toMatchSnapshot()
     })
 
+    it('should normalize all types of links', () => {
+        const testSource = `<Asset key=(Test) fileName="Test" >
+            <Feature key=(clockTower)>
+                <Name>Clock Tower</Name>
+                <Description>
+                    <Link to=(town)>Waverly</Link>
+                    <Link to=(clockTower)>Clock</Link>
+                    <Link to=(toggleActive)>Toggle</Link>
+                </Description>
+            </Feature>
+            <Knowledge key=(town)>
+                <Name>Waverly</Name>
+                <Description>The town of Waverly is a pleasant place to live.</Description>
+            </Knowledge>
+            <Variable key=(active) default={true} />
+            <Action key=(toggleActive) src={active = !active} />
+        </Asset>`
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        expect(normalizer.normal).toMatchSnapshot()
+    })
+
     it('should normalize a character', () => {
         const testSource = `<Character key=(Tess) fileName="test">
             <Name>Tess</Name>

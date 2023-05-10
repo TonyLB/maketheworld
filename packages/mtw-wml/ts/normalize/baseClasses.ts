@@ -67,7 +67,7 @@ export type NormalCharacter = {
 
 export type ComponentRenderItem = {
     tag: 'Link';
-    targetTag: 'Feature' | 'Action';
+    targetTag: 'Feature' | 'Action' | 'Knowledge';
     to: string;
     text: string;
 } | {

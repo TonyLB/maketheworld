@@ -3081,6 +3081,158 @@ Object {
 }
 `;
 
+exports[`WML normalize should normalize all types of links 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "clockTower",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 0,
+            "key": "town",
+            "tag": "Knowledge",
+          },
+          Object {
+            "index": 0,
+            "key": "active",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "toggleActive",
+            "tag": "Action",
+          },
+        ],
+        "contextStack": Array [],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "active": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+      },
+    ],
+    "default": "true",
+    "key": "active",
+    "tag": "Variable",
+  },
+  "clockTower": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Clock Tower",
+          },
+        ],
+        "render": Array [
+          Object {
+            "tag": "Link",
+            "targetTag": "Knowledge",
+            "text": "Waverly",
+            "to": "town",
+          },
+          Object {
+            "tag": "String",
+            "value": " ",
+          },
+          Object {
+            "tag": "Link",
+            "targetTag": "Feature",
+            "text": "Clock",
+            "to": "clockTower",
+          },
+          Object {
+            "tag": "String",
+            "value": " ",
+          },
+          Object {
+            "tag": "Link",
+            "targetTag": "Action",
+            "text": "Toggle",
+            "to": "toggleActive",
+          },
+        ],
+      },
+    ],
+    "key": "clockTower",
+    "tag": "Feature",
+  },
+  "toggleActive": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+      },
+    ],
+    "key": "toggleActive",
+    "src": "active = !active",
+    "tag": "Action",
+  },
+  "town": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Waverly",
+          },
+        ],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "The town of Waverly is a pleasant place to live.",
+          },
+        ],
+      },
+    ],
+    "key": "town",
+    "tag": "Knowledge",
+  },
+}
+`;
+
 exports[`WML normalize should normalize every needed tag 1`] = `
 Object {
   "ImageTest": Object {
