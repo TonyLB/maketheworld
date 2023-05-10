@@ -178,7 +178,8 @@ describe('cacheAsset', () => {
             ABC: 'ROOM#DEF',
             active: 'COMPUTED#XYZ',
             powered: 'VARIABLE#QRS',
-            switchedOn: 'VARIABLE#TUV'
+            switchedOn: 'VARIABLE#TUV',
+            testKnowledge: 'KNOWLEDGE#GHI'
         }
         mockTestAsset = {
             test: {
@@ -195,6 +196,11 @@ describe('cacheAsset', () => {
                     {
                         key: 'If-0',
                         tag: 'If',
+                        index: 0
+                    },
+                    {
+                        key: 'testKnowledge',
+                        tag: 'Knowledge',
                         index: 0
                     },
                     {
@@ -232,6 +238,15 @@ describe('cacheAsset', () => {
                     render: ['The lights are on '],
                     contents: []
                 }] as ComponentAppearance[]
+            },
+            testKnowledge: {
+                key: 'testKnowledge',
+                tag: 'Knowledge',
+                appearances: [{
+                    ...topLevelAppearance,
+                    name: [{ tag: 'String', value: 'Knowledge is power' }],
+                    render: [{ tag: 'String', value: 'There is so much to learn!' }]
+                }]
             },
             powered: {
                 key: 'powered',
@@ -309,6 +324,15 @@ describe('cacheAsset', () => {
                 }]
             },
             {
+                EphemeraId: 'KNOWLEDGE#GHI',
+                key: 'testKnowledge',
+                appearances: [{
+                    conditions: [],
+                    name: [{ tag: 'String', value: 'Knowledge is power' }],
+                    render: [{ tag: 'String', value: 'There is so much to learn!' }]
+                }]
+            },
+            {
                 EphemeraId: 'VARIABLE#QRS',
                 key: 'powered',
                 default: 'false'
@@ -336,7 +360,8 @@ describe('cacheAsset', () => {
                 ABC: 'ROOM#DEF',
                 active: 'COMPUTED#XYZ',
                 powered: 'VARIABLE#QRS',
-                switchedOn: 'VARIABLE#TUV'
+                switchedOn: 'VARIABLE#TUV',
+                testKnowledge: 'KNOWLEDGE#GHI'
             }
         })
     })

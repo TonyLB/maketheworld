@@ -153,7 +153,7 @@ export type EphemeraComputed = {
     dependencies: EphemeraItemDependency[];
 }
 
-export type EphemeraItem = EphemeraFeature | EphemeraBookmark | EphemeraMessage | EphemeraMoment | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
+export type EphemeraItem = EphemeraFeature | EphemeraKnowledge | EphemeraBookmark | EphemeraMessage | EphemeraMoment | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
 
 type LegalEphemeraTag = 'Asset' | (EphemeraItem['EphemeraId'] extends `${infer T}#${string}` ? Capitalize<Lowercase<T>> : never)
 

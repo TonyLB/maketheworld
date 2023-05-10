@@ -18,7 +18,8 @@ import {
     isNormalCondition,
     isNormalBookmark,
     isNormalMessage,
-    isNormalMoment
+    isNormalMoment,
+    isNormalKnowledge
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
@@ -35,7 +36,7 @@ import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetByIdMessage, CacheAssetMessage, CacheCharacterAssetsMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
-import { EphemeraAssetId, EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId, EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages.js'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
@@ -212,6 +213,18 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
         }
     }
     if (isEphemeraFeatureId(EphemeraId) && isNormalFeature(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            appearances: item.appearances
+                .map((appearance) => ({
+                    conditions: conditionsTransform(appearance.contextStack),
+                    name: (appearance.name ?? []).map(renderTranslate),
+                    render: (appearance.render || []).map(renderTranslate),
+                }))
+        }
+    }
+    if (isEphemeraKnowledgeId(EphemeraId) && isNormalKnowledge(item)) {
         return {
             key: item.key,
             EphemeraId,
