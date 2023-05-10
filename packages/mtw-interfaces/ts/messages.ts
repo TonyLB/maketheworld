@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraAssetId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraMapId, EphemeraMessageId, EphemeraNotificationId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
+import { EphemeraActionId, EphemeraAssetId, EphemeraBookmarkId, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraNotificationId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId, LegalCharacterColor } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
 
 export type MessageAddressing = {
@@ -27,7 +27,7 @@ export type TaggedSpacer = {
 export type TaggedLink = {
     tag: 'Link';
     text: string;
-    to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId;
+    to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId | EphemeraKnowledgeId;
 }
 
 export type TaggedLinkUnrestricted = {
@@ -128,7 +128,7 @@ export const isTaggedMessageContent = (message: any): message is TaggedMessageCo
             return true
         case 'Link':
             return checkTypes(message, { text: 'string', to: 'string' })
-                && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to))
+                && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to) || isEphemeraKnowledgeId(message.to))
         case 'Bookmark':
             return checkTypes(message, { to: 'string' })
                 && isEphemeraBookmarkId(message.to)

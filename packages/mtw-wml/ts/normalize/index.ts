@@ -112,14 +112,14 @@ const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTransla
             throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) with no matching key`)
         }
         const targetTag = translationTags[renderItem.to]
-        if (!['Action', 'Feature'].includes(targetTag)) {
+        if (!['Action', 'Feature', 'Knowledge'].includes(targetTag)) {
             throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) referring to an invalid tag (${targetTag})`)
         }
         return {
             tag: 'Link',
             to: renderItem.to,
             text: renderItem.text,
-            targetTag: targetTag as 'Action' | 'Feature'
+            targetTag: targetTag as 'Action' | 'Feature' | 'Knowledge'
         }
     }
     else if (((item: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): item is SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag => (['After', 'Before', 'Replace'].includes(renderItem.tag)))(renderItem)) {

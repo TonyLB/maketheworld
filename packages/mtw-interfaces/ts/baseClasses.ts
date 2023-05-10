@@ -24,6 +24,9 @@ export const isEphemeraAssetId = isEphemeraTaggedId<'ASSET'>('ASSET')
 export type EphemeraFeatureId = EphemeraWrappedId<'FEATURE'>
 export const isEphemeraFeatureId = isEphemeraTaggedId<'FEATURE'>('FEATURE')
 
+export type EphemeraKnowledgeId = EphemeraWrappedId<'KNOWLEDGE'>
+export const isEphemeraKnowledgeId = isEphemeraTaggedId<'KNOWLEDGE'>('KNOWLEDGE')
+
 export type EphemeraRoomId = EphemeraWrappedId<'ROOM'>
 export const isEphemeraRoomId = isEphemeraTaggedId<'ROOM'>('ROOM')
 
