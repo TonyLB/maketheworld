@@ -3,7 +3,7 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/dist/messages"
-import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
     EphemeraCharacterId,
@@ -13,6 +13,7 @@ import {
     isEphemeraMapId
 } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { KnowledgeDescription } from "@tonylb/mtw-interfaces/dist/messages"
 
 export type PublishTargetRoom = `ROOM#${string}`
 
@@ -74,6 +75,10 @@ export type PublishFeatureDescriptionMessage = Omit<FeatureDescription, 'Display
     displayProtocol: 'FeatureDescription';
 } & PublishMessageBase
 
+export type PublishKnowledgeDescriptionMessage = Omit<KnowledgeDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
+    displayProtocol: 'KnowledgeDescription';
+} & PublishMessageBase
+
 export type PublishRoomDescriptionMessage = Omit<RoomDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
     displayProtocol: 'RoomDescription' | 'RoomHeader';
 } & PublishMessageBase
@@ -88,6 +93,7 @@ export type PublishMessage = PublishWorldMessage |
     PublishOutOfCharacterMessage |
     PublishRoomUpdateMessage |
     PublishFeatureDescriptionMessage |
+    PublishKnowledgeDescriptionMessage |
     PublishRoomDescriptionMessage |
     PublishCharacterDescriptionMessage
 
@@ -210,7 +216,7 @@ export type PerceptionRoomMessage = {
 export type PerceptionComponentMessage = {
     type: 'Perception';
     characterId: EphemeraCharacterId;
-    ephemeraId: EphemeraFeatureId | EphemeraCharacterId;
+    ephemeraId: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId;
 }
 
 export type PerceptionMapMessage = {
@@ -235,7 +241,7 @@ export type PerceptionShowMoment = {
 export type PerceptionMessage = PerceptionRoomMessage | PerceptionComponentMessage | PerceptionMapMessage | PerceptionShowMessage | PerceptionShowMoment
 
 export const isPerceptionRoomMessage = (message: PerceptionMessage): message is PerceptionRoomMessage => (isEphemeraRoomId(message.ephemeraId))
-export const isPerceptionComponentMessage = (message: PerceptionMessage): message is PerceptionComponentMessage => (isEphemeraFeatureId(message.ephemeraId) || isEphemeraCharacterId(message.ephemeraId))
+export const isPerceptionComponentMessage = (message: PerceptionMessage): message is PerceptionComponentMessage => (isEphemeraFeatureId(message.ephemeraId) || isEphemeraCharacterId(message.ephemeraId) || isEphemeraKnowledgeId(message.ephemeraId))
 export const isPerceptionMapMessage = (message: PerceptionMessage): message is PerceptionMapMessage => (isEphemeraMapId(message.ephemeraId))
 export const isPerceptionShowMessage = (message: PerceptionMessage): message is PerceptionShowMessage => (isEphemeraMessageId(message.ephemeraId))
 export const isPerceptionShowMoment = (message: PerceptionMessage): message is PerceptionShowMoment => (isEphemeraMomentId(message.ephemeraId))
@@ -354,6 +360,7 @@ export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeech
 export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is PublishRoomUpdateMessage => (prop.displayProtocol === 'RoomUpdate')
 export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is PublishRoomDescriptionMessage => (['RoomDescription', 'RoomHeader'].includes(prop.displayProtocol))
 export const isFeatureDescriptionPublishMessage = (prop: PublishMessage): prop is PublishFeatureDescriptionMessage => (prop.displayProtocol === 'FeatureDescription')
+export const isKnowledgeDescriptionPublishMessage = (prop: PublishMessage): prop is PublishKnowledgeDescriptionMessage => (prop.displayProtocol === 'KnowledgeDescription')
 export const isCharacterDescriptionPublishMessage = (prop: PublishMessage): prop is PublishCharacterDescriptionMessage => (prop.displayProtocol === 'CharacterDescription')
 
 export const isPublishNotification = (prop: MessageType): prop is PublishNotification => (prop.type === 'PublishNotification')
