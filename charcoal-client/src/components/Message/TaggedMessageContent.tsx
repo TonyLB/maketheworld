@@ -14,7 +14,7 @@ const TaggedMessageContent: FunctionComponent<TaggedMessageContentProps> = ({ li
             case 'String':
                 return item.value
             case 'LineBreak':
-                return <span style={{ display: 'block', marginBottom: '0.5em' }} />
+                return <span key={`lineBreak-${index}`} style={{ display: 'block', marginBottom: '0.5em' }} />
             default:
                 return null
         }
