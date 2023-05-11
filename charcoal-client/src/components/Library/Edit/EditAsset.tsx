@@ -276,6 +276,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
                     <Route path={'Map/:MapId'} element={<MapEdit />} />
                     <Route path={'Room/:ComponentId'} element={<WMLComponentDetail />} />
                     <Route path={'Feature/:ComponentId'} element={<WMLComponentDetail />} />
+                    <Route path={'Knowledge/:ComponentId'} element={<WMLComponentDetail />} />
                     <Route path={''} element={<AssetEditForm />} />
                 </Routes>
             </LibraryAsset>
