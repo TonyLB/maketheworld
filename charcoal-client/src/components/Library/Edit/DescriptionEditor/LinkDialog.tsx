@@ -27,6 +27,7 @@ import {
 interface LinkDialogProps {
     open: boolean;
     onClose: () => void;
+    validTags?: ('Feature' | 'Action' | 'Knowledge')[]
 }
 
 const isInContextOf = (tags: string[]) => (editor: Editor) => {
@@ -163,17 +164,22 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
         : null
 }
 
-const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
-    const editor = useSlate()
+const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Action', 'Knowledge'] }) => {
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    const actions = Object.values(normalForm)
-        .filter(isNormalAction)
-    const features = Object.values(normalForm)
-        .filter(isNormalFeature)
-    const knowledges = Object.values(normalForm)
-        .filter(isNormalKnowledge)
+    const actions = validTags.includes('Action')
+        ? Object.values(normalForm)
+            .filter(isNormalAction)
+        : []
+    const features = validTags.includes('Feature')
+        ? Object.values(normalForm)
+            .filter(isNormalFeature)
+        : []
+    const knowledges = validTags.includes('Knowledge')
+        ? Object.values(normalForm)
+            .filter(isNormalKnowledge)
+        : []
     return <Dialog
         open={open}
         scroll='paper'

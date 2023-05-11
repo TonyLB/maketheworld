@@ -81,7 +81,7 @@ type LibraryAssetProps = {
 }
 
 export type AssetComponent = {
-    tag: string;
+    tag: NormalItem["tag"];
     localName: ComponentRenderItem[];
     localRender: ComponentRenderItem[];
     inheritedName: ComponentRenderItem[];
