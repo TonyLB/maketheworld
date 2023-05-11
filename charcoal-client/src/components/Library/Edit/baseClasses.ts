@@ -23,7 +23,13 @@ export type CustomFeatureLinkElement = {
     children: CustomText[]
 }
 
-export type CustomLinkElement = CustomActionLinkElement | CustomFeatureLinkElement
+export type CustomKnowledgeLinkElement = {
+    type: 'knowledgeLink';
+    to: string;
+    children: CustomText[]
+}
+
+export type CustomLinkElement = CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement
 
 export type CustomLineBreak = {
     type: 'lineBreak';
@@ -71,12 +77,13 @@ export type CustomExitBlock = {
     children: CustomText[];
 }
 
-export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock
+export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement | CustomLineBreak | CustomBeforeBlock | CustomReplaceBlock
 
 export const isCustomLineBreak = (item: CustomParagraphContents): item is CustomLineBreak => ('type' in item && item.type === 'lineBreak')
 export const isCustomActionLink = (item: CustomParagraphContents): item is CustomActionLinkElement => ('type' in item && item.type === 'actionLink')
 export const isCustomFeatureLink = (item: CustomParagraphContents): item is CustomFeatureLinkElement => ('type' in item && item.type === 'featureLink')
-export const isCustomLink = (item: CustomParagraphContents): item is CustomLinkElement => (isCustomActionLink(item) || isCustomFeatureLink(item))
+export const isCustomKnowledgeLink = (item: CustomParagraphContents): item is CustomKnowledgeLinkElement => ('type' in item && item.type === 'knowledgeLink')
+export const isCustomLink = (item: CustomParagraphContents): item is CustomLinkElement => (isCustomActionLink(item) || isCustomFeatureLink(item) || isCustomKnowledgeLink(item))
 export const isCustomText = (item: CustomParagraphContents): item is CustomText => ('text' in item)
 export const isCustomBeforeBlock = (item: CustomParagraphContents): item is CustomBeforeBlock => ('type' in item && item.type === 'before')
 export const isCustomReplaceBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'replace')
@@ -87,7 +94,7 @@ export const isCustomElseIfBlock = (item: CustomBlock | CustomParagraphContents)
 export const isCustomElseBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseBlock => ('type' in item && item.type === 'else')
 export const isCustomExitBlock = (item: CustomBlock | CustomParagraphContents): item is CustomExitBlock => ('type' in item && item.type === 'exit')
 
-export const isCustomParagraphContents = (item: CustomElement | CustomText | CustomLineBreak): item is CustomParagraphContents => ((!('type' in item)) || ('type' in item && ['actionLink', 'featureLink', 'lineBreak', 'before', 'replace'].includes(item.type)))
+export const isCustomParagraphContents = (item: CustomElement | CustomText | CustomLineBreak): item is CustomParagraphContents => ((!('type' in item)) || ('type' in item && ['actionLink', 'featureLink', 'knowledgeLink', 'lineBreak', 'before', 'replace'].includes(item.type)))
 
 export type CustomParagraphElement = {
     type: 'paragraph';
@@ -97,8 +104,7 @@ export type CustomParagraphElement = {
 }
 
 type CustomElement = CustomLineElement |
-    CustomActionLinkElement |
-    CustomFeatureLinkElement |
+    CustomLinkElement |
     CustomParagraphElement |
     CustomInheritedReadOnlyElement |
     CustomBeforeBlock |

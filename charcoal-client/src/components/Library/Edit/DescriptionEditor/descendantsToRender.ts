@@ -9,6 +9,7 @@ import {
     isCustomElseIfBlock,
     isCustomFeatureLink,
     isCustomIfBlock,
+    isCustomKnowledgeLink,
     isCustomLink,
     isCustomParagraph,
     isCustomParagraphContents,
@@ -69,11 +70,16 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
                 .filter((item) => (!(isCustomText(item) && !item.text)))
                 .reduce<ComponentRenderItem[]>((previous, item) => {
                     if (isCustomLink(item)) {
+                        const targetTag = isCustomFeatureLink(item)
+                            ? 'Feature'
+                            : isCustomKnowledgeLink(item)
+                                ? 'Knowledge'
+                                : 'Action'
                         return [
                             ...previous,
                             {
                                 tag: 'Link',
-                                targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
+                                targetTag,
                                 to: item.to,
                                 text: item.children
                                     .filter((child) => ('text' in child))

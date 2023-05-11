@@ -32,6 +32,14 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
                     <InlineChromiumBugfix />
                 </DescriptionLinkFeatureChip>
             </span>
+        case 'knowledgeLink':
+            return <span {...attributes}>
+                <DescriptionLinkFeatureChip tooltipTitle={`Knowledge: ${element.to}`}>
+                    <InlineChromiumBugfix />
+                    {children}
+                    <InlineChromiumBugfix />
+                </DescriptionLinkFeatureChip>
+            </span>
         case 'actionLink':
             return <span {...attributes}>
                 <DescriptionLinkActionChip tooltipTitle={`Action: ${element.to}`}>
