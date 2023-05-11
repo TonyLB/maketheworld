@@ -331,6 +331,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const normalForm = useSelector(getNormalized(AssetId))
     const { components, readonly } = useLibraryAsset()
     const inheritedRender = useMemo(() => (components[ComponentId]?.inheritedRender || []), [components, ComponentId])
+    const tag = useMemo(() => (components[ComponentId]?.tag), [components, ComponentId])
     const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
@@ -393,7 +394,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     //
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
-            <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
+            <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']} />
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                 <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
                 <RemoveLinkButton />
