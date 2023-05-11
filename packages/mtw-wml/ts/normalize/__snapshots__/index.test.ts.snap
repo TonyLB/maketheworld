@@ -427,6 +427,59 @@ Object {
 }
 `;
 
+exports[`WML normalize positioned put method should add Knowledge to an asset 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "testKnowledge",
+            "tag": "Knowledge",
+          },
+        ],
+        "contextStack": Array [],
+      },
+    ],
+    "fileName": undefined,
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "testKnowledge": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "name": Array [
+          Object {
+            "tag": "String",
+            "value": "Knowledge is power",
+          },
+        ],
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Learning!",
+          },
+        ],
+      },
+    ],
+    "key": "testKnowledge",
+    "tag": "Knowledge",
+  },
+}
+`;
+
 exports[`WML normalize positioned put method should add an item between two others 1`] = `
 Object {
   "Test": Object {
