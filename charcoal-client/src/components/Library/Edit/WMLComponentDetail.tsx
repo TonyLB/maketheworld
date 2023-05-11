@@ -14,9 +14,9 @@ import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import { useDebouncedOnChange } from '../../../hooks/useDebounce'
-import { ComponentRenderItem, isNormalComponent, isNormalFeature, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, isNormalBookmark, isNormalComponent, isNormalFeature, isNormalKnowledge, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
-import { isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { isSchemaKnowledge, isSchemaRoom } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
@@ -77,7 +77,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         normalizer.standardize()
         const reference: NormalReference = { tag, key: ComponentId, index: 0 }
         const baseSchema = normalizer.referenceToSchema(reference)
-        if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
+        if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema) || isSchemaKnowledge(baseSchema)) {
             if (isSchemaRoom(baseSchema) && adjustedRender?.length)  {
                 dispatch(addOnboardingComplete(['describeRoom']))
             }
@@ -103,7 +103,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
     }, [components, ComponentId])
     const appearance = useMemo(() => {
         const component = normalForm[ComponentId]
-        if (!(component && (isNormalRoom(component) || isNormalFeature(component)))) {
+        if (!(component && (isNormalRoom(component) || isNormalFeature(component) || isNormalKnowledge(component)))) {
             return undefined
         }
         return component.appearances[0]
@@ -117,7 +117,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         normalizer._normalForm = normalForm
         const reference: NormalReference = { tag, key: ComponentId, index: 0 }
         const baseSchema = normalizer.referenceToSchema(reference)
-        if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema)) {
+        if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema) || isSchemaKnowledge(baseSchema)) {
             if (isSchemaRoom(baseSchema) && value?.length)  {
                 dispatch(addOnboardingComplete(['nameRoom']))
             }
