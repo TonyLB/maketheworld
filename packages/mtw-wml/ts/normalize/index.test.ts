@@ -806,6 +806,21 @@ describe('WML normalize', () => {
             expect(normalizer.normal).toMatchSnapshot()
         })
 
+        it('should add Knowledge to an asset', () => {
+            const testSource = `<Asset key=(Test) />`
+            const normalizer = new Normalizer()
+            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            const knowledgeUpdate: SchemaTag = {
+                tag: 'Knowledge',
+                key: 'testKnowledge',
+                contents: [],
+                render: [{ tag: 'String', value: 'Learning!' }],
+                name: [{ tag: 'String', value: 'Knowledge is power' }]
+            }
+            normalizer.put(knowledgeUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }] })
+            expect(normalizer.normal).toMatchSnapshot()
+        })
     })
 
 })

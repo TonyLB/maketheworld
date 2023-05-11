@@ -4,17 +4,17 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction, isNormalImport, NormalImport } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, SchemaUseTag, isSchemaImport, SchemaImportMapping } from "../schema/baseClasses"
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction, isNormalImport, NormalImport, isNormalKnowledge, NormalKnowledge } from "./baseClasses"
+import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, SchemaUseTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge } from "../schema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../schema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
 
-const extractConditionedRender = (contextNormalizer: Normalizer) => (item: NormalRoom | NormalFeature | NormalBookmark | NormalMessage) => {
+const extractConditionedRender = (contextNormalizer: Normalizer) => (item: NormalRoom | NormalFeature | NormalKnowledge | NormalBookmark | NormalMessage) => {
     const { appearances } = item
     const render = (appearances as ComponentAppearance[]).reduce<SchemaTaggedMessageLegalContents[]>((previous, { contextStack }, index ) => {
         const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
-        if (!(schemaVersion && (isSchemaRoom(schemaVersion) || isSchemaFeature(schemaVersion) || isSchemaBookmark(schemaVersion) || isSchemaMessage(schemaVersion)))) {
+        if (!(schemaVersion && (isSchemaRoom(schemaVersion) || isSchemaFeature(schemaVersion) || isSchemaKnowledge(schemaVersion) || isSchemaBookmark(schemaVersion) || isSchemaMessage(schemaVersion)))) {
             return previous
         }
         const render = isSchemaBookmark(schemaVersion) ? schemaVersion.contents : schemaVersion.render
@@ -45,11 +45,11 @@ const extractConditionedRender = (contextNormalizer: Normalizer) => (item: Norma
     return render
 }
 
-const extractConditionedName = (contextNormalizer: Normalizer) => (item: NormalRoom | NormalFeature) => {
+const extractConditionedName = (contextNormalizer: Normalizer) => (item: NormalRoom | NormalFeature | NormalKnowledge) => {
     const { appearances } = item
     const name = appearances.reduce<SchemaTaggedMessageLegalContents[]>((previous, { contextStack }, index ) => {
         const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
-        if (!(schemaVersion && (isSchemaRoom(schemaVersion) || isSchemaFeature(schemaVersion)))) {
+        if (!(schemaVersion && (isSchemaRoom(schemaVersion) || isSchemaFeature(schemaVersion) || isSchemaKnowledge(schemaVersion)))) {
             return previous
         }
         const { name } = schemaVersion
@@ -279,6 +279,13 @@ const stripComponentContents = <T extends SchemaTag>(items: T[]): T[] => {
                 render: []
             }
         }
+        if (isSchemaKnowledge(item)) {
+            return {
+                ...item,
+                name: [],
+                render: []
+            }
+        }
         if (isSchemaMessage(item)) {
             return {
                 ...item,
@@ -393,6 +400,29 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                 key: feature.key,
                 name: extractConditionedName(argumentNormalizer)(feature),
                 render: extractConditionedRender(argumentNormalizer)(feature),
+                contents: [],
+            }, { 
+                contextStack: [{
+                    key: rootNode.key,
+                    tag: 'Asset',
+                    index: 0
+                }]
+            })
+
+        })
+
+    //
+    // Add standardized view of all Knowledges to the results
+    //
+    Object.values(normal)
+        .filter(isNormalKnowledge)
+        .sort(normalAlphabeticKeySort)
+        .forEach((knowledge) => {
+            resultNormalizer.put({
+                tag: 'Knowledge',
+                key: knowledge.key,
+                name: extractConditionedName(argumentNormalizer)(knowledge),
+                render: extractConditionedRender(argumentNormalizer)(knowledge),
                 contents: [],
             }, { 
                 contextStack: [{

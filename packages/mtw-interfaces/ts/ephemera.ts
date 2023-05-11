@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraNotificationId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraNotificationId, isEphemeraRoomId } from "./baseClasses"
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraNotificationId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraNotificationId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
 import { isMapDescribeData, isMessage, isNotification, MapDescribeData, Message, Notification } from "./messages"
 import { checkAll, checkTypes } from "./utils";
@@ -126,7 +126,7 @@ export type ActionAPIMessage = {
 
 export type LinkAPIMessage = {
     message: 'link';
-    to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId;
+    to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId | EphemeraKnowledgeId;
     CharacterId: EphemeraCharacterId;
 }
 
