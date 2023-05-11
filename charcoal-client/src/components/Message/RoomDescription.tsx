@@ -152,17 +152,19 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                 <Box css={css`
                     grid-area: content;
                     padding-bottom: 5px;
+                    ${ header
+                        ? `
+                            max-height: 20vh;
+                            overflow: hidden;
+                        `
+                        : ''
+                    }
                 `}>
                     <Typography variant='h5' align='left'>
                         { Name.filter(isTaggedText).length ? Name.filter(isTaggedText).map(({ value }) => (value)).join('') : 'Untitled' }
                         { currentHeader && <MiniChip text="Live" /> }
                     </Typography>
-                    <Box sx={header ? {
-                        WebkitBoxOrient: 'vertical',
-                        WebkitLineClamp: 4,
-                        display: '-webkit-box',
-                        overflow: 'hidden'
-                    }: {}}>
+                    <Box sx={{ overflow: 'hidden' }}>
                         {
                             Description.length
                                 ? <TaggedMessageContent list={Description} />
