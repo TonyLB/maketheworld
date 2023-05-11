@@ -7,6 +7,7 @@ import {
     CustomElseIfBlock,
     CustomFeatureLinkElement,
     CustomIfBlock,
+    CustomKnowledgeLinkElement,
     CustomParagraphContents,
     CustomParagraphElement,
     CustomText,
@@ -64,12 +65,12 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[]): Ge
                 break
             case 'Link':
                 yield {
-                    type: item.targetTag === 'Feature' ? 'featureLink' : 'actionLink',
+                    type: item.targetTag === 'Feature' ? 'featureLink' : item.targetTag === 'Action' ? 'actionLink' : 'knowledgeLink',
                     to: item.to,
                     children: [{
                         text: item.text || ''
                     }]
-                } as CustomActionLinkElement | CustomFeatureLinkElement
+                } as CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement
                 break
             case 'String':
                 yield { text: item.value } as CustomText

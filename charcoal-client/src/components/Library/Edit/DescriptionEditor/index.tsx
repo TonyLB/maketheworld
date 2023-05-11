@@ -63,7 +63,7 @@ const withInlines = (editor: Editor) => {
     // TODO: Refactor before and replace as blocks rather than inlines, so they can contain conditionals
     //
     editor.isInline = (element: SlateElement) => (
-        ['actionLink', 'featureLink', 'before', 'replace'].includes(element.type) || isInline(element)
+        ['actionLink', 'featureLink', 'knowledgeLink', 'before', 'replace'].includes(element.type) || isInline(element)
     )
 
     return editor
@@ -135,7 +135,7 @@ const isInContextOf = (tags: string[]) => (editor: Editor) => {
     return !!(link?.value)
 }
 
-const isLinkActive = isInContextOf(['actionLink', 'featureLink'])
+const isLinkActive = isInContextOf(['actionLink', 'featureLink', 'knowledgeLink'])
 
 const isBeforeBlock = isInContextOf(['before'])
 const isReplaceBlock = isInContextOf(['replace'])
@@ -143,7 +143,7 @@ const isReplaceBlock = isInContextOf(['replace'])
 const unwrapLink = (editor: Editor) => {
     Transforms.unwrapNodes(editor, {
         match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink'].includes(n.type),
+            !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink', 'knowledgeLink'].includes(n.type),
     })
 }
 

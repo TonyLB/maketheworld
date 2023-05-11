@@ -286,7 +286,7 @@ export const isNormalImage = (arg: NormalItem): arg is NormalImage => (arg?.tag 
 export const isNormalComponent = (arg: NormalItem): arg is NormalComponent => (['Room', 'Feature', 'Knowledge'].includes(arg?.tag))
 export const isNormalRoom = (arg: NormalItem): arg is NormalRoom => (arg?.tag === 'Room')
 export const isNormalFeature = (arg: NormalItem): arg is NormalFeature => (arg?.tag === 'Feature')
-export const isNormalKnowledge = (arg: NormalItem): arg is NormalFeature => (arg?.tag === 'Knowledge')
+export const isNormalKnowledge = (arg: NormalItem): arg is NormalKnowledge => (arg?.tag === 'Knowledge')
 export const isNormalBookmark = (arg: NormalItem): arg is NormalBookmark => (arg?.tag === 'Bookmark')
 export const isNormalMessage = (arg: NormalItem): arg is NormalMessage => (arg?.tag === 'Message')
 export const isNormalMoment = (arg: NormalItem): arg is NormalMoment => (arg?.tag === 'Moment')
