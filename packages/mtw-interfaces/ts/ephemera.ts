@@ -127,7 +127,7 @@ export type ActionAPIMessage = {
 export type LinkAPIMessage = {
     message: 'link';
     to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId | EphemeraKnowledgeId;
-    CharacterId: EphemeraCharacterId;
+    CharacterId?: EphemeraCharacterId;
 }
 
 export type CommandAPIMessage = {
@@ -201,8 +201,8 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                 return checkAll(message.updates.map(isValidNotificationUpdate))
         case 'link':
             return Boolean(
-                checkTypes(message, { CharacterId: 'string', to: 'string' })
-                && isEphemeraCharacterId(message.CharacterId)
+                checkTypes(message, { to: 'string' }, { CharacterId: 'string' })
+                && (!message.CharacterId || isEphemeraCharacterId(message.CharacterId))
                 && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to) || isEphemeraKnowledgeId(message.to))
             )
         case 'command':

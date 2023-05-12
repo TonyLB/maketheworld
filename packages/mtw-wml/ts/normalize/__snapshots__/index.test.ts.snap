@@ -3323,6 +3323,11 @@ Object {
             "key": "overview",
             "tag": "Room",
           },
+          Object {
+            "index": 0,
+            "key": "baseInfo",
+            "tag": "Knowledge",
+          },
         ],
         "contextStack": Array [
           Object {
@@ -3336,6 +3341,10 @@ Object {
     "from": "BASE",
     "key": "Import-0",
     "mapping": Object {
+      "baseInfo": Object {
+        "key": "baseInfo",
+        "type": "Knowledge",
+      },
       "overview": Object {
         "key": "overview",
         "type": "Room",
@@ -3652,6 +3661,29 @@ Object {
     ],
     "key": "b456",
     "tag": "Room",
+  },
+  "baseInfo": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Import-0",
+            "tag": "Import",
+          },
+        ],
+        "name": Array [],
+        "render": Array [],
+      },
+    ],
+    "key": "baseInfo",
+    "tag": "Knowledge",
   },
   "clockTower": Object {
     "appearances": Array [

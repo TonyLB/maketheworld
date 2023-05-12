@@ -17,6 +17,7 @@ describe('schemaFromParse', () => {
             <Import from=(BASE)>
                 <Use key=(basePower) type="Variable" as=(power) />
                 <Use key=(overview) type="Room" />
+                <Use key=(baseInfo) type="Knowledge" />
             </Import>
             <Room key=(ABC)>
                 <Name>Vortex</Name>

@@ -24,6 +24,7 @@ describe('WML normalize', () => {
             <Import from=(BASE)>
                 <Use key=(basePower) as=(power) type="Variable" />
                 <Use key=(overview) type="Room" />
+                <Use key=(baseInfo) type="Knowledge" />
             </Import>
             <Room key=(a123)>
                 <Exit to=(b456) />
@@ -248,6 +249,7 @@ describe('WML normalize', () => {
             <Import from=(BASE)>
                 <Use key=(basePower) as=(power) type="Variable" />
                 <Use key=(overview) type="Room" />
+                <Use key=(baseInfo) type="Knowledge" />
             </Import>
             <Room key=(a123)>
                 <Feature key=(clockTower) />

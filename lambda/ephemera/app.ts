@@ -280,7 +280,7 @@ export const handler = async (event: any, context: any) => {
             }
             if (isLinkAPIMessage(request)) {
                 const CharacterId = request.CharacterId
-                if (isEphemeraCharacterId(CharacterId)) {
+                if (CharacterId && isEphemeraCharacterId(CharacterId)) {
                     if (isEphemeraActionId(request.to)) {
                         messageBus.send({
                             type: 'ExecuteAction',
@@ -288,7 +288,7 @@ export const handler = async (event: any, context: any) => {
                             characterId: CharacterId
                         })
                     }
-                    if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to) || isEphemeraKnowledgeId(request.to)) {
+                    if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to)) {
                         messageBus.send({
                             type: 'Perception',
                             characterId: CharacterId,
@@ -296,7 +296,14 @@ export const handler = async (event: any, context: any) => {
                         })
                     }
                 }
-            }
+                if (isEphemeraKnowledgeId(request.to)) {
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: CharacterId,
+                        ephemeraId: request.to
+                    })
+                }
+        }
             if (isCommandAPIMessage(request)) {
                 const CharacterId = request.CharacterId
                 const actionPayload = await parseCommand({ CharacterId, command: request.command })
