@@ -20,7 +20,7 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
@@ -288,7 +288,7 @@ export const handler = async (event: any, context: any) => {
                             characterId: CharacterId
                         })
                     }
-                    if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to)) {
+                    if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to) || isEphemeraKnowledgeId(request.to)) {
                         messageBus.send({
                             type: 'Perception',
                             characterId: CharacterId,
