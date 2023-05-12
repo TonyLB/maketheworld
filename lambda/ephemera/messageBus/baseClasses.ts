@@ -215,7 +215,7 @@ export type PerceptionRoomMessage = {
 
 export type PerceptionComponentMessage = {
     type: 'Perception';
-    characterId: EphemeraCharacterId;
+    characterId?: EphemeraCharacterId;
     ephemeraId: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId;
 }
 

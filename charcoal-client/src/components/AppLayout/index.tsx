@@ -284,6 +284,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, ma
                             <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
                             <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
                             <Route path="/Knowledge/" element={<Knowledge />} />
+                            <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
                             <Route path="/Help/" element={<HelpPage />} />
                             <Route path="/Who/" element={whoPanel} />
                             <Route path="/Notifications/" element={<Notifications />} />

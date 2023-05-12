@@ -406,6 +406,10 @@ Array [
       Object {
         "from": "BASE",
         "mapping": Object {
+          "baseInfo": Object {
+            "key": "baseInfo",
+            "type": "Knowledge",
+          },
           "overview": Object {
             "key": "overview",
             "type": "Room",
