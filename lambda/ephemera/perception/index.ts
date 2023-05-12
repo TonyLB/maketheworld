@@ -115,8 +115,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             }
         }
         else {
-            const { characterId, ephemeraId } = payload
-            if (isEphemeraCharacterId(ephemeraId)) {
+            const { characterId = 'ANONYMOUS', ephemeraId } = payload
+            if (isEphemeraCharacterId(ephemeraId) && isEphemeraCharacterId(characterId)) {
                 const characterDescription = (await ephemeraDB.getItem<EphemeraCharacterDescription>({
                     EphemeraId: ephemeraId,
                     DataCategory: 'Meta::Character',
@@ -138,7 +138,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 })
             }
             else {
-                if (isEphemeraFeatureId(ephemeraId)) {
+                if (isEphemeraFeatureId(ephemeraId) && isEphemeraCharacterId(characterId)) {
                     const featureDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     messageBus.send({
                         type: 'PublishMessage',
@@ -149,16 +149,17 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     })
                 }
                 if (isEphemeraKnowledgeId(ephemeraId)) {
+                    const targets = isEphemeraCharacterId(characterId) ? [characterId] : []
                     const knowledgeDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     messageBus.send({
                         type: 'PublishMessage',
-                        targets: [characterId],
+                        targets,
                         displayProtocol: 'KnowledgeDescription',
                         ...knowledgeDescribe,
                         KnowledgeId: ephemeraId
                     })
                 }
-                if (isPerceptionMapMessage(payload)) {
+                if (isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
                     const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
                     if ((!payload.mustIncludeRoomId) || mapDescribe.rooms.find(({ roomId }) => (payload.mustIncludeRoomId === roomId))) {
                         messageBus.send({

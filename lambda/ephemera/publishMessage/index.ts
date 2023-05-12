@@ -128,29 +128,40 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     //
     let messagesByConnectionId: Record<string, any[]> = {}
 
-    const pushToQueues = <T extends { Targets: PublishTarget[]; CreatedTime: number; MessageId: string; }>({ Targets, ...rest }: T) => {
-        const remappedTargets = mapper.remap(Targets)
-        dbPromises.push(publishMessageDynamoDB({
-            Targets: remappedTargets,
-            ...rest
-        }))
-        remappedTargets.forEach((target) => {
-            const connections = mapper.characterConnections(target) || []
-            connections.forEach((connectionId) => {
+    const pushToQueues = async <T extends { Targets: PublishTarget[]; CreatedTime: number; MessageId: string; }>({ Targets, ...rest }: T) => {
+        if (Targets.length) {
+            const remappedTargets = mapper.remap(Targets)
+            dbPromises.push(publishMessageDynamoDB({
+                Targets: remappedTargets,
+                ...rest
+            }))
+            remappedTargets.forEach((target) => {
+                const connections = mapper.characterConnections(target) || []
+                connections.forEach((connectionId) => {
+                    if (!(connectionId in messagesByConnectionId)) {
+                        messagesByConnectionId[connectionId] = []
+                    }
+                    messagesByConnectionId[connectionId].push({
+                        Target: target,
+                        ...rest
+                    })
+                })
+            })
+        }
+        else {
+            const connectionId = await internalCache.Global.get("ConnectionId")
+            if (connectionId) {
                 if (!(connectionId in messagesByConnectionId)) {
                     messagesByConnectionId[connectionId] = []
                 }
-                messagesByConnectionId[connectionId].push({
-                    Target: target,
-                    ...rest
-                })
-            })
-        })
+                messagesByConnectionId[connectionId].push(rest)
+            }
+        }
     }
 
     await Promise.all(payloads.map(async (payload, index) => {
         if (isWorldMessage(payload)) {
-            pushToQueues({
+            await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
@@ -164,7 +175,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
         //
         if (isCharacterMessage(payload)) {
             const { fileURL } = await internalCache.CharacterMeta.get(payload.characterId)
-            pushToQueues({
+            await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
@@ -177,7 +188,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             })
         }
         if (isRoomUpdatePublishMessage(payload)) {
-            pushToQueues({
+            await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
@@ -187,7 +198,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             })
         }
         if (isRoomDescriptionPublishMessage(payload)) {
-            pushToQueues({
+            await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
@@ -201,7 +212,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             })
         }
         if (isFeatureDescriptionPublishMessage(payload)) {
-            pushToQueues({
+            await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
@@ -213,7 +224,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             })
         }
         if (isKnowledgeDescriptionPublishMessage(payload)) {
-            pushToQueues({
+            await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
@@ -225,7 +236,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             })
         }
         if (isCharacterDescriptionPublishMessage(payload)) {
-            pushToQueues({
+            await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
                 CreatedTime: CreatedTime + index,
