@@ -288,7 +288,7 @@ export const handler = async (event: any, context: any) => {
                             characterId: CharacterId
                         })
                     }
-                    if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to) || isEphemeraKnowledgeId(request.to)) {
+                    if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to)) {
                         messageBus.send({
                             type: 'Perception',
                             characterId: CharacterId,
