@@ -16,6 +16,7 @@ import { PubSub } from '../../lib/pubSub'
 import delayPromise from '../../lib/delayPromise'
 
 import { cacheMessages } from '../messages'
+import { receiveMessages as perceptionCacheReceiveMessages } from '../perceptionCache'
 
 import { EphemeraAPIMessage, isEphemeraClientMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/dist/asset'
@@ -66,6 +67,7 @@ const getLifeLine = (state: any) => ({
 const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
     if (payload.messageType === 'Messages') {
         dispatch(cacheMessages(payload))
+        dispatch(perceptionCacheReceiveMessages(payload.messages))
     }
 }
 
