@@ -60,7 +60,7 @@ import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem: ComponentRenderItem): TaggedMessageContent => {
     if (renderItem.tag === 'Link') {
         const to = assetWorkspace.namespaceIdToDB[renderItem.to]
-        if (!(isEphemeraActionId(to) || isEphemeraCharacterId(to) || isEphemeraFeatureId(to))) {
+        if (!(to && isEphemeraActionId(to) || isEphemeraCharacterId(to) || isEphemeraFeatureId(to) || isEphemeraKnowledgeId(to))) {
             throw new EphemeraError(`Illegal target in link: ${to}`)
         }
         return {

@@ -2,7 +2,7 @@ import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { v4 as uuidv4 } from 'uuid'
 
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAction, NormalAsset, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAction, NormalAsset, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
@@ -105,7 +105,7 @@ export type WorkspaceProperties = {
     [name: string]: WorkspacePropertyItem;
 }
 
-const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage | NormalMoment) => (['Room', 'Feature', 'Bookmark', 'Message', 'Moment', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
+const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalKnowledge | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage | NormalMoment) => (['Room', 'Feature', 'Knowledge', 'Bookmark', 'Message', 'Moment', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
 
 type AddressLookup = {
     (key: `ASSET#${string}` | `CHARACTER#${string}`): Promise<AssetWorkspace | undefined>;

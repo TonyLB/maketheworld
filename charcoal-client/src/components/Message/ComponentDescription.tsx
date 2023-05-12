@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { ReactChild, ReactChildren } from 'react'
+import { ReactChild, ReactChildren, ReactElement } from 'react'
 import { css } from '@emotion/react'
 
 import {
@@ -13,28 +13,19 @@ import FeatureIcon from '@mui/icons-material/Search'
 import MessageComponent from './MessageComponent'
 import {
     FeatureDescription as FeatureDescriptionType,
-    isTaggedText,
-    TaggedMessageContent as TaggedMessageContentType
+    KnowledgeDescription as KnowledgeDescriptionType,
+    isTaggedText
 } from '@tonylb/mtw-interfaces/dist/messages'
 
-import DescriptionLink from './DescriptionLink'
 import TaggedMessageContent from './TaggedMessageContent'
 
-interface FeatureDescriptionProps {
-    message: FeatureDescriptionType;
+type ComponentDescriptionProps<T extends FeatureDescriptionType | KnowledgeDescriptionType> = {
+    message: T;
     children?: ReactChild | ReactChildren;
+    icon: ReactElement;
 }
 
-const renderFeatureDescriptionItem = (item: TaggedMessageContentType, index: number) => {
-    switch(item.tag) {
-        case 'Link':
-            return <DescriptionLink link={item} key={index} />
-        case 'String':
-            return item.value
-    }
-}
-
-export const FeatureDescription = ({ message }: FeatureDescriptionProps) => {
+export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon }: ComponentDescriptionProps<T>) => {
     const { Description, Name } = message
     return <MessageComponent
             sx={{
@@ -45,7 +36,7 @@ export const FeatureDescription = ({ message }: FeatureDescriptionProps) => {
                 background: `linear-gradient(${grey[100]}, ${grey[300]})`,
                 color: (theme) => (theme.palette.getContrastText(blue[200]))
             }}
-            leftIcon={<FeatureIcon />}
+            leftIcon={icon}
         >
             <Box css={css`
                 grid-area: content;
@@ -64,4 +55,4 @@ export const FeatureDescription = ({ message }: FeatureDescriptionProps) => {
         </MessageComponent>
 }
 
-export default FeatureDescription
+export default ComponentDescription
