@@ -13,6 +13,7 @@ import lifeLine from '../slices/lifeLine'
 import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
 import library from '../slices/library'
 import personalAssets from '../slices/personalAssets'
+import perceptionCache from '../slices/perceptionCache'
 
 export const store = configureStore({
     reducer: {
@@ -27,7 +28,8 @@ export const store = configureStore({
         personalAssets,
         settings,
         UI: uiReducer,
-        ssmHeartbeat
+        ssmHeartbeat,
+        perceptionCache
     },
     middleware: [thunk]
 })
