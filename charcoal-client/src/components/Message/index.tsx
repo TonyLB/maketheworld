@@ -40,7 +40,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'FeatureDescription':
             return <ComponentDescription message={message} icon={<FeatureIcon />} {...rest} />
         case 'KnowledgeDescription':
-            return <ComponentDescription message={message} icon={<KnowledgeIcon />} {...rest} />
+            return <ComponentDescription message={message} icon={<KnowledgeIcon />} bevel="2em" {...rest} />
         case 'CharacterDescription':
             return <CharacterDescription message={message} {...rest} />
         case 'SpacerMessage':

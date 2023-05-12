@@ -23,10 +23,23 @@ type ComponentDescriptionProps<T extends FeatureDescriptionType | KnowledgeDescr
     message: T;
     children?: ReactChild | ReactChildren;
     icon: ReactElement;
+    bevel?: string;
 }
 
-export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon }: ComponentDescriptionProps<T>) => {
+export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon, bevel }: ComponentDescriptionProps<T>) => {
     const { Description, Name } = message
+    const bevelCSS = bevel
+        ? `polygon(
+            0% ${bevel},
+            ${bevel} 0%,
+            calc(100% - ${bevel}) 0%,
+            100% ${bevel},
+            100% calc(100% - ${bevel}),
+            calc(100% - ${bevel}) 100%,
+            ${bevel} 100%,
+            0 calc(100% - ${bevel})
+        )`
+        : ''
     return <MessageComponent
             sx={{
                 paddingTop: "10px",
@@ -34,7 +47,8 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
                 marginRight: "75px",
                 marginLeft: "75px",
                 background: `linear-gradient(${grey[100]}, ${grey[300]})`,
-                color: (theme) => (theme.palette.getContrastText(blue[200]))
+                color: (theme) => (theme.palette.getContrastText(blue[200])),
+                ...(bevel ? { clipPath: bevelCSS } : {})
             }}
             leftIcon={icon}
         >
