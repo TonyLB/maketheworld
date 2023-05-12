@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraNotificationId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraNotificationId, isEphemeraRoomId } from "./baseClasses"
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraNotificationId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraNotificationId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
 import { isMapDescribeData, isMessage, isNotification, MapDescribeData, Message, Notification } from "./messages"
 import { checkAll, checkTypes } from "./utils";
@@ -203,7 +203,7 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
             return Boolean(
                 checkTypes(message, { CharacterId: 'string', to: 'string' })
                 && isEphemeraCharacterId(message.CharacterId)
-                && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to))
+                && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to) || isEphemeraKnowledgeId(message.to))
             )
         case 'command':
             return Boolean(

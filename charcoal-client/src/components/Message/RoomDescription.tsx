@@ -176,7 +176,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                 <Box css={css`
                     grid-area: exits;
                 `}>
-                    { Exits.map((exit) => (<RoomExit exit={exit} key={ exit.RoomId } />))}
+                    { Exits.map((exit, index) => (<RoomExit exit={exit} key={ `${exit.RoomId}-${index}` } />))}
                 </Box>
                 <Box css={css`
                     grid-area: characters;

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, isKnowledgeDescriptionPublishMessage } from "../messageBus/baseClasses"
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
 import { messageDB, messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
@@ -207,6 +207,18 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CreatedTime: CreatedTime + index,
                 DisplayProtocol: payload.displayProtocol,
                 FeatureId: payload.FeatureId,
+                Name: payload.Name,
+                Description: payload.Description,
+                assets: payload.assets
+            })
+        }
+        if (isKnowledgeDescriptionPublishMessage(payload)) {
+            pushToQueues({
+                Targets: payload.targets,
+                MessageId: `MESSAGE#${uuidv4()}`,
+                CreatedTime: CreatedTime + index,
+                DisplayProtocol: payload.displayProtocol,
+                KnowledgeId: payload.KnowledgeId,
                 Name: payload.Name,
                 Description: payload.Description,
                 assets: payload.assets

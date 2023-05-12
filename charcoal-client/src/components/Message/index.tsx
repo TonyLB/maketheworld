@@ -1,11 +1,14 @@
 import React, { ReactChild, ReactChildren } from 'react'
 
+import FeatureIcon from '@mui/icons-material/Search'
+import KnowledgeIcon from '@mui/icons-material/School'
+
 import SayMessage from './SayMessage'
 import NarrateMessage from './NarrateMessage'
 import OOCMessage from './OOCMessage'
 import WorldMessage from './WorldMessage'
 import RoomDescription from './RoomDescription'
-import FeatureDescription from './FeatureDescription'
+import ComponentDescription from './ComponentDescription'
 import SpacerMessage from './SpacerMessage'
 import UnknownMessage from './UnknownMessage'
 
@@ -35,7 +38,9 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'RoomHeader':
             return <RoomDescription message={message} {...rest} header />
         case 'FeatureDescription':
-            return <FeatureDescription message={message} {...rest} />
+            return <ComponentDescription message={message} icon={<FeatureIcon />} {...rest} />
+        case 'KnowledgeDescription':
+            return <ComponentDescription message={message} icon={<KnowledgeIcon />} bevel="2em" {...rest} />
         case 'CharacterDescription':
             return <CharacterDescription message={message} {...rest} />
         case 'SpacerMessage':

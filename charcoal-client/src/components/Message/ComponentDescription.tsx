@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { ReactChild, ReactChildren } from 'react'
+import { ReactChild, ReactChildren, ReactElement } from 'react'
 import { css } from '@emotion/react'
 
 import {
@@ -13,29 +13,33 @@ import FeatureIcon from '@mui/icons-material/Search'
 import MessageComponent from './MessageComponent'
 import {
     FeatureDescription as FeatureDescriptionType,
-    isTaggedText,
-    TaggedMessageContent as TaggedMessageContentType
+    KnowledgeDescription as KnowledgeDescriptionType,
+    isTaggedText
 } from '@tonylb/mtw-interfaces/dist/messages'
 
-import DescriptionLink from './DescriptionLink'
 import TaggedMessageContent from './TaggedMessageContent'
 
-interface FeatureDescriptionProps {
-    message: FeatureDescriptionType;
+type ComponentDescriptionProps<T extends FeatureDescriptionType | KnowledgeDescriptionType> = {
+    message: T;
     children?: ReactChild | ReactChildren;
+    icon: ReactElement;
+    bevel?: string;
 }
 
-const renderFeatureDescriptionItem = (item: TaggedMessageContentType, index: number) => {
-    switch(item.tag) {
-        case 'Link':
-            return <DescriptionLink link={item} key={index} />
-        case 'String':
-            return item.value
-    }
-}
-
-export const FeatureDescription = ({ message }: FeatureDescriptionProps) => {
+export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon, bevel }: ComponentDescriptionProps<T>) => {
     const { Description, Name } = message
+    const bevelCSS = bevel
+        ? `polygon(
+            0% ${bevel},
+            ${bevel} 0%,
+            calc(100% - ${bevel}) 0%,
+            100% ${bevel},
+            100% calc(100% - ${bevel}),
+            calc(100% - ${bevel}) 100%,
+            ${bevel} 100%,
+            0 calc(100% - ${bevel})
+        )`
+        : ''
     return <MessageComponent
             sx={{
                 paddingTop: "10px",
@@ -43,9 +47,10 @@ export const FeatureDescription = ({ message }: FeatureDescriptionProps) => {
                 marginRight: "75px",
                 marginLeft: "75px",
                 background: `linear-gradient(${grey[100]}, ${grey[300]})`,
-                color: (theme) => (theme.palette.getContrastText(blue[200]))
+                color: (theme) => (theme.palette.getContrastText(blue[200])),
+                ...(bevel ? { clipPath: bevelCSS } : {})
             }}
-            leftIcon={<FeatureIcon />}
+            leftIcon={icon}
         >
             <Box css={css`
                 grid-area: content;
@@ -64,4 +69,4 @@ export const FeatureDescription = ({ message }: FeatureDescriptionProps) => {
         </MessageComponent>
 }
 
-export default FeatureDescription
+export default ComponentDescription
