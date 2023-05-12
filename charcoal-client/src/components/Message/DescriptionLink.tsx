@@ -18,7 +18,7 @@ import {
 
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
-import { isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 
 interface DescriptionLinkChipProps {
@@ -89,10 +89,11 @@ export const DescriptionLinkFeatureChip: FunctionComponent<DescriptionLinkChipPr
 }
 
 interface DescriptionLinkProps {
-    link: TaggedLink
+    link: TaggedLink;
+    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void;
 }
 
-export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
+export const DescriptionLink = ({ link, onClickLink }: DescriptionLinkProps) => {
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
     //
@@ -108,12 +109,13 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
             if (isEphemeraActionId(link.to)) {
                 dispatch(addOnboardingComplete(['actionLink']))
             }
-            dispatch(socketDispatchPromise({
-                message: 'link',
-                to: link.to,
-                // RoomId: link.RoomId,
-                CharacterId
-            }))
+            onClickLink(link.to)
+            // dispatch(socketDispatchPromise({
+            //     message: 'link',
+            //     to: link.to,
+            //     // RoomId: link.RoomId,
+            //     CharacterId
+            // }))
         }}
     />
 }

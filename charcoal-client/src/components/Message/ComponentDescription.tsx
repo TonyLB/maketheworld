@@ -18,15 +18,17 @@ import {
 } from '@tonylb/mtw-interfaces/dist/messages'
 
 import TaggedMessageContent from './TaggedMessageContent'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type ComponentDescriptionProps<T extends FeatureDescriptionType | KnowledgeDescriptionType> = {
     message: T;
     children?: ReactChild | ReactChildren;
     icon: ReactElement;
     bevel?: string;
+    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void;
 }
 
-export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon, bevel }: ComponentDescriptionProps<T>) => {
+export const ComponentDescription = <T extends FeatureDescriptionType | KnowledgeDescriptionType>({ message, icon, bevel, onClickLink }: ComponentDescriptionProps<T>) => {
     const { Description, Name } = message
     const bevelCSS = bevel
         ? `polygon(
@@ -62,7 +64,7 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
                 <Divider />
                 {
                     Description.length
-                        ? <TaggedMessageContent list={Description} />
+                        ? <TaggedMessageContent list={Description} onClickLink={onClickLink} />
                         : <em>No description</em>
                 }
             </Box>

@@ -112,7 +112,7 @@ export const OOCMessage: FunctionComponent<OOCMessageProps> = ({ message, varian
                     {message.Name} (out of character)
                 </Box>
                 <Typography variant='body1' align='left'>
-                    <TaggedMessageContent list={message.Message} />
+                    <TaggedMessageContent list={message.Message} onClickLink={() => {}} />
                 </Typography>
             </OOCBubble>
 

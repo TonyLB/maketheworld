@@ -33,7 +33,7 @@ export const NotificationDetail: FunctionComponent<NotificationDetailProps> = ({
                         Message
                     </Grid>
                     <Grid item xs={10}>
-                        <TaggedMessageContent list={notification.Message} />
+                        <TaggedMessageContent list={notification.Message} onClickLink={() => {}} />
                     </Grid>
                 </Grid>
                 : null
