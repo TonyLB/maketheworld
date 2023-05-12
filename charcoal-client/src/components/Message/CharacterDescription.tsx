@@ -11,15 +11,12 @@ import {
     Divider
 } from '@mui/material'
 import { blue, grey } from '@mui/material/colors'
-import FeatureIcon from '@mui/icons-material/Search'
 
 import MessageComponent from './MessageComponent'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import {
     CharacterDescription as CharacterDescriptionType
 } from '@tonylb/mtw-interfaces/dist/messages'
-
-import DescriptionLink from './DescriptionLink'
 
 interface CharacterDescriptionProps {
     message: CharacterDescriptionType;

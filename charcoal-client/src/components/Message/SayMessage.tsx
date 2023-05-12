@@ -88,7 +88,7 @@ export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, varian
                     {message.Name}
                 </Box>
                 <Typography variant='body1' align='left'>
-                    <TaggedMessageContent list={message.Message} />
+                    <TaggedMessageContent list={message.Message} onClickLink={() => {}} />
                 </Typography>
             </SpeechBubble>
 

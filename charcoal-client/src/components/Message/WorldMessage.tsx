@@ -41,7 +41,7 @@ export const WorldMessage = ({ message, ...rest }: WorldMessageProps) => {
         >
             <Box sx={{ height: "100%" }}>
                 <Typography variant='body1' align='left'>
-                    <TaggedMessageContent list={message.Message} />
+                    <TaggedMessageContent list={message.Message} onClickLink={() => {}} />
                 </Typography>
             </Box>
         </MessageComponent>

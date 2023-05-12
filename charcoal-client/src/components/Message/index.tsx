@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren } from 'react'
+import React, { ReactChild, ReactChildren, useCallback } from 'react'
 
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
@@ -15,6 +15,9 @@ import UnknownMessage from './UnknownMessage'
 import { Message as MessageType } from '@tonylb/mtw-interfaces/dist/messages'
 import { useActiveCharacter } from '../ActiveCharacter'
 import CharacterDescription from './CharacterDescription'
+import { useDispatch } from 'react-redux'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { socketDispatchPromise } from '../../slices/lifeLine'
 
 interface MessageProps {
     message: MessageType;
@@ -23,6 +26,14 @@ interface MessageProps {
 
 export const Message = ({ message, ...rest }: MessageProps) => {
     const { CharacterId } = useActiveCharacter()
+    const dispatch = useDispatch()
+    const onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void = useCallback((to) => {
+        dispatch(socketDispatchPromise({
+            message: 'link',
+            to,
+            CharacterId
+        }))
+    }, [dispatch, CharacterId])
     const { DisplayProtocol } = message
     switch(DisplayProtocol) {
         case 'SayMessage':
@@ -38,9 +49,9 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'RoomHeader':
             return <RoomDescription message={message} {...rest} header />
         case 'FeatureDescription':
-            return <ComponentDescription message={message} icon={<FeatureIcon />} {...rest} />
+            return <ComponentDescription message={message} icon={<FeatureIcon />} onClickLink={onClickLink} {...rest} />
         case 'KnowledgeDescription':
-            return <ComponentDescription message={message} icon={<KnowledgeIcon />} bevel="2em" {...rest} />
+            return <ComponentDescription message={message} icon={<KnowledgeIcon />} bevel="2em" onClickLink={onClickLink} {...rest} />
         case 'CharacterDescription':
             return <CharacterDescription message={message} {...rest} />
         case 'SpacerMessage':

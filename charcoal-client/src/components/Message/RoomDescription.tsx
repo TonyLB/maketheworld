@@ -25,7 +25,7 @@ import RoomCharacter from './RoomCharacter'
 import TaggedMessageContent from './TaggedMessageContent'
 import { getPlayer } from '../../slices/player'
 import { addImport, getStatus } from '../../slices/personalAssets'
-import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraActionId, EphemeraAssetId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import ListItemButton from '@mui/material/ListItemButton'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
@@ -33,6 +33,8 @@ import { useNavigate } from 'react-router-dom'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { useNextOnboarding, useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import MiniChip from '../MiniChip'
+import { useActiveCharacter } from '../ActiveCharacter'
+import { socketDispatchPromise } from '../../slices/lifeLine'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
@@ -115,6 +117,15 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     const { Description, Name, Characters = [], Exits = [] } = message
     const { currentDraft, Assets } = useSelector(getPlayer)
     const status = useSelector(getStatus(`ASSET#${currentDraft || ''}`))
+    const { CharacterId } = useActiveCharacter()
+    const dispatch = useDispatch()
+    const onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void = useCallback((to) => {
+        dispatch(socketDispatchPromise({
+            message: 'link',
+            to,
+            CharacterId
+        }))
+    }, [dispatch, CharacterId])
     const currentAssets = useMemo(() => (message.assets || {}), [message])
     const inPersonalRoom = useMemo(() => (currentHeader && Boolean(Object.keys(currentAssets).map((assetId) => (assetId.split('#')[1])).find((key) => (Assets.map(({ AssetId }) => (AssetId)).includes(key))))), [currentHeader, Assets, currentAssets])
     const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentAssets, status])
@@ -167,7 +178,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
                     <Box sx={{ overflow: 'hidden' }}>
                         {
                             Description.length
-                                ? <TaggedMessageContent list={Description} />
+                                ? <TaggedMessageContent list={Description} onClickLink={onClickLink} />
                                 : <em>No description</em>
                         }
                     </Box>
