@@ -4,7 +4,7 @@ import { checkAll, checkTypes } from "./utils";
 export type MessageAddressing = {
     MessageId: string;
     CreatedTime: number;
-    Target: EphemeraCharacterId;
+    Target?: EphemeraCharacterId;
 }
 
 export type SpacerMessage = {
@@ -564,10 +564,10 @@ export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
         return false
     }
-    if (!checkTypes(message, { MessageId: 'string', CreatedTime: 'number', Target: 'string' })) {
+    if (!checkTypes(message, { MessageId: 'string', CreatedTime: 'number' }, { Target: 'string' })) {
         return false
     }
-    if (!isEphemeraCharacterId(message.Target)) {
+    if (message.Target && !isEphemeraCharacterId(message.Target)) {
         return false
     }
     switch(message.DisplayProtocol) {
