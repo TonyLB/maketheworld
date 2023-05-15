@@ -26,7 +26,8 @@ import {
     updateNormal as updateNormalAction,
     getDraftWML,
     getImportData,
-    getStatus
+    getStatus,
+    getSerialized
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -53,6 +54,7 @@ type LibraryAssetContextType = {
     features: Record<string, AssetComponent>;
     save: () => void;
     readonly: boolean;
+    serialized: boolean;
     status?: keyof PersonalAssetsNodes;
 }
 
@@ -71,7 +73,8 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     exits: {},
     features: {},
     save: () => {},
-    readonly: true
+    readonly: true,
+    serialized: false
 })
 
 type LibraryAssetProps = {
@@ -158,6 +161,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
     const status = useSelector(getStatus(AssetId))
+    const serialized = useSelector(getSerialized(AssetId))
     const dispatch = useDispatch()
     const updateNormal = useCallback((updateAction: UpdateNormalPayload) => {
         dispatch(updateNormalAction(AssetId)(updateAction))
@@ -191,6 +195,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             features,
             save,
             readonly: !(currentDraft === assetKey),
+            serialized,
             status
         }}>
             {children}

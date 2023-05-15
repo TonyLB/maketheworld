@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useEffect, useMemo, useCallback } from 'react'
+import React, { FunctionComponent, useEffect, useMemo, useCallback, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
@@ -6,6 +6,12 @@ import {
     IconButton,
     List,
     ListSubheader,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    Typography,
+    DialogActions,
     Button
 } from '@mui/material'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
@@ -40,6 +46,7 @@ import JSHeader from './JSHeader'
 import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
 import { useNextOnboarding, useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
+import { getMyCharacters } from '../../../slices/player'
 
 type AssetEditFormProps = {}
 
@@ -82,8 +89,32 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'V
     }
 }
 
+type AssetAssignDialogProps = {
+    open: boolean;
+    onClose: () => void;
+    assignHandler: () => void;
+}
+
+const AssetAssignDialog: FunctionComponent<AssetAssignDialogProps> = ({ open, onClose, assignHandler }) => {
+    return <Dialog
+            open={open}
+            onClose={onClose}
+        >
+            <DialogTitle>Assign asset to characters?</DialogTitle>
+            <DialogContent>
+                <Typography>
+                    Would you like to have all your characters able to see this asset?
+                </Typography>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={() => { onClose()}}>No</Button>
+                <Button onClick={() => { assignHandler() }} autoFocus>Yes</Button>
+            </DialogActions>
+        </Dialog>
+}
+
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { normalForm, updateNormal, save, AssetId, status, readonly } = useLibraryAsset()
+    const { normalForm, updateNormal, save, status, serialized, AssetId } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
@@ -113,13 +144,27 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         }
     }, [updateNormal, normalForm])
     const next = useNextOnboarding()
-    const saveHandler = useCallback(() => {
+    const Characters = useSelector(getMyCharacters)
+    const assignHandler = useCallback(() => {
+        //
+        // TODO: Write code to ensure fetch of all all personal characters, update them, and set them to need save
+        //
+    }, [AssetId, Characters])
+    const innerSaveHandler = useCallback(() => {
         if (next === 'saveAsset') {
             dispatch(addOnboardingComplete(['saveAsset']))
         }
         save()
     }, [save, next])
+    const [dialogShown, setDialogShown] = useState<boolean>(false)
+    const saveHandler = useCallback(() => {
+        innerSaveHandler()
+        if (!serialized) {
+            setDialogShown(true)
+        }
+    }, [innerSaveHandler, serialized, setDialogShown])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
+        <AssetAssignDialog open={dialogShown} onClose={() => { setDialogShown(false) }} assignHandler={assignHandler} />
         <LibraryBanner
             primary={asset?.key || 'Untitled'}
             secondary={asset?.Story ? 'Story' : 'Asset'}
