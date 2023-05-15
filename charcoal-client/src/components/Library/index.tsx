@@ -33,9 +33,10 @@ interface TableOfContentsProps {
     selectItem: (index: number) => void;
     selectedIndex?: number;
     setPreviewItem: (item: undefined | PreviewPaneContents) => void;
+    showAddButtons: boolean;
 }
 
-const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters = [], Assets = [], selectItem = () => {}, selectedIndex, setPreviewItem = () => {} }) => {
+const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters = [], Assets = [], selectItem = () => {}, selectedIndex, setPreviewItem = () => {}, showAddButtons }) => {
     const handleListItemClick = (event: any, index: number) => {
         selectItem(index)
         if (index >= Assets.length) {
@@ -69,7 +70,7 @@ const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters =
                 <ListItemText primary={ AssetId } />
             </ListItemButton>
         ))}
-        <AddAsset type="Asset" onAdd={() => {}} />
+        { showAddButtons && <AddAsset type="Asset" onAdd={() => {}} /> }
         { (Characters.length > 0) && <ListSubheader>Characters</ListSubheader> }
         { Characters.map(({ CharacterId, Name, fileURL }, index) => (
             <ListItemButton
@@ -83,6 +84,7 @@ const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters =
                 <ListItemText primary={ Name || CharacterId } />
             </ListItemButton>
         ))}
+        { showAddButtons && <AddAsset type="Character" onAdd={() => {}} /> }
     </List>
 }
 
@@ -137,6 +139,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                     selectItem={setSelectedPersonalIndex}
                     selectedIndex={selectedPersonalIndex}
                     setPreviewItem={setPersonalPreviewItem}
+                    showAddButtons={true}
                 />
             </Grid>
             <Grid item xs={6}>
@@ -169,6 +172,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                     selectItem={setSelectedLibraryIndex}
                     selectedIndex={selectedLibraryIndex}
                     setPreviewItem={setLibraryPreviewItem}
+                    showAddButtons={false}
                 />
             </Grid>
             <Grid item xs={6}>
