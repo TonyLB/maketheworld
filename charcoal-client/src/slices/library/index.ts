@@ -1,4 +1,4 @@
-import { Library } from './baseClasses'
+import { Library, LibraryData } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
     lifelineCondition,
@@ -11,6 +11,9 @@ import {
     LibrarySelectors
 } from './selectors'
 import { receiveLibrary } from './receiveLibrary'
+import { PromiseCache } from '../promiseCache'
+
+const libraryPromiseCache = new PromiseCache<LibraryData>()
 
 export const {
     slice: librarySlice,
@@ -21,6 +24,7 @@ export const {
     name: 'library',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['INACTIVE'],
+    promiseCache: libraryPromiseCache,
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

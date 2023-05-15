@@ -1,4 +1,4 @@
-import { PlayerAction, PlayerNodes } from './baseClasses'
+import { PlayerAction, PlayerData, PlayerNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
     fetchNotifications,
@@ -18,6 +18,9 @@ import {
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
 import { setCurrentDraft as setCurrentDraftReducer, addAsset as addAssetReducer } from './reducers'
+import { PromiseCache } from '../promiseCache'
+
+const playerPromiseCache = new PromiseCache<PlayerData>()
 
 export const {
     slice: playerSlice,
@@ -28,6 +31,7 @@ export const {
     name: 'player',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['CONNECTED'],
+    promiseCache: playerPromiseCache,
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

@@ -1,4 +1,4 @@
-import { PersonalAssetsNodes } from './baseClasses'
+import { PersonalAssetsData, PersonalAssetsNodes } from './baseClasses'
 import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
@@ -22,6 +22,9 @@ import { addAsset } from '../player'
 import { isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import { PromiseCache } from '../promiseCache'
+
+const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
 export const {
     slice: personalAssetsSlice,
@@ -32,6 +35,7 @@ export const {
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'],
+    promiseCache: personalAssetsPromiseCache,
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

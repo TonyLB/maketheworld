@@ -10,6 +10,7 @@ import {
 import { iterateOneSSM } from './index'
 import { Entries, objectMap } from '../../lib/objects'
 import { Selector } from '../../store'
+import { PromiseCache } from '../promiseCache'
 
 type multipleSSMItem<Nodes extends Record<string, any>> = InferredDataTypeAggregateFromNodes<Nodes> & {
     meta: ssmMeta<keyof Nodes, InferredDataTypeAggregateFromNodes<Nodes>>
@@ -52,6 +53,7 @@ type multipleSSMArguments<Nodes extends Record<string, any>, PublicSelectorsType
     publicReducers?: Record<string, multipleSSMPublicReducer<Nodes, any>>;
     publicSelectors: PublicSelectorsType;
     template: TemplateFromNodes<Nodes>;
+    promiseCache: PromiseCache<InferredDataTypeAggregateFromNodes<Nodes>>
 }
 
 const corePublicReducer =
@@ -106,7 +108,8 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
     sliceSelector,
     publicReducers = {},
     publicSelectors,
-    template
+    template,
+    promiseCache
 }: multipleSSMArguments<Nodes, PublicSelectorsType>) => {
     const slice = createSlice({
         name,

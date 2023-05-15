@@ -4,6 +4,7 @@ import { ssmMeta, InferredDataTypeAggregateFromNodes, InferredPublicDataTypeAggr
 import { iterateOneSSM } from './index'
 import { Entries } from '../../lib/objects'
 import { Selector } from '../../store'
+import { PromiseCache } from '../promiseCache'
 
 type singleSSMSlice<Nodes extends ISSMData> = InferredDataTypeAggregateFromNodes<Nodes> & {
     meta: ssmMeta<keyof Nodes, InferredDataTypeAggregateFromNodes<Nodes>>
@@ -34,6 +35,7 @@ type singleSSMArguments<Nodes extends Record<string, any>, PublicSelectorsType> 
     publicReducers?: Record<string, singleSSMPublicReducer<Nodes, any>>;
     publicSelectors: PublicSelectorsType;
     template: TemplateFromNodes<Nodes>;
+    promiseCache: PromiseCache<InferredDataTypeAggregateFromNodes<Nodes>>
 }
 
 const corePublicReducer =
@@ -72,7 +74,8 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
     sliceSelector,
     publicReducers = {},
     publicSelectors,
-    template
+    template,
+    promiseCache
 }: singleSSMArguments<Nodes, PublicSelectorsType>) => {
     const slice = createSlice({
         name,

@@ -10,6 +10,11 @@ export type PlayerPublic = Omit<AssetClientPlayerMessage, 'messageType' | 'Reque
     currentDraft?: string;
 }
 
+export type PlayerData = {
+    internalData: PlayerInternal;
+    publicData: PlayerPublic;
+}
+
 export type PlayerRecord = ISSMDataLayout<PlayerInternal, PlayerPublic>
 export type PlayerReturn = ISSMDataReturn<PlayerInternal, PlayerPublic>
 export type PlayerAction = ISSMAction<PlayerInternal, PlayerPublic>

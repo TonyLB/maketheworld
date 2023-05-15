@@ -15,6 +15,11 @@ export interface CharacterEditPublic {
     value: Partial<Record<CharacterEditKeys, string>>
 }
 
+export type CharacterEditData = {
+    internalData: CharacterEditInternal;
+    publicData: CharacterEditPublic;
+}
+
 export type CharacterEditRecord = ISSMDataLayout<CharacterEditInternal, CharacterEditPublic>
 export type CharacterEditReturn = ISSMDataReturn<CharacterEditInternal, CharacterEditPublic>
 export type CharacterEditAction = ISSMAction<CharacterEditInternal, CharacterEditPublic>

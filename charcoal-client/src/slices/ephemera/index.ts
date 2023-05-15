@@ -1,4 +1,4 @@
-import { EphemeraNodes } from './baseClasses'
+import { EphemeraData, EphemeraNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
     lifelineCondition,
@@ -8,6 +8,9 @@ import {
 } from './index.api'
 import receiveEphemera from './receiveEphemera'
 import { publicSelectors, PublicSelectorType } from './selectors'
+import { PromiseCache } from '../promiseCache'
+
+const ephemeraPromiseCache = new PromiseCache<EphemeraData>()
 
 export const {
     slice: ephemeraSlice,
@@ -18,6 +21,7 @@ export const {
     name: 'ephemera',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['CONNECTED'],
+    promiseCache: ephemeraPromiseCache,
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

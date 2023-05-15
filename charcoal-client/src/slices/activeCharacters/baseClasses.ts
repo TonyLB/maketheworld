@@ -15,6 +15,11 @@ export interface ActiveCharacterPublic {
     maps: Record<EphemeraMapId, ActiveCharacterMap>;
 }
 
+export type ActiveCharacterData = {
+    internalData: ActiveCharacterInternal;
+    publicData: ActiveCharacterPublic;
+}
+
 export type ActiveCharacterRecord = ISSMDataLayout<ActiveCharacterInternal, ActiveCharacterPublic>
 export type ActiveCharacterReturn = ISSMDataReturn<ActiveCharacterInternal, ActiveCharacterPublic>
 export type ActiveCharacterAction = ISSMAction<ActiveCharacterInternal, ActiveCharacterPublic>
