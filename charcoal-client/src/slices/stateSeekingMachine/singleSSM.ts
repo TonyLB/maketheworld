@@ -6,7 +6,7 @@ import { Entries } from '../../lib/objects'
 import { Selector } from '../../store'
 
 type singleSSMSlice<Nodes extends ISSMData> = InferredDataTypeAggregateFromNodes<Nodes> & {
-    meta: ssmMeta<keyof Nodes>
+    meta: ssmMeta<keyof Nodes, InferredDataTypeAggregateFromNodes<Nodes>>
 }
 
 type singleSSMPublicReducer<Nodes extends Record<string, any>, D> = {
@@ -60,6 +60,10 @@ const wrapPublicSelector =
         return wrapper
     }
 
+//
+// TODO: Extend singleSSM to accept a promiseCache argument, and add per-type global promise caches to
+// store promises by reference on each slice
+//
 export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType extends Record<string, singleSSMPublicSelector<Nodes, any>>>({
     name,
     initialSSMState,
@@ -77,7 +81,8 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
             meta: {
                 currentState: initialSSMState,
                 desiredStates: initialSSMDesired,
-                inProgress: null
+                inProgress: null,
+                onEnterPromises: {}
             }
         } as singleSSMSlice<Nodes>,
         reducers: {

@@ -5,15 +5,14 @@ import {
     InferredDataTypeAggregateFromNodes,
     InferredPublicDataTypeAggregateFromNodes,
     TemplateFromNodes,
-    PartialDataTypeAggregateFromNodes,
-    InferredInternalDataTypeAggregateFromNodes
+    PartialDataTypeAggregateFromNodes
 } from './baseClasses'
 import { iterateOneSSM } from './index'
 import { Entries, objectMap } from '../../lib/objects'
 import { Selector } from '../../store'
 
 type multipleSSMItem<Nodes extends Record<string, any>> = InferredDataTypeAggregateFromNodes<Nodes> & {
-    meta: ssmMeta<keyof Nodes>
+    meta: ssmMeta<keyof Nodes, InferredDataTypeAggregateFromNodes<Nodes>>
 }
 
 export type multipleSSMSlice<Nodes extends Record<string, any>> = {
@@ -94,6 +93,11 @@ const wrapPublicSelector =
 //
 // TODO: Type-constrain selectors in the same way as was done in singleSSM
 //
+
+//
+// TODO: Extend multipleSSM to accept a promiseCache argument, and add per-type global promise caches to
+// store promises by reference on each slice
+//
 export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsType extends Record<string, multipleSSMPublicSelector<Nodes, any>>>({
     name,
     initialSSMState,
@@ -126,7 +130,8 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                         meta: {
                             currentState: castDraft(action.payload.options?.initialState || initialSSMState),
                             desiredStates: castDraft(initialSSMDesired),
-                            inProgress: null
+                            inProgress: null,
+                            onEnterPromises: {}
                         }
                     } as unknown as multipleSSMItem<Nodes>)
                 }

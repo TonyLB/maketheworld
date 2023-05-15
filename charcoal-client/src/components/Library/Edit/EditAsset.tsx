@@ -11,8 +11,7 @@ import {
     DialogTitle,
     DialogContent,
     Typography,
-    DialogActions,
-    Button
+    DialogActions
 } from '@mui/material'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import SaveIcon from '@mui/icons-material/Save'
