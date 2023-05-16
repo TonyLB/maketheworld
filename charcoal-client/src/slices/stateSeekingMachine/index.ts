@@ -1,10 +1,13 @@
+import { PromiseCache } from '../promiseCache';
 import dijkstra from './dijkstra'
 import { heartbeat } from './ssmHeartbeat'
 
 export const iterateOneSSM = ({
     internalStateChange,
     internalIntentChange,
+    clearOnEnter,
     getSSMData,
+    promiseCache,
     actions
 }: {
     //
@@ -12,7 +15,9 @@ export const iterateOneSSM = ({
     //
     internalStateChange: any;
     internalIntentChange: any;
+    clearOnEnter: any;
     getSSMData: any;
+    promiseCache: PromiseCache<any>;
     actions: Record<string, any>;
 }) => (dispatch: any, getState: any) => {
     const focusSSM = getSSMData(getState())
@@ -56,6 +61,20 @@ export const iterateOneSSM = ({
                         actions
                     }))
                     .then((response: Record<string, any>) => {
+                        if ((focusSSM.onEnterPromises[currentStep.resolve] || []).length) {
+                            const internalData = {
+                                ...focusSSM.internalData,
+                                ...response.internalData
+                            }
+                            const publicData = {
+                                ...focusSSM.publicData,
+                                ...response.publicData
+                            }
+                            focusSSM.onEnterPromises[currentStep.resolve]?.forEach((promiseKey) => {
+                                promiseCache.resolve(promiseKey, { internalData, publicData })
+                            })
+                            dispatch(clearOnEnter(currentStep.resolve))
+                        }
                         dispatch(internalStateChange({ newState: currentStep.resolve, inProgress: null, data: response }))
                         dispatch(heartbeat)
                     })

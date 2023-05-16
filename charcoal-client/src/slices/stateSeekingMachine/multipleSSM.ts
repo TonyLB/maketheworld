@@ -13,7 +13,7 @@ import { Selector } from '../../store'
 import { PromiseCache } from '../promiseCache'
 
 type multipleSSMItem<Nodes extends Record<string, any>> = InferredDataTypeAggregateFromNodes<Nodes> & {
-    meta: ssmMeta<keyof Nodes, InferredDataTypeAggregateFromNodes<Nodes>>
+    meta: ssmMeta<keyof Nodes>
 }
 
 export type multipleSSMSlice<Nodes extends Record<string, any>> = {
@@ -162,6 +162,37 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                     }
                 }
             },
+            clearOnEnter(
+                state,
+                action: PayloadAction<{
+                    key: string;
+                    nodeKey: keyof Nodes
+                }>
+            ) {
+                const keyRecord = state.byId[action.payload.key]
+                if (keyRecord) {
+                    keyRecord.meta.onEnterPromises[action.payload.nodeKey as any] = castDraft([])
+                }
+            },
+            addOnEnter(
+                state,
+                action: PayloadAction<{
+                    key: string;
+                    nodeKey: keyof Nodes;
+                    value: string;
+                }>
+            ) {
+                const keyRecord = state.byId[action.payload.key]
+                if (keyRecord) {
+                    if (!(action.payload.nodeKey in keyRecord.meta.onEnterPromises)) {
+                        keyRecord.meta.onEnterPromises[action.payload.nodeKey as any] = []
+                    }
+                    keyRecord.meta.onEnterPromises[action.payload.nodeKey as any] = [
+                        ...keyRecord.meta.onEnterPromises[action.payload.nodeKey as any],
+                        action.payload.value
+                    ]
+                }                
+            },
             ...(Object.entries(publicReducers)
                 .reduce(
                     (previous, [name, reducer]) => ({
@@ -179,9 +210,17 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
     const publicActions = Object.keys(publicReducers).reduce((previous, name) => ({
         ...previous,
         [name]: publicAction((slice.actions as any)[`core${name}`])
-    }), {}) as Record<string, wrappedPublicReducer<any>>
+    }), {
+        onEnter: (key: string) => ({ nodeKeys }: { nodeKeys: (keyof Nodes)[] }) => (dispatch, state): Promise<InferredDataTypeAggregateFromNodes<Nodes>> => {
+            const { promise, key: value } = promiseCache.add()
+            nodeKeys.forEach((nodeKey) => {
+                dispatch(slice.actions.addOnEnter({ key, nodeKey, value }))
+            })
+            return promise
+        }
+    }) as Record<string, wrappedPublicReducer<any>>
 
-    const { internalStateChange, setIntent } = slice.actions
+    const { internalStateChange, setIntent, clearOnEnter } = slice.actions
     const iterateAllSSMs = (dispatch: any, getState: any) => {
         const sliceData = sliceSelector(getState())
         const { byId = {} } = sliceData
@@ -191,9 +230,9 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
             .forEach(([key]) => {
                 const getSSMData = (state: any) => {
                     const currentData = sliceSelector(state).byId[key]
-                    const { currentState, desiredStates, inProgress } = currentData.meta
+                    const { currentState, desiredStates, inProgress, onEnterPromises } = currentData.meta
                     const { internalData, publicData } = currentData
-                    return { currentState, desiredStates, internalData, publicData, inProgress, template }
+                    return { currentState, desiredStates, internalData, publicData, inProgress, template, onEnterPromises }
                 }
                 dispatch(iterateOneSSM({
                     getSSMData,
@@ -205,6 +244,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                     internalIntentChange: ({ newIntent }: {
                             newIntent: (keyof Nodes)[]
                         }) => (setIntent({ key, intent: newIntent })),
+                    clearOnEnter: ({ key, nodeKey }) => (clearOnEnter({ key, nodeKey })),
                     actions: {
                         ...slice.actions,
                         ...(Object.entries(publicActions)
@@ -213,7 +253,8 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                                 [functionName]: value(key)
                             }), {})
                         )
-                    }
+                    },
+                    promiseCache
                 }))
             })
     }

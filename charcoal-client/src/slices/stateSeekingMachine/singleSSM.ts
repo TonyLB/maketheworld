@@ -7,7 +7,7 @@ import { Selector } from '../../store'
 import { PromiseCache } from '../promiseCache'
 
 type singleSSMSlice<Nodes extends ISSMData> = InferredDataTypeAggregateFromNodes<Nodes> & {
-    meta: ssmMeta<keyof Nodes, InferredDataTypeAggregateFromNodes<Nodes>>
+    meta: ssmMeta<keyof Nodes>
 }
 
 type singleSSMPublicReducer<Nodes extends Record<string, any>, D> = {
@@ -92,6 +92,24 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
             setIntent(state, action: PayloadAction<(keyof Nodes)[]>) {
                 state.meta.desiredStates = castDraft(action.payload)
             },
+            clearOnEnter(state, action: PayloadAction<keyof Nodes>) {
+                state.meta.onEnterPromises[action.payload as any] = []
+            },
+            addOnEnter(
+                state,
+                action: PayloadAction<{
+                    nodeKey: keyof Nodes;
+                    value: string;
+                }>
+            ) {
+                if (!(action.payload.nodeKey in state.meta.onEnterPromises)) {
+                    state.meta.onEnterPromises[action.payload.nodeKey as any] = []
+                }
+                state.meta.onEnterPromises[action.payload.nodeKey as any] = [
+                    ...state.meta.onEnterPromises[action.payload.nodeKey as any],
+                    action.payload.value
+                ]
+            },
             internalStateChange(
                 state,
                 action: PayloadAction<{
@@ -121,7 +139,7 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
         }
     })
 
-    const { internalStateChange, setIntent } = slice.actions
+    const { internalStateChange, setIntent, clearOnEnter } = slice.actions
     const iterateAllSSMs = (dispatch: any, getState: any) => {
         const sliceData = sliceSelector(getState())
         const { currentState, desiredStates } = sliceData.meta
@@ -140,7 +158,9 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
                         data: InferredDataTypeAggregateFromNodes<Nodes>
                     }) => (internalStateChange({ newState, inProgress, data })),
                 internalIntentChange: ({ newIntent }: { newIntent: (keyof Nodes)[] }) => (setIntent(newIntent)),
-                actions: slice.actions
+                clearOnEnter: (key) => (clearOnEnter(key)),
+                actions: slice.actions,
+                promiseCache
             }))
         }
     }
@@ -173,7 +193,15 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
         slice,
         publicActions: {
             ...(Object.keys(publicReducers)
-                .reduce((previous, key) => ({ ...previous, [key]: ((slice.actions as any)[key]) }), {})
+                .reduce((previous, key) => ({ ...previous, [key]: ((slice.actions as any)[key]) }), {
+                    onEnter: ({ nodeKeys }: { nodeKeys: (keyof Nodes)[] }) => (dispatch): Promise<InferredDataTypeAggregateFromNodes<Nodes>> => {
+                        const { promise, key: value } = promiseCache.add()
+                        nodeKeys.forEach((nodeKey) => {
+                            dispatch(slice.actions.addOnEnter({ nodeKey, value }))
+                        })
+                        return promise
+                    }            
+                })
             )
         } as Record<string, wrappedPublicReducer<any>>,
         selectors,

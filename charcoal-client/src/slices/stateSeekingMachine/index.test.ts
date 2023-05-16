@@ -12,6 +12,7 @@ jest.mock('./ssmHeartbeat')
 import { heartbeat } from './ssmHeartbeat'
 
 import { iterateOneSSM } from './'
+import { PromiseCache } from '../promiseCache'
 
 type testSSMData = {
     value: string;
@@ -30,6 +31,8 @@ type testSSMNodes = {
 }
 
 type TestTemplate = TemplateFromNodes<testSSMNodes>
+
+const mockPromiseCache = new PromiseCache<any>()
 
 describe('iterateOneSSM', () => {
     beforeEach(() => {
@@ -106,14 +109,17 @@ describe('iterateOneSSM', () => {
             desiredStates: ['LANDING'],
             internalData: {},
             publicData: {},
-            template: baseGraph
+            template: baseGraph,
+            onEnterPromises: {}
         })
         condition.mockReturnValue(false)
         await iterateOneSSM({
             getSSMData,
             internalIntentChange,
             internalStateChange,
-            actions: {}
+            clearOnEnter: () => {},
+            actions: {},
+            promiseCache: mockPromiseCache
         })(dispatch, getState)
         expect(dispatch).toHaveBeenCalledTimes(0)
     })
@@ -124,7 +130,8 @@ describe('iterateOneSSM', () => {
             desiredStates: ['LANDING'],
             internalData: {},
             publicData: {},
-            template: baseGraph
+            template: baseGraph,
+            onEnterPromises: {}
         })
         condition.mockReturnValue(true)
         internalStateChange.mockImplementation(({ newState }) => ({ newState }))
@@ -132,7 +139,9 @@ describe('iterateOneSSM', () => {
             getSSMData,
             internalIntentChange,
             internalStateChange,
-            actions: {}
+            clearOnEnter: () => {},
+            actions: {},
+            promiseCache: mockPromiseCache
         })(dispatch, getState)
         expect(dispatch).toHaveBeenCalledTimes(2)
         expect(dispatch).toHaveBeenCalledWith({ newState: 'CHOICE' })
@@ -146,14 +155,17 @@ describe('iterateOneSSM', () => {
             desiredStates: ['LANDING'],
             internalData: {},
             publicData: {},
-            template: baseGraph
+            template: baseGraph,
+            onEnterPromises: {}
         })
         internalStateChange.mockImplementation(({ newState }) => ({ newState }))
         await iterateOneSSM({
             getSSMData,
             internalIntentChange,
             internalStateChange,
-            actions: {}
+            clearOnEnter: () => {},
+            actions: {},
+            promiseCache: mockPromiseCache
         })(dispatch, getState)
         expect(dispatch).toHaveBeenCalledTimes(2)
         expect(dispatch).toHaveBeenCalledWith({ newState: 'ATTEMPT' })
@@ -166,14 +178,17 @@ describe('iterateOneSSM', () => {
             desiredStates: ['ALTERNATE', 'ERROR'],
             internalData: {},
             publicData: {},
-            template: baseGraph
+            template: baseGraph,
+            onEnterPromises: {}
         })
         internalStateChange.mockImplementation(({ newState }) => ({ newState }))
         await iterateOneSSM({
             getSSMData,
             internalIntentChange,
             internalStateChange,
-            actions: {}
+            clearOnEnter: () => {},
+            actions: {},
+            promiseCache: mockPromiseCache
         })(dispatch, getState)
         expect(dispatch).toHaveBeenCalledTimes(2)
         expect(dispatch).toHaveBeenCalledWith({ newState: 'ALTERNATE' })
@@ -186,7 +201,8 @@ describe('iterateOneSSM', () => {
             desiredStates: ['LANDING'],
             internalData: {},
             publicData: {},
-            template: baseGraph
+            template: baseGraph,
+            onEnterPromises: {}
         })
         internalStateChange.mockImplementation(({ newState, inProgress }) => ({ newState, inProgress }))
         attempt.mockResolvedValue({})
@@ -195,7 +211,9 @@ describe('iterateOneSSM', () => {
             getSSMData,
             internalIntentChange,
             internalStateChange,
-            actions: {}
+            clearOnEnter: () => {},
+            actions: {},
+            promiseCache: mockPromiseCache
         })(dispatch, getState)
         expect(dispatch).toHaveBeenCalledTimes(4)
         expect(dispatch).toHaveBeenCalledWith({ newState: 'ATTEMPT', inProgress: 'ATTEMPT' })
@@ -209,7 +227,8 @@ describe('iterateOneSSM', () => {
             desiredStates: ['LANDING'],
             internalData: {},
             publicData: {},
-            template: baseGraph
+            template: baseGraph,
+            onEnterPromises: {}
         })
         internalStateChange.mockImplementation(({ newState, inProgress }) => ({ newState, inProgress }))
         attempt.mockResolvedValue({})
@@ -218,7 +237,9 @@ describe('iterateOneSSM', () => {
             getSSMData,
             internalIntentChange,
             internalStateChange,
-            actions: {}
+            clearOnEnter: () => {},
+            actions: {},
+            promiseCache: mockPromiseCache
         })(dispatch, getState)
         expect(dispatch).toHaveBeenCalledTimes(4)
         expect(dispatch).toHaveBeenCalledWith({ newState: 'ATTEMPT', inProgress: 'ATTEMPT' })
@@ -232,7 +253,8 @@ describe('iterateOneSSM', () => {
             desiredStates: ['REDIRECT'],
             internalData: {},
             publicData: {},
-            template: baseGraph
+            template: baseGraph,
+            onEnterPromises: {}
         })
         internalStateChange.mockImplementation(({ newState }) => ({ newState }))
         internalIntentChange.mockImplementation(({ newIntent }) => ({ newIntent }))
@@ -240,7 +262,9 @@ describe('iterateOneSSM', () => {
             getSSMData,
             internalIntentChange,
             internalStateChange,
-            actions: {}
+            clearOnEnter: () => {},
+            actions: {},
+            promiseCache: mockPromiseCache
         })(dispatch, getState)
         expect(dispatch).toHaveBeenCalledTimes(3)
         expect(dispatch).toHaveBeenCalledWith({ newIntent: ['LANDING', 'ERROR']})

@@ -156,12 +156,10 @@ export interface IStateSeekingMachineAbstract<K extends string, I extends ISSMDa
     data: ISSMDataLayout<I, D>;
 }
 
-type StateMachineOnEnterPromiseCache<K extends string | number | symbol, D extends { internalData: Record<string, any>; publicData: Record<string, any> }> = Record<K, Promise<D>[]>
-
-export type ssmMeta<K extends string | number | symbol, D extends { internalData: Record<string, any>; publicData: Record<string, any> }> = {
+export type ssmMeta<K extends string | symbol | number> = {
     currentState: K;
     desiredStates: K[];
-    onEnterPromises: StateMachineOnEnterPromiseCache<K, D>;
+    onEnterPromises: Record<K, string[]>;
     inProgress: K | null;
     error?: Record<string, any>;
 }
