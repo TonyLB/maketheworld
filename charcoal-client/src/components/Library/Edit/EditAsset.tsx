@@ -25,6 +25,7 @@ import {
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
+    assignAssetToCharacterId,
     getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -46,8 +47,11 @@ import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
 import { useNextOnboarding, useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { getMyCharacters } from '../../../slices/player'
+import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
-type AssetEditFormProps = {}
+type AssetEditFormProps = {
+    setAssignDialogShown: (value: boolean) => void;
+}
 
 const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
     switch(tag) {
@@ -107,13 +111,16 @@ const AssetAssignDialog: FunctionComponent<AssetAssignDialogProps> = ({ open, on
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => { onClose()}}>No</Button>
-                <Button onClick={() => { assignHandler() }} autoFocus>Yes</Button>
+                <Button onClick={() => {
+                    assignHandler()
+                    onClose()
+                }} autoFocus>Yes</Button>
             </DialogActions>
         </Dialog>
 }
 
-const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { normalForm, updateNormal, save, status, serialized, AssetId } = useLibraryAsset()
+const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
+    const { normalForm, updateNormal, save, status, serialized } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
@@ -143,27 +150,19 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         }
     }, [updateNormal, normalForm])
     const next = useNextOnboarding()
-    const Characters = useSelector(getMyCharacters)
-    const assignHandler = useCallback(() => {
-        //
-        // TODO: Write code to ensure fetch of all all personal characters, update them, and set them to need save
-        //
-    }, [AssetId, Characters])
     const innerSaveHandler = useCallback(() => {
         if (next === 'saveAsset') {
             dispatch(addOnboardingComplete(['saveAsset']))
         }
         save()
     }, [save, next])
-    const [dialogShown, setDialogShown] = useState<boolean>(false)
     const saveHandler = useCallback(() => {
         innerSaveHandler()
-        if (!serialized) {
-            setDialogShown(true)
+        if (!Boolean(serialized)) {
+            setAssignDialogShown(true)
         }
-    }, [innerSaveHandler, serialized, setDialogShown])
+    }, [innerSaveHandler, serialized, setAssignDialogShown])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
-        <AssetAssignDialog open={dialogShown} onClose={() => { setDialogShown(false) }} assignHandler={assignHandler} />
         <LibraryBanner
             primary={asset?.key || 'Untitled'}
             secondary={asset?.Story ? 'Story' : 'Asset'}
@@ -316,21 +315,39 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     }, [dispatch, assetKey])
 
     const currentStatus = useSelector(getStatus(AssetId))
+    const [assignDialogShown, setAssignDialogShown] = useState<boolean>(false)
+    const Characters = useSelector(getMyCharacters)
+    const assignHandler = useCallback(() => {
+        if (isEphemeraAssetId(AssetId)) {
+            //
+            // TODO: Figure out how to get DB-ID from Character, rather than namespace key, for this
+            // assign
+            //
+            Characters.forEach(({ scopedId }) => {
+                dispatch(assignAssetToCharacterId({ assetId: AssetId, characterId: `CHARACTER#${scopedId}` }))
+            })
+        }
+    }, [AssetId, Characters])
 
-    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
-        ? 
-            <LibraryAsset assetKey={assetKey || ''}>
-                <Routes>
-                    <Route path={'WML'} element={<WMLEdit />} />
-                    <Route path={'Map/:MapId'} element={<MapEdit />} />
-                    <Route path={'Room/:ComponentId'} element={<WMLComponentDetail />} />
-                    <Route path={'Feature/:ComponentId'} element={<WMLComponentDetail />} />
-                    <Route path={'Knowledge/:ComponentId'} element={<WMLComponentDetail />} />
-                    <Route path={''} element={<AssetEditForm />} />
-                </Routes>
-            </LibraryAsset>
-            
-        : <div style={{ height: "100%", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div><CircularProgress /></div></div>
+    return <React.Fragment>
+        <AssetAssignDialog open={assignDialogShown} onClose={() => { setAssignDialogShown(false) }} assignHandler={assignHandler} />
+        {
+            (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
+                ? 
+                    <LibraryAsset assetKey={assetKey || ''}>
+                        <Routes>
+                            <Route path={'WML'} element={<WMLEdit />} />
+                            <Route path={'Map/:MapId'} element={<MapEdit />} />
+                            <Route path={'Room/:ComponentId'} element={<WMLComponentDetail />} />
+                            <Route path={'Feature/:ComponentId'} element={<WMLComponentDetail />} />
+                            <Route path={'Knowledge/:ComponentId'} element={<WMLComponentDetail />} />
+                            <Route path={''} element={<AssetEditForm setAssignDialogShown={setAssignDialogShown} />} />
+                        </Routes>
+                    </LibraryAsset>
+                    
+                : <div style={{ height: "100%", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div><CircularProgress /></div></div>
+        }
+    </React.Fragment>
 
 }
 

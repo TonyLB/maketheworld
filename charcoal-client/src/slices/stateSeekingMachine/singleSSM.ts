@@ -194,7 +194,7 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
         publicActions: {
             ...(Object.keys(publicReducers)
                 .reduce((previous, key) => ({ ...previous, [key]: ((slice.actions as any)[key]) }), {
-                    onEnter: ({ nodeKeys }: { nodeKeys: (keyof Nodes)[] }) => (dispatch, getState): Promise<InferredDataTypeAggregateFromNodes<Nodes>> => {
+                    onEnter: (nodeKeys: (keyof Nodes)[]) => (dispatch, getState): Promise<InferredDataTypeAggregateFromNodes<Nodes>> => {
                         const { internalData, publicData, meta: { currentState } } = sliceSelector(getState())
                         if (nodeKeys.includes(currentState)) {
                             return Promise.resolve({ internalData, publicData })
