@@ -1,5 +1,5 @@
 import { objectMap } from '../../lib/objects'
-import { ActiveCharacterNodes } from './baseClasses'
+import { ActiveCharacterData, ActiveCharacterNodes } from './baseClasses'
 import { multipleSSM, multipleSSMSlice } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
@@ -13,6 +13,9 @@ import {
 } from './index.api'
 import receiveMapEphemera from './receiveMapEphemera'
 import { publicSelectors, PublicSelectors } from './selectors'
+import { PromiseCache } from '../promiseCache'
+
+const activeCharacterPromiseCache = new PromiseCache<ActiveCharacterData>()
 
 export const {
     slice: activeCharactersSlice,
@@ -23,6 +26,7 @@ export const {
     name: 'activeCharacters',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['CONNECTED'],
+    promiseCache: activeCharacterPromiseCache,
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

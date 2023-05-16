@@ -26,7 +26,8 @@ import {
     updateNormal as updateNormalAction,
     getDraftWML,
     getImportData,
-    getStatus
+    getStatus,
+    getSerialized
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -36,10 +37,11 @@ import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/
 import { getConfiguration } from '../../../slices/configuration'
 import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;
-    AssetId: string;
+    AssetId: EphemeraCharacterId | EphemeraAssetId | null;
     currentWML: string;
     draftWML: string;
     normalForm: NormalForm;
@@ -53,12 +55,13 @@ type LibraryAssetContextType = {
     features: Record<string, AssetComponent>;
     save: () => void;
     readonly: boolean;
+    serialized: boolean;
     status?: keyof PersonalAssetsNodes;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     assetKey: '',
-    AssetId: '',
+    AssetId: null,
     currentWML: '',
     draftWML: '',
     normalForm: {},
@@ -71,7 +74,8 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     exits: {},
     features: {},
     save: () => {},
-    readonly: true
+    readonly: true,
+    serialized: false
 })
 
 type LibraryAssetProps = {
@@ -150,7 +154,7 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
 
 export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, children, character }) => {
 
-    const AssetId = useMemo<string>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
+    const AssetId = useMemo<EphemeraCharacterId | EphemeraAssetId>(() => (`${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`), [character, assetKey])
     const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
@@ -158,6 +162,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
     const status = useSelector(getStatus(AssetId))
+    const serialized = useSelector(getSerialized(AssetId))
     const dispatch = useDispatch()
     const updateNormal = useCallback((updateAction: UpdateNormalPayload) => {
         dispatch(updateNormalAction(AssetId)(updateAction))
@@ -191,6 +196,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             features,
             save,
             readonly: !(currentDraft === assetKey),
+            serialized,
             status
         }}>
             {children}

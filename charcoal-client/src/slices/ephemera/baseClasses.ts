@@ -24,6 +24,11 @@ export interface EphemeraPublic {
     charactersInPlay: Record<EphemeraCharacterId, EphemeraCharacterInPlay>
 }
 
+export type EphemeraData = {
+    internalData: EphemeraInternal;
+    publicData: EphemeraPublic;
+}
+
 export type EphemeraRecord = ISSMDataLayout<EphemeraInternal, EphemeraPublic>
 export type EphemeraReturn = ISSMDataReturn<EphemeraInternal, EphemeraPublic>
 export type EphemeraAction = ISSMAction<EphemeraInternal, EphemeraPublic>

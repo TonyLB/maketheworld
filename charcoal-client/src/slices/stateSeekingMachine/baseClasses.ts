@@ -156,49 +156,10 @@ export interface IStateSeekingMachineAbstract<K extends string, I extends ISSMDa
     data: ISSMDataLayout<I, D>;
 }
 
-// export type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
-// export class TestInternal {}
-// export class TestData {
-//     valOne: string = ''
-//     valTwo: string = ''
-// }
-
-// export type ITestState = ISSMPotentialState<testKeys, TestInternal, TestData>
-
-// export interface ITestSSM extends ISSMTemplateAbstract<testKeys, TestInternal, TestData> {
-//     ssmType: 'Test'
-// }
-
-// export class TestTemplate implements ITestSSM {
-//     ssmType: 'Test' = 'Test'
-//     initialState: testKeys = 'INITIAL'
-//     initialData: ISSMDataLayout<TestInternal, TestData> = {
-//         internalData: new TestInternal,
-//         publicData: new TestData()
-//     }
-//     states: Record<testKeys, ITestState> = {
-//         INITIAL: {
-//             stateType: 'CHOICE',
-//             choices: ['CONNECTING']
-//         },
-//         CONNECTING: {
-//             stateType: 'ATTEMPT',
-//             action: jest.fn(),
-//             resolve: 'CONNECTED',
-//             reject: 'INITIAL'
-//         },
-//         CONNECTED: {
-//             stateType: 'CHOICE',
-//             choices: []
-//         }
-//     }
-// }
-
-// export type TestSSM = IStateSeekingMachineAbstract<testKeys, TestInternal, TestData, TestTemplate>
-
-export type ssmMeta<K> = {
+export type ssmMeta<K extends string | symbol | number> = {
     currentState: K;
     desiredStates: K[];
+    onEnterPromises: Record<K, string[]>;
     inProgress: K | null;
     error?: Record<string, any>;
 }

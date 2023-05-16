@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { ThunkAction } from 'redux-thunk'
 import { AnyAction } from 'redux'
-import { CharacterEditNodes, CharacterEditKeys } from './baseClasses'
+import { CharacterEditNodes, CharacterEditKeys, CharacterEditData } from './baseClasses'
 import { multipleSSM } from '../../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
@@ -14,6 +14,9 @@ import {
 import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat'
 import { RootState } from '../../../store'
 import { publicSelectors, PublicSelectors } from './selectors'
+import { PromiseCache } from '../../promiseCache'
+
+const characterEditPromiseCache = new PromiseCache<CharacterEditData>()
 
 export const {
     slice: characterEditSlice,
@@ -24,6 +27,7 @@ export const {
     name: 'characterEdit',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['PARSED'],
+    promiseCache: characterEditPromiseCache,
     initialData: {
         internalData: {},
         publicData: {

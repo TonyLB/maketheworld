@@ -1,4 +1,4 @@
-import { LifeLineNodes } from './baseClasses'
+import { LifeLineData, LifeLineNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
     subscribeMessages,
@@ -7,6 +7,7 @@ import {
     backoffAction,
     unsubscribeMessages
 } from './index.api'
+import { PromiseCache } from '../promiseCache'
 export {
     socketDispatch,
     socketDispatchPromise,
@@ -15,6 +16,8 @@ export {
     parseCommand,
     LifeLinePubSub
 } from './index.api'
+
+const lifeLinePromiseCache = new PromiseCache<LifeLineData>()
 
 export const {
     slice: lifeLineSlice,
@@ -25,6 +28,7 @@ export const {
     name: 'lifeLine',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['CONNECTED'],
+    promiseCache: lifeLinePromiseCache,
     initialData: {
         internalData: {
             incrementalBackoff: 0.5,
@@ -109,5 +113,9 @@ export const {
 export const {
     getStatus
 } = selectors
+
+export const {
+    onEnter
+} = publicActions
 
 export default lifeLineSlice.reducer

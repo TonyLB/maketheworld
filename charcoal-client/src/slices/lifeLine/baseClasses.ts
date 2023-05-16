@@ -15,6 +15,11 @@ export interface LifeLinePublic {
     webSocket: WebSocket | null;
 }
 
+export type LifeLineData = {
+    internalData: LifeLineInternal;
+    publicData: LifeLinePublic;
+}
+
 export type LifeLineRecord = ISSMDataLayout<LifeLineInternal, LifeLinePublic>
 export type LifeLineReturn = ISSMDataReturn<LifeLineInternal, LifeLinePublic>
 export type LifeLineAction = ISSMAction<LifeLineInternal, LifeLinePublic>

@@ -33,6 +33,11 @@ export interface PersonalAssetsPublic {
     serialized?: boolean;
 }
 
+export type PersonalAssetsData = {
+    internalData: PersonalAssetsInternal;
+    publicData: PersonalAssetsPublic;
+}
+
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>
 export type PersonalAssetsReturn = ISSMDataReturn<PersonalAssetsInternal, PersonalAssetsPublic>
 export type PersonalAssetsAction = ISSMAction<PersonalAssetsInternal, PersonalAssetsPublic>

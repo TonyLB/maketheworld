@@ -1,4 +1,4 @@
-import { PersonalAssetsNodes } from './baseClasses'
+import { PersonalAssetsData, PersonalAssetsNodes } from './baseClasses'
 import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
@@ -22,6 +22,10 @@ import { addAsset } from '../player'
 import { isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import { PromiseCache } from '../promiseCache'
+import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
+
+const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
 export const {
     slice: personalAssetsSlice,
@@ -32,6 +36,7 @@ export const {
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'],
+    promiseCache: personalAssetsPromiseCache,
     initialData: {
         internalData: {
             incrementalBackoff: 0.5
@@ -208,7 +213,8 @@ export const {
     revertDraftWML,
     setLoadedImage,
     updateNormal,
-    setImport
+    setImport,
+    onEnter
 } = publicActions
 export const {
     getStatus,
@@ -300,6 +306,8 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
         }))
     }
     dispatch(fetchImports(assetId))
+    dispatch(setIntent({ key: assetId, intent: ['NORMALDIRTY', 'WMLDIRTY']}))
+    dispatch(heartbeat)
 }
 
 export const removeImport = ({ assetId, fromAsset }: {
@@ -328,6 +336,26 @@ export const removeImport = ({ assetId, fromAsset }: {
         dispatch(fetchImports(assetId))
     }
 }
+
+//
+// assignAssetToCharacterId action loads characterId asset if necessary, and when it has
+// been loaded adds the asset as an import
+//
+export const assignAssetToCharacterId = ({ assetId, characterId }: { assetId: EphemeraAssetId, characterId: EphemeraCharacterId }) => async (dispatch) => {
+    const activeStates: (keyof PersonalAssetsNodes)[] = ['WMLDIRTY', 'FRESH', 'NORMALDIRTY']
+    dispatch(addItem({ key: characterId }))
+    dispatch(onEnter(characterId)(activeStates)).then(() => {
+        dispatch(addImport({ assetId: characterId, fromAsset: assetId.split('#')[1] }))
+        dispatch(setIntent({ key: characterId, intent: ['NORMALDIRTY']}))
+        dispatch(onEnter(characterId)(['NORMALDIRTY'])).then(() => {
+            dispatch(setIntent({ key: characterId, intent: ['NEEDSAVE'] }))
+            dispatch(heartbeat)
+        })
+        dispatch(heartbeat)
+    })
+    dispatch(heartbeat)
+}
+
 // type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
 
 export default personalAssetsSlice.reducer

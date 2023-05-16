@@ -8,6 +8,11 @@ export interface LibraryInternal {
 
 export type LibraryPublic = Omit<AssetClientLibraryMessage, 'messageType' | 'RequestId'>
 
+export type LibraryData = {
+    internalData: LibraryInternal;
+    publicData: LibraryPublic;
+}
+
 export type LibraryRecord = ISSMDataLayout<LibraryInternal, LibraryPublic>
 export type LibraryReturn = ISSMDataReturn<LibraryInternal, LibraryPublic>
 export type LibraryAction = ISSMAction<LibraryInternal, LibraryPublic>
