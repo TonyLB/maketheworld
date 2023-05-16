@@ -211,12 +211,22 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         ...previous,
         [name]: publicAction((slice.actions as any)[`core${name}`])
     }), {
-        onEnter: (key: string) => ({ nodeKeys }: { nodeKeys: (keyof Nodes)[] }) => (dispatch, state): Promise<InferredDataTypeAggregateFromNodes<Nodes>> => {
-            const { promise, key: value } = promiseCache.add()
-            nodeKeys.forEach((nodeKey) => {
-                dispatch(slice.actions.addOnEnter({ key, nodeKey, value }))
-            })
-            return promise
+        onEnter: (key: string) => ({ nodeKeys }: { nodeKeys: (keyof Nodes)[] }) => (dispatch, getState): Promise<InferredDataTypeAggregateFromNodes<Nodes>> => {
+            const { byId } = sliceSelector(getState())
+            if (!(key in byId)) {
+                throw new Error(`onEnter applies to invalid key (${key})`)
+            }
+            const { internalData, publicData, meta: { currentState } } = byId[key]
+            if (nodeKeys.includes(currentState)) {
+                return Promise.resolve({ internalData, publicData })
+            }
+            else {
+                const { promise, key: value } = promiseCache.add()
+                nodeKeys.forEach((nodeKey) => {
+                    dispatch(slice.actions.addOnEnter({ key, nodeKey, value }))
+                })
+                return promise
+            }
         }
     }) as Record<string, wrappedPublicReducer<any>>
 

@@ -114,4 +114,8 @@ export const {
     getStatus
 } = selectors
 
+export const {
+    onEnter
+} = publicActions
+
 export default lifeLineSlice.reducer

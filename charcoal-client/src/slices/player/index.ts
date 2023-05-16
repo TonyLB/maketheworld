@@ -112,7 +112,7 @@ export const {
     }
 })
 
-export const { setCurrentDraft, addAsset } = publicActions
+export const { setCurrentDraft, addAsset, onEnter } = publicActions
 export const {
     getPlayer,
     getMyCharacters,

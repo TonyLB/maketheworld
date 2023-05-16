@@ -146,9 +146,9 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
         if (!desiredStates.includes(currentState)) {
             const getSSMData = (state: any) => {
                 const currentData = sliceSelector(state)
-                const { currentState, desiredStates, inProgress } = currentData.meta
+                const { currentState, desiredStates, inProgress, onEnterPromises } = currentData.meta
                 const { internalData, publicData } = currentData
-                return { currentState, desiredStates, internalData, publicData, inProgress, template }
+                return { currentState, desiredStates, internalData, publicData, inProgress, template, onEnterPromises }
             }
             dispatch(iterateOneSSM({
                 getSSMData,
@@ -194,12 +194,18 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
         publicActions: {
             ...(Object.keys(publicReducers)
                 .reduce((previous, key) => ({ ...previous, [key]: ((slice.actions as any)[key]) }), {
-                    onEnter: ({ nodeKeys }: { nodeKeys: (keyof Nodes)[] }) => (dispatch): Promise<InferredDataTypeAggregateFromNodes<Nodes>> => {
-                        const { promise, key: value } = promiseCache.add()
-                        nodeKeys.forEach((nodeKey) => {
-                            dispatch(slice.actions.addOnEnter({ nodeKey, value }))
-                        })
-                        return promise
+                    onEnter: ({ nodeKeys }: { nodeKeys: (keyof Nodes)[] }) => (dispatch, getState): Promise<InferredDataTypeAggregateFromNodes<Nodes>> => {
+                        const { internalData, publicData, meta: { currentState } } = sliceSelector(getState())
+                        if (nodeKeys.includes(currentState)) {
+                            return Promise.resolve({ internalData, publicData })
+                        }
+                        else {
+                            const { promise, key: value } = promiseCache.add()
+                            nodeKeys.forEach((nodeKey) => {
+                                dispatch(slice.actions.addOnEnter({ nodeKey, value }))
+                            })
+                            return promise
+                        }
                     }            
                 })
             )

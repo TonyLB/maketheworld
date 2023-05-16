@@ -212,7 +212,8 @@ export const {
     revertDraftWML,
     setLoadedImage,
     updateNormal,
-    setImport
+    setImport,
+    onEnter
 } = publicActions
 export const {
     getStatus,
