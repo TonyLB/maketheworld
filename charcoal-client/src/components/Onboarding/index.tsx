@@ -214,7 +214,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string; listItems
     }, [next])
 }
 
-export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
+export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
     const next = useNextOnboarding()
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const { output: previous } = onboardingCheckpointSequence.slice(0, -1).reduce<{ output?: OnboardingKey; finished: boolean }>((previous, key) => {
@@ -276,4 +276,4 @@ export const OnboardingDisplay: FunctionComponent<{}> = ({ children }) => {
     </Stack>
 }
 
-export default OnboardingDisplay
+export default OnboardingPanel
