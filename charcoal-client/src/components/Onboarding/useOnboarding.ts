@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { getMySettings, getStatus } from '../../slices/player'
+import { getActiveOnboardingChapter, getMySettings, getStatus } from '../../slices/player'
 import { OnboardingKey, onboardingChapters } from './checkpoints'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 
@@ -11,10 +11,8 @@ import { addOnboardingComplete } from '../../slices/player/index.api'
 //
 export const useOnboardingChapterActive = () => {
     const playerState = useSelector(getStatus)
-    const { onboardCompleteTags } = useSelector(getMySettings)
-    const firstChapterUnfinished = useMemo(() => (playerState === 'CONNECTED' && !(onboardCompleteTags.includes(`endMTWNavigate`))), [onboardCompleteTags, playerState])
-    const index = useMemo(() => (playerState === 'CONNECTED' ? ( firstChapterUnfinished ? 0 : onboardingChapters.findIndex(({ chapterKey }) => (onboardCompleteTags.includes(`active${chapterKey}`)))) : undefined), [firstChapterUnfinished, onboardingChapters, onboardCompleteTags, playerState])
-    return { index, currentChapter: typeof index === 'undefined' ? undefined : onboardingChapters[index] }
+    const chapterActive = useSelector(getActiveOnboardingChapter)
+    return playerState === 'CONNECTED' ? chapterActive : { index: undefined, currentChapter: undefined }
 }
 
 export const useOnboardingPage = () => {

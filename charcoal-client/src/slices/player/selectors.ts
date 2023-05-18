@@ -1,5 +1,7 @@
 import { PlayerPublic } from './baseClasses'
 import { Selector } from '../../store'
+import { createSelector } from '@reduxjs/toolkit'
+import { onboardingChapters } from '../../components/Onboarding/checkpoints'
 
 export const getPlayer = (player: PlayerPublic): PlayerPublic => {
     const { PlayerName = '', CodeOfConductConsent = false, Assets = [], Characters = [], Settings = { onboardCompleteTags: [] }, currentDraft } = player || {}
@@ -38,6 +40,15 @@ export const getMyCharacterById = (getMyCharacters: Selector<PlayerPublic['Chara
     return Characters.find(({ CharacterId }) => (CharacterId === key))
 }
 
+export const getActiveOnboardingChapter = createSelector(
+    getMySettings,
+    ({ onboardCompleteTags }) => {
+        const firstChapterUnfinished = !(onboardCompleteTags.includes(`endMTWNavigate`))
+        const index = firstChapterUnfinished ? 0 : onboardingChapters.findIndex(({ chapterKey }) => (onboardCompleteTags.includes(`active${chapterKey}`)))
+        return { index, currentChapter: typeof index === 'undefined' ? undefined : onboardingChapters[index] }            
+    }
+)
+
 //
 // TODO: See if you can reduce the repetition of creating this type from the selectors
 //
@@ -46,4 +57,5 @@ export type PlayerSelectors = {
     getMyCharacters: (player: PlayerPublic) => PlayerPublic['Characters'];
     getMyAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
     getMySettings: (player: PlayerPublic) => PlayerPublic['Settings'];
+    getActiveOnboardingChapter: (player: PlayerPublic) => { index?: number; currentChapter?: typeof onboardingChapters[number] }
 }
