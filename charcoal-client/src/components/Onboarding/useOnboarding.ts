@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { socketDispatch } from '../../slices/lifeLine'
 import { getMySettings, getStatus } from '../../slices/player'
-import { OnboardingKey, onboardingCheckpointSequence } from './checkpoints'
+import { OnboardingKey, onboardingChapters, onboardingCheckpointSequence } from './checkpoints'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 
 export const useNextOnboarding = () => {
@@ -10,6 +10,13 @@ export const useNextOnboarding = () => {
     const { onboardCompleteTags } = useSelector(getMySettings)
     const nextOnboard = useMemo(() => (playerState === 'CONNECTED' ? onboardingCheckpointSequence.find((check) => (!onboardCompleteTags.includes(check))) : undefined), [onboardingCheckpointSequence, onboardCompleteTags, playerState])
     return nextOnboard
+}
+
+export const useOnboardingPage = () => {
+    const playerState = useSelector(getStatus)
+    const { onboardCompleteTags } = useSelector(getMySettings)
+    const currentPage = useMemo(() => (playerState === 'CONNECTED' ? onboardingChapters[0].pages.find((check) => (!onboardCompleteTags.includes(check.pageKey))) : undefined), [onboardingChapters, onboardCompleteTags, playerState])
+    return currentPage
 }
 
 export const useOnboarding = (key: OnboardingKey): [boolean, () => void] => {
