@@ -18,7 +18,9 @@ import {
     CardContent,
     Stack,
     CardActions,
-    Button
+    Button,
+    Breadcrumbs,
+    Link
 } from "@mui/material"
 import CheckIcon from '@mui/icons-material/Check'
 import useOnboarding, { useNextOnboarding, useOnboardingPage } from "./useOnboarding"
@@ -26,6 +28,7 @@ import { getMySettings } from "../../slices/player"
 import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingCheckpointSequence } from "./checkpoints"
 import { addOnboardingComplete, removeOnboardingComplete } from "../../slices/player/index.api"
+import { useNavigate } from "react-router-dom"
 
 type DenseOnboardingProgressListItemProperties = {
     text: ReactElement | string;
@@ -91,7 +94,6 @@ export const useOnboardingDispatcher = (): undefined | { text: string | ReactEle
 }
 
 export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
-    const next = useNextOnboarding()
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const { output: previous } = onboardingCheckpointSequence.slice(0, -1).reduce<{ output?: OnboardingKey; finished: boolean }>((previous, key) => {
         if (key in listItems) {
@@ -127,8 +129,19 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
     const nextOnClick = useCallback(() => {
         dispatch(addOnboardingComplete([page.pageKey] as OnboardingKey[]))
     }, [listItems])
+    const navigate = useNavigate()
     return <Stack sx={{ height: "100%" }}>
-        { next && 
+        <Breadcrumbs aria-label="navigation breadcrumbs">
+            <Link
+                sx={{ cursor: 'pointer' }}
+                underline="hover"
+                color="inherit"
+                onClick={() => { navigate(`/Onboarding/`) }}
+            >
+                OnboardingHome
+            </Link>
+        </Breadcrumbs>
+        { page && 
             <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
                 <CardContent sx={{ position: "relative", height: "100%", paddingBottom: "3em", marginBottom: "-3em" }}>
                     <Box sx={{ overflowY: "auto", maxHeight: "100%" }}>
@@ -146,9 +159,10 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
                     <Stack direction="row" sx={{ width: "100%" }}>
                         { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
                         <Box sx={{ flexGrow: 1 }} />
-                        { next !== 'closeOnboarding' && !pageTasksComplete && <Button variant="contained" onClick={skipOnClick}>Skip</Button> }
-                        { next !== 'closeOnboarding' && pageTasksComplete && <Button variant="contained" onClick={nextOnClick}>Next</Button> }
-                        { next === 'closeOnboarding' && <Button variant="contained" onClick={() => { dispatch(addOnboardingComplete(['closeOnboarding'])) }}>Close Onboarding</Button> }
+                        { pageTasksComplete
+                            ? <Button variant="contained" onClick={nextOnClick}>Next</Button>
+                            : <Button variant="contained" onClick={skipOnClick}>Skip</Button>
+                        }
                     </Stack>
                 </CardActions>
             </Card>
@@ -160,3 +174,9 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
 }
 
 export default OnboardingPanel
+
+export const OnboardingHome: FunctionComponent<{}> = () => {
+    return <Stack sx={{ height: "100%" }}>
+
+    </Stack>
+}

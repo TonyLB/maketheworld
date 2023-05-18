@@ -1,22 +1,35 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { socketDispatch } from '../../slices/lifeLine'
 import { getMySettings, getStatus } from '../../slices/player'
-import { OnboardingKey, onboardingChapters, onboardingCheckpointSequence } from './checkpoints'
+import { OnboardingKey, onboardingChapters } from './checkpoints'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 
-export const useNextOnboarding = () => {
+//
+// TODO: Lift the selector logic here into selectors in the player slice
+//
+// TODO: Lift requireSequence and condition into the addOnboardingComplete thunk
+//
+export const useOnboardingChapterActive = () => {
     const playerState = useSelector(getStatus)
     const { onboardCompleteTags } = useSelector(getMySettings)
-    const nextOnboard = useMemo(() => (playerState === 'CONNECTED' ? onboardingCheckpointSequence.find((check) => (!onboardCompleteTags.includes(check))) : undefined), [onboardingCheckpointSequence, onboardCompleteTags, playerState])
-    return nextOnboard
+    const firstChapterUnfinished = useMemo(() => (playerState === 'CONNECTED' && !(onboardCompleteTags.includes(`endMTWNavigate`))), [onboardCompleteTags, playerState])
+    const index = useMemo(() => (playerState === 'CONNECTED' ? ( firstChapterUnfinished ? 0 : onboardingChapters.findIndex(({ chapterKey }) => (onboardCompleteTags.includes(`active${chapterKey}`)))) : undefined), [firstChapterUnfinished, onboardingChapters, onboardCompleteTags, playerState])
+    return { index, currentChapter: typeof index === 'undefined' ? undefined : onboardingChapters[index] }
 }
 
 export const useOnboardingPage = () => {
     const playerState = useSelector(getStatus)
     const { onboardCompleteTags } = useSelector(getMySettings)
-    const currentPage = useMemo(() => (playerState === 'CONNECTED' ? onboardingChapters[0].pages.find((check) => (!onboardCompleteTags.includes(check.pageKey))) : undefined), [onboardingChapters, onboardCompleteTags, playerState])
+    const { index } = useOnboardingChapterActive()
+    const currentPage = useMemo(() => ((playerState === 'CONNECTED' && typeof index !== 'undefined') ? onboardingChapters[index].pages.find((check) => (!onboardCompleteTags.includes(check.pageKey))) : undefined), [onboardingChapters, onboardCompleteTags, playerState])
     return currentPage
+}
+
+export const useNextOnboarding = () => {
+    const currentPage = useOnboardingPage()
+    const { onboardCompleteTags } = useSelector(getMySettings)
+    const nextOnboard = useMemo(() => (currentPage ? currentPage.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) : undefined), [currentPage, onboardCompleteTags])
+    return nextOnboard
 }
 
 export const useOnboarding = (key: OnboardingKey): [boolean, () => void] => {

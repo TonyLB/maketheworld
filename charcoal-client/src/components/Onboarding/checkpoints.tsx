@@ -26,8 +26,7 @@ type OnboardingPage = {
 }
 
 type OnboardingChapter = {
-    chapterStart: string;
-    chapterEnd: string;
+    chapterKey: string;
     pages: OnboardingPage[];
 }
 
@@ -37,8 +36,7 @@ type OnboardingTextArgument = {
 
 const onboardingChaptersRaw = [
     {
-        chapterStart: 'startMTWNavigation',
-        chapterEnd: 'endMTWNavigation',
+        chapterKey: 'MTWNavigation',
         pages: [
             {
                 pageKey: 'pageNavigateTabs',
