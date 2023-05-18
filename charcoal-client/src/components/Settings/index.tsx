@@ -31,7 +31,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({
             }, { service: 'asset' }))
         }
     }, [onboardCompleteTags, dispatch])
-    useOnboardingCheckpoint('navigateSettings')
+    // useOnboardingCheckpoint('navigateSettings')
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <Grid
