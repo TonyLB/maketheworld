@@ -49,6 +49,17 @@ export const getActiveOnboardingChapter = createSelector(
     }
 )
 
+export const getOnboardingPage = createSelector(
+    getMySettings,
+    getActiveOnboardingChapter,
+    ({ onboardCompleteTags }, { currentChapter }) => {
+        if (!currentChapter) {
+            return undefined
+        }
+        return currentChapter.pages.find((check) => (!onboardCompleteTags.includes(check.pageKey)))
+    }
+)
+
 //
 // TODO: See if you can reduce the repetition of creating this type from the selectors
 //
@@ -58,4 +69,5 @@ export type PlayerSelectors = {
     getMyAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
     getMySettings: (player: PlayerPublic) => PlayerPublic['Settings'];
     getActiveOnboardingChapter: (player: PlayerPublic) => { index?: number; currentChapter?: typeof onboardingChapters[number] }
+    getOnboardingPage: (player: PlayerPublic) => typeof onboardingChapters[number]["pages"][number]
 }
