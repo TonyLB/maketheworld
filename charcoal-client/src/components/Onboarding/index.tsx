@@ -23,7 +23,7 @@ import {
     Link
 } from "@mui/material"
 import CheckIcon from '@mui/icons-material/Check'
-import useOnboarding, { useNextOnboarding, useOnboardingPage } from "./useOnboarding"
+import { useOnboardingPage } from "./useOnboarding"
 import { getMySettings } from "../../slices/player"
 import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingCheckpointSequence } from "./checkpoints"
@@ -122,7 +122,7 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
     }, [previous, listItems])
     const page = useOnboardingPage()
     const { onboardCompleteTags } = useSelector(getMySettings)
-    const pageTasksComplete = !Boolean(page.subItems.find(({ key }) => (!(onboardCompleteTags.includes(key)))))
+    const pageTasksComplete = !Boolean((page?.subItems || []).find(({ key }) => (!(onboardCompleteTags.includes(key)))))
     const skipOnClick = useCallback(() => {
         dispatch(addOnboardingComplete([page.pageKey, ...page.subItems.map(({ key }) => (key))] as OnboardingKey[]))
     }, [listItems])

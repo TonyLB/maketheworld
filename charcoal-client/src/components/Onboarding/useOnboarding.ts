@@ -5,11 +5,6 @@ import { OnboardingKey, onboardingChapters } from './checkpoints'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { getNextOnboarding } from '../../slices/player/selectors'
 
-//
-// TODO: Lift the selector logic here into selectors in the player slice
-//
-// TODO: Lift requireSequence and condition into the addOnboardingComplete thunk
-//
 export const useOnboardingChapterActive = () => {
     const playerState = useSelector(getStatus)
     const chapterActive = useSelector(getActiveOnboardingChapter)
@@ -54,7 +49,7 @@ export const useOnboardingCheckpoint = (key: OnboardingKey, options: UseOnboardi
         if (condition && (next === key || !requireSequence)) {
             checkOnboard()
         }
-    }, [checkOnboard, requireSequence, next])
+    }, [checkOnboard, requireSequence, next, condition, key])
 }
 
 export default useOnboarding

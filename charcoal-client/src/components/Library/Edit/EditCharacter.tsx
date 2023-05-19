@@ -52,7 +52,7 @@ import { deepEqual } from '../../../lib/objects'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets } from '../../../slices/player'
-import { useNextOnboarding, useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 
 type ReplaceLiteralTagProps = {
@@ -510,13 +510,10 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             dispatch(heartbeat)
         }
     }, [dispatch, character?.key, normalForm, updateNormal])
-    const next = useNextOnboarding()
     const saveHandler = useCallback(() => {
-        if (next === 'saveCharacter') {
-            dispatch(addOnboardingComplete(['saveCharacter']))
-        }
+        dispatch(addOnboardingComplete(['saveCharacter'], { requireSequence: true }))
         save()
-    }, [save, next])
+    }, [save])
 
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner

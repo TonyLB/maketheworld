@@ -1,7 +1,7 @@
 import { PlayerPublic } from './baseClasses'
 import { Selector } from '../../store'
 import { createSelector } from '@reduxjs/toolkit'
-import { onboardingChapters } from '../../components/Onboarding/checkpoints'
+import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
 
 export const getPlayer = (player: PlayerPublic): PlayerPublic => {
     const { PlayerName = '', CodeOfConductConsent = false, Assets = [], Characters = [], Settings = { onboardCompleteTags: [] }, currentDraft } = player || {}
@@ -67,7 +67,7 @@ export const getNextOnboarding = createSelector(
         if (!page) {
             return undefined
         }
-        return page.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check)))
+        return page.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) as OnboardingKey
     }
 )
 

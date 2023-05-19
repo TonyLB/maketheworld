@@ -44,7 +44,6 @@ import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
-import { useNextOnboarding, useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { getMyCharacters } from '../../../slices/player'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
@@ -149,13 +148,10 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
             })
         }
     }, [updateNormal, normalForm])
-    const next = useNextOnboarding()
     const innerSaveHandler = useCallback(() => {
-        if (next === 'saveAsset') {
-            dispatch(addOnboardingComplete(['saveAsset']))
-        }
+        dispatch(addOnboardingComplete(['saveAsset'], { requireSequence: true }))
         save()
-    }, [save, next])
+    }, [save])
     const saveHandler = useCallback(() => {
         innerSaveHandler()
         if (!Boolean(serialized)) {

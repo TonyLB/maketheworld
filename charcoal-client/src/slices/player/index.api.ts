@@ -5,7 +5,7 @@ import {
     LifeLinePubSub
 } from '../lifeLine'
 import { LifeLinePubSubData } from '../lifeLine/lifeLine'
-import { getMyAssets, getMySettings } from './selectors'
+import { getMyAssets, getMySettings, getNextOnboarding } from './selectors'
 import { getSerialized } from '../personalAssets'
 import { OnboardingKey } from '../../components/Onboarding/checkpoints'
 
@@ -75,10 +75,18 @@ export const removeOnboardingComplete = (tags: OnboardingKey[]) => async (dispat
     }, { service: 'asset' }))    
 }
 
-export const addOnboardingComplete = (tags: OnboardingKey[]) => async (dispatch, getState) => {
-    const { onboardCompleteTags } = getMySettings(getState()?.player?.publicData)
+type AddOnboardingCheckpointOptions = {
+    requireSequence?: boolean;
+    condition?: boolean;
+}
+
+export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboardingCheckpointOptions) => async (dispatch, getState) => {
+    const { requireSequence = false, condition = true } = options || {}
+    const publicData = getState()?.player?.publicData
+    const { onboardCompleteTags } = getMySettings(publicData)
+    const next = getNextOnboarding(publicData)
     const updateTags = tags.filter((tag) => (!onboardCompleteTags.includes(tag)))
-    if (updateTags.length) {
+    if (updateTags.length && condition && (!requireSequence || updateTags.includes(next))) {
         await dispatch(socketDispatchPromise({
             message: 'updatePlayerSettings',
             action: 'addOnboarding',
