@@ -16,6 +16,7 @@ import {
     getMySettings as getMySettingsSelector,
     getActiveOnboardingChapter as getActiveOnboardingChapterSelector,
     getOnboardingPage as getOnboardingPageSelector,
+    getNextOnboarding as getNextOnboardingSelector,
     PlayerSelectors
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
@@ -58,7 +59,8 @@ export const {
         getMyAssets: getMyAssetsSelector,
         getMySettings: getMySettingsSelector,
         getActiveOnboardingChapter: getActiveOnboardingChapterSelector,
-        getOnboardingPage: getOnboardingPageSelector
+        getOnboardingPage: getOnboardingPageSelector,
+        getNextOnboarding: getNextOnboardingSelector
     },
     template: {
         initialState: 'INITIAL',
@@ -124,6 +126,7 @@ export const {
     getMySettings,
     getActiveOnboardingChapter,
     getOnboardingPage,
+    getNextOnboarding,
     getStatus
 } = selectors
 

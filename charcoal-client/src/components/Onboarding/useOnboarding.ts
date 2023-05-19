@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getActiveOnboardingChapter, getMySettings, getOnboardingPage, getStatus } from '../../slices/player'
 import { OnboardingKey, onboardingChapters } from './checkpoints'
 import { addOnboardingComplete } from '../../slices/player/index.api'
+import { getNextOnboarding } from '../../slices/player/selectors'
 
 //
 // TODO: Lift the selector logic here into selectors in the player slice
@@ -23,10 +24,7 @@ export const useOnboardingPage = () => {
 }
 
 export const useNextOnboarding = () => {
-    const currentPage = useOnboardingPage()
-    const { onboardCompleteTags } = useSelector(getMySettings)
-    const nextOnboard = useMemo(() => (currentPage ? currentPage.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) : undefined), [currentPage, onboardCompleteTags])
-    return nextOnboard
+    return useSelector(getNextOnboarding)
 }
 
 export const useOnboarding = (key: OnboardingKey): [boolean, () => void] => {
