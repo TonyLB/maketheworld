@@ -1,13 +1,10 @@
-import React, { FunctionComponent, ReactElement, useCallback, useMemo } from "react"
+import React, { FunctionComponent, ReactElement, useCallback, useMemo, useState } from "react"
 
 // MaterialUI imports
 import { blue } from '@mui/material/colors'
 import {
     Box,
     Typography,
-    Stepper,
-    Step,
-    StepLabel,
     useMediaQuery,
     List,
     ListItem,
@@ -18,10 +15,9 @@ import {
     CardContent,
     Stack,
     CardActions,
-    Button,
-    Breadcrumbs,
-    Link
+    Button
 } from "@mui/material"
+import ArrowBack from '@mui/icons-material/ArrowBackIos'
 import CheckIcon from '@mui/icons-material/Check'
 import { useOnboardingPage } from "./useOnboarding"
 import { getMySettings } from "../../slices/player"
@@ -93,7 +89,11 @@ export const useOnboardingDispatcher = (): undefined | { text: string | ReactEle
     }, [page])
 }
 
-export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
+type OnboardingPanelProps = {
+    setShowHome: (value: boolean) => void;
+}
+
+export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ children, setShowHome }) => {
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const { output: previous } = onboardingCheckpointSequence.slice(0, -1).reduce<{ output?: OnboardingKey; finished: boolean }>((previous, key) => {
         if (key in listItems) {
@@ -129,18 +129,11 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
     const nextOnClick = useCallback(() => {
         dispatch(addOnboardingComplete([page.pageKey] as OnboardingKey[]))
     }, [listItems])
-    const navigate = useNavigate()
     return <Stack sx={{ height: "100%" }}>
-        <Breadcrumbs aria-label="navigation breadcrumbs">
-            <Link
-                sx={{ cursor: 'pointer' }}
-                underline="hover"
-                color="inherit"
-                onClick={() => { navigate(`/Onboarding/`) }}
-            >
-                OnboardingHome
-            </Link>
-        </Breadcrumbs>
+        <Stack direction="row">
+            <Button variant="contained" sx={{ marginLeft: "2em", marginTop: "0.5em" }} onClick={() => { setShowHome(true) }}><ArrowBack />Onboarding Home</Button>
+            <Box sx={{ flexGrow: 1 }} />
+        </Stack>
         { page && 
             <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
                 <CardContent sx={{ position: "relative", height: "100%", paddingBottom: "3em", marginBottom: "-3em" }}>
@@ -173,10 +166,15 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
     </Stack>
 }
 
-export default OnboardingPanel
-
 export const OnboardingHome: FunctionComponent<{}> = () => {
     return <Stack sx={{ height: "100%" }}>
 
     </Stack>
 }
+
+export const Onboarding: FunctionComponent<{}> = () => {
+    const [showHome, setShowHome] = useState<boolean>(false)
+    return showHome ? <OnboardingHome /> : <OnboardingPanel setShowHome={setShowHome} />
+}
+
+export default Onboarding

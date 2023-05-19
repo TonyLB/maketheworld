@@ -22,7 +22,7 @@ import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
 import Settings from '../Settings'
-import OnboardingPanel from '../Onboarding'
+import Onboarding from '../Onboarding'
 
 type AppControllerProps = {
     signOut: () => void;
@@ -60,7 +60,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
         whoPanel={<WhoDrawer />}
-        onboardingPanel={<OnboardingPanel />}
+        onboardingPanel={<Onboarding />}
     />
 }
 
