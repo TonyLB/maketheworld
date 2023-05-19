@@ -1,13 +1,10 @@
-import React, { FunctionComponent, ReactElement, useCallback, useMemo } from "react"
+import React, { FunctionComponent, ReactElement, useCallback, useMemo, useState } from "react"
 
 // MaterialUI imports
 import { blue } from '@mui/material/colors'
 import {
     Box,
     Typography,
-    Stepper,
-    Step,
-    StepLabel,
     useMediaQuery,
     List,
     ListItem,
@@ -20,12 +17,14 @@ import {
     CardActions,
     Button
 } from "@mui/material"
+import ArrowBack from '@mui/icons-material/ArrowBackIos'
 import CheckIcon from '@mui/icons-material/Check'
-import useOnboarding, { useNextOnboarding, useOnboardingPage } from "./useOnboarding"
+import { useOnboardingPage } from "./useOnboarding"
 import { getMySettings } from "../../slices/player"
 import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingCheckpointSequence } from "./checkpoints"
 import { addOnboardingComplete, removeOnboardingComplete } from "../../slices/player/index.api"
+import { useNavigate } from "react-router-dom"
 
 type DenseOnboardingProgressListItemProperties = {
     text: ReactElement | string;
@@ -90,8 +89,11 @@ export const useOnboardingDispatcher = (): undefined | { text: string | ReactEle
     }, [page])
 }
 
-export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
-    const next = useNextOnboarding()
+type OnboardingPanelProps = {
+    setShowHome: (value: boolean) => void;
+}
+
+export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ children, setShowHome }) => {
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const { output: previous } = onboardingCheckpointSequence.slice(0, -1).reduce<{ output?: OnboardingKey; finished: boolean }>((previous, key) => {
         if (key in listItems) {
@@ -120,7 +122,7 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
     }, [previous, listItems])
     const page = useOnboardingPage()
     const { onboardCompleteTags } = useSelector(getMySettings)
-    const pageTasksComplete = !Boolean(page.subItems.find(({ key }) => (!(onboardCompleteTags.includes(key)))))
+    const pageTasksComplete = !Boolean((page?.subItems || []).find(({ key }) => (!(onboardCompleteTags.includes(key)))))
     const skipOnClick = useCallback(() => {
         dispatch(addOnboardingComplete([page.pageKey, ...page.subItems.map(({ key }) => (key))] as OnboardingKey[]))
     }, [listItems])
@@ -128,7 +130,11 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
         dispatch(addOnboardingComplete([page.pageKey] as OnboardingKey[]))
     }, [listItems])
     return <Stack sx={{ height: "100%" }}>
-        { next && 
+        <Stack direction="row">
+            <Button variant="contained" sx={{ marginLeft: "2em", marginTop: "0.5em" }} onClick={() => { setShowHome(true) }}><ArrowBack />Onboarding Home</Button>
+            <Box sx={{ flexGrow: 1 }} />
+        </Stack>
+        { page && 
             <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
                 <CardContent sx={{ position: "relative", height: "100%", paddingBottom: "3em", marginBottom: "-3em" }}>
                     <Box sx={{ overflowY: "auto", maxHeight: "100%" }}>
@@ -146,9 +152,10 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
                     <Stack direction="row" sx={{ width: "100%" }}>
                         { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
                         <Box sx={{ flexGrow: 1 }} />
-                        { next !== 'closeOnboarding' && !pageTasksComplete && <Button variant="contained" onClick={skipOnClick}>Skip</Button> }
-                        { next !== 'closeOnboarding' && pageTasksComplete && <Button variant="contained" onClick={nextOnClick}>Next</Button> }
-                        { next === 'closeOnboarding' && <Button variant="contained" onClick={() => { dispatch(addOnboardingComplete(['closeOnboarding'])) }}>Close Onboarding</Button> }
+                        { pageTasksComplete
+                            ? <Button variant="contained" onClick={nextOnClick}>Next</Button>
+                            : <Button variant="contained" onClick={skipOnClick}>Skip</Button>
+                        }
                     </Stack>
                 </CardActions>
             </Card>
@@ -159,4 +166,15 @@ export const OnboardingPanel: FunctionComponent<{}> = ({ children }) => {
     </Stack>
 }
 
-export default OnboardingPanel
+export const OnboardingHome: FunctionComponent<{}> = () => {
+    return <Stack sx={{ height: "100%" }}>
+
+    </Stack>
+}
+
+export const Onboarding: FunctionComponent<{}> = () => {
+    const [showHome, setShowHome] = useState<boolean>(false)
+    return showHome ? <OnboardingHome /> : <OnboardingPanel setShowHome={setShowHome} />
+}
+
+export default Onboarding

@@ -1,22 +1,25 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { socketDispatch } from '../../slices/lifeLine'
-import { getMySettings, getStatus } from '../../slices/player'
-import { OnboardingKey, onboardingChapters, onboardingCheckpointSequence } from './checkpoints'
+import { getActiveOnboardingChapter, getMySettings, getOnboardingPage, getStatus } from '../../slices/player'
+import { OnboardingKey, onboardingChapters } from './checkpoints'
 import { addOnboardingComplete } from '../../slices/player/index.api'
+import { getNextOnboarding } from '../../slices/player/selectors'
 
-export const useNextOnboarding = () => {
+export const useOnboardingChapterActive = () => {
     const playerState = useSelector(getStatus)
-    const { onboardCompleteTags } = useSelector(getMySettings)
-    const nextOnboard = useMemo(() => (playerState === 'CONNECTED' ? onboardingCheckpointSequence.find((check) => (!onboardCompleteTags.includes(check))) : undefined), [onboardingCheckpointSequence, onboardCompleteTags, playerState])
-    return nextOnboard
+    const chapterActive = useSelector(getActiveOnboardingChapter)
+    return playerState === 'CONNECTED' ? chapterActive : { index: undefined, currentChapter: undefined }
 }
 
 export const useOnboardingPage = () => {
     const playerState = useSelector(getStatus)
-    const { onboardCompleteTags } = useSelector(getMySettings)
-    const currentPage = useMemo(() => (playerState === 'CONNECTED' ? onboardingChapters[0].pages.find((check) => (!onboardCompleteTags.includes(check.pageKey))) : undefined), [onboardingChapters, onboardCompleteTags, playerState])
+    const page = useSelector(getOnboardingPage)
+    const currentPage = useMemo(() => (playerState === 'CONNECTED' ? page : undefined), [page, playerState])
     return currentPage
+}
+
+export const useNextOnboarding = () => {
+    return useSelector(getNextOnboarding)
 }
 
 export const useOnboarding = (key: OnboardingKey): [boolean, () => void] => {
@@ -46,7 +49,7 @@ export const useOnboardingCheckpoint = (key: OnboardingKey, options: UseOnboardi
         if (condition && (next === key || !requireSequence)) {
             checkOnboard()
         }
-    }, [checkOnboard, requireSequence, next])
+    }, [checkOnboard, requireSequence, next, condition, key])
 }
 
 export default useOnboarding
