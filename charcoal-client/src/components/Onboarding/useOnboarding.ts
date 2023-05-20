@@ -1,9 +1,8 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { getActiveOnboardingChapter, getMySettings, getOnboardingPage, getStatus } from '../../slices/player'
-import { OnboardingKey, onboardingChapters } from './checkpoints'
+import { getActiveOnboardingChapter, getMySettings, getOnboardingPage, getStatus, getNextOnboarding } from '../../slices/player'
+import { OnboardingKey } from './checkpoints'
 import { addOnboardingComplete } from '../../slices/player/index.api'
-import { getNextOnboarding } from '../../slices/player/selectors'
 
 export const useOnboardingChapterActive = () => {
     const playerState = useSelector(getStatus)

@@ -1,4 +1,4 @@
-import { PlayerAction, PlayerData, PlayerNodes } from './baseClasses'
+import { PlayerData, PlayerNodes } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
     fetchNotifications,
@@ -14,14 +14,13 @@ import {
     getMyCharacterById as getMyCharacterByIdSelector,
     getMyCharacterByKey as getMyCharacterByKeySelector,
     getMySettings as getMySettingsSelector,
-    getActiveOnboardingChapter as getActiveOnboardingChapterSelector,
-    getOnboardingPage as getOnboardingPageSelector,
-    getNextOnboarding as getNextOnboardingSelector,
     PlayerSelectors
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
 import { setCurrentDraft as setCurrentDraftReducer, addAsset as addAssetReducer } from './reducers'
 import { PromiseCache } from '../promiseCache'
+import { createSelector } from '@reduxjs/toolkit'
+import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
 
 const playerPromiseCache = new PromiseCache<PlayerData>()
 
@@ -57,10 +56,7 @@ export const {
         getPlayer: getPlayerSelector,
         getMyCharacters: getMyCharactersSelector,
         getMyAssets: getMyAssetsSelector,
-        getMySettings: getMySettingsSelector,
-        getActiveOnboardingChapter: getActiveOnboardingChapterSelector,
-        getOnboardingPage: getOnboardingPageSelector,
-        getNextOnboarding: getNextOnboardingSelector
+        getMySettings: getMySettingsSelector
     },
     template: {
         initialState: 'INITIAL',
@@ -124,11 +120,40 @@ export const {
     getMyCharacters,
     getMyAssets,
     getMySettings,
-    getActiveOnboardingChapter,
-    getOnboardingPage,
-    getNextOnboarding,
     getStatus
 } = selectors
+
+export const getActiveOnboardingChapter = createSelector(
+    selectors.getMySettings,
+    ({ onboardCompleteTags }) => {
+        const firstChapterUnfinished = !(onboardCompleteTags.includes(`endMTWNavigation`))
+        const index = firstChapterUnfinished ? 0 : onboardingChapters.findIndex(({ chapterKey }) => (onboardCompleteTags.includes(`active${chapterKey}`)))
+        return { index: index === -1 ? undefined : index, currentChapter: index === -1 ? undefined : onboardingChapters[index] }
+    }
+)
+
+export const getOnboardingPage = createSelector(
+    selectors.getMySettings,
+    getActiveOnboardingChapter,
+    ({ onboardCompleteTags }, { currentChapter }) => {
+        if (!currentChapter) {
+            return undefined
+        }
+        const index = currentChapter.pages.findIndex((check) => (!onboardCompleteTags.includes(check.pageKey)))
+        return index > -1 ? { ...currentChapter.pages[index], index, first: index === 0, last: index === currentChapter.pages.length - 1 } : undefined
+    }
+)
+
+export const getNextOnboarding = createSelector(
+    selectors.getMySettings,
+    getOnboardingPage,
+    ({ onboardCompleteTags }, page) => {
+        if (!page) {
+            return undefined
+        }
+        return page.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) as OnboardingKey
+    }
+)
 
 export const getMyCharacterById = getMyCharacterByIdSelector(getMyCharacters)
 export const getMyCharacterByKey = getMyCharacterByKeySelector(getMyCharacters)

@@ -31,13 +31,34 @@ type OnboardingChapter = {
 }
 
 type OnboardingTextArgument = {
-    portrait: boolean
+    portrait: boolean;
+    large: boolean;
+    alwaysShowSetting: ReactElement;
 }
 
 const onboardingChaptersRaw = [
     {
         chapterKey: 'MTWNavigation',
         pages: [
+            {
+                pageKey: 'pageOnboarding',
+                text: ({ large, alwaysShowSetting }) => (
+                    <React.Fragment>
+                        Welcome to this community, hosted on Make The World! We're glad you're here!
+                        <br /><br />
+                        These onboarding tutorials will step you through how to use Make The World to explore what other members have created of the world,
+                        take part in stories, and make up your own new ideas to share.
+                        
+                        { large && <React.Fragment>
+                            <br /><br />
+                            You've got a lot of screen real-estate: Would you like to always show onboarding, so you can follow along easily, no matter what
+                            part of the application you're looking at?  You can always adjust that setting later in Settings.
+                            <br /><br />{ alwaysShowSetting }
+                        </React.Fragment> }
+                    </React.Fragment>
+                ),
+                subItems: []
+            },
             {
                 pageKey: 'pageNavigateTabs',
                 text: 'Welcome to this Make The World instance. Familiarize yourself with the way that you can navigate around the application itself',
@@ -71,8 +92,22 @@ const onboardingChaptersRaw = [
                 ]
             },
             {
+                pageKey: 'pageMTWNavigationCongratulations',
+                text: <React.Fragment>
+                    Congratulations! Navigation tabs will help keep things organized if you start doing a lot with the application, and Knowledge will tell you about the specific world of this instance.
+                    <br /><br />
+                    But that's not the only way to learn about the world. Onboarding has more chapters to lead you through more of Make The World's features.
+                </React.Fragment>,
+                subItems: []
+            }
+        ]
+    },
+    {
+        chapterKey: 'PlayCharacter',
+        pages: [
+            {
                 pageKey: 'pageInCharacter',
-                text: `Congratulations! Navigation tabs will help keep things organized if you start doing a lot with the application, and Knowledge will tell you about the specific world of this instance. But that's not the only way to learn about the world. You can also explore by taking on the role of a character in the world itself`,
+                text: `You can also explore by taking on the role of a character in the world itself`,
                 subItems: [
                     {
                         key: 'navigatePlay',
@@ -119,7 +154,12 @@ const onboardingChaptersRaw = [
                         text: `Somewhere in the details of this room you will find highlights on something you could DO (like "ring the bell"). Press one of those highlights to take action in the world.`
                     }
                 ]
-            },
+            }
+        ]
+    },
+    {
+        chapterKey: 'CreateAsset',
+        pages: [
             {
                 pageKey: 'pageLibrary',
                 text: `You're really getting how to play a role in the world. Plenty of people enjoy doing that alone (and if that's you, you can skip the rest of the onboarding). Others enjoy adding to the world as well. Explore the options for expanding the world`,
