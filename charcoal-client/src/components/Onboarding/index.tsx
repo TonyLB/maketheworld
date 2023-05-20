@@ -98,13 +98,15 @@ export const useOnboardingDispatcher = (): undefined | { text: string | ReactEle
     }, [page, portrait, large])
 }
 
-type OnboardingPanelProps = {}
+type OnboardingPanelProps = {
+    wrapper?: boolean
+}
 
-export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ children }) => {
+export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ children, wrapper = false }) => {
     useOnboardingCheckpoint('navigateBack', { requireSequence: true })
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const dispatch = useDispatch()
-    const { index, currentChapter } = useSelector(getActiveOnboardingChapter)
+    const { currentChapter } = useSelector(getActiveOnboardingChapter)
     const page = useSelector(getOnboardingPage)
     const backOnClick = useCallback(() => {
         if (page.index > 0) {
@@ -114,9 +116,6 @@ export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ child
     }, [page, currentChapter])
     const { onboardCompleteTags } = useSelector(getMySettings)
     const pageTasksComplete = !Boolean((page?.subItems || []).find(({ key }) => (!(onboardCompleteTags.includes(key)))))
-    const homeOnClick = useCallback(() => {
-        dispatch(removeOnboardingComplete([`active${currentChapter.chapterKey}`] as OnboardingKey[]))
-    }, [currentChapter])
     const skipOnClick = useCallback(() => {
         dispatch(addOnboardingComplete([...(page.last ? [] : [page.pageKey]), ...page.subItems.map(({ key }) => (key))] as OnboardingKey[]))
     }, [page])
@@ -127,15 +126,9 @@ export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ child
         dispatch(addOnboardingComplete([`end${currentChapter.chapterKey}`] as OnboardingKey[]))
         dispatch(removeOnboardingComplete([`active${currentChapter.chapterKey}`] as OnboardingKey[]))
     }, [page, currentChapter])
-    return <Stack sx={{ height: "100%" }}>
-        { index > 0 &&
-            <Stack direction="row">
-                <Button variant="contained" sx={{ marginLeft: "2em", marginTop: "0.5em" }} onClick={homeOnClick}><ArrowBack />Onboarding Home</Button>
-                <Box sx={{ flexGrow: 1 }} />
-            </Stack>
-        }
+    return <Stack>
         { page && 
-            <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
+            <Card sx={{ ...(wrapper ? { maxHeight: "30vh", overflowY: "auto" } : {}), width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
                 <CardContent sx={{ position: "relative", height: "100%", paddingBottom: "3em", marginBottom: "-3em" }}>
                     <Box sx={{ overflowY: "auto", maxHeight: "100%" }}>
                         <Typography variant='body1' align='left'>
@@ -205,8 +198,22 @@ export const OnboardingHome: FunctionComponent<{}> = () => {
 }
 
 export const Onboarding: FunctionComponent<{}> = () => {
-    const { currentChapter } = useSelector(getActiveOnboardingChapter)
-    return currentChapter ? <OnboardingPanel /> : <OnboardingHome />
+    const { index, currentChapter } = useSelector(getActiveOnboardingChapter)
+    const dispatch = useDispatch()
+    const homeOnClick = useCallback(() => {
+        dispatch(removeOnboardingComplete([`active${currentChapter.chapterKey}`] as OnboardingKey[]))
+    }, [currentChapter, dispatch])
+    return currentChapter
+        ? <Stack sx={{ height: "100%" }}>
+            { index > 0 &&
+                <Stack direction="row">
+                    <Button variant="contained" sx={{ marginLeft: "2em", marginTop: "0.5em" }} onClick={homeOnClick}><ArrowBack />Onboarding Home</Button>
+                    <Box sx={{ flexGrow: 1 }} />
+                </Stack>
+            }
+            <OnboardingPanel />
+        </Stack>
+        : <OnboardingHome />
 }
 
 export default Onboarding
