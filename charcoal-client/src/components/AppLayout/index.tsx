@@ -246,7 +246,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
         <Routes>
             <Route path="/Onboarding/" element={onboardingPanel} />
             <Route path="*" element={
-                <OnboardingPanel>
+                <OnboardingPanel wrapper>
                     <Routes>
                         <Route path="/Character/Archived" element={<InDevelopment />} />
                         <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
