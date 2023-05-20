@@ -147,11 +147,11 @@ export const getOnboardingPage = createSelector(
 export const getNextOnboarding = createSelector(
     selectors.getMySettings,
     getOnboardingPage,
-    ({ onboardCompleteTags }, page) => {
+    ({ onboardCompleteTags }, page): OnboardingKey | undefined => {
         if (!page) {
             return undefined
         }
-        return page.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) as OnboardingKey
+        return page.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) as OnboardingKey | undefined
     }
 )
 

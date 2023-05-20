@@ -24,7 +24,7 @@ import ArrowBack from '@mui/icons-material/ArrowBackIos'
 import CheckIcon from '@mui/icons-material/Check'
 import DotsIcon from '@mui/icons-material/MoreHoriz'
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark'
-import { useOnboardingPage } from "./useOnboarding"
+import { useOnboardingCheckpoint, useOnboardingPage } from "./useOnboarding"
 import { getMySettings, getOnboardingPage, getActiveOnboardingChapter } from "../../slices/player"
 import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingChapters, onboardingCheckpointSequence } from "./checkpoints"
@@ -101,6 +101,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string | ReactEle
 type OnboardingPanelProps = {}
 
 export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ children }) => {
+    useOnboardingCheckpoint('navigateBack', { requireSequence: true })
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const dispatch = useDispatch()
     const { index, currentChapter } = useSelector(getActiveOnboardingChapter)
