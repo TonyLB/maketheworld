@@ -56,6 +56,7 @@ import Notifications from '../Notifications'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
 import { getPlayer } from '../../slices/player'
 import Knowledge from '../Knowledge'
+import { OnboardingPanel } from '../Onboarding'
 
 const a11yProps = (index: number) => {
     return {
@@ -244,20 +245,26 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
     const routes = useMemo(() => (
         <Routes>
             <Route path="/Onboarding/" element={onboardingPanel} />
-            <Route path="/Character/Archived" element={<InDevelopment />} />
-            <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
-            <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
-            <Route path="/Library/" element={<Library />} />
-            <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
-            <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
-            <Route path="/Knowledge/" element={<Knowledge />} />
-            <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
-            <Route path="/Help/" element={<HelpPage />} />
-            <Route path="/Who/" element={whoPanel} />
-            <Route path="/Notifications/" element={<Notifications />} />
-            <Route path="/Settings/" element={settingsPanel} />
-            <Route path="/index.html" element={homePanel} />
-            <Route path="/" element={homePanel} />
+            <Route path="*" element={
+                <OnboardingPanel>
+                    <Routes>
+                        <Route path="/Character/Archived" element={<InDevelopment />} />
+                        <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
+                        <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
+                        <Route path="/Library/" element={<Library />} />
+                        <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
+                        <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
+                        <Route path="/Knowledge/" element={<Knowledge />} />
+                        <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
+                        <Route path="/Help/" element={<HelpPage />} />
+                        <Route path="/Who/" element={whoPanel} />
+                        <Route path="/Notifications/" element={<Notifications />} />
+                        <Route path="/Settings/" element={settingsPanel} />
+                        <Route path="/index.html" element={homePanel} />
+                        <Route path="/" element={homePanel} />
+                    </Routes>
+                </OnboardingPanel>
+            } />
         </Routes>
     ), [onboardingPanel, messagePanel, whoPanel, settingsPanel, homePanel])
     return <Router>
