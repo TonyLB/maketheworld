@@ -5,9 +5,9 @@ import {
     LifeLinePubSub
 } from '../lifeLine'
 import { LifeLinePubSubData } from '../lifeLine/lifeLine'
-import { getMyAssets, getMySettings, getNextOnboarding } from './selectors'
+import { getMyAssets, getMySettings } from './selectors'
 import { getSerialized } from '../personalAssets'
-import { OnboardingKey } from '../../components/Onboarding/checkpoints'
+import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
@@ -84,7 +84,16 @@ export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboar
     const { requireSequence = false, condition = true } = options || {}
     const publicData = getState()?.player?.publicData
     const { onboardCompleteTags } = getMySettings(publicData)
-    const next = getNextOnboarding(publicData)
+    //
+    // A local duplication of the functionality abstracted in getNextOnboarding ... should
+    // really figure out how to not repeat, but Redux and SSM makes that complicated
+    //
+    const firstChapterUnfinished = !(onboardCompleteTags.includes(`endMTWNavigate`))
+    const index = firstChapterUnfinished ? 0 : onboardingChapters.findIndex(({ chapterKey }) => (onboardCompleteTags.includes(`active${chapterKey}`)))
+    const currentChapter = index === -1 ? undefined : onboardingChapters[index]
+    const currentPage = currentChapter ? currentChapter.pages.find((check) => (!onboardCompleteTags.includes(check.pageKey))) : undefined
+    const next = currentPage ? currentPage.subItems.map(({ key }) => (key)).find((check) => (!onboardCompleteTags.includes(check))) as OnboardingKey : undefined
+
     const updateTags = tags.filter((tag) => (!onboardCompleteTags.includes(tag)))
     if (updateTags.length && condition && (!requireSequence || updateTags.includes(next))) {
         await dispatch(socketDispatchPromise({

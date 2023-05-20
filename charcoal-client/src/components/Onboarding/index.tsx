@@ -15,16 +15,20 @@ import {
     CardContent,
     Stack,
     CardActions,
-    Button
+    Button,
+    ListItemButton,
+    ListItemIcon,
+    Divider
 } from "@mui/material"
 import ArrowBack from '@mui/icons-material/ArrowBackIos'
 import CheckIcon from '@mui/icons-material/Check'
+import DotsIcon from '@mui/icons-material/MoreHoriz'
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark'
 import { useOnboardingPage } from "./useOnboarding"
-import { getMySettings } from "../../slices/player"
+import { getMySettings, getOnboardingPage, getActiveOnboardingChapter } from "../../slices/player"
 import { useDispatch, useSelector } from "react-redux"
-import { OnboardingKey, onboardingCheckpointSequence } from "./checkpoints"
+import { OnboardingKey, onboardingChapters, onboardingCheckpointSequence } from "./checkpoints"
 import { addOnboardingComplete, removeOnboardingComplete } from "../../slices/player/index.api"
-import { useNavigate } from "react-router-dom"
 
 type DenseOnboardingProgressListItemProperties = {
     text: ReactElement | string;
@@ -69,77 +73,72 @@ const DenseOnboardingProgressList: FunctionComponent<DenseOnboardingProgressList
     </List>
 }
 
+const AlwaysShowOnboarding: FunctionComponent<{}> = () => {
+    return <React.Fragment>Test</React.Fragment>
+}
+
 export const useOnboardingDispatcher = (): undefined | { text: string | ReactElement; listItems: Partial<Record<OnboardingKey, ReactElement | string>>} => {
     const portrait = useMediaQuery('(orientation: portrait)')
+    const large = useMediaQuery('(min-height:600px)')
     const page = useOnboardingPage()
     return useMemo(() => {
         if (!page) {
             return undefined
         }
         return {
-            text: typeof page.text === 'function' ? page.text({ portrait }) : page.text,
+            text: typeof page.text === 'function' ? page.text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> }) : page.text,
             listItems: page.subItems.reduce<Partial<Record<OnboardingKey, ReactElement | string>>>((previous, { key, text }) => {
-                const adjustedText: ReactElement | string = typeof text === 'function' ? text({ portrait }) : text
+                const adjustedText: ReactElement | string = typeof text === 'function' ? text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> }) : text
                 return {
                     ...previous,
                     [key as OnboardingKey]: adjustedText
                 }
             }, {})
         }
-    }, [page])
+    }, [page, portrait, large])
 }
 
-type OnboardingPanelProps = {
-    setShowHome: (value: boolean) => void;
-}
+type OnboardingPanelProps = {}
 
-export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ children, setShowHome }) => {
+export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ children }) => {
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
-    const { output: previous } = onboardingCheckpointSequence.slice(0, -1).reduce<{ output?: OnboardingKey; finished: boolean }>((previous, key) => {
-        if (key in listItems) {
-            return {
-                ...previous,
-                finished: true
-            }
-        }
-        else {
-            if (previous.finished) {
-                return previous
-            }
-            else {
-                return {
-                    ...previous,
-                    output: key,
-                }
-            }
-        }
-    }, { finished: false })
     const dispatch = useDispatch()
+    const { index, currentChapter } = useSelector(getActiveOnboardingChapter)
+    const page = useSelector(getOnboardingPage)
     const backOnClick = useCallback(() => {
-        if (previous) {
-            dispatch(removeOnboardingComplete([previous, ...Object.keys(listItems) as OnboardingKey[]]))
+        if (page.index > 0) {
+            const toRemove = [currentChapter.pages[page.index - 1].pageKey, ...page.subItems.map(({ key }) => (key))]
+            dispatch(removeOnboardingComplete(toRemove))
         }
-    }, [previous, listItems])
-    const page = useOnboardingPage()
+    }, [page, currentChapter])
     const { onboardCompleteTags } = useSelector(getMySettings)
     const pageTasksComplete = !Boolean((page?.subItems || []).find(({ key }) => (!(onboardCompleteTags.includes(key)))))
+    const homeOnClick = useCallback(() => {
+        dispatch(removeOnboardingComplete([`active${currentChapter.chapterKey}`] as OnboardingKey[]))
+    }, [currentChapter])
     const skipOnClick = useCallback(() => {
-        dispatch(addOnboardingComplete([page.pageKey, ...page.subItems.map(({ key }) => (key))] as OnboardingKey[]))
-    }, [listItems])
+        dispatch(addOnboardingComplete([...(page.last ? [] : [page.pageKey]), ...page.subItems.map(({ key }) => (key))] as OnboardingKey[]))
+    }, [page])
     const nextOnClick = useCallback(() => {
         dispatch(addOnboardingComplete([page.pageKey] as OnboardingKey[]))
-    }, [listItems])
+    }, [page])
+    const finishOnClick = useCallback(() => {
+        dispatch(addOnboardingComplete([`end${currentChapter.chapterKey}`] as OnboardingKey[]))
+        dispatch(removeOnboardingComplete([`active${currentChapter.chapterKey}`] as OnboardingKey[]))
+    }, [page, currentChapter])
     return <Stack sx={{ height: "100%" }}>
-        <Stack direction="row">
-            <Button variant="contained" sx={{ marginLeft: "2em", marginTop: "0.5em" }} onClick={() => { setShowHome(true) }}><ArrowBack />Onboarding Home</Button>
-            <Box sx={{ flexGrow: 1 }} />
-        </Stack>
+        { index > 0 &&
+            <Stack direction="row">
+                <Button variant="contained" sx={{ marginLeft: "2em", marginTop: "0.5em" }} onClick={homeOnClick}><ArrowBack />Onboarding Home</Button>
+                <Box sx={{ flexGrow: 1 }} />
+            </Stack>
+        }
         { page && 
             <Card sx={{ width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
                 <CardContent sx={{ position: "relative", height: "100%", paddingBottom: "3em", marginBottom: "-3em" }}>
                     <Box sx={{ overflowY: "auto", maxHeight: "100%" }}>
                         <Typography variant='body1' align='left'>
-                            {text}:
+                            {text}{ Object.keys(listItems).length ? ':' : ''}
                         </Typography>
                         <Box sx={{ width: "100%" }}>
                             <DenseOnboardingProgressList
@@ -150,10 +149,12 @@ export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ child
                 </CardContent>
                 <CardActions>
                     <Stack direction="row" sx={{ width: "100%" }}>
-                        { previous && <Button variant="contained" onClick={backOnClick}>Back</Button> }
+                        { (!page.first) && <Button variant="contained" onClick={backOnClick}>Back</Button> }
                         <Box sx={{ flexGrow: 1 }} />
                         { pageTasksComplete
-                            ? <Button variant="contained" onClick={nextOnClick}>Next</Button>
+                            ? page.last
+                                ? <Button variant="contained" onClick={finishOnClick}>Finish</Button>
+                                : <Button variant="contained" onClick={nextOnClick}>Next</Button>
                             : <Button variant="contained" onClick={skipOnClick}>Skip</Button>
                         }
                     </Stack>
@@ -167,14 +168,44 @@ export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ child
 }
 
 export const OnboardingHome: FunctionComponent<{}> = () => {
-    return <Stack sx={{ height: "100%" }}>
-
+    const { onboardCompleteTags = [] } = useSelector(getMySettings)
+    const dispatch = useDispatch()
+    const activate = useCallback((key: string) => {
+        dispatch(addOnboardingComplete([`start${key}`, `active${key}`]))
+        dispatch(removeOnboardingComplete([`end${key}`]))
+    }, [dispatch])
+    return <Stack sx={{ height: "100%", margin: "1em" }}>
+        <Divider />
+            <Typography variant="h4" sx={{ margin: "0.5em" }}>
+                Onboarding Chapters
+            </Typography>
+        <Divider />
+        <List>
+            {
+                onboardingChapters.map(({ chapterKey }) => (
+                    <ListItem key={chapterKey}>
+                        <ListItemButton onClick={() => { activate(chapterKey) }}>
+                            <ListItemIcon>
+                                {
+                                    onboardCompleteTags.includes(`end${chapterKey}`)
+                                        ? <CheckIcon />
+                                        : onboardCompleteTags.includes(`start${chapterKey}`)
+                                            ? <DotsIcon />
+                                            : <QuestionMarkIcon />
+                                }
+                            </ListItemIcon>
+                            <ListItemText primary={chapterKey} />
+                        </ListItemButton>
+                    </ListItem>
+                ))
+            }
+        </List>
     </Stack>
 }
 
 export const Onboarding: FunctionComponent<{}> = () => {
-    const [showHome, setShowHome] = useState<boolean>(false)
-    return showHome ? <OnboardingHome /> : <OnboardingPanel setShowHome={setShowHome} />
+    const { currentChapter } = useSelector(getActiveOnboardingChapter)
+    return currentChapter ? <OnboardingPanel /> : <OnboardingHome />
 }
 
 export default Onboarding
