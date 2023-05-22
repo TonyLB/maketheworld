@@ -9,6 +9,7 @@ interface ServerSettings {
 interface ClientSettings {
     TextEntryLines: number;
     ShowNeighborhoodHeaders: boolean;
+    AlwaysShowOnboarding: boolean;
 }
 
 interface SettingsData {
@@ -22,7 +23,8 @@ const initialState: SettingsData = {
     },
     client: {
         TextEntryLines: 1,
-        ShowNeighborhoodHeaders: false
+        ShowNeighborhoodHeaders: false,
+        AlwaysShowOnboarding: false
     }
 }
 
