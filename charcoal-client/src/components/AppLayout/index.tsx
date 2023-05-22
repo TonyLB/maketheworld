@@ -57,6 +57,7 @@ import NavigationContextProvider, { useNavigationContext } from './NavigationCon
 import { getPlayer } from '../../slices/player'
 import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
+import { getClientSettings } from '../../slices/settings'
 
 const a11yProps = (index: number) => {
     return {
@@ -241,32 +242,38 @@ const NavigationTabs = () => {
 
 export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
+    const { AlwaysShowOnboarding } = useSelector(getClientSettings)
 
     const routes = useMemo(() => (
         <Routes>
+            <Route path="/Character/Archived" element={<InDevelopment />} />
+            <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
+            <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
+            <Route path="/Library/" element={<Library />} />
+            <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
+            <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
+            <Route path="/Knowledge/" element={<Knowledge />} />
+            <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
+            <Route path="/Help/" element={<HelpPage />} />
+            <Route path="/Who/" element={whoPanel} />
+            <Route path="/Notifications/" element={<Notifications />} />
+            <Route path="/Settings/" element={settingsPanel} />
+            <Route path="/index.html" element={homePanel} />
+            <Route path="/" element={homePanel} />
+        </Routes>
+    ), [messagePanel, whoPanel, settingsPanel, homePanel])
+    const routeWrapper = useMemo(() => (
+        <Routes>
             <Route path="/Onboarding/" element={onboardingPanel} />
             <Route path="*" element={
-                <OnboardingPanel wrapper>
-                    <Routes>
-                        <Route path="/Character/Archived" element={<InDevelopment />} />
-                        <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
-                        <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
-                        <Route path="/Library/" element={<Library />} />
-                        <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
-                        <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
-                        <Route path="/Knowledge/" element={<Knowledge />} />
-                        <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
-                        <Route path="/Help/" element={<HelpPage />} />
-                        <Route path="/Who/" element={whoPanel} />
-                        <Route path="/Notifications/" element={<Notifications />} />
-                        <Route path="/Settings/" element={settingsPanel} />
-                        <Route path="/index.html" element={homePanel} />
-                        <Route path="/" element={homePanel} />
-                    </Routes>
-                </OnboardingPanel>
+                AlwaysShowOnboarding
+                    ? <OnboardingPanel wrapper>
+                        { routes }
+                    </OnboardingPanel>
+                    : routes
             } />
         </Routes>
-    ), [onboardingPanel, messagePanel, whoPanel, settingsPanel, homePanel])
+    ), [onboardingPanel, routes])
     return <Router>
         <Box css={css`
                 height: 100vh;
@@ -313,7 +320,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
                 `}
             >
                 <Box sx={{ width: "100%", height: "100%" }}>
-                    { routes }
+                    { routeWrapper }
                 </Box>
             </Box>
             {large

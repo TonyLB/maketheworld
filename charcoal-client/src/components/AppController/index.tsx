@@ -46,7 +46,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({ signOut }
         textEntryLines: TextEntryLines,
         onTextEntryChange: (value: number) => { dispatch(putClientSettings({ TextEntryLines: value })) },
         onShowNeighborhoodChange: (value: boolean) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) },
-        onAlwaysShowOnboardingChange: (value: boolean) => { dispatch(putClientSettings({ AlwaysShowOnboarding: value }))}
+        onAlwaysShowOnboardingChange: (value: boolean) => { dispatch(putClientSettings({ AlwaysShowOnboarding: value })) }
     }
 
     const feedbackMessage = useSelector(getFirstFeedback)
