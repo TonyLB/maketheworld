@@ -237,8 +237,7 @@ export const handler = async (event, context) => {
                     type: 'PlayerSettings',
                     player,
                     RequestId: request.RequestId,
-                    action: request.action,
-                    values: request.values
+                    actions: request.actions
                 })
             }
         }

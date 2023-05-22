@@ -32,13 +32,15 @@ export const playerSettingMessage = async ({ payloads, messageBus }: { payloads:
                     if (!Array.isArray(draft.Settings.onboardCompleteTags)) {
                         draft.Settings.onboardCompleteTags = []
                     }
-                    updates.forEach(({ action, values }) => {
-                        if (action === 'addOnboarding') {
-                            draft.Settings.onboardCompleteTags = unique(draft.Settings.onboardCompleteTags, values)
-                        }
-                        if (action === 'removeOnboarding') {
-                            draft.Settings.onboardCompleteTags = draft.Settings.onboardCompleteTags.filter((tag) => (!values.includes(tag)))
-                        }
+                    updates.forEach(({ actions }) => {
+                        actions.forEach(({ action, values }) => {
+                            if (action === 'addOnboarding') {
+                                draft.Settings.onboardCompleteTags = unique(draft.Settings.onboardCompleteTags, values)
+                            }
+                            if (action === 'removeOnboarding') {
+                                draft.Settings.onboardCompleteTags = draft.Settings.onboardCompleteTags.filter((tag) => (!values.includes(tag)))
+                            }
+                        })
                     })
                 }
             })

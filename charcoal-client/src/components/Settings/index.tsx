@@ -11,7 +11,6 @@ import Button from '@mui/material/Button'
 import { useDispatch, useSelector } from 'react-redux'
 import { getMySettings } from '../../slices/player'
 import { socketDispatch } from '../../slices/lifeLine'
-import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import { FormControlLabel, FormGroup, Switch } from '@mui/material'
 import { getClientSettings } from '../../slices/settings'
 
@@ -31,8 +30,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({
         if (onboardCompleteTags.length) {
             dispatch(socketDispatch({
                 message: 'updatePlayerSettings',
-                action: 'removeOnboarding',
-                values: onboardCompleteTags
+                actions: [{ action: 'removeOnboarding', values: onboardCompleteTags }]
             }, { service: 'asset' }))
         }
     }, [onboardCompleteTags, dispatch])
