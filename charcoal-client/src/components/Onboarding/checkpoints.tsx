@@ -27,6 +27,7 @@ type OnboardingPage = {
 
 type OnboardingChapter = {
     chapterKey: string;
+    lock?: string;
     pages: OnboardingPage[];
 }
 
@@ -159,6 +160,7 @@ const onboardingChaptersRaw = [
     },
     {
         chapterKey: 'CreateAsset',
+        lock: 'endPlayCharacter',
         pages: [
             {
                 pageKey: 'pageLibrary',

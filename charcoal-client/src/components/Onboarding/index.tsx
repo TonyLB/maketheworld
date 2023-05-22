@@ -27,6 +27,7 @@ import ArrowBack from '@mui/icons-material/ArrowBackIos'
 import CheckIcon from '@mui/icons-material/Check'
 import DotsIcon from '@mui/icons-material/MoreHoriz'
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark'
+import LockIcon from '@mui/icons-material/Lock'
 import { useOnboardingCheckpoint, useOnboardingPage } from "./useOnboarding"
 import { getMySettings, getOnboardingPage, getActiveOnboardingChapter } from "../../slices/player"
 import { useDispatch, useSelector } from "react-redux"
@@ -201,16 +202,23 @@ export const OnboardingHome: FunctionComponent<{}> = () => {
         <Divider />
         <List>
             {
-                onboardingChapters.map(({ chapterKey }) => (
+                onboardingChapters.map(({ chapterKey, lock }) => (
                     <ListItem key={chapterKey}>
-                        <ListItemButton onClick={() => { activate(chapterKey) }}>
+                        <ListItemButton onClick={() => {
+                            if (lock && !onboardCompleteTags.includes(lock)) {
+                                return
+                            }
+                            activate(chapterKey)
+                        }}>
                             <ListItemIcon>
                                 {
                                     onboardCompleteTags.includes(`end${chapterKey}`)
                                         ? <CheckIcon />
-                                        : onboardCompleteTags.includes(`start${chapterKey}`)
-                                            ? <DotsIcon />
-                                            : <QuestionMarkIcon />
+                                        : lock && !onboardCompleteTags.includes(lock)
+                                            ? <LockIcon />
+                                            : onboardCompleteTags.includes(`start${chapterKey}`)
+                                                ? <DotsIcon />
+                                                : <QuestionMarkIcon />
                                 }
                             </ListItemIcon>
                             <ListItemText primary={chapterKey} />
