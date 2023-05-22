@@ -67,12 +67,18 @@ export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }
     return {}
 }
 
-export const removeOnboardingComplete = (tags: OnboardingKey[]) => async (dispatch) => {
+export const updateOnboardingComplete = ({ addTags = [], removeTags = [] }: { addTags?: OnboardingKey[], removeTags?: OnboardingKey[] }) => async (dispatch) => {
     await dispatch(socketDispatchPromise({
         message: 'updatePlayerSettings',
-        action: 'removeOnboarding',
-    values: tags
-    }, { service: 'asset' }))    
+        actions: [
+            { action: 'addOnboarding', values: addTags },
+            { action: 'removeOnboarding', values: removeTags }
+        ]
+    }, { service: 'asset' }))
+}
+
+export const removeOnboardingComplete = (tags: OnboardingKey[]) => async (dispatch) => {
+    await dispatch(updateOnboardingComplete({ removeTags: tags }))
 }
 
 type AddOnboardingCheckpointOptions = {
@@ -96,10 +102,6 @@ export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboar
 
     const updateTags = tags.filter((tag) => (!onboardCompleteTags.includes(tag)))
     if (updateTags.length && condition && (!requireSequence || updateTags.includes(next))) {
-        await dispatch(socketDispatchPromise({
-            message: 'updatePlayerSettings',
-            action: 'addOnboarding',
-            values: updateTags
-        }, { service: 'asset' }))
+        await dispatch(updateOnboardingComplete({ addTags: updateTags }))
     }
 }

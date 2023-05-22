@@ -84,7 +84,8 @@ type AssetPlayerSettingsRemoveOnboarding = {
 
 export type AssetPlayerSettingsAPIMessage = {
     message: 'updatePlayerSettings';
-} & (AssetPlayerSettingsAddOnboarding | AssetPlayerSettingsRemoveOnboarding)
+    actions: (AssetPlayerSettingsAddOnboarding | AssetPlayerSettingsRemoveOnboarding)[];
+}
 
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |

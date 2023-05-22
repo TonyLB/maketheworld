@@ -31,7 +31,7 @@ import { useOnboardingCheckpoint, useOnboardingPage } from "./useOnboarding"
 import { getMySettings, getOnboardingPage, getActiveOnboardingChapter } from "../../slices/player"
 import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingChapters, onboardingCheckpointSequence } from "./checkpoints"
-import { addOnboardingComplete, removeOnboardingComplete } from "../../slices/player/index.api"
+import { addOnboardingComplete, removeOnboardingComplete, updateOnboardingComplete } from "../../slices/player/index.api"
 import { getClientSettings, putClientSettings } from "../../slices/settings"
 
 type DenseOnboardingProgressListItemProperties = {
@@ -144,8 +144,10 @@ export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ child
         dispatch(addOnboardingComplete([page.pageKey] as OnboardingKey[]))
     }, [page])
     const finishOnClick = useCallback(() => {
-        dispatch(addOnboardingComplete([`end${currentChapter.chapterKey}`] as OnboardingKey[]))
-        dispatch(removeOnboardingComplete([`active${currentChapter.chapterKey}`] as OnboardingKey[]))
+        dispatch(updateOnboardingComplete({
+            addTags: [`end${currentChapter.chapterKey}`] as OnboardingKey[],
+            removeTags: [`active${currentChapter.chapterKey}`] as OnboardingKey[]
+        }))
     }, [page, currentChapter])
     return <Stack>
         { page && 
@@ -186,8 +188,10 @@ export const OnboardingHome: FunctionComponent<{}> = () => {
     const { onboardCompleteTags = [] } = useSelector(getMySettings)
     const dispatch = useDispatch()
     const activate = useCallback((key: string) => {
-        dispatch(addOnboardingComplete([`start${key}`, `active${key}`]))
-        dispatch(removeOnboardingComplete([`end${key}`]))
+        dispatch(updateOnboardingComplete({
+            addTags: [`start${key}`, `active${key}`],
+            removeTags: [`end${key}`]
+        }))
     }, [dispatch])
     return <Stack sx={{ height: "100%", margin: "1em" }}>
         <Divider />
