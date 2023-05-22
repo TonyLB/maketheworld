@@ -13,12 +13,17 @@ export type ShowNeighborhoodHeadersType = {
     value: boolean;
 }
 
+export type AlwaysShowOnboardingType = {
+    key: 'AlwaysShowOnboarding';
+    value: boolean;
+}
+
 export type LastSyncType = {
     key: 'LastSync';
     value: Record<string, number>;
 }
 
-export type ClientSettingType = TextEntryLinesType | ShowNeighborhoodHeadersType | LastSyncType
+export type ClientSettingType = TextEntryLinesType | ShowNeighborhoodHeadersType | AlwaysShowOnboardingType | LastSyncType
 
 export type CharacterSyncType = {
     CharacterId: EphemeraCharacterId;

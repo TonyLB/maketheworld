@@ -12,15 +12,20 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getMySettings } from '../../slices/player'
 import { socketDispatch } from '../../slices/lifeLine'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
+import { FormControlLabel, FormGroup, Switch } from '@mui/material'
+import { getClientSettings } from '../../slices/settings'
 
 type SettingsProps = {
+    onAlwaysShowOnboardingChange: (value: boolean) => void;
     signOut?: () => void;
 }
 
 export const Settings: FunctionComponent<SettingsProps> = ({
-    signOut = () => {}
+    signOut = () => {},
+    onAlwaysShowOnboardingChange = () => {}
 }) => {
     const { onboardCompleteTags } = useSelector(getMySettings)
+    const { AlwaysShowOnboarding } = useSelector(getClientSettings)
     const dispatch = useDispatch()
     const restartOnboarding = useCallback(() => {
         if (onboardCompleteTags.length) {
@@ -31,7 +36,6 @@ export const Settings: FunctionComponent<SettingsProps> = ({
             }, { service: 'asset' }))
         }
     }, [onboardCompleteTags, dispatch])
-    // useOnboardingCheckpoint('navigateSettings')
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <Grid
@@ -54,6 +58,19 @@ export const Settings: FunctionComponent<SettingsProps> = ({
                     <CardContent>
                         The onboarding tutorials help you learn your way around the Make the World application. You
                         can restart them at any time if you need a refresher.
+                        <br />
+                        <br />
+                        <FormGroup>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={AlwaysShowOnboarding}
+                                        onChange={(event) => { onAlwaysShowOnboardingChange(event.target.checked) }}
+                                    />
+                                }
+                                label="Show Onboarding on all pages"
+                            />
+                        </FormGroup>
                     </CardContent>
                     <CardActions>
                         <Button onClick={restartOnboarding}>

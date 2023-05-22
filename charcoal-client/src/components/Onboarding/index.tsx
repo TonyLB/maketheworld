@@ -18,7 +18,10 @@ import {
     Button,
     ListItemButton,
     ListItemIcon,
-    Divider
+    Divider,
+    FormGroup,
+    FormControlLabel,
+    Switch
 } from "@mui/material"
 import ArrowBack from '@mui/icons-material/ArrowBackIos'
 import CheckIcon from '@mui/icons-material/Check'
@@ -29,6 +32,7 @@ import { getMySettings, getOnboardingPage, getActiveOnboardingChapter } from "..
 import { useDispatch, useSelector } from "react-redux"
 import { OnboardingKey, onboardingChapters, onboardingCheckpointSequence } from "./checkpoints"
 import { addOnboardingComplete, removeOnboardingComplete } from "../../slices/player/index.api"
+import { getClientSettings, putClientSettings } from "../../slices/settings"
 
 type DenseOnboardingProgressListItemProperties = {
     text: ReactElement | string;
@@ -39,7 +43,10 @@ type DenseOnboardingProgressListItemProperties = {
 const DenseOnboardingProgressListItem: FunctionComponent<DenseOnboardingProgressListItemProperties> = ({ text, index, completed }) => {
     return <ListItem>
         <ListItemAvatar sx={{ minWidth: "2em" }}><Avatar sx={{ width: "1em", height: "1em", bgcolor: blue[600], color: 'black' }}>{completed ? <CheckIcon fontSize="small" /> : <Typography variant="body2">{index + 1}</Typography>}</Avatar></ListItemAvatar>
-        <ListItemText>{text}</ListItemText>
+        { typeof text === 'string'
+            ? <ListItemText>{text}</ListItemText>
+            : text
+        }
     </ListItem>
 }
 
@@ -74,7 +81,22 @@ const DenseOnboardingProgressList: FunctionComponent<DenseOnboardingProgressList
 }
 
 const AlwaysShowOnboarding: FunctionComponent<{}> = () => {
-    return <React.Fragment>Test</React.Fragment>
+    const { AlwaysShowOnboarding } = useSelector(getClientSettings)
+    const dispatch = useDispatch()
+    const onAlwaysShowOnboardingChange = useCallback((value: boolean) => {
+        dispatch(putClientSettings({ AlwaysShowOnboarding: value }))
+    }, [dispatch])
+    return <FormGroup sx={{ marginLeft: '1em' }}>
+        <FormControlLabel
+            control={
+                <Switch
+                    checked={AlwaysShowOnboarding}
+                    onChange={(event) => { onAlwaysShowOnboardingChange(event.target.checked) }}
+                />
+            }
+            label="Show Onboarding on all pages"
+        />
+    </FormGroup>
 }
 
 export const useOnboardingDispatcher = (): undefined | { text: string | ReactElement; listItems: Partial<Record<OnboardingKey, ReactElement | string>>} => {
@@ -103,7 +125,6 @@ type OnboardingPanelProps = {
 }
 
 export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ children, wrapper = false }) => {
-    useOnboardingCheckpoint('navigateBack', { requireSequence: true })
     const { text, listItems } = useOnboardingDispatcher() ?? { text: '', listItems: {} }
     const dispatch = useDispatch()
     const { currentChapter } = useSelector(getActiveOnboardingChapter)
@@ -198,6 +219,7 @@ export const OnboardingHome: FunctionComponent<{}> = () => {
 }
 
 export const Onboarding: FunctionComponent<{}> = () => {
+    useOnboardingCheckpoint('navigateBack', { requireSequence: true })
     const { index, currentChapter } = useSelector(getActiveOnboardingChapter)
     const dispatch = useDispatch()
     const homeOnClick = useCallback(() => {
