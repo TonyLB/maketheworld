@@ -29,6 +29,7 @@ import { apiClient, ebClient } from "./clients"
 import { assetWorkspaceFromAssetId } from "./utilities/assets"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
+import { newGuestName } from "./player/guestNames"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -48,6 +49,13 @@ export const handler = async (event, context) => {
     internalCache.Connection.set({ key: 'connectionId', value: connectionId })
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
+
+    // Handle Cognito PostConfirm messages
+    if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp') {
+        const guestName = await newGuestName()
+        console.log(`New guest name: ${guestName}`)
+        return event
+    }
 
     // Handle EventBridge messages
     if (event?.source === 'mtw.diagnostics') {
