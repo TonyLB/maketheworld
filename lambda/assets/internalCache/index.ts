@@ -72,7 +72,7 @@ class CacheConnectionData {
         this.player = undefined
     }
 
-    set(props: { key: 'connectionId' | 'RequestId', value: string; }): void
+    set(props: { key: 'connectionId' | 'RequestId' | 'player', value: string; }): void
     set(props: { key: 's3Client', value: S3Client; }): void
     set({ key, value }: { key: CacheConnectionKeys, value: any }): void {
         this[key] = value

@@ -38,7 +38,26 @@ export const generatePersonalAssetLibrary = async (player) => {
     return {}
 }
 
-export const healPlayer = async (player) => {
+type HealPlayerOptions = {
+    updateCognito: boolean;
+}
+
+export const healPlayer = async (player: string, options?: HealPlayerOptions) => {
+    //
+    // TODO: Create Meta::Player record if necessary
+    //
+
+    //
+    // TODO: Generate guestName if necessary
+    //
+    
+    //
+    // TODO: Add options to healPlayer, and use to determine whether to
+    // update Cognito with new guestName (if generated):  That step
+    // should happen in the case of a direct heal, but should not happen
+    // when being called from the PostConfirmation_ConfirmSignUp lifecycle
+    // hook
+    //
     const { Characters, Assets } = await generatePersonalAssetLibrary(player)
     console.log(`Publishing to eventBus: ${process.env.EVENT_BUS_NAME}`)
     console.log(JSON.stringify({ Characters, Assets }, null, 4))
