@@ -116,7 +116,8 @@ export const handler = async (event: any, context: any) => {
                     type: 'PlayerUpdate',
                     player: event.detail.PlayerName || '',
                     Characters: event.detail.Characters || [],
-                    Assets: event.detail.Assets || []
+                    Assets: event.detail.Assets || [],
+                    guestName: event.detail.guestName
                 })
                 break
             case 'Force Disconnect':

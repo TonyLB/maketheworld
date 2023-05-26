@@ -284,6 +284,7 @@ export type PlayerUpdateMessage = {
     player: string;
     Characters: EventBridgeUpdatePlayerCharacter[];
     Assets: EventBridgeUpdatePlayerAsset[];
+    guestName?: string;
 }
 
 export type RoomUpdateMessage = {

@@ -77,7 +77,7 @@ export const handler = async (event, context) => {
         }
         if (event["detail-type"] === 'Heal Player') {
             if (event.detail?.player) {
-                const returnVal = await healPlayer(event.detail.player)
+                const returnVal = await healPlayer(event.detail.player, { updateCognito: true })
                 return JSON.stringify(returnVal, null, 4)
             }
             return JSON.stringify(`No player specified for Heal Player event`)

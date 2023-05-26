@@ -79,7 +79,8 @@ export const healPlayer = async (player: string, options?: HealPlayerOptions) =>
             Detail: JSON.stringify({
                 PlayerName: player,
                 Characters,
-                Assets
+                Assets,
+                guestName: confirmedGuestName
             })
         }]
     }))
