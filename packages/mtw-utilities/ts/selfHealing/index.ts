@@ -9,6 +9,14 @@ const { COGNITO_POOL_ID } = process.env
 const params = { region: process.env.AWS_REGION }
 const cognitoClient = new CognitoIdentityProviderClient(params)
 
+//
+// TODO: Lift healPlayers from mtw-utilities to asset lambda where it belongs
+//
+
+//
+// TODO: Refactor healPlayers to call healPlayer message (from player messages)
+// and reduce code repetition
+//
 export const healPlayers = async () => {
     //
     // TODO: Filter on only confirmed players, to prevent healing in lots of unconfirmed names
@@ -66,6 +74,10 @@ export const healPlayers = async () => {
     return {}
 }
 
+//
+// TODO: Lift healGlobalValues into an EventBridge routine, and subscribe the Ephemera
+// and Assets lambdas to that event in order to handle repsective updates
+//
 export const healGlobalValues = async ({ shouldHealConnections = true, shouldHealGlobalAssets = true }) => {
     return await asyncSuppressExceptions(async () => {
         const healConnections = async () => {

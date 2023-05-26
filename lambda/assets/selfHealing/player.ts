@@ -3,6 +3,8 @@ import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { ebClient } from '../clients'
+import internalCache from "../internalCache"
+import { newGuestName } from "../player/guestNames"
 
 export const convertAssetQuery = (queryItems) => {
     const Characters = queryItems
@@ -43,21 +45,29 @@ type HealPlayerOptions = {
 }
 
 export const healPlayer = async (player: string, options?: HealPlayerOptions) => {
-    //
-    // TODO: Create Meta::Player record if necessary
-    //
-
-    //
-    // TODO: Generate guestName if necessary
-    //
+    const { found, guestName } = await internalCache.PlayerSettings.get(player)
+    const confirmedGuestName = guestName || await newGuestName()
+    if (!guestName) {
+        await assetDB.optimisticUpdate({
+            key: {
+                AssetId: `PLAYER#${player}`,
+                DataCategory: 'Meta::Player'
+            },
+            updateKeys: ['guestName'],
+            updateReducer: (draft) => {
+                draft.guestName = confirmedGuestName
+            }
+        })
+        //
+        // TODO: Add options to healPlayer, and use to determine whether to
+        // update Cognito with new guestName (if generated):  That step
+        // should happen in the case of a direct heal, but should not happen
+        // when being called from the PostConfirmation_ConfirmSignUp lifecycle
+        // hook
+        //
+        internalCache.PlayerSettings.set(player, { guestName: confirmedGuestName })
+    }
     
-    //
-    // TODO: Add options to healPlayer, and use to determine whether to
-    // update Cognito with new guestName (if generated):  That step
-    // should happen in the case of a direct heal, but should not happen
-    // when being called from the PostConfirmation_ConfirmSignUp lifecycle
-    // hook
-    //
     const { Characters, Assets } = await generatePersonalAssetLibrary(player)
     console.log(`Publishing to eventBus: ${process.env.EVENT_BUS_NAME}`)
     console.log(JSON.stringify({ Characters, Assets }, null, 4))

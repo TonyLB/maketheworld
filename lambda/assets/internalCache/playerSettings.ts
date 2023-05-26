@@ -12,15 +12,18 @@ export class CachePlayerSettingData {
     clear() {
         this.PlayerSettings = {}
     }
-    async set(player: string, override: { onboardCompleteTags?: string[] }) {
+    async set(player: string, override: { onboardCompleteTags?: string[], guestName?: string }) {
         if (!(player in this.PlayerSettings)) {
             await this.get(player)
         }
         if (typeof override.onboardCompleteTags !== 'undefined') {
             this.PlayerSettings[player].onboardCompleteTags = override.onboardCompleteTags
         }
+        if (typeof override.guestName !== 'undefined') {
+            this.PlayerSettings[player].guestName = override.guestName
+        }
     }
-    async get(player: string): Promise<AssetClientPlayerSettings> {
+    async get(player: string): Promise<CachePlayerSettingDataEntry> {
         if (!(player in this.PlayerSettings)) {
             const fetch = await assetDB.getItem<{
                 Settings?: AssetClientPlayerSettings;
