@@ -40,14 +40,14 @@ export const generatePersonalAssetLibrary = async (player) => {
     return {}
 }
 
-type HealPlayerOptions = {
-    updateCognito: boolean;
-}
-
-export const healPlayer = async (player: string, options?: HealPlayerOptions) => {
-    const { found, guestName } = await internalCache.PlayerSettings.get(player)
+export const healPlayer = async (player: string) => {
+    const { guestName } = await internalCache.PlayerSettings.get(player)
     const confirmedGuestName = guestName || await newGuestName()
     if (!guestName) {
+        //
+        // TODO: Figure out why optimisticUpdate is failing with a
+        // ConditionCheck exception
+        //
         await assetDB.optimisticUpdate({
             key: {
                 AssetId: `PLAYER#${player}`,
@@ -58,13 +58,6 @@ export const healPlayer = async (player: string, options?: HealPlayerOptions) =>
                 draft.guestName = confirmedGuestName
             }
         })
-        //
-        // TODO: Add options to healPlayer, and use to determine whether to
-        // update Cognito with new guestName (if generated):  That step
-        // should happen in the case of a direct heal, but should not happen
-        // when being called from the PostConfirmation_ConfirmSignUp lifecycle
-        // hook
-        //
         internalCache.PlayerSettings.set(player, { guestName: confirmedGuestName })
     }
     

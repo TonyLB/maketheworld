@@ -51,7 +51,7 @@ export const handler = async (event, context) => {
     messageBus.clear()
 
     // Handle Cognito PostConfirm messages
-    if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp') {
+    if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
         //
         // TODO: Check whether player record already exists, and if so then update
         // custom:guestName and return
@@ -61,8 +61,8 @@ export const handler = async (event, context) => {
         // TODO: If player does not yet exist, call healPlayer to create the
         // player and send an UpdatePlayer message to Ephemera lambda
         //
-        const guestName = await newGuestName()
-        console.log(`New guest name: ${guestName}`)
+        internalCache.Connection.set({ key: 'player', value: event?.userName})
+        await healPlayer(event?.userName)
         return event
     }
 
@@ -77,7 +77,7 @@ export const handler = async (event, context) => {
         }
         if (event["detail-type"] === 'Heal Player') {
             if (event.detail?.player) {
-                const returnVal = await healPlayer(event.detail.player, { updateCognito: true })
+                const returnVal = await healPlayer(event.detail.player)
                 return JSON.stringify(returnVal, null, 4)
             }
             return JSON.stringify(`No player specified for Heal Player event`)
