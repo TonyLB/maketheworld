@@ -1,4 +1,5 @@
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import { v4 as uuidv4 } from 'uuid'
 
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
@@ -41,29 +42,25 @@ export const generatePersonalAssetLibrary = async (player) => {
 }
 
 export const healPlayer = async (player: string) => {
-    const { guestName } = await internalCache.PlayerSettings.get(player)
+    const { guestName, guestId } = await internalCache.PlayerSettings.get(player)
     const confirmedGuestName = guestName || await newGuestName()
-    if (!guestName) {
-        //
-        // TODO: Figure out why optimisticUpdate is failing with a
-        // ConditionCheck exception
-        //
+    const confirmedGuestId = guestId || uuidv4()
+    if (!guestName || !guestId) {
         await assetDB.optimisticUpdate({
             key: {
                 AssetId: `PLAYER#${player}`,
                 DataCategory: 'Meta::Player'
             },
-            updateKeys: ['guestName'],
+            updateKeys: ['guestName', 'guestId'],
             updateReducer: (draft) => {
                 draft.guestName = confirmedGuestName
+                draft.guestId = confirmedGuestId
             }
         })
-        internalCache.PlayerSettings.set(player, { guestName: confirmedGuestName })
+        internalCache.PlayerSettings.set(player, { guestName: confirmedGuestName, guestId: confirmedGuestId })
     }
     
     const { Characters, Assets } = await generatePersonalAssetLibrary(player)
-    console.log(`Publishing to eventBus: ${process.env.EVENT_BUS_NAME}`)
-    console.log(JSON.stringify({ Characters, Assets }, null, 4))
     await ebClient.send(new PutEventsCommand({
         Entries: [{
             EventBusName: process.env.EVENT_BUS_NAME,
@@ -73,7 +70,8 @@ export const healPlayer = async (player: string) => {
                 PlayerName: player,
                 Characters,
                 Assets,
-                guestName: confirmedGuestName
+                guestName: confirmedGuestName,
+                guestId: confirmedGuestId
             })
         }]
     }))
