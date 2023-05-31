@@ -2,29 +2,45 @@ import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 import { AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/dist/asset'
 
+type CachePlayerSettingDataEntry = AssetClientPlayerSettings & {
+    found: boolean;
+    guestName?: string;
+}
+
 export class CachePlayerSettingData {
-    PlayerSettings: Record<string, AssetClientPlayerSettings> = {}
+    PlayerSettings: Record<string, CachePlayerSettingDataEntry> = {}
     clear() {
         this.PlayerSettings = {}
     }
-    async set(player: string, override: { onboardCompleteTags?: string[] }) {
+    async set(player: string, override: { onboardCompleteTags?: string[], guestName?: string }) {
         if (!(player in this.PlayerSettings)) {
             await this.get(player)
         }
         if (typeof override.onboardCompleteTags !== 'undefined') {
             this.PlayerSettings[player].onboardCompleteTags = override.onboardCompleteTags
         }
+        if (typeof override.guestName !== 'undefined') {
+            this.PlayerSettings[player].guestName = override.guestName
+        }
     }
-    async get(player: string): Promise<AssetClientPlayerSettings> {
+    async get(player: string): Promise<CachePlayerSettingDataEntry> {
         if (!(player in this.PlayerSettings)) {
-            const { Settings = { onboardCompleteTags: [] } } = (await assetDB.getItem<{ Settings?: AssetClientPlayerSettings }>({
+            const fetch = await assetDB.getItem<{
+                Settings?: AssetClientPlayerSettings;
+                guestName?: string;
+            }>({
                 AssetId: `PLAYER#${player}`,
                 DataCategory: 'Meta::Player',
-                ProjectionFields: ['Settings']
-            })) || {}
-            this.PlayerSettings[player] = Settings
+                ProjectionFields: ['Settings', 'guestName']
+            })
+            const { Settings = { onboardCompleteTags: [] }, guestName } = fetch || {}
+            this.PlayerSettings[player] = {
+                ...Settings,
+                guestName,
+                found: !(typeof fetch === 'undefined')
+            }
         }
-        return this.PlayerSettings[player] || { onboardCompleteTags: [] }
+        return this.PlayerSettings[player] || { onboardCompleteTags: [], found: false }
     }
 }
 

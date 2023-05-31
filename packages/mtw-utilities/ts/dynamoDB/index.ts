@@ -19,8 +19,6 @@ import { asyncSuppressExceptions } from '../errors'
 import { DEVELOPER_MODE } from '../constants'
 import { assetsQueryFactory, ephemeraQueryFactory, connectionsQueryFactory } from './query'
 import delayPromise from "./delayPromise"
-import { stringify } from "uuid"
-import { unique } from "../lists"
 import { splitType } from "../types"
 import { WritableDraft } from "immer/dist/internal"
 import { objectMap } from "../objects"
@@ -312,12 +310,12 @@ type DynamicUpdateOutput = {
     conditionExpressions: string[];
 }
 
-const updateByReducer = <T extends Record<string, any>>({ updateKeys, ExpressionAttributeNames, reducer }: { updateKeys: string[]; ExpressionAttributeNames: Record<string, string>; reducer: (draft: WritableDraft<T>) => void }) => (state: T): DynamicUpdateOutput | {} => {
-    const newState = produce(state, reducer)
+const updateByReducer = <T extends Record<string, any>>({ updateKeys, ExpressionAttributeNames, reducer }: { updateKeys: string[]; ExpressionAttributeNames: Record<string, string>; reducer: (draft: WritableDraft<T>) => void }) => (state: T | undefined): DynamicUpdateOutput | {} => {
+    const newState = produce(state || {}, reducer)
     if (newState === state) {
         return {}
     }
-    if (typeof state === 'object' && typeof newState === 'object' && Object.keys(state || {}).length) {
+    if (typeof state === 'object' && typeof newState === 'object') {
         //
         // Updating an existing record
         //
@@ -460,7 +458,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
     let completed = false
     while(!completed && retries <= maxRetries) {
         completed = true
-        const state = (await abstractGetItem(table)({
+        const stateFetch = await abstractGetItem(table)({
             AssetId,
             EphemeraId,
             MessageId,
@@ -468,12 +466,13 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             DataCategory,
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        } as any)) || {}
+        } as any)
+        const state = stateFetch || {}
         const updateOutput = updateByReducer({
             updateKeys,
             ExpressionAttributeNames,
             reducer: updateReducer
-        })(state)
+        })(stateFetch)
         if (!isDynamicUpdateOutput(updateOutput)) {
             returnValue = state || returnValue
             break
@@ -619,7 +618,7 @@ export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransf
     while(!completed && retries <= maxRetries) {
         completed = true
         try {
-            const { Item: fetchCache = {} } = await dbClient.send(new GetItemCommand({
+            const { Item: fetchCache } = await dbClient.send(new GetItemCommand({
                 TableName: ephemeraTable,
                 Key: marshall({
                     EphemeraId: item.EphemeraId,
@@ -628,7 +627,7 @@ export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransf
                 ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
                 ProjectionExpression: [...updateKeys, ...extraFetchKeys].join(', ')
             }))
-            const currentMeta = unmarshall(fetchCache || {}) as M
+            const currentMeta = typeof fetchCache === 'undefined' ? undefined : unmarshall(fetchCache || {}) as M
             //
             // Initialize a new record using the asynchronous callback, otherwise just update
             // the cache in place

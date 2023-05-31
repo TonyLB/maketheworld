@@ -78,11 +78,30 @@ describe('optimisticUpdate', () => {
             },
             updateKeys: ['testOne', 'testTwo'],
             updateReducer: (draft) => {
-                draft.testOne = 'Test',
+                draft.testOne = 'Test'
                 draft.testTwo = 'Another test'
             }
         })
         expect(returnValue).toEqual({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Test', testTwo: 'Another test' })
+        expect(mockUpdateItemCommand).toHaveBeenCalledTimes(1)
+        expect(mockUpdateItemCommand.mock.calls[0][0]).toMatchSnapshot()
+    })
+
+    it('should update when field not defined', async () => {
+        mockDBClientSend
+            .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test' })})
+            .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', optionalField: 'Test' })})
+        const returnValue = await abstractOptimisticUpdate('ephemeraTest')({
+            key: {
+                EphemeraId: 'TEST',
+                DataCategory: 'Meta::Test'
+            },
+            updateKeys: ['optionalField'],
+            updateReducer: (draft) => {
+                draft.optionalField = 'Test'
+            }
+        })
+        expect(returnValue).toEqual({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', optionalField: 'Test' })
         expect(mockUpdateItemCommand).toHaveBeenCalledTimes(1)
         expect(mockUpdateItemCommand.mock.calls[0][0]).toMatchSnapshot()
     })
@@ -129,7 +148,7 @@ describe('addPerAsset', () => {
 
     it('should create a new Meta record', async () => {
         mockDBClientSend
-            .mockResolvedValueOnce({ Item: marshall({}) })
+            .mockResolvedValueOnce({})
 
         await addPerAsset({
             updateKeys: ['cached'],
