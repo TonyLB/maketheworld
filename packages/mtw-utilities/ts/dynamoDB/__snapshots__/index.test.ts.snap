@@ -171,6 +171,28 @@ Object {
 }
 `;
 
+exports[`optimisticUpdate should update when field not defined 1`] = `
+Object {
+  "ConditionExpression": "attribute_not_exists(optionalField)",
+  "ExpressionAttributeValues": Object {
+    ":New0": Object {
+      "S": "Test",
+    },
+  },
+  "Key": Object {
+    "DataCategory": Object {
+      "S": "Meta::Test",
+    },
+    "EphemeraId": Object {
+      "S": "TEST",
+    },
+  },
+  "ReturnValues": undefined,
+  "TableName": "ephemeraTest",
+  "UpdateExpression": "SET optionalField = :New0",
+}
+`;
+
 exports[`optimisticUpdate should update when no item fetched 1`] = `
 Object {
   "ConditionExpression": "attribute_not_exists(DataCategory)",
