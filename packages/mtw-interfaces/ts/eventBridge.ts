@@ -42,6 +42,7 @@ export type EventBridgeUpdatePlayer = {
         Characters: EventBridgeUpdatePlayerCharacter[];
         Assets: EventBridgeUpdatePlayerAsset[];
         guestName?: string;
+        guestId?: string;
     }
 }
 

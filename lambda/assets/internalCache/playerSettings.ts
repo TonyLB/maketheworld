@@ -5,6 +5,7 @@ import { AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/dist/asset'
 type CachePlayerSettingDataEntry = AssetClientPlayerSettings & {
     found: boolean;
     guestName?: string;
+    guestId?: string;
 }
 
 export class CachePlayerSettingData {
@@ -12,7 +13,7 @@ export class CachePlayerSettingData {
     clear() {
         this.PlayerSettings = {}
     }
-    async set(player: string, override: { onboardCompleteTags?: string[], guestName?: string }) {
+    async set(player: string, override: { onboardCompleteTags?: string[], guestName?: string; guestId?: string; }) {
         if (!(player in this.PlayerSettings)) {
             await this.get(player)
         }
@@ -22,21 +23,26 @@ export class CachePlayerSettingData {
         if (typeof override.guestName !== 'undefined') {
             this.PlayerSettings[player].guestName = override.guestName
         }
+        if (typeof override.guestId !== 'undefined') {
+            this.PlayerSettings[player].guestId = override.guestId
+        }
     }
     async get(player: string): Promise<CachePlayerSettingDataEntry> {
         if (!(player in this.PlayerSettings)) {
             const fetch = await assetDB.getItem<{
                 Settings?: AssetClientPlayerSettings;
                 guestName?: string;
+                guestId?: string;
             }>({
                 AssetId: `PLAYER#${player}`,
                 DataCategory: 'Meta::Player',
-                ProjectionFields: ['Settings', 'guestName']
+                ProjectionFields: ['Settings', 'guestName', 'guestId']
             })
-            const { Settings = { onboardCompleteTags: [] }, guestName } = fetch || {}
+            const { Settings = { onboardCompleteTags: [] }, guestName, guestId } = fetch || {}
             this.PlayerSettings[player] = {
                 ...Settings,
                 guestName,
+                guestId,
                 found: !(typeof fetch === 'undefined')
             }
         }
