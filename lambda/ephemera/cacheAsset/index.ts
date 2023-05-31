@@ -43,6 +43,7 @@ import { CharacterMetaItem } from '../internalCache/characterMeta'
 import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
 import { ebClient } from '../clients.js'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
 
 //
 // TODO:
@@ -370,7 +371,7 @@ const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter
     return updated
 }
 
-export const pushCharacterEphemera = async (character: EphemeraCharacter) => {
+export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, 'address' | 'Connected' | 'ConnectionIds'> & { address?: AssetWorkspaceAddress; Connected?: boolean; ConnectionIds?: string[] }) => {
     const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'assets']
     await ephemeraDB.optimisticUpdate({
         key: {
