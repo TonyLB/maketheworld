@@ -141,6 +141,8 @@ export type AssetClientPlayerCharacter = {
 
 export type AssetClientPlayerSettings = {
     onboardCompleteTags: string[];
+    guestName?: string;
+    guestId?: string;
 }
 
 export type AssetClientPlayerMessage = {
@@ -233,6 +235,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                 {
                     RequestId: 'string'
                 }),
+                checkTypes(message.Settings, {}, { guestId: 'string', guestName: 'string' }),
                 ...message.Assets.map((assetItem) => (
                     checkTypes(
                         assetItem,
