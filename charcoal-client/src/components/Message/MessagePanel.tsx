@@ -17,12 +17,12 @@ import { getPlayer } from '../../slices/player'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
-    const { CharacterId, info: { Name = '???' } = {} } = useActiveCharacter()
+    const { CharacterId, info: { Name = '???' } = {}, scopedId } = useActiveCharacter()
     useAutoPin({
-        href: `/Character/${CharacterId.split('#')[1]}/Play`,
+        href: `/Character/${scopedId}/Play`,
         label: `Play: ${Name}`,
         type: 'MessagePanel',
-        characterId: CharacterId
+        characterId: scopedId
     })
     const { currentDraft } = useSelector(getPlayer)
     useOnboardingCheckpoint('navigatePlay')

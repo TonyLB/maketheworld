@@ -54,7 +54,7 @@ import { closeTab, navigationTabs, navigationTabSelected } from '../../slices/UI
 import EditCharacter from '../Library/Edit/EditCharacter'
 import Notifications from '../Notifications'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
-import { getPlayer } from '../../slices/player'
+import { getMyCharacters, getPlayer } from '../../slices/player'
 import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings } from '../../slices/settings'
@@ -199,7 +199,17 @@ const FeedbackSnackbar: FunctionComponent<FeedbackSnackbarProps> = ({ feedbackMe
 
 const CharacterRouterSwitch = ({ messagePanel }: any) => {
     const { CharacterId } = useParams()
-    return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={`CHARACTER#${CharacterId}`}>
+    const myCharacters = useSelector(getMyCharacters)
+    const { CharacterId: EphemeraId } = myCharacters.find(({ scopedId }) => (scopedId === CharacterId))
+    //
+    // Refactor to look up CharacterId as a scoped ID in the player slice
+    // and then use the ephemeraID derived from that to populate the ActiveCharacter
+    // context provider
+    //
+    if (!EphemeraId) {
+        return null
+    }
+    return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={EphemeraId}>
         <Routes>
             <Route path={`Play`} element={messagePanel} />
             <Route path={`Map/`} element={<MapView />} />

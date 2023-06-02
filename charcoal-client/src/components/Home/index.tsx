@@ -95,10 +95,10 @@ export const Home: FunctionComponent<HomeProps> = ({
                     </Stack>
                 </Grid>
             }
-            { charactersUnlocked && myCharacters.map(({ Name, CharacterId, fileURL }) => (
-                CharacterId && 
+            { charactersUnlocked && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ Name, fileURL, scopedId }) => (
+                scopedId && 
                 <Grid
-                    key={`${Name}:${CharacterId}`}
+                    key={`${Name}:${scopedId}`}
                     container
                     item
                     sm={3}
@@ -108,8 +108,8 @@ export const Home: FunctionComponent<HomeProps> = ({
                         cursor: 'pointer'
                     }}
                     onClick={() => {
-                        if (CharacterId) {
-                            navigate(`/Character/${CharacterId.split('#')[1]}/Play`)
+                        if (scopedId) {
+                            navigate(`/Character/${scopedId}/Play`)
                         }
                     }}
                 >
