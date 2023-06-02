@@ -30,7 +30,7 @@ type NavigationTabMap = {
 
 type NavigationTabMessagePanel = {
     type: 'MessagePanel';
-    characterId: EphemeraCharacterId;
+    characterId: string;
 } & NavigationTabBase
 
 type NavigationTabLibrary = {
