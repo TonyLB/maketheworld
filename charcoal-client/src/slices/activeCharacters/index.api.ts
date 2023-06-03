@@ -15,10 +15,6 @@ import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {
     const state = getState()
     const status = getStatus(state)
-    //
-    // TODO: Refactor activeCharacters so that it can (in addition to characters in the
-    // myCharacterById section) work with the player's guest character
-    //
     const character = getMyCharacterById(id)(state)
 
     return (status === 'CONNECTED') && (Boolean(character))
