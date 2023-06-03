@@ -155,7 +155,7 @@ export const getNextOnboarding = createSelector(
     }
 )
 
-export const getMyCharacterById = getMyCharacterByIdSelector(getMyCharacters)
-export const getMyCharacterByKey = getMyCharacterByKeySelector(getMyCharacters)
+export const getMyCharacterById = getMyCharacterByIdSelector(getMyCharacters, getMySettings)
+export const getMyCharacterByKey = getMyCharacterByKeySelector(getMyCharacters, getMySettings)
 
 export default playerSlice.reducer

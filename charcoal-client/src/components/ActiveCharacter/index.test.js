@@ -22,6 +22,7 @@ const store = mockStore({
             charactersInPlay: {}
         }
     },
+    player: { Settings: { guestId: '12345' }},
     messages: [],
     characters: {},
     UI: {

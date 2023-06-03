@@ -5,25 +5,23 @@ import { useNavigate } from 'react-router-dom'
 import { blue } from '@mui/material/colors'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardHeader from '@mui/material/CardHeader'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
 import Stack from '@mui/material/Stack'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import AddIcon from '@mui/icons-material/Add'
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 
 import LibraryIcon from '@mui/icons-material/ArtTrack'
-import MapIcon from '@mui/icons-material/Explore'
 import KnowledgeIcon from '@mui/icons-material/MenuBook'
 import LockIcon from '@mui/icons-material/Lock'
+import GuestIcon from '@mui/icons-material/PersonSearch'
+
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/dist/asset'
 import { getConfiguration } from '../../slices/configuration'
 import { useSelector } from 'react-redux'
 import { Typography } from '@mui/material'
 import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
+import { getMySettings } from '../../slices/player'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -41,6 +39,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     myCharacters = [],
     signOut = () => {}
 }) => {
+    const { guestId } = useSelector(getMySettings)
     useOnboardingCheckpoint('navigateHome', { requireSequence: true })
     useOnboardingCheckpoint('navigateHomeInPlay', { requireSequence: true })
     const navigate = useNavigate()
@@ -92,6 +91,36 @@ export const Home: FunctionComponent<HomeProps> = ({
                             <LockIcon sx={{ fontSize: iconSize * 0.6 }} />
                         </Avatar>
                         <React.Fragment>Locked</React.Fragment>
+                    </Stack>
+                </Grid>
+            }
+            { charactersUnlocked && guestId && myCharacters.filter(({ scopedId }) => (scopedId)).length &&
+                <Grid
+                    container
+                    item
+                    sm={3}
+                    sx={{
+                        justifyContent: 'center',
+                        alignContent: 'center',
+                        cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                        navigate(`/Character/Guest/Play`)
+                    }}
+                >
+                    <Stack
+                        direction="column"
+                        justifyContent="center"
+                        alignItems="center"
+                        spacing={2}
+                    >
+                        <Avatar
+                            sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                            alt='Guest'
+                        >
+                            <GuestIcon fontSize="large" />
+                        </Avatar>
+                        <React.Fragment>Guest</React.Fragment>
                     </Stack>
                 </Grid>
             }

@@ -30,12 +30,26 @@ export const getMySettings = (player: PlayerPublic): PlayerPublic['Settings'] =>
     return Settings
 }
 
-export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Characters']>) => (key: string | undefined): Selector<any> => (state) => {
+const guestCharacter = (guestId: string, guestName: string): PlayerPublic['Characters'][number] => ({
+    CharacterId: `CHARACTER#${guestId}`,
+    Name: guestName,
+    Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
+})
+
+export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Characters']>, getMySettings: Selector<PlayerPublic['Settings']>) => (key: string | undefined): Selector<any> => (state) => {
+    if (key === 'Guest') {
+        const { guestId, guestName } = getMySettings(state)
+        return guestCharacter(guestId, guestName)
+    }
     const Characters = getMyCharacters(state)
     return Characters.find(({ scopedId }) => (scopedId === key))
 }
 
-export const getMyCharacterById = (getMyCharacters: Selector<PlayerPublic['Characters']>) => (key: string | undefined): Selector<any> => (state) => {
+export const getMyCharacterById = (getMyCharacters: Selector<PlayerPublic['Characters']>, getMySettings: Selector<PlayerPublic['Settings']>) => (key: string | undefined): Selector<any> => (state) => {
+    const { guestId, guestName } = getMySettings(state)
+    if (key === `CHARACTER#${guestId}`) {
+        return guestCharacter(guestId, guestName)
+    }
     const Characters = getMyCharacters(state)
     return Characters.find(({ CharacterId }) => (CharacterId === key))
 }
