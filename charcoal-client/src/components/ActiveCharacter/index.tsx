@@ -47,7 +47,7 @@ import { MessageRoomBreakdown } from '../../slices/messages/selectors'
 import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { ParseCommandModes } from '../../slices/lifeLine/baseClasses'
 import { getLineEntry, getLineEntryMode, setCurrentMode, setEntry, moveCurrentMode } from '../../slices/UI/lineEntry'
-import { getMyCharacters } from '../../slices/player'
+import { getMyCharacters, getMySettings } from '../../slices/player'
 
 type ActiveCharacterContextType = {
     CharacterId: EphemeraCharacterId;
@@ -85,7 +85,8 @@ type ActiveCharacterProps = {
 export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ CharacterId, children }) => {
 
     const myCharacters = useSelector(getMyCharacters)
-    const { scopedId } = myCharacters.find(({ CharacterId: check }) => (check === CharacterId)) || {}
+    const { guestId } = useSelector(getMySettings)
+    const { scopedId } = CharacterId === guestId ? { scopedId: 'Guest' } : myCharacters.find(({ CharacterId: check }) => (check === CharacterId)) || {}
     const characterState = useSelector(getActiveCharacters)[CharacterId]
     const maps = useSelector(getActiveCharacterMaps(CharacterId))
     const messageBreakdown = useSelector(getMessagesByRoom(CharacterId))
