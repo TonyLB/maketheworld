@@ -94,7 +94,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                     </Stack>
                 </Grid>
             }
-            { charactersUnlocked && guestId && myCharacters.filter(({ scopedId }) => (scopedId)).length &&
+            { charactersUnlocked && guestId && myCharacters.filter(({ scopedId }) => (scopedId)).length === 0 &&
                 <Grid
                     container
                     item
@@ -158,41 +158,6 @@ export const Home: FunctionComponent<HomeProps> = ({
                         <React.Fragment>{ Name }</React.Fragment>
                     </Stack>
                 </Grid>))
-            }
-            { charactersUnlocked && <Grid key='NewCharacter'
-                        container
-                        item
-                        sm={3}
-                        sx={{
-                            justifyContent: 'center',
-                            alignContent: 'center',
-                            cursor: 'pointer'
-                        }}
-                        onClick={() => {
-                            navigate(`/Library`)
-                        }}
-                >
-                    <Stack
-                        direction="column"
-                        justifyContent="center"
-                        alignItems="center"
-                        spacing={2}
-                    >
-                        <Avatar
-                            sx={{
-                                width: `${iconSize}px`,
-                                height: `${iconSize}px`
-                            }}
-                            alt='New Character'
-                        >
-                            <AddIcon sx={{
-                                fontSize: iconSize,
-                                color: 'grey'
-                            }} />
-                        </Avatar>
-                        <React.Fragment>New Character</React.Fragment>
-                    </Stack>
-                </Grid>
             }
             <Grid item xs={12} />
             <Grid item xs={12} md={6} sx={{ alignItems: "start" }}>
