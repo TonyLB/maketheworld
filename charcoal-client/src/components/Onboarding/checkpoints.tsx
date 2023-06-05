@@ -1,4 +1,14 @@
-import React, { ReactElement } from "react";
+import React, { ReactElement } from "react"
+import { Stack, Typography, Chip } from "@mui/material"
+import HomeIcon from '@mui/icons-material/Home'
+import OnboardingIcon from '@mui/icons-material/Lightbulb'
+import KnowledgeIcon from '@mui/icons-material/MenuBook'
+import CloseIcon from '@mui/icons-material/Close'
+import SayMessageIcon from '@mui/icons-material/Chat'
+import NarrateMessageIcon from '@mui/icons-material/Receipt'
+import OOCMessageIcon from '@mui/icons-material/CropFree'
+import CommandIcon from '@mui/icons-material/Code'
+import ExitIcon from '@mui/icons-material/ExitToApp'
 
 type DeepReadonly<T> =
     T extends (infer R)[] ? DeepReadonlyArray<R> :
@@ -17,6 +27,7 @@ type OnboardingText = ReactElement | string | ((arg: OnboardingTextArgument) => 
 type OnboardingSubItem = {
     key: string;
     text?: OnboardingText;
+    icon?: ReactElement;
 }
 
 type OnboardingPage = {
@@ -68,11 +79,13 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'navigateHome',
-                        text: ({ portrait }) => (<React.Fragment>Select the "Home" tab { portrait ? "above" : "to the left" }.</React.Fragment>)
+                        text: ({ portrait }) => (`Select the "Home" tab ${ portrait ? "above" : "to the left" }`),
+                        icon: <Stack sx={{ alignItems: 'center' }}><HomeIcon fontSize="small" /><Typography sx={{ fontSize: "8pt" }}>HOME</Typography></Stack>
                     },
                     {
                         key: 'navigateBack',
-                        text: ({ portrait }) => (<React.Fragment>Select the "Onboarding" tab { portrait ? "above" : "to the left" } in order to return.</React.Fragment>)
+                        text: ({ portrait }) => (`Select the "Onboarding" tab ${ portrait ? "above" : "to the left" } in order to return.`),
+                        icon: <Stack sx={{ alignItems: 'center' }}><OnboardingIcon fontSize="small" /><Typography sx={{ fontSize: "8pt" }}>ONBOARDING</Typography></Stack>
                     }
                 ]
             },
@@ -81,8 +94,14 @@ const onboardingChaptersRaw = [
                 text: 'Good job! The navigation bar will let you navigate in the application, and keep track of any content windows you open. Explore opening temporary content windows',
                 subItems: [
                     {
+                        key: 'returnHome',
+                        text: `Select the "Home" tab again`,
+                        icon: <Stack sx={{ alignItems: 'center' }}><HomeIcon fontSize="small" /><Typography sx={{ fontSize: "8pt" }}>HOME</Typography></Stack>
+                    },
+                    {
                         key: 'navigateKnowledge',
-                        text: <React.Fragment>Select the "Knowledge" button in the "Explore" section below.</React.Fragment>
+                        text: <React.Fragment>Select the "Knowledge" button in the "Explore" section below.</React.Fragment>,
+                        icon: <Stack sx={{ alignItems: 'center' }}><KnowledgeIcon fontSize="small" /><Typography sx={{ fontSize: "8pt" }}>Knowledge</Typography></Stack>
                     },
                     {
                         key: 'knowledgeDetail',
@@ -90,7 +109,8 @@ const onboardingChaptersRaw = [
                     },
                     {
                         key: 'closeTab',
-                        text: ({ portrait }) => (<React.Fragment>Browse knowledge as long as you like, and when you're ready to explore the world directly, close the knowledge tab ({ portrait ? "above" : "at left" }) by pressing the 'X' on it.</React.Fragment>)
+                        text: ({ portrait }) => (<React.Fragment>Browse knowledge as long as you like, and when you're ready to explore the world directly, close the knowledge tab ({ portrait ? "above" : "at left" }) by pressing the 'X' on it.</React.Fragment>),
+                        icon: <CloseIcon fontSize="small" />
                     }
                 ]
             },
@@ -141,7 +161,7 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'navigatePlay',
-                        text: <React.Fragment>On the Home tab, under the "Play" section, select a character in order to play them in the virtual world.</React.Fragment>
+                        text: 'On the Home tab, under the "Play" section, select a character in order to play them in the virtual world.'
                     }
                 ]
             },
@@ -151,19 +171,23 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'commandMode',
-                        text: <React.Fragment>Your input field (bottom) defaults to Command mode. Focus into that field, type 'look' and hit enter. As the Make The World software evolves, there will be many more possibilities in this mode, but today it's pretty sparse.</React.Fragment>
+                        text: <React.Fragment>Your input field (bottom) defaults to Command mode. Focus into that field, type 'look' and hit enter. As the Make The World software evolves, there will be many more possibilities in this mode, but today it's pretty sparse.</React.Fragment>,
+                        icon: <CommandIcon fontSize="small" />
                     },
                     {
                         key: 'sayMode',
-                        text: <React.Fragment>The input field has a mode selector (bottom right) with up and down arrows. Press the up arrow once (or press the " key) to enter Say mode, and type something for your character to say (like "Hi!")</React.Fragment>
+                        text: <React.Fragment>The input field has a mode selector (bottom right) with up and down arrows. Press the up arrow once (or press the " key) to enter Say mode, and type something for your character to say (like "Hi!")</React.Fragment>,
+                        icon: <SayMessageIcon fontSize="small" />
                     },
                     {
                         key: 'narrateMode',
-                        text: <React.Fragment>Press the up arrow twice (or press the : key) to enter Narrate mode, and type something that should be narrated happening in the room (like "Nathan looks around.")</React.Fragment>
+                        text: <React.Fragment>Press the up arrow twice (or press the : key) to enter Narrate mode, and type something that should be narrated happening in the room (like "Riley looks around.")</React.Fragment>,
+                        icon: <NarrateMessageIcon fontSize="small" />
                     },
                     {
                         key: 'OOCMode',
-                        text: `Press the up arrow three times (or press the \\ key) to enter out-of-character mode, and type something that should be shared with other players nearby, outside the story (like "I'm new here")`
+                        text: `Press the up arrow three times (or press the \\ key) to enter out-of-character mode, and type something that should be shared with other players nearby, outside the story (like "I'm new here")`,
+                        icon: <OOCMessageIcon fontSize="small" />
                     }
                 ]
             },
@@ -177,7 +201,8 @@ const onboardingChaptersRaw = [
                     },
                     {
                         key: 'exitLink',
-                        text: `On the left, below the description of the room, are exits to other places. Press one of those exits to leave this room and go to another.`
+                        text: `On the left, below the description of the room, are exits to other places. Press one of those exits to leave this room and go to another.`,
+                        icon: <Chip label="out" icon={<ExitIcon fontSize="small" />} />
                     },
                     {
                         key: 'actionLink',

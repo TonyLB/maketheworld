@@ -37,22 +37,24 @@ import { getClientSettings, putClientSettings } from "../../slices/settings"
 
 type DenseOnboardingProgressListItemProperties = {
     text: ReactElement | string;
+    icon?: ReactElement;
     index: number;
     completed: boolean;
 }
 
-const DenseOnboardingProgressListItem: FunctionComponent<DenseOnboardingProgressListItemProperties> = ({ text, index, completed }) => {
-    return <ListItem>
+const DenseOnboardingProgressListItem: FunctionComponent<DenseOnboardingProgressListItemProperties> = ({ text, icon, index, completed }) => {
+    return <ListItem sx={{ width: "100%" }}>
         <ListItemAvatar sx={{ minWidth: "2em" }}><Avatar sx={{ width: "1em", height: "1em", bgcolor: blue[600], color: 'black' }}>{completed ? <CheckIcon fontSize="small" /> : <Typography variant="body2">{index + 1}</Typography>}</Avatar></ListItemAvatar>
         { typeof text === 'string'
-            ? <ListItemText>{text}</ListItemText>
+            ? <ListItemText sx={{ flexGrow: 1 }}>{text}</ListItemText>
             : text
         }
+        { icon && <Box sx={{ background: blue[100], marginLeft: "0.5em", padding: "0.25em", borderRadius: "0.25em" }}>{icon}</Box> }
     </ListItem>
 }
 
 type DenseOnboardingProgressListProperties = {
-    listItems: Partial<Record<OnboardingKey, ReactElement | string>>;
+    listItems: Partial<Record<OnboardingKey, { text: ReactElement | string; icon?: ReactElement }>>;
 }
 
 const DenseOnboardingProgressList: FunctionComponent<DenseOnboardingProgressListProperties> = ({ listItems }) => {
@@ -65,15 +67,17 @@ const DenseOnboardingProgressList: FunctionComponent<DenseOnboardingProgressList
         .filter((key) => (key in listItems))
         .map((key, index) => ({
             key,
-            text: listItems[key],
+            text: listItems[key]?.text ?? '',
+            icon: listItems[key]?.icon,
             index,
             completed: onboardCompleteByKey[key]
         }))
     return <List sx={{ marginRight: "auto", marginLeft: "auto" }}>
-        { listUnwrapped.map(({ key, text, index, completed }) => (
+        { listUnwrapped.map(({ key, text, icon, index, completed }) => (
             <DenseOnboardingProgressListItem
                 key={key}
                 text={text}
+                icon={icon}
                 index={index}
                 completed={completed}
             />
@@ -100,7 +104,7 @@ const AlwaysShowOnboarding: FunctionComponent<{}> = () => {
     </FormGroup>
 }
 
-export const useOnboardingDispatcher = (): undefined | { text: string | ReactElement; listItems: Partial<Record<OnboardingKey, ReactElement | string>>} => {
+export const useOnboardingDispatcher = (): undefined | { text: string | ReactElement; listItems: Partial<Record<OnboardingKey, { text: ReactElement | string; icon?: ReactElement }>>} => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(min-height:600px)')
     const page = useOnboardingPage()
@@ -110,11 +114,14 @@ export const useOnboardingDispatcher = (): undefined | { text: string | ReactEle
         }
         return {
             text: typeof page.text === 'function' ? page.text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> }) : page.text,
-            listItems: page.subItems.reduce<Partial<Record<OnboardingKey, ReactElement | string>>>((previous, { key, text }) => {
+            listItems: page.subItems.reduce<Partial<Record<OnboardingKey, { text: ReactElement | string; icon?: ReactElement }>>>((previous, { key, text, icon }) => {
                 const adjustedText: ReactElement | string = typeof text === 'function' ? text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> }) : text
                 return {
                     ...previous,
-                    [key as OnboardingKey]: adjustedText
+                    [key as OnboardingKey]: {
+                        text: adjustedText,
+                        icon
+                    }
                 }
             }, {})
         }
