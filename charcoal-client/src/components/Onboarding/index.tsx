@@ -155,7 +155,7 @@ export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ child
             <Card sx={{ ...(wrapper ? { maxHeight: "30vh", overflowY: "auto" } : {}), width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
                 <CardContent sx={{ position: "relative", height: "100%", paddingBottom: "3em", marginBottom: "-3em" }}>
                     <Box sx={{ overflowY: "auto", maxHeight: "100%" }}>
-                        <Typography variant='body1' align='left'>
+                        <Typography component="div" variant='body1' align='left'>
                             {text}{ Object.keys(listItems).length ? ':' : ''}
                         </Typography>
                         <Box sx={{ width: "100%" }}>
