@@ -16,6 +16,7 @@ import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { healPlayer } from "../selfHealing/player"
 
 const { UPLOAD_BUCKET } = process.env;
 
@@ -138,6 +139,12 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                         assetWorkspace.pushWML(),
                         dbRegister(assetWorkspace)
                     ])
+                    //
+                    // TODO: Refactor below so as to not make duplicate healPlayer calls when parsing multiple WMLs
+                    //
+                    if (assetWorkspace.address.zone === 'Personal') {
+                        await healPlayer(player)
+                    }
                     await ebClient.send(new PutEventsCommand({
                         Entries: [{
                             EventBusName: process.env.EVENT_BUS_NAME,
@@ -145,7 +152,7 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                             DetailType: 'Cache Asset',
                             Detail: JSON.stringify({
                                 ...assetWorkspace.address,
-                                updateOnly: true
+                                updateOnly: Boolean(assetWorkspace.address.zone !== 'Personal')
                             })
                         }]
                     }))            

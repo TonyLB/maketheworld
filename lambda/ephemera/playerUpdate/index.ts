@@ -5,7 +5,7 @@ export const playerUpdateMessage = async ({ payloads }: { payloads: PlayerUpdate
     await Promise.all(payloads
         .filter(({ player }) => (player))
         .map(async ({ player, Characters = [], Assets = [], guestName, guestId }) => {
-            await ephemeraDB.optimisticUpdate({
+            const { guestId: retrievedGuestId } = await ephemeraDB.optimisticUpdate({
                 key: {
                     EphemeraId: `PLAYER#${player}`,
                     DataCategory: 'Meta::Player'
@@ -16,8 +16,21 @@ export const playerUpdateMessage = async ({ payloads }: { payloads: PlayerUpdate
                     draft.Assets = Assets
                     draft.guestName = guestName
                     draft.guestId = guestId
-                }
+                },
+                ReturnValues: 'ALL_NEW'
             })
+            if (retrievedGuestId) {
+                await ephemeraDB.optimisticUpdate({
+                    key: {
+                        EphemeraId: `CHARACTER#${retrievedGuestId}`,
+                        DataCategory: 'Meta::Character'
+                    },
+                    updateKeys: ['assets'],
+                    updateReducer: (draft) => {
+                        draft.assets = Assets.map(({ AssetId }) => (AssetId))
+                    }
+                })
+            }
         })
     )
 }

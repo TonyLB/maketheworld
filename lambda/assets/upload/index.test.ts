@@ -3,6 +3,7 @@ import { jest, describe, it, expect } from '@jest/globals'
 // jest.mock('sharp', () => ({}))
 jest.mock('../serialize/dbRegister')
 import { dbRegister } from '../serialize/dbRegister'
+jest.mock('../selfHealing/player')
 
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
