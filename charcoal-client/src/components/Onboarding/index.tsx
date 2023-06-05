@@ -150,7 +150,7 @@ export const OnboardingPanel: FunctionComponent<OnboardingPanelProps> = ({ child
             removeTags: [`active${currentChapter.chapterKey}`] as OnboardingKey[]
         }))
     }, [page, currentChapter])
-    return <Stack>
+    return <Stack sx={{ height: "100%" }}>
         { page && 
             <Card sx={{ ...(wrapper ? { maxHeight: "30vh", overflowY: "auto" } : {}), width: "80%", maxWidth: "40em", marginLeft: "auto", marginRight: "auto", marginTop: "0.5em", backgroundColor: blue[300], padding: "0.5em", borderRadius: "0.5em" }}>
                 <CardContent sx={{ position: "relative", height: "100%", paddingBottom: "3em", marginBottom: "-3em" }}>

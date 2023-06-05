@@ -86,7 +86,7 @@ export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ Chara
 
     const myCharacters = useSelector(getMyCharacters)
     const { guestId } = useSelector(getMySettings)
-    const { scopedId } = CharacterId === guestId ? { scopedId: 'Guest' } : myCharacters.find(({ CharacterId: check }) => (check === CharacterId)) || {}
+    const { scopedId } = CharacterId === `CHARACTER#${guestId}` ? { scopedId: 'Guest' } : myCharacters.find(({ CharacterId: check }) => (check === CharacterId)) || {}
     const characterState = useSelector(getActiveCharacters)[CharacterId]
     const maps = useSelector(getActiveCharacterMaps(CharacterId))
     const messageBreakdown = useSelector(getMessagesByRoom(CharacterId))
