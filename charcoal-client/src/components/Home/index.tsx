@@ -41,6 +41,7 @@ export const Home: FunctionComponent<HomeProps> = ({
 }) => {
     const { guestId } = useSelector(getMySettings)
     useOnboardingCheckpoint('navigateHome', { requireSequence: true })
+    useOnboardingCheckpoint('returnHome', { requireSequence: true })
     useOnboardingCheckpoint('navigateHomeInPlay', { requireSequence: true })
     const navigate = useNavigate()
     const medium = useMediaQuery('(min-width: 600px)')
