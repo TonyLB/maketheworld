@@ -17,9 +17,9 @@ type KnowledgeProps = {
 }
 
 export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
-    useOnboardingCheckpoint('navigateKnowledge')
-    useOnboardingCheckpoint('knowledgeDetail')
     const { KnowledgeId = 'knowledgeRoot' } = useParams()
+    useOnboardingCheckpoint('navigateKnowledge')
+    useOnboardingCheckpoint('knowledgeDetail', { condition: KnowledgeId !== 'knowledgeRoot'})
     useAutoPin({ href: `/Knowledge/`, label: `Knowledge`, iconName: 'Knowledge', type: 'Knowledge' })
     const dispatch = useDispatch()
     useEffect(() => {
