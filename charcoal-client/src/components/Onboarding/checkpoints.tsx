@@ -194,8 +194,63 @@ const onboardingChaptersRaw = [
         lock: 'endPlayCharacter',
         pages: [
             {
+                pageKey: 'pageCreateAssetIntro',
+                text: `You're really getting how to play a role in the world. Plenty of people enjoy doing that alone (and if that's you, you can skip the rest of the onboarding). Others enjoy adding to the world as well. Let's talk about how Make The World supports collaborative storytelling and world-building.`,
+                subItems: []
+            },
+            {
+                pageKey: 'pageExplainAssets',
+                text: <React.Fragment>
+                    A little philosophy: Sharing stories within a community is complicated, for a lot of reasons. Think, for instance, about any popular, long-running, movie franchise: Some people will want to enjoy the main, famous, movies and not much
+                    else. Others will dig in to the details of every movie. Some will read the novelizations, the extended universe (or whatever) and every official source. Others will dive into fan-fiction worlds and the spin-offs
+                    that the fans create.
+                    <br /><br />
+                    The point here is that in a shared story-telling space, there isn't <em>one, uniquely authoritative</em> version of the world. Instead, there are at least as many viewpoints on the story as there are people to do the viewing.
+                    Make The World supports that by organizing the data it stores into layers called "Assets". Each Asset can define a number of things about the world (rooms, features, knowledge, etc.) and can also refer to
+                    things defined in earlier assets and extend them. Think of each asset a like layers in image-editing software (but for words): A given room, for instance, can have its basic description and exits to other rooms defined in a first
+                    asset, but then get description and more exits (to other rooms) added onto it in a second asset. The world gets built up and made more complicated through successive layers.
+                </React.Fragment>,
+                subItems: []
+            },
+            {
+                pageKey: 'pageExplainCanon',
+                text: <React.Fragment>
+                    The reason to build the world in layers is to support many viewpoints: Some Assets are considered "Canon", which means that the system automatically serves up that information to everyone. But other assets are not
+                    canon, they are opt-in ... not everyone will see the changes in those assets, only those who have chosen to.
+                    <br /><br />
+                    Opting in to layers of the world is one of the fundamental ways that Make The World supports many outcomes that communities need. If you and a group of your friends want to go off and tell a wacky story of time-travel,
+                    alternate worlds, and multiverse hijinks, you can do all of that without asking anyone for permission to completely rewrite the rules of reality ... you just do it in a set of assets that only your friends opt in on.
+                    Other players might be confused about some of your conversations, but they're not going to have to deal with the mirror-universe impinging upon their own, different, stories.
+                </React.Fragment>,
+                subItems: []
+            },
+            {
+                pageKey: 'pageExplainWorkshopping',
+                text: <React.Fragment>
+                    The other, really important, thing that layered Assets provides is a toolkit for players to start creating <em>bad first drafts</em> of their ideas, and then improve upon them. Everything that players create is first
+                    stored as assets that only they can see. They work on those until they feel that they're ready to show them around, and then use Make The World's tools to invite people to make comments and suggestions, in a process
+                    called "Workshopping" (code still being very-actively developed). Through workshopping an asset can go from private, to something available in the library, and even to being included in the canon.
+                    <br /><br />
+                    Workshopping serves several purposes:
+                        <ul>
+                            <li>
+                                Some people (not you, you're awesome) are just jerks, and will turn a community storytelling tool toward deliberately offensive and hateful content. If the community doesn't have any way to defend itself,
+                                those people will take over. It stinks, but it's true.
+                            </li>
+                            <li>
+                                Even among people of good will, first drafts are mostly just awful. Getting those awful first drafts "on paper" is the only way to improve them, so it's vitally important that the system not encourage
+                                writer's block by saying "Well, you need to prove your draft is at least yay-good before we put it into the system."
+                            </li>
+                            <li>
+                                Even people of good will and miraculous ability are not mind-readers. To share a story with a community, you need to check in with that community, plain and simple.
+                            </li>
+                        </ul>
+                </React.Fragment>,
+                subItems: []
+            },
+            {
                 pageKey: 'pageLibrary',
-                text: `You're really getting how to play a role in the world. Plenty of people enjoy doing that alone (and if that's you, you can skip the rest of the onboarding). Others enjoy adding to the world as well. Explore the options for expanding the world`,
+                text: `Okay, that was probably more than just a little philosophy. Let's explore your options for expanding the world`,
                 subItems: [
                     {
                         key: 'navigateHomeInPlay',
@@ -209,7 +264,7 @@ const onboardingChaptersRaw = [
             },
             {
                 pageKey: 'pageDraftAsset',
-                text: `This is the Library in which Make The World organizes the Assets that make the game. Assets are layers of description on rooms, features, etc., that are laid on one another successively to create the final world. You can create Personal Assets whose content is seen only by you, to test out creations. Let's give it a try`,
+                text: `This is the Library in which Make The World organizes the Assets that make the game. You can create Personal Assets whose content is seen only by you, to test out creations. Let's give it a try`,
                 subItems: [
                     {
                         key: 'createAsset',
@@ -290,25 +345,8 @@ const onboardingChaptersRaw = [
                 ]
             },
             {
-                pageKey: 'pageDraftUpdateCharacter',
-                subItems: [
-                    {
-                        key: 'editCharacter',
-                        text: `Select the player you are playing with, and click the edit button the preview pane.`
-                    },
-                    {
-                        key: 'editCharacterAssets',
-                        text: 'Click the "Assets" field at bottom, and add your new asset to the selection to see for this character.'
-                    },
-                    {
-                        key: 'saveCharacter',
-                        text: `At upper right, click the "Save" button to save the change.`
-                    }
-                ]
-            },
-            {
                 pageKey: 'pageDraftNavigate',
-                text: `You've updated the system to know about your asset and to show it for your character. Time to go take a look`,
+                text: `You've updated the system to know about your asset. Time to go take a look in-character`,
                 subItems: [
                     {
                         key: 'navigatePlayWithPersonalRoom',
@@ -319,6 +357,11 @@ const onboardingChaptersRaw = [
                         text: 'Press that exit to travel to your new room.'
                     }
                 ]
+            },
+            {
+                pageKey: 'pageCreateAssetCongratulations',
+                text: `Congratulations! You've learned how to use Make The World to create new assets and extend the world. This is the basic tool that people use to generate the entire setting for shared stories.`,
+                subItems: []
             }
         ]
     }
