@@ -3,7 +3,6 @@ import { useDispatch } from 'react-redux'
 
 import Chip from '@mui/material/Chip'
 import ExitIcon from '@mui/icons-material/ExitToApp'
-import HiddenIcon from '@mui/icons-material/VisibilityOff'
 
 import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
@@ -34,7 +33,7 @@ export const RoomExit = ({ exit: { Name, Visibility, RoomId } }: RoomExitProps) 
 
     return <Chip
             label={Name}
-            icon={Visibility === 'Public' ? <ExitIcon /> : <HiddenIcon /> }
+            icon={<ExitIcon />}
             onClick={clickHandler}
         />
 }
