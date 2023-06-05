@@ -10,7 +10,7 @@ import {
 } from "@mui/material/colors"
 
 import { getActiveCharacterList } from '../../slices/ephemera'
-import { getPlayer } from '../../slices/player'
+import { getMySettings, getPlayer } from '../../slices/player'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
@@ -73,10 +73,11 @@ type CharacterStyleWrapperProps = {
 const OpenCharacterStyleWrapper: FunctionComponent<Omit<CharacterStyleWrapperProps, 'nested'>> = ({ CharacterId, children }) => {
     const whoIsActive = useSelector(getActiveCharacterList)
     const { Characters } = useSelector(getPlayer)
+    const { guestId } = useSelector(getMySettings)
     const myCharacterIds = Characters.map(({ CharacterId }) => (CharacterId))
 
     const { color } = whoIsActive.find((character) => (character.CharacterId === CharacterId)) || { color: { name: 'grey' } }
-    return <CharacterColorWrapper color={myCharacterIds.includes(CharacterId) ? 'blue' : color.name as LegalCharacterColor || 'grey'} >
+    return <CharacterColorWrapper color={(CharacterId === `CHARACTER#${guestId}` || myCharacterIds.includes(CharacterId)) ? 'blue' : color.name as LegalCharacterColor || 'grey'} >
         { children }
     </CharacterColorWrapper>
 }
