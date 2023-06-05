@@ -27,6 +27,7 @@ type OnboardingPage = {
 
 type OnboardingChapter = {
     chapterKey: string;
+    title: string;
     lock?: string;
     pages: OnboardingPage[];
 }
@@ -40,6 +41,7 @@ type OnboardingTextArgument = {
 const onboardingChaptersRaw = [
     {
         chapterKey: 'MTWNavigation',
+        title: 'Navigate in Make The World',
         pages: [
             {
                 pageKey: 'pageOnboarding',
@@ -105,6 +107,7 @@ const onboardingChaptersRaw = [
     },
     {
         chapterKey: 'PlayCharacter',
+        title: 'Play the role of a character',
         pages: [
             {
                 pageKey: 'pageRole',
@@ -191,6 +194,7 @@ const onboardingChaptersRaw = [
     },
     {
         chapterKey: 'CreateAsset',
+        title: 'Make changes to the world',
         lock: 'endPlayCharacter',
         pages: [
             {
