@@ -202,7 +202,7 @@ export const OnboardingHome: FunctionComponent<{}> = () => {
         <Divider />
         <List>
             {
-                onboardingChapters.map(({ chapterKey, lock }) => (
+                onboardingChapters.map(({ chapterKey, title, lock }) => (
                     <ListItem key={chapterKey}>
                         <ListItemButton onClick={() => {
                             if (lock && !onboardCompleteTags.includes(lock)) {
@@ -221,7 +221,7 @@ export const OnboardingHome: FunctionComponent<{}> = () => {
                                                 : <QuestionMarkIcon />
                                 }
                             </ListItemIcon>
-                            <ListItemText primary={chapterKey} />
+                            <ListItemText primary={title} />
                         </ListItemButton>
                     </ListItem>
                 ))
