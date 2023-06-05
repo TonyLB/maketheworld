@@ -107,12 +107,38 @@ const onboardingChaptersRaw = [
         chapterKey: 'PlayCharacter',
         pages: [
             {
+                pageKey: 'pageRole',
+                text: <React.Fragment>
+                    You can also explore by taking on the role of a character in the world itself. When you play a role, you control what your character contributes to the story in each given instant, deciding
+                    what they say or attempt. You also "see" the world presented through their eyes, which lets you explore in much more depth than the knowledge base.
+                    <br /><br />
+                    Playing a character can be a bit more daunting than reading the game encyclopedia, though, because you aren't (necessarily) alone. Make The World supports a <b>community</b> of storytellers
+                    sharing the same world, so there's a decent chance that you'll bump into other people playing their own characters. This section will help you to learn the basics of responding (for instance,
+                    when someone else says "hello") and exploring.
+                </React.Fragment>,
+                subItems: []
+            },
+            {
+                pageKey: 'pageGuest',
+                text: <React.Fragment>
+                    To help make sure everyone knows to welcome you, each new player starts with a "guest" character all of their own, to experiment in the world. Everyone has been a guest at some point,
+                    so they know not to expect expertise about either Make The World, or their particular story. Usually they will be eager to help you learn about everything.
+                    <br /><br />
+                    However, it's expected that guest characters are just for that sort of tourism:  They're not intended to be part of the ongoing stories. When you feel comfortable, and want to start
+                    making things happen in the world in a way that lasts, you'll want to (probably) check out one of the characters available in the public library, created to fit into the story from
+                    the start, or (if you're adventurous) create your own character from scratch.
+                    <br /><br />
+                    For the purposes of this tutorial, though, the guest character is perfectly adequate.
+                </React.Fragment>,
+                subItems: []
+            },
+            {
                 pageKey: 'pageInCharacter',
-                text: `You can also explore by taking on the role of a character in the world itself`,
+                text: `Head back to the home page, where your characters are available to play. Most players only ever use one character at a time, but there's no real limit (as long as you're not playing so many roles that people find it hard to actually share the story with you ... if you want to write all the characters, a novel might be a better format).`,
                 subItems: [
                     {
                         key: 'navigatePlay',
-                        text: <React.Fragment>On the Home tab, select a character to play them in the virtual world.</React.Fragment>
+                        text: <React.Fragment>On the Home tab, under the "Play" section, select a character in order to play them in the virtual world.</React.Fragment>
                     }
                 ]
             },
@@ -122,7 +148,7 @@ const onboardingChaptersRaw = [
                 subItems: [
                     {
                         key: 'commandMode',
-                        text: <React.Fragment>Your input field (bottom) defaults to Command mode. Focus into that field, type 'look' and hit enter.</React.Fragment>
+                        text: <React.Fragment>Your input field (bottom) defaults to Command mode. Focus into that field, type 'look' and hit enter. As the Make The World software evolves, there will be many more possibilities in this mode, but today it's pretty sparse.</React.Fragment>
                     },
                     {
                         key: 'sayMode',
@@ -155,6 +181,11 @@ const onboardingChaptersRaw = [
                         text: `Somewhere in the details of this room you will find highlights on something you could DO (like "ring the bell"). Press one of those highlights to take action in the world.`
                     }
                 ]
+            },
+            {
+                pageKey: 'pagePlayCharacterCongratulations',
+                text: `Congratulations! You've mastered the basic tools of telling a story and exploring the world with your character. These are the fundamental tools of interacting with any Make The World community: They each support different worlds of story-telling in real time, and welcome you to be part of that effort.`,
+                subItems: []
             }
         ]
     },
