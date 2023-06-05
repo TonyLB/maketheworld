@@ -1,7 +1,5 @@
-import { apiClient } from "../clients"
 import { RemoveAssetMessage, MessageBus } from "../messageBus/baseClasses"
 
-import internalCache from '../internalCache'
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 
