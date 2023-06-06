@@ -120,7 +120,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             CharacterId,
                             Name: Name || '',
                             Connected: true,
-                            RoomId,
+                            RoomId: RoomId || HomeId,
                             fileURL: fileURL || '',
                             Color: Color || 'grey',
                             targets: ['GLOBAL', `CONNECTION#${connectionId}`]
@@ -128,7 +128,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     })
                     messageBus.send({
                         type: 'PublishMessage',
-                        targets: [RoomId, `!${CharacterId}`],
+                        targets: [RoomId || HomeId, `!${CharacterId}`],
                         displayProtocol: 'WorldMessage',
                         message: [{
                             tag: 'String',
@@ -141,10 +141,17 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     })
                     messageBus.send({
                         type: 'RoomUpdate',
-                        roomId: RoomId
+                        roomId: RoomId || HomeId
                     })
                 }
-                internalCache.RoomCharacterList.set({ key: RoomId, value: newActiveCharacters })
+                messageBus.send({
+                    type: 'Perception',
+                    characterId: CharacterId,
+                    ephemeraId: RoomId || HomeId,
+                    header: true
+                })
+    
+                internalCache.RoomCharacterList.set({ key: RoomId || HomeId, value: newActiveCharacters })
 
             }, { retryErrors: ['TransactionCanceledException']})
     

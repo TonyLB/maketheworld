@@ -119,7 +119,7 @@ describe("registerCharacter", () => {
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }], messageBus })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
-        expect(messageBusMock.send).toHaveBeenCalledTimes(1)
+        expect(messageBusMock.send).toHaveBeenCalledTimes(2)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
@@ -127,6 +127,12 @@ describe("registerCharacter", () => {
                 CharacterId: 'CHARACTER#ABC',
                 RequestId: 'Request123'
             }
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'Perception',
+            characterId: 'CHARACTER#ABC',
+            ephemeraId: 'ROOM#TestABC',
+            header: true
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
             key: 'ROOM#TestABC',
