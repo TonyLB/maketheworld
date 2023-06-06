@@ -26,7 +26,7 @@ export const VirtualMessageList = () => {
             //
             List: React.forwardRef<any, any>(({ style, children }, listRef) => (
                 <List
-                    style={{padding: 0, ...style, marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0 }}
+                    style={{padding: 0, ...style, margin: 0 }}
                     component="div"
                     ref={listRef}
                 >
