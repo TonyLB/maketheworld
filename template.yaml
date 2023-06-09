@@ -181,6 +181,8 @@ Resources:
                 - Remove Asset
                 - Cache Asset
                 - Update Player
+                - Canonize Asset
+                - Decanonize Asset
         Development:
           Type: CloudWatchEvent
           Properties:

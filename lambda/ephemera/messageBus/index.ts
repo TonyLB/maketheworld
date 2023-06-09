@@ -28,7 +28,8 @@ import {
     isMapUnsubscribe,
     isUnregisterCharacterMessage,
     isCacheAssetByIdMessage,
-    isCacheCharacterAssetsMessage
+    isCacheCharacterAssetsMessage,
+    isCanonUpdateMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -50,6 +51,7 @@ import executeActionMessage from '../executeAction'
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
 import publishNotification from '../publishNotification'
+import { canonUpdateMessage } from '../canonUpdate'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -189,6 +191,12 @@ messageBus.subscribe({
     priority: 15,
     filter: isMapUpdateMessage,
     callback: mapUpdateMessage
+})
+messageBus.subscribe({
+    tag: 'CanonUpdate',
+    priority: 1,
+    filter: isCanonUpdateMessage,
+    callback: canonUpdateMessage
 })
 messageBus.subscribe({
     tag: 'AncestryUpdate',
