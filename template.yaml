@@ -785,6 +785,37 @@ Resources:
           ContentUri: charcoal-client/build/
           CompatibleRuntimes:
               - nodejs18.x
+  CognitoHandlerFunction:
+      Type: AWS::Serverless::Function
+      Metadata:
+        BuildMethod: esbuild
+        BuildProperties:
+          Minify: true
+          Target: "es2020"
+          Sourcemap: true
+          EntryPoints: 
+            - app.ts
+      Properties:
+          CodeUri: lambda/cognitoEvent/
+          Runtime: nodejs18.x
+          Handler: app.handler
+          Timeout: 20
+          Environment:
+              Variables:
+                  EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+          Policies:
+            - Statement:
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - events:PutEvents
+          Events:
+            CognitoUserPoolPostConfirm:
+              Type: Cognito
+              Properties:
+                UserPool:
+                  Ref: UserPool
+                Trigger: PostConfirmation
   InitializeFunction:
       Type: AWS::Serverless::Function
       Metadata:
