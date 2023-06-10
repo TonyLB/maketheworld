@@ -13,6 +13,10 @@ import {
     Typography,
     DialogActions
 } from '@mui/material'
+
+import FeatureIcon from '@mui/icons-material/Search'
+import KnowledgeIcon from '@mui/icons-material/School'
+
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import SaveIcon from '@mui/icons-material/Save'
 import {
@@ -208,6 +212,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                                 key={feature.key}
                                 ItemId={feature.key}
                                 onClick={() => { navigate(`Feature/${feature.key}`)}}
+                                icon={<FeatureIcon />}
                             />))
                         : null
                     }
@@ -218,6 +223,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                                 key={knowledge.key}
                                 ItemId={knowledge.key}
                                 onClick={() => { navigate(`Knowledge/${knowledge.key}`)}}
+                                icon={<KnowledgeIcon />}
                             />))
                         : null
                     }
