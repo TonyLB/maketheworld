@@ -157,11 +157,30 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[]): Ge
     }
 }
 
+const descendantsCompact = function * (items: Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock>): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
+    let previousText: string
+    for (const item of items) {
+        if ('text' in item) {
+            previousText = `${(previousText || '')}${item.text}`
+        }
+        else {
+            if (previousText) {
+                yield { text: previousText }
+            }
+            previousText = undefined
+            yield item
+        }
+    }
+    if (previousText) {
+        yield { text: previousText }
+    }
+}
+
 export const descendantsFromRender = (render: ComponentRenderItem[]): CustomBlock[] => {
     if (render.length > 0) {
         let returnValue = [] as CustomBlock[]
         let accumulator = [] as CustomParagraphContents[]
-        for (const item of descendantsTranslate(render)) {
+        for (const item of descendantsCompact(descendantsTranslate(render))) {
             if (isCustomBlock(item)) {
                 if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
                     if (accumulator.length) {

@@ -41,6 +41,31 @@ describe('descendantsToRender', () => {
         ])
     })
 
+    it('should replace space at end of last line (only) with Space tag', () => {
+        expect(descendantsToRender([{
+            type: 'paragraph',
+            children: [{ text: 'This is a test. ' }]
+        },
+        {
+            type: 'paragraph',
+            children: [
+                { text: 'With ' },
+                {
+                    children: [{ text: "link"}],
+                    to: "testFeature",
+                    type: "featureLink"
+                },
+                { text: ' ' }
+            ]
+        }])).toEqual([
+            { tag: 'String', value: 'This is a test.' },
+            { tag: 'LineBreak' },
+            { tag: 'String', value: 'With ' },
+            { tag: 'Link', to: 'testFeature', targetTag: 'Feature', text: 'link' },
+            { tag: 'Space' }
+        ])
+    })
+
     it('should decode a single-level condition', () => {
         expect(descendantsToRender([{
             type: 'paragraph',

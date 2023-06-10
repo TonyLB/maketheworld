@@ -98,9 +98,14 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
                         ]
                     }
                     if ('text' in item) {
-                        if ((accumulator.at(-1) || { tag: 'Space' }).tag === 'String') {
+                        const lastItem = previous.at(-1)
+                        if (lastItem && lastItem.tag === 'String') {
                             return [
-                                ...previous,
+                                ...previous.slice(0, -1),
+                                {
+                                    tag: 'String',
+                                    value: lastItem.value.trimEnd()
+                                },
                                 { tag: 'LineBreak' },
                                 {
                                     tag: 'String',
@@ -110,10 +115,12 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
                         }
                         return [
                             ...previous,
-                            {
-                                tag: 'String',
-                                value: item.text
-                            }
+                            item.text.trim()
+                                ? {
+                                    tag: 'String',
+                                    value: item.text
+                                }
+                                : { tag: 'Space' }
                         ]
                     }
                     return previous
