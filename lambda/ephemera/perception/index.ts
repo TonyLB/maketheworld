@@ -1,4 +1,4 @@
-import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage } from "../messageBus/baseClasses"
+import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { EphemeraCharacter } from "../cacheAsset/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
@@ -98,6 +98,16 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         onlyForAssets: assetsByMessageId[messageId]
                     })
                 }
+            })
+        }
+        else if (isPerceptionAssetMessage(payload)) {
+            const { rooms = [] } = (await internalCache.AssetRooms.get(payload.ephemeraId)) || {}
+            rooms.forEach((roomId) => {
+                messageBus.send({
+                    type: 'Perception',
+                    ephemeraId: roomId,
+                    header: true
+                })
             })
         }
         else if (isPerceptionRoomMessage(payload)) {

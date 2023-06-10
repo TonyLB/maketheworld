@@ -3,7 +3,7 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/dist/messages"
-import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
     EphemeraCharacterId,
@@ -206,6 +206,12 @@ export type FetchImportDefaultsMessage = {
     assetId: string;
 }
 
+export type PerceptionAssetMessage = {
+    type: 'Perception';
+    characterId?: EphemeraCharacterId;
+    ephemeraId: EphemeraAssetId;
+}
+
 export type PerceptionRoomMessage = {
     type: 'Perception';
     characterId?: EphemeraCharacterId;
@@ -238,8 +244,9 @@ export type PerceptionShowMoment = {
     ephemeraId: EphemeraMomentId;
 }
 
-export type PerceptionMessage = PerceptionRoomMessage | PerceptionComponentMessage | PerceptionMapMessage | PerceptionShowMessage | PerceptionShowMoment
+export type PerceptionMessage = PerceptionAssetMessage | PerceptionRoomMessage | PerceptionComponentMessage | PerceptionMapMessage | PerceptionShowMessage | PerceptionShowMoment
 
+export const isPerceptionAssetMessage = (message: PerceptionMessage): message is PerceptionAssetMessage => (isEphemeraAssetId(message.ephemeraId))
 export const isPerceptionRoomMessage = (message: PerceptionMessage): message is PerceptionRoomMessage => (isEphemeraRoomId(message.ephemeraId))
 export const isPerceptionComponentMessage = (message: PerceptionMessage): message is PerceptionComponentMessage => (isEphemeraFeatureId(message.ephemeraId) || isEphemeraCharacterId(message.ephemeraId) || isEphemeraKnowledgeId(message.ephemeraId))
 export const isPerceptionMapMessage = (message: PerceptionMessage): message is PerceptionMapMessage => (isEphemeraMapId(message.ephemeraId))

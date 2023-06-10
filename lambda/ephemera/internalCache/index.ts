@@ -15,6 +15,7 @@ import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import CachePlayerConnections from './playerConnections';
 import CacheAssetMeta from './assetMeta';
 import CachePlayerMeta from './playerMeta';
+import CacheAssetRooms from './assetRooms';
 
 type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
 
@@ -139,6 +140,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(ComponentMeta(AssetState(GraphCache(CachePlayerConnections(CacheCharacterConnections(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))))))))
+const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(ComponentMeta(AssetState(GraphCache(CachePlayerConnections(CacheCharacterConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase)))))))))))))
 export const internalCache = new InternalCache()
 export default internalCache

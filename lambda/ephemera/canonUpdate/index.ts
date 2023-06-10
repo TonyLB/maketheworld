@@ -3,7 +3,7 @@ import { CanonUpdateMessage, MessageBus } from "../messageBus/baseClasses";
 import { unique } from "@tonylb/mtw-utilities/dist/lists";
 import internalCache from "../internalCache";
 
-export const canonUpdateMessage = async ({ payloads }: { payloads: CanonUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
+export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: CanonUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     const { assets = [] } = await ephemeraDB.optimisticUpdate({
         key: {
             EphemeraId: 'Global',
@@ -19,7 +19,12 @@ export const canonUpdateMessage = async ({ payloads }: { payloads: CanonUpdateMe
         ReturnValues: 'UPDATED_NEW'
     })
     internalCache.Global.set({ key: 'assets', value: assets })
-    //
-    // TODO: RoomUpdate for all active characters
-    //
+    if (messageBus) {
+        payloads.forEach(({ assetId }) => {
+            messageBus.send({
+                type: 'Perception',
+                ephemeraId: assetId
+            })    
+        })
+    }
 }
