@@ -21,6 +21,19 @@ Array [
 ]
 `;
 
+exports[`descendantsFromRender should join a space element to text element 1`] = `
+Array [
+  Object {
+    "children": Array [
+      Object {
+        "text": "Test ",
+      },
+    ],
+    "type": "paragraph",
+  },
+]
+`;
+
 exports[`descendantsFromRender should render a single-level condition 1`] = `
 Array [
   Object {
@@ -62,6 +75,39 @@ Array [
     "children": Array [
       Object {
         "text": " and more text.",
+      },
+    ],
+    "type": "paragraph",
+  },
+]
+`;
+
+exports[`descendantsFromRender should render a space after a link in a second paragraph 1`] = `
+Array [
+  Object {
+    "children": Array [
+      Object {
+        "text": "Test",
+      },
+    ],
+    "type": "paragraph",
+  },
+  Object {
+    "children": Array [
+      Object {
+        "text": "Another ",
+      },
+      Object {
+        "children": Array [
+          Object {
+            "text": "test",
+          },
+        ],
+        "to": "testFeature",
+        "type": "featureLink",
+      },
+      Object {
+        "text": " ",
       },
     ],
     "type": "paragraph",

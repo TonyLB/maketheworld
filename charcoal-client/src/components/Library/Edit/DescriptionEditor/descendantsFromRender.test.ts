@@ -33,4 +33,21 @@ describe('descendantsFromRender', () => {
             { tag: 'String', value: ' and more text.' }
         ])).toMatchSnapshot()
     })
+
+    it('should join a space element to text element', () => {
+        expect(descendantsFromRender([
+            { tag: 'String', value: 'Test' },
+            { tag: 'Space' }
+        ])).toMatchSnapshot()
+    })
+
+    it('should render a space after a link in a second paragraph', () => {
+        expect(descendantsFromRender([
+            { tag: 'String', value: 'Test' },
+            { tag: 'LineBreak' },
+            { tag: 'String', value: 'Another ' },
+            { tag: 'Link', to: 'testFeature', targetTag: 'Feature', text: 'test' },
+            { tag: 'Space' }
+        ])).toMatchSnapshot()
+    })
 })
