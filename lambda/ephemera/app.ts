@@ -174,6 +174,20 @@ export const handler = async (event: any, context: any) => {
                         archived: event.detail.archived
                     })
                 }
+            case 'Canonize Asset':
+            case 'Decanonize Asset':
+                const { assetId } = event.detail
+                if (assetId) {
+                    messageBus.send({
+                        type: event["detail-type"] === 'Canonize Asset' ? 'CanonAdd' : 'CanonRemove',
+                        assetId: `ASSET#${assetId}`
+                    })
+                    await messageBus.flush()
+                    return await extractReturnValue(messageBus)
+                }
+                else {
+                    return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
+                }
         }
     }
     else if (routeKey === '$connect') {

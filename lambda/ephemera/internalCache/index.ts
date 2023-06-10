@@ -15,6 +15,7 @@ import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import CachePlayerConnections from './playerConnections';
 import CacheAssetMeta from './assetMeta';
 import CachePlayerMeta from './playerMeta';
+import CacheAssetRooms from './assetRooms';
 
 type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
 
@@ -111,13 +112,18 @@ export class CacheGlobalData {
 
     set(props: { key: 'ConnectionId' | 'RequestId', value: string; }): void
     set(props: { key: 'mapSubscriptions', value: MapSubscriptionConnection[] }): void
-    set(props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions', value: string | MapSubscriptionConnection[]; }): void {
-        const isMapSubscriptionEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions', value: string | MapSubscriptionConnection[]; }): props is { key: 'mapSubscriptions', value: MapSubscriptionConnection[] } => (props.key === 'mapSubscriptions')
-        const isNotMapSubscriptionEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions', value: string | MapSubscriptionConnection[]; }): props is { key: 'ConnectionId' | 'RequestId', value: string } => (props.key !== 'mapSubscriptions')
+    set(props: { key: 'assets', value: string[] }): void
+    set(props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions' | 'assets', value: string |  string[] | MapSubscriptionConnection[]; }): void {
+        const isMapSubscriptionEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions' | 'assets', value: string | string[] | MapSubscriptionConnection[]; }): props is { key: 'mapSubscriptions', value: MapSubscriptionConnection[] } => (props.key === 'mapSubscriptions')
+        const isAssetsEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions' | 'assets', value: string | string[] | MapSubscriptionConnection[]; }): props is { key: 'assets', value: string[] } => (props.key === 'assets')
+        const isPlainStringEntry = (props: { key: 'ConnectionId' | 'RequestId' | 'mapSubscriptions' | 'assets', value: string | string[] | MapSubscriptionConnection[]; }): props is { key: 'ConnectionId' | 'RequestId', value: string } => (props.key !== 'mapSubscriptions' && props.key !== 'assets')
         if (isMapSubscriptionEntry(props)) {
             this.mapSubscriptions = props.value
         }
-        if (isNotMapSubscriptionEntry(props)) {
+        if (isAssetsEntry(props)) {
+            this.assets = props.value
+        }
+        if (isPlainStringEntry(props)) {
             this[props.key] = props.value
         }
     }
@@ -134,6 +140,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(ComponentMeta(AssetState(GraphCache(CachePlayerConnections(CacheCharacterConnections(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))))))))
+const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(ComponentMeta(AssetState(GraphCache(CachePlayerConnections(CacheCharacterConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase)))))))))))))
 export const internalCache = new InternalCache()
 export default internalCache

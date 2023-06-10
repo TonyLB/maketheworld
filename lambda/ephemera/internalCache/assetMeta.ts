@@ -1,6 +1,5 @@
-import { EphemeraAssetId, EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
 
 export type AssetMetaItem = {
