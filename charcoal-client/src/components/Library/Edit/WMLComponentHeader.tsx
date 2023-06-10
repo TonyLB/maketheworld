@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback } from 'react'
+import { FunctionComponent, ReactChild, useCallback } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
 import { SxProps } from '@mui/material'
@@ -10,11 +10,12 @@ import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 interface WMLComponentHeaderProps {
     ItemId: string;
     onClick: () => void;
+    icon?: ReactChild;
     sx?: SxProps;
     selected?: boolean;
 }
 
-export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
+export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
     const primaryBase: AssetDataHeaderRenderFunction = ({ item, inheritedItem: defaultItem }) => {
         if (isNormalComponent(item)) {
             const aggregateName = item.appearances
@@ -31,7 +32,7 @@ export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({
     const secondary = useCallback(secondaryBase, [])
     return <AssetDataHeader
         ItemId={ItemId}
-        icon={<HomeIcon />}
+        icon={icon ?? <HomeIcon />}
         primary={primary}
         secondary={secondary}
         onClick={onClick}
