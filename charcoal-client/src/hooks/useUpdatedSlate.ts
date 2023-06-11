@@ -18,9 +18,6 @@ export const useUpdatedSlate = <T>({ initializeEditor, value, comparisonOutput }
         const incomingValue: Descendant[] = value.length ? value : [{ type: 'paragraph', children: [{ text: '' }] }]
         const diffDetected = !deepEqual(comparisonOutput(editor.children), comparisonOutput(incomingValue))
         if (diffDetected) {
-            console.log(`updateSlate`)
-            console.log(`current: ${JSON.stringify(editor.children, null, 4)}`)
-            console.log(`new: ${JSON.stringify(incomingValue, null, 4)}`)
             editor.children = incomingValue
             Editor.normalize(editor, { force: true })
             const previousSelection = editor.selection ? { ...editor.selection } : null

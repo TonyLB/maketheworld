@@ -48,6 +48,7 @@ import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
 import { LabelledIndentBox, SlateIndentBox } from '../LabelledIndentBox'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
+import withConstrainedWhitespace from './constrainedWhitespace'
 
 interface DescriptionEditorProps {
     ComponentId: string;
@@ -335,7 +336,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
-        initializeEditor: () => withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor()))))),
+        initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
         value: defaultValue,
         comparisonOutput: descendantsToRender
     })
