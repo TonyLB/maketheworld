@@ -11,6 +11,9 @@ type UseUpdatedSlateProps<T> = {
 export const useUpdatedSlate = <T>({ initializeEditor, value, comparisonOutput }: UseUpdatedSlateProps<T>) => {
     const [editor] = useState(initializeEditor())
     useEffect(() => {
+        Editor.normalize(editor, { force: true })
+    }, [editor])
+    useEffect(() => {
         //
         // Since slate-react doesn't seem to catch up to reactive changes in the value of a Slate
         // object, we need to manually reset the value on a change
