@@ -75,12 +75,12 @@ const slateToExitReducer = (roomId: string, currentElseConditions: NormalConditi
 
 const sortSchemaConditions = (conditionsA: SchemaConditionMixin["conditions"], conditionsB: SchemaConditionMixin["conditions"]): number => {
     if (conditionsA.length === 0 && conditionsB.length === 0) { return 0 }
-    if (conditionsA.length === 0) { return 1 }
-    if (conditionsB.length === 0) { return -1 }
+    if (conditionsA.length === 0) { return -1 }
+    if (conditionsB.length === 0) { return 1 }
     const compare = conditionsA[0].if.localeCompare(conditionsB[0].if)
     if (compare) { return compare }
-    if (!conditionsA[0].not && conditionsB[0].not) { return 1 }
-    if (conditionsA[0].not && !conditionsB[0].not) { return -1 }
+    if (!conditionsA[0].not && conditionsB[0].not) { return -1 }
+    if (conditionsA[0].not && !conditionsB[0].not) { return 1 }
     return sortSchemaConditions(conditionsA.slice(1), conditionsB.slice(1))
 }
 
