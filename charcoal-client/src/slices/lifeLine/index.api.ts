@@ -144,11 +144,12 @@ export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, 
             setupSocket.onmessage = (event) => {
                 const payload = JSON.parse(event.data || {})
                 const isEmptyClientMessage = (payload: any) => (Object.keys(payload).length === 0 || (Object.keys(payload).length === 1 && 'RequestId' in payload))
+                const isPongMessage = (payload: any) => ('type' in payload && payload.type === 'pong')
                 if (isEphemeraClientMessage(payload) || isAssetClientMessage(payload) || isCoordinationClientMessage(payload)) {
                     LifeLinePubSub.publish(payload)
                 }
                 else {
-                    if (!isEmptyClientMessage(payload)) {
+                    if (!(isEmptyClientMessage(payload) || isPongMessage(payload))) {
                         console.log(`INVALID MESSAGE: ${JSON.stringify(payload, null, 4)}`)
                     }
                 }
