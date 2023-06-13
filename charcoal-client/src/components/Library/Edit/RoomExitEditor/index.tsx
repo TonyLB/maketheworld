@@ -32,6 +32,7 @@ import useUpdatedSlate from "../../../../hooks/useUpdatedSlate"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 import { UpdateNormalPayload } from "../../../../slices/personalAssets/reducers"
 import duplicateExitTargets from "./duplicateExitTargets"
+import withExitWrapping from "./wrapExit"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -381,7 +382,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
     const [value, setValue] = useState(defaultValue)
     const comparisonOutput = useCallback((nodes: Descendant[]) => (generateNormalChanges({ nodes, normalForm, RoomId })), [normalForm, RoomId])
     const editor = useUpdatedSlate({
-        initializeEditor: () => withExits(RoomId)(withConditionals(withHistory(withReact(createEditor())))),
+        initializeEditor: () => withExitWrapping(RoomId)(withExits(RoomId)(withConditionals(withHistory(withReact(createEditor()))))),
         value: defaultValue,
         comparisonOutput
     })
