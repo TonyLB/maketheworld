@@ -49,9 +49,9 @@ export const LabelledIndentBox = React.forwardRef(<T extends LabelledIndentBoxPr
             }}
         >
             <span {...attributes} ref={ref}>
-                <InlineChromiumBugfix />
+                { slate && <InlineChromiumBugfix /> }
                 {children}
-                <InlineChromiumBugfix />
+                { slate && <InlineChromiumBugfix /> }
             </span>
         </Box>
         { actions && <Box

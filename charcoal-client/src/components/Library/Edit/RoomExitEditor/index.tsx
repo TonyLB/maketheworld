@@ -8,7 +8,7 @@ import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } f
 import { createEditor, Descendant, Editor, Transforms, Element as SlateElement } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, ReactEditor, RenderElementProps, Slate, useSlate, withReact } from "slate-react"
-import { reduceItemsToTree } from "../conditionTree"
+import { ConditionalTree, reduceItemsToTree } from "../conditionTree"
 import { useLibraryAsset } from "../LibraryAsset"
 import SlateIfElse, { AddIfButton } from "../SlateIfElse"
 import exitTreeToSlate from "./exitTreeToSlate"
@@ -33,6 +33,8 @@ import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 import { UpdateNormalPayload } from "../../../../slices/personalAssets/reducers"
 import duplicateExitTargets from "./duplicateExitTargets"
 import withExitWrapping from "./wrapExit"
+import { RoomExit } from "./baseClasses"
+import exitTreeToSchema from "./exitTreeToSchema"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -88,7 +90,7 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
     </FormControl>
 }
 
-const generateNormalChanges = ({ nodes, RoomId, normalForm }: { nodes: Descendant[]; RoomId: string; normalForm: NormalForm }) => {
+const generateNormalChanges = ({ tree, RoomId, normalForm }: { tree: ConditionalTree<RoomExit>; RoomId: string; normalForm: NormalForm }) => {
     let changes: UpdateNormalPayload[] = []
     const deleteReferences = Object.values(normalForm)
         .filter(isNormalExit)
@@ -106,7 +108,7 @@ const generateNormalChanges = ({ nodes, RoomId, normalForm }: { nodes: Descendan
             }
         ]
     }
-    const exitSchemaByRoomId = slateToExitSchema(nodes.filter(isCustomBlock))
+    const exitSchemaByRoomId = exitTreeToSchema(tree)
     Object.keys(exitSchemaByRoomId).forEach((lookupRoomId) => {
         const roomLookup = normalForm[lookupRoomId]
         if (roomLookup && isNormalRoom(roomLookup)) {
@@ -137,6 +139,9 @@ const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> 
             return []
         }
         const relevantExits = Object.values(importNormal)
+            //
+            // TODO: Abstract the similar translation function in the main component, and use it here, so you're not repeating yourself
+            //
             .filter(isNormalExit)
             .filter(({ to, from }) => (to === RoomId || from === RoomId))
             .reduce(reduceItemsToTree({
@@ -373,32 +378,29 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             .filter(isNormalExit)
             .filter(({ to, from }) => (to === RoomId || from === RoomId))
             .reduce(reduceItemsToTree({
-                compare: (A: string, B: string) => (A === B),
+                compare: ({ key: keyA }: RoomExit, { key: keyB }: RoomExit) => (keyA === keyB),
                 normalForm,
-                transform: ({ key }: NormalExit) => (key)
+                transform: ({ key, to, from, name }: NormalExit): RoomExit => ({ key, to, from, name: name ?? '' })
             }), { items: [], conditionals: [] })
         ), [normalForm, RoomId])
-    const defaultValue = useMemo(() => (exitTreeToSlate(normalForm)(relevantExits)), [normalForm, relevantExits])
-    const [value, setValue] = useState(defaultValue)
-    const comparisonOutput = useCallback((nodes: Descendant[]) => (generateNormalChanges({ nodes, normalForm, RoomId })), [normalForm, RoomId])
-    const editor = useUpdatedSlate({
-        initializeEditor: () => withExitWrapping(RoomId)(withExits(RoomId)(withConditionals(withHistory(withReact(createEditor()))))),
-        value: defaultValue,
-        comparisonOutput
-    })
-    //
-    // TODO: Abstract logic to generate normal changes into a generateChanges function that takes RoomId, normalForm, and nodes,
-    // and returns a list of updateNormal arguments
-    //
+    const [value, setValue] = useState(relevantExits)
+    // const comparisonOutput = useCallback((nodes: Descendant[]) => (generateNormalChanges({ nodes, normalForm, RoomId })), [normalForm, RoomId])
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
-        const changes = generateNormalChanges({ nodes, normalForm, RoomId })
-        changes.forEach((change) => {
-            updateNormal(change)
-        })
+        //
+        // TODO: Refactor generateNormalChanges to use ConditionTree<RoomExit> rather than Descendant[]
+        //
+
+        // const changes = generateNormalChanges({ nodes, normalForm, RoomId })
+        // changes.forEach((change) => {
+        //     updateNormal(change)
+        // })
     }, [RoomId, normalForm, updateNormal])
-    useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
+    // useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
+    //
+    // TODO: Replace Slate editor with IfElseComponent call
+    //
     return <Box sx={{
         display: 'flex',
         flexDirection: 'row',
@@ -431,7 +433,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             flexGrow: 1,
         }}>
             <InheritedExits importFrom={importFrom} RoomId={RoomId} />
-            <Slate editor={editor} value={value} onChange={setValue}>
+            {/* <Slate editor={editor} value={value} onChange={setValue}>
                 <Editable
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
@@ -450,7 +452,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                         cleanup={ifCleanup}
                     />
                 </Toolbar>
-            </Slate>
+            </Slate> */}
         </Box>
     </Box>
 }
