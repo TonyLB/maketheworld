@@ -25,7 +25,7 @@ import withConditionals from "../DescriptionEditor/conditionals"
 import slateToExitSchema from "./slateToExitTree"
 import { CustomExitBlock, isCustomBlock, isCustomExitBlock, isCustomParagraph } from "../baseClasses"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
-import { Button } from "@mui/material"
+import { Button, TextField } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { objectFilterEntries, objectMap } from "../../../../lib/objects"
 import useUpdatedSlate from "../../../../hooks/useUpdatedSlate"
@@ -367,6 +367,104 @@ export const withExits = (RoomId: string) => (editor: Editor): Editor => {
     return editor
 }
 
+type RoomExitComponentProps = RoomExit & {
+    RoomId: string;
+    setValue: (value: RoomExit) => void;
+    onDeleteHandler: () => void;
+    inherited: boolean;
+}
+
+const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, setValue, onDeleteHandler, inherited, from, to, name }) => {
+    const { readonly, rooms } = useLibraryAsset()
+    const AssetId = useMemo(() => (rooms[RoomId].importFrom), [rooms, RoomId])
+    const onFlipHandler = useCallback(() => {
+        if (!(readonly || inherited)) {
+            setValue({
+                key: `${to}#${from}`,
+                from: to,
+                to: from,
+                name
+            })
+        }
+    }, [readonly, inherited, setValue, from, to, name])
+    const onTargetHandler = useCallback(({ to, from }: { to: string, from: string }) => {
+        setValue({
+            key: `${from}#${to}`,
+            to,
+            from,
+            name
+        })
+    }, [name])
+    const onNameChange = useCallback((event) => {
+        setValue({
+            key: `${from}#${to}`,
+            from,
+            to,
+            name: event.target.value
+        })
+    }, [to, from])
+    const hereChip = <Chip icon={<FlipIcon />} label="here" onClick={onFlipHandler} />
+    const fromElement = (from === RoomId)
+        ? hereChip
+        : <ExitTargetSelector
+            RoomId={RoomId}
+            target={from}
+            inherited={inherited}
+            AssetId={AssetId}
+            onChange={(event) => { onTargetHandler({ to: RoomId, from: event.target.value })}}
+        />
+    const toElement = (to === RoomId)
+        ? hereChip
+        : <ExitTargetSelector
+            RoomId={RoomId}
+            target={to}
+            inherited={inherited}
+            AssetId={AssetId}
+            onChange={(event) => { onTargetHandler({ from: RoomId, to: event.target.value })}}
+        />
+    return <Box sx={{
+        width: "calc(100% - 0.5em)",
+        display: "inline-flex",
+        flexDirection: "row",
+        borderRadius: '0.5em',
+        padding: '0.1em',
+        margin: '0.25em',
+        alignItems: "center"
+    }}>
+        <Box sx={{ display: 'flex', marginRight: '0.5em' }} ><ExitIcon sx={{ fill: "grey" }} /></Box>
+        <Box sx={{
+            display: 'flex',
+            minWidth: '12em',
+            borderRadius: '0.25em',
+            borderStyle: "solid",
+            borderWidth: '0.5px',
+            borderColor: 'grey',
+            backgroundColor: "white",
+            padding: '0.1em',
+            paddingLeft: '0.25em',
+            paddingRight: '0.25em',
+        }}>
+            <TextField
+                required
+                id="exit-name"
+                label="Name"
+                value={name}
+                onChange={onNameChange}
+                disabled={readonly || inherited}
+            />
+        </Box>
+        <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}> from { fromElement } to { toElement }</Box>
+        { !inherited && <Box sx={{ display: 'flex' }} ><IconButton onClick={onDeleteHandler} disabled={readonly}><DeleteIcon /></IconButton></Box> }
+    </Box>
+}
+
+export const RoomExitTree: FunctionComponent<ConditionalTree<RoomExit>> = ({ items, conditionals }) => {
+    //
+    // TODO: Recursively render room exits and ifElse components
+    //
+    return null
+}
+
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
@@ -399,7 +497,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
     //
-    // TODO: Replace Slate editor with IfElseComponent call
+    // TODO: Replace Slate editor with RoomExitTree call
     //
     return <Box sx={{
         display: 'flex',
