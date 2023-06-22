@@ -76,6 +76,7 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
     return <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
         <InputLabel id="select-small">Target</InputLabel>
         <Select
+            sx={{ background: 'white' }}
             labelId="select-small"
             id="select-small"
             value={target}
@@ -437,19 +438,21 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
         <Box sx={{
             display: 'flex',
             minWidth: '12em',
-            borderRadius: '0.25em',
-            borderStyle: "solid",
-            borderWidth: '0.5px',
-            borderColor: 'grey',
-            backgroundColor: "white",
-            padding: '0.1em',
-            paddingLeft: '0.25em',
-            paddingRight: '0.25em',
+            // borderRadius: '0.25em',
+            // borderStyle: "solid",
+            // borderWidth: '0.5px',
+            // borderColor: 'grey',
+            // backgroundColor: "white",
+            // padding: '0.1em',
+            // paddingLeft: '0.25em',
+            // paddingRight: '0.25em',
         }}>
             <TextField
+                sx={{ background: 'white' }}
+                hiddenLabel
+                size="small"
                 required
                 id="exit-name"
-                label="Name"
                 value={name}
                 onChange={onNameChange}
                 disabled={readonly || inherited}
