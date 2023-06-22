@@ -5,9 +5,13 @@ import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, React
 import CodeEditor from "./CodeEditor"
 import { LabelledIndentBox } from "./LabelledIndentBox"
 
+import AddIcon from '@mui/icons-material/Add'
+import ExitIcon from '@mui/icons-material/CallMade'
+
 import { useLibraryAsset } from "./LibraryAsset"
 import { ConditionalTree, ConditionalTreeNode, ConditionalTreeSubNode } from "./conditionTree"
 import { toSpliced } from "../../../lib/lists"
+import { Button } from "@mui/material"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()
@@ -34,19 +38,30 @@ const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: stri
     />
 }
 
-type RenderType<T> = FunctionComponent<T & {
+type RenderType<T extends object> = FunctionComponent<T & {
     onChange: (value: T) => void;
     onDelete: () => void;
 }>
 
-type IfElseWrapBoxProps<T> = ConditionalTreeSubNode<T> & {
+const AddItemButton: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => {
+    const { readonly } = useLibraryAsset()
+    return <Button
+        variant="outlined"
+        disabled={readonly}
+        onClick={onClick}
+    >
+        <AddIcon /><ExitIcon />
+    </Button>
+}
+
+type IfElseWrapBoxProps<T extends object> = ConditionalTreeSubNode<T> & {
     type: 'if' | 'elseIf' | 'else';
     actions: ReactChild[] | ReactChildren;
     onChange: (value: ConditionalTreeSubNode<T>) => void;
     render: RenderType<T>;
 }
 
-const IfElseWrapBox = <T extends any>({ type, source, key, node, onChange, render, actions }: IfElseWrapBoxProps<T>) => (
+const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, render, actions }: IfElseWrapBoxProps<T>) => (
     <LabelledIndentBox
         color={blue}
         label={
@@ -80,41 +95,22 @@ const IfElseWrapBox = <T extends any>({ type, source, key, node, onChange, rende
         }
         actions={actions}
     >
-        {
-            //
-            // TODO: Add onChange function to render
-            //
-            node.items.map(render)
-        }
-        {
-            node.conditionals.map((subCondition, index) => (
-                <IfElse
-                    {...subCondition}
-                    render={render}
-                    onChange={(value) => {
-                        onChange({
-                            key,
-                            source,
-                            node: {
-                                ...node,
-                                conditionals: toSpliced(node.conditionals, index, 1, value)
-                            }
-                        })
-                    }}
-                />
-            ))
-        }
+        <IfElseTree
+            {...node}
+            onChange={(value: ConditionalTree<T>) => { onChange({ source, key, node: value }) }}
+            render={render}
+        />
     </LabelledIndentBox>
 )
 
-type IfElseSupplementalProps<T> = {
+type IfElseSupplementalProps<T extends object> = {
     onChange: (value: ConditionalTreeNode<T>) => void;
     render: RenderType<T>;
 }
 
-type IfElseProps<T> = ConditionalTree<T>["conditionals"][number] & IfElseSupplementalProps<T>
+type IfElseProps<T extends object> = ConditionalTreeNode<T> & IfElseSupplementalProps<T>
 
-export const IfElse = <T extends any>({ if: primary, elseIfs, else: elseItem, onChange, render }: IfElseProps<T>): ReactElement => {
+export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem, onChange, render }: IfElseProps<T>): ReactElement => {
     const IfElseWrapLocal = IfElseWrapBox<T>
     const actionFactory = useCallback((index: number) => ([
         <AddConditionalButton
@@ -208,4 +204,47 @@ export const IfElse = <T extends any>({ if: primary, elseIfs, else: elseItem, on
     </React.Fragment>
 }
 
-export default IfElse
+type IfElseTreeProps<T extends object> = ConditionalTree<T> & {
+    onChange: (value: ConditionalTree<T>) => void;
+    render: RenderType<T>;
+}
+
+export const IfElseTree = <T extends object>({ items, conditionals, onChange, render }: IfElseTreeProps<T>): ReactElement => {
+    return <React.Fragment>
+        {
+            items.map((item, index) => (render({
+                ...item,
+                key: `item${index}`,
+                onChange: (value) => {
+                    onChange({
+                        items: toSpliced(items, index, 1, value),
+                        conditionals
+                    })
+                },
+                onDelete: () => {
+                    onChange({
+                        items: toSpliced(items, index, 1),
+                        conditionals
+                    })
+                }
+            })))
+        }
+        {
+            conditionals.map((subCondition, index) => (
+                <IfElse
+                    {...subCondition}
+                    key={`condition${index}`}
+                    render={render}
+                    onChange={(value) => {
+                        onChange({
+                            items,
+                            conditionals: toSpliced(conditionals, index, 1, value)
+                        })
+                    }}
+                />
+            ))
+        }
+    </React.Fragment>
+}
+
+export default IfElseTree

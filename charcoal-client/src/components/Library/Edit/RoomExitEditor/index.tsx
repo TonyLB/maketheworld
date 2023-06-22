@@ -35,7 +35,7 @@ import duplicateExitTargets from "./duplicateExitTargets"
 import withExitWrapping from "./wrapExit"
 import { RoomExit } from "./baseClasses"
 import exitTreeToSchema from "./exitTreeToSchema"
-import IfElse from "../IfElseComponent"
+import IfElseTree from "../IfElseTree"
 import { toSpliced } from "../../../../lib/lists"
 
 type RoomExitEditorProps = {
@@ -296,88 +296,14 @@ const Element: FunctionComponent<RenderElementProps & { RoomId: string; inherite
     }
 }
 
-const wrapExitBlock = (editor: Editor, RoomId: string) => {
-    const block: CustomExitBlock = {
-        type: 'exit',
-        key: `${RoomId}#`,
-        from: RoomId,
-        to: '',
-        children: [{ text: '' }]
-    }
-    Transforms.insertNodes(editor, block)
-    Transforms.removeNodes(editor, { at: [], match: (node) => (SlateElement.isElement(node) && Editor.isBlock(editor, node) && isCustomParagraph(node))})
-}
-
-const AddExitButton: FunctionComponent<{ RoomId: string; }> = ({ RoomId }) => {
-    const editor = useSlate()
-    const { readonly } = useLibraryAsset()
-    const onClick = useCallback(() => {
-        wrapExitBlock(editor, RoomId)
-    }, [editor, RoomId])
-    return <Button
-        variant="outlined"
-        disabled={readonly}
-        onClick={onClick}
-    >
-        <AddIcon /><ExitIcon />
-    </Button>
-}
-
-export const withExits = (RoomId: string) => (editor: Editor): Editor => {
-    const { insertBreak, insertSoftBreak } = editor
-
-    editor.insertBreak = () => {
-        const { selection } = editor
-
-        if (selection) {
-            const [exit] = Editor.nodes(editor, {
-                match: n =>
-                !Editor.isEditor(n) &&
-                SlateElement.isElement(n) &&
-                (n.type === 'exit')
-            })
-        
-            if (exit) {
-                const [node, path] = exit
-                if (SlateElement.isElement(node) && isCustomBlock(node) && isCustomExitBlock(node)) {
-                    if (
-                        (node.from === RoomId && !duplicateExitTargets(editor, path, 'from').includes(node.to)) ||
-                        (node.to === RoomId && !duplicateExitTargets(editor, path, 'to').includes(node.from))
-                    ) {
-                        Transforms.insertNodes(editor, {
-                            children: [{text: ""}],
-                            type: 'exit',
-                            to: node.from,
-                            from: node.to,
-                            key: `${node.to}#${node.from}`
-                        })
-                        return
-                    }
-                    Transforms.insertNodes(editor, {
-                        children: [{text: ""}],
-                        type: 'exit',
-                        to: '',
-                        from: RoomId,
-                        key: `${RoomId}#`
-                    })
-                    return
-                }
-            }
-        }
-        insertBreak()
-    }
-
-    return editor
-}
-
 type RoomExitComponentProps = RoomExit & {
     RoomId: string;
     onChange: (value: RoomExit) => void;
     onDelete: () => void;
-    inherited: boolean;
+    inherited?: boolean;
 }
 
-const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, onChange, onDelete, inherited, from, to, name }) => {
+const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, onChange, onDelete, inherited = false, from, to, name }) => {
     const { readonly, rooms } = useLibraryAsset()
     const AssetId = useMemo(() => (rooms[RoomId].importFrom), [rooms, RoomId])
     const onFlipHandler = useCallback(() => {
@@ -437,15 +363,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
         <Box sx={{ display: 'flex', marginRight: '0.5em' }} ><ExitIcon sx={{ fill: "grey" }} /></Box>
         <Box sx={{
             display: 'flex',
-            minWidth: '12em',
-            // borderRadius: '0.25em',
-            // borderStyle: "solid",
-            // borderWidth: '0.5px',
-            // borderColor: 'grey',
-            // backgroundColor: "white",
-            // padding: '0.1em',
-            // paddingLeft: '0.25em',
-            // paddingRight: '0.25em',
+            minWidth: '12em'
         }}>
             <TextField
                 sx={{ background: 'white' }}
@@ -462,76 +380,6 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
         { !inherited && <Box sx={{ display: 'flex' }} ><IconButton onClick={onDelete} disabled={readonly}><DeleteIcon /></IconButton></Box> }
     </Box>
 }
-
-type RoomExitConditionalProps = ConditionalTreeNode<RoomExit> & {
-    RoomId: string;
-    inherited: boolean;
-    onChange: (value: ConditionalTreeNode<RoomExit>) => void;
-    onDelete: () => void;
-}
-
-export const RoomExitConditionals: FunctionComponent<RoomExitConditionalProps> = ({ RoomId, inherited, onChange, onDelete, if: ifItem, elseIfs, else: elseItem }) => (
-    <IfElse
-        if={ifItem}
-        elseIfs={elseIfs}
-        else={elseItem}
-        onChange={onChange}
-        render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} inherited={inherited} />)}
-    />
-)
-
-type RoomExitTreeProps = ConditionalTree<RoomExit> & {
-    RoomId: string;
-    inherited?: boolean;
-    onChange: (value: ConditionalTree<RoomExit>) => void;
-}
-
-export const RoomExitTree: FunctionComponent<RoomExitTreeProps> = ({ RoomId, inherited, items, conditionals, onChange }) => (
-    <React.Fragment>
-        {
-            items.map((props, index) => (
-                <RoomExitComponent
-                    {...props}
-                    RoomId={RoomId}
-                    inherited={Boolean(inherited)}
-                    onChange={(value) => {
-                        onChange({
-                            items: toSpliced(items, index, 1, value),
-                            conditionals
-                        })
-                    }}
-                    onDelete={() => {
-                        onChange({
-                            items: toSpliced(items, index, 1),
-                            conditionals
-                        })
-                    }}
-                />
-            ))
-        }
-        {
-            conditionals.map((props, index) => (
-                <RoomExitConditionals
-                    {...props}
-                    RoomId={RoomId}
-                    inherited={inherited}
-                    onChange={(value) => {
-                        onChange({
-                            items,
-                            conditionals: toSpliced(conditionals, index, 1, value)
-                        })
-                    }}
-                    onDelete={() => {
-                        onChange({
-                            items,
-                            conditionals: toSpliced(conditionals, index, 1)
-                        })
-                    }}
-                />
-            ))
-        }
-    </React.Fragment>
-)
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
@@ -595,10 +443,10 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             flexGrow: 1,
         }}>
             <InheritedExits importFrom={importFrom} RoomId={RoomId} />
-            <RoomExitTree
+            <IfElseTree
                 {...value}
-                RoomId={RoomId}
                 onChange={setValue}
+                render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} />)}
             />
         </Box>
     </Box>
