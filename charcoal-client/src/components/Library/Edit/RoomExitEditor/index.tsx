@@ -8,7 +8,7 @@ import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } f
 import { createEditor, Descendant, Editor, Transforms, Element as SlateElement } from "slate"
 import { withHistory } from "slate-history"
 import { Editable, ReactEditor, RenderElementProps, Slate, useSlate, withReact } from "slate-react"
-import { ConditionalTree, reduceItemsToTree } from "../conditionTree"
+import { ConditionalTree, ConditionalTreeNode, reduceItemsToTree } from "../conditionTree"
 import { useLibraryAsset } from "../LibraryAsset"
 import SlateIfElse, { AddIfButton } from "../SlateIfElse"
 import exitTreeToSlate from "./exitTreeToSlate"
@@ -35,6 +35,8 @@ import duplicateExitTargets from "./duplicateExitTargets"
 import withExitWrapping from "./wrapExit"
 import { RoomExit } from "./baseClasses"
 import exitTreeToSchema from "./exitTreeToSchema"
+import IfElse from "../IfElseComponent"
+import { toSpliced } from "../../../../lib/lists"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -369,26 +371,26 @@ export const withExits = (RoomId: string) => (editor: Editor): Editor => {
 
 type RoomExitComponentProps = RoomExit & {
     RoomId: string;
-    setValue: (value: RoomExit) => void;
-    onDeleteHandler: () => void;
+    onChange: (value: RoomExit) => void;
+    onDelete: () => void;
     inherited: boolean;
 }
 
-const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, setValue, onDeleteHandler, inherited, from, to, name }) => {
+const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, onChange, onDelete, inherited, from, to, name }) => {
     const { readonly, rooms } = useLibraryAsset()
     const AssetId = useMemo(() => (rooms[RoomId].importFrom), [rooms, RoomId])
     const onFlipHandler = useCallback(() => {
         if (!(readonly || inherited)) {
-            setValue({
+            onChange({
                 key: `${to}#${from}`,
                 from: to,
                 to: from,
                 name
             })
         }
-    }, [readonly, inherited, setValue, from, to, name])
+    }, [readonly, inherited, onChange, from, to, name])
     const onTargetHandler = useCallback(({ to, from }: { to: string, from: string }) => {
-        setValue({
+        onChange({
             key: `${from}#${to}`,
             to,
             from,
@@ -396,7 +398,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
         })
     }, [name])
     const onNameChange = useCallback((event) => {
-        setValue({
+        onChange({
             key: `${from}#${to}`,
             from,
             to,
@@ -454,23 +456,83 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
             />
         </Box>
         <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}> from { fromElement } to { toElement }</Box>
-        { !inherited && <Box sx={{ display: 'flex' }} ><IconButton onClick={onDeleteHandler} disabled={readonly}><DeleteIcon /></IconButton></Box> }
+        { !inherited && <Box sx={{ display: 'flex' }} ><IconButton onClick={onDelete} disabled={readonly}><DeleteIcon /></IconButton></Box> }
     </Box>
 }
 
-export const RoomExitTree: FunctionComponent<ConditionalTree<RoomExit>> = ({ items, conditionals }) => {
-    //
-    // TODO: Recursively render room exits and ifElse components
-    //
-    return null
+type RoomExitConditionalProps = ConditionalTreeNode<RoomExit> & {
+    RoomId: string;
+    inherited: boolean;
+    onChange: (value: ConditionalTreeNode<RoomExit>) => void;
+    onDelete: () => void;
 }
+
+export const RoomExitConditionals: FunctionComponent<RoomExitConditionalProps> = ({ RoomId, inherited, onChange, onDelete, if: ifItem, elseIfs, else: elseItem }) => (
+    <IfElse
+        if={ifItem}
+        elseIfs={elseIfs}
+        else={elseItem}
+        onChange={onChange}
+        render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} inherited={inherited} />)}
+    />
+)
+
+type RoomExitTreeProps = ConditionalTree<RoomExit> & {
+    RoomId: string;
+    inherited?: boolean;
+    onChange: (value: ConditionalTree<RoomExit>) => void;
+}
+
+export const RoomExitTree: FunctionComponent<RoomExitTreeProps> = ({ RoomId, inherited, items, conditionals, onChange }) => (
+    <React.Fragment>
+        {
+            items.map((props, index) => (
+                <RoomExitComponent
+                    {...props}
+                    RoomId={RoomId}
+                    inherited={Boolean(inherited)}
+                    onChange={(value) => {
+                        onChange({
+                            items: toSpliced(items, index, 1, value),
+                            conditionals
+                        })
+                    }}
+                    onDelete={() => {
+                        onChange({
+                            items: toSpliced(items, index, 1),
+                            conditionals
+                        })
+                    }}
+                />
+            ))
+        }
+        {
+            conditionals.map((props, index) => (
+                <RoomExitConditionals
+                    {...props}
+                    RoomId={RoomId}
+                    inherited={inherited}
+                    onChange={(value) => {
+                        onChange({
+                            items,
+                            conditionals: toSpliced(conditionals, index, 1, value)
+                        })
+                    }}
+                    onDelete={() => {
+                        onChange({
+                            items,
+                            conditionals: toSpliced(conditionals, index, 1)
+                        })
+                    }}
+                />
+            ))
+        }
+    </React.Fragment>
+)
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
-    const ifCleanup = useCallback((editor: Editor) => {
-        Transforms.removeNodes(editor, { at: [], match: (node) => (SlateElement.isElement(node) && Editor.isBlock(editor, node) && isCustomParagraph(node))})
-    }, [])
     const relevantExits = useMemo(() => (
         Object.values(normalForm)
             .filter(isNormalExit)
@@ -494,8 +556,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         // })
     }, [RoomId, normalForm, updateNormal])
     // useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
-    const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
-    const renderElement = useCallback(props => (<Element RoomId={RoomId} { ...props } />), [RoomId])
+
     //
     // TODO: Replace Slate editor with RoomExitTree call
     //
@@ -531,26 +592,11 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             flexGrow: 1,
         }}>
             <InheritedExits importFrom={importFrom} RoomId={RoomId} />
-            {/* <Slate editor={editor} value={value} onChange={setValue}>
-                <Editable
-                    renderElement={renderElement}
-                    renderLeaf={renderLeaf}
-                    readOnly={readonly || !value.find((item) => (isCustomBlock(item) && ["ifBase", "elseIf", "else", "exit"].includes(item.type))) }
-                />
-                <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                    <AddExitButton RoomId={RoomId} />
-                    <AddIfButton
-                        defaultBlock={{
-                            type: 'exit',
-                            key: `${RoomId}#`,
-                            from: RoomId,
-                            to: '',
-                            children: [{ text: '' }]
-                        }}
-                        cleanup={ifCleanup}
-                    />
-                </Toolbar>
-            </Slate> */}
+            <RoomExitTree
+                {...value}
+                RoomId={RoomId}
+                onChange={setValue}
+            />
         </Box>
     </Box>
 }

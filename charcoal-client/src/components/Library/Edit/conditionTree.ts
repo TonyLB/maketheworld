@@ -8,21 +8,16 @@ import { isNormalCondition, isNormalExit, NormalCondition, NormalConditionStatem
 import { deepEqual } from "../../../lib/objects";
 import { noConditionContext } from "./utilities";
 
-type ConditionalTreeNode<T> = {
-    if: {
-        key: string;
-        source: string;
-        node: ConditionalTree<T>;
-    };
-    elseIfs: {
-        key: string;
-        source: string;
-        node: ConditionalTree<T>;
-    }[];
-    else?: {
-        key: string;
-        node: ConditionalTree<T>;
-    }
+export type ConditionalTreeSubNode<T> = {
+    key: string;
+    source: string;
+    node: ConditionalTree<T>
+}
+
+export type ConditionalTreeNode<T> = {
+    if: ConditionalTreeSubNode<T>;
+    elseIfs: ConditionalTreeSubNode<T>[];
+    else?: Omit<ConditionalTreeSubNode<T>, 'source'>
 }
 
 export type ConditionalTree<T> = {

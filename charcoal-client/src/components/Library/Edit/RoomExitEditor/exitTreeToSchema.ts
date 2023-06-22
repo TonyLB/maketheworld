@@ -10,7 +10,7 @@ type ExitTree = ConditionalTree<RoomExit>
 const exitTreeToSourceRooms = (node: ExitTree): string[] => {
     return unique(
         node.items.map(({ from }) => (from)),
-        node.conditionals.map((conditional) => (unique(
+        ...node.conditionals.map((conditional) => (unique(
             exitTreeToSourceRooms(conditional.if.node),
             ...conditional.elseIfs.map(({ node }) => (exitTreeToSourceRooms(node))),
             conditional.else ? exitTreeToSourceRooms(conditional.else.node) : []

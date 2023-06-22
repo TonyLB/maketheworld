@@ -1,11 +1,13 @@
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import { blue } from "@mui/material/colors"
-import React, { FunctionComponent, useCallback, ReactChild, ReactChildren } from "react"
+import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, ReactElement } from "react"
 import CodeEditor from "./CodeEditor"
 import { LabelledIndentBox } from "./LabelledIndentBox"
 
 import { useLibraryAsset } from "./LibraryAsset"
+import { ConditionalTree, ConditionalTreeNode, ConditionalTreeSubNode } from "./conditionTree"
+import { toSpliced } from "../../../lib/lists"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()
@@ -32,14 +34,19 @@ const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: stri
     />
 }
 
-type IfElseWrapBoxProps = {
+type RenderType<T> = FunctionComponent<T & {
+    onChange: (value: T) => void;
+    onDelete: () => void;
+}>
+
+type IfElseWrapBoxProps<T> = ConditionalTreeSubNode<T> & {
     type: 'if' | 'elseIf' | 'else';
-    source: string;
-    onChange: (value: string) => void;
     actions: ReactChild[] | ReactChildren;
+    onChange: (value: ConditionalTreeSubNode<T>) => void;
+    render: RenderType<T>;
 }
 
-const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, onChange, actions, children }) => (
+const IfElseWrapBox = <T extends any>({ type, source, key, node, onChange, render, actions }: IfElseWrapBoxProps<T>) => (
     <LabelledIndentBox
         color={blue}
         label={
@@ -58,43 +65,77 @@ const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, on
                             minWidth: '1.5em'
                         }}
                     >
-                        <CodeEditor source={source} onChange={onChange} />
+                        <CodeEditor
+                            source={source}
+                            onChange={(source: string) => {
+                                onChange({
+                                    key,
+                                    node,
+                                    source
+                                })
+                            }}
+                        />
                     </Box>
                 </React.Fragment>
         }
         actions={actions}
     >
-        { children }
+        {
+            //
+            // TODO: Add onChange function to render
+            //
+            node.items.map(render)
+        }
+        {
+            node.conditionals.map((subCondition, index) => (
+                <IfElse
+                    {...subCondition}
+                    render={render}
+                    onChange={(value) => {
+                        onChange({
+                            key,
+                            source,
+                            node: {
+                                ...node,
+                                conditionals: toSpliced(node.conditionals, index, 1, value)
+                            }
+                        })
+                    }}
+                />
+            ))
+        }
     </LabelledIndentBox>
 )
 
-type IfElseConditional = {
-    source: string;
-    contents: ReactChild[] | ReactChildren;
+type IfElseSupplementalProps<T> = {
+    onChange: (value: ConditionalTreeNode<T>) => void;
+    render: RenderType<T>;
 }
 
-export type IfElseProps = {
-    primary: IfElseConditional;
-    elseIfs: IfElseConditional[];
-    elseItem?: ReactChild[] | ReactChildren
-}
+type IfElseProps<T> = ConditionalTree<T>["conditionals"][number] & IfElseSupplementalProps<T>
 
-export const IfElse: FunctionComponent<IfElseProps & { onChange: (props: IfElseProps) => void}> = ({ primary, elseIfs, elseItem, onChange }) => {
+export const IfElse = <T extends any>({ if: primary, elseIfs, else: elseItem, onChange, render }: IfElseProps<T>): ReactElement => {
+    const IfElseWrapLocal = IfElseWrapBox<T>
     const actionFactory = useCallback((index: number) => ([
         <AddConditionalButton
             label="Else If"
             onClick={() => {
                 onChange({
-                    primary,
-                    elseIfs: [
-                        ...elseIfs.slice(0, index),
+                    if: primary,
+                    elseIfs: toSpliced(
+                        elseIfs,
+                        index,
+                        0,
                         {
+                            key: '',
                             source: '',
-                            contents: []
-                        },
-                        ...elseIfs.slice(index)
-                    ],
-                    elseItem
+                            node: {
+                                items: [],
+                                conditionals: []
+                            }
+                        }
+                    ),
+                    else: elseItem
                 })
             }}
         />,
@@ -103,61 +144,64 @@ export const IfElse: FunctionComponent<IfElseProps & { onChange: (props: IfElseP
                 label="Else"
                 onClick={() => {
                     onChange({
-                        primary,
+                        if: primary,
                         elseIfs,
-                        elseItem: []
+                        else: {
+                            key: '',
+                            node: {
+                                items: [],
+                                conditionals: []
+                            }
+                        }
                     })
                 }}
             />
         ])
     ]), [primary, elseIfs, elseItem, onChange])
     return <React.Fragment>
-        <IfElseWrapBox
+        <IfElseWrapLocal
             type='if'
-            source={primary.source}
+            { ...primary }
             onChange={(value) => {
                 onChange({
-                    primary: {
-                        ...primary,
-                        source: value
-                    },
+                    if: value,
                     elseIfs,
-                    elseItem
+                    else: elseItem
                 })
             }}
-            children={primary.contents}
+            render={render}
             actions={actionFactory(0)}
         />
         {
-            elseIfs.map(({ source, contents }, index) => (
-                <IfElseWrapBox
+            elseIfs.map((elseIf, index) => (
+                <IfElseWrapLocal
                     type='elseIf'
-                    source={source}
+                    { ...elseIf }
                     onChange={(value) => {
                         onChange({
-                            primary,
-                            elseIfs: [
-                                ...elseIfs.slice(0, index - 1),
-                                {
-                                    ...elseIfs[index],
-                                    source: value
-                                },
-                                ...elseIfs.slice(index + 1)
-                            ],
-                            elseItem
+                            if: primary,
+                            elseIfs: toSpliced(elseIfs, index, 1, value),
+                            else: elseItem
                         })
                     }}
-                    children={contents}
+                    render={render}
                     actions={actionFactory(index + 1)}
                 />
             ))
         }
         {
-            elseItem && <IfElseWrapBox
+            elseItem && <IfElseWrapLocal
                 type='else'
+                { ...elseItem }
                 source=''
-                onChange={() => {}}
-                children={elseItem}
+                onChange={(value) => {
+                    onChange({
+                        if: primary,
+                        elseIfs,
+                        else: value
+                    })
+                }}
+                render={render}
                 actions={[]}
             />
         }
