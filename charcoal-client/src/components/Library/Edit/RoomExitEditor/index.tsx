@@ -447,6 +447,8 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                 {...value}
                 onChange={setValue}
                 render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} />)}
+                addItemIcon={<ExitIcon />}
+                defaultItem={{ key: `${RoomId}#`, from: RoomId, to: '', name: '' }}
             />
         </Box>
     </Box>

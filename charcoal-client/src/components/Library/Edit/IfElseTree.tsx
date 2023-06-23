@@ -11,7 +11,7 @@ import ExitIcon from '@mui/icons-material/CallMade'
 import { useLibraryAsset } from "./LibraryAsset"
 import { ConditionalTree, ConditionalTreeNode, ConditionalTreeSubNode } from "./conditionTree"
 import { toSpliced } from "../../../lib/lists"
-import { Button } from "@mui/material"
+import { Button, Stack } from "@mui/material"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()
@@ -43,14 +43,14 @@ type RenderType<T extends object> = FunctionComponent<T & {
     onDelete: () => void;
 }>
 
-const AddItemButton: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => {
+const AddItemButton: FunctionComponent<{ onClick: () => void, addItemIcon: ReactElement }> = ({ onClick, addItemIcon }) => {
     const { readonly } = useLibraryAsset()
     return <Button
         variant="outlined"
         disabled={readonly}
         onClick={onClick}
     >
-        <AddIcon /><ExitIcon />
+        <AddIcon />{ addItemIcon }
     </Button>
 }
 
@@ -59,9 +59,11 @@ type IfElseWrapBoxProps<T extends object> = ConditionalTreeSubNode<T> & {
     actions: ReactChild[] | ReactChildren;
     onChange: (value: ConditionalTreeSubNode<T>) => void;
     render: RenderType<T>;
+    defaultItem: T;
+    addItemIcon: ReactElement;
 }
 
-const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, render, actions }: IfElseWrapBoxProps<T>) => (
+const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, render, actions, defaultItem, addItemIcon }: IfElseWrapBoxProps<T>) => (
     <LabelledIndentBox
         color={blue}
         label={
@@ -99,6 +101,8 @@ const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, re
             {...node}
             onChange={(value: ConditionalTree<T>) => { onChange({ source, key, node: value }) }}
             render={render}
+            defaultItem={defaultItem}
+            addItemIcon={addItemIcon}
         />
     </LabelledIndentBox>
 )
@@ -106,14 +110,17 @@ const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, re
 type IfElseSupplementalProps<T extends object> = {
     onChange: (value: ConditionalTreeNode<T>) => void;
     render: RenderType<T>;
+    defaultItem: T;
+    addItemIcon: ReactElement;
 }
 
 type IfElseProps<T extends object> = ConditionalTreeNode<T> & IfElseSupplementalProps<T>
 
-export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem, onChange, render }: IfElseProps<T>): ReactElement => {
+export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem, onChange, render, defaultItem, addItemIcon }: IfElseProps<T>): ReactElement => {
     const IfElseWrapLocal = IfElseWrapBox<T>
     const actionFactory = useCallback((index: number) => ([
         <AddConditionalButton
+            key={`else-If-${index}`}
             label="Else If"
             onClick={() => {
                 onChange({
@@ -137,6 +144,7 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
         />,
         ...((typeof elseItem !== 'undefined') ? [] : [
             <AddConditionalButton
+                key={`else-${index}`}
                 label="Else"
                 onClick={() => {
                     onChange({
@@ -167,6 +175,8 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
             }}
             render={render}
             actions={actionFactory(0)}
+            defaultItem={defaultItem}
+            addItemIcon={addItemIcon}
         />
         {
             elseIfs.map((elseIf, index) => (
@@ -182,6 +192,8 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
                     }}
                     render={render}
                     actions={actionFactory(index + 1)}
+                    defaultItem={defaultItem}
+                    addItemIcon={addItemIcon}
                 />
             ))
         }
@@ -199,6 +211,8 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
                 }}
                 render={render}
                 actions={[]}
+                defaultItem={defaultItem}
+                addItemIcon={addItemIcon}
             />
         }
     </React.Fragment>
@@ -207,9 +221,11 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
 type IfElseTreeProps<T extends object> = ConditionalTree<T> & {
     onChange: (value: ConditionalTree<T>) => void;
     render: RenderType<T>;
+    defaultItem: T;
+    addItemIcon: ReactElement;
 }
 
-export const IfElseTree = <T extends object>({ items, conditionals, onChange, render }: IfElseTreeProps<T>): ReactElement => {
+export const IfElseTree = <T extends object>({ items, conditionals, onChange, render, defaultItem, addItemIcon }: IfElseTreeProps<T>): ReactElement => {
     return <React.Fragment>
         {
             items.map((item, index) => (render({
@@ -221,6 +237,9 @@ export const IfElseTree = <T extends object>({ items, conditionals, onChange, re
                         conditionals
                     })
                 },
+                //
+                // TODO: Fix onDelete bug deleting too many exits
+                //
                 onDelete: () => {
                     onChange({
                         items: toSpliced(items, index, 1),
@@ -241,10 +260,39 @@ export const IfElseTree = <T extends object>({ items, conditionals, onChange, re
                             conditionals: toSpliced(conditionals, index, 1, value)
                         })
                     }}
+                    defaultItem={defaultItem}
+                    addItemIcon={addItemIcon}
                 />
             ))
         }
+        <Stack direction="row" spacing={2}>
+            <AddItemButton
+                addItemIcon={addItemIcon}
+                onClick={() => {
+                    onChange({
+                        items: [...items, { ...defaultItem }],
+                        conditionals
+                    })
+                }}
+            />
+            <AddItemButton
+                addItemIcon={<React.Fragment>If</React.Fragment>}
+                onClick={() => {
+                    onChange({
+                        items,
+                        conditionals: [
+                            ...conditionals,
+                            { if: { key: '', source: '', node: { items: [], conditionals: [] }}, elseIfs:[] }
+                        ]
+                    })
+                }}
+            />
+
+        </Stack>
     </React.Fragment>
+    //
+    // TODO: Add "AddItem" and "AddConditional" buttons in IfElseTree
+    //
 }
 
 export default IfElseTree
