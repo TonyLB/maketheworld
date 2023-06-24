@@ -237,9 +237,6 @@ export const IfElseTree = <T extends object>({ items, conditionals, onChange, re
                         conditionals
                     })
                 },
-                //
-                // TODO: Fix onDelete bug deleting too many exits
-                //
                 onDelete: () => {
                     onChange({
                         items: toSpliced(items, index, 1),

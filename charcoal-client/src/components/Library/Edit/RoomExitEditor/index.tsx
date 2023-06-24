@@ -323,7 +323,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
             from,
             name
         })
-    }, [name])
+    }, [name, onChange])
     const onNameChange = useCallback((event) => {
         onChange({
             key: `${from}#${to}`,
@@ -331,7 +331,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
             to,
             name: event.target.value
         })
-    }, [to, from])
+    }, [to, from, onChange])
     const hereChip = <Chip icon={<FlipIcon />} label="here" onClick={onFlipHandler} />
     const fromElement = (from === RoomId)
         ? hereChip
@@ -444,7 +444,8 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         }}>
             <InheritedExits importFrom={importFrom} RoomId={RoomId} />
             <IfElseTree
-                {...value}
+                items={value.items}
+                conditionals={value.conditionals}
                 onChange={setValue}
                 render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} />)}
                 addItemIcon={<ExitIcon />}
