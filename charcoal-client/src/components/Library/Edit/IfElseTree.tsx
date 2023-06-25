@@ -58,12 +58,13 @@ type IfElseWrapBoxProps<T extends object> = ConditionalTreeSubNode<T> & {
     type: 'if' | 'elseIf' | 'else';
     actions: ReactChild[] | ReactChildren;
     onChange: (value: ConditionalTreeSubNode<T>) => void;
+    onDelete?: () => void;
     render: RenderType<T>;
     defaultItem: T;
     addItemIcon: ReactElement;
 }
 
-const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, render, actions, defaultItem, addItemIcon }: IfElseWrapBoxProps<T>) => (
+const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, onDelete, render, actions, defaultItem, addItemIcon }: IfElseWrapBoxProps<T>) => (
     <LabelledIndentBox
         color={blue}
         label={
@@ -96,6 +97,7 @@ const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, re
                 </React.Fragment>
         }
         actions={actions}
+        onDelete={onDelete}
     >
         <IfElseTree
             items={node.items}
@@ -195,6 +197,13 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
                             else: elseItem
                         })
                     }}
+                    onDelete={() => {
+                        onChange({
+                            if: primary,
+                            elseIfs: toSpliced(elseIfs, index, 1),
+                            else: elseItem
+                        })
+                    }}
                     render={render}
                     actions={actionFactory(index + 1)}
                     defaultItem={defaultItem}
@@ -212,6 +221,12 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
                         if: primary,
                         elseIfs,
                         else: value
+                    })
+                }}
+                onDelete={() => {
+                    onChange({
+                        if: primary,
+                        elseIfs
                     })
                 }}
                 render={render}
