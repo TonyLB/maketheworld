@@ -54,7 +54,8 @@ const AddItemButton: FunctionComponent<{ onClick: () => void, addItemIcon: React
     </Button>
 }
 
-type IfElseWrapBoxProps<T extends object> = ConditionalTreeSubNode<T> & {
+type IfElseWrapBoxProps<T extends object> = Omit<ConditionalTreeSubNode<T>, 'key'> & {
+    nodeKey: string;
     type: 'if' | 'elseIf' | 'else';
     actions: ReactChild[] | ReactChildren;
     onChange: (value: ConditionalTreeSubNode<T>) => void;
@@ -64,7 +65,7 @@ type IfElseWrapBoxProps<T extends object> = ConditionalTreeSubNode<T> & {
     addItemIcon: ReactElement;
 }
 
-const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, onDelete, render, actions, defaultItem, addItemIcon }: IfElseWrapBoxProps<T>) => (
+const IfElseWrapBox = <T extends object>({ type, source, node, nodeKey, onChange, onDelete, render, actions, defaultItem, addItemIcon }: IfElseWrapBoxProps<T>) => (
     <LabelledIndentBox
         color={blue}
         label={
@@ -87,7 +88,7 @@ const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, on
                             source={source}
                             onChange={(source: string) => {
                                 onChange({
-                                    key,
+                                    key: nodeKey,
                                     node,
                                     source
                                 })
@@ -102,7 +103,7 @@ const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, on
         <IfElseTree
             items={node.items}
             conditionals={node.conditionals}
-            onChange={(value: ConditionalTree<T>) => { onChange({ source, key, node: value }) }}
+            onChange={(value: ConditionalTree<T>) => { onChange({ source, key: nodeKey, node: value }) }}
             render={render}
             defaultItem={defaultItem}
             addItemIcon={addItemIcon}
@@ -173,7 +174,9 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
     return <React.Fragment>
         <IfElseWrapLocal
             type='if'
-            { ...primary }
+            nodeKey={primary.key}
+            source={primary.source}
+            node={primary.node}
             onChange={(value) => {
                 onChange({
                     if: value,
@@ -201,8 +204,11 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
         {
             elseIfs.map((elseIf, index) => (
                 <IfElseWrapLocal
+                    key={`elseIf-${index}`}
                     type='elseIf'
-                    { ...elseIf }
+                    nodeKey={elseIf.key}
+                    source={elseIf.source}
+                    node={elseIf.node}
                     onChange={(value) => {
                         onChange({
                             if: primary,
@@ -227,8 +233,9 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
         {
             elseItem && <IfElseWrapLocal
                 type='else'
-                { ...elseItem }
+                nodeKey={elseItem.key}
                 source=''
+                node={elseItem.node}
                 onChange={(value) => {
                     onChange({
                         if: primary,
