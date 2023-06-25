@@ -98,7 +98,8 @@ const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, re
         actions={actions}
     >
         <IfElseTree
-            {...node}
+            items={node.items}
+            conditionals={node.conditionals}
             onChange={(value: ConditionalTree<T>) => { onChange({ source, key, node: value }) }}
             render={render}
             defaultItem={defaultItem}
@@ -117,6 +118,10 @@ type IfElseSupplementalProps<T extends object> = {
 type IfElseProps<T extends object> = ConditionalTreeNode<T> & IfElseSupplementalProps<T>
 
 export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem, onChange, render, defaultItem, addItemIcon }: IfElseProps<T>): ReactElement => {
+    //
+    // TODO: Add onDelete argument to IfElse, and deleteIcon to display (using onChange to change the structure if deleting an elseIf, or else, or an If with elseIfs),
+    // and onDelete to delete the entire conditional if needed
+    //
     const IfElseWrapLocal = IfElseWrapBox<T>
     const actionFactory = useCallback((index: number) => ([
         <AddConditionalButton

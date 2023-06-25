@@ -201,7 +201,6 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
 
 const useExitTree = (normalForm: NormalForm, RoomId: string) => {
     return useMemo(() => {
-        console.log(`useExitTree normal form: ${JSON.stringify(normalForm, null, 4)}`)
         return Object.values(normalForm || {})
             .filter(isNormalExit)
             .filter(({ to, from }) => (to === RoomId || from === RoomId))
@@ -236,22 +235,19 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
     const relevantExits = useExitTree(normalForm, RoomId)
     const [value, setValue] = useState(relevantExits)
-    // const comparisonOutput = useCallback((nodes: Descendant[]) => (generateNormalChanges({ nodes, normalForm, RoomId })), [normalForm, RoomId])
-    const onChangeHandler = useCallback((nodes: Descendant[]) => {
-        //
-        // TODO: Refactor generateNormalChanges to use ConditionTree<RoomExit> rather than Descendant[]
-        //
-
-        // const changes = generateNormalChanges({ nodes, normalForm, RoomId })
-        // changes.forEach((change) => {
-        //     updateNormal(change)
-        // })
+    const onChangeHandler = useCallback((tree: ConditionalTree<RoomExit>) => {
+        const changes = generateNormalChanges({ tree, normalForm, RoomId })
+        changes.forEach((change) => {
+            updateNormal(change)
+        })
     }, [RoomId, normalForm, updateNormal])
-    // useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
+    useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
+    // const comparisonOutput = useCallback((tree: ConditionalTree<RoomExit>) => (generateNormalChanges({ tree, normalForm, RoomId })), [normalForm, RoomId])
+    //
+    // TODO: Create a useEffect hook to update the state to match relevantExits when relevantExits changes in a way that has a differential between
+    // the current state and the state coming in from the normalForm
+    //
 
-    //
-    // TODO: Replace Slate editor with RoomExitTree call
-    //
     return <Box sx={{
         display: 'flex',
         flexDirection: 'row',
