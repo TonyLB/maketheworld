@@ -112,6 +112,7 @@ const IfElseWrapBox = <T extends object>({ type, source, key, node, onChange, on
 
 type IfElseSupplementalProps<T extends object> = {
     onChange: (value: ConditionalTreeNode<T>) => void;
+    onDelete: () => void;
     render: RenderType<T>;
     defaultItem: T;
     addItemIcon: ReactElement;
@@ -119,7 +120,7 @@ type IfElseSupplementalProps<T extends object> = {
 
 type IfElseProps<T extends object> = ConditionalTreeNode<T> & IfElseSupplementalProps<T>
 
-export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem, onChange, render, defaultItem, addItemIcon }: IfElseProps<T>): ReactElement => {
+export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem, onChange, onDelete, render, defaultItem, addItemIcon }: IfElseProps<T>): ReactElement => {
     //
     // TODO: Add onDelete argument to IfElse, and deleteIcon to display (using onChange to change the structure if deleting an elseIf, or else, or an If with elseIfs),
     // and onDelete to delete the entire conditional if needed
@@ -179,6 +180,18 @@ export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem,
                     elseIfs,
                     else: elseItem
                 })
+            }}
+            onDelete={() => {
+                if (elseIfs.length) {
+                    onChange({
+                        if: elseIfs[0],
+                        elseIfs: elseIfs.slice(1),
+                        else: elseItem
+                    })
+                }
+                else {
+                    onDelete()
+                }
             }}
             render={render}
             actions={actionFactory(0)}
@@ -275,6 +288,12 @@ export const IfElseTree = <T extends object>({ items, conditionals, onChange, re
                         onChange({
                             items,
                             conditionals: toSpliced(conditionals, index, 1, value)
+                        })
+                    }}
+                    onDelete={() => {
+                        onChange({
+                            items,
+                            conditionals: toSpliced(conditionals, index, 1)
                         })
                     }}
                     defaultItem={defaultItem}
