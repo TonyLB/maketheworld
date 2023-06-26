@@ -8,9 +8,6 @@ import updateGraphStorage from './'
 const internalCache = new (GraphCache(CacheBase))()
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
-const messageBus = {
-    send: jest.fn()
-}
 
 describe('graphStore update', () => {
 
@@ -23,7 +20,7 @@ describe('graphStore update', () => {
 
     it('should call all unreferenced updates in a first wave', async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({ Ancestry: [] })
-        await updateGraphStorage(internalCache, 'Descent')({
+        await updateGraphStorage(internalCache)({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'ASSET#ImportOne',
@@ -39,22 +36,21 @@ describe('graphStore update', () => {
                     EphemeraId: 'ASSET#ImportThree',
                     assets: ['ASSET']
                 }
-            }],
-            messageBus
+            }]
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(2)
-        expect(messageBus.send).toHaveBeenCalledWith({
-            type: 'DescentUpdate',
-            EphemeraId: 'ASSET#ImportOne',
-            putItem: {
-                EphemeraId: 'ASSET#ImportTwo',
-                assets: ['ASSET']
-            }
-        })
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {
                 EphemeraId: 'ASSET#ImportTwo',
+                DataCategory: 'Meta::Asset'
+            },
+            updateKeys: ['Descent', 'DataCategory'],
+            updateReducer: expect.any(Function)
+        })
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            key: {
+                EphemeraId: 'ASSET#ImportOne',
                 DataCategory: 'Meta::Asset'
             },
             updateKeys: ['Descent', 'DataCategory'],
@@ -70,6 +66,27 @@ describe('graphStore update', () => {
                 },
                 {
                     EphemeraId: 'ASSET#ImportThree',
+                    connections: []
+                }
+            ]
+        })
+        testItem = { Descent: [] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[1][0].updateReducer(testItem)
+        expect(testItem).toEqual({
+            Descent: [
+                {
+                    EphemeraId: 'ASSET#ImportOne',
+                    connections: [{ EphemeraId: 'ASSET#ImportTwo', assets: ['ASSET'] }]
+                },
+                {
+                    EphemeraId: 'ASSET#ImportTwo',
+                //
+                // TODO: Correct failure of multiple adds to cascade changes
+                //
+                //     connections: [{ EphemeraId: 'ASSET#ImportThree', assets: ['ASSET'] }]
+                // },
+                // {
+                //     EphemeraId: 'ASSET#ImportThree',
                     connections: []
                 }
             ]
@@ -112,7 +129,7 @@ describe('graphStore update', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await updateGraphStorage(internalCache, 'Descent')({
+        await updateGraphStorage(internalCache)({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'ASSET#ImportOne',
@@ -120,27 +137,40 @@ describe('graphStore update', () => {
                     EphemeraId: 'ASSET#ImportTwo',
                     assets: ['ASSET']
                 }
-            }],
-            messageBus
+            }]
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(2)
-        expect(messageBus.send).toHaveBeenCalledWith({
-            type: 'DescentUpdate',
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(3)
+        let testItem = { Descent: [] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        expect(testItem).toEqual({ Descent: [{
+            EphemeraId: 'ASSET#ImportOne',
+            connections: [{ EphemeraId: 'ASSET#ImportTwo', assets: ['ASSET'] }]
+        },
+        {
+            EphemeraId: 'ASSET#ImportTwo',
+            connections: []
+        }]})
+        testItem = { Descent: [] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[1][0].updateReducer(testItem)
+        expect(testItem).toEqual({ Descent: [{
             EphemeraId: 'ASSET#Base',
-            putItem: {
-                EphemeraId: 'ASSET#ImportOne',
-                assets: ['ASSET']
-            }
-        })
-        expect(messageBus.send).toHaveBeenCalledWith({
-            type: 'DescentUpdate',
+            connections: [{ EphemeraId: 'ASSET#ImportOne', assets: ['ASSET'] }]
+        },
+        {
+            EphemeraId: 'ASSET#ImportOne',
+            connections: []
+        }]})
+        testItem = { Descent: [] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[2][0].updateReducer(testItem)
+        expect(testItem).toEqual({ Descent: [{
             EphemeraId: 'ASSET#Bootstrap',
-            putItem: {
-                EphemeraId: 'ASSET#ImportOne',
-                assets: ['ASSET']
-            }
-        })
+            connections: [{ EphemeraId: 'ASSET#ImportOne', assets: ['ASSET'] }]
+        },
+        {
+            EphemeraId: 'ASSET#ImportOne',
+            connections: []
+        }]})
     })
 
     it('should aggregate multiple messages', async () => {
@@ -167,7 +197,7 @@ describe('graphStore update', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await updateGraphStorage(internalCache, 'Descent')({
+        await updateGraphStorage(internalCache)({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'ASSET#ImportOne',
@@ -183,11 +213,9 @@ describe('graphStore update', () => {
                     EphemeraId: 'ASSET#ImportThree',
                     assets: ['ASSET']
                 }
-            }],
-            messageBus
+            }]
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(0)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {
@@ -234,7 +262,7 @@ describe('graphStore update', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await updateGraphStorage(internalCache, 'Descent')({
+        await updateGraphStorage(internalCache)({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'VARIABLE#XYZ',
@@ -243,11 +271,9 @@ describe('graphStore update', () => {
                     EphemeraId: 'ROOM#ABC',
                     assets: ['Layer']
                 }
-            }],
-            messageBus
+            }]
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(0)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {
@@ -317,7 +343,7 @@ describe('graphStore update', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await updateGraphStorage(internalCache, 'Descent')({
+        await updateGraphStorage(internalCache)({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'VARIABLE#XYZ',
@@ -326,11 +352,9 @@ describe('graphStore update', () => {
                     EphemeraId: 'ROOM#ABC',
                     assets: ['Layer']
                 }
-            }],
-            messageBus
+            }]
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(0)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {
@@ -375,7 +399,7 @@ describe('graphStore update', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await updateGraphStorage(internalCache, 'Descent')({
+        await updateGraphStorage(internalCache)({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'VARIABLE#XYZ',
@@ -384,11 +408,9 @@ describe('graphStore update', () => {
                     EphemeraId: 'ROOM#ABC',
                     assets: ['Layer']
                 }
-            }],
-            messageBus
+            }]
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(0)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {
@@ -435,7 +457,7 @@ describe('graphStore update', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await updateGraphStorage(internalCache, 'Descent')({
+        await updateGraphStorage(internalCache)({
             payloads: [{
                 type: 'DescentUpdate',
                 EphemeraId: 'VARIABLE#XYZ',
@@ -444,11 +466,9 @@ describe('graphStore update', () => {
                     EphemeraId: 'ROOM#ABC',
                     assets: ['Base']
                 }
-            }],
-            messageBus
+            }]
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(0)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {

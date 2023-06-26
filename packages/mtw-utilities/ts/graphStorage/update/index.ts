@@ -25,104 +25,125 @@ const getAntiDependency = <C extends InstanceType<ReturnType<typeof GraphCache<t
     }
 }
 
-export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>>(internalCache: C, dependencyTag: 'Descent' | 'Ancestry') => async ({ payloads, messageBus }: { payloads: (DescentUpdateMessage | AncestryUpdateMessage)[]; messageBus: { send: (item: any) => void} }): Promise<void> => {
-    const payloadActions = payloads.map<DependencyGraphAction>(({ type, ...rest }) => (rest))
-    internalCache[dependencyTag].put(payloadActions
-        .filter(isDependencyGraphPut)
-        .map(({ EphemeraId, putItem }): DependencyNode => ({
-            EphemeraId,
-            completeness: 'Partial',
-            connections: [putItem]
-        }))
-        .filter((value: DependencyNode | undefined): value is DependencyNode => (typeof value !== 'undefined'))
-    )
-    const updatingNodes = unique(payloadActions.map(({ EphemeraId }) => (EphemeraId)))
-    const workablePayload = (message: DependencyGraphAction) => {
-        if (isDependencyGraphPut(message)) {
-            return !Boolean(internalCache[dependencyTag].getPartial(message.putItem.EphemeraId).find(({ EphemeraId }) => (updatingNodes.includes(EphemeraId))))
-        }
-        else {
-            return !Boolean(internalCache[dependencyTag].getPartial(message.deleteItem.EphemeraId).find(({ EphemeraId }) => (updatingNodes.includes(EphemeraId))))
-        }
-    }
-    const workableTargets = updatingNodes
-        .filter((target) => (
-            !payloadActions
-                .filter(({ EphemeraId }) => (EphemeraId === target))
-                .find((payload) => (!workablePayload(payload)))
-        ))
-    const payloadsByTarget = payloadActions
-        .filter(({ EphemeraId }) => (workableTargets.includes(EphemeraId)))
-        .reduce<Record<string, DependencyGraphAction[]>>((previous, { EphemeraId, ...rest }) => ({
-            ...previous,
-            [EphemeraId]: [
-                ...(previous[EphemeraId] || []),
-                { EphemeraId, ...rest }
-            ]
-        }), {})
-    const unworkablePayloads = payloads.filter(({ EphemeraId }) => (!workableTargets.includes(EphemeraId)))
+type GraphStorageMessage = DescentUpdateMessage | AncestryUpdateMessage
 
-    unworkablePayloads.forEach((payload) => {
-        messageBus.send(payload)
-    })
-
-    await Promise.all(Object.entries(payloadsByTarget).map(async ([targetId, payloadList]) => {
-        const tag = extractConstrainedTag(isLegalDependencyTag)(targetId)
-        //
-        // Because we only update the Descent (and need the Ancestry's unchanged value), we run getItem and update
-        // in parallel rather than suffer the hit for requesting ALL_NEW ReturnValue
-        //
-        const [antidependency] = await Promise.all([
-            getAntiDependency(internalCache, dependencyTag)(targetId),
-            ephemeraDB.optimisticUpdate({
-                key: {
-                    EphemeraId: targetId,
-                    DataCategory: `Meta::${tag}`
-                },
-                //
-                // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
-                // on so that it can recognize the existence of the row.
-                //
-                updateKeys: [dependencyTag, 'DataCategory'],
-                updateReducer: (draft) => {
-                    if (typeof draft[dependencyTag] === 'undefined') {
+export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>>(internalCache: C) => async ({ payloads, alreadyProcessed }: { payloads: GraphStorageMessage[]; alreadyProcessed: GraphStorageMessage[] }): Promise<{ processedItems: GraphStorageMessage[]; unprocessedItems: GraphStorageMessage[] }> => {
+    const dependencyTags = ['Descent', 'Ancestry'] as const
+    let unprocessedItems: GraphStorageMessage[] = []
+    let processedItems: GraphStorageMessage[] = []
+    await Promise.all(dependencyTags.map(async (dependencyTag) => {
+        const payloadActions = payloads
+            .filter(({ type }) => (type === `${dependencyTag}Update`))
+            .filter(({ EphemeraId }) => (!alreadyProcessed.find(({ type, EphemeraId: checkEphemeraId }) => (type === `${dependencyTag}Update` && checkEphemeraId === EphemeraId))))
+            .map<DependencyGraphAction>(({ type, ...rest }) => (rest))
+        internalCache[dependencyTag].put(payloadActions
+            .filter(isDependencyGraphPut)
+            .map(({ EphemeraId, putItem }): DependencyNode => ({
+                EphemeraId,
+                completeness: 'Partial',
+                connections: [putItem]
+            }))
+            .filter((value: DependencyNode | undefined): value is DependencyNode => (typeof value !== 'undefined'))
+        )
+        const updatingNodes = unique(payloadActions.map(({ EphemeraId }) => (EphemeraId)))
+        const workablePayload = (message: DependencyGraphAction) => {
+            if (isDependencyGraphPut(message)) {
+                return !Boolean(internalCache[dependencyTag].getPartial(message.putItem.EphemeraId).find(({ EphemeraId }) => (updatingNodes.includes(EphemeraId))))
+            }
+            else {
+                return !Boolean(internalCache[dependencyTag].getPartial(message.deleteItem.EphemeraId).find(({ EphemeraId }) => (updatingNodes.includes(EphemeraId))))
+            }
+        }
+        const workableTargets = updatingNodes
+            .filter((target) => (
+                !payloadActions
+                    .filter(({ EphemeraId }) => (EphemeraId === target))
+                    .find((payload) => (!workablePayload(payload)))
+            ))
+        const payloadsByTarget = payloads
+            .filter(({ EphemeraId }) => (workableTargets.includes(EphemeraId)))
+            .reduce<Record<string, DependencyGraphAction[]>>((previous, { EphemeraId, ...rest }) => ({
+                ...previous,
+                [EphemeraId]: [
+                    ...(previous[EphemeraId] || []),
+                    { EphemeraId, ...rest }
+                ]
+            }), {})
+        unprocessedItems = [...unprocessedItems, ...payloads.filter(({ EphemeraId }) => (!workableTargets.includes(EphemeraId)))]
+        processedItems= [...processedItems, ...payloads.filter(({ EphemeraId }) => (workableTargets.includes(EphemeraId)))]
+        await Promise.all(Object.entries(payloadsByTarget).map(async ([targetId, payloadList]) => {
+            const tag = extractConstrainedTag(isLegalDependencyTag)(targetId)
+            //
+            // Because we only update the Descent (and need the Ancestry's unchanged value), we run getItem and update
+            // in parallel rather than suffer the hit for requesting ALL_NEW ReturnValue
+            //
+            const [antidependency] = await Promise.all([
+                getAntiDependency(internalCache, dependencyTag)(targetId),
+                ephemeraDB.optimisticUpdate({
+                    key: {
+                        EphemeraId: targetId,
+                        DataCategory: `Meta::${tag}`
+                    },
+                    //
+                    // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
+                    // on so that it can recognize the existence of the row.
+                    //
+                    updateKeys: [dependencyTag, 'DataCategory'],
+                    updateReducer: (draft) => {
+                        if (typeof draft[dependencyTag] === 'undefined') {
+                            //
+                            // If you're defining for the first time, make a deeply non-immutable copy of the current
+                            // internalCache
+                            //
+                            draft[dependencyTag] = internalCache[dependencyTag].getPartial(targetId)
+                                .map(({ completeness, connections, ...rest }) => ({
+                                    ...rest, 
+                                    connections: connections
+                                        .map(({ assets, ...rest }) => ({ ...rest, assets: [...assets] }))
+                                }))
+                        }
+                        const startGraph: Record<string, DependencyNode> = draft[dependencyTag].reduce((previous, { EphemeraId, ...rest }) => ({ ...previous, [EphemeraId]: { EphemeraId, completeness: 'Complete', ...rest }}), {})
                         //
-                        // If you're defining for the first time, make a deeply non-immutable copy of the current
-                        // internalCache
+                        // TODO: Correct how current update of descent does *not* correctly update descent cascades (see unit test for example)
                         //
-                        draft[dependencyTag] = internalCache[dependencyTag].getPartial(targetId)
-                            .map(({ completeness, connections, ...rest }) => ({
-                                ...rest, 
-                                connections: connections
-                                    .map(({ assets, ...rest }) => ({ ...rest, assets: [...assets] }))
-                            }))
+                        reduceDependencyGraph(startGraph, payloadList)
+                        draft[dependencyTag] = extractTree(Object.values(startGraph), targetId)
+                            .map((node) => {
+                                const { completeness, ...rest } = node
+                                return rest
+                            })
                     }
-                    const startGraph: Record<string, DependencyNode> = draft[dependencyTag].reduce((previous, { EphemeraId, ...rest }) => ({ ...previous, [EphemeraId]: { EphemeraId, completeness: 'Complete', ...rest }}), {})
-                    reduceDependencyGraph(startGraph, payloadList)
-                    draft[dependencyTag] = extractTree(Object.values(startGraph), targetId)
-                        .map((node) => {
-                            const { completeness, ...rest } = node
-                            return rest
-                        })
-                }
+                })
+            ])
+    
+            antidependency.forEach((antiDependentItem) => {
+                unprocessedItems.push({
+                    type: `${dependencyTag}Update`,
+                    EphemeraId: antiDependentItem.EphemeraId,
+                    putItem: {
+                        key: antiDependentItem.key,
+                        EphemeraId: targetId,
+                        assets: antiDependentItem.assets
+                    }
+                } as GraphStorageMessage)
             })
-        ])
-
-        //
-        // TODO: Don't double-message when a cascade update (below) reproduces a message that was repeated as unworkable (above)
-        //
-        antidependency.forEach((antiDependentItem) => {
-            messageBus.send({
-                type: `${dependencyTag}Update`,
-                EphemeraId: antiDependentItem.EphemeraId,
-                putItem: {
-                    key: antiDependentItem.key,
-                    EphemeraId: targetId,
-                    assets: antiDependentItem.assets
-                }
-            } as DescentUpdateMessage | AncestryUpdateMessage)
-        })
+        }))    
     }))
+    return { processedItems, unprocessedItems: unique(unprocessedItems).filter(({ EphemeraId, type }) => (!alreadyProcessed.find(({ type: checkType, EphemeraId: checkEphemeraId }) => (type === checkType && checkEphemeraId === EphemeraId)))) }
+}
+
+export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>>(internalCache: C) => async ({ payloads }: { payloads: GraphStorageMessage[]; }): Promise<void> => {
+    const dependencyTags = ['Descent', 'Ancestry']
+    dependencyTags.forEach((dependencyTag) => {
+    })
+    let workingActions = [...payloads]
+    let alreadyProcessed: GraphStorageMessage[] = []
+    while(workingActions.length) {
+        const output = await updateGraphStorageIteration(internalCache)({ payloads: workingActions, alreadyProcessed })
+        const { processedItems, unprocessedItems } = output
+        alreadyProcessed = [...alreadyProcessed, ...processedItems]
+        workingActions = unprocessedItems
+    }
 }
 
 export default updateGraphStorage
