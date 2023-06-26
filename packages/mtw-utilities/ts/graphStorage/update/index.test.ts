@@ -21,8 +21,7 @@ describe('graphStore update', () => {
     it('should call all unreferenced updates in a first wave', async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({ Ancestry: [] })
         await updateGraphStorage(internalCache)({
-            payloads: [{
-                type: 'DescentUpdate',
+            descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
@@ -30,13 +29,13 @@ describe('graphStore update', () => {
                 }
             },
             {
-                type: 'DescentUpdate',
                 EphemeraId: 'ASSET#ImportTwo',
                 putItem: {
                     EphemeraId: 'ASSET#ImportThree',
                     assets: ['ASSET']
                 }
-            }]
+            }],
+            ancestry: []
         })
 
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
@@ -130,14 +129,14 @@ describe('graphStore update', () => {
             return {}
         })
         await updateGraphStorage(internalCache)({
-            payloads: [{
-                type: 'DescentUpdate',
+            descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
                     assets: ['ASSET']
                 }
-            }]
+            }],
+            ancestry: []
         })
 
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(3)
@@ -198,8 +197,7 @@ describe('graphStore update', () => {
             return {}
         })
         await updateGraphStorage(internalCache)({
-            payloads: [{
-                type: 'DescentUpdate',
+            descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
@@ -207,13 +205,13 @@ describe('graphStore update', () => {
                 }
             },
             {
-                type: 'DescentUpdate',
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportThree',
                     assets: ['ASSET']
                 }
-            }]
+            }],
+            ancestry: []
         })
 
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
@@ -263,15 +261,15 @@ describe('graphStore update', () => {
             return {}
         })
         await updateGraphStorage(internalCache)({
-            payloads: [{
-                type: 'DescentUpdate',
+            descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
                     key: 'lightsOn',
                     EphemeraId: 'ROOM#ABC',
                     assets: ['Layer']
                 }
-            }]
+            }],
+            ancestry: []
         })
 
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
@@ -344,15 +342,15 @@ describe('graphStore update', () => {
             return {}
         })
         await updateGraphStorage(internalCache)({
-            payloads: [{
-                type: 'DescentUpdate',
+            descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',
                     assets: ['Layer']
                 }
-            }]
+            }],
+            ancestry: []
         })
 
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
@@ -400,15 +398,15 @@ describe('graphStore update', () => {
             return {}
         })
         await updateGraphStorage(internalCache)({
-            payloads: [{
-                type: 'DescentUpdate',
+            descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',
                     assets: ['Layer']
                 }
-            }]
+            }],
+            ancestry: []
         })
 
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
@@ -458,15 +456,15 @@ describe('graphStore update', () => {
             return {}
         })
         await updateGraphStorage(internalCache)({
-            payloads: [{
-                type: 'DescentUpdate',
+            descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',
                     assets: ['Base']
                 }
-            }]
+            }],
+            ancestry: []
         })
 
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
