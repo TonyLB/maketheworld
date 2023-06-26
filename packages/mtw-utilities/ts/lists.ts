@@ -1,3 +1,3 @@
-export const unique = (...lists) => ([
-    ...(new Set(lists.reduce((previous, item) => ([ ...previous, ...item ]), [])))
+export const unique = <T>(...lists: T[][]): T[] => ([
+    ...(new Set(lists.reduce<T[]>((previous, item) => ([ ...previous, ...item ]), [])))
 ])
