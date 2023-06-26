@@ -35,7 +35,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
                 .map(({ characterId }) => (characterId))
                 .filter((characterId) => (checkCharacters.includes(characterId)))
             const newConnections = (checkSubscriptions || []).find(({ connectionId: check }) => (check === connectionId))
-                ? (checkSubscriptions || []).map((subscriptions) => (subscriptions.connectionId === connectionId ? { connectionId, characterIds: unique(subscriptions, validCharacters) as EphemeraCharacterId[] } : subscriptions))
+                ? (checkSubscriptions || []).map((subscriptions) => (subscriptions.connectionId === connectionId ? { connectionId, characterIds: unique(subscriptions.characterIds, validCharacters) as EphemeraCharacterId[] } : subscriptions))
                 : [
                     ...(checkSubscriptions || []),
                     {

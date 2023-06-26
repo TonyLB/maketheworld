@@ -139,9 +139,6 @@ export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof Grap
     let workingActions = [...payloads]
     let alreadyProcessed: GraphStorageMessage[] = []
     while(workingActions.length) {
-        //
-        // TODO: Prevent infinite loops by keeping a list of already updated EphemeraID
-        //
         const output = await updateGraphStorageIteration(internalCache)({ payloads: workingActions, alreadyProcessed })
         const { processedItems, unprocessedItems } = output
         alreadyProcessed = [...alreadyProcessed, ...processedItems]
