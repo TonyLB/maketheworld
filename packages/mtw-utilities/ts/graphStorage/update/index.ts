@@ -12,14 +12,15 @@ export type AncestryUpdateMessage = {
     type: 'AncestryUpdate';
 } & DependencyGraphAction
 
-const getAntiDependency = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>>(internalCache: C, dependencyTag: 'Descent' | 'Ancestry') => async (EphemeraId: string): Promise<DependencyEdge[]> => {
+const getAntiDependency = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>(internalCache: C, dependencyTag: 'Descent' | 'Ancestry', keyLabel: T) => async (targetId: string): Promise<DependencyEdge[]> => {
+    const extractKey = (item: any) => (item[keyLabel as any] as string)
     const antiDependencyTag = dependencyTag === 'Descent' ? 'Ancestry' : 'Descent'
-    const knownTree = internalCache[antiDependencyTag].getPartial(EphemeraId).find(({ EphemeraId: check }) => (check === EphemeraId))
+    const knownTree = internalCache[antiDependencyTag].getPartial(targetId).find((check) => (extractKey(check) === targetId))
     if (knownTree?.completeness === 'Complete') {
         return knownTree.connections
     }
     else {
-        const fetchedTree = (await internalCache[antiDependencyTag].get(EphemeraId)).find(({ EphemeraId: check }) => (check === EphemeraId))
+        const fetchedTree = (await internalCache[antiDependencyTag].get(targetId)).find((check) => (extractKey(check) === targetId))
         return fetchedTree?.connections || []
     }
 }
@@ -110,6 +111,7 @@ type GraphStorageIterationReturn = {
 // TODO: Replace incoming arguments with split arguments by descent and ancestry
 //
 export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>({ internalCache, dbHandler, keyLabel }: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async (payloads: GraphStorageIterationProps): Promise<GraphStorageIterationReturn> => {
+    const extractKey = (item: any) => (item[keyLabel as any] as string)
     const dependencyTags = ['descent', 'ancestry'] as const
     let returnVal: GraphStorageIterationReturn = {
         descent: { processedItems: [], unprocessedItems: [] },
@@ -120,39 +122,39 @@ export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<ty
         const { payloads: payloadActions, alreadyProcessed } = payloads[dependencyTag]
         internalCache[upcaseDependencyTag].put(payloadActions
             .filter(isDependencyGraphPut)
-            .map(({ EphemeraId, putItem }): DependencyNode => ({
-                EphemeraId,
+            .map((item): DependencyNode => ({
+                [keyLabel]: extractKey(item),
                 completeness: 'Partial',
-                connections: [putItem]
-            }))
+                connections: [item.putItem]
+            } as DependencyNode))
             .filter((value: DependencyNode | undefined): value is DependencyNode => (typeof value !== 'undefined'))
         )
-        const updatingNodes = unique(payloadActions.map(({ EphemeraId }) => (EphemeraId)))
+        const updatingNodes = unique(payloadActions.map(extractKey))
         const workablePayload = (message: DependencyGraphAction) => {
             if (isDependencyGraphPut(message)) {
-                return !Boolean(internalCache[upcaseDependencyTag].getPartial(message.putItem.EphemeraId).find(({ EphemeraId }) => (updatingNodes.includes(EphemeraId))))
+                return !Boolean(internalCache[upcaseDependencyTag].getPartial(extractKey(message.putItem)).find((item) => (updatingNodes.includes(extractKey(item)))))
             }
             else {
-                return !Boolean(internalCache[upcaseDependencyTag].getPartial(message.deleteItem.EphemeraId).find(({ EphemeraId }) => (updatingNodes.includes(EphemeraId))))
+                return !Boolean(internalCache[upcaseDependencyTag].getPartial(extractKey(message.deleteItem)).find((item) => (updatingNodes.includes(extractKey(item)))))
             }
         }
         const workableTargets = updatingNodes
             .filter((target) => (
                 !payloadActions
-                    .filter(({ EphemeraId }) => (EphemeraId === target))
+                    .filter((item) => (extractKey(item) === target))
                     .find((payload) => (!workablePayload(payload)))
             ))
         const payloadsByTarget = payloadActions
-            .filter(({ EphemeraId }) => (workableTargets.includes(EphemeraId)))
-            .reduce<Record<string, DependencyGraphAction[]>>((previous, { EphemeraId, ...rest }) => ({
+            .filter((item) => (workableTargets.includes(extractKey(item))))
+            .reduce<Record<string, DependencyGraphAction[]>>((previous, item) => ({
                 ...previous,
-                [EphemeraId]: [
-                    ...(previous[EphemeraId] || []),
-                    { EphemeraId, ...rest }
+                [extractKey(item)]: [
+                    ...(previous[extractKey(item)] || []),
+                    item
                 ]
             }), {})
-        let unprocessedItems = payloadActions.filter(({ EphemeraId }) => (!workableTargets.includes(EphemeraId)))
-        let processedItems = payloadActions.filter(({ EphemeraId }) => (workableTargets.includes(EphemeraId)))
+        let unprocessedItems = payloadActions.filter((item) => (!workableTargets.includes(extractKey(item))))
+        let processedItems = payloadActions.filter((item) => (workableTargets.includes(extractKey(item))))
         await Promise.all(Object.entries(payloadsByTarget).map(async ([targetId, payloadList]) => {
             const tag = extractConstrainedTag(isLegalDependencyTag)(targetId)
             //
@@ -160,7 +162,7 @@ export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<ty
             // in parallel rather than suffer the hit for requesting ALL_NEW ReturnValue
             //
             const [antidependency] = await Promise.all([
-                getAntiDependency(internalCache, upcaseDependencyTag)(targetId),
+                getAntiDependency(internalCache, upcaseDependencyTag, keyLabel)(targetId),
                 updateGraphStorageCallback({ keyLabel, dbHandler, internalCache })({
                     key: targetId,
                     DataCategory: `Meta::${tag}`,
@@ -171,10 +173,10 @@ export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<ty
     
             antidependency.forEach((antiDependentItem) => {
                 unprocessedItems.push({
-                    EphemeraId: antiDependentItem.EphemeraId,
+                    [keyLabel]: extractKey(antiDependentItem),
                     putItem: {
                         key: antiDependentItem.key,
-                        EphemeraId: targetId,
+                        [keyLabel]: targetId,
                         assets: antiDependentItem.assets
                     }
                 } as DependencyGraphAction)
