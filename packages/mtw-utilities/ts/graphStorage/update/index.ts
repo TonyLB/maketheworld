@@ -1,5 +1,4 @@
 import { unique } from "../../lists"
-import { ephemeraDB } from "../../dynamoDB"
 import { reduceDependencyGraph, extractTree } from "../cache"
 import { DependencyNode, DependencyEdge, DependencyGraphAction, isDependencyGraphPut, isLegalDependencyTag, CacheBase } from "../cache/baseClasses"
 import { extractConstrainedTag } from "../../types"
@@ -25,7 +24,65 @@ const getAntiDependency = <C extends InstanceType<ReturnType<typeof GraphCache<t
     }
 }
 
-type GraphStorageMessage = DescentUpdateMessage | AncestryUpdateMessage
+type GraphStorageDBHandler<T extends string> = {
+    optimisticUpdate: (props: {
+        key: Record<T | 'DataCategory', string>
+        updateKeys: string[];
+        updateReducer: (draft: { Descent?: Omit<DependencyNode, 'completeness'>[]; Ancestry?: Omit<DependencyNode, 'completeness'>[] }) => void;
+    }) => Promise<any>
+}
+
+export const updateGraphStorageCallback = <T extends string>(metaProps: {
+    keyLabel: T;
+    dbHandler: GraphStorageDBHandler<T>;
+    internalCache: {
+        Descent: { getPartial: (value: string) => (DependencyNode & { completeness: 'Partial' | 'Complete'; connections: DependencyEdge[] })[] };
+        Ancestry: { getPartial: (value: string) => (DependencyNode & { completeness: 'Partial' | 'Complete'; connections: DependencyEdge[] })[] };
+    }
+}) => (props: {
+    key: string;
+    DataCategory: string;
+    dependencyTag: 'Descent' | 'Ancestry';
+    payloads: DependencyGraphAction[];
+}) => {
+    const extractKey = (item: Omit<DependencyNode, 'completeness'>) => (item[metaProps.keyLabel as any] as string)
+    return metaProps.dbHandler.optimisticUpdate({
+        key: {
+            [metaProps.keyLabel]: props.key,
+            DataCategory: props.DataCategory
+        } as Record<T | 'DataCategory', string>,
+        //
+        // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
+        // on so that it can recognize the existence of the row.
+        //
+        updateKeys: [props.dependencyTag, 'DataCategory'],
+        updateReducer: (draft) => {
+            if (typeof draft[props.dependencyTag] === 'undefined') {
+                //
+                // If you're defining for the first time, make a deeply non-immutable copy of the current
+                // internalCache
+                //
+                const fetchPartial = metaProps.internalCache[props.dependencyTag].getPartial(props.key)
+                draft[props.dependencyTag] = fetchPartial
+                    .map(({ completeness, connections, ...rest }) => ({
+                        ...rest, 
+                        connections: connections
+                            .map(({ assets, ...rest }) => ({ ...rest, assets: [...assets] }))
+                    }))
+            }
+            const startGraph: Record<string, DependencyNode> = (draft[props.dependencyTag] || []).reduce((previous, item) => ({ ...previous, [extractKey(item)]: { ...item, completeness: 'Complete' }}), {})
+            //
+            // TODO: Correct how current update of descent does *not* correctly update descent cascades (see unit test for example)
+            //
+            reduceDependencyGraph(startGraph, props.payloads)
+            draft[props.dependencyTag] = extractTree(Object.values(startGraph), props.key)
+                .map((node) => {
+                    const { completeness, ...rest } = node
+                    return rest
+                })
+        }
+    })
+}
 
 type GraphStorageIterationProps = {
     descent: {
@@ -52,7 +109,7 @@ type GraphStorageIterationReturn = {
 //
 // TODO: Replace incoming arguments with split arguments by descent and ancestry
 //
-export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>>(internalCache: C) => async (payloads: GraphStorageIterationProps): Promise<GraphStorageIterationReturn> => {
+export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>({ internalCache, dbHandler, keyLabel }: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async (payloads: GraphStorageIterationProps): Promise<GraphStorageIterationReturn> => {
     const dependencyTags = ['descent', 'ancestry'] as const
     let returnVal: GraphStorageIterationReturn = {
         descent: { processedItems: [], unprocessedItems: [] },
@@ -104,40 +161,11 @@ export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<ty
             //
             const [antidependency] = await Promise.all([
                 getAntiDependency(internalCache, upcaseDependencyTag)(targetId),
-                ephemeraDB.optimisticUpdate({
-                    key: {
-                        EphemeraId: targetId,
-                        DataCategory: `Meta::${tag}`
-                    },
-                    //
-                    // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
-                    // on so that it can recognize the existence of the row.
-                    //
-                    updateKeys: [upcaseDependencyTag, 'DataCategory'],
-                    updateReducer: (draft) => {
-                        if (typeof draft[upcaseDependencyTag] === 'undefined') {
-                            //
-                            // If you're defining for the first time, make a deeply non-immutable copy of the current
-                            // internalCache
-                            //
-                            draft[upcaseDependencyTag] = internalCache[upcaseDependencyTag].getPartial(targetId)
-                                .map(({ completeness, connections, ...rest }) => ({
-                                    ...rest, 
-                                    connections: connections
-                                        .map(({ assets, ...rest }) => ({ ...rest, assets: [...assets] }))
-                                }))
-                        }
-                        const startGraph: Record<string, DependencyNode> = draft[upcaseDependencyTag].reduce((previous, { EphemeraId, ...rest }) => ({ ...previous, [EphemeraId]: { EphemeraId, completeness: 'Complete', ...rest }}), {})
-                        //
-                        // TODO: Correct how current update of descent does *not* correctly update descent cascades (see unit test for example)
-                        //
-                        reduceDependencyGraph(startGraph, payloadList)
-                        draft[upcaseDependencyTag] = extractTree(Object.values(startGraph), targetId)
-                            .map((node) => {
-                                const { completeness, ...rest } = node
-                                return rest
-                            })
-                    }
+                updateGraphStorageCallback({ keyLabel, dbHandler, internalCache })({
+                    key: targetId,
+                    DataCategory: `Meta::${tag}`,
+                    dependencyTag: upcaseDependencyTag,
+                    payloads: payloadList
                 })
             ])
     
@@ -160,7 +188,7 @@ export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<ty
     return returnVal
 }
 
-export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>>(internalCache: C) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
+export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
     let workingActions: GraphStorageIterationProps = {
         descent: {
             payloads: descent,
@@ -172,7 +200,7 @@ export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof Grap
         }
     }
     while((workingActions.descent.payloads.length + workingActions.ancestry.payloads.length) > 0) {
-        const output = await updateGraphStorageIteration(internalCache)(workingActions)
+        const output = await updateGraphStorageIteration(metaProps)(workingActions)
         const { descent, ancestry } = output
         workingActions = {
             descent: {

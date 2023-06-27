@@ -1,26 +1,37 @@
-jest.mock('../../dynamoDB')
-import { ephemeraDB } from "../../dynamoDB"
-
-import { CacheBase } from '../cache/baseClasses'
-import { GraphCache } from '../cache/'
+import { GraphCacheData } from '../cache/'
 import updateGraphStorage from './'
 
-const internalCache = new (GraphCache(CacheBase))()
+const internalCache = {
+    Descent: {
+        get: jest.fn(),
+        put: jest.fn(),
+        getPartial: jest.fn()
+    } as unknown as jest.Mocked<GraphCacheData>,
+    Ancestry: {
+        get: jest.fn(),
+        put: jest.fn(),
+        getPartial: jest.fn()
+    } as unknown as jest.Mocked<GraphCacheData>,
+    clear: jest.fn(),
+    flush: jest.fn()
+}
 
-const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const optimisticUpdate = jest.fn().mockResolvedValue({})
+const dbHandler = { optimisticUpdate }
 
 describe('graphStore update', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCache.clear()
-        jest.spyOn(internalCache.Descent, 'get').mockResolvedValue([])
+        internalCache.Descent.get.mockResolvedValue([])
+        internalCache.Descent.getPartial.mockReturnValue([])
+        internalCache.Ancestry.get.mockResolvedValue([])
+        internalCache.Ancestry.getPartial.mockReturnValue([])
     })
 
     it('should call all unreferenced updates in a first wave', async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({ Ancestry: [] })
-        await updateGraphStorage(internalCache)({
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -38,8 +49,8 @@ describe('graphStore update', () => {
             ancestry: []
         })
 
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+        expect(optimisticUpdate).toHaveBeenCalledTimes(2)
+        expect(optimisticUpdate).toHaveBeenCalledWith({
             key: {
                 EphemeraId: 'ASSET#ImportTwo',
                 DataCategory: 'Meta::Asset'
@@ -47,7 +58,7 @@ describe('graphStore update', () => {
             updateKeys: ['Descent', 'DataCategory'],
             updateReducer: expect.any(Function)
         })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+        expect(optimisticUpdate).toHaveBeenCalledWith({
             key: {
                 EphemeraId: 'ASSET#ImportOne',
                 DataCategory: 'Meta::Asset'
@@ -56,7 +67,7 @@ describe('graphStore update', () => {
             updateReducer: expect.any(Function)
         })
         let testItem = { Descent: [] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[1][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [
                 {
@@ -70,7 +81,7 @@ describe('graphStore update', () => {
             ]
         })
         testItem = { Descent: [] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[1][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [
                 {
@@ -93,42 +104,57 @@ describe('graphStore update', () => {
     })
 
     it('should recursively cascade updates to ancestors', async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
-            Ancestry: [
-                {
-                    EphemeraId: 'ASSET#ImportOne',
-                    connections: [
-                        { EphemeraId: 'ASSET#Base', assets: ['ASSET'] },
-                        { EphemeraId: 'ASSET#Bootstrap', assets: ['ASSET'] }
-                    ]
-                },
-                {
-                    EphemeraId: 'ASSET#Base',
-                    connections: []
-                },
-                {
-                    EphemeraId: 'ASSET#Bootstrap',
-                    connections: []
-                }
-            ]
-        })
-        .mockResolvedValueOnce({
-            Descent: [
+        internalCache.Ancestry.getPartial.mockReturnValue([
+            {
+                EphemeraId: 'ASSET#ImportOne',
+                completeness: 'Complete',
+                connections: [
+                    { EphemeraId: 'ASSET#Base', assets: ['ASSET'] },
+                    { EphemeraId: 'ASSET#Bootstrap', assets: ['ASSET'] }
+                ]
+            },
+            {
+                EphemeraId: 'ASSET#Base',
+                completeness: 'Complete',
+                connections: []
+            },
+            {
+                EphemeraId: 'ASSET#Bootstrap',
+                completeness: 'Complete',
+                connections: []
+            }
+        ])
+        internalCache.Descent.getPartial.mockImplementation((key) => (key === 'ASSET#ImportTwo'
+            ? [
                 {
                     EphemeraId: 'ASSET#ImportTwo',
+                    completeness: 'Complete',
                     connections: [{ EphemeraId: 'ASSET#ImportThree', assets: ['ASSET'] }]
                 },
                 {
                     EphemeraId: 'ASSET#ImportThree',
+                    completeness: 'Complete',
                     connections: []
                 }
             ]
-        })
-        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
-            updateReducer({ Descent: [] })
-            return {}
-        })
-        await updateGraphStorage(internalCache)({
+            : [
+                {
+                    EphemeraId: 'ASSET#ImportOne',
+                    completeness: 'Complete',
+                    connections: [{ EphemeraId: 'ASSET#ImportOne', assets: ['ASSET'] }]
+                },
+                {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    completeness: 'Complete',
+                    connections: [{ EphemeraId: 'ASSET#ImportThree', assets: ['ASSET'] }]
+                },
+                {
+                    EphemeraId: 'ASSET#ImportThree',
+                    completeness: 'Complete',
+                    connections: []
+                }
+            ]))
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -139,9 +165,9 @@ describe('graphStore update', () => {
             ancestry: []
         })
 
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(3)
+        expect(optimisticUpdate).toHaveBeenCalledTimes(3)
         let testItem = { Descent: [] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({ Descent: [{
             EphemeraId: 'ASSET#ImportOne',
             connections: [{ EphemeraId: 'ASSET#ImportTwo', assets: ['ASSET'] }]
@@ -151,7 +177,7 @@ describe('graphStore update', () => {
             connections: []
         }]})
         testItem = { Descent: [] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[1][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[1][0].updateReducer(testItem)
         expect(testItem).toEqual({ Descent: [{
             EphemeraId: 'ASSET#Base',
             connections: [{ EphemeraId: 'ASSET#ImportOne', assets: ['ASSET'] }]
@@ -161,7 +187,7 @@ describe('graphStore update', () => {
             connections: []
         }]})
         testItem = { Descent: [] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[2][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[2][0].updateReducer(testItem)
         expect(testItem).toEqual({ Descent: [{
             EphemeraId: 'ASSET#Bootstrap',
             connections: [{ EphemeraId: 'ASSET#ImportOne', assets: ['ASSET'] }]
@@ -173,30 +199,22 @@ describe('graphStore update', () => {
     })
 
     it('should aggregate multiple messages', async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
-            Ancestry: [
-                {
-                    EphemeraId: 'ASSET#Base',
-                    connections: []
-                }
-            ]
-        })
-        .mockResolvedValueOnce({
-            Descent: [
-                {
-                    EphemeraId: 'ASSET#ImportThree',
-                    connections: []
-                }
-            ]
-        })
-        .mockResolvedValueOnce({
-            Descent: []
-        })
-        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
-            updateReducer({ Descent: [] })
-            return {}
-        })
-        await updateGraphStorage(internalCache)({
+        internalCache.Ancestry.getPartial.mockReturnValueOnce([
+            {
+                EphemeraId: 'ASSET#Base',
+                completeness: 'Complete',
+                connections: []
+            }
+        ])
+        internalCache.Descent.getPartial.mockReturnValueOnce([
+            {
+                EphemeraId: 'ASSET#ImportThree',
+                completeness: 'Complete',
+                connections: []
+            }
+        ])
+        .mockReturnValueOnce([])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -214,8 +232,8 @@ describe('graphStore update', () => {
             ancestry: []
         })
 
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+        expect(optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(optimisticUpdate).toHaveBeenCalledWith({
             key: {
                 EphemeraId: 'ASSET#ImportOne',
                 DataCategory: 'Meta::Asset'
@@ -224,7 +242,7 @@ describe('graphStore update', () => {
             updateReducer: expect.any(Function)
         })
         let testItem = { Descent: [] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [
                 {
@@ -247,20 +265,13 @@ describe('graphStore update', () => {
     })
 
     it('should independently store differently aliased inheritance edges', async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
-            Ancestry: []
-        })
-        .mockResolvedValueOnce({
-            Descent: [{
-                EphemeraId: 'MAP#DEF',
-                connections: []
-            }]
-        })
-        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
-            updateReducer({ Descent: [] })
-            return {}
-        })
-        await updateGraphStorage(internalCache)({
+        internalCache.Ancestry.getPartial.mockReturnValue([])
+        internalCache.Descent.getPartial.mockReturnValue([{
+            EphemeraId: 'MAP#DEF',
+            completeness: 'Complete',
+            connections: []
+        }])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
@@ -272,8 +283,8 @@ describe('graphStore update', () => {
             ancestry: []
         })
 
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+        expect(optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(optimisticUpdate).toHaveBeenCalledWith({
             key: {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
@@ -302,7 +313,7 @@ describe('graphStore update', () => {
                 connections: []
             }
         ] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
@@ -328,20 +339,7 @@ describe('graphStore update', () => {
     })
 
     it('should combine similarly aliased inheritance edges', async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
-            Ancestry: []
-        })
-        .mockResolvedValueOnce({
-            Descent: [{
-                EphemeraId: 'MAP#DEF',
-                connections: []
-            }]
-        })
-        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
-            updateReducer({ Descent: [] })
-            return {}
-        })
-        await updateGraphStorage(internalCache)({
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
@@ -353,8 +351,8 @@ describe('graphStore update', () => {
             ancestry: []
         })
 
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+        expect(optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(optimisticUpdate).toHaveBeenCalledWith({
             key: {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
@@ -374,7 +372,7 @@ describe('graphStore update', () => {
                 connections: []
             }
         ] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
@@ -390,14 +388,7 @@ describe('graphStore update', () => {
     })
 
     it('should decrement layers when deleting one of many references', async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
-            Ancestry: []
-        })
-        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
-            updateReducer({ Descent: [] })
-            return {}
-        })
-        await updateGraphStorage(internalCache)({
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
@@ -409,8 +400,8 @@ describe('graphStore update', () => {
             ancestry: []
         })
 
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+        expect(optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(optimisticUpdate).toHaveBeenCalledWith({
             key: {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
@@ -430,7 +421,7 @@ describe('graphStore update', () => {
                 connections: []
             }
         ] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [
                 {
@@ -448,14 +439,7 @@ describe('graphStore update', () => {
     })
 
     it('should remove dependency when deleting last reference', async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
-            Ancestry: []
-        })
-        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
-            updateReducer({ Descent: [] })
-            return {}
-        })
-        await updateGraphStorage(internalCache)({
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
@@ -467,8 +451,8 @@ describe('graphStore update', () => {
             ancestry: []
         })
 
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+        expect(optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(optimisticUpdate).toHaveBeenCalledWith({
             key: {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
@@ -494,7 +478,7 @@ describe('graphStore update', () => {
                 connections: []
             }
         ] }
-        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
