@@ -251,14 +251,45 @@ property set to the current EpochTime.
 
 ---
 
-### Best-Guess Caching
+### Graph Fetching
 
-*In addition to directly storing authoritative data about child and parent edges, each node may optionally store*
-*a cache (either partial or complete) of **only** the edge keys of a graph rooted in the node and stretching*
-*in one of two directions (ancestor or descendant). These are termed "Best-Guess caches" and their accuracy should*
-*never be assumed. They will frequently be inaccurate. Their usefulness is that they can permit fetches of the*
-*entire graph to proceed with several levels being queried in parallel, rather than requiring that each level of*
-*recursion must round-trip to DynamoDB before getting the information to check the next level.*
+*Fetching parses the Graph from the point of view of a given Node (termed the Root node) and direction (Forward or Backward),*
+*returning a directed, possibly cyclic, sub-Graph. The return value of a fetch is a set of nodes and either*
+*(a) the target and context information only for each edge, or (b) all information for each edge.*
+
+#### Uncached recursive fetching
+
+*When a root node has no cache record in the given direction, the system must revert*
+*to recursive fetching. This is a slow one-time construction of a tree (since it can have an unbounded*
+*number of back-and-forths between the process and the DB): The root node's edge-set is used to*
+*execute a one-level batchGet for all directly connected Edges and their nodes. Then a fetch is called*
+*recursively on each of those nodes as well.*
+
+#### Cached speculative fetching
+
+*When a root node has a cache record in the given direction, and the **cachedAt** value for the root node*
+*is more recent than the **invalidatedAt** value, that cache record is used to speculatively fetch data*
+*for all nodes in the cache. After that initial batchGet, GraphStorage will know the following*
+*about the nodes from the cache:*
+
+* The edge-set of each node
+* The cache of each sub-node
+* Whether the node's **invalidatedAt** occurred after the node's **cachedAt** (and therefore)
+
+With the complete edge-set for all nodes fetched speculatively, the process can double-check the correctness
+of the cache:
+
+* First, any edges that point to nodes that *aren't* included in the cache will indicate places where a
+further fetch is needed (either because one or more nodes have been invalidated since the root cache was formed,
+or because the cache only captured a sub-graph of a particularly large node-set). These further fetches are
+performed recursively (hopefully by accessing another valid cache somewhere in the branch being considered).
+* Once there are no *missing* nodes, the node and edge-set is a possible superset of the result set:  The edge
+set can be reconstructed, and any nodes that aren't part of a graph-walk can be excluded from the results.
+
+#### Tree Caching
+
+*When a successful fetch is completed, it will include a set of all nodes that have been queried (either*
+*as part of recursive fetching, or as part of a cache fetch). If either the base node (to be extended)*
 
 Example:
 
