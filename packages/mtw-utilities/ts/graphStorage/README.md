@@ -327,10 +327,30 @@ for target)
 the record will be marked for invalidation. If the edge to be added already exists then no update to that edge-set (or
 invalidation) will be needed. If the edge exists, but only with a different context, then the edge-set needs update,
 but not the **invalidatedAt** property.
-* Execute a transaction to (a) add the GraphEdge record, and (b) execute GraphNodeCache updates as needed
+* Execute a transaction that (a) adds the GraphEdge record, and (b) executes GraphNodeCache updates as needed
 
 No direct update needs to be made to the GraphNodeCache cache value: It will be refreshed as part of the next fetch
 to be executed.
+
+#### Transaction Grouping
+
+*When processing a set of edge updates, multiple edge-updates are likely to share a single node. It is inefficient to*
+*process these in separate transactions, as they would interfere with each other and cause massive retries. Instead,*
+*updateGraphStore executes grouped transactions, updating a sub-graph and all its nodes and edges simultaneously.*
+
+* First, connected components of the update graph (a bi-directional graph with an edge for each edge update (add or
+delete)) are labelled and separated. Any individual component beneath the threshold can be committed in a single
+transaction, independent of others, without fear of interference.
+
+*Since transactions have a threshold of number of operations (currently 100), it is possible to receive a component*
+*so large that it cannot be committed in a single transaction. To commit such an update:*
+
+* Use a modified Karger-Stein algorithm to iterate randomly toward a "minimum" cut of the component graph into sub-components
+beneath the threshold. A true minimum is not needed, obviously, the goal is simply to reduce the complexity of processing
+the subsequent update of the min-cut itself to a reasonable amount: Anything much under the total threshold will do.
+* Commit the updates of the sub-components independently
+* After all updates are complete, process the update of the edge-set of the cut. Nodes along the border of the cut will
+be updated twice (once in their sub-component, and once as part of processing the cut)
 
 ---
 ---
