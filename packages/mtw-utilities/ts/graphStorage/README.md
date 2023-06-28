@@ -176,64 +176,129 @@ The *lightsOn* Compute is referenced by the *Cathedral* room in the base asset, 
 
 ### Source of Truth storage
 
-*Any tree is stored as a set of Nodes and a set of Edges.  An Edge is a connection*
-*between the source node (that it's defined on) and a target node ... optionally with a name*
-*remapping key assigned to the operation, and context information about the nature of the*
-*edge. Two nodes may have multiple similarly-directed edges between them, if those edges have*
-*different context information.*
+*Any tree is stored as a set of Nodes and a set of Edges.*
 
-*A tree is stored in the database partitioned by its Nodes: Each node contains two edge-set*
-*properties, which contain a non-sorted set (childEdges) of the edges for which the node is*
-*a source, and another non-sorted set (parentEdges) of the edges for which the node is a target.*
+#### GraphNode
+
+*A Node is a record in the database that indicates that a given resource (Ephemera or Asset) is*
+*participating in the GraphStorage system. It tracks no individual information about the resource*
+*itself (that will all be tracked under the resource's other keys), just the two caching records*
+*to speed up tree traversal.*
 
 ```ts
-type DependencyEdge = {
-    source: EphemeraKey;
-    target: EphemeraKey;
-    context: string;
-}
-type DependencyAncestorKey = `${EphemeraKey}::${DependencyContext}`
-type DependencyDescendantKey = `${EphemeraKey}::${DependencyContext}`
-const unpackAncestorEdge = (baseNode: DependencyNode, edgeKey: DependencyAncestorKey): DependencyEdge => {
-    return {
-        target: baseNode.EphemeraId,
-        source: edgeKey.split('::')[0],
-        context: edgeKey.split('::')[1]
-    }
-}
-const unpackDescendantEdge = (baseNode: DependencyNode, edgeKey: DependencyDescendantKey): DependencyEdge => {
-    return {
-        source: baseNode.EphemeraId,
-        target: edgeKey.split('::')[0],
-        context: edgeKey.split('::')[1]
-    }
-}
-
-type DependencyNode = {
-    EphemeraId: EphemeraKey;
-    childEdges: DependencyAncestorKey[];
-    parentEdges: DependencyDescendantKey[];
-    //
-    // For information about caching, see next section
-    //
-    ancestorCache?: DependencyBestGuessCache;
-    descendantCache?: DependencyBestGuessCache;
+type GraphNodeCache = {
+    PrimaryId: PrimaryKey;   // Either: 'EphemeraId: EphemeraKey' or 'AssetId: AssetKey' as needed
+    DataCategory: 'GRAPH::Forward' | 'GRAPH::Back';
+    edgeSet: `${PrimaryKey}::${contextString}`[];
+    cache?: PrimaryKey[];
+    cachedAt?: number;       // Epoch Time
+    invalidatedAt?: number;  // Epoch Time
 }
 ```
 
-Whenever an edge is added, it must be added to both nodes with an atomic transaction. Likewise when an edge is
-removed.
+Example:
+
+Suppose a genuine source of truth in the Ephemera table that has the following structure (with no context on edges),
+where node A is a Variable, and all others are Computed:
+    - Node A has children B and C,
+    - Node B has children D and E,
+    - Node C has children F and G
+
+If Node A has had its Forward GraphNodeCache invalidated at 9900 Epoch Time, and cached at 10000, it
+would look like this:
+
+```ts
+{
+    EphemeraId: 'VARIABLE#A',
+    DataCategory: 'GRAPH::Forward',
+    edgeSet: ['COMPUTED#B::', 'COMPUTED#C::'],
+    cache: ['COMPUTED#B', 'COMPUTED#C', 'COMPUTED#D', 'COMPUTED#E', 'COMPUTED#F', 'COMPUTED#G'],
+    invalidatedAt: 9900,
+    cachedAt: 10000
+}
+```
+
+...likewise, a backward graph cache from Node D would look like this:
+
+```ts
+{
+    EphemeraId: 'COMPUTED#A',
+    DataCategory: 'GRAPH::Backward',
+    edgeSet: ['COMPUTED#B::'],
+    cache: ['COMPUTED#B', 'VARIABLE#A'],
+    invalidatedAt: 9900,
+    cachedAt: 10000
+}
+```
+
+#### GraphEdge
+
+*An Edge is a connection between the source node (that it's defined on) and a target node, with*
+*context information about the nature of the edge. Two nodes may have multiple similarly-directed*
+*edges between them, if those edges have different context information.*
+
+```ts
+type GraphEdge = {
+    PrimaryId: PrimaryKey;
+    DataCategory: `GRAPH::${PrimaryKey}::${contextString}`;
+}
+```
+
+Whenever an edge is added, it must be added to the edge-sets of both nodes with an atomic transaction.
+Likewise when an edge is removed. If these additions or deletions change the set of direct connections
+(i.e., no similar edge exists with a different context) then the GraphNodeCache must have its invalidated
+property set to the current EpochTime.
 
 ---
 
-### Best-Guess Caching
+### Graph Fetching
 
-*In addition to directly storing authoritative data about child and parent edges, each node may optionally store*
-*a cache (either partial or complete) of **only** the edge keys of a graph rooted in the node and stretching*
-*in one of two directions (ancestor or descendant). These are termed "Best-Guess caches" and their accuracy should*
-*never be assumed. They will frequently be inaccurate. Their usefulness is that they can permit fetches of the*
-*entire graph to proceed with several levels being queried in parallel, rather than requiring that each level of*
-*recursion must round-trip to DynamoDB before getting the information to check the next level.*
+*Fetching parses the Graph from the point of view of a given Node (termed the Root node) and direction (Forward or Backward),*
+*returning a directed, possibly cyclic, sub-Graph. The return value of a fetch is a set of nodes and either*
+*(a) the target and context information only for each edge, or (b) all information for each edge.*
+
+#### Uncached recursive fetching
+
+*When a root node has no cache record in the given direction, the system must revert*
+*to recursive fetching. This is a slow one-time construction of a tree (since it can have an unbounded*
+*number of back-and-forths between the process and the DB): The root node's edge-set is used to*
+*execute a one-level batchGet for all directly connected Edges and their nodes. Then a fetch is called*
+*recursively on each of those nodes as well.*
+
+#### Cached speculative fetching
+
+*When a root node has a cache record in the given direction, and the **cachedAt** value for the root node*
+*is more recent than the **invalidatedAt** value, that cache record is used to speculatively fetch data*
+*for all nodes in the cache. After that initial batchGet, GraphStorage will know the following*
+*about the nodes from the cache:*
+
+* The edge-set of each node
+* The cache of each sub-node
+* Whether the node's **invalidatedAt** occurred after the node's **cachedAt** (and therefore)
+
+With the complete edge-set for all nodes fetched speculatively, the process can double-check the correctness
+of the cache:
+
+* First, any edges that point to nodes that *aren't* included in the cache will indicate places where a
+further fetch is needed (either because one or more nodes have been invalidated since the root cache was formed,
+or because the cache only captured a sub-graph of a particularly large node-set). These further fetches are
+performed recursively (hopefully by accessing another valid cache somewhere in the branch being considered).
+* Once there are no *missing* nodes, the node and edge-set is a possible superset of the result set:  The edge
+set can be reconstructed, and any nodes that aren't part of a graph-walk can be excluded from the results.
+
+#### Tree Caching
+
+*When a successful fetch is completed, it will be possible to calculate whether the cache needs to be*
+*updated with new data. Cache is updated as follows:*
+
+* The graph results are walked breadth-first (modified Dijkstra algorithm) until either (a) the whole sub-graph
+has been walked, or (b) the number of distinct nodes has passed the threshold of what the system is comfortable
+batchGetting at once (current limits are no more than 16MB total, and no more than 100 items, but those limits
+increase from time to time). The last full level of breadth-first scanning before the threshold is cached.
+* If the limited graph results are not identical to the cache then this node is a candidate for a cache update.
+* The cache is replaced with the new limited set of nodes, conditioned on both the **invalidatedAt** and **cachedAt**
+values not having changed since the fetch started. If either of those values have changed, the cache is not
+updated in this cycle. **cachedAt** is updated to the epoch time as part of this update.
 
 Example:
 
@@ -242,59 +307,30 @@ Suppose a genuine source of truth that has the following structure:
     - Node B has children D and E,
     - Node C has children F and G
 
-Suppose further that NodeA has a descendantCache with the following edges: ['A::B::', 'A::C::', 'B::G::', 'B::D::', 'C::F::', 'C::G::']
+Suppose further that the threshold for nodes in the cache is five, and NodeA has a forward cache with the following nodes:
+['A', 'B', 'D', 'E']
 
-To query the entire edge-set of the graph descending from A, using the best-guess cache, would proceed as follows:
-    - Query Nodes B, C, H, D, F, and G.
-    - On a single round-trip, confirm that nodes C, H, D, F, and G have the children that the cache expects them to have.
-    - Because B does *not* have the children it is expected to have, check B for a cache (none found), and then directly
-    query node E.
-    - Upon return trip of the second round-trip, the process would have information about the child edgesets of nodes A-H,
-    and could confirm possession of the entire graph (as well as confirm that NodeA's descendantCache is incorrect and
-    in need of invalidation or update)
-
-Again: A Best-Guess Cache does not replace querying the underlying values to check source-of-truth. It only gives you
-a probable chance to query those values in parallel rather than in a number of back-and-forths proportional to the depth
-of the graph.
-
-Because the Best-Guess Cache is only a short-cut to queries, it can be deliberately incomplete without fouling the algorithm.
-As such, it is stored in the following structure:
-
-```ts
-type BestGuessCacheEdgeKey = `${EphemeraKey}::${EphemeraKey}::${DependencyContext}`
-enum BestGuessNodeKnowledgeLevels {
-    Complete,
-    Partial
-}
-type BestGuessNode = {
-    EphemeraId: EphemeraKey;
-    knowledge: BestGuessNodeKnowledgeLevels;
-}
-type DependencyBestGuessCache = {
-    treeEdges: BestGuessCacheEdgeKey[];
-    nodes: BestGuessNode[];
-}
-```
-
-Working out the most efficient way to partially cache graphs (or partially invalidate) is a work in progress, but the capability
-is there for future development.
+Walking the fetched edge-set would return 'A' in the first level, 'B' and 'C' in the second, and 'D', 'E', 'F', and 'G' in
+the third. Two levels of the graph contain three nodes, while three levels contain seven (greater than the treshold), so
+only two will be cached. The two-level cache nodes are ['A', 'B', 'C'], which is not the same set as ['A', 'B', 'D', 'E'],
+so this is a candidate for cache update.
 
 ---
 
-## Updates
+### Updates
 
-*Whenever an item which either (a) is depended upon, (b) depends upon other assets, or (c) both is updated in a way that*
-*changes its imports, it must cascade changes in both trees.  The Descent trees of any Ancestors must be updated*
-*recursively and likewise the Ancestry tree of any Descendants*
+*When a new edge is added, the following process is executed:*
 
-Starting from a changed target-node:
-- Update the Descent value of each of its previous or new immediate ancestors (which may change), changing the record that corresponds to
-that ancestor's recognition of the target-node, by either (a) removing the record or (b) updating the record to correspond
-to the new Descent value of the target-node
-- Recurse on Descent update for each updated ancestor
-- Update the Ancestry value of each of its immediate descendants (which will not change), changing the record that corresponds to
-that descendants's recognition of the target-node, by updating the record to correspond to the new Ancestry value of the target-node
-- Recurse on Ancestry update for each updated descendant
+* Fetch the GraphNodeCache edge-set in the appropriate direction for source and target node (forward for source, backward
+for target)
+* For each of the edge-sets, if the other end of the edge is not yet represented (with some context) in the edge-set then
+the record will be marked for invalidation. If the edge to be added already exists then no update to that edge-set (or
+invalidation) will be needed. If the edge exists, but only with a different context, then the edge-set needs update,
+but not the **invalidatedAt** property.
+* Execute a transaction to (a) add the GraphEdge record, and (b) execute GraphNodeCache updates as needed
+
+No direct update needs to be made to the GraphNodeCache cache value: It will be refreshed as part of the next fetch
+to be executed.
 
 ---
 ---
