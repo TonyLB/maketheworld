@@ -349,8 +349,8 @@ transaction, independent of others, without fear of interference.
 beneath the threshold. A true minimum is not needed, obviously, the goal is simply to reduce the complexity of processing
 the subsequent update of the min-cut itself to a reasonable amount: Anything much under the total threshold will do.
 * Commit the updates of the sub-components independently
-* After all updates are complete, process the update of the edge-set of the cut. Nodes along the border of the cut will
-be updated twice (once in their sub-component, and once as part of processing the cut)
+* After all sub-component updates are complete, process the update of the edge-set of the cut. Nodes along the border of
+the cut will be updated twice (once in their sub-component, and again as part of processing the cut)
 
 ---
 ---
