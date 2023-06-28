@@ -176,53 +176,78 @@ The *lightsOn* Compute is referenced by the *Cathedral* room in the base asset, 
 
 ### Source of Truth storage
 
-*Any tree is stored as a set of Nodes and a set of Edges.  An Edge is a connection*
-*between the source node (that it's defined on) and a target node ... optionally with a name*
-*remapping key assigned to the operation, and context information about the nature of the*
-*edge. Two nodes may have multiple similarly-directed edges between them, if those edges have*
-*different context information.*
+*Any tree is stored as a set of Nodes and a set of Edges.*
 
-*A tree is stored in the database partitioned by its Nodes: Each node contains two edge-set*
-*properties, which contain a non-sorted set (childEdges) of the edges for which the node is*
-*a source, and another non-sorted set (parentEdges) of the edges for which the node is a target.*
+#### GraphNode
+
+*A Node is a record in the database that indicates that a given resource (Ephemera or Asset) is*
+*participating in the GraphStorage system. It tracks no individual information about the resource*
+*itself (that will all be tracked under the resource's other keys), just the two caching records*
+*to speed up tree traversal.*
 
 ```ts
-type DependencyEdge = {
-    source: EphemeraKey;
-    target: EphemeraKey;
-    context: string;
-}
-type DependencyAncestorKey = `${EphemeraKey}::${DependencyContext}`
-type DependencyDescendantKey = `${EphemeraKey}::${DependencyContext}`
-const unpackAncestorEdge = (baseNode: DependencyNode, edgeKey: DependencyAncestorKey): DependencyEdge => {
-    return {
-        target: baseNode.EphemeraId,
-        source: edgeKey.split('::')[0],
-        context: edgeKey.split('::')[1]
-    }
-}
-const unpackDescendantEdge = (baseNode: DependencyNode, edgeKey: DependencyDescendantKey): DependencyEdge => {
-    return {
-        source: baseNode.EphemeraId,
-        target: edgeKey.split('::')[0],
-        context: edgeKey.split('::')[1]
-    }
-}
-
-type DependencyNode = {
-    EphemeraId: EphemeraKey;
-    childEdges: DependencyAncestorKey[];
-    parentEdges: DependencyDescendantKey[];
-    //
-    // For information about caching, see next section
-    //
-    ancestorCache?: DependencyBestGuessCache;
-    descendantCache?: DependencyBestGuessCache;
+type GraphNodeCache = {
+    PrimaryId: PrimaryKey;   // Either: 'EphemeraId: EphemeraKey' or 'AssetId: AssetKey' as needed
+    DataCategory: 'GRAPH::Forward' | 'GRAPH::Back';
+    edgeSet: `${PrimaryKey}::${contextString}`[];
+    cache?: PrimaryKey[];
+    cachedAt?: number;       // Epoch Time
+    invalidatedAt?: number;  // Epoch Time
 }
 ```
 
-Whenever an edge is added, it must be added to both nodes with an atomic transaction. Likewise when an edge is
-removed.
+Example:
+
+Suppose a genuine source of truth in the Ephemera table that has the following structure (with no context on edges),
+where node A is a Variable, and all others are Computed:
+    - Node A has children B and C,
+    - Node B has children D and E,
+    - Node C has children F and G
+
+If Node A has had its Forward GraphNodeCache invalidated at 9900 Epoch Time, and cached at 10000, it
+would look like this:
+
+```ts
+{
+    EphemeraId: 'VARIABLE#A',
+    DataCategory: 'GRAPH::Forward',
+    edgeSet: ['COMPUTED#B::', 'COMPUTED#C::'],
+    cache: ['COMPUTED#B', 'COMPUTED#C', 'COMPUTED#D', 'COMPUTED#E', 'COMPUTED#F', 'COMPUTED#G'],
+    invalidatedAt: 9900,
+    cachedAt: 10000
+}
+```
+
+...likewise, a backward graph cache from Node D would look like this:
+
+```ts
+{
+    EphemeraId: 'COMPUTED#A',
+    DataCategory: 'GRAPH::Backward',
+    edgeSet: ['COMPUTED#B::'],
+    cache: ['COMPUTED#B', 'VARIABLE#A'],
+    invalidatedAt: 9900,
+    cachedAt: 10000
+}
+```
+
+#### GraphEdge
+
+*An Edge is a connection between the source node (that it's defined on) and a target node, with*
+*context information about the nature of the edge. Two nodes may have multiple similarly-directed*
+*edges between them, if those edges have different context information.*
+
+```ts
+type GraphEdge = {
+    PrimaryId: PrimaryKey;
+    DataCategory: `GRAPH::${PrimaryKey}::${contextString}`;
+}
+```
+
+Whenever an edge is added, it must be added to the edge-sets of both nodes with an atomic transaction.
+Likewise when an edge is removed. If these additions or deletions change the set of direct connections
+(i.e., no similar edge exists with a different context) then the GraphNodeCache must have its invalidated
+property set to the current EpochTime.
 
 ---
 
