@@ -288,8 +288,17 @@ set can be reconstructed, and any nodes that aren't part of a graph-walk can be 
 
 #### Tree Caching
 
-*When a successful fetch is completed, it will include a set of all nodes that have been queried (either*
-*as part of recursive fetching, or as part of a cache fetch). If either the base node (to be extended)*
+*When a successful fetch is completed, it will be possible to calculate whether the cache needs to be*
+*updated with new data. Cache is updated as follows:*
+
+* The graph results are walked breadth-first (modified Dijkstra algorithm) until either (a) the whole sub-graph
+has been walked, or (b) the number of distinct nodes has passed the threshold of what the system is comfortable
+batchGetting at once (current limits are no more than 16MB total, and no more than 100 items, but those limits
+increase from time to time). The last full level of breadth-first scanning before the threshold is cached.
+* If the limited graph results are not identical to the cache then this node is a candidate for a cache update.
+* The cache is replaced with the new limited set of nodes, conditioned on both the **invalidatedAt** and **cachedAt**
+values not having changed since the fetch started. If either of those values have changed, the cache is not
+updated in this cycle. **cachedAt** is updated to the epoch time as part of this update.
 
 Example:
 
@@ -298,42 +307,13 @@ Suppose a genuine source of truth that has the following structure:
     - Node B has children D and E,
     - Node C has children F and G
 
-Suppose further that NodeA has a descendantCache with the following edges: ['A::B::', 'A::C::', 'B::G::', 'B::D::', 'C::F::', 'C::G::']
+Suppose further that the threshold for nodes in the cache is five, and NodeA has a forward cache with the following nodes:
+['A', 'B', 'D', 'E']
 
-To query the entire edge-set of the graph descending from A, using the best-guess cache, would proceed as follows:
-    - Query Nodes B, C, H, D, F, and G.
-    - On a single round-trip, confirm that nodes C, H, D, F, and G have the children that the cache expects them to have.
-    - Because B does *not* have the children it is expected to have, check B for a cache (none found), and then directly
-    query node E.
-    - Upon return trip of the second round-trip, the process would have information about the child edgesets of nodes A-H,
-    and could confirm possession of the entire graph (as well as confirm that NodeA's descendantCache is incorrect and
-    in need of invalidation or update)
-
-Again: A Best-Guess Cache does not replace querying the underlying values to check source-of-truth. It only gives you
-a probable chance to query those values in parallel rather than in a number of back-and-forths proportional to the depth
-of the graph.
-
-Because the Best-Guess Cache is only a short-cut to queries, it can be deliberately incomplete without fouling the algorithm.
-As such, it is stored in the following structure:
-
-```ts
-type BestGuessCacheEdgeKey = `${EphemeraKey}::${EphemeraKey}::${DependencyContext}`
-enum BestGuessNodeKnowledgeLevels {
-    Complete,
-    Partial
-}
-type BestGuessNode = {
-    EphemeraId: EphemeraKey;
-    knowledge: BestGuessNodeKnowledgeLevels;
-}
-type DependencyBestGuessCache = {
-    treeEdges: BestGuessCacheEdgeKey[];
-    nodes: BestGuessNode[];
-}
-```
-
-Working out the most efficient way to partially cache graphs (or partially invalidate) is a work in progress, but the capability
-is there for future development.
+Walking the fetched edge-set would return 'A' in the first level, 'B' and 'C' in the second, and 'D', 'E', 'F', and 'G' in
+the third. Two levels of the graph contain three nodes, while three levels contain seven (greater than the treshold), so
+only two will be cached. The two-level cache nodes are ['A', 'B', 'C'], which is not the same set as ['A', 'B', 'D', 'E'],
+so this is a candidate for cache update.
 
 ---
 
