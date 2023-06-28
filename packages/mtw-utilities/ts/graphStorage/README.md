@@ -317,20 +317,20 @@ so this is a candidate for cache update.
 
 ---
 
-## Updates
+### Updates
 
-*Whenever an item which either (a) is depended upon, (b) depends upon other assets, or (c) both is updated in a way that*
-*changes its imports, it must cascade changes in both trees.  The Descent trees of any Ancestors must be updated*
-*recursively and likewise the Ancestry tree of any Descendants*
+*When a new edge is added, the following process is executed:*
 
-Starting from a changed target-node:
-- Update the Descent value of each of its previous or new immediate ancestors (which may change), changing the record that corresponds to
-that ancestor's recognition of the target-node, by either (a) removing the record or (b) updating the record to correspond
-to the new Descent value of the target-node
-- Recurse on Descent update for each updated ancestor
-- Update the Ancestry value of each of its immediate descendants (which will not change), changing the record that corresponds to
-that descendants's recognition of the target-node, by updating the record to correspond to the new Ancestry value of the target-node
-- Recurse on Ancestry update for each updated descendant
+* Fetch the GraphNodeCache edge-set in the appropriate direction for source and target node (forward for source, backward
+for target)
+* For each of the edge-sets, if the other end of the edge is not yet represented (with some context) in the edge-set then
+the record will be marked for invalidation. If the edge to be added already exists then no update to that edge-set (or
+invalidation) will be needed. If the edge exists, but only with a different context, then the edge-set needs update,
+but not the **invalidatedAt** property.
+* Execute a transaction to (a) add the GraphEdge record, and (b) execute GraphNodeCache updates as needed
+
+No direct update needs to be made to the GraphNodeCache cache value: It will be refreshed as part of the next fetch
+to be executed.
 
 ---
 ---
