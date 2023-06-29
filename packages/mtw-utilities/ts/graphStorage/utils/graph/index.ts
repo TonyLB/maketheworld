@@ -1,4 +1,5 @@
-import { GraphEdge } from "./baseClasses";
+import { objectFilter } from "../../../objects";
+import { GraphEdge } from "./baseClasses"
 
 export class GraphNode <K extends string, T extends { key: K } & Record<string, any>> {
     node?: T
@@ -14,11 +15,39 @@ export class GraphNode <K extends string, T extends { key: K } & Record<string, 
     }
 
     get edges(): GraphEdge<K>[] {
-        return this._edges.filter(({ from, to }) => (from === this._key || ((!this._directional) && to === this._key)))
+        return this._edges.reduce<GraphEdge<K>[]>((previous, { from, to }) => {
+            if (from === this._key) {
+                return [
+                    ...previous,
+                    { from, to }
+                ]
+            }
+            if ((!this._directional) && to === this._key) {
+                return [
+                    ...previous,
+                    { from: to, to: from }
+                ]
+            }
+            return previous
+        }, [])
     }
 
     get backEdges(): GraphEdge<K>[] {
-        return this._edges.filter(({ from, to }) => (to === this._key || ((!this._directional) && from === this._key)))
+        return this._edges.reduce<GraphEdge<K>[]>((previous, { from, to }) => {
+            if (to === this._key) {
+                return [
+                    ...previous,
+                    { from, to }
+                ]
+            }
+            if ((!this._directional) && from === this._key) {
+                return [
+                    ...previous,
+                    { from: to, to: from }
+                ]
+            }
+            return previous
+        }, [])
     }
 
 }
@@ -27,6 +56,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     nodes: Record<K, T>
     edges: GraphEdge<K>[]
     directional: boolean;
+    _alreadyVisited: K[] = [];
 
     constructor(nodes: Record<K, T>, edges: GraphEdge<K>[], directional: boolean = false) {
         this.nodes = { ...nodes }
@@ -44,5 +74,29 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
 
     setNode(key: K, node: T): void {
         this.nodes[key] = node
+    }
+
+    subGraph(keys: K[]): Graph<K, T> {
+        return new Graph(
+            objectFilter(this.nodes as Record<string, T>, ({ key }) => (keys.includes(key))) as Record<K, T>,
+            this.edges.filter(({ from, to }) => (keys.includes(from) && keys.includes(to))),
+            this.directional
+        )
+    }
+
+    _simpleWalkIterator(key: K, callback: (key: K) => void): void {
+        if (this._alreadyVisited.includes(key)) {
+            return
+        }
+        this._alreadyVisited.push(key)
+        const edges = this.getNode(key)?.edges || []
+        edges.forEach(({ to }) => (this._simpleWalkIterator(to, callback)))
+        callback(key)
+    }
+
+    simpleWalk(key: K, callback: (key: K) => void): void {
+        this._alreadyVisited = []
+        this._simpleWalkIterator(key, callback)
+        this._alreadyVisited = []
     }
 }
