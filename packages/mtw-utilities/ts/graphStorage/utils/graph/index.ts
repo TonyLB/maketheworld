@@ -1,3 +1,4 @@
+import { objectFilter } from "../../../objects";
 import { GraphEdge } from "./baseClasses"
 
 export class GraphNode <K extends string, T extends { key: K } & Record<string, any>> {
@@ -73,6 +74,14 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
 
     setNode(key: K, node: T): void {
         this.nodes[key] = node
+    }
+
+    subGraph(keys: K[]): Graph<K, T> {
+        return new Graph(
+            objectFilter(this.nodes as Record<string, T>, ({ key }) => (keys.includes(key))) as Record<K, T>,
+            this.edges.filter(({ from, to }) => (keys.includes(from) && keys.includes(to))),
+            this.directional
+        )
     }
 
     _simpleWalkIterator(key: K, callback: (key: K) => void): void {

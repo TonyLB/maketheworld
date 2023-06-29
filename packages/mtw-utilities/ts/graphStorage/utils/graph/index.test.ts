@@ -107,4 +107,39 @@ describe('Graph class', () => {
         })
 
     })
+
+    describe('subGraph', () => {
+        let testNodes: Record<string, { key: string }>
+        let testEdges: GraphEdge<string>[]
+
+        beforeEach(() => {
+            testNodes = {
+                A: { key: 'A' },
+                B: { key: 'B' },
+                C: { key: 'C' },
+                D: { key: 'D' },
+                E: { key: 'E' },
+                F: { key: 'F' },
+            }
+            testEdges = [
+                { from: 'A', to: 'B' },
+                { from: 'B', to: 'C' },
+                { from: 'A', to: 'C' },
+                { from: 'D', to: 'E' },
+                { from: 'E', to: 'F' },
+                { from: 'F', to: 'D' }
+            ]
+        })
+
+        it('should deliver a subGraph', () => {
+            const testGraph = new Graph(testNodes, testEdges, true)
+            const subGraph = testGraph.subGraph(['A', 'C', 'D', 'E', 'G'])
+            expect(subGraph.directional).toBe(true)
+            expect(Object.keys(subGraph.nodes).sort()).toEqual(['A', 'C', 'D', 'E'])
+            expect(subGraph.edges.sort(compareEdges)).toEqual([
+                { from: 'A', to: 'C' },
+                { from: 'D', to: 'E' }
+            ])
+        })
+    })
 })
