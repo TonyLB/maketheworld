@@ -63,6 +63,42 @@ describe('Karger-Stein algorithm', () => {
         ])
     })
 
+    it('should try a second time when cut-set is above threshold', () => {
+        const testGraph = new Graph(
+            testNodes,
+            [
+                { from: 'C', to: 'D' },
+                { from: 'A', to: 'B' },
+                { from: 'B', to: 'C' },
+                { from: 'C', to: 'A' },
+                { from: 'D', to: 'E' },
+                { from: 'E', to: 'F' },
+                { from: 'F', to: 'D' }
+            ]
+        )
+        jest.spyOn(kargerSteinModule, 'randomInRange')
+            .mockReturnValueOnce(0)
+            .mockReturnValue(1)
+        const { subGraphs, cutSet } = kargerStein(testGraph, 7)
+        expect(subGraphs.length).toBe(2)
+        expect(Object.keys(subGraphs[0].nodes).sort()).toEqual(['A', 'B', 'C'])
+        expect(subGraphs[0].edges.sort(compareEdges)).toEqual([
+            { from: 'A', to: 'B' },
+            { from: 'B', to: 'C' },
+            { from: 'C', to: 'A' },
+        ])
+        expect(Object.keys(subGraphs[1].nodes).sort()).toEqual(['D', 'E', 'F'])
+        expect(subGraphs[1].edges.sort(compareEdges)).toEqual([
+            { from: 'D', to: 'E' },
+            { from: 'E', to: 'F' },
+            { from: 'F', to: 'D' }
+        ])
+        expect(Object.keys(cutSet.nodes)).toEqual(['C', 'D'])
+        expect(cutSet.edges.sort(compareEdges)).toEqual([
+            { from: 'C', to: 'D' }
+        ])
+    })
+
     describe('countMergeNodeAndEdges', () => {
         let testNodes: Record<string, { key: string }>
         let testEdges: GraphEdge<string>[]

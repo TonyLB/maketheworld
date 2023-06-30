@@ -83,7 +83,6 @@ const kargerSteinIteration = <K extends string, T extends { key: K } & Record<st
 }
 
 const componentFactory = <K extends string, T extends { key: K } & Record<string, any>>(graph: Graph<K, T>, mergeLabels: KargerSteinMergeSet<K>): Graph<K, T>[] => {
-    console.log(`mergeLabels: ${JSON.stringify(mergeLabels, null, 4)}`)
     const nodesByComponent = Object.keys(graph.nodes).reduce<Partial<Record<K, K[]>>>((previous, key) => (
             mergeLabels[key]
             ? {
@@ -130,8 +129,18 @@ export const kargerStein = <K extends string, T extends { key: K } & Record<stri
     const cutSet = cutSetFactory(graph, mergeLabels)
 
     //
-    // TODO: Test whether the cut-set is below threshold (likely) ... if not, run a second time, then accept the best of the two alternatives
+    // Test whether the cut-set is below threshold (likely) ... if not, run a second time, then accept the best of the two alternatives
     //
+    if (Object.keys(cutSet.nodes).length + cutSet.edges.length >= threshold) {
+        const secondMergeLabels = kargerSteinIteration(graph, threshold)
+        const secondCutSet = cutSetFactory(graph, secondMergeLabels)
+        if (Object.keys(secondCutSet.nodes).length + secondCutSet.edges.length < Object.keys(cutSet.nodes).length + cutSet.edges.length) {
+            return {
+                subGraphs: componentFactory(graph, secondMergeLabels),
+                cutSet: secondCutSet
+            }
+        }
+    }
 
     return {
         subGraphs: componentFactory(graph, mergeLabels),
