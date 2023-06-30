@@ -5,7 +5,7 @@
 //
 
 import { Graph } from "."
-import { objectEntryMap, objectMap } from "../../../objects";
+import { objectEntryMap, objectFilter, objectMap } from "../../../objects";
 import { GraphEdge } from "./baseClasses";
 
 type KargerSteinReturn<K extends string, T extends { key: K } & Record<string, any>> = {
@@ -24,9 +24,7 @@ export const countMergedNodesAndEdges = <K extends string, T extends { key: K } 
     const fromLabel = mergeLabels[edge.from]?.key || edge.from
     const toLabel = mergeLabels[edge.to]?.key || edge.to
     const edgeCount = graph.edges.filter(({ from, to }) => ([fromLabel, toLabel].includes(mergeLabels[from]?.key || from) && [fromLabel, toLabel].includes(mergeLabels[to]?.key || to))).length
-    console.log(`edgeCount: ${edgeCount}`)
     const nodeCount = (Object.keys(graph.nodes) as K[]).filter((key) => ([fromLabel, toLabel].includes(mergeLabels[key]?.key || key))).length
-    console.log(`nodeCount: ${nodeCount}`)
     return edgeCount + nodeCount
 }
 
@@ -71,6 +69,55 @@ export const mergeEdge = <K extends string, T extends { key: K } & Record<string
     } as KargerSteinMergeSet<K>
 }
 
+const kargerSteinIteration = <K extends string, T extends { key: K } & Record<string, any>>(graph: Graph<K, T>, threshold: number): KargerSteinMergeSet<K> => {
+    let mergeLabels: KargerSteinMergeSet<K> = {}
+    while(true) {
+        const edgeToMerge = selectRandomUnmergedEdge(graph, mergeLabels, threshold)
+        if (typeof edgeToMerge === 'undefined') {
+            break
+        }
+        mergeLabels = mergeEdge(graph, mergeLabels, graph.edges[edgeToMerge])
+    }
+
+    return mergeLabels
+}
+
+const componentFactory = <K extends string, T extends { key: K } & Record<string, any>>(graph: Graph<K, T>, mergeLabels: KargerSteinMergeSet<K>): Graph<K, T>[] => {
+    console.log(`mergeLabels: ${JSON.stringify(mergeLabels, null, 4)}`)
+    const nodesByComponent = Object.keys(graph.nodes).reduce<Partial<Record<K, K[]>>>((previous, key) => (
+            mergeLabels[key]
+            ? {
+                ...previous,
+                [(mergeLabels[key].key) as K]: [
+                    ...(previous[mergeLabels[key].key] || []),
+                    key
+                ]
+            }
+            : previous
+        ), {})
+    const nodesByLowestComponent = (Object.values(nodesByComponent) as K[][]).reduce<Partial<Record<K, K[]>>>((previous, keys) => ({
+        ...previous,
+        [keys.sort()[0] as K]: keys
+    }), {})
+
+    return Object.keys(nodesByLowestComponent).sort().map((key) => {
+        const nodeKeys: K[] = nodesByLowestComponent[key]
+        const nodes = objectFilter(graph.nodes as Record<string, { key: K }>, ({ key }) => (nodeKeys.includes(key))) as Partial<Record<K, T>>
+        const edges = graph.edges.filter(({ from, to }) => (nodeKeys.includes(from) && nodeKeys.includes(to)))
+        return new Graph(nodes, edges)
+    })
+}
+
+const cutSetFactory = <K extends string, T extends { key: K } & Record<string, any>>(graph: Graph<K, T>, mergeLabels: KargerSteinMergeSet<K>): Graph<K, T> => {
+    const edges = graph.edges.filter(({ from, to }) => ((mergeLabels[from]?.key || from) !== (mergeLabels[to]?.key || to)))
+    const nodes = edges.reduce<Partial<Record<K, T>>>((previous, { from, to }) => ({
+        ...previous,
+        [from]: graph.nodes[from],
+        [to]: graph.nodes[to]
+    }), {})
+    return new Graph(nodes, edges)
+}
+
 export const kargerStein = <K extends string, T extends { key: K } & Record<string, any>>(graph: Graph<K, T>, threshold: number): KargerSteinReturn<K, T> => {
     if ((Object.keys(graph.nodes).length + graph.edges.length) < threshold) {
         return {
@@ -78,18 +125,17 @@ export const kargerStein = <K extends string, T extends { key: K } & Record<stri
             cutSet: new Graph<K, T>({}, [], graph.directional)
         }
     }
-    let mergeLabels: KargerSteinMergeSet<K> = {}
-    //
-    // TODO: Select random edges to merge until there are none remaining
-    //
+
+    const mergeLabels = kargerSteinIteration(graph, threshold)
+    const cutSet = cutSetFactory(graph, mergeLabels)
 
     //
-    // TODO: Test whether the edge-set is below threshold (likely) ... if not, run a second time, then accept the best of the two alternatives
+    // TODO: Test whether the cut-set is below threshold (likely) ... if not, run a second time, then accept the best of the two alternatives
     //
 
     return {
-        subGraphs: [],
-        cutSet: new Graph<K, T>({}, [], graph.directional)
+        subGraphs: componentFactory(graph, mergeLabels),
+        cutSet
     }
 }
 

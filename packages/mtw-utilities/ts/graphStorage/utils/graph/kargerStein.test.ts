@@ -41,6 +41,28 @@ describe('Karger-Stein algorithm', () => {
         expect(Object.keys(cutSet.nodes).length).toBe(0)
     })
 
+    it('should return cut graph when above threshold', () => {
+        const testGraph = new Graph(testNodes, testEdges)
+        jest.spyOn(kargerSteinModule, 'randomInRange').mockReturnValue(0)
+        const { subGraphs, cutSet } = kargerStein(testGraph, 8)
+        expect(subGraphs.length).toBe(2)
+        expect(Object.keys(subGraphs[0].nodes).sort()).toEqual(['A', 'B', 'C'])
+        expect(subGraphs[0].edges.sort(compareEdges)).toEqual([
+            { from: 'A', to: 'B' },
+            { from: 'A', to: 'C' },
+            { from: 'B', to: 'C' }
+        ])
+        expect(Object.keys(subGraphs[1].nodes).sort()).toEqual(['D', 'F'])
+        expect(subGraphs[1].edges.sort(compareEdges)).toEqual([
+            { from: 'D', to: 'F' }
+        ])
+        expect(Object.keys(cutSet.nodes)).toEqual(['C', 'D', 'E'])
+        expect(cutSet.edges.sort(compareEdges)).toEqual([
+            { from: 'C', to: 'D' },
+            { from: 'C', to: 'E' },
+        ])
+    })
+
     describe('countMergeNodeAndEdges', () => {
         let testNodes: Record<string, { key: string }>
         let testEdges: GraphEdge<string>[]
