@@ -53,12 +53,12 @@ export class GraphNode <K extends string, T extends { key: K } & Record<string, 
 }
 
 export class Graph <K extends string, T extends { key: K } & Record<string, any>> {
-    nodes: Record<K, T>
+    nodes: Partial<Record<K, T>>
     edges: GraphEdge<K>[]
     directional: boolean;
     _alreadyVisited: K[] = [];
 
-    constructor(nodes: Record<K, T>, edges: GraphEdge<K>[], directional: boolean = false) {
+    constructor(nodes: Partial<Record<K, T>>, edges: GraphEdge<K>[], directional: boolean = false) {
         this.nodes = { ...nodes }
         this.edges = [...edges]
         this.directional = directional
