@@ -110,7 +110,7 @@ type GraphStorageIterationReturn = {
 //
 // TODO: Replace incoming arguments with split arguments by descent and ancestry
 //
-export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>({ internalCache, dbHandler, keyLabel }: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async (payloads: GraphStorageIterationProps): Promise<GraphStorageIterationReturn> => {
+export const legacyUpdateGraphStorageIteration = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>({ internalCache, dbHandler, keyLabel }: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async (payloads: GraphStorageIterationProps): Promise<GraphStorageIterationReturn> => {
     const extractKey = (item: any) => (item[keyLabel as any] as string)
     const dependencyTags = ['descent', 'ancestry'] as const
     let returnVal: GraphStorageIterationReturn = {
@@ -190,7 +190,7 @@ export const updateGraphStorageIteration = <C extends InstanceType<ReturnType<ty
     return returnVal
 }
 
-export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
+export const legacyUpdateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
     let workingActions: GraphStorageIterationProps = {
         descent: {
             payloads: descent,
@@ -202,7 +202,7 @@ export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof Grap
         }
     }
     while((workingActions.descent.payloads.length + workingActions.ancestry.payloads.length) > 0) {
-        const output = await updateGraphStorageIteration(metaProps)(workingActions)
+        const output = await legacyUpdateGraphStorageIteration(metaProps)(workingActions)
         const { descent, ancestry } = output
         workingActions = {
             descent: {
@@ -217,4 +217,23 @@ export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof Grap
     }
 }
 
-export default updateGraphStorage
+export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
+    //
+    // TODO: use addEdge to aggregate all dependency updates into a graph
+    //
+
+    //
+    // TODO: batchGet edgeSet, and invalidated for all nodes in graph
+    //
+
+    //
+    // TODO: Create an updateGraphStorageBatch distributor function to accept previously fetched data and attempt an update transaction
+    //
+
+    //
+    // TODO: Call updateGraphStorageBatch with exponential backoff in case of condition exceptions
+    //
+}
+
+
+export default legacyUpdateGraphStorage

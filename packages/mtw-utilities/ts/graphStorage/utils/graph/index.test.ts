@@ -26,7 +26,7 @@ describe('Graph class', () => {
         })
 
         it('should correctly get edges on a directional graph', () => {
-            const testGraph = new Graph(testNodes, testEdges, true)
+            const testGraph = new Graph(testNodes, testEdges, {}, true)
             expect(testGraph.getNode('C')?.edges.sort(compareEdges)).toEqual([
                 { from: 'C', to: 'D' },
                 { from: 'C', to: 'E' }
@@ -34,7 +34,7 @@ describe('Graph class', () => {
         })
 
         it('should correctly get back-edges on a directional graph', () => {
-            const testGraph = new Graph(testNodes, testEdges, true)
+            const testGraph = new Graph(testNodes, testEdges, {},  true)
             expect(testGraph.getNode('C')?.backEdges.sort(compareEdges)).toEqual([
                 { from: 'A', to: 'C' },
                 { from: 'B', to: 'C' }
@@ -42,7 +42,7 @@ describe('Graph class', () => {
         })
 
         it('should correctly get edges on a non-directional graph', () => {
-            const testGraph = new Graph(testNodes, testEdges)
+            const testGraph = new Graph(testNodes, testEdges, {})
             expect(testGraph.getNode('C')?.edges.sort(compareEdges)).toEqual([
                 { from: 'C', to: 'A' },
                 { from: 'C', to: 'B' },
@@ -52,7 +52,7 @@ describe('Graph class', () => {
         })
 
         it('should correctly get back-edges on a non-directional graph', () => {
-            const testGraph = new Graph(testNodes, testEdges)
+            const testGraph = new Graph(testNodes, testEdges, {})
             expect(testGraph.getNode('C')?.backEdges.sort(compareEdges)).toEqual([
                 { from: 'A', to: 'C' },
                 { from: 'B', to: 'C' },
@@ -88,7 +88,7 @@ describe('Graph class', () => {
 
         it('should correctly walk an acyclic tree', () => {
             const callback = jest.fn()
-            const testGraph = new Graph(testNodes, testEdges, true)
+            const testGraph = new Graph(testNodes, testEdges, {},  true)
             testGraph.simpleWalk('A', callback)
             expect(callback).toHaveBeenCalledTimes(3)
             expect(callback).toHaveBeenCalledWith('A')
@@ -98,7 +98,7 @@ describe('Graph class', () => {
 
         it('should correctly walk a cyclic tree', () => {
             const callback = jest.fn()
-            const testGraph = new Graph(testNodes, testEdges, true)
+            const testGraph = new Graph(testNodes, testEdges, {},  true)
             testGraph.simpleWalk('D', callback)
             expect(callback).toHaveBeenCalledTimes(3)
             expect(callback).toHaveBeenCalledWith('D')
@@ -132,7 +132,7 @@ describe('Graph class', () => {
         })
 
         it('should deliver a subGraph', () => {
-            const testGraph = new Graph(testNodes, testEdges, true)
+            const testGraph = new Graph(testNodes, testEdges, {},  true)
             const subGraph = testGraph.subGraph(['A', 'C', 'D', 'E', 'G'])
             expect(subGraph.directional).toBe(true)
             expect(Object.keys(subGraph.nodes).sort()).toEqual(['A', 'C', 'D', 'E'])

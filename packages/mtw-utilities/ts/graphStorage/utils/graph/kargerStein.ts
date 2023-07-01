@@ -103,7 +103,7 @@ const componentFactory = <K extends string, T extends { key: K } & Record<string
         const nodeKeys: K[] = nodesByLowestComponent[key]
         const nodes = objectFilter(graph.nodes as Record<string, { key: K }>, ({ key }) => (nodeKeys.includes(key))) as Partial<Record<K, T>>
         const edges = graph.edges.filter(({ from, to }) => (nodeKeys.includes(from) && nodeKeys.includes(to)))
-        return new Graph(nodes, edges)
+        return new Graph(nodes, edges, graph._default)
     })
 }
 
@@ -114,14 +114,14 @@ const cutSetFactory = <K extends string, T extends { key: K } & Record<string, a
         [from]: graph.nodes[from],
         [to]: graph.nodes[to]
     }), {})
-    return new Graph(nodes, edges)
+    return new Graph(nodes, edges, graph._default)
 }
 
 export const kargerStein = <K extends string, T extends { key: K } & Record<string, any>>(graph: Graph<K, T>, threshold: number): KargerSteinReturn<K, T> => {
     if ((Object.keys(graph.nodes).length + graph.edges.length) < threshold) {
         return {
             subGraphs: [graph],
-            cutSet: new Graph<K, T>({}, [], graph.directional)
+            cutSet: new Graph<K, T>({}, [], graph._default, graph.directional)
         }
     }
 

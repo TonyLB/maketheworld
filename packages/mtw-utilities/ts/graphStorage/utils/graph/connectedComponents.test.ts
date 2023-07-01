@@ -21,6 +21,7 @@ describe('connectedComponents', () => {
                 { from: 'C', to: 'E' },
                 { from: 'D', to: 'F' }
             ],
+            {},
             true
         )
 
@@ -54,6 +55,7 @@ describe('connectedComponents', () => {
                 { from: 'C', to: 'E' },
                 { from: 'D', to: 'F' }
             ],
+            {},
             true
         )
 
@@ -88,7 +90,8 @@ describe('connectedComponents', () => {
                 { from: 'C', to: 'D' },
                 { from: 'C', to: 'E' },
                 { from: 'D', to: 'F' }
-            ]
+            ],
+            {}
         )
 
         const components = connectedComponents(testGraph)

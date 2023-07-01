@@ -56,11 +56,13 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     nodes: Partial<Record<K, T>>
     edges: GraphEdge<K>[]
     directional: boolean;
+    _default: Omit<T, 'key'>;
     _alreadyVisited: K[] = [];
 
-    constructor(nodes: Partial<Record<K, T>>, edges: GraphEdge<K>[], directional: boolean = false) {
+    constructor(nodes: Partial<Record<K, T>>, edges: GraphEdge<K>[], defaultItem: Omit<T, 'key'>, directional: boolean = false) {
         this.nodes = { ...nodes }
         this.edges = [...edges]
+        this._default = defaultItem
         this.directional = directional
     }
 
@@ -80,6 +82,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         return new Graph(
             objectFilter(this.nodes as Record<string, T>, ({ key }) => (keys.includes(key))) as Record<K, T>,
             this.edges.filter(({ from, to }) => (keys.includes(from) && keys.includes(to))),
+            this._default,
             this.directional
         )
     }
@@ -98,5 +101,15 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         this._alreadyVisited = []
         this._simpleWalkIterator(key, callback)
         this._alreadyVisited = []
+    }
+
+    addEdge(from: K, to: K): void {
+        if (!this.nodes[from]) {
+            this.nodes[from] = { key: from, ...this._default } as T
+        }
+        if (!this.nodes[to]) {
+            this.nodes[to] = { key: to, ...this._default } as T
+        }
+        this.edges.push({ from, to })
     }
 }
