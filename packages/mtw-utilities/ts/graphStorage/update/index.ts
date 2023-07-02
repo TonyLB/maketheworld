@@ -1,8 +1,9 @@
 import { unique } from "../../lists"
 import { reduceDependencyGraph, extractTree } from "../cache"
-import { DependencyNode, DependencyEdge, DependencyGraphAction, isDependencyGraphPut, isLegalDependencyTag, CacheBase } from "../cache/baseClasses"
+import { DependencyNode, DependencyEdge, DependencyGraphAction, isDependencyGraphPut, isLegalDependencyTag, CacheBase, isDependencyGraphDelete } from "../cache/baseClasses"
 import { extractConstrainedTag } from "../../types"
 import GraphCache from "../cache"
+import { Graph } from "../utils/graph"
 
 export type DescentUpdateMessage = {
     type: 'DescentUpdate';
@@ -218,12 +219,18 @@ export const legacyUpdateGraphStorage = <C extends InstanceType<ReturnType<typeo
 }
 
 export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
-    //
-    // TODO: use addEdge to aggregate all dependency updates into a graph
-    //
+    const graph = new Graph<string, { key: string }>({}, [], {}, true)
+    descent.forEach((item) => {
+        if (isDependencyGraphPut(item)) { graph.addEdge(item.EphemeraId, item.putItem.EphemeraId) }
+        if (isDependencyGraphDelete(item)) { graph.addEdge(item.EphemeraId, item.deleteItem.EphemeraId) }
+    })    
+    ancestry.forEach((item) => {
+        if (isDependencyGraphPut(item)) { graph.addEdge(item.putItem.EphemeraId, item.EphemeraId) }
+        if (isDependencyGraphDelete(item)) { graph.addEdge(item.deleteItem.EphemeraId, item.EphemeraId) }
+    })
 
     //
-    // TODO: batchGet edgeSet, and invalidated for all nodes in graph
+    // TODO: cache-fetch all nodes
     //
 
     //
