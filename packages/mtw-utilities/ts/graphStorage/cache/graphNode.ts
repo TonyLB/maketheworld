@@ -15,7 +15,7 @@ type GraphNodeCacheComponent <K extends string> = {
     cachedAt?: number;    
 }
 
-type GraphNodeCache <K extends string> = {
+export type GraphNodeCache <K extends string> = {
     PrimaryKey: K;
     forward: GraphNodeCacheComponent<K>;
     back: GraphNodeCacheComponent<K>;

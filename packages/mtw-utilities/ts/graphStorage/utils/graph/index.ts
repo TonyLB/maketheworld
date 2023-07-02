@@ -1,49 +1,49 @@
 import { objectFilter } from "../../../objects";
 import { GraphEdge } from "./baseClasses"
 
-export class GraphNode <K extends string, T extends { key: K } & Record<string, any>> {
+export class GraphNode <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> {
     node?: T
-    _edges: GraphEdge<K>[]
+    _edges: GraphEdge<K, E>[]
     _directional: boolean;
     _key: K;
 
-    constructor(graph: Graph<K, T>, key: K) {
+    constructor(graph: Graph<K, T, E>, key: K) {
         this._key = key
         this.node = graph.nodes[key]
         this._edges = [...graph.edges]
         this._directional = graph.directional
     }
 
-    get edges(): GraphEdge<K>[] {
-        return this._edges.reduce<GraphEdge<K>[]>((previous, { from, to }) => {
+    get edges(): GraphEdge<K, E>[] {
+        return this._edges.reduce<GraphEdge<K, E>[]>((previous, { from, to, ...rest }) => {
             if (from === this._key) {
                 return [
                     ...previous,
-                    { from, to }
+                    { from, to, ...rest } as GraphEdge<K, E>
                 ]
             }
             if ((!this._directional) && to === this._key) {
                 return [
                     ...previous,
-                    { from: to, to: from }
+                    { from: to, to: from, ...rest } as GraphEdge<K, E>
                 ]
             }
             return previous
         }, [])
     }
 
-    get backEdges(): GraphEdge<K>[] {
-        return this._edges.reduce<GraphEdge<K>[]>((previous, { from, to }) => {
+    get backEdges(): GraphEdge<K, E>[] {
+        return this._edges.reduce<GraphEdge<K, E>[]>((previous, { from, to, ...rest }) => {
             if (to === this._key) {
                 return [
                     ...previous,
-                    { from, to }
+                    { from, to, ...rest } as GraphEdge<K, E>
                 ]
             }
             if ((!this._directional) && from === this._key) {
                 return [
                     ...previous,
-                    { from: to, to: from }
+                    { from: to, to: from, ...rest } as GraphEdge<K, E>
                 ]
             }
             return previous
@@ -52,22 +52,22 @@ export class GraphNode <K extends string, T extends { key: K } & Record<string, 
 
 }
 
-export class Graph <K extends string, T extends { key: K } & Record<string, any>> {
+export class Graph <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> {
     nodes: Partial<Record<K, T>>
-    edges: GraphEdge<K>[]
+    edges: GraphEdge<K, E>[]
     directional: boolean;
     _default: Omit<T, 'key'>;
     _alreadyVisited: K[] = [];
 
-    constructor(nodes: Partial<Record<K, T>>, edges: GraphEdge<K>[], defaultItem: Omit<T, 'key'>, directional: boolean = false) {
+    constructor(nodes: Partial<Record<K, T>>, edges: GraphEdge<K, E>[], defaultItem: Omit<T, 'key'>, directional: boolean = false) {
         this.nodes = { ...nodes }
         this.edges = [...edges]
         this._default = defaultItem
         this.directional = directional
     }
 
-    getNode(key: K): GraphNode<K, T> | undefined {
-        const nodeCheck = new GraphNode<K, T>(this, key)
+    getNode(key: K): GraphNode<K, T, E> | undefined {
+        const nodeCheck = new GraphNode<K, T, E>(this, key)
         if (nodeCheck.node) {
             return nodeCheck
         }
@@ -78,7 +78,14 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         this.nodes[key] = node
     }
 
-    subGraph(keys: K[]): Graph<K, T> {
+    mapAll(callback: (node: T) => T): void {
+        (Object.values(this.nodes) as T[]).forEach((previousNode) => {
+            const newNode = callback(previousNode)
+            this.setNode(previousNode.key, newNode)
+        })
+    }
+
+    subGraph(keys: K[]): Graph<K, T, E> {
         return new Graph(
             objectFilter(this.nodes as Record<string, T>, ({ key }) => (keys.includes(key))) as Record<K, T>,
             this.edges.filter(({ from, to }) => (keys.includes(from) && keys.includes(to))),
@@ -103,13 +110,14 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         this._alreadyVisited = []
     }
 
-    addEdge(from: K, to: K): void {
+    addEdge(edge: GraphEdge<K, E>): void {
+        const { from, to } = edge
         if (!this.nodes[from]) {
             this.nodes[from] = { key: from, ...this._default } as T
         }
         if (!this.nodes[to]) {
             this.nodes[to] = { key: to, ...this._default } as T
         }
-        this.edges.push({ from, to })
+        this.edges.push(edge)
     }
 }

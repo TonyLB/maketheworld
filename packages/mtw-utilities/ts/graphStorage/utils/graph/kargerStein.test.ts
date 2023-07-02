@@ -4,7 +4,7 @@ import kargerStein, * as kargerSteinModule from './kargerStein'
 
 describe('Karger-Stein algorithm', () => {
     let testNodes: Record<string, { key: string }>
-    let testEdges: GraphEdge<string>[]
+    let testEdges: GraphEdge<string, {}>[]
 
     beforeEach(() => {
         testNodes = {
@@ -26,7 +26,7 @@ describe('Karger-Stein algorithm', () => {
     })
 
     it('should return graph unchanged when below threshold', () => {
-        const testGraph = new Graph(testNodes, testEdges, {})
+        const testGraph = new Graph<string, { key: string }, {}>(testNodes, testEdges, {})
         const { subGraphs, cutSet } = kargerStein(testGraph, 20)
         expect(subGraphs.length).toBe(1)
         expect(Object.keys(subGraphs[0].nodes).sort()).toEqual(['A', 'B', 'C', 'D', 'E', 'F'])
@@ -42,7 +42,7 @@ describe('Karger-Stein algorithm', () => {
     })
 
     it('should return cut graph when above threshold', () => {
-        const testGraph = new Graph(testNodes, testEdges, {})
+        const testGraph = new Graph<string, { key: string }, {}>(testNodes, testEdges, {})
         jest.spyOn(kargerSteinModule, 'randomInRange').mockReturnValue(0)
         const { subGraphs, cutSet } = kargerStein(testGraph, 8)
         expect(subGraphs.length).toBe(2)
@@ -64,7 +64,7 @@ describe('Karger-Stein algorithm', () => {
     })
 
     it('should try a second time when cut-set is above threshold', () => {
-        const testGraph = new Graph(
+        const testGraph = new Graph<string, { key: string }, {}>(
             testNodes,
             [
                 { from: 'C', to: 'D' },
@@ -102,8 +102,8 @@ describe('Karger-Stein algorithm', () => {
 
     describe('countMergeNodeAndEdges', () => {
         let testNodes: Record<string, { key: string }>
-        let testEdges: GraphEdge<string>[]
-        let testGraph: Graph<string, { key: string }>
+        let testEdges: GraphEdge<string, {}>[]
+        let testGraph: Graph<string, { key: string }, {}>
     
         beforeEach(() => {
             testNodes = {
@@ -130,7 +130,7 @@ describe('Karger-Stein algorithm', () => {
         })
 
         it('should correct sum merging two merged nodes', () => {
-            expect(kargerSteinModule.countMergedNodesAndEdges(
+            expect(kargerSteinModule.countMergedNodesAndEdges<string, { key: string }, {}>(
                 testGraph,
                 {
                     A: { key: 'B', nodesAndEdges: 3 },
@@ -145,7 +145,7 @@ describe('Karger-Stein algorithm', () => {
 
     describe('selectRandomUnmergedEdge', () => {
         let testNodes: Record<string, { key: string }>
-        let testEdges: GraphEdge<string>[]
+        let testEdges: GraphEdge<string, {}>[]
     
         beforeEach(() => {
             testNodes = {
@@ -167,31 +167,31 @@ describe('Karger-Stein algorithm', () => {
         })
     
         it('should select a random edge from unmerged graph', () => {
-            const testGraph = new Graph(testNodes, testEdges, {})
+            const testGraph = new Graph<string, { key: string }, {}>(testNodes, testEdges, {})
             jest.spyOn(kargerSteinModule, 'randomInRange').mockReturnValue(2)
-            expect(kargerSteinModule.selectRandomUnmergedEdge(testGraph, {}, 10)).toEqual(2)
+            expect(kargerSteinModule.selectRandomUnmergedEdge<string, { key: string }, {}>(testGraph, {}, 10)).toEqual(2)
         })
 
         it('should exclude merged self-edges from selection', () => {
-            const testGraph = new Graph(testNodes, testEdges, {})
+            const testGraph = new Graph<string, { key: string }, {}>(testNodes, testEdges, {})
             jest.spyOn(kargerSteinModule, 'randomInRange').mockReturnValue(2)
-            expect(kargerSteinModule.selectRandomUnmergedEdge(testGraph, { B: { key: 'B', nodesAndEdges: 3 }, C: { key: 'B', nodesAndEdges: 3 }}, 10)).toEqual(3)
+            expect(kargerSteinModule.selectRandomUnmergedEdge<string, { key: string }, {}>(testGraph, { B: { key: 'B', nodesAndEdges: 3 }, C: { key: 'B', nodesAndEdges: 3 }}, 10)).toEqual(3)
         })
 
         it('should exclude edges that would make a past-threshold merge node from selection', () => {
-            const testGraph = new Graph(testNodes, testEdges, {})
+            const testGraph = new Graph<string, { key: string }, {}>(testNodes, testEdges, {})
             jest.spyOn(kargerSteinModule, 'randomInRange').mockReturnValue(0)
-            expect(kargerSteinModule.selectRandomUnmergedEdge(testGraph, { B: { key: 'B', nodesAndEdges: 3 }, C: { key: 'B', nodesAndEdges: 3 }}, 8)).toEqual(0)
-            expect(kargerSteinModule.selectRandomUnmergedEdge(testGraph, { B: { key: 'B', nodesAndEdges: 3 }, C: { key: 'B', nodesAndEdges: 3 }}, 6)).toEqual(3)
-            expect(kargerSteinModule.selectRandomUnmergedEdge(testGraph, { B: { key: 'B', nodesAndEdges: 3 }, C: { key: 'B', nodesAndEdges: 3 }}, 5)).toEqual(5)
+            expect(kargerSteinModule.selectRandomUnmergedEdge<string, { key: string }, {}>(testGraph, { B: { key: 'B', nodesAndEdges: 3 }, C: { key: 'B', nodesAndEdges: 3 }}, 8)).toEqual(0)
+            expect(kargerSteinModule.selectRandomUnmergedEdge<string, { key: string }, {}>(testGraph, { B: { key: 'B', nodesAndEdges: 3 }, C: { key: 'B', nodesAndEdges: 3 }}, 6)).toEqual(3)
+            expect(kargerSteinModule.selectRandomUnmergedEdge<string, { key: string }, {}>(testGraph, { B: { key: 'B', nodesAndEdges: 3 }, C: { key: 'B', nodesAndEdges: 3 }}, 5)).toEqual(5)
         })
 
     })
 
     describe('mergeEdge', () => {
         let testNodes: Record<string, { key: string }>
-        let testEdges: GraphEdge<string>[]
-        let testGraph: Graph<string, { key: string }>
+        let testEdges: GraphEdge<string, {}>[]
+        let testGraph: Graph<string, { key: string }, {}>
     
         beforeEach(() => {
             testNodes = {
@@ -218,7 +218,7 @@ describe('Karger-Stein algorithm', () => {
         })
 
         it('should merge unmerged edges on merged graph', () => {
-            expect(kargerSteinModule.mergeEdge(
+            expect(kargerSteinModule.mergeEdge<string, { key: string }, {}>(
                 testGraph,
                 {
                     C: { key: 'C', nodesAndEdges: 3 },
@@ -234,7 +234,7 @@ describe('Karger-Stein algorithm', () => {
         })
 
         it('should merge unmerged node with merged node', () => {
-            expect(kargerSteinModule.mergeEdge(
+            expect(kargerSteinModule.mergeEdge<string, { key: string }, {}>(
                 testGraph,
                 {
                     C: { key: 'C', nodesAndEdges: 3 },
@@ -249,7 +249,7 @@ describe('Karger-Stein algorithm', () => {
         })
 
         it('should merge already merged nodes', () => {
-            expect(kargerSteinModule.mergeEdge(
+            expect(kargerSteinModule.mergeEdge<string, { key: string }, {}>(
                 testGraph,
                 {
                     A: { key: 'A', nodesAndEdges: 3 },

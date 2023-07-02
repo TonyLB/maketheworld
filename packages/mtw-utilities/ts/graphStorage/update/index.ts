@@ -1,5 +1,6 @@
 import { unique } from "../../lists"
 import { reduceDependencyGraph, extractTree } from "../cache"
+import GraphNode, { GraphNodeCache } from '../cache/graphNode'
 import { DependencyNode, DependencyEdge, DependencyGraphAction, isDependencyGraphPut, isLegalDependencyTag, CacheBase, isDependencyGraphDelete } from "../cache/baseClasses"
 import { extractConstrainedTag } from "../../types"
 import GraphCache from "../cache"
@@ -218,19 +219,33 @@ export const legacyUpdateGraphStorage = <C extends InstanceType<ReturnType<typeo
     }
 }
 
-export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<typeof CacheBase>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
-    const graph = new Graph<string, { key: string }>({}, [], {}, true)
+type GraphOfUpdatesNode = Partial<Omit<GraphNodeCache<string>, 'PrimaryKey'>> & {
+    key: string;
+    needsUpdate?: boolean;
+}
+
+type GraphOfUpdatesEdge = {
+    action: 'put' | 'delete';
+}
+
+// const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async (graph: Graph<string, GraphOfUpdates>): Promise<void> => {
+//     const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
+//     fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
+// }
+
+export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
+    const graph = new Graph<string, GraphOfUpdatesNode, GraphOfUpdatesEdge>({}, [], {}, true)
     descent.forEach((item) => {
-        if (isDependencyGraphPut(item)) { graph.addEdge(item.EphemeraId, item.putItem.EphemeraId) }
-        if (isDependencyGraphDelete(item)) { graph.addEdge(item.EphemeraId, item.deleteItem.EphemeraId) }
+        if (isDependencyGraphPut(item)) { graph.addEdge({ from: item.EphemeraId, to: item.putItem.EphemeraId, action: 'put' }) }
+        if (isDependencyGraphDelete(item)) { graph.addEdge({ from: item.EphemeraId, to: item.deleteItem.EphemeraId, action: 'delete' }) }
     })    
     ancestry.forEach((item) => {
-        if (isDependencyGraphPut(item)) { graph.addEdge(item.putItem.EphemeraId, item.EphemeraId) }
-        if (isDependencyGraphDelete(item)) { graph.addEdge(item.deleteItem.EphemeraId, item.EphemeraId) }
+        if (isDependencyGraphPut(item)) { graph.addEdge({ from: item.putItem.EphemeraId, to: item.EphemeraId, action: 'put' }) }
+        if (isDependencyGraphDelete(item)) { graph.addEdge({ from: item.deleteItem.EphemeraId, to: item.EphemeraId, action: 'delete' }) }
     })
 
     //
-    // TODO: cache-fetch all nodes
+    // TODO: Fold put-or-delete into each edge as part of the mapping from incoming arguments
     //
 
     //
@@ -241,6 +256,5 @@ export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof Grap
     // TODO: Call updateGraphStorageBatch with exponential backoff in case of condition exceptions
     //
 }
-
 
 export default legacyUpdateGraphStorage

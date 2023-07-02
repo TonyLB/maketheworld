@@ -4,7 +4,7 @@ import { GraphEdge, compareEdges } from './baseClasses'
 describe('Graph class', () => {
     describe('GraphNode subclass', () => {
         let testNodes: Record<string, { key: string }>
-        let testEdges: GraphEdge<string>[]
+        let testEdges: GraphEdge<string, {}>[]
 
         beforeEach(() => {
             testNodes = {
@@ -65,7 +65,7 @@ describe('Graph class', () => {
 
     describe('simpleWalk', () => {
         let testNodes: Record<string, { key: string }>
-        let testEdges: GraphEdge<string>[]
+        let testEdges: GraphEdge<string, {}>[]
 
         beforeEach(() => {
             testNodes = {
@@ -110,7 +110,7 @@ describe('Graph class', () => {
 
     describe('subGraph', () => {
         let testNodes: Record<string, { key: string }>
-        let testEdges: GraphEdge<string>[]
+        let testEdges: GraphEdge<string, {}>[]
 
         beforeEach(() => {
             testNodes = {
