@@ -1,6 +1,6 @@
 import { unique } from "../../lists"
-import { reduceDependencyGraph, extractTree } from "../cache"
-import GraphNode, { GraphNodeCache } from '../cache/graphNode'
+import { reduceDependencyGraph, extractTree, compareEdges } from "../cache"
+import GraphNode, { GraphNodeCache, GraphNodeCacheDirectEdge } from '../cache/graphNode'
 import { DependencyNode, DependencyEdge, DependencyGraphAction, isDependencyGraphPut, isLegalDependencyTag, CacheBase, isDependencyGraphDelete } from "../cache/baseClasses"
 import { extractConstrainedTag } from "../../types"
 import GraphCache from "../cache"
@@ -258,7 +258,22 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         const perfectDuplicate = (graph.nodes[from]?.[direction]?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext === context))
         const nearDuplicate = (graph.nodes[from]?.forward?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext !== context))
         if ((action === 'put' && !perfectDuplicate) || (action === 'delete' && perfectDuplicate)) {
-            graph.setNode(from, { [`needs$${capitalize(direction)}Update`]: true })
+            const previousNode = graph.nodes?.[from]?.[direction]
+            const addToList: GraphNodeCacheDirectEdge<T>[] = action === 'put' ? [{ target: to as T, context }] : []
+            graph.setNode(from, {
+                [`needs$${capitalize(direction)}Update`]: true,
+                [direction]: previousNode
+                    ? {
+                        ...previousNode,
+                        edges: [
+                            ...previousNode.edges.filter(({ target, context: checkContext }) => (target !== to || context !== checkContext)),
+                            ...addToList
+                        ]
+                    }
+                    : {
+                        edges: addToList
+                    }
+            })
             if (!nearDuplicate) {
                 graph.setNode(from, { [`needs${capitalize(direction)}Invalidate`]: true })
             }
@@ -306,15 +321,27 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
             .filter(({ needsBackUpdate }) => (needsBackUpdate))
             .map(({ key }) => (updateTransaction(graph, key, 'back', moment))),
-        ...(graph.edges.map(({ from, to, context, ...rest }) => ({
-            Put: {
-                Item: {
-                    PrimaryKey: from,
-                    DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`,
-                    ...rest
+        ...(graph.edges.map(({ from, to, context, action, ...rest }) => (
+            action === 'put'
+            ? {
+                Put: {
+                    Item: {
+                        PrimaryKey: from,
+                        DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`,
+                        ...rest
+                    }
                 }
             }
-        })))
+            : {
+                Delete: {
+                    Key: {
+                        PrimaryKey: from,
+                        DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`
+                    }
+                }
+            }
+
+        )))
     ]
 
     await metaProps.dbHandler.transactWrite(transactions)

@@ -1,7 +1,7 @@
 import { CacheConstructor } from "./baseClasses";
 import { DeferredCache } from "./deferredCache";
 
-type GraphNodeCacheDirectEdge <K extends string> = {
+export type GraphNodeCacheDirectEdge <K extends string> = {
     target: K;
     context: string;
 }
