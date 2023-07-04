@@ -5,6 +5,11 @@ import { DependencyNode, DependencyEdge, DependencyGraphAction, isDependencyGrap
 import { extractConstrainedTag } from "../../types"
 import GraphCache from "../cache"
 import { Graph } from "../utils/graph"
+import { GraphEdge } from "../utils/graph/baseClasses"
+import { marshall } from "@aws-sdk/util-dynamodb"
+import { TransactWriteItemsCommandInput } from "@aws-sdk/client-dynamodb"
+
+const capitalize = (value: string) => (`${value.slice(0, 1).toUpperCase}${value.slice(1)}`)
 
 export type DescentUpdateMessage = {
     type: 'DescentUpdate';
@@ -27,12 +32,17 @@ const getAntiDependency = <C extends InstanceType<ReturnType<typeof GraphCache<t
     }
 }
 
+type GraphStorageDBHandlerTransact = {
+    [key in keyof TransactWriteItemsCommandInput["TransactItems"]]?: Omit<TransactWriteItemsCommandInput["TransactItems"][key], 'TableName'>
+}
+
 type GraphStorageDBHandler<T extends string> = {
     optimisticUpdate: (props: {
         key: Record<T | 'DataCategory', string>
         updateKeys: string[];
         updateReducer: (draft: { Descent?: Omit<DependencyNode, 'completeness'>[]; Ancestry?: Omit<DependencyNode, 'completeness'>[] }) => void;
-    }) => Promise<any>
+    }) => Promise<any>;
+    transactWrite: (writes: GraphStorageDBHandlerTransact[]) => Promise<void>;
 }
 
 export const updateGraphStorageCallback = <T extends string>(metaProps: {
@@ -221,32 +231,100 @@ export const legacyUpdateGraphStorage = <C extends InstanceType<ReturnType<typeo
 
 type GraphOfUpdatesNode = Partial<Omit<GraphNodeCache<string>, 'PrimaryKey'>> & {
     key: string;
-    needsUpdate?: boolean;
+    needsForwardUpdate?: boolean;
+    needsForwardInvalidate?: boolean;
+    forwardInvalidatedAt?: number;
+    needsBackUpdate?: boolean;
+    needsBackInvalidate?: boolean;
+    backInvalidatedAt?: number;
 }
 
 type GraphOfUpdatesEdge = {
+    context: string;
     action: 'put' | 'delete';
 }
 
-// const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async (graph: Graph<string, GraphOfUpdates>): Promise<void> => {
-//     const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
-//     fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
-// }
+class GraphOfUpdates extends Graph<string, GraphOfUpdatesNode, GraphOfUpdatesEdge> {}
 
-export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
-    const graph = new Graph<string, GraphOfUpdatesNode, GraphOfUpdatesEdge>({}, [], {}, true)
-    descent.forEach((item) => {
-        if (isDependencyGraphPut(item)) { graph.addEdge({ from: item.EphemeraId, to: item.putItem.EphemeraId, action: 'put' }) }
-        if (isDependencyGraphDelete(item)) { graph.addEdge({ from: item.EphemeraId, to: item.deleteItem.EphemeraId, action: 'delete' }) }
-    })    
-    ancestry.forEach((item) => {
-        if (isDependencyGraphPut(item)) { graph.addEdge({ from: item.putItem.EphemeraId, to: item.EphemeraId, action: 'put' }) }
-        if (isDependencyGraphDelete(item)) { graph.addEdge({ from: item.deleteItem.EphemeraId, to: item.EphemeraId, action: 'delete' }) }
+const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async (graph: GraphOfUpdates): Promise<void> => {
+    const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
+    fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
+
+    const checkUpdateAgainstCurrent = (graph: GraphOfUpdates, edge: GraphEdge<string, GraphOfUpdatesEdge>, direction: 'forward' | 'back' ) => {
+        const { context, action } = edge
+        const { from, to } = direction === 'forward' ? { from: edge.from, to: edge.to } : { from: edge.to, to: edge.from }
+        const perfectDuplicate = (graph.nodes[from]?.[direction]?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext === context))
+        const nearDuplicate = (graph.nodes[from]?.forward?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext !== context))
+        if ((action === 'put' && !perfectDuplicate) || (action === 'delete' && perfectDuplicate)) {
+            graph.setNode(from, { [`needs$${capitalize(direction)}Update`]: true })
+            if (!nearDuplicate) {
+                graph.setNode(from, { [`needs${capitalize(direction)}Invalidate`]: true })
+            }
+        }
+    }
+
+    graph.edges.forEach((edge) => {
+        checkUpdateAgainstCurrent(graph, edge, 'forward')
+        checkUpdateAgainstCurrent(graph, edge, 'back')
     })
 
+    const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number) => {
+        const node = graph.nodes[key]
+        if (!node) {
+            throw new Error('Cannot update node with no actions in GraphStorage update')
+        }
+        const needsInvalidate = Boolean(node[`needs${capitalize(direction)}Invalidate`])
+        const oldInvalidated = node[`${direction}InvalidatedAt`]
+        const newEdgeSet = (graph.nodes[key]?.[direction]?.edges || []).map(({ target, context }) => (`${target}${ context ? `::${context}` : ''}`))
+        return {
+            Update: {
+                Key: marshall({
+                    PrimaryKey: key,
+                    DataCategory: `GRAPH#${capitalize(direction)}`,                
+                }),
+                //
+                // TODO: Refactor UpdateExpression with set ADD and REMOVE operators
+                //
+                UpdateExpression: `SET edgeSet = :newEdgeSet${ needsInvalidate ? ', invalidatedAt = :newInvalidated': ''}`,
+                ExpressionAttributeValues: marshall({
+                    ':newEdgeSet': newEdgeSet,
+                    ':oldInvalidated': oldInvalidated,
+                    ...(needsInvalidate ? { ':newInvalidated': moment } : {})
+                }),
+                ConditionExpression: typeof oldInvalidated === 'undefined' ? 'attribute_not_exists(invalidatedAt)' : 'invalidateAt = :oldInvalidated'
+            }
+        }
+    }
+
+    const moment = Date.now()
+    const transactions: GraphStorageDBHandlerTransact[] = [
+        ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
+            .filter(({ needsForwardUpdate }) => (needsForwardUpdate))
+            .map(({ key }) => (updateTransaction(graph, key, 'forward', moment))),
+        ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
+            .filter(({ needsBackUpdate }) => (needsBackUpdate))
+            .map(({ key }) => (updateTransaction(graph, key, 'back', moment))),
+        //
+        // TODO: Add edges to transaction
+        //
+    ]
+
+    await metaProps.dbHandler.transactWrite(transactions)
+}
+
+export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
+    const graph = new GraphOfUpdates({}, [], {}, true)
     //
-    // TODO: Fold put-or-delete into each edge as part of the mapping from incoming arguments
+    // TODO: Refactor dependencyGraphPut and Delete to handle edges individually (rather than assigning an asset[] to an aggregate edge)
     //
+    descent.forEach((item) => {
+        if (isDependencyGraphPut(item)) { graph.addEdge({ from: item.EphemeraId, to: item.putItem.EphemeraId, context: '', action: 'put' }) }
+        if (isDependencyGraphDelete(item)) { graph.addEdge({ from: item.EphemeraId, to: item.deleteItem.EphemeraId, context: '', action: 'delete' }) }
+    })    
+    ancestry.forEach((item) => {
+        if (isDependencyGraphPut(item)) { graph.addEdge({ from: item.putItem.EphemeraId, to: item.EphemeraId, context: '', action: 'put' }) }
+        if (isDependencyGraphDelete(item)) { graph.addEdge({ from: item.deleteItem.EphemeraId, to: item.EphemeraId, context: '', action: 'delete' }) }
+    })
 
     //
     // TODO: Create an updateGraphStorageBatch distributor function to accept previously fetched data and attempt an update transaction

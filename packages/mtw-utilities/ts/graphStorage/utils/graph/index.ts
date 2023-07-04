@@ -74,8 +74,8 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         return undefined
     }
 
-    setNode(key: K, node: T): void {
-        this.nodes[key] = node
+    setNode(key: K, node: Partial<T>): void {
+        this.nodes[key] = { ...this.nodes[key], ...node }
     }
 
     mapAll(callback: (node: T) => T): void {

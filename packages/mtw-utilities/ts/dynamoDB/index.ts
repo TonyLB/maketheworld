@@ -807,6 +807,60 @@ export const multiTableTransactWrite = async (items: TransactWriteItem[]): Promi
     await dbClient.send(new TransactWriteItemsCommand({ TransactItems: remappedItems }))
 }
 
+export const multiTableTransactWriteGeneric = async (items: TransactWriteItem[]): Promise<void> => {
+    const remapTable = (table: string) => {
+        if (table === 'Ephemera') {
+            return [ephemeraTable, 'EphemeraId']
+        }
+        if (table === 'Connections') {
+            return [connectionsTable, 'ConnectionId']
+        }
+        if (table === 'Assets') {
+            return [assetsTable, 'AssetId']
+        }
+        if (table === 'Messages') {
+            return [messageTable, 'MessageId']
+        }
+        throw new Error(`Illegal table in multiTableTransactWriteGeneric: ${table}`)
+    }
+    const remappedItems = items
+        .map((entry) => {
+            let label = ''
+            if (entry.Update) {
+                label = 'Update'
+            }
+            if (entry.Delete) {
+                label = 'Delete'
+            }
+            if (entry.Put) {
+                label = 'Put'
+            }
+            if (entry.ConditionCheck) {
+                label = 'ConditionCheck'
+            }
+            if (!label) {
+                throw new Error('Illegal transaction record in multiTableTransactWriteGeneric')
+            }
+            const item = entry[label]
+            if (!item || !item.TableName || !item.Key) {
+                throw new Error('Blank TableName or Key not allowed in multiTableTransactWriteGeneric')
+            }
+            const { TableName: unmappedTableName, Key, ...rest } = item
+            const [TableName, keyLabel] = remapTable(unmappedTableName)
+            return {
+                [label]: {
+                    TableName,
+                    Key: {
+                        [keyLabel]: item.Key.PrimaryKey,
+                        DataCategory: item.Key.DataCategory
+                    },
+                    ...rest
+                }
+            }
+        })
+    await dbClient.send(new TransactWriteItemsCommand({ TransactItems: remappedItems }))
+}
+
 export const ephemeraDB = {
     getItem: abstractGetItem<EphemeraDBKey>(ephemeraTable),
     batchGetItem: abstractBatchGet<EphemeraDBKey>(ephemeraTable),
