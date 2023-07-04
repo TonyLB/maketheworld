@@ -12,6 +12,7 @@ type GraphNodeCacheComponent <K extends string> = {
     edges: GraphNodeCacheDirectEdge<K>[];
     cache?: GraphNodeCacheEdge<K>[];
     invalidatedAt?: number;
+    updatedAt?: number;
     cachedAt?: number;    
 }
 

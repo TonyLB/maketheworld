@@ -291,7 +291,7 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
             throw new Error('Cannot update node with no actions in GraphStorage update')
         }
         const needsInvalidate = Boolean(node[`needs${capitalize(direction)}Invalidate`])
-        const oldInvalidated = node[direction]?.invalidatedAt
+        const oldUpdated = node[direction]?.updatedAt
         const newEdgeSet = (graph.nodes[key]?.[direction]?.edges || []).map(({ target, context }) => (`${target}${ context ? `::${context}` : ''}`))
         return {
             Update: {
@@ -302,13 +302,13 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
                 //
                 // TODO: Refactor UpdateExpression with set ADD and REMOVE operators
                 //
-                UpdateExpression: `SET edgeSet = :newEdgeSet${ needsInvalidate ? ', invalidatedAt = :newInvalidated': ''}`,
+                UpdateExpression: `SET edgeSet = :newEdgeSet, updatedAt = :moment${ needsInvalidate ? ', invalidatedAt = :moment': ''}`,
                 ExpressionAttributeValues: marshall({
                     ':newEdgeSet': newEdgeSet,
-                    ':oldInvalidated': oldInvalidated,
-                    ...(needsInvalidate ? { ':newInvalidated': moment } : {})
+                    ':oldUpdated': oldUpdated,
+                    ':moment': moment
                 }, { removeUndefinedValues: true }),
-                ConditionExpression: typeof oldInvalidated === 'undefined' ? 'attribute_not_exists(invalidatedAt)' : 'invalidatedAt = :oldInvalidated'
+                ConditionExpression: typeof oldUpdated === 'undefined' ? 'attribute_not_exists(updatedAt)' : 'updatedAt = :oldUpdated'
             }
         }
     }

@@ -534,51 +534,51 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportFour::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportFour::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
             { Put: { Item: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportFour::ASSET' } }},
@@ -616,39 +616,39 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
             { Put: { Item: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }},
@@ -683,15 +683,15 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::TEST', 'ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::DifferentAsset'] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::TEST', 'ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::DifferentAsset'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::TEST', 'ASSET#ImportOne::ASSET', 'ASSET#ImportOne::DifferentAsset'] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::TEST', 'ASSET#ImportOne::ASSET', 'ASSET#ImportOne::DifferentAsset'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
             { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::DifferentAsset' } }},
@@ -727,27 +727,27 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
             { Delete: { Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportFour::ASSET' } }},
@@ -782,27 +782,27 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
             { Delete: { Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }}
@@ -829,15 +829,15 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::TEST'] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::TEST'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::TEST'] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::TEST'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
         ])
@@ -871,27 +871,27 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
             } },
             { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
             { Delete: { Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }}
@@ -918,15 +918,15 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSETTWO'] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSETTWO'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSETTWO'] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSETTWO'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
         ])
@@ -934,7 +934,7 @@ describe('graphStore new update', () => {
 
     it('should conditionCheck on invalidatedAt when available', async () => {
         internalCache.Nodes.get.mockResolvedValue([
-            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }], invalidatedAt: 500 }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }], updatedAt: 500 }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [] } }
         ])
         await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
@@ -952,15 +952,15 @@ describe('graphStore new update', () => {
         expect(transactWrite).toHaveBeenCalledWith([
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'invalidatedAt = :oldInvalidated',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::ASSETTWO'], ':oldInvalidated': 500 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'updatedAt = :oldUpdated',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::ASSETTWO'], ':oldUpdated': 500, ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Update: {
                 Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET', 'ASSET#ImportOne::ASSETTWO'] }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+                ConditionExpression: 'attribute_not_exists(updatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET', 'ASSET#ImportOne::ASSETTWO'], ':moment': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
             } },
             { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSETTWO' } }},
         ])
