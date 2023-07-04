@@ -75,7 +75,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     }
 
     setNode(key: K, node: Partial<T>): void {
-        this.nodes[key] = { ...this.nodes[key], ...node }
+        this.nodes[key] = { ...this.nodes[key], ...node, key } as T
     }
 
     mapAll(callback: (node: T) => T): void {

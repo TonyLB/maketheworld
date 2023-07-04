@@ -1,5 +1,7 @@
+import { marshall } from '@aws-sdk/util-dynamodb'
 import { GraphCacheData } from '../cache/'
-import updateGraphStorage from './'
+import { GraphNodeData } from '../cache/graphNode'
+import legacyUpdateGraphStorage, { updateGraphStorage } from './'
 
 const internalCache = {
     Descent: {
@@ -12,14 +14,19 @@ const internalCache = {
         put: jest.fn(),
         getPartial: jest.fn()
     } as unknown as jest.Mocked<GraphCacheData>,
+    Nodes: {
+        get: jest.fn(),
+        invalidate: jest.fn()
+    } as unknown as jest.Mocked<GraphNodeData<string>>,
     clear: jest.fn(),
     flush: jest.fn()
 }
 
 const optimisticUpdate = jest.fn().mockResolvedValue({})
-const dbHandler = { optimisticUpdate }
+const transactWrite = jest.fn()
+const dbHandler = { optimisticUpdate, transactWrite }
 
-describe('graphStore update', () => {
+describe('graphStore legacy update', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -31,7 +38,7 @@ describe('graphStore update', () => {
     })
 
     it('should call all unreferenced updates in a first wave', async () => {
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -154,7 +161,7 @@ describe('graphStore update', () => {
                     connections: []
                 }
             ]))
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -214,7 +221,7 @@ describe('graphStore update', () => {
             }
         ])
         .mockReturnValueOnce([])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -271,7 +278,7 @@ describe('graphStore update', () => {
             completeness: 'Complete',
             connections: []
         }])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
@@ -339,7 +346,7 @@ describe('graphStore update', () => {
     })
 
     it('should combine similarly aliased inheritance edges', async () => {
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
@@ -388,7 +395,7 @@ describe('graphStore update', () => {
     })
 
     it('should decrement layers when deleting one of many references', async () => {
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
@@ -439,7 +446,7 @@ describe('graphStore update', () => {
     })
 
     it('should remove dependency when deleting last reference', async () => {
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
@@ -485,6 +492,478 @@ describe('graphStore update', () => {
                 connections: []
             }]
         })
+    })
+
+})
+
+describe('graphStore new update', () => {
+    const realDateNow = Date.now.bind(global.Date);
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+        const dateNowStub = jest.fn(() => 1000)
+        global.Date.now = dateNowStub
+    })
+
+    afterEach(() => {
+        global.Date.now = realDateNow
+    })
+
+    it('should correctly add disjoint edges', async () => {
+        internalCache.Nodes.get.mockResolvedValue([])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                putItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
+                }
+            },
+            {
+                EphemeraId: 'ASSET#ImportThree',
+                putItem: {
+                    EphemeraId: 'ASSET#ImportFour',
+                    assets: ['ASSET']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportFour::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
+            { Put: { Item: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportFour::ASSET' } }},
+        ])
+    })
+
+    it('should correctly add connecting edges', async () => {
+        internalCache.Nodes.get.mockResolvedValue([])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                putItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
+                }
+            },
+            {
+                EphemeraId: 'ASSET#ImportTwo',
+                putItem: {
+                    EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ASSET']
+                }
+            },
+            {
+                EphemeraId: 'ASSET#ImportThree',
+                putItem: {
+                    EphemeraId: 'ASSET#ImportOne',
+                    assets: ['ASSET']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
+            { Put: { Item: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }},
+            { Put: { Item: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportOne::ASSET' } }},
+        ])
+    })
+
+    it('should store edges with different context separately', async () => {
+        internalCache.Nodes.get.mockResolvedValue([
+            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'TEST' }] }, forward: { edges: [] } }
+        ])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                putItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
+                }
+            },
+            {
+                EphemeraId: 'ASSET#ImportOne',
+                putItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['DifferentAsset']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::TEST', 'ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::DifferentAsset'] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::TEST', 'ASSET#ImportOne::ASSET', 'ASSET#ImportOne::DifferentAsset'] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
+            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::DifferentAsset' } }},
+        ])
+    })
+
+    it('should correctly remove disjoint edges', async () => {
+        internalCache.Nodes.get.mockResolvedValue([
+            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportThree', forward: { edges: [{ target: 'ASSET#ImportFour', context: 'ASSET' }] }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportFour', back: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] }, forward: { edges: [] } },
+        ])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                deleteItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
+                }
+            },
+            {
+                EphemeraId: 'ASSET#ImportThree',
+                deleteItem: {
+                    EphemeraId: 'ASSET#ImportFour',
+                    assets: ['ASSET']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
+            { Delete: { Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportFour::ASSET' } }},
+        ])
+    })
+
+    it('should correctly remove connecting edges', async () => {
+        internalCache.Nodes.get.mockResolvedValue([
+            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] } },
+            { PrimaryKey: 'ASSET#ImportThree', back: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, forward: { edges: [] } }
+        ])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                deleteItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
+                }
+            },
+            {
+                EphemeraId: 'ASSET#ImportTwo',
+                deleteItem: {
+                    EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ASSET']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
+            { Delete: { Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }}
+        ])
+    })
+
+    it('should not invalidate when removing edges with near matches', async () => {
+        internalCache.Nodes.get.mockResolvedValue([
+            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }, { target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }, { target: 'ASSET#ImportOne', context: 'TEST' }] }, forward: { edges: [] } }
+        ])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                deleteItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::TEST'] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::TEST'] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
+        ])
+    })
+
+    it('should correctly remove connecting edges', async () => {
+        internalCache.Nodes.get.mockResolvedValue([
+            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] } },
+            { PrimaryKey: 'ASSET#ImportThree', back: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, forward: { edges: [] } }
+        ])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                deleteItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
+                }
+            },
+            {
+                EphemeraId: 'ASSET#ImportTwo',
+                deleteItem: {
+                    EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ASSET']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':newInvalidated': 1000 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet, invalidatedAt = :newInvalidated'
+            } },
+            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
+            { Delete: { Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }}
+        ])
+    })
+
+    it('should delete only edges that are present', async () => {
+        internalCache.Nodes.get.mockResolvedValue([
+            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }, { target: 'ASSET#ImportTwo', context: 'ASSETTWO' }] }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }, { target: 'ASSET#ImportOne', context: 'ASSETTWO' }] }, forward: { edges: [] } }
+        ])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                deleteItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['TEST', 'ASSET']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSETTWO'] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSETTWO'] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
+        ])
+    })
+
+    it('should conditionCheck on invalidatedAt when available', async () => {
+        internalCache.Nodes.get.mockResolvedValue([
+            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }], invalidatedAt: 500 }, back: { edges: [] } },
+            { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [] } }
+        ])
+        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+            descent: [{
+                EphemeraId: 'ASSET#ImportOne',
+                putItem: {
+                    EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSETTWO']
+                }
+            }],
+            ancestry: []
+        })
+
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(transactWrite).toHaveBeenCalledWith([
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
+                ConditionExpression: 'invalidatedAt = :oldInvalidated',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::ASSETTWO'], ':oldInvalidated': 500 }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Update: {
+                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
+                ConditionExpression: 'attribute_not_exists(invalidatedAt)',
+                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET', 'ASSET#ImportOne::ASSETTWO'] }),
+                UpdateExpression: 'SET edgeSet = :newEdgeSet'
+            } },
+            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSETTWO' } }},
+        ])
     })
 
 })

@@ -8,10 +8,9 @@ import { Graph } from "../utils/graph"
 import { GraphEdge } from "../utils/graph/baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { TransactWriteItemsCommandInput } from "@aws-sdk/client-dynamodb"
-import { asyncSuppressExceptions } from "../../errors"
 import { exponentialBackoffWrapper } from "../../dynamoDB"
 
-const capitalize = (value: string) => (`${value.slice(0, 1).toUpperCase}${value.slice(1)}`)
+const capitalize = (value: string) => (`${value.slice(0, 1).toUpperCase()}${value.slice(1)}`)
 
 export type DescentUpdateMessage = {
     type: 'DescentUpdate';
@@ -256,12 +255,12 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         const { context, action } = edge
         const { from, to } = direction === 'forward' ? { from: edge.from, to: edge.to } : { from: edge.to, to: edge.from }
         const perfectDuplicate = (graph.nodes[from]?.[direction]?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext === context))
-        const nearDuplicate = (graph.nodes[from]?.forward?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext !== context))
+        const nearDuplicate = (graph.nodes[from]?.[direction]?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext !== context))
         if ((action === 'put' && !perfectDuplicate) || (action === 'delete' && perfectDuplicate)) {
             const previousNode = graph.nodes?.[from]?.[direction]
             const addToList: GraphNodeCacheDirectEdge<T>[] = action === 'put' ? [{ target: to as T, context }] : []
             graph.setNode(from, {
-                [`needs$${capitalize(direction)}Update`]: true,
+                [`needs${capitalize(direction)}Update`]: true,
                 [direction]: previousNode
                     ? {
                         ...previousNode,
@@ -280,6 +279,7 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         }
     }
 
+    graph.edges = graph.edges.filter(({ action, from, to, context }) => (action === 'put' || graph.nodes[from]?.forward?.edges.find(({ target, context: checkContext }) => (target === to && context === checkContext))))
     graph.edges.forEach((edge) => {
         checkUpdateAgainstCurrent(graph, edge, 'forward')
         checkUpdateAgainstCurrent(graph, edge, 'back')
@@ -291,7 +291,7 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
             throw new Error('Cannot update node with no actions in GraphStorage update')
         }
         const needsInvalidate = Boolean(node[`needs${capitalize(direction)}Invalidate`])
-        const oldInvalidated = node[`${direction}InvalidatedAt`]
+        const oldInvalidated = node[direction]?.invalidatedAt
         const newEdgeSet = (graph.nodes[key]?.[direction]?.edges || []).map(({ target, context }) => (`${target}${ context ? `::${context}` : ''}`))
         return {
             Update: {
@@ -307,8 +307,8 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
                     ':newEdgeSet': newEdgeSet,
                     ':oldInvalidated': oldInvalidated,
                     ...(needsInvalidate ? { ':newInvalidated': moment } : {})
-                }),
-                ConditionExpression: typeof oldInvalidated === 'undefined' ? 'attribute_not_exists(invalidatedAt)' : 'invalidateAt = :oldInvalidated'
+                }, { removeUndefinedValues: true }),
+                ConditionExpression: typeof oldInvalidated === 'undefined' ? 'attribute_not_exists(invalidatedAt)' : 'invalidatedAt = :oldInvalidated'
             }
         }
     }
@@ -316,10 +316,10 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
     const moment = Date.now()
     const transactions: GraphStorageDBHandlerTransact[] = [
         ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
-            .filter(({ needsForwardUpdate }) => (needsForwardUpdate))
+            .filter(({ needsForwardUpdate, forward }) => (needsForwardUpdate || !forward))
             .map(({ key }) => (updateTransaction(graph, key, 'forward', moment))),
         ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
-            .filter(({ needsBackUpdate }) => (needsBackUpdate))
+            .filter(({ needsBackUpdate, back }) => (needsBackUpdate || !back))
             .map(({ key }) => (updateTransaction(graph, key, 'back', moment))),
         ...(graph.edges.map(({ from, to, context, action, ...rest }) => (
             action === 'put'
