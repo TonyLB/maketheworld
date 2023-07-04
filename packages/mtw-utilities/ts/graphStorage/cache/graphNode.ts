@@ -65,6 +65,10 @@ export class GraphNodeData <K extends string> {
         this._Cache.clear()
     }
 
+    invalidate(key: K) {
+        this._Cache.invalidate(key)
+    }
+
     async get(PrimaryKeys: string[]): Promise<GraphNodeCache<K>[]> {
         this._Cache.add({
             promiseFactory: async (keys: string[]): Promise<DBHandlerBatchGetReturn<K>[]> => (

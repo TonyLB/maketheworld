@@ -825,15 +825,34 @@ export const multiTableTransactWriteGeneric = async (items: TransactWriteItem[])
     }
     const remappedItems = items
         .map((entry) => {
+            if (entry.Put) {
+                const putEntry = entry.Put
+                if (!putEntry || !putEntry.TableName || !putEntry.Item) {
+                    throw new Error('Blank TableName or Item not allowed in multiTableTransactWriteGeneric Put')
+                }
+                    const { TableName: unmappedTableName, Item, ...rest } = putEntry
+                const [TableName, keyLabel] = remapTable(unmappedTableName)
+                if (!Item.PrimaryKey) {
+                    throw new Error('Blank PrimaryKey not allowed in multiTableTransactWriteGeneric Put')
+                }
+                const { PrimaryKey, ...itemRest } = Item
+                return {
+                    Put: {
+                        TableName,
+                        Item: {
+                            [keyLabel]: PrimaryKey,
+                            ...itemRest
+                        },
+                        ...rest
+                    }
+                }
+            }
             let label = ''
             if (entry.Update) {
                 label = 'Update'
             }
             if (entry.Delete) {
                 label = 'Delete'
-            }
-            if (entry.Put) {
-                label = 'Put'
             }
             if (entry.ConditionCheck) {
                 label = 'ConditionCheck'

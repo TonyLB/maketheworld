@@ -8,6 +8,8 @@ import { Graph } from "../utils/graph"
 import { GraphEdge } from "../utils/graph/baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { TransactWriteItemsCommandInput } from "@aws-sdk/client-dynamodb"
+import { asyncSuppressExceptions } from "../../errors"
+import { exponentialBackoffWrapper } from "../../dynamoDB"
 
 const capitalize = (value: string) => (`${value.slice(0, 1).toUpperCase}${value.slice(1)}`)
 
@@ -278,10 +280,10 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         const newEdgeSet = (graph.nodes[key]?.[direction]?.edges || []).map(({ target, context }) => (`${target}${ context ? `::${context}` : ''}`))
         return {
             Update: {
-                Key: marshall({
+                Key: {
                     PrimaryKey: key,
                     DataCategory: `GRAPH#${capitalize(direction)}`,                
-                }),
+                },
                 //
                 // TODO: Refactor UpdateExpression with set ADD and REMOVE operators
                 //
@@ -304,9 +306,15 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
             .filter(({ needsBackUpdate }) => (needsBackUpdate))
             .map(({ key }) => (updateTransaction(graph, key, 'back', moment))),
-        //
-        // TODO: Add edges to transaction
-        //
+        ...(graph.edges.map(({ from, to, context, ...rest }) => ({
+            Put: {
+                Item: {
+                    PrimaryKey: from,
+                    DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`,
+                    ...rest
+                }
+            }
+        })))
     ]
 
     await metaProps.dbHandler.transactWrite(transactions)
@@ -314,25 +322,33 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
 
 export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
     const graph = new GraphOfUpdates({}, [], {}, true)
-    //
-    // TODO: Refactor dependencyGraphPut and Delete to handle edges individually (rather than assigning an asset[] to an aggregate edge)
-    //
+
     descent.forEach((item) => {
-        if (isDependencyGraphPut(item)) { graph.addEdge({ from: item.EphemeraId, to: item.putItem.EphemeraId, context: '', action: 'put' }) }
-        if (isDependencyGraphDelete(item)) { graph.addEdge({ from: item.EphemeraId, to: item.deleteItem.EphemeraId, context: '', action: 'delete' }) }
+        if (isDependencyGraphPut(item)) {
+            item.putItem.assets.forEach((asset) => { graph.addEdge({ from: item.EphemeraId, to: item.putItem.EphemeraId, context: asset, action: 'put' }) })
+        }
+        if (isDependencyGraphDelete(item)) {
+            item.deleteItem.assets.forEach((asset) => { graph.addEdge({ from: item.EphemeraId, to: item.deleteItem.EphemeraId, context: asset, action: 'delete' }) })
+        }
     })    
     ancestry.forEach((item) => {
-        if (isDependencyGraphPut(item)) { graph.addEdge({ from: item.putItem.EphemeraId, to: item.EphemeraId, context: '', action: 'put' }) }
-        if (isDependencyGraphDelete(item)) { graph.addEdge({ from: item.deleteItem.EphemeraId, to: item.EphemeraId, context: '', action: 'delete' }) }
+        if (isDependencyGraphPut(item)) {
+            item.putItem.assets.forEach((asset) => { graph.addEdge({ from: item.putItem.EphemeraId, to: item.EphemeraId, context: asset, action: 'put' }) })
+        }
+        if (isDependencyGraphDelete(item)) {
+            item.deleteItem.assets.forEach((asset) => { graph.addEdge({ from: item.deleteItem.EphemeraId, to: item.EphemeraId, context: asset, action: 'delete' }) })
+        }
     })
 
-    //
-    // TODO: Create an updateGraphStorageBatch distributor function to accept previously fetched data and attempt an update transaction
-    //
-
-    //
-    // TODO: Call updateGraphStorageBatch with exponential backoff in case of condition exceptions
-    //
+    await exponentialBackoffWrapper(
+        () => (updateGraphStorageBatch(metaProps)(new Graph(JSON.parse(JSON.stringify(graph.nodes)), graph.edges, {}, true))),
+        {
+            retryErrors: ['TransactionCanceledException'],
+            retryCallback: async () => {
+                Object.keys(graph.nodes).forEach((key) => { metaProps.internalCache.Nodes.invalidate(key) })
+            }
+        }
+    )
 }
 
 export default legacyUpdateGraphStorage
