@@ -49,7 +49,7 @@ export class DBHandlerBase<KIncoming extends string, KInternal extends string, K
         internalKeyLabel: KInternal;
         options: {
             primaryKeyTypeGuard?: (value: string) => value is KeyType;
-            writeBatchSize: number;
+            writeBatchSize?: number;
         }
     }, ...rest: any[]) {
         this._client = props.client
