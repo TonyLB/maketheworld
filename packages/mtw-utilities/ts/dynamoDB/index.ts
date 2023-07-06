@@ -33,6 +33,9 @@ const deltaTable = `${TABLE_PREFIX}_message_delta`
 const params = { region: process.env.AWS_REGION }
 const dbClient = new DynamoDBClient(params)
 
+//
+// TODO: Replace hard-coded handlers like assetDB, ephemeraDB, with class instances
+//
 const paginateList = (items, pageSize) => {
     const { requestLists, current } = items
         .reduce((({ current, requestLists }, item) => {
