@@ -1,8 +1,9 @@
 import { BatchGetItemCommand, BatchWriteItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb"
 import { Constructor, DBHandlerBase } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-import { asyncSuppressExceptions } from "../../errors";
-import paginateList from "./utils/paginateList";
+import { asyncSuppressExceptions } from "../../errors"
+import paginateList from "./utils/paginateList"
+import mapProjectionFields from './utils/mapProjectionFields'
 
 type GetItemExtendedProps = {
     ProjectionFields?: string[];
@@ -10,37 +11,11 @@ type GetItemExtendedProps = {
     ConsistentRead?: boolean;
 }
 
-const reservedFields = ['name', 'key', 'value', 'zone']
-
-const mapIncomingFields = (projectionFields: string[]): { ProjectionFields: string[], ExpressionAttributeNames: Record<string, string> } => {
-    return projectionFields.reduce<{ ProjectionFields: string[], ExpressionAttributeNames: Record<string, string> }>((previous, projectionField) => {
-        if (reservedFields.includes(projectionField.toLowerCase())) {
-            return {
-                ProjectionFields: [
-                    ...previous.ProjectionFields,
-                    `#${projectionField.toLowerCase()}`
-                ],
-                ExpressionAttributeNames: {
-                    ...previous.ExpressionAttributeNames,
-                    [`#${projectionField.toLowerCase()}`]: projectionField
-                }
-            }
-        }
-        return {
-            ...previous,
-            ProjectionFields: [
-                ...previous.ProjectionFields,
-                projectionField
-            ]
-        }
-    }, { ProjectionFields: [], ExpressionAttributeNames: {} })
-}
-
 export const withGetOperations = <KIncoming extends string, KInternal extends string, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, KInternal, T>>>(Base: GBase) => {
     return class GetOperationsDBHandler extends Base {
         async getItem<Get extends Record<string, any>>(props: { Key: ({ [key in KIncoming]: T } & { DataCategory: string }) } & GetItemExtendedProps): Promise<Get | undefined> {
             return await asyncSuppressExceptions(async () => {
-                const { ProjectionFields, ExpressionAttributeNames } = mapIncomingFields((props.ProjectionFields || []).map((projectionField) => (projectionField === this._incomingKeyLabel ? this._internalKeyLabel : projectionField)))
+                const { ProjectionFields, ExpressionAttributeNames } = mapProjectionFields((props.ProjectionFields || []).map((projectionField) => (projectionField === this._incomingKeyLabel ? this._internalKeyLabel : projectionField)))
                 const { Item = null } = await this._client.send(new GetItemCommand({
                     TableName: this._tableName,
                     Key: marshall(this._remapIncomingObject(props.Key)),
@@ -53,7 +28,7 @@ export const withGetOperations = <KIncoming extends string, KInternal extends st
         }
 
         async getItems<Get extends Record<string, any>>(props: { Keys: ({ [key in KIncoming]: T } & { DataCategory: string })[] } & GetItemExtendedProps): Promise<Get[]> {
-            const { ProjectionFields, ExpressionAttributeNames } = mapIncomingFields((props.ProjectionFields || []).map((projectionField) => (projectionField === this._incomingKeyLabel ? this._internalKeyLabel : projectionField)))
+            const { ProjectionFields, ExpressionAttributeNames } = mapProjectionFields((props.ProjectionFields || []).map((projectionField) => (projectionField === this._incomingKeyLabel ? this._internalKeyLabel : projectionField)))
             const batchPromises = paginateList(props.Keys, this._getBatchSize ?? 40)
                 .filter((itemList) => (itemList.length))
                 .map((itemList) => (this._client.send(new BatchGetItemCommand({ RequestItems: {
