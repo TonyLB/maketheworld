@@ -41,6 +41,7 @@ export class DBHandlerBase<KIncoming extends string, KInternal extends string, K
     _internalKeyLabel: KInternal;
     _tableName: string;
     _writeBatchSize?: number;
+    _getBatchSize?: number;
 
     constructor(props: {
         client: InstanceType<typeof DynamoDBClient>;
@@ -50,6 +51,7 @@ export class DBHandlerBase<KIncoming extends string, KInternal extends string, K
         options: {
             primaryKeyTypeGuard?: (value: string) => value is KeyType;
             writeBatchSize?: number;
+            getBatchSize?: number;
         }
     }, ...rest: any[]) {
         this._client = props.client
@@ -57,6 +59,7 @@ export class DBHandlerBase<KIncoming extends string, KInternal extends string, K
         this._incomingKeyLabel = props.incomingKeyLabel
         this._internalKeyLabel = props.internalKeyLabel
         this._writeBatchSize = props.options.writeBatchSize
+        this._getBatchSize = props.options.getBatchSize
     }
 
     _remapIncomingObject <T extends (Record<string, any> & { [key in KIncoming]: KeyType })>(value: T) {

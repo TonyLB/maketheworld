@@ -1,6 +1,5 @@
-import { BatchWriteItemCommand } from '@aws-sdk/client-dynamodb'
 import { DBHandlerBase } from '../baseClasses'
-import withBatchOperations from './batchWrite'
+import withBatchWrite from './batchWrite'
 import { marshall } from '@aws-sdk/util-dynamodb'
 
 const dbMock = {
@@ -8,7 +7,7 @@ const dbMock = {
 }
 
 describe('withBatchOperations', () => {
-    const dbHandler = new (withBatchOperations(DBHandlerBase))({
+    const dbHandler = new (withBatchWrite(DBHandlerBase))({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',
