@@ -1,8 +1,6 @@
-import { BatchGetItemCommand, BatchWriteItemCommand, GetItemCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb"
+import {  UpdateItemCommand } from "@aws-sdk/client-dynamodb"
 import { Constructor, DBHandlerBase } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-import { asyncSuppressExceptions } from "../../errors"
-import paginateList from "./utils/paginateList"
 import mapProjectionFields from './utils/mapProjectionFields'
 import produce from "immer"
 import { WritableDraft } from "immer/dist/internal"
@@ -23,9 +21,6 @@ type DynamicUpdateOutput = {
 //
 const isDynamicUpdateOutput = (item: {} | DynamicUpdateOutput): item is DynamicUpdateOutput => (Object.values(item).length > 0)
 
-//
-// TODO: Remove dependency on explicit ExpressionAttributeNames, and replace with automatic remapping of reserved words (utils/mapProjectionFields.ts)
-//
 const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer }: { updateKeys: string[]; reducer: (draft: WritableDraft<T>) => void }) => (state: T | undefined): DynamicUpdateOutput | {} => {
     const { ExpressionAttributeNames } = mapProjectionFields(updateKeys)
     const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})

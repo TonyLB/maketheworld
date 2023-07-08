@@ -22,7 +22,7 @@ describe('withUpdate', () => {
         jest.restoreAllMocks()
     })
 
-    describe('getItem', () => {
+    describe('optimisticUpdate', () => {
 
         it('should remap incoming primary key', async () => {
             dbMock.send
