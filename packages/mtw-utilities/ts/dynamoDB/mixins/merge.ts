@@ -33,6 +33,9 @@ export const withMerge = <KIncoming extends Exclude<string, 'DataCategory'>, KIn
     return class MergeDBHandler extends Base {
         async merge(props: {
             query: QueryKeyProps<KIncoming, T>;
+            //
+            // TODO: Figure out how to not need to sometimes use explicit any for the items property in this calling pattern
+            //
             items: DBHandlerItem<KIncoming, T>[];
             mergeFunction: (props: { incoming: DBHandlerItem<KIncoming, T>, current: DBHandlerItem<KIncoming, T> }) => ('ignore' | 'delete' | DBHandlerItem<KIncoming, T>)
         }) {

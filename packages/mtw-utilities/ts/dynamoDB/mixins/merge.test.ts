@@ -19,7 +19,7 @@ describe('withMerge', () => {
 
     const queryMock = jest.fn()
     const batchWriteMock = jest.fn()
-    const mergeFunction = ({ incoming }) => (incoming)
+    const mergeFunction = jest.fn()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
@@ -45,22 +45,46 @@ describe('withMerge', () => {
             expect(batchWriteMock).toHaveBeenCalledWith([{ DeleteRequest: { PrimaryKey: 'TestOne', DataCategory: 'DC1' }}])
         })
 
-        // it('should update unmatched incoming keys', async () => {
-        //     queryMock.mockResolvedValue([{
-        //         PrimaryKey: 'TestOne',
-        //         DataCategory: 'DC1',
-        //         TestValue: 5
-        //     }])
-        //     await dbHandler.merge({
-        //         query: { Key: { PrimaryKey: 'TestOne' } },
-        //         items: [{ PrimaryKey: 'TestOne', DataCategory: 'DC2', TestValue: 0 }],
-        //         mergeFunction
-        //     })
-        //     expect(queryMock).toHaveBeenCalledTimes(1)
-        //     expect(queryMock).toHaveBeenCalledWith({ Key: { PrimaryKey: 'TestOne' } })
-        //     expect(batchWriteMock).toHaveBeenCalledTimes(1)
-        //     expect(batchWriteMock).toHaveBeenCalledWith([{ DeleteRequest: { PrimaryKey: 'TestOne', DataCategory: 'DC1' }}])
-        // })
+        it('should update unmatched incoming keys', async () => {
+            queryMock.mockResolvedValue([{
+                PrimaryKey: 'TestOne',
+                DataCategory: 'DC1',
+                TestValue: 5
+            }])
+            mergeFunction.mockReturnValue('ignore')
+            await dbHandler.merge({
+                query: { Key: { PrimaryKey: 'TestOne' } },
+                items: [
+                        { PrimaryKey: 'TestOne', DataCategory: 'DC2', TestValue: 0 },
+                        { PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 5 }
+                    ] as any,
+                mergeFunction
+            })
+            expect(queryMock).toHaveBeenCalledTimes(1)
+            expect(queryMock).toHaveBeenCalledWith({ Key: { PrimaryKey: 'TestOne' } })
+            expect(batchWriteMock).toHaveBeenCalledTimes(1)
+            expect(batchWriteMock).toHaveBeenCalledWith([{ PutRequest: { PrimaryKey: 'TestOne', DataCategory: 'DC2', TestValue: 0 }}])
+        })
+
+        it('should update matched incoming keys', async () => {
+            queryMock.mockResolvedValue([{
+                PrimaryKey: 'TestOne',
+                DataCategory: 'DC1',
+                TestValue: 5
+            }])
+            mergeFunction.mockImplementation(({ incoming }) => (incoming))
+            await dbHandler.merge({
+                query: { Key: { PrimaryKey: 'TestOne' } },
+                items: [
+                        { PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 0 }
+                    ] as any,
+                mergeFunction
+            })
+            expect(queryMock).toHaveBeenCalledTimes(1)
+            expect(queryMock).toHaveBeenCalledWith({ Key: { PrimaryKey: 'TestOne' } })
+            expect(batchWriteMock).toHaveBeenCalledTimes(1)
+            expect(batchWriteMock).toHaveBeenCalledWith([{ PutRequest: { PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 0 }}])
+        })
 
     })
 

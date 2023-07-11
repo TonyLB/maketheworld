@@ -30,11 +30,13 @@ export const remap = <
     })
 }
 
-export type DBHandlerKey<KInternal extends Exclude<string, 'DataCategory'>, KeyType extends string> = { DataCategory: string } & { [key in KInternal]: KeyType }
+export type DBHandlerLegalKey = Exclude<string, 'DataCategory'>
 
-export type DBHandlerItem<KInternal extends Exclude<string, 'DataCategory'>, KeyType extends string> = Record<string, any> & { [key in KInternal]: KeyType } & { DataCategory: string }
+export type DBHandlerKey<KInternal extends DBHandlerLegalKey, KeyType extends string> = { DataCategory: string } & { [key in KInternal]: KeyType }
 
-export class DBHandlerBase<KIncoming extends Exclude<string, 'DataCategory'>, KInternal extends Exclude<string, 'DataCategory'>, KeyType extends string> {
+export type DBHandlerItem<KInternal extends DBHandlerLegalKey, KeyType extends string> = Record<string, any> & { [key in KInternal]: KeyType } & { DataCategory: string }
+
+export class DBHandlerBase<KIncoming extends DBHandlerLegalKey, KInternal extends DBHandlerLegalKey, KeyType extends string> {
     _client: InstanceType<typeof DynamoDBClient>;
     _incomingKeyLabel: KIncoming;
     _internalKeyLabel: KInternal;
@@ -73,3 +75,12 @@ export class DBHandlerBase<KIncoming extends Exclude<string, 'DataCategory'>, KI
         return remap(value, { [this._internalKeyLabel]: this._incomingKeyLabel } as { [key in KInternal]: KIncoming }) as (typeof value extends DBHandlerKey<KInternal, KeyType> ? DBHandlerKey<KIncoming, KeyType> : DBHandlerItem<KIncoming, KeyType>)
     }
 }
+
+// export type DBHandlerBaseGeneric = typeof DBHandlerBase<DBHandlerLegalKey, DBHandlerLegalKey, string>
+// export type DBHandlerExtractKIncoming<DBH> = DBH extends DBHandlerBase<infer V, DBHandlerLegalKey, string> ? V : never
+// export type DBHandlerExtractKInternal<DBH> = DBH extends DBHandlerBase<DBHandlerLegalKey, infer V, string> ? V : never
+// export type DBHandlerExtractKeyType<DBH> = DBH extends DBHandlerBase<DBHandlerLegalKey, DBHandlerLegalKey, infer V> ? V : never
+// export type DBHandlerExtractIncomingItem<DBH> = DBHandlerItem<DBHandlerExtractKIncoming<DBH>, DBHandlerExtractKeyType<DBH>>
+// export type DBHandlerExtractIncomingKey<DBH> = DBHandlerKey<DBHandlerExtractKIncoming<DBH>, DBHandlerExtractKeyType<DBH>>
+// export type DBHandlerExtractInternalItem<DBH> = DBHandlerItem<DBHandlerExtractKInternal<DBH>, DBHandlerExtractKeyType<DBH>>
+// export type DBHandlerExtractInternalKey<DBH> = DBHandlerKey<DBHandlerExtractKInternal<DBH>, DBHandlerExtractKeyType<DBH>>

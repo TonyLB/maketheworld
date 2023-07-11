@@ -38,7 +38,7 @@ type QueryKeyPropsConnectionIndex = {
 
 type ExplicitIndexNameQueryKeyProps = QueryKeyPropsDataCategoryIndex | QueryKeyPropsScopedIdIndex | QueryKeyPropsPlayerIndex | QueryKeyPropsZoneIndex | QueryKeyPropsConnectionIndex
 
-export type QueryKeyProps<KIncoming extends Exclude<string, 'ProjectionFields' | 'KeyConditionExpression' | 'ExpressionAttributeValues' | 'FilterExpression'>, T extends string> = {
+export type QueryKeyProps<KIncoming extends Exclude<string, 'DataCategory'>, T extends string> = {
     Key: { [key in KIncoming]: T };
     IndexName?: ''
 } | ExplicitIndexNameQueryKeyProps
