@@ -1,5 +1,5 @@
 import {  UpdateItemCommand } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase } from "../baseClasses"
+import { Constructor, DBHandlerBase, DBHandlerItem } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import mapProjectionFields from './utils/mapProjectionFields'
 import produce from "immer"
@@ -147,7 +147,7 @@ export const withUpdate = <KIncoming extends string, KInternal extends string, T
         // until such time as either (a) the reducer causes no changes or (b) it succeeds
         // in completing a cycle without any other process side-effecting the same fields.
         //
-        async optimisticUpdate<Update extends Record<string, any>>(props: { Key: ({ [key in KIncoming]: T } & { DataCategory: string }) } & UpdateExtendedProps<Update>): Promise<Update | undefined> {
+        async optimisticUpdate<Update extends DBHandlerItem<KIncoming, T>>(props: { Key: ({ [key in KIncoming]: T } & { DataCategory: string }) } & UpdateExtendedProps<Update>): Promise<Update | undefined> {
             const {
                 Key,
                 updateKeys,
@@ -186,7 +186,7 @@ export const withUpdate = <KIncoming extends string, KInternal extends string, T
                         }
                         const { Attributes = {} } = await this._client.send(new UpdateItemCommand({
                             TableName: this._tableName,
-                            Key: marshall(this._remapIncomingObject(Key)),
+                            Key: marshall(this._remapIncomingObject(Key) as Record<string, any>),
                             UpdateExpression,
                             ...(conditionExpressions.length ? {
                                 ConditionExpression: conditionExpressions.join(' AND ')

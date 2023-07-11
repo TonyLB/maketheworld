@@ -8,7 +8,7 @@ const dbMock = {
 }
 
 describe('withGetOperations', () => {
-    const dbHandler = new (withGetOperations(DBHandlerBase))({
+    const dbHandler = new (withGetOperations<'PrimaryKey', 'EphemeraId', string, typeof DBHandlerBase>(DBHandlerBase))({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',
