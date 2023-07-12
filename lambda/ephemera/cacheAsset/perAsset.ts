@@ -109,6 +109,9 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                 return ephemeraDB.removePerAsset({ EphemeraId: key, DataCategory })
             }
             if (!items.current || (JSON.stringify(items.current) !== JSON.stringify(items.incoming))) {
+                //
+                // TODO: Deprecate addPerAsset
+                //
                 return ephemeraDB.addPerAsset({
                     fetchArgs: initializeComponent,
                     updateKeys: ['cached', 'activeCharacters', 'src', 'rootAsset', '#value'],
