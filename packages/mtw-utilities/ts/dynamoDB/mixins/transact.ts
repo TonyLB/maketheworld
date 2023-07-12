@@ -1,24 +1,34 @@
 import { TransactWriteItem, TransactWriteItemsCommand, TransactWriteItemsCommandInput } from "@aws-sdk/client-dynamodb"
 import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
-import paginateList from "./utils/paginateList"
+import { UpdateExtendedProps } from "./update"
+import withGetOperations from "./get"
+import withUpdate from "./update"
+import { unique } from "../../lists"
 
-export type TransactionRequest<KIncoming extends Exclude<string, 'DataCategory'>, KeyType extends Exclude<string, 'DataCategory'>> = {
+type TransactionRequestUpdate<KIncoming extends Exclude<string, 'DataCategory'>, KeyType extends string> = { Key: DBHandlerKey<KIncoming, KeyType> } & UpdateExtendedProps<Record<string, any>>
+
+export type TransactionRequest<KIncoming extends Exclude<string, 'DataCategory'>, KeyType extends string> = {
     Put: DBHandlerItem<KIncoming, KeyType>
 } | {
-    Update: {
-        Key: DBHandlerKey<KIncoming, KeyType>;
-        UpdateExpression: string;
-        ExpressionAttributeValues: Record<string, any>;
-        ConditionExpression: string;
-    }
+    Update: TransactionRequestUpdate<KIncoming, KeyType>;
 } | {
     Delete: DBHandlerKey<KIncoming, KeyType>
 }
 
-export const withTransaction = <KIncoming extends Exclude<string, 'DataCategory'>, KInternal extends Exclude<string, 'DataCategory'>, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, KInternal, T>>>(Base: GBase) => {
+export const withTransaction = <KIncoming extends Exclude<string, 'DataCategory'>, KInternal extends Exclude<string, 'DataCategory'>, T extends string, GBase extends ReturnType<typeof withUpdate<KIncoming, KInternal, T, ReturnType<typeof withGetOperations<KIncoming, KInternal, T, Constructor<DBHandlerBase<KIncoming, KInternal, T>>>>>>>(Base: GBase) => {
     return class TransactionDBHandler extends Base {
         async transactWrite(items: TransactionRequest<KIncoming, T>[]) {
+            const itemsToFetch = items.reduce<TransactionRequestUpdate<KIncoming, T>[]>((previous, item) => ('Update' in item ? [...previous, item.Update] : previous), [])
+            const aggregateProjectionFields = unique(
+                [this._incomingKeyLabel, 'DataCategory'],
+                ...itemsToFetch.map(({ updateKeys }) => (updateKeys))
+            )
+            const fetchedItems = await this.getItems({
+                Keys: itemsToFetch.map((item) => (item.Key)),
+                ProjectionFields: aggregateProjectionFields
+            })
+
             const transactions = items.map<TransactWriteItem | undefined>((item) => {
                 if ('Put' in item) {
                     return {
@@ -37,19 +47,20 @@ export const withTransaction = <KIncoming extends Exclude<string, 'DataCategory'
                     }
                 }
                 if ('Update' in item) {
-                    //
-                    // TODO: Refactor transactWrite to extract possible reserved words from UpdateExpression and
-                    // ConditionExpression, and generate an ExpressionAttributeNames as needed
-                    //
+                    const fetchedItem = fetchedItems.find((checkItem) => (checkItem[this._incomingKeyLabel] === item.Update.Key[this._incomingKeyLabel] && checkItem.DataCategory === item.Update.Key.DataCategory))
+                    if (!fetchedItem) {
+                        return undefined
+                    }
+                    const updateTransaction = this._optimisticUpdateFactory(fetchedItem, item.Update)
+                    if (!updateTransaction) {
+                        return undefined
+                    }
                     return {
                         Update: {
-                            Key: marshall(this._remapIncomingObject(item.Update.Key)) as Record<string, any>,
                             TableName: this._tableName,
-                            UpdateExpression: item.Update.UpdateExpression,
-                            ExpressionAttributeValues: item.Update.ExpressionAttributeValues ? marshall(item.Update.ExpressionAttributeValues, { removeUndefinedValues: true }) : undefined,
-                            ConditionExpression: item.Update.ConditionExpression
+                            ...updateTransaction
                         }
-                    }
+                    } as TransactWriteItem
                 }
                 return undefined
             }).filter((value): value is TransactWriteItem => (typeof value !== 'undefined'))

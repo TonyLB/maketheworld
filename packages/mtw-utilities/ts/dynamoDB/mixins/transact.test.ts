@@ -1,13 +1,15 @@
 import { DBHandlerBase } from '../baseClasses'
+import withGetOperations from './get'
 import withTransactions from './transact'
 import { marshall } from '@aws-sdk/util-dynamodb'
+import withUpdate from './update'
 
 const dbMock = {
     send: jest.fn()
 }
 
 describe('withTransactions', () => {
-    const dbHandler = new (withTransactions(DBHandlerBase<'PrimaryKey', 'EphemeraId', string>))({
+    const dbHandler = new (withTransactions(withUpdate(withGetOperations(DBHandlerBase<'PrimaryKey', 'EphemeraId', string>))))({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',
@@ -15,20 +17,24 @@ describe('withTransactions', () => {
         options: { getBatchSize: 3 }
     })
 
+    const getItemsMock = jest.fn()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
+        jest.spyOn(dbHandler, 'getItems').mockImplementation(getItemsMock)
     })
 
     it('should assign transaction items correctly', async () => {
+        getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestUpdate', DataCategory: 'Update' }])
         await dbHandler.transactWrite([
             { Put: { PrimaryKey: 'TestPut', DataCategory: 'Put', TestValue: 0 } as any },
             { Delete: { PrimaryKey: 'TestDelete', DataCategory: 'Delete' }},
             { Update: {
                 Key: { PrimaryKey: 'TestUpdate', DataCategory: 'Update' },
-                UpdateExpression: 'SET TestValue = :newValue',
-                ExpressionAttributeValues: { ':newValue': 5 },
-                ConditionExpression: 'attribute_not_exists(TestValue)'
+                updateKeys: ['TestValue'],
+                updateReducer: (draft) => {
+                    draft.TestValue = 5
+                }
             }}
         ])
         expect(dbMock.send).toHaveBeenCalledTimes(1)
@@ -38,8 +44,8 @@ describe('withTransactions', () => {
             { Update: {
                 TableName: 'Ephemera',
                 Key: marshall({ EphemeraId: 'TestUpdate', DataCategory: 'Update' }),
-                UpdateExpression: 'SET TestValue = :newValue',
-                ExpressionAttributeValues: marshall({ ':newValue': 5 }),
+                UpdateExpression: 'SET TestValue = :New0',
+                ExpressionAttributeValues: marshall({ ':New0': 5 }),
                 ConditionExpression: 'attribute_not_exists(TestValue)'
             }}
         ]})

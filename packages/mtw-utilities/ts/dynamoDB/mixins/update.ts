@@ -1,5 +1,5 @@
-import {  UpdateItemCommand } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase, DBHandlerItem } from "../baseClasses"
+import {  UpdateItemCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
+import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import mapProjectionFields from './utils/mapProjectionFields'
 import produce from "immer"
@@ -125,7 +125,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer }:
     }
 }
 
-type UpdateExtendedProps<T extends Record<string, any>> = {
+export type UpdateExtendedProps<T extends Record<string, any>> = {
     updateKeys: string[],
     updateReducer: (draft: WritableDraft<T>) => void,
     ExpressionAttributeNames?: Record<string, any>,
@@ -136,6 +136,50 @@ type UpdateExtendedProps<T extends Record<string, any>> = {
 
 export const withUpdate = <KIncoming extends string, KInternal extends string, T extends string, GBase extends ReturnType<typeof withGetOperations<KIncoming, KInternal, T, Constructor<DBHandlerBase<KIncoming, KInternal, T>>>>>(Base: GBase) => {
     return class UpdateDBHandler extends Base {
+
+        //
+        // optimisticUpdateFactory accepts a fetched (or cached) previous value, runs it through a reducer to generate changes,
+        // and if there are changes then generates the UpdateWriteCommandInput (less TableName and ReturnValues) that would
+        // attempt to create those changes in the DB.
+        //
+        _optimisticUpdateFactory<Fetch extends DBHandlerItem<KIncoming, T>>(
+                previousItem: Fetch | undefined,
+                props: { Key: DBHandlerKey<KIncoming, T> } & UpdateExtendedProps<Fetch>
+            ): Omit<UpdateItemCommandInput, 'TableName' | 'ReturnValues'> | undefined
+        {
+            const {
+                Key,
+                updateKeys,
+                updateReducer
+            } = props
+            if (!updateKeys.length) {
+                return undefined
+            }
+            const updateOutput = updateByReducer({ updateKeys, reducer: updateReducer })(previousItem)
+            if (!isDynamicUpdateOutput(updateOutput)) {
+                return undefined
+            }
+            else {
+                const { ExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
+                const UpdateExpression = [
+                    setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
+                    removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
+                ].filter((value) => (value)).join(' ')
+                if (!UpdateExpression) {
+                    return undefined
+                }
+                return {
+                    Key: marshall(this._remapIncomingObject(Key) as Record<string, any>),
+                    UpdateExpression,
+                    ...(conditionExpressions.length ? {
+                        ConditionExpression: conditionExpressions.join(' AND ')
+                    } : {}),
+                    ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                    ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
+                }
+            }
+        }
+
         //
         // optimisticUpdate fetches the current state of the keys you intend to update,
         // and then runs that record through a change procedure (as in Immer) to change
@@ -168,32 +212,17 @@ export const withUpdate = <KIncoming extends string, KInternal extends string, T
                     ProjectionFields: updateKeys,
                 })
                 const state = stateFetch || {}
-                const updateOutput = updateByReducer({ updateKeys, reducer: updateReducer })(stateFetch)
-                if (!isDynamicUpdateOutput(updateOutput)) {
-                    returnValue = state || returnValue
+                const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer })
+                if (typeof updateOutput === 'undefined') {
+                    returnValue = state
                     break
                 }
                 else {
-                    const { ExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
                     try {
-                        const UpdateExpression = [
-                            setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
-                            removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
-                        ].filter((value) => (value)).join(' ')
-                        if (!UpdateExpression) {
-                            returnValue = state
-                            break
-                        }
                         const { Attributes = {} } = await this._client.send(new UpdateItemCommand({
                             TableName: this._tableName,
-                            Key: marshall(this._remapIncomingObject(Key) as Record<string, any>),
-                            UpdateExpression,
-                            ...(conditionExpressions.length ? {
-                                ConditionExpression: conditionExpressions.join(' AND ')
-                            } : {}),
-                            ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
-                            ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
-                            ReturnValues: props.ReturnValues
+                            ReturnValues: props.ReturnValues,
+                            ...updateOutput
                         }))
                         returnValue = this._remapOutgoingObject(unmarshall(Attributes) as any)
                     }
