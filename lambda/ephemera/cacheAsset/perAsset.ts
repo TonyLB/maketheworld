@@ -89,6 +89,9 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
     //
     const DataCategory = AssetKey(assetId)
     const currentItems = (await ephemeraDB.query({ IndexName: 'DataCategoryIndex', DataCategory })) || []
+    //
+    // Refactor using lists and .find rather than the confusing map implementation
+    //
     const firstPassMerging = currentItems.reduce((previous, { DataCategory, ...item }) => ({
             ...previous,
             [item.EphemeraId]: { current: item }
@@ -111,6 +114,16 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
             if (!items.current || (JSON.stringify(items.current) !== JSON.stringify(items.incoming))) {
                 //
                 // TODO: Deprecate addPerAsset
+                //
+
+                //
+                // TODO: For each incoming item, create a two-element transaction:
+                //    * Put the Meta::<AssetId> asset detail record
+                //    * Update the Meta::<Component> component overview record
+                //
+
+                //
+                // TODO: Wrap in exponentialBackoffWrapper
                 //
                 return ephemeraDB.addPerAsset({
                     fetchArgs: initializeComponent,
