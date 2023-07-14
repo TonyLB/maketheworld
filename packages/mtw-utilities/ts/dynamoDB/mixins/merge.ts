@@ -7,11 +7,11 @@ import withTransaction, { TransactionRequest } from "./transact"
 import withGetOperations from "./get"
 import withUpdate from "./update"
 
-type MergeQueryResults<KIncoming extends Exclude<string, 'DataCategory'>, T extends string> = {
+type MergeQueryResults<KIncoming extends DBHandlerLegalKey, T extends string> = {
     [key in KIncoming]: T
 } & { DataCategory: string } & Record<Exclude<string, KIncoming | 'DataCategory'>, any>
 
-type MergeAction<KIncoming extends Exclude<string, 'DataCategory'>, T extends string> = 'ignore' | 'delete' | DBHandlerItem<KIncoming, T>
+type MergeAction<KIncoming extends DBHandlerLegalKey, T extends string> = 'ignore' | 'delete' | DBHandlerItem<KIncoming, T>
 
 type MergeTransactProps<KIncoming extends DBHandlerLegalKey, T extends string> = {
     query: QueryKeyProps<KIncoming, T>;

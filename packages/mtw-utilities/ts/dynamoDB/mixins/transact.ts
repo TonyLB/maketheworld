@@ -6,9 +6,9 @@ import withGetOperations from "./get"
 import withUpdate from "./update"
 import { unique } from "../../lists"
 
-type TransactionRequestUpdate<KIncoming extends Exclude<string, 'DataCategory'>, KeyType extends string> = { Key: DBHandlerKey<KIncoming, KeyType> } & UpdateExtendedProps<Record<string, any>>
+type TransactionRequestUpdate<KIncoming extends DBHandlerLegalKey, KeyType extends string> = { Key: DBHandlerKey<KIncoming, KeyType> } & UpdateExtendedProps<Record<string, any>>
 
-export type TransactionRequest<KIncoming extends Exclude<string, 'DataCategory'>, KeyType extends string> = {
+export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string> = {
     Put: DBHandlerItem<KIncoming, KeyType>
 } | {
     Update: TransactionRequestUpdate<KIncoming, KeyType>;
