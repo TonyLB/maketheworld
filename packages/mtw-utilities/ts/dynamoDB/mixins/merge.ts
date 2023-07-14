@@ -41,7 +41,7 @@ type MergeTransactProps<KIncoming extends DBHandlerLegalKey, T extends string> =
 //    * An object with the two keys unique to that position in the map, that will be
 //      made into the body of a PutItem operation to update the current element
 //
-export const withMerge = <KIncoming extends Exclude<string, 'DataCategory'>, KInternal extends Exclude<string, 'DataCategory'>, T extends string, GBase extends ReturnType<typeof withTransaction<KIncoming, KInternal, T, ReturnType<typeof withUpdate<KIncoming, KInternal, T, ReturnType<typeof withGetOperations<KIncoming, KInternal, T, ReturnType<typeof withQuery<KIncoming, KInternal, T, ReturnType<typeof withBatchWrite<KIncoming, KInternal, T, Constructor<DBHandlerBase<KIncoming, KInternal, T>>>>>>>>>>>>>(Base: GBase) => {
+export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends ReturnType<typeof withTransaction<KIncoming, T, ReturnType<typeof withUpdate<KIncoming, T, ReturnType<typeof withGetOperations<KIncoming, T, ReturnType<typeof withQuery<KIncoming, T, ReturnType<typeof withBatchWrite<KIncoming, T, Constructor<DBHandlerBase<KIncoming, T>>>>>>>>>>>>>(Base: GBase) => {
     return class MergeDBHandler extends Base {
         async merge(props: {
             query: QueryKeyProps<KIncoming, T>;

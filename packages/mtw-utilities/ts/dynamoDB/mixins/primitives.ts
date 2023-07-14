@@ -1,9 +1,9 @@
 import { DeleteItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey } from "../baseClasses"
+import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { asyncSuppressExceptions } from "../../errors"
 
-export const withPrimitives = <KIncoming extends string, KInternal extends string, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, KInternal, T>>>(Base: GBase) => {
+export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class PrimitivesDBHandler extends Base {
         async putItem(item: DBHandlerItem<KIncoming, T>) {
             return await asyncSuppressExceptions(async () => {

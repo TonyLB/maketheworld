@@ -1,7 +1,7 @@
 import { ephemeraDB } from '../../dynamoDB'
 import { unique } from '../../lists';
-import { extractConstrainedTag, splitType } from '../../types';
-import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
+import { extractConstrainedTag } from '../../types';
+import { CacheConstructor, DependencyEdge, DependencyNode, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
 import { DeferredCache } from './deferredCache';
 
 export class DependencyTreeWalker<T extends Omit<DependencyNode, 'completeness'>> {

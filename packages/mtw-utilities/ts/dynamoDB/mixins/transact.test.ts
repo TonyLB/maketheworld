@@ -9,7 +9,7 @@ const dbMock = {
 }
 
 describe('withTransactions', () => {
-    const dbHandler = new (withTransactions(withUpdate(withGetOperations(DBHandlerBase<'PrimaryKey', 'EphemeraId', string>))))({
+    const dbHandler = new (withTransactions(withUpdate(withGetOperations(DBHandlerBase<'PrimaryKey', string>))))({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',

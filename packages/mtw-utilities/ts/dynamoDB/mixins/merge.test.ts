@@ -12,7 +12,7 @@ const dbMock = {
 }
 
 describe('withMerge', () => {
-    const dbHandler = new (withMerge(withTransaction(withUpdate(withGetOperations(withQuery(withBatchWrite(DBHandlerBase<'PrimaryKey', 'EphemeraId', string>)))))))({
+    const dbHandler = new (withMerge(withTransaction(withUpdate(withGetOperations(withQuery(withBatchWrite(DBHandlerBase<'PrimaryKey', string>)))))))({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',

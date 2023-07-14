@@ -1,5 +1,5 @@
 import { TransactWriteItem, TransactWriteItemsCommand, TransactWriteItemsCommandInput } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey } from "../baseClasses"
+import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { UpdateExtendedProps } from "./update"
 import withGetOperations from "./get"
@@ -16,7 +16,7 @@ export type TransactionRequest<KIncoming extends Exclude<string, 'DataCategory'>
     Delete: DBHandlerKey<KIncoming, KeyType>
 }
 
-export const withTransaction = <KIncoming extends Exclude<string, 'DataCategory'>, KInternal extends Exclude<string, 'DataCategory'>, T extends string, GBase extends ReturnType<typeof withUpdate<KIncoming, KInternal, T, ReturnType<typeof withGetOperations<KIncoming, KInternal, T, Constructor<DBHandlerBase<KIncoming, KInternal, T>>>>>>>(Base: GBase) => {
+export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends ReturnType<typeof withUpdate<KIncoming, T, ReturnType<typeof withGetOperations<KIncoming, T, Constructor<DBHandlerBase<KIncoming, T>>>>>>>(Base: GBase) => {
     return class TransactionDBHandler extends Base {
         async transactWrite(items: TransactionRequest<KIncoming, T>[]) {
             const itemsToFetch = items.reduce<TransactionRequestUpdate<KIncoming, T>[]>((previous, item) => ('Update' in item ? [...previous, item.Update] : previous), [])

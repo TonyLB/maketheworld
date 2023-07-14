@@ -1,15 +1,15 @@
 import { BatchWriteItemCommand } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey } from "../baseClasses"
+import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import paginateList from "./utils/paginateList"
 
-export type BatchRequest<KIncoming extends Exclude<string, 'DataCategory'>, KeyType extends Exclude<string, 'DataCategory'>> = {
+export type BatchRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string> = {
     PutRequest: DBHandlerItem<KIncoming, KeyType>
 } | {
     DeleteRequest: DBHandlerKey<KIncoming, KeyType>
 }
 
-export const withBatchWrite = <KIncoming extends Exclude<string, 'DataCategory'>, KInternal extends Exclude<string, 'DataCategory'>, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, KInternal, T>>>(Base: GBase) => {
+export const withBatchWrite = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class BatchOperationsDBHandler extends Base {
         batchWriteDispatcher(items: BatchRequest<KIncoming, T>[]) {
             const batchPromises = paginateList(items, this._writeBatchSize ?? 20)

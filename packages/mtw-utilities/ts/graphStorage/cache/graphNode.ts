@@ -1,3 +1,5 @@
+import { Constructor, DBHandlerBase, DBHandlerLegalKey } from "../../dynamoDB/baseClasses";
+import withGetOperations from "../../dynamoDB/mixins/get";
 import { CacheConstructor } from "./baseClasses";
 import { DeferredCache } from "./deferredCache";
 
@@ -22,13 +24,7 @@ export type GraphNodeCache <K extends string> = {
     back: GraphNodeCacheComponent<K>;
 }
 
-export type DBHandler = { 
-    batchGet: <T extends Record<string, any>>(args: {
-        Items: { PrimaryKey: string; DataCategory: string }[],
-        ExpressionAttributeNames?: Record<string, string>,
-        ProjectionFields: string[]
-    }) => Promise<T[]>
-}
+export type GraphDBHandler<T extends string = string> = InstanceType<ReturnType<typeof withGetOperations<'PrimaryKey', T, Constructor<DBHandlerBase<'PrimaryKey', T>>>>>
 
 type DBHandlerBatchGetReturn <K extends string> = {
     PrimaryKey: K;
@@ -41,9 +37,9 @@ type DBHandlerBatchGetReturn <K extends string> = {
 
 export class GraphNodeData <K extends string> {
     _Cache: DeferredCache<GraphNodeCache<K>>;
-    _dbHandler: DBHandler
+    _dbHandler: GraphDBHandler<K>
     
-    constructor(dbHandler: DBHandler) {
+    constructor(dbHandler: GraphDBHandler<K>) {
         this._dbHandler = dbHandler
         this._Cache = new DeferredCache<GraphNodeCache<K>>({
             defaultValue: (PrimaryKey: string) => ({
@@ -70,17 +66,17 @@ export class GraphNodeData <K extends string> {
         this._Cache.invalidate(key)
     }
 
-    async get(PrimaryKeys: string[]): Promise<GraphNodeCache<K>[]> {
+    async get(PrimaryKeys: K[]): Promise<GraphNodeCache<K>[]> {
         this._Cache.add({
             promiseFactory: async (keys: string[]): Promise<DBHandlerBatchGetReturn<K>[]> => (
-                this._dbHandler.batchGet<{ PrimaryKey: K; DataCategory: string; invalidatedAt?: number; cachedAt?: number; edgeSet: string[]; cache: string[] }>({
-                    Items: keys.map((key) => ([
+                this._dbHandler.getItems<{ PrimaryKey: K; DataCategory: string; invalidatedAt?: number; cachedAt?: number; edgeSet: string[]; cache: string[] }>({
+                    Keys: keys.map((key) => ([
                         {
-                            PrimaryKey: key,
+                            PrimaryKey: key as K,
                             DataCategory: 'GRAPH::Forward'
                         },
                         {
-                            PrimaryKey: key,
+                            PrimaryKey: key as K,
                             DataCategory: 'GRAPH::Back'
                         }
                     ])).flat(1),
@@ -131,7 +127,7 @@ export class GraphNodeData <K extends string> {
 
 }
 
-export const GraphNode = (dbHandler: DBHandler) => <K extends string, GBase extends CacheConstructor>(Base: GBase) => {
+export const GraphNode = <K extends DBHandlerLegalKey>(dbHandler: GraphDBHandler<K>) => <GBase extends CacheConstructor>(Base: GBase) => {
     return class GraphNodeCache extends Base {
         Nodes: GraphNodeData<K>;
 

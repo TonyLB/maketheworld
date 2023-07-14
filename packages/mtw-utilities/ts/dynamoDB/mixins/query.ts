@@ -1,5 +1,5 @@
 import { QueryCommand } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase, DBHandlerItem } from "../baseClasses"
+import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerLegalKey } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import { asyncSuppressExceptions } from "../../errors"
 import mapProjectionFields from "./utils/mapProjectionFields"
@@ -38,7 +38,7 @@ type QueryKeyPropsConnectionIndex = {
 
 type ExplicitIndexNameQueryKeyProps = QueryKeyPropsDataCategoryIndex | QueryKeyPropsScopedIdIndex | QueryKeyPropsPlayerIndex | QueryKeyPropsZoneIndex | QueryKeyPropsConnectionIndex
 
-export type QueryKeyProps<KIncoming extends Exclude<string, 'DataCategory'>, T extends string> = {
+export type QueryKeyProps<KIncoming extends DBHandlerLegalKey, T extends string> = {
     Key: { [key in KIncoming]: T };
     IndexName?: ''
 } | ExplicitIndexNameQueryKeyProps
@@ -48,7 +48,7 @@ type ExtractKeyReturn = {
     keyId: string;
 }
 
-export const withQuery = <KIncoming extends Exclude<string, 'DataCategory'>, KInternal extends Exclude<string, 'DataCategory'>, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, KInternal, T>>>(Base: GBase) => {
+export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class QueryDBHandler extends Base {
         _queryExtractKeyInfo(props: QueryKeyProps<KIncoming, T>): ExtractKeyReturn {
             switch(props.IndexName) {

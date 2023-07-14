@@ -1,5 +1,5 @@
 import {  UpdateItemCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey } from "../baseClasses"
+import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import mapProjectionFields from './utils/mapProjectionFields'
 import produce from "immer"
@@ -134,7 +134,7 @@ export type UpdateExtendedProps<T extends Record<string, any>> = {
     catchException?: (err: any) => Promise<void>
 }
 
-export const withUpdate = <KIncoming extends string, KInternal extends string, T extends string, GBase extends ReturnType<typeof withGetOperations<KIncoming, KInternal, T, Constructor<DBHandlerBase<KIncoming, KInternal, T>>>>>(Base: GBase) => {
+export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends ReturnType<typeof withGetOperations<KIncoming, T, Constructor<DBHandlerBase<KIncoming, T>>>>>(Base: GBase) => {
     return class UpdateDBHandler extends Base {
 
         //

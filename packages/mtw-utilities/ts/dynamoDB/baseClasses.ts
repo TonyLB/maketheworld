@@ -32,14 +32,21 @@ export const remap = <
 
 export type DBHandlerLegalKey = Exclude<string, 'DataCategory'>
 
+//
+// TODO: Reverse order of DBHandler helper generic arguments and apply defaults
+//
 export type DBHandlerKey<KInternal extends DBHandlerLegalKey, KeyType extends string> = { DataCategory: string } & { [key in KInternal]: KeyType }
 
 export type DBHandlerItem<KInternal extends DBHandlerLegalKey, KeyType extends string> = Record<string, any> & { [key in KInternal]: KeyType } & { DataCategory: string }
 
-export class DBHandlerBase<KIncoming extends DBHandlerLegalKey, KInternal extends DBHandlerLegalKey, KeyType extends string> {
+//
+// TODO: Remove type restrictions on _internalKeyLabel (since that's a black-box, we shouldn't need to specify it everywhere
+// we use a DBHandler)
+//
+export class DBHandlerBase<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> {
     _client: InstanceType<typeof DynamoDBClient>;
     _incomingKeyLabel: KIncoming;
-    _internalKeyLabel: KInternal;
+    _internalKeyLabel: Exclude<string, 'DataCategory'>;
     _tableName: string;
     _writeBatchSize?: number;
     _getBatchSize?: number;
@@ -48,7 +55,7 @@ export class DBHandlerBase<KIncoming extends DBHandlerLegalKey, KInternal extend
         client: InstanceType<typeof DynamoDBClient>;
         tableName: string;
         incomingKeyLabel: KIncoming;
-        internalKeyLabel: KInternal;
+        internalKeyLabel: string;
         options: {
             primaryKeyTypeGuard?: (value: string) => value is KeyType;
             writeBatchSize?: number;
@@ -63,24 +70,15 @@ export class DBHandlerBase<KIncoming extends DBHandlerLegalKey, KInternal extend
         this._getBatchSize = props.options.getBatchSize
     }
 
-    _remapIncomingObject (value: DBHandlerItem<KIncoming, KeyType>): DBHandlerItem<KInternal, KeyType>
-    _remapIncomingObject (value: DBHandlerKey<KIncoming, KeyType>): DBHandlerKey<KInternal, KeyType>
-    _remapIncomingObject (value: DBHandlerItem<KIncoming, KeyType> | DBHandlerKey<KIncoming, KeyType>): DBHandlerItem<KInternal, KeyType> | DBHandlerKey<KInternal, KeyType> {
-        return remap(value, { [this._incomingKeyLabel]: this._internalKeyLabel } as { [key in KIncoming]: KInternal }) as (typeof value extends DBHandlerKey<KIncoming, KeyType> ? DBHandlerKey<KInternal, KeyType> : DBHandlerItem<KInternal, KeyType>)
+    _remapIncomingObject (value: DBHandlerItem<KIncoming, KeyType>): DBHandlerItem<Exclude<string, 'DataCategory'>, KeyType>
+    _remapIncomingObject (value: DBHandlerKey<KIncoming, KeyType>): DBHandlerKey<Exclude<string, 'DataCategory'>, KeyType>
+    _remapIncomingObject (value: DBHandlerItem<KIncoming, KeyType> | DBHandlerKey<KIncoming, KeyType>): DBHandlerItem<Exclude<string, 'DataCategory'>, KeyType> | DBHandlerKey<Exclude<string, 'DataCategory'>, KeyType> {
+        return remap(value, { [this._incomingKeyLabel]: this._internalKeyLabel } as { [key in KIncoming]: Exclude<string, 'DataCategory'> }) as (typeof value extends DBHandlerKey<KIncoming, KeyType> ? DBHandlerKey<Exclude<string, 'DataCategory'>, KeyType> : DBHandlerItem<Exclude<string, 'DataCategory'>, KeyType>)
     }
 
-    _remapOutgoingObject (value: DBHandlerItem<KInternal, KeyType>): DBHandlerItem<KIncoming, KeyType>
-    _remapOutgoingObject (value: DBHandlerKey<KInternal, KeyType>): DBHandlerKey<KIncoming, KeyType>
-    _remapOutgoingObject (value: DBHandlerItem<KInternal, KeyType> | DBHandlerKey<KInternal, KeyType>): DBHandlerItem<KIncoming, KeyType> | DBHandlerKey<KIncoming, KeyType> {
-        return remap(value, { [this._internalKeyLabel]: this._incomingKeyLabel } as { [key in KInternal]: KIncoming }) as (typeof value extends DBHandlerKey<KInternal, KeyType> ? DBHandlerKey<KIncoming, KeyType> : DBHandlerItem<KIncoming, KeyType>)
+    _remapOutgoingObject (value: DBHandlerItem<Exclude<string, 'DataCategory'>, KeyType>): DBHandlerItem<KIncoming, KeyType>
+    _remapOutgoingObject (value: DBHandlerKey<Exclude<string, 'DataCategory'>, KeyType>): DBHandlerKey<KIncoming, KeyType>
+    _remapOutgoingObject (value: DBHandlerItem<Exclude<string, 'DataCategory'>, KeyType> | DBHandlerKey<Exclude<string, 'DataCategory'>, KeyType>): DBHandlerItem<KIncoming, KeyType> | DBHandlerKey<KIncoming, KeyType> {
+        return remap(value, { [this._internalKeyLabel]: this._incomingKeyLabel } as { [key in Exclude<string, 'DataCategory'>]: KIncoming }) as (typeof value extends DBHandlerKey<Exclude<string, 'DataCategory'>, KeyType> ? DBHandlerKey<KIncoming, KeyType> : DBHandlerItem<KIncoming, KeyType>)
     }
 }
-
-// export type DBHandlerBaseGeneric = typeof DBHandlerBase<DBHandlerLegalKey, DBHandlerLegalKey, string>
-// export type DBHandlerExtractKIncoming<DBH> = DBH extends DBHandlerBase<infer V, DBHandlerLegalKey, string> ? V : never
-// export type DBHandlerExtractKInternal<DBH> = DBH extends DBHandlerBase<DBHandlerLegalKey, infer V, string> ? V : never
-// export type DBHandlerExtractKeyType<DBH> = DBH extends DBHandlerBase<DBHandlerLegalKey, DBHandlerLegalKey, infer V> ? V : never
-// export type DBHandlerExtractIncomingItem<DBH> = DBHandlerItem<DBHandlerExtractKIncoming<DBH>, DBHandlerExtractKeyType<DBH>>
-// export type DBHandlerExtractIncomingKey<DBH> = DBHandlerKey<DBHandlerExtractKIncoming<DBH>, DBHandlerExtractKeyType<DBH>>
-// export type DBHandlerExtractInternalItem<DBH> = DBHandlerItem<DBHandlerExtractKInternal<DBH>, DBHandlerExtractKeyType<DBH>>
-// export type DBHandlerExtractInternalKey<DBH> = DBHandlerKey<DBHandlerExtractKInternal<DBH>, DBHandlerExtractKeyType<DBH>>

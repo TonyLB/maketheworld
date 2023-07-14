@@ -22,6 +22,13 @@ import delayPromise from "./delayPromise"
 import { splitType } from "../types"
 import { WritableDraft } from "immer/dist/internal"
 import { objectMap } from "../objects"
+import withMerge from "./mixins/merge"
+import withTransaction from "./mixins/transact"
+import withUpdate from "./mixins/update"
+import withGetOperations from "./mixins/get"
+import withQuery from "./mixins/query"
+import withBatchWrite from "./mixins/batchWrite"
+import { DBHandlerBase } from "./baseClasses"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -894,6 +901,14 @@ export const ephemeraDB = {
     addPerAsset,
     removePerAsset
 }
+
+export const nonLegacyEphemeraDB = new (withMerge(withTransaction(withUpdate(withGetOperations(withQuery(withBatchWrite(DBHandlerBase<'EphemeraId', string>)))))))({
+    client: dbClient,
+    tableName: 'Ephemera',
+    incomingKeyLabel: 'EphemeraId',
+    internalKeyLabel: 'EphemeraId',
+    options: { getBatchSize: 50 }
+})
 
 type AssetDBKey = {
     AssetId: string;
