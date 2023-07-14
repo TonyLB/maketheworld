@@ -904,7 +904,7 @@ export const ephemeraDB = {
 
 export const nonLegacyEphemeraDB = new (withMerge(withTransaction(withUpdate(withGetOperations(withQuery(withBatchWrite(DBHandlerBase<'EphemeraId', string>)))))))({
     client: dbClient,
-    tableName: 'Ephemera',
+    tableName: ephemeraTable,
     incomingKeyLabel: 'EphemeraId',
     internalKeyLabel: 'EphemeraId',
     options: { getBatchSize: 50 }

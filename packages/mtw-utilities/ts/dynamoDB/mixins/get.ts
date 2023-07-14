@@ -31,13 +31,16 @@ export const withGetOperations = <KIncoming extends DBHandlerLegalKey, T extends
             const { ProjectionFields, ExpressionAttributeNames } = mapProjectionFields((props.ProjectionFields || []).map((projectionField) => (projectionField === this._incomingKeyLabel ? this._internalKeyLabel : projectionField)))
             const batchPromises = paginateList(props.Keys, this._getBatchSize ?? 40)
                 .filter((itemList) => (itemList.length))
-                .map((itemList) => (this._client.send(new BatchGetItemCommand({ RequestItems: {
-                    [this._tableName]: {
-                        Keys: itemList.map((item) => (marshall(this._remapIncomingObject(item) as Record<string, any>))),
-                        ProjectionExpression: ProjectionFields.length ? ProjectionFields.join(', ') : this._internalKeyLabel,
-                        ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length ? ExpressionAttributeNames : undefined
-                    }
-                } }))))
+                .map(async (itemList) => {
+                    const Keys = itemList.map((item) => (marshall(this._remapIncomingObject(item) as Record<string, any>)))
+                    return await this._client.send(new BatchGetItemCommand({ RequestItems: {
+                        [this._tableName]: {
+                            Keys,
+                            ProjectionExpression: ProjectionFields.length ? ProjectionFields.join(', ') : this._internalKeyLabel,
+                            ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length ? ExpressionAttributeNames : undefined
+                        }
+                    } }))
+                })
             const outcomes = await Promise.all(batchPromises)
             return outcomes.reduce<Get[]>((previous, { Responses = {} }) => {
                 return [
