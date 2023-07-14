@@ -23,8 +23,7 @@ jest.mock('@aws-sdk/client-dynamodb', () => ({
 }))
 
 import { marshall } from '@aws-sdk/util-dynamodb'
-import { abstractOptimisticUpdate, addPerAsset } from '.'
-import { splitType } from '../types'
+import { abstractOptimisticUpdate } from '.'
 
 describe('optimisticUpdate', () => {
     beforeEach(() => {
@@ -130,67 +129,6 @@ describe('optimisticUpdate', () => {
         expect(returnValue).toEqual({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', Name: 'Different Test', Zone: 'New test', testFour: 'Unchanged' })
         expect(mockUpdateItemCommand).toHaveBeenCalledTimes(1)
         expect(mockUpdateItemCommand.mock.calls[0][0]).toMatchSnapshot()
-    })
-
-})
-
-type TestAddPerAssetArgs = {
-    EphemeraId: string;
-    DataCategory: string;
-    value: string;
-}
-
-describe('addPerAsset', () => {
-    beforeEach(() => {
-        jest.clearAllMocks()
-        jest.restoreAllMocks()
-    })
-
-    it('should create a new Meta record', async () => {
-        mockDBClientSend
-            .mockResolvedValueOnce({})
-
-        await addPerAsset({
-            updateKeys: ['cached'],
-            reduceMetaData: ({ item }: { item: TestAddPerAssetArgs }) => (draft) => {
-                const key = splitType(item.EphemeraId)[1]
-                if (!draft.cached) {
-                    draft.cached = []
-                }
-                if (!(key in draft.cached)) {
-                    draft.cached.push(key)
-                }
-            }
-        })({
-            EphemeraId: 'FEATURE#TEST',
-            DataCategory: 'ASSET#TEST',
-            value: 'Test'
-        })
-        expect(mockTransactWriteItemsCommand).toHaveBeenCalledTimes(1)
-        expect(mockTransactWriteItemsCommand.mock.calls[0][0]).toMatchSnapshot()
-    })
-
-    it('should update an existing Meta record', async () => {
-        mockDBClientSend
-            .mockResolvedValueOnce({ Item: marshall({ cached: ['OLD'] }) })
-        await addPerAsset({
-            updateKeys: ['cached'],
-            reduceMetaData: ({ item }: { item: TestAddPerAssetArgs }) => (draft) => {
-                const key = splitType(item.EphemeraId)[1]
-                if (!draft.cached) {
-                    draft.cached = []
-                }
-                if (!(key in draft.cached)) {
-                    draft.cached.push(key)
-                }
-            }
-        })({
-            EphemeraId: 'FEATURE#TEST',
-            DataCategory: 'ASSET#TEST',
-            value: 'Test'
-        })
-        expect(mockTransactWriteItemsCommand).toHaveBeenCalledTimes(1)
-        expect(mockTransactWriteItemsCommand.mock.calls[0][0]).toMatchSnapshot()
     })
 
 })
