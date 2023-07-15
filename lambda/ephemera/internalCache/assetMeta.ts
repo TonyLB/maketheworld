@@ -1,5 +1,5 @@
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
 export type AssetMetaItem = {
@@ -15,8 +15,10 @@ export class CacheAssetMetaData {
     async get(assetId: EphemeraAssetId): Promise<Omit<AssetMetaItem, 'found'> | undefined> {
         if (!(this.AssetMetaById[assetId])) {
             const assetData = await ephemeraDB.getItem<AssetMetaItem>({
-                    EphemeraId: assetId,
-                    DataCategory: 'Meta::Asset',
+                    Key: {
+                        EphemeraId: assetId,
+                        DataCategory: 'Meta::Asset'
+                    },
                     ProjectionFields: ['EphemeraId'],
                 })
             if (assetData) {

@@ -1,5 +1,5 @@
 import { EphemeraAssetId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
 export type AssetRoomsItem = {
@@ -15,9 +15,9 @@ export class CacheAssetRoomsData {
     }
     async get(assetId: EphemeraAssetId): Promise<Omit<AssetRoomsItem, 'found'> | undefined> {
         if (!(this.AssetRoomsById[assetId])) {
-            const assetRooms = await ephemeraDB.query<{ EphemeraId: EphemeraRoomId }[]>({
+            const assetRooms = await ephemeraDB.query<{ EphemeraId: EphemeraRoomId, DataCategory: string }>({
                 IndexName: 'DataCategoryIndex',
-                DataCategory: assetId,
+                Key: { DataCategory: assetId },
                 KeyConditionExpression: 'begins_with(EphemeraId, :roomPrefix)',
                 ExpressionAttributeValues: {
                     ':roomPrefix': 'ROOM#'

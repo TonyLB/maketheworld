@@ -3,7 +3,7 @@ import internalCache from "../internalCache"
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { nonLegacyEphemeraDB as ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import perceptionMessage from '.'
 
@@ -40,12 +40,11 @@ describe('Perception message', () => {
             }
         ], messageBus: messageBusMock })
         expect(ephemeraDBMock.getItem).toHaveBeenCalledWith({
-            EphemeraId: 'CHARACTER#TESS',
-            DataCategory: 'Meta::Character',
-            ProjectionFields: ['#name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color'],
-            ExpressionAttributeNames: {
-                '#name': 'Name'
-            }
+            Key: {
+                EphemeraId: 'CHARACTER#TESS',
+                DataCategory: 'Meta::Character'
+            },
+            ProjectionFields: ['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
         })
         expect(messageBusMock.send).toHaveBeenCalledTimes(2)
         expect(messageBusMock.send).toHaveBeenCalledWith({

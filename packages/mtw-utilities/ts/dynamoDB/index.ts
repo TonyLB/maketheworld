@@ -702,13 +702,27 @@ export const ephemeraDB = {
     deleteItem: abstractDeleteItem<EphemeraDBKey>(ephemeraTable)
 }
 
-// export const nonLegacyEphemeraDB = new (withMerge(withTransaction(withUpdate<'EphemeraId', string>()(withGetOperations()(withQuery(withBatchWrite(withPrimitives()(DBHandlerBase))))))))({
-//     client: dbClient,
-//     tableName: ephemeraTable,
-//     incomingKeyLabel: 'EphemeraId',
-//     internalKeyLabel: 'EphemeraId',
-//     options: { getBatchSize: 50 }
-// })
+export const nonLegacyEphemeraDB = new (
+        withMerge<'EphemeraId', string>()(
+            withTransaction<'EphemeraId', string>()(
+                withUpdate<'EphemeraId', string>()(
+                    withGetOperations<'EphemeraId', string>()(
+                        withQuery<'EphemeraId', string>()(
+                            withBatchWrite<'EphemeraId', string>()(
+                                withPrimitives<'EphemeraId', string>()(DBHandlerBase)
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )({
+    client: dbClient,
+    tableName: ephemeraTable,
+    incomingKeyLabel: 'EphemeraId',
+    internalKeyLabel: 'EphemeraId',
+    options: { getBatchSize: 50 }
+})
 
 type AssetDBKey = {
     AssetId: string;

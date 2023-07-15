@@ -5,7 +5,7 @@ import {
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import GraphCache, { GraphCacheData } from '@tonylb/mtw-utilities/dist/graphStorage/cache'
@@ -39,12 +39,9 @@ export class AssetStateData {
     async get<T extends AssetStateMapping>(keys: T): Promise<AssetStateOutput<T>> {
         this._StateCache.add({
             promiseFactory: async (keys: string[]) => {
-                return await ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
-                    Items: keys.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${extractConstrainedTag(isLegalDependencyTag)(EphemeraId)}` })),
-                    ProjectionFields: ['EphemeraId', '#value'],
-                    ExpressionAttributeNames: {
-                        '#value': 'value'
-                    }
+                return await ephemeraDB.getItems<{ EphemeraId: string; value: any; }>({
+                    Keys: keys.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${extractConstrainedTag(isLegalDependencyTag)(EphemeraId)}` })),
+                    ProjectionFields: ['EphemeraId', 'value']
                 })
             },
             requiredKeys: Object.values(keys),
@@ -150,29 +147,23 @@ class AssetMap {
     async get(EphemeraId: string): Promise<AssetStateMapping> {
         if (extractConstrainedTag(isLegalDependencyTag)(EphemeraId) === 'Asset') {
             const [computedLookups, variableLookups] = await Promise.all([
-                ephemeraDB.query<{ EphemeraId: string; key: string; }[]>({
+                ephemeraDB.query<{ EphemeraId: string; DataCategory: string; key: string; }>({
                     IndexName: 'DataCategoryIndex',
-                    DataCategory: EphemeraId,
+                    Key: { DataCategory: EphemeraId },
                     KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
                     ExpressionAttributeValues: {
                         ':ephemeraPrefix': 'COMPUTED'
                     },
-                    ExpressionAttributeNames: {
-                        '#key': 'key'
-                    },
-                    ProjectionFields: ['#key', 'EphemeraId']
+                    ProjectionFields: ['key', 'EphemeraId']
                 }),
-                ephemeraDB.query<{ EphemeraId: string; key: string; }[]>({
+                ephemeraDB.query<{ EphemeraId: string; DataCategory: string; key: string; }>({
                     IndexName: 'DataCategoryIndex',
-                    DataCategory: EphemeraId,
+                    Key: { DataCategory: EphemeraId },
                     KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
                     ExpressionAttributeValues: {
                         ':ephemeraPrefix': 'VARIABLE'
                     },
-                    ExpressionAttributeNames: {
-                        '#key': 'key'
-                    },
-                    ProjectionFields: ['#key', 'EphemeraId']
+                    ProjectionFields: ['key', 'EphemeraId']
                 })
             ])
             return [...computedLookups, ...variableLookups].reduce<Record<string, StateItemId>>((previous, { EphemeraId, key }) => (

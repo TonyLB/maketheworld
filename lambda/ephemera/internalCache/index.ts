@@ -4,7 +4,7 @@ import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import CacheRoomCharacterLists from './roomCharacterLists';
 import CacheCharacterMeta from './characterMeta';
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
+import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
 import CacheCharacterConnections from './characterConnections';
 import AssetState from './assetState';
 import GraphCache from '@tonylb/mtw-utilities/dist/graphStorage/cache';
@@ -66,8 +66,10 @@ export class CacheGlobalData {
             case 'assets':
                 if (typeof this.assets === 'undefined') {
                     const { assets = [] } = (await ephemeraDB.getItem<{ assets: string[] }>({
-                        EphemeraId: 'Global',
-                        DataCategory: 'Assets',
+                        Key: {
+                            EphemeraId: 'Global',
+                            DataCategory: 'Assets'
+                        },
                         ProjectionFields: ['assets']
                     })) || {}
                     this.assets = assets

@@ -2,7 +2,7 @@ jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { ephemeraDB, multiTableTransactWrite, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { nonLegacyEphemeraDB as ephemeraDB, multiTableTransactWrite, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
@@ -96,7 +96,7 @@ describe('DependencyCascadeMessage', () => {
     })
 
     it('should update in parallel and combine cascades', async () => {
-        ephemeraDBMock.getItem.mockImplementation(async ({ EphemeraId }) => {
+        ephemeraDBMock.getItem.mockImplementation(async ({ Key: { EphemeraId } }) => {
             if (EphemeraId === 'COMPUTED#TestOne') {
                 return {
                     src: 'a + b',

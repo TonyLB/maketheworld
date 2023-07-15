@@ -13,7 +13,7 @@ type GetItemExtendedProps = {
 
 export const withGetOperations = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class GetOperationsDBHandler extends Base {
-        async getItem<Get extends DBHandlerItem<KIncoming, T>>(props: { Key: DBHandlerKey<KIncoming, T> } & GetItemExtendedProps): Promise<Get | undefined> {
+        async getItem<Get extends Partial<DBHandlerItem<KIncoming, T>>>(props: { Key: DBHandlerKey<KIncoming, T> } & GetItemExtendedProps): Promise<Get | undefined> {
             return await asyncSuppressExceptions(async () => {
                 const { ProjectionFields, ExpressionAttributeNames } = mapProjectionFields((props.ProjectionFields || []).map((projectionField) => (projectionField === this._incomingKeyLabel ? this._internalKeyLabel : projectionField)))
                 const { Item = null } = await this._client.send(new GetItemCommand({
@@ -27,7 +27,7 @@ export const withGetOperations = <KIncoming extends DBHandlerLegalKey, T extends
             }, async () => (undefined)) as Get | undefined
         }
 
-        async getItems<Get extends DBHandlerItem<KIncoming, T>>(props: { Keys: DBHandlerKey<KIncoming, T>[] } & GetItemExtendedProps): Promise<Get[]> {
+        async getItems<Get extends Partial<DBHandlerItem<KIncoming, T>>>(props: { Keys: DBHandlerKey<KIncoming, T>[] } & GetItemExtendedProps): Promise<Get[]> {
             const { ProjectionFields, ExpressionAttributeNames } = mapProjectionFields((props.ProjectionFields || []).map((projectionField) => (projectionField === this._incomingKeyLabel ? this._internalKeyLabel : projectionField)))
             const batchPromises = paginateList(props.Keys, this._getBatchSize ?? 40)
                 .filter((itemList) => (itemList.length))

@@ -1,6 +1,6 @@
 import { TransactWriteItem } from "@aws-sdk/client-dynamodb"
 import { marshall } from "@aws-sdk/util-dynamodb"
-import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { nonLegacyEphemeraDB as ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey, RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
 import { ExecuteActionMessage, MessageBus, PerceptionShowMessage, PerceptionShowMoment, PublishMessage } from "../messageBus/baseClasses"
@@ -23,8 +23,10 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
         return
     }
     const { rootAsset, src } = (await ephemeraDB.getItem<{ rootAsset: string, src: string }>({
-        EphemeraId: payload.actionId,
-        DataCategory: 'Meta::Action',
+        Key: {
+            EphemeraId: payload.actionId,
+            DataCategory: 'Meta::Action'
+        },
         ProjectionFields: ['rootAsset', 'src']
     })) || {}
     if (!rootAsset || !src) {
@@ -36,41 +38,32 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
         // the references that get loaded (rather than running queries for every possible
         // thing)
         //
-        ephemeraDB.query<{ EphemeraId: EphemeraRoomId; key: string; }[]>({
+        ephemeraDB.query<{ EphemeraId: EphemeraRoomId; DataCategory: string; key: string; }>({
             IndexName: 'DataCategoryIndex',
-            DataCategory: AssetKey(rootAsset),
+            Key: { DataCategory: AssetKey(rootAsset) },
             KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
             ExpressionAttributeValues: {
                 ':ephemeraPrefix': 'ROOM'
             },
-            ExpressionAttributeNames: {
-                '#key': 'key'
-            },
-            ProjectionFields: ['EphemeraId', '#key']
+            ProjectionFields: ['EphemeraId', 'key']
         }),
-        ephemeraDB.query<{ EphemeraId: EphemeraMessageId; key: string; }[]>({
+        ephemeraDB.query<{ EphemeraId: EphemeraMessageId; DataCategory: string; key: string; }>({
             IndexName: 'DataCategoryIndex',
-            DataCategory: AssetKey(rootAsset),
+            Key: { DataCategory: AssetKey(rootAsset) },
             KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
             ExpressionAttributeValues: {
                 ':ephemeraPrefix': 'MESSAGE'
             },
-            ExpressionAttributeNames: {
-                '#key': 'key'
-            },
-            ProjectionFields: ['EphemeraId', '#key']
+            ProjectionFields: ['EphemeraId', 'key']
         }),
-        ephemeraDB.query<{ EphemeraId: EphemeraMomentId; key: string; }[]>({
+        ephemeraDB.query<{ EphemeraId: EphemeraMomentId; DataCategory: string; key: string; }>({
             IndexName: 'DataCategoryIndex',
-            DataCategory: AssetKey(rootAsset),
+            Key: { DataCategory: AssetKey(rootAsset) },
             KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
             ExpressionAttributeValues: {
                 ':ephemeraPrefix': 'MOMENT'
             },
-            ExpressionAttributeNames: {
-                '#key': 'key'
-            },
-            ProjectionFields: ['EphemeraId', '#key']
+            ProjectionFields: ['EphemeraId', 'key']
         }),
         internalCache.CharacterMeta.get(payload.characterId),
         internalCache.AssetMap.get(AssetKey(rootAsset))

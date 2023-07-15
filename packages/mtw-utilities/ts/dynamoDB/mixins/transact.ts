@@ -26,7 +26,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 [this._incomingKeyLabel, 'DataCategory'],
                 ...itemsToFetch.map(({ updateKeys }) => (updateKeys))
             )
-            const fetchedItems = await this.getItems({
+            const fetchedItems = await this.getItems<DBHandlerItem<KIncoming, T>>({
                 Keys: itemsToFetch.map((item) => (item.Key)),
                 ProjectionFields: aggregateProjectionFields
             })

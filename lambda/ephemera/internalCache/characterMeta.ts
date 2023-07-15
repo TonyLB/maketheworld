@@ -1,5 +1,5 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses';
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
 
@@ -24,12 +24,11 @@ export class CacheCharacterMetaData {
     async get(characterId: EphemeraCharacterId, options?: { check: boolean }): Promise<CharacterMetaItem | undefined> {
         if (!(this.CharacterMetaById[characterId])) {
             const characterData = await ephemeraDB.getItem<Omit<CharacterMetaItem, 'RoomId' | 'HomeId' > & { RoomId?: string; HomeId?: string; }>({
-                    EphemeraId: characterId,
-                    DataCategory: 'Meta::Character',
-                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns'],
-                    ExpressionAttributeNames: {
-                        '#name': 'Name'
-                    }
+                    Key: {
+                        EphemeraId: characterId,
+                        DataCategory: 'Meta::Character'
+                    },
+                    ProjectionFields: ['EphemeraId', 'Name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns']
                 }) || { EphemeraId: '', Name: '', RoomId: 'VORTEX', Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
             if (options?.check && !characterData.EphemeraId) {
                 return undefined

@@ -1,6 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-import exp from 'constants'
+import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import internalCache from "."
 
@@ -57,8 +56,10 @@ describe('InternalCache', () => {
         expect(await internalCache.RoomCharacterList.get('ROOM#1234')).toEqual(expectedOutput)
         expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
         expect(ephemeraMock.getItem).toHaveBeenCalledWith({
-            DataCategory: 'Meta::Room',
-            EphemeraId: 'ROOM#1234',
+            Key: {
+                DataCategory: 'Meta::Room',
+                EphemeraId: 'ROOM#1234'
+            },
             ProjectionFields: ['activeCharacters']
         })
         expect(await internalCache.RoomCharacterList.get('ROOM#1234')).toEqual(expectedOutput)

@@ -1,7 +1,7 @@
 import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { EphemeraCharacter } from "../cacheAsset/baseClasses"
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { nonLegacyEphemeraDB as ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import {
     EphemeraMessageId,
     EphemeraRoomId,
@@ -128,12 +128,11 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             const { characterId = 'ANONYMOUS', ephemeraId } = payload
             if (isEphemeraCharacterId(ephemeraId) && isEphemeraCharacterId(characterId)) {
                 const characterDescription = (await ephemeraDB.getItem<EphemeraCharacterDescription>({
-                    EphemeraId: ephemeraId,
-                    DataCategory: 'Meta::Character',
-                    ProjectionFields: ['#name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color'],
-                    ExpressionAttributeNames: {
-                        '#name': 'Name'
-                    }
+                    Key: {
+                        EphemeraId: ephemeraId,
+                        DataCategory: 'Meta::Character'
+                    },
+                    ProjectionFields: ['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
                 })) || {
                     Name: 'Unknown',
                     Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' },

@@ -1,5 +1,5 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses';
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor, RoomCharacterListItem } from './baseClasses'
 
 export class CacheRoomCharacterListsData {
@@ -13,8 +13,10 @@ export class CacheRoomCharacterListsData {
             const { activeCharacters = [] } = await ephemeraDB.getItem<{
                     activeCharacters: RoomCharacterListItem[]
                 }>({
-                    EphemeraId: roomId,
-                    DataCategory: 'Meta::Room',
+                    Key: {
+                        EphemeraId: roomId,
+                        DataCategory: 'Meta::Room'
+                    },
                     ProjectionFields: ['activeCharacters']
                 }) || { activeCharacters: [] }
             this.CharacterListByRoom[roomId] = activeCharacters

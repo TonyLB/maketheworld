@@ -1,7 +1,7 @@
 import { TransactWriteItem } from "@aws-sdk/client-dynamodb"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { isEphemeraComputedId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
-import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { nonLegacyEphemeraDB as ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
 import { DependencyNode, isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
@@ -29,12 +29,11 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
         if (isEphemeraComputedId(targetId)) {
             await exponentialBackoffWrapper(async () => {
                 const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNode[]; src: string; value: any }>({
-                    EphemeraId: targetId,
-                    DataCategory: 'Meta::Computed',
-                    ProjectionFields: ['src', '#value'],
-                    ExpressionAttributeNames: {
-                        '#value': 'value'
-                    }
+                    Key: {
+                        EphemeraId: targetId,
+                        DataCategory: 'Meta::Computed'
+                    },
+                    ProjectionFields: ['src', 'value']
                 })
                 if (!fetchComputed) {
                     return
