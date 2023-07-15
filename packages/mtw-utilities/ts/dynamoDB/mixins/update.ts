@@ -134,7 +134,7 @@ export type UpdateExtendedProps<T extends Record<string, any>> = {
     catchException?: (err: any) => Promise<void>
 }
 
-export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
+export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class UpdateDBHandler extends Base {
 
         //

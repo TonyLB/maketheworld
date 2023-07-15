@@ -12,12 +12,12 @@ const dbMock = {
 }
 
 describe('withMerge', () => {
-    const mixinClass = withMerge<'PrimaryKey', string>()(
-        withTransaction<'PrimaryKey', string>()(
-            withUpdate<'PrimaryKey', string>()(
-                withGetOperations<'PrimaryKey', string>()(
-                    withQuery<'PrimaryKey', string>()(
-                        withBatchWrite<'PrimaryKey', string>()(DBHandlerBase<'PrimaryKey', string>)
+    const mixinClass = withMerge<'PrimaryKey'>()(
+        withTransaction<'PrimaryKey'>()(
+            withUpdate<'PrimaryKey'>()(
+                withGetOperations<'PrimaryKey'>()(
+                    withQuery<'PrimaryKey'>()(
+                        withBatchWrite<'PrimaryKey'>()(DBHandlerBase<'PrimaryKey'>)
                     )
                 )
             )

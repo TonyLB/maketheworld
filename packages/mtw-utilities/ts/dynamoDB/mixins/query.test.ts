@@ -8,7 +8,7 @@ const dbMock = {
 }
 
 describe('withQuery', () => {
-    const dbHandler = new (withQuery<'PrimaryKey', string>()(DBHandlerBase))({
+    const dbHandler = new (withQuery<'PrimaryKey'>()(DBHandlerBase))({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',

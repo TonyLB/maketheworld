@@ -3,13 +3,13 @@ import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegal
 import { marshall } from "@aws-sdk/util-dynamodb"
 import paginateList from "./utils/paginateList"
 
-export type BatchRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string> = {
+export type BatchRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
     PutRequest: DBHandlerItem<KIncoming, KeyType>
 } | {
     DeleteRequest: DBHandlerKey<KIncoming, KeyType>
 }
 
-export const withBatchWrite = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
+export const withBatchWrite = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class BatchOperationsDBHandler extends Base {
         batchWriteDispatcher(items: BatchRequest<KIncoming, T>[]) {
             const batchPromises = paginateList(items, this._writeBatchSize ?? 20)

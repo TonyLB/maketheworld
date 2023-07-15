@@ -6,9 +6,9 @@ import withGetOperations from "./get"
 import withUpdate from "./update"
 import { unique } from "../../lists"
 
-type TransactionRequestUpdate<KIncoming extends DBHandlerLegalKey, KeyType extends string> = { Key: DBHandlerKey<KIncoming, KeyType> } & UpdateExtendedProps<Record<string, any>>
+type TransactionRequestUpdate<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = { Key: DBHandlerKey<KIncoming, KeyType> } & UpdateExtendedProps<Record<string, any>>
 
-export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string> = {
+export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
     Put: DBHandlerItem<KIncoming, KeyType>
 } | {
     Update: TransactionRequestUpdate<KIncoming, KeyType>;
@@ -16,7 +16,7 @@ export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType exte
     Delete: DBHandlerKey<KIncoming, KeyType>
 }
 
-export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends
+export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends
         ReturnType<ReturnType<typeof withUpdate<KIncoming, T>>> &
         ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class TransactionDBHandler extends Base {

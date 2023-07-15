@@ -11,7 +11,7 @@ type GetItemExtendedProps = {
     ConsistentRead?: boolean;
 }
 
-export const withGetOperations = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
+export const withGetOperations = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class GetOperationsDBHandler extends Base {
         async getItem<Get extends Partial<DBHandlerItem<KIncoming, T>>>(props: { Key: DBHandlerKey<KIncoming, T> } & GetItemExtendedProps): Promise<Get | undefined> {
             return await asyncSuppressExceptions(async () => {

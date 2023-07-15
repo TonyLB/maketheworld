@@ -7,7 +7,7 @@ const dbMock = {
 }
 
 describe('withBatchOperations', () => {
-    const dbHandler = new (withBatchWrite<'PrimaryKey', string>()(DBHandlerBase))({
+    const dbHandler = new (withBatchWrite<'PrimaryKey'>()(DBHandlerBase))({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',

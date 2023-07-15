@@ -9,8 +9,8 @@ const dbMock = {
 }
 
 describe('withUpdate', () => {
-    const mixedClass = withUpdate<'PrimaryKey', string>()(
-        withGetOperations<'PrimaryKey', string>()(DBHandlerBase<'PrimaryKey', string>)
+    const mixedClass = withUpdate<'PrimaryKey'>()(
+        withGetOperations<'PrimaryKey'>()(DBHandlerBase<'PrimaryKey'>)
     )
     const dbHandler = new mixedClass({
         client: dbMock as any,

@@ -9,9 +9,9 @@ const dbMock = {
 }
 
 describe('withTransactions', () => {
-    const mixinClass = withTransactions<'PrimaryKey', string>()(
-            withUpdate<'PrimaryKey', string>()(
-                withGetOperations<'PrimaryKey', string>()(DBHandlerBase<'PrimaryKey', string>)
+    const mixinClass = withTransactions<'PrimaryKey'>()(
+            withUpdate<'PrimaryKey'>()(
+                withGetOperations<'PrimaryKey'>()(DBHandlerBase<'PrimaryKey'>)
             )
         )
     const dbHandler = new mixinClass({

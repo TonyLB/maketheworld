@@ -41,7 +41,7 @@ type MergeTransactProps<KIncoming extends DBHandlerLegalKey, T extends string> =
 //    * An object with the two keys unique to that position in the map, that will be
 //      made into the body of a PutItem operation to update the current element
 //
-export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends
+export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends
         ReturnType<ReturnType<typeof withTransaction<KIncoming, T>>> &
         ReturnType<ReturnType<typeof withUpdate<KIncoming, T>>> &
         ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>> &
