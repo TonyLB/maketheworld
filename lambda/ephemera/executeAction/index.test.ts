@@ -2,7 +2,7 @@ jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { nonLegacyEphemeraDB as ephemeraDB, multiTableTransactWrite, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB, multiTableTransactWrite, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'

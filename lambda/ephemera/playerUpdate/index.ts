@@ -1,5 +1,5 @@
 import { MessageBus, PlayerUpdateMessage } from "../messageBus/baseClasses"
-import { nonLegacyEphemeraDB as ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 export const playerUpdateMessage = async ({ payloads }: { payloads: PlayerUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     await Promise.all(payloads

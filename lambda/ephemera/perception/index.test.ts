@@ -3,7 +3,7 @@ import internalCache from "../internalCache"
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { nonLegacyEphemeraDB as ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import perceptionMessage from '.'
 

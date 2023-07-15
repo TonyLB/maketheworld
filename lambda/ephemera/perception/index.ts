@@ -1,7 +1,7 @@
 import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { EphemeraCharacter } from "../cacheAsset/baseClasses"
-import { nonLegacyEphemeraDB as ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import {
     EphemeraMessageId,
     EphemeraRoomId,

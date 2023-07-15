@@ -4,7 +4,7 @@ import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import CacheRoomCharacterLists from './roomCharacterLists';
 import CacheCharacterMeta from './characterMeta';
-import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
 import CacheCharacterConnections from './characterConnections';
 import AssetState from './assetState';
 import GraphCache from '@tonylb/mtw-utilities/dist/graphStorage/cache';

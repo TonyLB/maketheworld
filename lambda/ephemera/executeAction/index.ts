@@ -1,6 +1,6 @@
 import { TransactWriteItem } from "@aws-sdk/client-dynamodb"
 import { marshall } from "@aws-sdk/util-dynamodb"
-import { nonLegacyEphemeraDB as ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey, RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
 import { ExecuteActionMessage, MessageBus, PerceptionShowMessage, PerceptionShowMoment, PublishMessage } from "../messageBus/baseClasses"

@@ -692,17 +692,7 @@ export const multiTableTransactWriteGeneric = async (items: TransactWriteItem[])
     await dbClient.send(new TransactWriteItemsCommand({ TransactItems: remappedItems }))
 }
 
-export const ephemeraDB = {
-    getItem: abstractGetItem<EphemeraDBKey>(ephemeraTable),
-    batchGetItem: abstractBatchGet<EphemeraDBKey>(ephemeraTable),
-    query: ephemeraQueryFactory(dbClient),
-    update: abstractUpdate<EphemeraDBKey>(ephemeraTable),
-    optimisticUpdate: abstractOptimisticUpdate(ephemeraTable),
-    putItem: abstractPutItem<EphemeraDBKey>(ephemeraTable),
-    deleteItem: abstractDeleteItem<EphemeraDBKey>(ephemeraTable)
-}
-
-export const nonLegacyEphemeraDB = new (
+export const ephemeraDB = new (
         withMerge<'EphemeraId', string>()(
             withTransaction<'EphemeraId', string>()(
                 withUpdate<'EphemeraId', string>()(

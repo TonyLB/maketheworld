@@ -2,7 +2,7 @@ import { jest, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
-    nonLegacyEphemeraDB as ephemeraDB
+    ephemeraDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')

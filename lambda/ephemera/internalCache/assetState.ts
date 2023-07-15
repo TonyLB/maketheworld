@@ -5,7 +5,7 @@ import {
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
-import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import GraphCache, { GraphCacheData } from '@tonylb/mtw-utilities/dist/graphStorage/cache'

@@ -4,7 +4,7 @@
 //
 import { isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox"
-import { nonLegacyEphemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
@@ -17,7 +17,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
     // TODO:  Better error handling and validation throughout
     //
     const DataCategory = AssetKey(assetId)
-    await nonLegacyEphemeraDB.mergeTransact({
+    await ephemeraDB.mergeTransact({
         query: {
             IndexName: 'DataCategoryIndex',
             Key: { DataCategory }

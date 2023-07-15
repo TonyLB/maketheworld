@@ -9,7 +9,6 @@ const dbMock = () => ({
 
 export const assetDB = dbMock()
 export const ephemeraDB = dbMock()
-export const nonLegacyEphemeraDB = dbMock()
 export const connectionDB = dbMock()
 
 export const batchWriteDispatcher = jest.fn()

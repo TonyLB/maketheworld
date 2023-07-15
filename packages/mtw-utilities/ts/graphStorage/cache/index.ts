@@ -1,4 +1,4 @@
-import { nonLegacyEphemeraDB as ephemeraDB } from '../../dynamoDB'
+import { ephemeraDB as ephemeraDB } from '../../dynamoDB'
 import { unique } from '../../lists';
 import { extractConstrainedTag } from '../../types';
 import { CacheConstructor, DependencyEdge, DependencyNode, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'

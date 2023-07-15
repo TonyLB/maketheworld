@@ -1,7 +1,7 @@
 import { TransactWriteItem } from "@aws-sdk/client-dynamodb"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { isEphemeraComputedId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
-import { nonLegacyEphemeraDB as ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
 import { DependencyNode, isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"

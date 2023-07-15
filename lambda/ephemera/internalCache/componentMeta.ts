@@ -1,4 +1,4 @@
-import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types';
 import { CacheConstructor } from './baseClasses'
 import { DeferredCache } from './deferredCache'

@@ -1,4 +1,4 @@
-import { nonLegacyEphemeraDB as ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 import { DecacheAssetMessage, MessageBus } from "../messageBus/baseClasses"
 import { mergeIntoEphemera } from "../cacheAsset/perAsset";

@@ -1,4 +1,4 @@
-import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheGlobal, CacheGlobalData } from '.';
 
 export type PlayerMetaItem = {

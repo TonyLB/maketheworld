@@ -1,5 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import internalCache from "."
 import { AssetStateMapping } from './assetState'

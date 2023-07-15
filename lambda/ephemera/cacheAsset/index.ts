@@ -21,7 +21,7 @@ import {
     isNormalMoment,
     isNormalKnowledge
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
-import { nonLegacyEphemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
     EphemeraCharacter,
     EphemeraCondition,
@@ -349,7 +349,7 @@ export const pushEphemera = async({
     EphemeraId,
     scopeMap = {}
 }: EphemeraPushArgs) => {
-    await nonLegacyEphemeraDB.putItem({
+    await ephemeraDB.putItem({
         EphemeraId,
         DataCategory: 'Meta::Asset',
         scopeMap
@@ -373,7 +373,7 @@ const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter
 
 export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, 'address' | 'Connected' | 'ConnectionIds'> & { address?: AssetWorkspaceAddress; Connected?: boolean; ConnectionIds?: string[] }) => {
     const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'assets']
-    await nonLegacyEphemeraDB.optimisticUpdate({
+    await ephemeraDB.optimisticUpdate({
         Key: {
             EphemeraId: character.EphemeraId,
             DataCategory: 'Meta::Character'

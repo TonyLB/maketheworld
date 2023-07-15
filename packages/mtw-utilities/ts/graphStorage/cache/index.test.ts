@@ -1,5 +1,5 @@
 jest.mock('../../dynamoDB/index')
-import { nonLegacyEphemeraDB as ephemeraDB } from '../../dynamoDB/index'
+import { ephemeraDB } from '../../dynamoDB/index'
 
 import { DependencyNode, CacheBase } from './baseClasses'
 import { GraphCache, DependencyTreeWalker } from './'

@@ -1,5 +1,5 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses';
-import { nonLegacyEphemeraDB as ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor, RoomCharacterListItem } from './baseClasses'
 
 export class CacheRoomCharacterListsData {
