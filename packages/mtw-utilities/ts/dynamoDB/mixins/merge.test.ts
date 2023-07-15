@@ -12,7 +12,18 @@ const dbMock = {
 }
 
 describe('withMerge', () => {
-    const dbHandler = new (withMerge(withTransaction(withUpdate(withGetOperations(withQuery(withBatchWrite(DBHandlerBase<'PrimaryKey', string>)))))))({
+    const mixinClass = withMerge<'PrimaryKey', string>()(
+        withTransaction<'PrimaryKey', string>()(
+            withUpdate<'PrimaryKey', string>()(
+                withGetOperations<'PrimaryKey', string>()(
+                    withQuery<'PrimaryKey', string>()(
+                        withBatchWrite<'PrimaryKey', string>()(DBHandlerBase<'PrimaryKey', string>)
+                    )
+                )
+            )
+        )
+    )
+    const dbHandler = new mixinClass({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',

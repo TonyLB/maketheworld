@@ -48,7 +48,7 @@ type ExtractKeyReturn = {
     keyId: string;
 }
 
-export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
+export const withQuery = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class QueryDBHandler extends Base {
         _queryExtractKeyInfo(props: QueryKeyProps<KIncoming, T>): ExtractKeyReturn {
             switch(props.IndexName) {

@@ -9,17 +9,17 @@ export type BatchRequest<KIncoming extends DBHandlerLegalKey, KeyType extends st
     DeleteRequest: DBHandlerKey<KIncoming, KeyType>
 }
 
-export const withBatchWrite = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
+export const withBatchWrite = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class BatchOperationsDBHandler extends Base {
         batchWriteDispatcher(items: BatchRequest<KIncoming, T>[]) {
             const batchPromises = paginateList(items, this._writeBatchSize ?? 20)
                 .filter((itemList) => (itemList.length))
                 .map((itemList) => (itemList.map((item) => {
                     if ('PutRequest' in item) {
-                        return { PutRequest: { Item: marshall(this._remapIncomingObject(item.PutRequest) as Record<string, any>) } }
+                        return { PutRequest: { Item: marshall(this._remapIncomingObject(item.PutRequest)) } }
                     }
                     else {
-                        return { DeleteRequest: { Key: marshall(this._remapIncomingObject(item.DeleteRequest) as Record<string, any>) } }
+                        return { DeleteRequest: { Key: marshall(this._remapIncomingObject(item.DeleteRequest)) } }
                     }
                 })))
                 .map((itemList) => (this._client.send(new BatchWriteItemCommand({ RequestItems: {

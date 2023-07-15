@@ -24,7 +24,7 @@ export type GraphNodeCache <K extends string> = {
     back: GraphNodeCacheComponent<K>;
 }
 
-export type GraphDBHandler<T extends string = string> = InstanceType<ReturnType<typeof withGetOperations<'PrimaryKey', T, Constructor<DBHandlerBase<'PrimaryKey', T>>>>>
+export type GraphDBHandler<T extends string = string> = InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey', T>>>>
 
 type DBHandlerBatchGetReturn <K extends string> = {
     PrimaryKey: K;

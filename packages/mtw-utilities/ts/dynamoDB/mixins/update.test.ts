@@ -9,7 +9,10 @@ const dbMock = {
 }
 
 describe('withUpdate', () => {
-    const dbHandler = new (withUpdate(withGetOperations(DBHandlerBase)))({
+    const mixedClass = withUpdate<'PrimaryKey', string>()(
+        withGetOperations<'PrimaryKey', string>()(DBHandlerBase<'PrimaryKey', string>)
+    )
+    const dbHandler = new mixedClass({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',
@@ -193,6 +196,43 @@ describe('withUpdate', () => {
                 UpdateExpression: "SET optionalField = :New0",
             })
             expect(output).toEqual({ PrimaryKey: 'TEST', DataCategory: 'Meta::Test', optionalField: 'Test' })
+        })
+
+        it('should return non-string values', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', listField: ['a', 'b'] })})
+                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', listField: ['a', 'b', 'c'] })})
+            const output = await dbHandler.optimisticUpdate<{ PrimaryKey: string; DataCategory: string; listField: string[] }>({
+                Key: {
+                    PrimaryKey: 'TEST',
+                    DataCategory: 'Meta::Test'
+                },
+                updateKeys: ['listField'],
+                updateReducer: (draft) => {
+                    draft.listField = [...draft.listField, 'c']
+                }
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(2)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
+                TableName: 'Ephemera',
+                ProjectionExpression: 'listField'
+            })
+            expect(dbMock.send.mock.calls[1][0].input).toEqual({
+                ConditionExpression: "listField = :Old0",
+                ExpressionAttributeValues: marshall({
+                    ":Old0": ['a', 'b'],
+                    ":New0": ['a', 'b', 'c']
+                }),
+                Key: marshall({
+                    EphemeraId: "TEST",
+                    DataCategory: "Meta::Test",
+                }),
+                TableName: "Ephemera",
+                UpdateExpression: "SET listField = :New0",
+            })
+            expect(output).toEqual({ PrimaryKey: 'TEST', DataCategory: 'Meta::Test', listField: ['a', 'b', 'c'] })
+    
         })
 
     })

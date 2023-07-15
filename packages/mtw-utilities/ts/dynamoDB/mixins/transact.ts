@@ -16,7 +16,9 @@ export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType exte
     Delete: DBHandlerKey<KIncoming, KeyType>
 }
 
-export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends ReturnType<typeof withUpdate<KIncoming, T, ReturnType<typeof withGetOperations<KIncoming, T, Constructor<DBHandlerBase<KIncoming, T>>>>>>>(Base: GBase) => {
+export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends
+        ReturnType<ReturnType<typeof withUpdate<KIncoming, T>>> &
+        ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class TransactionDBHandler extends Base {
         async transactWrite(items: TransactionRequest<KIncoming, T>[]) {
             const itemsToFetch = items.reduce<TransactionRequestUpdate<KIncoming, T>[]>((previous, item) => ('Update' in item ? [...previous, item.Update] : previous), [])
@@ -33,7 +35,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 if ('Put' in item) {
                     return {
                         Put: {
-                            Item: marshall(this._remapIncomingObject(item.Put)) as Record<string, any>,
+                            Item: marshall(this._remapIncomingObject(item.Put)),
                             TableName: this._tableName
                         }
                     }
@@ -41,7 +43,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 if ('Delete' in item) {
                     return {
                         Delete: {
-                            Key: marshall(this._remapIncomingObject(item.Delete)) as Record<string, any>,
+                            Key: marshall(this._remapIncomingObject(item.Delete)),
                             TableName: this._tableName
                         }
                     }

@@ -134,7 +134,7 @@ export type UpdateExtendedProps<T extends Record<string, any>> = {
     catchException?: (err: any) => Promise<void>
 }
 
-export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends ReturnType<typeof withGetOperations<KIncoming, T, Constructor<DBHandlerBase<KIncoming, T>>>>>(Base: GBase) => {
+export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class UpdateDBHandler extends Base {
 
         //
@@ -169,7 +169,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                     return undefined
                 }
                 return {
-                    Key: marshall(this._remapIncomingObject(Key) as Record<string, any>),
+                    Key: marshall(this._remapIncomingObject(Key)),
                     UpdateExpression,
                     ...(conditionExpressions.length ? {
                         ConditionExpression: conditionExpressions.join(' AND ')
