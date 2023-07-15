@@ -1,4 +1,4 @@
-import { ephemeraDB } from '../../dynamoDB'
+import { nonLegacyEphemeraDB as ephemeraDB } from '../../dynamoDB'
 import { unique } from '../../lists';
 import { extractConstrainedTag } from '../../types';
 import { CacheConstructor, DependencyEdge, DependencyNode, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
@@ -229,8 +229,10 @@ export class GraphCacheData {
         if (!this._Cache.isCached(EphemeraId)) {
             this._Cache.add({
                 promiseFactory: () => (ephemeraDB.getItem<{ Ancestry?: Omit<DependencyNode, 'completeness'>[]; Descent?: Omit<DependencyNode, 'completeness'>[] }>({
-                    EphemeraId,
-                    DataCategory: `Meta::${tag}`,
+                    Key: {
+                        EphemeraId,
+                        DataCategory: `Meta::${tag}`
+                    },
                     ProjectionFields: [this.dependencyTag]
                 })),
                 requiredKeys: knownTree,
@@ -276,8 +278,8 @@ export class GraphCacheData {
         // promises as needed, all in batch, rather than do individual gets
         //
         this._Cache.add({
-            promiseFactory: () => (ephemeraDB.batchGetItem<{ Ancestry?: Omit<DependencyNode, 'completeness'>[]; Descent?: Omit<DependencyNode, 'completeness'>[] }>({
-                Items: minimumFetchSet.map((EphemeraId) => ({
+            promiseFactory: () => (ephemeraDB.getItems<{ Ancestry?: Omit<DependencyNode, 'completeness'>[]; Descent?: Omit<DependencyNode, 'completeness'>[] }>({
+                Keys: minimumFetchSet.map((EphemeraId) => ({
                     EphemeraId,
                     DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}`
                 })),

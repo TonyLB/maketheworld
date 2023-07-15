@@ -1,5 +1,5 @@
 jest.mock('../../dynamoDB/index')
-import { ephemeraDB } from '../../dynamoDB/index'
+import { nonLegacyEphemeraDB as ephemeraDB } from '../../dynamoDB/index'
 
 import { DependencyNode, CacheBase } from './baseClasses'
 import { GraphCache, DependencyTreeWalker } from './'
@@ -438,7 +438,7 @@ describe('GraphCache', () => {
                     connections: []
                 }
             }
-            ephemeraMock.batchGetItem.mockResolvedValue([
+            ephemeraMock.getItems.mockResolvedValue([
                 {
                     Descent: [
                         {
@@ -545,9 +545,9 @@ describe('GraphCache', () => {
                     ]
                 }
             ])
-            expect(ephemeraDB.batchGetItem).toHaveBeenCalledTimes(1)
-            expect(ephemeraDB.batchGetItem).toHaveBeenCalledWith({
-                Items: [
+            expect(ephemeraDB.getItems).toHaveBeenCalledTimes(1)
+            expect(ephemeraDB.getItems).toHaveBeenCalledWith({
+                Keys: [
                     { EphemeraId: 'COMPUTED#Two', DataCategory: 'Meta::Computed' },
                     { EphemeraId: 'COMPUTED#Three', DataCategory: 'Meta::Computed' }
                 ],
