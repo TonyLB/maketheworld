@@ -35,11 +35,11 @@ type DBHandlerBatchGetReturn <K extends string> = {
     cache: string[]
 }
 
-export class GraphNodeData <K extends string> {
+export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>>> {
     _Cache: DeferredCache<GraphNodeCache<K>>;
-    _dbHandler: GraphDBHandler<K>
+    _dbHandler: DBH;
     
-    constructor(dbHandler: GraphDBHandler<K>) {
+    constructor(dbHandler: DBH) {
         this._dbHandler = dbHandler
         this._Cache = new DeferredCache<GraphNodeCache<K>>({
             defaultValue: (PrimaryKey: string) => ({
@@ -127,9 +127,9 @@ export class GraphNodeData <K extends string> {
 
 }
 
-export const GraphNode = <K extends DBHandlerLegalKey>(dbHandler: GraphDBHandler<K>) => <GBase extends CacheConstructor>(Base: GBase) => {
+export const GraphNode = <K extends string, DBH extends InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>>>(dbHandler: DBH) => <GBase extends CacheConstructor>(Base: GBase) => {
     return class GraphNodeCache extends Base {
-        Nodes: GraphNodeData<K>;
+        Nodes: GraphNodeData<K, DBH>;
 
         constructor(...rest: any) {
             super(...rest)

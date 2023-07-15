@@ -1,7 +1,8 @@
 import { marshall } from '@aws-sdk/util-dynamodb'
 import { GraphCacheData } from '../cache/'
 import { GraphNodeData } from '../cache/graphNode'
-import legacyUpdateGraphStorage, { updateGraphStorage } from './'
+import legacyUpdateGraphStorage, { GraphStorageDBH, updateGraphStorage } from './'
+import withGetOperations from '../../dynamoDB/mixins/get'
 
 const internalCache = {
     Descent: {
@@ -17,14 +18,14 @@ const internalCache = {
     Nodes: {
         get: jest.fn(),
         invalidate: jest.fn()
-    } as unknown as jest.Mocked<GraphNodeData<string>>,
+    } as unknown as jest.Mocked<GraphNodeData<string, InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>>>>,
     clear: jest.fn(),
     flush: jest.fn()
 }
 
 const optimisticUpdate = jest.fn().mockResolvedValue({})
 const transactWrite = jest.fn()
-const dbHandler = { optimisticUpdate, transactWrite }
+const dbHandler = { optimisticUpdate, transactWrite } as unknown as GraphStorageDBH
 
 describe('graphStore legacy update', () => {
 
@@ -38,7 +39,7 @@ describe('graphStore legacy update', () => {
     })
 
     it('should call all unreferenced updates in a first wave', async () => {
-        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler: dbHandler as any, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -161,7 +162,7 @@ describe('graphStore legacy update', () => {
                     connections: []
                 }
             ]))
-        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler: dbHandler as any, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -221,7 +222,7 @@ describe('graphStore legacy update', () => {
             }
         ])
         .mockReturnValueOnce([])
-        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler: dbHandler as any, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -278,7 +279,7 @@ describe('graphStore legacy update', () => {
             completeness: 'Complete',
             connections: []
         }])
-        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler: dbHandler as any, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
@@ -346,7 +347,7 @@ describe('graphStore legacy update', () => {
     })
 
     it('should combine similarly aliased inheritance edges', async () => {
-        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler: dbHandler as any, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
@@ -395,7 +396,7 @@ describe('graphStore legacy update', () => {
     })
 
     it('should decrement layers when deleting one of many references', async () => {
-        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler: dbHandler as any, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
@@ -446,7 +447,7 @@ describe('graphStore legacy update', () => {
     })
 
     it('should remove dependency when deleting last reference', async () => {
-        await legacyUpdateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await legacyUpdateGraphStorage({ internalCache, dbHandler: dbHandler as any, keyLabel: 'EphemeraId' })({
             descent: [{
                 EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {

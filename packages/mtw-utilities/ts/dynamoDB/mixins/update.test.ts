@@ -71,6 +71,45 @@ describe('withUpdate', () => {
             })
         })
 
+        it('should accept priorFetch argument', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
+
+            const output = await dbHandler.optimisticUpdate<{ testOne: string; testTwo?: string; testThree?: string; testFour: string }>({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                updateKeys: ['testOne', 'testTwo', 'testThree', 'testFour'],
+                updateReducer: (draft) => {
+                    draft.testOne = 'Different Test',
+                    draft.testTwo = undefined
+                    draft.testThree = 'New test'
+                },
+                priorFetch: { testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                ConditionExpression: "testOne = :Old0 AND testTwo = :Old1 AND attribute_not_exists(testThree)",
+                ExpressionAttributeValues: marshall({
+                  ":New0": "Different Test",
+                  ":New2": "New test",
+                  ":Old0": "Testing",
+                  ":Old1": "Also Testing"
+                }),
+                Key: marshall({
+                    EphemeraId: "TestOne",
+                    DataCategory: "DC1",
+                }),
+                TableName: "Ephemera",
+                UpdateExpression: "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
+            })
+            expect(output).toEqual({
+                PrimaryKey: "TEST",
+                DataCategory: "Meta::Test",
+                testOne: "Different Test",
+                testThree: "New test",
+                testFour: "Unchanged"
+            })
+        })
+
         it('should replace reserved words with ExpressionAttributeName items', async () => {
             dbMock.send
                 .mockResolvedValueOnce({ Item: marshall({ Name: 'Testing', zone: 'Also Testing', value: 'Unchanged' }) })

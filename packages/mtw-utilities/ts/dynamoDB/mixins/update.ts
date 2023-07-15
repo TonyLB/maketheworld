@@ -125,13 +125,14 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer }:
     }
 }
 
-export type UpdateExtendedProps<T extends Record<string, any>> = {
+export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType extends string = string, T extends Partial<DBHandlerItem<KIncoming, KeyType>> = Partial<DBHandlerItem<KIncoming, KeyType>>> = {
     updateKeys: string[],
     updateReducer: (draft: WritableDraft<T>) => void,
     ExpressionAttributeNames?: Record<string, any>,
     ReturnValues?: 'NONE' | 'ALL_NEW' | 'UPDATED_NEW',
     maxRetries?: number,
-    catchException?: (err: any) => Promise<void>
+    catchException?: (err: any) => Promise<void>;
+    priorFetch?: T
 }
 
 export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
@@ -142,9 +143,9 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
         // and if there are changes then generates the UpdateWriteCommandInput (less TableName and ReturnValues) that would
         // attempt to create those changes in the DB.
         //
-        _optimisticUpdateFactory<Fetch extends DBHandlerItem<KIncoming, T>>(
+        _optimisticUpdateFactory<Fetch extends Partial<DBHandlerItem<KIncoming, T>>>(
                 previousItem: Fetch | undefined,
-                props: { Key: DBHandlerKey<KIncoming, T> } & UpdateExtendedProps<Fetch>
+                props: { Key: DBHandlerKey<KIncoming, T> } & UpdateExtendedProps<KIncoming, T, Fetch>
             ): Omit<UpdateItemCommandInput, 'TableName' | 'ReturnValues'> | undefined
         {
             const {
@@ -191,12 +192,19 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
         // until such time as either (a) the reducer causes no changes or (b) it succeeds
         // in completing a cycle without any other process side-effecting the same fields.
         //
-        async optimisticUpdate<Update extends DBHandlerItem<KIncoming, T>>(props: { Key: ({ [key in KIncoming]: T } & { DataCategory: string }) } & UpdateExtendedProps<Update>): Promise<Update | undefined> {
+
+        //
+        // TODO: Add priorFetch argument to optimisticUpdate that permits priming the pump
+        // on the fetch/update cycle with already cached data. Also extend the priorFetch
+        // argument to Update transactions
+        //
+        async optimisticUpdate<Update extends Partial<DBHandlerItem<KIncoming, T>>>(props: { Key: ({ [key in KIncoming]: T } & { DataCategory: string }) } & UpdateExtendedProps<KIncoming, T, Update>): Promise<Update | undefined> {
             const {
                 Key,
                 updateKeys,
                 updateReducer,
-                maxRetries
+                maxRetries,
+                priorFetch
             } = props
             if (!updateKeys) {
                 return undefined
@@ -207,10 +215,12 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             let completed = false
             while(!completed && (retries <= (maxRetries ?? 5))) {
                 completed = true
-                const stateFetch = await this.getItem<Update>({
+                console.log(`priorFetch: ${JSON.stringify(priorFetch, null, 4)}`)
+                const stateFetch = (!retries && priorFetch) || (await this.getItem<Update>({
                     Key,
                     ProjectionFields: updateKeys,
-                })
+                }))
+                console.log(`stateFetch: ${JSON.stringify(stateFetch, null, 4)}`)
                 const state = stateFetch || {}
                 const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer })
                 if (typeof updateOutput === 'undefined') {

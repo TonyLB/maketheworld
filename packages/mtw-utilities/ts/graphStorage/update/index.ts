@@ -9,6 +9,9 @@ import { GraphEdge } from "../utils/graph/baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { TransactWriteItemsCommandInput } from "@aws-sdk/client-dynamodb"
 import { exponentialBackoffWrapper } from "../../dynamoDB"
+import withGetOperations from "../../dynamoDB/mixins/get"
+import withUpdate from "../../dynamoDB/mixins/update"
+import withTransaction, { TransactionRequest } from "../../dynamoDB/mixins/transact"
 
 const capitalize = (value: string) => (`${value.slice(0, 1).toUpperCase()}${value.slice(1)}`)
 
@@ -46,7 +49,7 @@ type GraphStorageDBHandler<T extends string> = {
     transactWrite: (writes: GraphStorageDBHandlerTransact[]) => Promise<void>;
 }
 
-export const updateGraphStorageCallback = <T extends string>(metaProps: {
+export const legacyUpdateGraphStorageCallback = <T extends string>(metaProps: {
     keyLabel: T;
     dbHandler: GraphStorageDBHandler<T>;
     internalCache: {
@@ -62,9 +65,65 @@ export const updateGraphStorageCallback = <T extends string>(metaProps: {
     const extractKey = (item: Omit<DependencyNode, 'completeness'>) => (item[metaProps.keyLabel as any] as string)
     return metaProps.dbHandler.optimisticUpdate({
         key: {
-            [metaProps.keyLabel]: props.key,
+            [metaProps.keyLabel as T]: props.key,
             DataCategory: props.DataCategory
-        } as Record<T | 'DataCategory', string>,
+        } as any,
+        //
+        // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
+        // on so that it can recognize the existence of the row.
+        //
+        updateKeys: [props.dependencyTag, 'DataCategory'],
+        updateReducer: (draft) => {
+            if (typeof draft[props.dependencyTag] === 'undefined') {
+                //
+                // If you're defining for the first time, make a deeply non-immutable copy of the current
+                // internalCache
+                //
+                const fetchPartial = metaProps.internalCache[props.dependencyTag].getPartial(props.key)
+                draft[props.dependencyTag] = fetchPartial
+                    .map(({ completeness, connections, ...rest }) => ({
+                        ...rest, 
+                        connections: connections
+                            .map(({ assets, ...rest }) => ({ ...rest, assets: [...assets] }))
+                    }))
+            }
+            const startGraph: Record<string, DependencyNode> = (draft[props.dependencyTag] || []).reduce((previous, item) => ({ ...previous, [extractKey(item)]: { ...item, completeness: 'Complete' }}), {})
+            //
+            // TODO: Correct how current update of descent does *not* correctly update descent cascades (see unit test for example)
+            //
+            reduceDependencyGraph(startGraph, props.payloads)
+            draft[props.dependencyTag] = extractTree(Object.values(startGraph), props.key)
+                .map((node) => {
+                    const { completeness, ...rest } = node
+                    return rest
+                })
+        }
+    })
+}
+
+export type GraphStorageDBH = InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>> &
+    InstanceType<ReturnType<ReturnType<typeof withUpdate<'PrimaryKey'>>>> &
+    InstanceType<ReturnType<ReturnType<typeof withTransaction<'PrimaryKey'>>>>
+
+export const updateGraphStorageCallback = <T extends string>(metaProps: {
+    keyLabel: T;
+    dbHandler: GraphStorageDBH;
+    internalCache: {
+        Descent: { getPartial: (value: string) => (DependencyNode & { completeness: 'Partial' | 'Complete'; connections: DependencyEdge[] })[] };
+        Ancestry: { getPartial: (value: string) => (DependencyNode & { completeness: 'Partial' | 'Complete'; connections: DependencyEdge[] })[] };
+    }
+}) => (props: {
+    key: string;
+    DataCategory: string;
+    dependencyTag: 'Descent' | 'Ancestry';
+    payloads: DependencyGraphAction[];
+}) => {
+    const extractKey = (item: Omit<DependencyNode, 'completeness'>) => (item[metaProps.keyLabel as any] as string)
+    return metaProps.dbHandler.optimisticUpdate({
+        Key: {
+            PrimaryKey: props.key,
+            DataCategory: props.DataCategory
+        },
         //
         // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
         // on so that it can recognize the existence of the row.
@@ -176,7 +235,7 @@ export const legacyUpdateGraphStorageIteration = <C extends InstanceType<ReturnT
             //
             const [antidependency] = await Promise.all([
                 getAntiDependency(internalCache, upcaseDependencyTag, keyLabel)(targetId),
-                updateGraphStorageCallback({ keyLabel, dbHandler, internalCache })({
+                legacyUpdateGraphStorageCallback({ keyLabel, dbHandler, internalCache })({
                     key: targetId,
                     DataCategory: `Meta::${tag}`,
                     dependencyTag: upcaseDependencyTag,
@@ -247,7 +306,7 @@ type GraphOfUpdatesEdge = {
 
 class GraphOfUpdates extends Graph<string, GraphOfUpdatesNode, GraphOfUpdatesEdge> {}
 
-const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async (graph: GraphOfUpdates): Promise<void> => {
+const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH; keyLabel: T }) => async (graph: GraphOfUpdates): Promise<void> => {
     const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
     fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
 
@@ -285,7 +344,7 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         checkUpdateAgainstCurrent(graph, edge, 'back')
     })
 
-    const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number) => {
+    const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number): TransactionRequest<'PrimaryKey'> => {
         const node = graph.nodes[key]
         if (!node) {
             throw new Error('Cannot update node with no actions in GraphStorage update')
@@ -302,6 +361,11 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
                 //
                 // TODO: Refactor UpdateExpression with set ADD and REMOVE operators
                 //
+
+                //
+                // TODO: After addition of priorFetch argument to Update in DBHandler,
+                // refactor calling below to match new optimisticUpdate format
+                //
                 UpdateExpression: `SET edgeSet = :newEdgeSet, updatedAt = :moment${ needsInvalidate ? ', invalidatedAt = :moment': ''}`,
                 ExpressionAttributeValues: marshall({
                     ':newEdgeSet': newEdgeSet,
@@ -314,7 +378,7 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
     }
 
     const moment = Date.now()
-    const transactions: GraphStorageDBHandlerTransact[] = [
+    const transactions: TransactionRequest<'PrimaryKey'>[] = [
         ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
             .filter(({ needsForwardUpdate, forward }) => (needsForwardUpdate || !forward))
             .map(({ key }) => (updateTransaction(graph, key, 'forward', moment))),
@@ -347,7 +411,7 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
     await metaProps.dbHandler.transactWrite(transactions)
 }
 
-export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBHandler<T>; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
+export const updateGraphStorage = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH; keyLabel: T }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
     const graph = new GraphOfUpdates({}, [], {}, true)
 
     descent.forEach((item) => {
