@@ -21,7 +21,7 @@ type DynamicUpdateOutput = {
 //
 const isDynamicUpdateOutput = (item: {} | DynamicUpdateOutput): item is DynamicUpdateOutput => (Object.values(item).length > 0)
 
-const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer }: { updateKeys: string[]; reducer: (draft: WritableDraft<T>) => void }) => (state: T | undefined): DynamicUpdateOutput | {} => {
+const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, checkKeys }: { updateKeys: string[]; reducer: (draft: WritableDraft<T>) => void, checkKeys?: string[] }) => (state: T | undefined): DynamicUpdateOutput | {} => {
     const { ExpressionAttributeNames } = mapProjectionFields(updateKeys)
     const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
     const newState = produce(state || {}, reducer)
@@ -54,27 +54,37 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer }:
                         // Remove existing item
                         //
                         draft.removeExpressions.push(`${translatedKey}`)
-                        draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
-                        draft.conditionExpressions.push(`${translatedKey} = :Old${index}`)
+                        if ((!checkKeys) || checkKeys.includes(key)) {
+                            draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
+                            draft.conditionExpressions.push(`${translatedKey} = :Old${index}`)
+                        }
                         if (translatedKey in ExpressionAttributeNames) {
                             draft.ExpressionAttributeNames[translatedKey] = key
                         }
                     }
-                    if (typeof newState === 'object' && key in newState && (typeof newState[key] !== 'undefined') && newState[key] !== state[key]) {
+                    else if (newState[key] !== state[key]) {
                         //
                         // Update existing item to new value
                         //
-                        draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
                         draft.ExpressionAttributeValues[`:New${index}`] = newState[key]
                         draft.setExpressions.push(`${translatedKey} = :New${index}`)
-                        draft.conditionExpressions.push(`${translatedKey} = :Old${index}`)
+                        if ((!checkKeys) || checkKeys.includes(key)) {
+                            draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
+                            draft.conditionExpressions.push(`${translatedKey} = :Old${index}`)
+                        }
                         if (translatedKey in ExpressionAttributeNames) {
                             draft.ExpressionAttributeNames[translatedKey] = key
                         }
                     }
+                    else if ((checkKeys || []).includes(key)) {
+                        draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
+                        draft.conditionExpressions.push(`${translatedKey} = :Old${index}`)
+                    }
                 }
                 else {
-                    draft.conditionExpressions.push(`attribute_not_exists(${translatedKey})`)
+                    if ((!checkKeys) || checkKeys.includes(key)) {
+                        draft.conditionExpressions.push(`attribute_not_exists(${translatedKey})`)
+                    }
                     if (translatedKey in ExpressionAttributeNames) {
                         draft.ExpressionAttributeNames[translatedKey] = key
                     }
@@ -126,13 +136,24 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer }:
 }
 
 export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType extends string = string, T extends Partial<DBHandlerItem<KIncoming, KeyType>> = Partial<DBHandlerItem<KIncoming, KeyType>>> = {
-    updateKeys: string[],
-    updateReducer: (draft: WritableDraft<T>) => void,
-    ExpressionAttributeNames?: Record<string, any>,
-    ReturnValues?: 'NONE' | 'ALL_NEW' | 'UPDATED_NEW',
-    maxRetries?: number,
+    updateKeys: string[];
+    updateReducer: (draft: WritableDraft<T>) => void;
+    ExpressionAttributeNames?: Record<string, any>;
+    ReturnValues?: 'NONE' | 'ALL_NEW' | 'UPDATED_NEW';
+    maxRetries?: number;
     catchException?: (err: any) => Promise<void>;
-    priorFetch?: T
+    //
+    // priorFetch primes the pump for the get/update cycle by providing pre-existing data
+    // for the first attempt (presumably for caches)
+    //
+    priorFetch?: T;
+    //
+    // checkKeys, if provided, gives a specific set of keys to compare against previous values
+    // in order to determine if the record is unchanged since fetch (e.g., an updatedAt field
+    // that is updated each time the record changes can be used, alone, to check that the record
+    // is the same as when it was fetched).
+    //
+    checkKeys?: string[];
 }
 
 export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
@@ -151,12 +172,13 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             const {
                 Key,
                 updateKeys,
-                updateReducer
+                updateReducer,
+                checkKeys
             } = props
             if (!updateKeys.length) {
                 return undefined
             }
-            const updateOutput = updateByReducer({ updateKeys, reducer: updateReducer })(previousItem)
+            const updateOutput = updateByReducer({ updateKeys, reducer: updateReducer, checkKeys })(previousItem)
             if (!isDynamicUpdateOutput(updateOutput)) {
                 return undefined
             }
@@ -193,18 +215,14 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
         // in completing a cycle without any other process side-effecting the same fields.
         //
 
-        //
-        // TODO: Add priorFetch argument to optimisticUpdate that permits priming the pump
-        // on the fetch/update cycle with already cached data. Also extend the priorFetch
-        // argument to Update transactions
-        //
         async optimisticUpdate<Update extends Partial<DBHandlerItem<KIncoming, T>>>(props: { Key: ({ [key in KIncoming]: T } & { DataCategory: string }) } & UpdateExtendedProps<KIncoming, T, Update>): Promise<Update | undefined> {
             const {
                 Key,
                 updateKeys,
                 updateReducer,
                 maxRetries,
-                priorFetch
+                priorFetch,
+                checkKeys
             } = props
             if (!updateKeys) {
                 return undefined
@@ -215,14 +233,12 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             let completed = false
             while(!completed && (retries <= (maxRetries ?? 5))) {
                 completed = true
-                console.log(`priorFetch: ${JSON.stringify(priorFetch, null, 4)}`)
                 const stateFetch = (!retries && priorFetch) || (await this.getItem<Update>({
                     Key,
                     ProjectionFields: updateKeys,
                 }))
-                console.log(`stateFetch: ${JSON.stringify(stateFetch, null, 4)}`)
                 const state = stateFetch || {}
-                const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer })
+                const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer, checkKeys })
                 if (typeof updateOutput === 'undefined') {
                     returnValue = state
                     break

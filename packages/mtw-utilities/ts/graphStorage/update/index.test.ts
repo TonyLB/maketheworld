@@ -3,6 +3,7 @@ import { GraphCacheData } from '../cache/'
 import { GraphNodeData } from '../cache/graphNode'
 import legacyUpdateGraphStorage, { GraphStorageDBH, updateGraphStorage } from './'
 import withGetOperations from '../../dynamoDB/mixins/get'
+import produce from 'immer'
 
 const internalCache = {
     Descent: {
@@ -511,6 +512,14 @@ describe('graphStore new update', () => {
         global.Date.now = realDateNow
     })
 
+    const testTransact = (Key: { PrimaryKey: string; DataCategory: string }) => ({
+        Key,
+        updateKeys: ['edgeSet', 'updatedAt', 'invalidatedAt'],
+        updateReducer: expect.any(Function),
+        priorFetch: { updatedAt: undefined },
+        checkKeys: ['updatedAt']
+    })
+
     it('should correctly add disjoint edges', async () => {
         internalCache.Nodes.get.mockResolvedValue([])
         await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
@@ -532,58 +541,25 @@ describe('graphStore new update', () => {
         })
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportFour::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
-            { Put: { Item: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportFour::ASSET' } }},
-        ])
+        expect(transactWrite.mock.calls[0][0].length).toEqual(10)
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][2].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][2].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportFour::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][3].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][3].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][4].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][4].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][5].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][5].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][6].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][6].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][7].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][7].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportThree::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][8]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } })
+        expect(transactWrite.mock.calls[0][0][9]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportFour::ASSET' } })
     })
 
     it('should correctly add connecting edges', async () => {
@@ -614,47 +590,22 @@ describe('graphStore new update', () => {
         })
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportThree::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
-            { Put: { Item: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }},
-            { Put: { Item: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportOne::ASSET' } }},
-        ])
+        expect(transactWrite.mock.calls[0][0].length).toEqual(9)
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportThree::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][2].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][2].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][3].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][3].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportThree::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][4].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][4].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][5].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][5].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][6]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } })
+        expect(transactWrite.mock.calls[0][0][7]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } })
+        expect(transactWrite.mock.calls[0][0][8]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportOne::ASSET' } })
     })
 
     it('should store edges with different context separately', async () => {
@@ -681,22 +632,13 @@ describe('graphStore new update', () => {
         })
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::TEST', 'ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::DifferentAsset'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::TEST', 'ASSET#ImportOne::ASSET', 'ASSET#ImportOne::DifferentAsset'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
-            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::DifferentAsset' } }},
-        ])
+        expect(transactWrite.mock.calls[0][0].length).toEqual(4)
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::TEST', 'ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::DifferentAsset'], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::TEST', 'ASSET#ImportOne::ASSET', 'ASSET#ImportOne::DifferentAsset'], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][2]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } })
+        expect(transactWrite.mock.calls[0][0][3]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::DifferentAsset' } })
     })
 
     it('should correctly remove disjoint edges', async () => {
@@ -725,34 +667,17 @@ describe('graphStore new update', () => {
         })
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
-            { Delete: { Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportFour::ASSET' } }},
-        ])
+        expect(transactWrite.mock.calls[0][0].length).toEqual(6)
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][2].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][2].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][3].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportFour', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][3].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][4]).toEqual({ Delete: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } })
+        expect(transactWrite.mock.calls[0][0][5]).toEqual({ Delete: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#ASSET#ImportFour::ASSET' } })
     })
 
     it('should correctly remove connecting edges', async () => {
@@ -780,34 +705,17 @@ describe('graphStore new update', () => {
         })
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
-            { Delete: { Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }}
-        ])
+        expect(transactWrite.mock.calls[0][0].length).toEqual(6)
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][2].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][2].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][3].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][3].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][4]).toEqual({ Delete: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } })
+        expect(transactWrite.mock.calls[0][0][5]).toEqual({ Delete: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } })
     })
 
     it('should not invalidate when removing edges with near matches', async () => {
@@ -827,76 +735,12 @@ describe('graphStore new update', () => {
         })
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::TEST'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::TEST'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
-        ])
-    })
-
-    it('should correctly remove connecting edges', async () => {
-        internalCache.Nodes.get.mockResolvedValue([
-            { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, back: { edges: [] } },
-            { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] } },
-            { PrimaryKey: 'ASSET#ImportThree', back: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, forward: { edges: [] } }
-        ])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                deleteItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ASSET']
-                }
-            },
-            {
-                EphemeraId: 'ASSET#ImportTwo',
-                deleteItem: {
-                    EphemeraId: 'ASSET#ImportThree',
-                    assets: ['ASSET']
-                }
-            }],
-            ancestry: []
-        })
-
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': [], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment, invalidatedAt = :moment'
-            } },
-            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
-            { Delete: { Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#ASSET#ImportThree::ASSET' } }}
-        ])
+        expect(transactWrite.mock.calls[0][0].length).toEqual(3)
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::TEST'], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::TEST'], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][2]).toEqual({ Delete: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } })
     })
 
     it('should delete only edges that are present', async () => {
@@ -916,24 +760,15 @@ describe('graphStore new update', () => {
         })
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSETTWO'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSETTWO'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Delete: { Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } }},
-        ])
+        expect(transactWrite.mock.calls[0][0].length).toEqual(3)
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::ASSETTWO'], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::ASSETTWO'], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][2]).toEqual({ Delete: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSET' } })
     })
 
-    it('should conditionCheck on invalidatedAt when available', async () => {
+    it('should conditionCheck on updatedAt when available', async () => {
         internalCache.Nodes.get.mockResolvedValue([
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }], updatedAt: 500 }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [] } }
@@ -950,21 +785,15 @@ describe('graphStore new update', () => {
         })
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite).toHaveBeenCalledWith([
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' },
-                ConditionExpression: 'updatedAt = :oldUpdated',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::ASSETTWO'], ':oldUpdated': 500, ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Update: {
-                Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' },
-                ConditionExpression: 'attribute_not_exists(updatedAt)',
-                ExpressionAttributeValues: marshall({ ':newEdgeSet': ['ASSET#ImportOne::ASSET', 'ASSET#ImportOne::ASSETTWO'], ':moment': 1000 }),
-                UpdateExpression: 'SET edgeSet = :newEdgeSet, updatedAt = :moment'
-            } },
-            { Put: { Item: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSETTWO' } }},
-        ])
+        expect(transactWrite.mock.calls[0][0].length).toEqual(3)
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual({
+            ...testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#Forward' }),
+            priorFetch: { updatedAt: 500 }
+        })
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::ASSETTWO'], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'GRAPH#Back' }))
+        expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::ASSET', 'ASSET#ImportOne::ASSETTWO'], updatedAt: 1000 })
+        expect(transactWrite.mock.calls[0][0][2]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'GRAPH#ASSET#ImportTwo::ASSETTWO' } })
     })
 
 })

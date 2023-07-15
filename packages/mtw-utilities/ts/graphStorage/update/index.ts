@@ -358,21 +358,16 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
                     PrimaryKey: key,
                     DataCategory: `GRAPH#${capitalize(direction)}`,                
                 },
-                //
-                // TODO: Refactor UpdateExpression with set ADD and REMOVE operators
-                //
-
-                //
-                // TODO: After addition of priorFetch argument to Update in DBHandler,
-                // refactor calling below to match new optimisticUpdate format
-                //
-                UpdateExpression: `SET edgeSet = :newEdgeSet, updatedAt = :moment${ needsInvalidate ? ', invalidatedAt = :moment': ''}`,
-                ExpressionAttributeValues: marshall({
-                    ':newEdgeSet': newEdgeSet,
-                    ':oldUpdated': oldUpdated,
-                    ':moment': moment
-                }, { removeUndefinedValues: true }),
-                ConditionExpression: typeof oldUpdated === 'undefined' ? 'attribute_not_exists(updatedAt)' : 'updatedAt = :oldUpdated'
+                updateKeys: ['edgeSet', 'updatedAt', 'invalidatedAt'],
+                updateReducer: (draft) => {
+                    draft.edgeSet = newEdgeSet
+                    draft.updatedAt = moment
+                    if (needsInvalidate) {
+                        draft.invalidatedAt = moment
+                    }
+                },
+                priorFetch: { updatedAt: oldUpdated },
+                checkKeys: ['updatedAt']
             }
         }
     }
@@ -389,19 +384,15 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
             action === 'put'
             ? {
                 Put: {
-                    Item: {
-                        PrimaryKey: from,
-                        DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`,
-                        ...rest
-                    }
+                    PrimaryKey: from,
+                    DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`,
+                    ...rest
                 }
             }
             : {
                 Delete: {
-                    Key: {
-                        PrimaryKey: from,
-                        DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`
-                    }
+                    PrimaryKey: from,
+                    DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`
                 }
             }
 

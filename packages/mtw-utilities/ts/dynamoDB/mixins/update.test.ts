@@ -23,6 +23,8 @@ describe('withUpdate', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
+        dbMock.send.mockClear()
+        dbMock.send.mockRestore()
     })
 
     describe('optimisticUpdate', () => {
@@ -110,6 +112,49 @@ describe('withUpdate', () => {
             })
         })
 
+        it('should accept checkKeys argument', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Item: marshall({ testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }) })
+                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
+
+            const output = await dbHandler.optimisticUpdate<{ testOne: string; testTwo?: string; testThree?: string; testFour: string }>({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                updateKeys: ['testOne', 'testTwo', 'testThree', 'testFour'],
+                updateReducer: (draft) => {
+                    draft.testOne = 'Different Test',
+                    draft.testTwo = undefined
+                    draft.testThree = 'New test'
+                },
+                checkKeys: ['testFour']
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(2)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                TableName: 'Ephemera',
+                ProjectionExpression: 'testOne, testTwo, testThree, testFour'
+            })
+            expect(dbMock.send.mock.calls[1][0].input).toEqual({
+                ConditionExpression: "testFour = :Old3",
+                ExpressionAttributeValues: marshall({
+                  ":New0": "Different Test",
+                  ":New2": "New test",
+                  ":Old3": "Unchanged"
+                }),
+                Key: marshall({
+                    EphemeraId: "TestOne",
+                    DataCategory: "DC1",
+                }),
+                TableName: "Ephemera",
+                UpdateExpression: "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
+            })
+            expect(output).toEqual({
+                PrimaryKey: "TEST",
+                DataCategory: "Meta::Test",
+                testOne: "Different Test",
+                testThree: "New test",
+                testFour: "Unchanged"
+            })
+        })
         it('should replace reserved words with ExpressionAttributeName items', async () => {
             dbMock.send
                 .mockResolvedValueOnce({ Item: marshall({ Name: 'Testing', zone: 'Also Testing', value: 'Unchanged' }) })
