@@ -1,7 +1,7 @@
 import { jest, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { nonLegacyEphemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import putAssetNormalized from './putAssetNormalized.js'
 
@@ -77,7 +77,7 @@ describe('putAssetNormalized', () => {
             assetId: 'BASE',
             normalForm: testNormalForm
         })
-        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+        expect(nonLegacyEphemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#BASE',
             DataCategory: 'Meta::AssetNormalized',
             normalForm: testNormalForm

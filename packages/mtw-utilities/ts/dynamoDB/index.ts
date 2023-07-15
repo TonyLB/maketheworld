@@ -29,6 +29,7 @@ import withGetOperations from "./mixins/get"
 import withQuery from "./mixins/query"
 import withBatchWrite from "./mixins/batchWrite"
 import { DBHandlerBase } from "./baseClasses"
+import withPrimitives from "./mixins/primitives"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -701,7 +702,7 @@ export const ephemeraDB = {
     deleteItem: abstractDeleteItem<EphemeraDBKey>(ephemeraTable)
 }
 
-export const nonLegacyEphemeraDB = new (withMerge(withTransaction(withUpdate(withGetOperations(withQuery(withBatchWrite(DBHandlerBase<'EphemeraId', string>)))))))({
+export const nonLegacyEphemeraDB = new (withMerge(withTransaction(withUpdate(withGetOperations(withQuery(withBatchWrite(withPrimitives<'EphemeraId', string>()(DBHandlerBase))))))))({
     client: dbClient,
     tableName: ephemeraTable,
     incomingKeyLabel: 'EphemeraId',

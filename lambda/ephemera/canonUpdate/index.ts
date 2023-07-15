@@ -1,11 +1,16 @@
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB";
+import { EphemeraId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { nonLegacyEphemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB";
 import { CanonUpdateMessage, MessageBus } from "../messageBus/baseClasses";
 import { unique } from "@tonylb/mtw-utilities/dist/lists";
 import internalCache from "../internalCache";
 
 export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: CanonUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const { assets = [] } = await ephemeraDB.optimisticUpdate({
-        key: {
+    //
+    // TODO: Fix type broadening in nonLegacyEphemeraDB, so that you can pass a type that includes string[] properties
+    // to optimisticUpdate, and not cast as any
+    //
+    const { assets = [] } = (await nonLegacyEphemeraDB.optimisticUpdate({
+        Key: {
             EphemeraId: 'Global',
             DataCategory: 'Assets'
         },
@@ -17,7 +22,7 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
             )
         },
         ReturnValues: 'UPDATED_NEW'
-    })
+    })) as any
     internalCache.Global.set({ key: 'assets', value: assets })
     if (messageBus) {
         payloads.forEach(({ assetId }) => {

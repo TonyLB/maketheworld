@@ -7,7 +7,7 @@ const dbMock = {
 }
 
 describe('withPrimitives', () => {
-    const dbHandler = new (withPrimitives(DBHandlerBase))({
+    const dbHandler = new (withPrimitives()(DBHandlerBase))({
         client: dbMock as any,
         tableName: 'Ephemera',
         incomingKeyLabel: 'PrimaryKey',

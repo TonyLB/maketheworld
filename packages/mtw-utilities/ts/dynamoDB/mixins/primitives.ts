@@ -3,13 +3,16 @@ import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegal
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { asyncSuppressExceptions } from "../../errors"
 
-export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends string, GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
+//
+// TODO: Apply curried mixin pattern to other mixins and see if it can handle the complexity of DBHandler's connections
+//
+export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class PrimitivesDBHandler extends Base {
         async putItem(item: DBHandlerItem<KIncoming, T>) {
             return await asyncSuppressExceptions(async () => {
                 await this._client.send(new PutItemCommand({
                     TableName: this._tableName,
-                    Item: marshall(this._remapIncomingObject(item) as Record<string, any>, { removeUndefinedValues: true })
+                    Item: marshall(this._remapIncomingObject(item), { removeUndefinedValues: true })
                 }))
             })
         }
@@ -18,7 +21,7 @@ export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends st
             return await asyncSuppressExceptions(async () => {
                 await this._client.send(new DeleteItemCommand({
                     TableName: this._tableName,
-                    Key: marshall(this._remapIncomingObject(key) as Record<string, any>, { removeUndefinedValues: true })
+                    Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true })
                 }))
             }) as void
         }

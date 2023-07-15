@@ -2,7 +2,7 @@ import { jest, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
-    ephemeraDB
+    nonLegacyEphemeraDB as ephemeraDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')
@@ -171,8 +171,8 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        ephemeraDBMock.getItem
-            .mockResolvedValueOnce({ State: {} })
+        // ephemeraDBMock.getItem
+        //     .mockResolvedValueOnce({  State: {} })
         mockNamespaceMap = {
             test: 'ASSET#test',
             ABC: 'ROOM#DEF',
@@ -375,8 +375,8 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        ephemeraDBMock.getItem
-            .mockResolvedValueOnce({ State: {} })
+        // ephemeraDBMock.getItem
+        //     .mockResolvedValueOnce({ State: {} })
         mockNamespaceMap = {
             test: 'ASSET#test',
             ABC: 'ROOM#ABC',

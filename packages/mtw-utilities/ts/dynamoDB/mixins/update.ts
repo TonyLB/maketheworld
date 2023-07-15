@@ -129,7 +129,7 @@ export type UpdateExtendedProps<T extends Record<string, any>> = {
     updateKeys: string[],
     updateReducer: (draft: WritableDraft<T>) => void,
     ExpressionAttributeNames?: Record<string, any>,
-    ReturnValues?: 'NONE' | 'ALL_NEW',
+    ReturnValues?: 'NONE' | 'ALL_NEW' | 'UPDATED_NEW',
     maxRetries?: number,
     catchException?: (err: any) => Promise<void>
 }
