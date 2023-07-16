@@ -355,7 +355,7 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
             Update: {
                 Key: {
                     PrimaryKey: key,
-                    DataCategory: `GRAPH#${capitalize(direction)}`,                
+                    DataCategory: `Graph::${capitalize(direction)}`,                
                 },
                 updateKeys: ['edgeSet', 'updatedAt', 'invalidatedAt'],
                 updateReducer: (draft) => {
@@ -384,14 +384,14 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
             ? {
                 Put: {
                     PrimaryKey: from,
-                    DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`,
+                    DataCategory: `Graph::${to}${context ? `::${context}` : ''}`,
                     ...rest
                 }
             }
             : {
                 Delete: {
                     PrimaryKey: from,
-                    DataCategory: `GRAPH#${to}${context ? `::${context}` : ''}`
+                    DataCategory: `Graph::${to}${context ? `::${context}` : ''}`
                 }
             }
 
