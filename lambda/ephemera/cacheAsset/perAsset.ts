@@ -34,7 +34,8 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                     updateKeys: ['cached'],
                     updateReducer: (draft) => {
                         draft.cached = (draft.cached || []).filter((value) => (value !== assetKey))
-                    }
+                    },
+                    deleteCondition: ({ cached }) => (cached.length === 0)
                 }}]
             }
             if (typeof action === 'object') {
