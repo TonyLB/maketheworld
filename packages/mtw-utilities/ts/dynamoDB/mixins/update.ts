@@ -182,6 +182,11 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     // to the point where it is aggregating over nothing), and if so deletes
     //
     deleteCondition?: (output: T) => boolean;
+    //
+    // deleteCascade, if provided, creates a list of keys *beyond* the one deleted by deleteCondition (above),
+    // to also delete (e.g., removing a meta record and removing any cache records associated with it)
+    //
+    deleteCascade?: (output: T) => DBHandlerKey<KIncoming, KeyType>[];
 }
 
 type OptimisticUpdateFactoryOutput = {
@@ -191,7 +196,7 @@ type OptimisticUpdateFactoryOutput = {
     update: Omit<UpdateItemCommandInput, 'TableName' | 'ReturnValues'>;
 } | {
     action: 'delete';
-    delete: Omit<DeleteItemCommandInput, 'TableName'>;
+    deletes: Omit<DeleteItemCommandInput, 'TableName'>[];
 }
 
 export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
@@ -216,7 +221,8 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 updateKeys,
                 updateReducer,
                 checkKeys,
-                deleteCondition
+                deleteCondition,
+                deleteCascade
             } = props
             if (!updateKeys.length) {
                 return { action: 'ignore' }
@@ -230,14 +236,14 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 const { ExpressionAttributeNames, ExpressionAttributeValues, conditionExpressions } = updateOutput
                 return {
                     action: 'delete',
-                    delete: {
+                    deletes: [{
                         Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
                         ...(conditionExpressions.length ? {
                             ConditionExpression: conditionExpressions.join(' AND ')
                         } : {}),
                         ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
                         ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
-                    }
+                    }]
                 }
             }
             else {
@@ -287,7 +293,8 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 maxRetries,
                 priorFetch,
                 checkKeys,
-                deleteCondition
+                deleteCondition,
+                deleteCascade
             } = props
             if (!updateKeys) {
                 return undefined
@@ -304,17 +311,17 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 }))) as Update | { [x: string]: never } | undefined
                 const state = stateFetch || {}
                 
-                const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer, checkKeys, deleteCondition })
+                const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer, checkKeys, deleteCondition, deleteCascade })
                 if (updateOutput.action === 'ignore') {
                     returnValue = state
                     break
                 }
                 else if (updateOutput.action === 'delete') {
                     try {
-                        await this._client.send(new DeleteItemCommand({
+                        await Promise.all(updateOutput.deletes.map((deleteItem) => (this._client.send(new DeleteItemCommand({
                             TableName: this._tableName,
-                            ...updateOutput.delete
-                        }))
+                            ...deleteItem
+                        })))))
                     }
                     catch (err: any) {
                         if (err.code === 'ConditionalCheckFailedException') {
