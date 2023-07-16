@@ -54,15 +54,25 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 if ('Update' in item) {
                     const fetchedItem = item.Update.priorFetch || fetchedItems.find((checkItem) => (checkItem[this._incomingKeyLabel] === item.Update.Key[this._incomingKeyLabel] && checkItem.DataCategory === item.Update.Key.DataCategory))
                     const updateTransaction = this._optimisticUpdateFactory(fetchedItem, item.Update)
-                    if (!updateTransaction) {
+                    if (updateTransaction.action === 'ignore') {
                         return undefined
                     }
-                    return {
-                        Update: {
-                            TableName: this._tableName,
-                            ...updateTransaction
+                    else if (updateTransaction.action === 'delete') {
+                        return {
+                            Delete: {
+                                TableName: this._tableName,
+                                ...updateTransaction.delete
+                            }
                         }
-                    } as TransactWriteItem
+                    }
+                    else {
+                        return {
+                            Update: {
+                                TableName: this._tableName,
+                                ...updateTransaction.update
+                            }
+                        } as TransactWriteItem    
+                    }
                 }
                 return undefined
             }).filter((value): value is TransactWriteItem => (typeof value !== 'undefined'))
