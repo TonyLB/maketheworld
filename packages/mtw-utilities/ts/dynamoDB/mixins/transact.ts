@@ -35,52 +35,52 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 ProjectionFields: aggregateProjectionFields
             }) : []
 
-            const transactions = items.map<TransactWriteItem | undefined>((item) => {
+            const transactions = items.map<TransactWriteItem[]>((item) => {
                 if ('Put' in item) {
                     const { ExpressionAttributeNames } = mapProjectionFields(Object.keys(item.Put))
                     const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
                     const remappedPut = Object.entries(item.Put).reduce<Record<string, any>>((previous, [key, value]) => ({ ...previous, [translateToExpressionAttributeNames[key] ?? key]: value }), {}) as DBHandlerItem<KIncoming, T>
-                    return {
+                    return [{
                         Put: {
                             Item: marshall(this._remapIncomingObject(remappedPut), { removeUndefinedValues: true }),
                             TableName: this._tableName,
                             ...(Object.keys(ExpressionAttributeNames).length ? { ExpressionAttributeNames }: {})
                         }
-                    }
+                    }]
                 }
                 if ('Delete' in item) {
-                    return {
+                    return [{
                         Delete: {
                             Key: marshall(this._remapIncomingObject(item.Delete), { removeUndefinedValues: true }),
                             TableName: this._tableName
                         }
-                    }
+                    }]
                 }
                 if ('Update' in item) {
                     const fetchedItem = item.Update.priorFetch || fetchedItems.find((checkItem) => (checkItem[this._incomingKeyLabel] === item.Update.Key[this._incomingKeyLabel] && checkItem.DataCategory === item.Update.Key.DataCategory))
                     const updateTransaction = this._optimisticUpdateFactory(fetchedItem, item.Update)
                     if (updateTransaction.action === 'ignore') {
-                        return undefined
+                        return []
                     }
                     else if (updateTransaction.action === 'delete') {
-                        return {
+                        return updateTransaction.deletes.map((deleteItem) => ({
                             Delete: {
                                 TableName: this._tableName,
-                                ...updateTransaction.delete
+                                ...deleteItem
                             }
-                        }
+                        }))
                     }
                     else {
-                        return {
+                        return [{
                             Update: {
                                 TableName: this._tableName,
                                 ...updateTransaction.update
                             }
-                        } as TransactWriteItem    
+                        } as TransactWriteItem]
                     }
                 }
-                return undefined
-            }).filter((value): value is TransactWriteItem => (typeof value !== 'undefined'))
+                return []
+            }).flat()
             await this._client.send(new TransactWriteItemsCommand({ TransactItems: transactions }))
         }
     }
