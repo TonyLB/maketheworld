@@ -66,8 +66,10 @@ export class CacheGlobalData {
             case 'assets':
                 if (typeof this.assets === 'undefined') {
                     const { assets = [] } = (await ephemeraDB.getItem<{ assets: string[] }>({
-                        EphemeraId: 'Global',
-                        DataCategory: 'Assets',
+                        Key: {
+                            EphemeraId: 'Global',
+                            DataCategory: 'Assets'
+                        },
                         ProjectionFields: ['assets']
                     })) || {}
                     this.assets = assets

@@ -1,5 +1,4 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
 import { CacheGlobal, CacheGlobalData } from '.';
 
 export type PlayerMetaItem = {
@@ -25,8 +24,10 @@ export class CachePlayerMetaData {
         }
         if (!(this.PlayerMetaById[confirmedPlayer])) {
             const playerData = await ephemeraDB.getItem<{ guestId: string; guestName: string }>({
-                    EphemeraId: `PLAYER#${confirmedPlayer}`,
-                    DataCategory: 'Meta::Player',
+                    Key: {
+                        EphemeraId: `PLAYER#${confirmedPlayer}`,
+                        DataCategory: 'Meta::Player'
+                    },
                     ProjectionFields: ['guestId', 'guestName']
                 })
             if (playerData) {

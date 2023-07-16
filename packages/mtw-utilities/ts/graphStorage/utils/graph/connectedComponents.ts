@@ -6,13 +6,13 @@
 import { Graph } from "."
 import { v4 as uuidv4 } from 'uuid'
 
-const compareComponents = <K extends string, T extends { key: K } & Record<string, any>>(A: Graph<K, T>, B: Graph<K, T>): number => {
+const compareComponents = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(A: Graph<K, T, E>, B: Graph<K, T, E>): number => {
     const firstA = Object.keys(A.nodes).sort()[0]
     const firstB = Object.keys(B.nodes).sort()[0]
     return firstA.localeCompare(firstB)
 }
 
-export const connectedComponents = <K extends string, T extends { key: K } & Record<string, any>>(graph: Graph<K, T>): Graph<K, T>[] => {
+export const connectedComponents = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>): Graph<K, T, E>[] => {
     let componentLabels: Partial<Record<K, string | undefined>> = {}
     const graphKeys = Object.keys(graph.nodes) as K[]
     graphKeys.forEach((key) => {

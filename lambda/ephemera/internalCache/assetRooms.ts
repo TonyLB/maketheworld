@@ -15,9 +15,9 @@ export class CacheAssetRoomsData {
     }
     async get(assetId: EphemeraAssetId): Promise<Omit<AssetRoomsItem, 'found'> | undefined> {
         if (!(this.AssetRoomsById[assetId])) {
-            const assetRooms = await ephemeraDB.query<{ EphemeraId: EphemeraRoomId }[]>({
+            const assetRooms = await ephemeraDB.query<{ EphemeraId: EphemeraRoomId, DataCategory: string }>({
                 IndexName: 'DataCategoryIndex',
-                DataCategory: assetId,
+                Key: { DataCategory: assetId },
                 KeyConditionExpression: 'begins_with(EphemeraId, :roomPrefix)',
                 ExpressionAttributeValues: {
                     ':roomPrefix': 'ROOM#'

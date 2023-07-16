@@ -193,6 +193,7 @@ type GraphNodeCache = {
     cache?: PrimaryKey[];
     cachedAt?: number;       // Epoch Time
     invalidatedAt?: number;  // Epoch Time
+    updatedAt?: number;      // Epoch Time
 }
 ```
 
@@ -213,6 +214,7 @@ would look like this:
     DataCategory: 'GRAPH::Forward',
     edgeSet: ['COMPUTED#B::', 'COMPUTED#C::'],
     cache: ['COMPUTED#B', 'COMPUTED#C', 'COMPUTED#D', 'COMPUTED#E', 'COMPUTED#F', 'COMPUTED#G'],
+    updatedAt: 9900,
     invalidatedAt: 9900,
     cachedAt: 10000
 }
@@ -226,6 +228,7 @@ would look like this:
     DataCategory: 'GRAPH::Backward',
     edgeSet: ['COMPUTED#B::'],
     cache: ['COMPUTED#B', 'VARIABLE#A'],
+    updateAt: 9900,
     invalidatedAt: 9900,
     cachedAt: 10000
 }

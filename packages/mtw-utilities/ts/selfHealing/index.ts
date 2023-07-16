@@ -1,6 +1,6 @@
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
 
-import { assetDB, ephemeraDB } from '../dynamoDB'
+import { assetDB, ephemeraDB as ephemeraDB } from '../dynamoDB'
 import { splitType } from '../types'
 import { asyncSuppressExceptions } from '../errors'
 
@@ -83,7 +83,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
         const healConnections = async () => {
             const Items = await ephemeraDB.query({
                 IndexName: 'DataCategoryIndex',
-                DataCategory: 'Meta::Connection',
+                Key: { DataCategory: 'Meta::Connection' },
                 ProjectionFields: ['EphemeraId', 'player']
             })
         
@@ -152,12 +152,14 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
                 }
             }
             const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
-            await ephemeraDB.update({
-                EphemeraId: 'Global',
-                DataCategory: 'Assets',
-                UpdateExpression: `SET assets = :assets`,
-                ExpressionAttributeValues: {
-                    ':assets': globalAssetsSorted
+            await ephemeraDB.optimisticUpdate({
+                Key: {
+                    EphemeraId: 'Global',
+                    DataCategory: 'Assets'    
+                },
+                updateKeys: ['assets'],
+                updateReducer: (draft) => {
+                    draft.assets = globalAssetsSorted
                 }
             })
         }

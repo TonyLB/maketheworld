@@ -1,11 +1,12 @@
+import { EphemeraId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB";
 import { CanonUpdateMessage, MessageBus } from "../messageBus/baseClasses";
 import { unique } from "@tonylb/mtw-utilities/dist/lists";
 import internalCache from "../internalCache";
 
 export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: CanonUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const { assets = [] } = await ephemeraDB.optimisticUpdate({
-        key: {
+    const { assets = [] } = (await ephemeraDB.optimisticUpdate<{ EphemeraId: string; DataCategory: string; assets: string[] }>({
+        Key: {
             EphemeraId: 'Global',
             DataCategory: 'Assets'
         },
@@ -17,7 +18,7 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
             )
         },
         ReturnValues: 'UPDATED_NEW'
-    })
+    })) || {}
     internalCache.Global.set({ key: 'assets', value: assets })
     if (messageBus) {
         payloads.forEach(({ assetId }) => {

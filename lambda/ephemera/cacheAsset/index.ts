@@ -349,7 +349,7 @@ export const pushEphemera = async({
     EphemeraId,
     scopeMap = {}
 }: EphemeraPushArgs) => {
-    await ephemeraDB.putItem<EphemeraPushArgs & { DataCategory: 'Meta::Asset' }>({
+    await ephemeraDB.putItem({
         EphemeraId,
         DataCategory: 'Meta::Asset',
         scopeMap
@@ -374,14 +374,11 @@ const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter
 export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, 'address' | 'Connected' | 'ConnectionIds'> & { address?: AssetWorkspaceAddress; Connected?: boolean; ConnectionIds?: string[] }) => {
     const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'assets']
     await ephemeraDB.optimisticUpdate({
-        key: {
+        Key: {
             EphemeraId: character.EphemeraId,
             DataCategory: 'Meta::Character'
         },
-        updateKeys: [...updateKeys, '#name'],
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
+        updateKeys: [...updateKeys, 'Name'],
         updateReducer: (draft) => {
             draft.Name = character.Name
             updateKeys.forEach((key) => {

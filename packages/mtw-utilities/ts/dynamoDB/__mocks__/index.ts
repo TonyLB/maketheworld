@@ -1,11 +1,15 @@
 const dbMock = () => ({
     getItem: jest.fn(),
     batchGetItem: jest.fn(),
+    getItems: jest.fn(),
     query: jest.fn(),
     update: jest.fn(),
     optimisticUpdate: jest.fn(),
     putItem: jest.fn(),
-    deleteItem: jest.fn()
+    deleteItem: jest.fn(),
+    merge: jest.fn(),
+    mergeTransact: jest.fn(),
+    transactWrite: jest.fn()
 })
 
 export const assetDB = dbMock()

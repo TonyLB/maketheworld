@@ -22,6 +22,14 @@ import delayPromise from "./delayPromise"
 import { splitType } from "../types"
 import { WritableDraft } from "immer/dist/internal"
 import { objectMap } from "../objects"
+import withMerge from "./mixins/merge"
+import withTransaction from "./mixins/transact"
+import withUpdate from "./mixins/update"
+import withGetOperations from "./mixins/get"
+import withQuery from "./mixins/query"
+import withBatchWrite from "./mixins/batchWrite"
+import { DBHandlerBase } from "./baseClasses"
+import withPrimitives from "./mixins/primitives"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -33,6 +41,9 @@ const deltaTable = `${TABLE_PREFIX}_message_delta`
 const params = { region: process.env.AWS_REGION }
 const dbClient = new DynamoDBClient(params)
 
+//
+// TODO: Replace hard-coded handlers like assetDB, ephemeraDB, with class instances
+//
 const paginateList = (items, pageSize) => {
     const { requestLists, current } = items
         .reduce((({ current, requestLists }, item) => {
@@ -549,10 +560,6 @@ type EphemeraDBKey = {
     DataCategory: string;
 }
 
-type AddPerAssetTransformArgument = {
-    cached: string[]
-}
-
 export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, options: { retryErrors: string[], retryCallback?: () => Promise<void> }): Promise<T | undefined> => {
     let retries = 0
     let exponentialBackoff = 100
@@ -585,201 +592,6 @@ export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, 
     return undefined
 }
 
-//
-// TODO: Refactor addPerAsset with exponentialBackoffWrapper
-//
-export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransformArgument, A extends Record<string, any>, G extends A>({
-    fetchArgs = () => (Promise.resolve(undefined)),
-    reduceMetaData,
-    updateKeys = ['cached'],
-    extraFetchKeys = [],
-    ExpressionAttributeNames = {}
-}: {
-    fetchArgs?: ({ item, meta }: { item: T, meta?: M }) => Promise<G | undefined>,
-    reduceMetaData: ({ item, fetchedArgs }: { item: T, fetchedArgs: G | undefined }) => (state: WritableDraft<M>) => void,
-    updateKeys?: string[],
-    extraFetchKeys?: string[],
-    ExpressionAttributeNames?: Record<string, string>,
-}) => async (item: T): Promise<void> => {
-    let retries = 0
-    let exponentialBackoff = 100
-    let completed = false
-    const maxRetries = 5
-    const key = {
-        EphemeraId: item.EphemeraId,
-        DataCategory: item.DataCategory
-    }
-    const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
-    const [_, assetKey] = splitType(key.DataCategory)
-    //
-    // Change uppercase tag (e.g. ROOM) to capitalized tag (e.g. Room)
-    //
-    const tag = `${ephemeraTag[0].toUpperCase()}${ephemeraTag.slice(1).toLowerCase()}`
-    while(!completed && retries <= maxRetries) {
-        completed = true
-        try {
-            const { Item: fetchCache } = await dbClient.send(new GetItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId: item.EphemeraId,
-                    DataCategory: `Meta::${tag}`
-                }),
-                ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
-                ProjectionExpression: [...updateKeys, ...extraFetchKeys].join(', ')
-            }))
-            const currentMeta = typeof fetchCache === 'undefined' ? undefined : unmarshall(fetchCache || {}) as M
-            //
-            // Initialize a new record using the asynchronous callback, otherwise just update
-            // the cache in place
-            //
-            const fetchedArgs = await fetchArgs({ item, meta: currentMeta })
-            const updateOutput = updateByReducer({
-                updateKeys,
-                ExpressionAttributeNames,
-                reducer: reduceMetaData({ item, fetchedArgs })
-            })(currentMeta)
-            if (isDynamicUpdateOutput(updateOutput)) {
-                const { ExpressionAttributeNames: newExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
-                const UpdateExpression = [
-                    setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
-                    removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
-                ].filter((value) => (value)).join(' ')
-                if (UpdateExpression) {
-                    await dbClient.send(new TransactWriteItemsCommand({
-                        TransactItems: [{
-                            Put: {
-                                TableName: ephemeraTable,
-                                Item: marshall(item, { removeUndefinedValues: true })
-                            }
-                        },
-                        {
-                            Update: {
-                                TableName: ephemeraTable,
-                                Key: marshall({
-                                    EphemeraId: item.EphemeraId,
-                                    DataCategory: `Meta::${tag}`,
-                                }),
-                                UpdateExpression,
-                                ...(conditionExpressions.length ? {
-                                    ConditionExpression: conditionExpressions.join(' AND ')
-                                } : {}),
-                                ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
-                                ...((newExpressionAttributeNames && Object.values(newExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames: newExpressionAttributeNames } : {}),
-                            }
-                        }]
-                    }))
-                    return
-                }
-            }
-            await dbClient.send(new PutItemCommand({
-                TableName: ephemeraTable,
-                Item: marshall(item, { removeUndefinedValues: true })
-            }))
-        }
-        catch (err: any) {
-            if (err.code === 'ConditionalCheckFailedException') {
-                await delayPromise(exponentialBackoff)
-                exponentialBackoff = exponentialBackoff * 2
-                retries++
-                completed = false
-            }
-            else {
-                if (DEVELOPER_MODE) {
-                    // console.log(`Throwing exception on: ${item.EphemeraId}`)
-                    // console.log(`Item: ${JSON.stringify(item, null, 4)}`)
-                    throw err
-                }
-            }
-        }
-    }
-}
-
-const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
-    let retries = 0
-    let exponentialBackoff = 100
-    let completed = false
-    const maxRetries = 5
-    const [ephemeraTag] = splitType(key.EphemeraId)
-    const [_, assetKey] = splitType(key.DataCategory)
-    const tag = `${ephemeraTag[0].toUpperCase()}${ephemeraTag.slice(1).toLowerCase()}`
-    while(!completed && retries <= maxRetries) {
-        completed = true
-        try {
-            const { Item: fetchCache = {} } = await dbClient.send(new GetItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId: key.EphemeraId,
-                    DataCategory: `Meta::${tag}`
-                }),
-                ProjectionExpression: 'cached'
-            }))
-            const { cached: currentCache = [] } = unmarshall(fetchCache)
-            const newCache = currentCache.filter((value) => (value !== assetKey))
-            if (newCache.length > 0) {
-                await dbClient.send(new TransactWriteItemsCommand({
-                    TransactItems: [{
-                        Delete: {
-                            TableName: ephemeraTable,
-                            Key: marshall(key)
-                        }
-                    },
-                    {
-                        Update: {
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: key.EphemeraId,
-                                DataCategory: `Meta::${tag}`
-                            }),
-                            UpdateExpression: "SET cached = :newCached",
-                            ConditionExpression: "attribute_not_exists(cached) or cached = :oldCached",
-                            ExpressionAttributeValues: marshall({
-                                ':newCached': newCache,
-                                ':oldCached': currentCache
-                            })
-                        }
-                    }]
-                }))
-            }
-            else {
-                await dbClient.send(new TransactWriteItemsCommand({
-                    TransactItems: [{
-                        Delete: {
-                            TableName: ephemeraTable,
-                            Key: marshall(key)
-                        }
-                    },
-                    {
-                        Delete: {
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: key.EphemeraId,
-                                DataCategory: `Meta::${tag}`,
-                            }),
-                            ConditionExpression: "attribute_not_exists(cached) or cached = :cached",
-                            ExpressionAttributeValues: marshall({
-                                ':cached': currentCache
-                            })
-                        }
-                    }]
-                }))
-            }
-        }
-        catch (err: any) {
-            if (err.code === 'ConditionalCheckFailedException') {
-                await delayPromise(exponentialBackoff)
-                exponentialBackoff = exponentialBackoff * 2
-                retries++
-                completed = false
-            }
-            else {
-                if (DEVELOPER_MODE) {
-                    throw err
-                }
-            }
-        }
-    }
-}
-
 export const multiTableTransactWrite = async (items: TransactWriteItem[]): Promise<void> => {
     const remapTable = (table: string) => {
         if (table === 'Ephemera') {
@@ -807,17 +619,100 @@ export const multiTableTransactWrite = async (items: TransactWriteItem[]): Promi
     await dbClient.send(new TransactWriteItemsCommand({ TransactItems: remappedItems }))
 }
 
-export const ephemeraDB = {
-    getItem: abstractGetItem<EphemeraDBKey>(ephemeraTable),
-    batchGetItem: abstractBatchGet<EphemeraDBKey>(ephemeraTable),
-    query: ephemeraQueryFactory(dbClient),
-    update: abstractUpdate<EphemeraDBKey>(ephemeraTable),
-    optimisticUpdate: abstractOptimisticUpdate(ephemeraTable),
-    putItem: abstractPutItem<EphemeraDBKey>(ephemeraTable),
-    deleteItem: abstractDeleteItem<EphemeraDBKey>(ephemeraTable),
-    addPerAsset,
-    removePerAsset
+export const multiTableTransactWriteGeneric = async (items: TransactWriteItem[]): Promise<void> => {
+    const remapTable = (table: string) => {
+        if (table === 'Ephemera') {
+            return [ephemeraTable, 'EphemeraId']
+        }
+        if (table === 'Connections') {
+            return [connectionsTable, 'ConnectionId']
+        }
+        if (table === 'Assets') {
+            return [assetsTable, 'AssetId']
+        }
+        if (table === 'Messages') {
+            return [messageTable, 'MessageId']
+        }
+        throw new Error(`Illegal table in multiTableTransactWriteGeneric: ${table}`)
+    }
+    const remappedItems = items
+        .map((entry) => {
+            if (entry.Put) {
+                const putEntry = entry.Put
+                if (!putEntry || !putEntry.TableName || !putEntry.Item) {
+                    throw new Error('Blank TableName or Item not allowed in multiTableTransactWriteGeneric Put')
+                }
+                    const { TableName: unmappedTableName, Item, ...rest } = putEntry
+                const [TableName, keyLabel] = remapTable(unmappedTableName)
+                if (!Item.PrimaryKey) {
+                    throw new Error('Blank PrimaryKey not allowed in multiTableTransactWriteGeneric Put')
+                }
+                const { PrimaryKey, ...itemRest } = Item
+                return {
+                    Put: {
+                        TableName,
+                        Item: {
+                            [keyLabel]: PrimaryKey,
+                            ...itemRest
+                        },
+                        ...rest
+                    }
+                }
+            }
+            let label = ''
+            if (entry.Update) {
+                label = 'Update'
+            }
+            if (entry.Delete) {
+                label = 'Delete'
+            }
+            if (entry.ConditionCheck) {
+                label = 'ConditionCheck'
+            }
+            if (!label) {
+                throw new Error('Illegal transaction record in multiTableTransactWriteGeneric')
+            }
+            const item = entry[label]
+            if (!item || !item.TableName || !item.Key) {
+                throw new Error('Blank TableName or Key not allowed in multiTableTransactWriteGeneric')
+            }
+            const { TableName: unmappedTableName, Key, ...rest } = item
+            const [TableName, keyLabel] = remapTable(unmappedTableName)
+            return {
+                [label]: {
+                    TableName,
+                    Key: {
+                        [keyLabel]: item.Key.PrimaryKey,
+                        DataCategory: item.Key.DataCategory
+                    },
+                    ...rest
+                }
+            }
+        })
+    await dbClient.send(new TransactWriteItemsCommand({ TransactItems: remappedItems }))
 }
+
+export const ephemeraDB = new (
+        withMerge<'EphemeraId', string>()(
+            withTransaction<'EphemeraId', string>()(
+                withUpdate<'EphemeraId', string>()(
+                    withGetOperations<'EphemeraId', string>()(
+                        withQuery<'EphemeraId', string>()(
+                            withBatchWrite<'EphemeraId', string>()(
+                                withPrimitives<'EphemeraId', string>()(DBHandlerBase)
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )({
+    client: dbClient,
+    tableName: ephemeraTable,
+    incomingKeyLabel: 'EphemeraId',
+    internalKeyLabel: 'EphemeraId',
+    options: { getBatchSize: 50 }
+})
 
 type AssetDBKey = {
     AssetId: string;

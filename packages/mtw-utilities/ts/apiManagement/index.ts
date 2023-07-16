@@ -1,5 +1,5 @@
 import { apiClient } from './apiManagementClient'
-import { ephemeraDB } from '../dynamoDB'
+import { ephemeraDB as ephemeraDB } from '../dynamoDB'
 import { unique } from '../lists'
 
 type MessageQueueContents = {
@@ -211,8 +211,10 @@ export class SocketQueue extends Object {
         }
         if (queueHasContent(this.globalMessageQueue) || Object.values(this.messageQueueByPlayer).find((queue) => (queueHasContent(queue)))) {
             const { connections = {} } = await ephemeraDB.getItem<{ connections: Record<string, string>}>({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections',
+                Key: {
+                    EphemeraId: 'Global',
+                    DataCategory: 'Connections'
+                },
                 ProjectionFields: ['connections']
             }) as any
             await Promise.all(

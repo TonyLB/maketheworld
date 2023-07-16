@@ -96,7 +96,7 @@ describe('DependencyCascadeMessage', () => {
     })
 
     it('should update in parallel and combine cascades', async () => {
-        ephemeraDBMock.getItem.mockImplementation(async ({ EphemeraId }) => {
+        ephemeraDBMock.getItem.mockImplementation(async ({ Key: { EphemeraId } }) => {
             if (EphemeraId === 'COMPUTED#TestOne') {
                 return {
                     src: 'a + b',

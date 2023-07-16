@@ -171,8 +171,8 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        ephemeraDBMock.getItem
-            .mockResolvedValueOnce({ State: {} })
+        // ephemeraDBMock.getItem
+        //     .mockResolvedValueOnce({  State: {} })
         mockNamespaceMap = {
             test: 'ASSET#test',
             ABC: 'ROOM#DEF',
@@ -375,8 +375,8 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        ephemeraDBMock.getItem
-            .mockResolvedValueOnce({ State: {} })
+        // ephemeraDBMock.getItem
+        //     .mockResolvedValueOnce({ State: {} })
         mockNamespaceMap = {
             test: 'ASSET#test',
             ABC: 'ROOM#ABC',

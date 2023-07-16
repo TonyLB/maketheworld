@@ -108,7 +108,6 @@ export class DeferredCacheGeneral <K, T>{
             }
         })
         if (fetchNeeded.length) {
-            let cache = this._cache
             //
             // Record current invalidationCounter (if any) in each target Deferred, and pass that to the
             // resolve call later.  If you get an invalid resolve, repeat up to ten times to try to

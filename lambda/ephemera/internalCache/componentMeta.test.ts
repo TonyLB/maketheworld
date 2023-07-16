@@ -13,7 +13,7 @@ describe('ComponentMeta', () => {
     })
 
     it('should send multiple fetches correctly', async () => {
-        ephemeraMock.batchGetItem.mockResolvedValue([{
+        ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             appearances: [{
                 name: [],
@@ -66,14 +66,13 @@ describe('ComponentMeta', () => {
                 }]
             }
         })
-        expect(ephemeraMock.batchGetItem).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.batchGetItem).toHaveBeenCalledWith({
-            Items: [
+        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
+        expect(ephemeraMock.getItems).toHaveBeenCalledWith({
+            Keys: [
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ],
-            ProjectionFields: ['DataCategory', 'appearances', '#key'],
-            ExpressionAttributeNames: { '#key': 'key' }
+            ProjectionFields: ['DataCategory', 'appearances', 'key']
         })
     })
 
@@ -92,7 +91,7 @@ describe('ComponentMeta', () => {
                 conditions: []
             }]
         })
-        ephemeraMock.batchGetItem.mockResolvedValue([{
+        ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             appearances: [{
                 name: [],
@@ -136,18 +135,17 @@ describe('ComponentMeta', () => {
                 key: 'testTwo'
             }
         })
-        expect(ephemeraMock.batchGetItem).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.batchGetItem).toHaveBeenCalledWith({
-            Items: [
+        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
+        expect(ephemeraMock.getItems).toHaveBeenCalledWith({
+            Keys: [
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' }
             ],
-            ProjectionFields: ['DataCategory', 'appearances', '#key'],
-            ExpressionAttributeNames: { '#key': 'key' }
+            ProjectionFields: ['DataCategory', 'appearances', 'key']
         })
     })
 
     it('should default fetches that do not return', async () => {
-        ephemeraMock.batchGetItem.mockResolvedValue([{
+        ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             appearances: [{
                 name: [],
@@ -183,14 +181,13 @@ describe('ComponentMeta', () => {
                 key: ''
             }
         })
-        expect(ephemeraMock.batchGetItem).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.batchGetItem).toHaveBeenCalledWith({
-            Items: [
+        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
+        expect(ephemeraMock.getItems).toHaveBeenCalledWith({
+            Keys: [
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ],
-            ProjectionFields: ['DataCategory', 'appearances', '#key'],
-            ExpressionAttributeNames: { '#key': 'key' }
+            ProjectionFields: ['DataCategory', 'appearances', 'key']
         })
     })
 

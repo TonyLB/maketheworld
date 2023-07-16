@@ -13,8 +13,10 @@ export class CacheRoomCharacterListsData {
             const { activeCharacters = [] } = await ephemeraDB.getItem<{
                     activeCharacters: RoomCharacterListItem[]
                 }>({
-                    EphemeraId: roomId,
-                    DataCategory: 'Meta::Room',
+                    Key: {
+                        EphemeraId: roomId,
+                        DataCategory: 'Meta::Room'
+                    },
                     ProjectionFields: ['activeCharacters']
                 }) || { activeCharacters: [] }
             this.CharacterListByRoom[roomId] = activeCharacters

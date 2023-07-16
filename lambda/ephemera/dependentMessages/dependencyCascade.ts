@@ -29,12 +29,11 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
         if (isEphemeraComputedId(targetId)) {
             await exponentialBackoffWrapper(async () => {
                 const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNode[]; src: string; value: any }>({
-                    EphemeraId: targetId,
-                    DataCategory: 'Meta::Computed',
-                    ProjectionFields: ['src', '#value'],
-                    ExpressionAttributeNames: {
-                        '#value': 'value'
-                    }
+                    Key: {
+                        EphemeraId: targetId,
+                        DataCategory: 'Meta::Computed'
+                    },
+                    ProjectionFields: ['src', 'value']
                 })
                 if (!fetchComputed) {
                     return
