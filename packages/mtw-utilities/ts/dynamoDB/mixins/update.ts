@@ -8,14 +8,16 @@ import withGetOperations from "./get"
 import { DEVELOPER_MODE } from '../../constants'
 import delayPromise from "../delayPromise"
 
-type DynamicUpdateOutputCommon = {
+type DynamicUpdateOutputCommon<T extends Record<string, any>> = {
     ExpressionAttributeNames: Record<string, any>;
     ExpressionAttributeValues: Record<string, any>;
     conditionExpressions: string[];
+    newState: T;
 }
-type DynamicUpdateOutput = {
+
+type DynamicUpdateOutput<T extends Record<string, any>> = {
     action: 'ignore';
-} | (DynamicUpdateOutputCommon & (
+} | (DynamicUpdateOutputCommon<T> & (
     {
         action: 'update';
         setExpressions: string[];
@@ -32,7 +34,7 @@ type DynamicUpdateInProgress = {
     removeExpressions: string[];
 }
 
-const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, checkKeys, deleteCondition }: { updateKeys: string[]; reducer: (draft: WritableDraft<T>) => void, checkKeys?: string[], deleteCondition?: (value: T) => boolean }) => (state: T | undefined): DynamicUpdateOutput => {
+const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, checkKeys, deleteCondition }: { updateKeys: string[]; reducer: (draft: WritableDraft<T>) => void, checkKeys?: string[], deleteCondition?: (value: T) => boolean }) => (state: T | undefined): DynamicUpdateOutput<T> => {
     const { ExpressionAttributeNames } = mapProjectionFields(updateKeys)
     const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
     const newState = produce(state || {}, reducer) as T
@@ -109,7 +111,8 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
                 action: 'delete',
                 ExpressionAttributeNames: dynamicOutput.ExpressionAttributeNames,
                 ExpressionAttributeValues: dynamicOutput.oldExpressionAttributeValues,
-                conditionExpressions: dynamicOutput.conditionExpressions
+                conditionExpressions: dynamicOutput.conditionExpressions,
+                newState
             }
         }
         return {
@@ -118,7 +121,8 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
             ExpressionAttributeValues: { ...dynamicOutput.oldExpressionAttributeValues, ...dynamicOutput.newExpressionAttributeValues },
             conditionExpressions: dynamicOutput.conditionExpressions,
             setExpressions: dynamicOutput.setExpressions,
-            removeExpressions: dynamicOutput.removeExpressions
+            removeExpressions: dynamicOutput.removeExpressions,
+            newState
         }
     }
     else {
@@ -138,7 +142,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
             removeExpressions: [],
             conditionExpressions: []
         }
-        return { action: 'update', ...produce(startingDraft, (draft) => {
+        return { action: 'update', newState, ...produce(startingDraft, (draft) => {
             draft.conditionExpressions.push(`attribute_not_exists(DataCategory)`)
             updateKeys.forEach((key, index) => {
                 const translatedKey = key in translateToExpressionAttributeNames ? translateToExpressionAttributeNames[key] : key
@@ -186,7 +190,7 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     // deleteCascade, if provided, creates a list of keys *beyond* the one deleted by deleteCondition (above),
     // to also delete (e.g., removing a meta record and removing any cache records associated with it)
     //
-    deleteCascade?: (output: T) => DBHandlerKey<KIncoming, KeyType>[];
+    deleteCascade?: (output: DBHandlerItem<KIncoming, KeyType>) => DBHandlerKey<KIncoming, KeyType>[];
 }
 
 type OptimisticUpdateFactoryOutput = {
@@ -234,16 +238,20 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             }
             else if (updateOutput.action === 'delete') {
                 const { ExpressionAttributeNames, ExpressionAttributeValues, conditionExpressions } = updateOutput
+                const cascadeDeletes = deleteCascade ? deleteCascade({ ...Key, ...updateOutput.newState }) : []
                 return {
                     action: 'delete',
-                    deletes: [{
-                        Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
-                        ...(conditionExpressions.length ? {
-                            ConditionExpression: conditionExpressions.join(' AND ')
-                        } : {}),
-                        ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
-                        ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
-                    }]
+                    deletes: [
+                        {
+                            Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
+                            ...(conditionExpressions.length ? {
+                                ConditionExpression: conditionExpressions.join(' AND ')
+                            } : {}),
+                            ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                            ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
+                        },
+                        ...cascadeDeletes.map((key) => ({ Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true }) }))
+                    ]
                 }
             }
             else {

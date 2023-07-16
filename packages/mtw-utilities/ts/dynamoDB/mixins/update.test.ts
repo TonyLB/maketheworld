@@ -387,5 +387,60 @@ describe('withUpdate', () => {
 
         })
 
+        it('should remove records provided by deleteCascade', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', listField: ['a', 'b'] })})
+                .mockResolvedValue({})
+            const output = await dbHandler.optimisticUpdate<{ PrimaryKey: string; DataCategory: string; listField: string[] }>({
+                Key: {
+                    PrimaryKey: 'TEST',
+                    DataCategory: 'Meta::Test'
+                },
+                updateKeys: ['listField'],
+                updateReducer: (draft) => {
+                    draft.listField = draft.listField.filter((value) => (['c', 'd'].includes(value)))
+                },
+                deleteCondition: ({ listField }) => (listField.length === 0),
+                deleteCascade: ({ PrimaryKey }) => ([
+                    { PrimaryKey, DataCategory: 'Graph::Forward' },
+                    { PrimaryKey, DataCategory: 'Graph::Back' }
+                ])
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(4)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
+                TableName: 'Ephemera',
+                ProjectionExpression: 'listField'
+            })
+            expect(dbMock.send.mock.calls[1][0].input).toEqual({
+                ConditionExpression: "listField = :Old0",
+                ExpressionAttributeValues: marshall({
+                    ":Old0": ['a', 'b']
+                }),
+                Key: marshall({
+                    EphemeraId: "TEST",
+                    DataCategory: "Meta::Test",
+                }),
+                TableName: "Ephemera"
+            })
+            expect(dbMock.send.mock.calls[2][0].input).toEqual({
+                Key: marshall({
+                    EphemeraId: "TEST",
+                    DataCategory: "Graph::Forward",
+                }),
+                TableName: "Ephemera"
+            })
+            expect(dbMock.send.mock.calls[3][0].input).toEqual({
+                Key: marshall({
+                    EphemeraId: "TEST",
+                    DataCategory: "Graph::Back",
+                }),
+                TableName: "Ephemera"
+            })
+            expect(output).toEqual({})
+
+        })
+
+
     })
 })
