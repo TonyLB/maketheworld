@@ -11,6 +11,7 @@ import { exponentialBackoffWrapper } from "../../dynamoDB"
 import withGetOperations from "../../dynamoDB/mixins/get"
 import withUpdate from "../../dynamoDB/mixins/update"
 import withTransaction, { TransactionRequest } from "../../dynamoDB/mixins/transact"
+import kargerStein from "../utils/graph/kargerStein"
 
 const capitalize = (value: string) => (`${value.slice(0, 1).toUpperCase()}${value.slice(1)}`)
 
@@ -305,7 +306,7 @@ type GraphOfUpdatesEdge = {
 
 class GraphOfUpdates extends Graph<string, GraphOfUpdatesNode, GraphOfUpdatesEdge> {}
 
-const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH }) => async (graph: GraphOfUpdates): Promise<void> => {
+const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH; threshold?: number }) => async (graph: GraphOfUpdates): Promise<void> => {
     const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
     fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
 
@@ -342,6 +343,16 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         checkUpdateAgainstCurrent(graph, edge, 'forward')
         checkUpdateAgainstCurrent(graph, edge, 'back')
     })
+
+    //
+    // Check if current graph is split into smaller chunks by Karger-Stein algorithm and recurse if needed
+    //
+    const { subGraphs, cutSet } = kargerStein(graph, metaProps.threshold || 50)
+    if (Object.keys(cutSet.nodes).length) {
+        await Promise.all(subGraphs.map(updateGraphStorageBatch(metaProps)))
+        await updateGraphStorageBatch(metaProps)(cutSet)
+        return
+    }
 
     const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number): TransactionRequest<'PrimaryKey'> => {
         const node = graph.nodes[key]
