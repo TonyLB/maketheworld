@@ -56,6 +56,35 @@ describe('withTransactions', () => {
         ]})
     })
 
+    it('should assign ExpressionAttributeName values correctly', async () => {
+        getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestUpdate', DataCategory: 'Update' }])
+        await dbHandler.transactWrite([
+            { Put: { PrimaryKey: 'TestPut', DataCategory: 'Put', Name: 'PutTest' } as any },
+            { Delete: { PrimaryKey: 'TestDelete', DataCategory: 'Delete' }},
+            { Update: {
+                Key: { PrimaryKey: 'TestUpdate', DataCategory: 'Update' },
+                updateKeys: ['Name'],
+                updateReducer: (draft) => {
+                    draft.Name = 'UpdateTest'
+                }
+            }}
+        ])
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+            { Put: { TableName: 'Ephemera', Item: marshall({ EphemeraId: 'TestPut', DataCategory: 'Put', '#name': 'PutTest' }), ExpressionAttributeNames: { '#name': 'Name' } } },
+            { Delete: { TableName: 'Ephemera', Key: marshall({ EphemeraId: 'TestDelete', DataCategory: 'Delete' }) } },
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestUpdate', DataCategory: 'Update' }),
+                UpdateExpression: 'SET #name = :New0',
+                ExpressionAttributeValues: marshall({ ':New0': 'UpdateTest' }),
+                ExpressionAttributeNames: { '#name': 'Name' },
+                ConditionExpression: 'attribute_not_exists(#name)'
+            }}
+        ]})
+    })
+
+
     it('should process transaction updates with priorFetch', async () => {
         await dbHandler.transactWrite([
             { Update: {
