@@ -146,7 +146,7 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     // priorFetch primes the pump for the get/update cycle by providing pre-existing data
     // for the first attempt (presumably for caches)
     //
-    priorFetch?: T;
+    priorFetch?: T | { [K in string]: never };
     //
     // checkKeys, if provided, gives a specific set of keys to compare against previous values
     // in order to determine if the record is unchanged since fetch (e.g., an updatedAt field
@@ -165,7 +165,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
         // attempt to create those changes in the DB.
         //
         _optimisticUpdateFactory<Fetch extends Partial<DBHandlerItem<KIncoming, T>>>(
-                previousItem: Fetch | undefined,
+                previousItem: Fetch | { [x: string]: never } | undefined,
                 props: { Key: DBHandlerKey<KIncoming, T> } & UpdateExtendedProps<KIncoming, T, Fetch>
             ): Omit<UpdateItemCommandInput, 'TableName' | 'ReturnValues'> | undefined
         {
@@ -178,7 +178,8 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             if (!updateKeys.length) {
                 return undefined
             }
-            const updateOutput = updateByReducer({ updateKeys, reducer: updateReducer, checkKeys })(previousItem)
+            const undefineEmptyObject = (value: Fetch | { [x: string]: never } | undefined): Fetch | undefined => ((value && Object.keys(value).length) ? value as Fetch : undefined)
+            const updateOutput = updateByReducer({ updateKeys, reducer: updateReducer, checkKeys })(undefineEmptyObject(previousItem))
             if (!isDynamicUpdateOutput(updateOutput)) {
                 return undefined
             }
@@ -233,10 +234,10 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             let completed = false
             while(!completed && (retries <= (maxRetries ?? 5))) {
                 completed = true
-                const stateFetch = (!retries && priorFetch) || (await this.getItem<Update>({
+                const stateFetch = ((!retries && priorFetch) || (await this.getItem<Update>({
                     Key,
                     ProjectionFields: updateKeys,
-                }))
+                }))) as Update | { [x: string]: never } | undefined
                 const state = stateFetch || {}
                 const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer, checkKeys })
                 if (typeof updateOutput === 'undefined') {

@@ -306,9 +306,7 @@ type GraphOfUpdatesEdge = {
 class GraphOfUpdates extends Graph<string, GraphOfUpdatesNode, GraphOfUpdatesEdge> {}
 
 const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphCache<ReturnType<ReturnType<typeof GraphNode>>>>>>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH }) => async (graph: GraphOfUpdates): Promise<void> => {
-    console.log(`updateGraphStorageBatch: ${JSON.stringify(graph, null, 4)}`)
     const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
-    console.log(`fetchedNodes: ${JSON.stringify(fetchedNodes, null, 4)}`)
     fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
 
     const checkUpdateAgainstCurrent = (graph: GraphOfUpdates, edge: GraphEdge<string, GraphOfUpdatesEdge>, direction: 'forward' | 'back' ) => {
@@ -400,7 +398,6 @@ const updateGraphStorageBatch = <C extends InstanceType<ReturnType<typeof GraphC
         )))
     ]
 
-    console.log(`transactions: ${JSON.stringify(transactions, null, 4)}`)
     await metaProps.dbHandler.transactWrite(transactions)
 }
 

@@ -56,4 +56,52 @@ describe('withTransactions', () => {
         ]})
     })
 
+    it('should process transaction updates with priorFetch', async () => {
+        await dbHandler.transactWrite([
+            { Update: {
+                Key: { PrimaryKey: 'TestUpdate', DataCategory: 'Update' },
+                updateKeys: ['TestValue'],
+                updateReducer: (draft) => {
+                    draft.TestValue = 5
+                },
+                priorFetch: { TestValue: 2 }
+            }}
+        ])
+        expect(getItemsMock).toHaveBeenCalledTimes(0)
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestUpdate', DataCategory: 'Update' }),
+                UpdateExpression: 'SET TestValue = :New0',
+                ExpressionAttributeValues: marshall({ ':New0': 5, ':Old0': 2 }),
+                ConditionExpression: 'TestValue = :Old0'
+            }}
+        ]})
+    })
+
+    it('should process transaction updates with empty priorFetch', async () => {
+        await dbHandler.transactWrite([
+            { Update: {
+                Key: { PrimaryKey: 'TestUpdate', DataCategory: 'Update' },
+                updateKeys: ['TestValue'],
+                updateReducer: (draft) => {
+                    draft.TestValue = 5
+                },
+                priorFetch: {}
+            }}
+        ])
+        expect(getItemsMock).toHaveBeenCalledTimes(0)
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestUpdate', DataCategory: 'Update' }),
+                UpdateExpression: 'SET TestValue = :New0',
+                ExpressionAttributeValues: marshall({ ':New0': 5 }),
+                ConditionExpression: 'attribute_not_exists(DataCategory)'
+            }}
+        ]})
+    })
+
 })

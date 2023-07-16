@@ -246,7 +246,39 @@ describe('withUpdate', () => {
             })
             expect(output).toEqual({ PrimaryKey: 'TEST', DataCategory: 'Meta::Test', testOne: 'Test', testTwo: 'Another test' })
         })
-    
+
+        it('should update when empty item in priorFetch', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Test', testTwo: 'Another test' })})
+            const output = await dbHandler.optimisticUpdate<{ testOne: string; testTwo: string }>({
+                Key: {
+                    PrimaryKey: 'TEST',
+                    DataCategory: 'Meta::Test'
+                },
+                updateKeys: ['testOne', 'testTwo'],
+                updateReducer: (draft) => {
+                    draft.testOne = 'Test'
+                    draft.testTwo = 'Another test'
+                },
+                priorFetch: {}
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                ConditionExpression: "attribute_not_exists(DataCategory)",
+                ExpressionAttributeValues: marshall({
+                  ":New0": "Test",
+                  ":New1": "Another test"
+                }),
+                Key: marshall({
+                    EphemeraId: "TEST",
+                    DataCategory: "Meta::Test",
+                }),
+                TableName: "Ephemera",
+                UpdateExpression: "SET testOne = :New0, testTwo = :New1",
+            })
+            expect(output).toEqual({ PrimaryKey: 'TEST', DataCategory: 'Meta::Test', testOne: 'Test', testTwo: 'Another test' })
+        })
+
         it('should update when field not defined', async () => {
             dbMock.send
                 .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test' })})

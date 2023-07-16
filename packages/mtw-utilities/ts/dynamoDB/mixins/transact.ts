@@ -21,15 +21,18 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
         ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class TransactionDBHandler extends Base {
         async transactWrite(items: TransactionRequest<KIncoming, T>[]) {
-            const itemsToFetch = items.reduce<TransactionRequestUpdate<KIncoming, T>[]>((previous, item) => ('Update' in item ? [...previous, item.Update] : previous), [])
+            //
+            // TODO: ISS2713: Wrap transaction call in exponentialBackoffWrapper if there are any Updates in it
+            //
+            const itemsToFetch = items.reduce<TransactionRequestUpdate<KIncoming, T>[]>((previous, item) => ('Update' in item && (!('priorFetch' in item.Update)) ? [...previous, item.Update] : previous), [])
             const aggregateProjectionFields = unique(
                 [this._incomingKeyLabel, 'DataCategory'],
                 ...itemsToFetch.map(({ updateKeys }) => (updateKeys))
             )
-            const fetchedItems = await this.getItems<DBHandlerItem<KIncoming, T>>({
+            const fetchedItems = itemsToFetch.length ? await this.getItems<DBHandlerItem<KIncoming, T>>({
                 Keys: itemsToFetch.map((item) => (item.Key)),
                 ProjectionFields: aggregateProjectionFields
-            })
+            }) : []
 
             const transactions = items.map<TransactWriteItem | undefined>((item) => {
                 if ('Put' in item) {
@@ -49,10 +52,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                     }
                 }
                 if ('Update' in item) {
-                    const fetchedItem = fetchedItems.find((checkItem) => (checkItem[this._incomingKeyLabel] === item.Update.Key[this._incomingKeyLabel] && checkItem.DataCategory === item.Update.Key.DataCategory))
-                    if (!fetchedItem) {
-                        return undefined
-                    }
+                    const fetchedItem = item.Update.priorFetch || fetchedItems.find((checkItem) => (checkItem[this._incomingKeyLabel] === item.Update.Key[this._incomingKeyLabel] && checkItem.DataCategory === item.Update.Key.DataCategory))
                     const updateTransaction = this._optimisticUpdateFactory(fetchedItem, item.Update)
                     if (!updateTransaction) {
                         return undefined
