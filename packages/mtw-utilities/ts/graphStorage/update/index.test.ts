@@ -60,7 +60,7 @@ describe('graphStore legacy update', () => {
 
         expect(optimisticUpdate).toHaveBeenCalledTimes(2)
         expect(optimisticUpdate).toHaveBeenCalledWith({
-            key: {
+            Key: {
                 EphemeraId: 'ASSET#ImportTwo',
                 DataCategory: 'Meta::Asset'
             },
@@ -68,7 +68,7 @@ describe('graphStore legacy update', () => {
             updateReducer: expect.any(Function)
         })
         expect(optimisticUpdate).toHaveBeenCalledWith({
-            key: {
+            Key: {
                 EphemeraId: 'ASSET#ImportOne',
                 DataCategory: 'Meta::Asset'
             },
@@ -243,7 +243,7 @@ describe('graphStore legacy update', () => {
 
         expect(optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(optimisticUpdate).toHaveBeenCalledWith({
-            key: {
+            Key: {
                 EphemeraId: 'ASSET#ImportOne',
                 DataCategory: 'Meta::Asset'
             },
@@ -294,7 +294,7 @@ describe('graphStore legacy update', () => {
 
         expect(optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(optimisticUpdate).toHaveBeenCalledWith({
-            key: {
+            Key: {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
             },
@@ -362,7 +362,7 @@ describe('graphStore legacy update', () => {
 
         expect(optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(optimisticUpdate).toHaveBeenCalledWith({
-            key: {
+            Key: {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
             },
@@ -411,7 +411,7 @@ describe('graphStore legacy update', () => {
 
         expect(optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(optimisticUpdate).toHaveBeenCalledWith({
-            key: {
+            Key: {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
             },
@@ -462,7 +462,7 @@ describe('graphStore legacy update', () => {
 
         expect(optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(optimisticUpdate).toHaveBeenCalledWith({
-            key: {
+            Key: {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
             },
@@ -522,7 +522,7 @@ describe('graphStore new update', () => {
 
     it('should correctly add disjoint edges', async () => {
         internalCache.Nodes.get.mockResolvedValue([])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await updateGraphStorage({ internalCache, dbHandler })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -564,7 +564,7 @@ describe('graphStore new update', () => {
 
     it('should correctly add connecting edges', async () => {
         internalCache.Nodes.get.mockResolvedValue([])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await updateGraphStorage({ internalCache, dbHandler })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -613,7 +613,7 @@ describe('graphStore new update', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'TEST' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await updateGraphStorage({ internalCache, dbHandler })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
@@ -648,7 +648,7 @@ describe('graphStore new update', () => {
             { PrimaryKey: 'ASSET#ImportThree', forward: { edges: [{ target: 'ASSET#ImportFour', context: 'ASSET' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportFour', back: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] }, forward: { edges: [] } },
         ])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await updateGraphStorage({ internalCache, dbHandler })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 deleteItem: {
@@ -686,7 +686,7 @@ describe('graphStore new update', () => {
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] } },
             { PrimaryKey: 'ASSET#ImportThree', back: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await updateGraphStorage({ internalCache, dbHandler })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 deleteItem: {
@@ -723,7 +723,7 @@ describe('graphStore new update', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }, { target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }, { target: 'ASSET#ImportOne', context: 'TEST' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await updateGraphStorage({ internalCache, dbHandler })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 deleteItem: {
@@ -748,7 +748,7 @@ describe('graphStore new update', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }, { target: 'ASSET#ImportTwo', context: 'ASSETTWO' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }, { target: 'ASSET#ImportOne', context: 'ASSETTWO' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await updateGraphStorage({ internalCache, dbHandler })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 deleteItem: {
@@ -773,7 +773,7 @@ describe('graphStore new update', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }], updatedAt: 500 }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler, keyLabel: 'EphemeraId' })({
+        await updateGraphStorage({ internalCache, dbHandler })({
             descent: [{
                 EphemeraId: 'ASSET#ImportOne',
                 putItem: {
