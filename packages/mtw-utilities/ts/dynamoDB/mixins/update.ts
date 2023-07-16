@@ -150,7 +150,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
                         draft.ExpressionAttributeNames[translatedKey] = key
                     }
                     draft.ExpressionAttributeValues[`:New${index}`] = newState[key]
-                    draft.setExpressions.push(`${key} = :New${index}`)
+                    draft.setExpressions.push(`${translatedKey} = :New${index}`)
                 }
             })
         }) }
