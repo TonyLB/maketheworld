@@ -5,7 +5,7 @@
 //
 
 import { Graph } from "."
-import { objectEntryMap, objectFilter, objectMap } from "../../../objects";
+import { objectEntryMap, objectFilter } from "../../../objects";
 import { GraphEdge } from "./baseClasses";
 
 type KargerSteinReturn<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = {
@@ -20,7 +20,7 @@ type KargerSteinMergeLabel<K extends string> = {
 
 type KargerSteinMergeSet<K extends string> = Partial<Record<K, KargerSteinMergeLabel<K>>>
 
-export const countMergedNodesAndEdges = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, { key: string }>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>, edge: GraphEdge<K, E>): number => {
+export const countMergedNodesAndEdges = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>, edge: GraphEdge<K, E>): number => {
     const fromLabel = mergeLabels[edge.from]?.key || edge.from
     const toLabel = mergeLabels[edge.to]?.key || edge.to
     const edgeCount = graph.edges.filter(({ from, to }) => ([fromLabel, toLabel].includes(mergeLabels[from]?.key || from) && [fromLabel, toLabel].includes(mergeLabels[to]?.key || to))).length
@@ -30,7 +30,7 @@ export const countMergedNodesAndEdges = <K extends string, T extends { key: K } 
 
 export const randomInRange = (range: number): number => (Math.floor(Math.random() * range))
 
-export const selectRandomUnmergedEdge = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, { key: string }>>(graph: Graph<K, T, E>, mergeLabels: Partial<Record<K, KargerSteinMergeLabel<K>>>, threshold: number): number | undefined => {
+export const selectRandomUnmergedEdge = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, mergeLabels: Partial<Record<K, KargerSteinMergeLabel<K>>>, threshold: number): number | undefined => {
     const unmergedEdgeIndices = graph.edges.reduce<number[]>((previous, edge, index) => {
         const { from, to } = edge
         if ((mergeLabels[from]?.key || from) !== (mergeLabels[to]?.key || to)) {
@@ -50,7 +50,7 @@ export const selectRandomUnmergedEdge = <K extends string, T extends { key: K } 
     return unmergedEdgeIndices[randomInRange(unmergedEdgeIndices.length)]
 }
 
-export const mergeEdge = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, { key: string }>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>, edge: GraphEdge<K, E>): KargerSteinMergeSet<K>  => {
+export const mergeEdge = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>, edge: GraphEdge<K, E>): KargerSteinMergeSet<K>  => {
     const fromLabel = mergeLabels[edge.from]?.key || edge.from
     const toLabel = mergeLabels[edge.to]?.key || edge.to
     const nodesAndEdges = countMergedNodesAndEdges(graph, mergeLabels, edge)
@@ -70,7 +70,7 @@ export const mergeEdge = <K extends string, T extends { key: K } & Record<string
     } as KargerSteinMergeSet<K>
 }
 
-const kargerSteinIteration = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, { key: string }>>(graph: Graph<K, T, E>, threshold: number): KargerSteinMergeSet<K> => {
+const kargerSteinIteration = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, threshold: number): KargerSteinMergeSet<K> => {
     let mergeLabels: KargerSteinMergeSet<K> = {}
     while(true) {
         const edgeToMerge = selectRandomUnmergedEdge(graph, mergeLabels, threshold)
@@ -83,7 +83,7 @@ const kargerSteinIteration = <K extends string, T extends { key: K } & Record<st
     return mergeLabels
 }
 
-const componentFactory = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, { key: string }>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>): Graph<K, T, E>[] => {
+const componentFactory = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>): Graph<K, T, E>[] => {
     const nodesByComponent = Object.keys(graph.nodes).reduce<Partial<Record<K, K[]>>>((previous, key) => (
             mergeLabels[key]
             ? {
@@ -108,7 +108,7 @@ const componentFactory = <K extends string, T extends { key: K } & Record<string
     })
 }
 
-const cutSetFactory = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, { key: string }>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>): Graph<K, T, E> => {
+const cutSetFactory = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>): Graph<K, T, E> => {
     const edges = graph.edges.filter(({ from, to }) => ((mergeLabels[from]?.key || from) !== (mergeLabels[to]?.key || to)))
     const nodes = edges.reduce<Partial<Record<K, T>>>((previous, { from, to }) => ({
         ...previous,
@@ -118,7 +118,7 @@ const cutSetFactory = <K extends string, T extends { key: K } & Record<string, a
     return new Graph(nodes, edges, graph._default)
 }
 
-export const kargerStein = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, { key: string }>>(graph: Graph<K, T, E>, threshold: number): KargerSteinReturn<K, T, E> => {
+export const kargerStein = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, threshold: number): KargerSteinReturn<K, T, E> => {
     if ((Object.keys(graph.nodes).length + graph.edges.length) < threshold) {
         return {
             subGraphs: [graph],
