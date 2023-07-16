@@ -3,7 +3,7 @@ import withGetOperations from "../../dynamoDB/mixins/get";
 import { CacheConstructor } from "./baseClasses";
 import { DeferredCache } from "./deferredCache";
 
-export type GraphNodeCacheDirectEdge <K extends string> = {
+export type GraphNodeCacheDirectEdge <K extends string = string> = {
     target: K;
     context: string;
 }

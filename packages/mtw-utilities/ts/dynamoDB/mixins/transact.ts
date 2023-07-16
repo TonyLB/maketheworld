@@ -35,7 +35,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 if ('Put' in item) {
                     return {
                         Put: {
-                            Item: marshall(this._remapIncomingObject(item.Put)),
+                            Item: marshall(this._remapIncomingObject(item.Put), { removeUndefinedValues: true }),
                             TableName: this._tableName
                         }
                     }
@@ -43,7 +43,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 if ('Delete' in item) {
                     return {
                         Delete: {
-                            Key: marshall(this._remapIncomingObject(item.Delete)),
+                            Key: marshall(this._remapIncomingObject(item.Delete), { removeUndefinedValues: true }),
                             TableName: this._tableName
                         }
                     }

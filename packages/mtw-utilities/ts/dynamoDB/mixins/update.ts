@@ -1,5 +1,5 @@
 import {  UpdateItemCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
-import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
+import { DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import mapProjectionFields from './utils/mapProjectionFields'
 import produce from "immer"
@@ -192,7 +192,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                     return undefined
                 }
                 return {
-                    Key: marshall(this._remapIncomingObject(Key)),
+                    Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
                     UpdateExpression,
                     ...(conditionExpressions.length ? {
                         ConditionExpression: conditionExpressions.join(' AND ')
