@@ -351,5 +351,41 @@ describe('withUpdate', () => {
     
         })
 
+        it('should remove records tagged by deleteCondition', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', listField: ['a', 'b'] })})
+                .mockResolvedValueOnce({})
+            const output = await dbHandler.optimisticUpdate<{ PrimaryKey: string; DataCategory: string; listField: string[] }>({
+                Key: {
+                    PrimaryKey: 'TEST',
+                    DataCategory: 'Meta::Test'
+                },
+                updateKeys: ['listField'],
+                updateReducer: (draft) => {
+                    draft.listField = draft.listField.filter((value) => (['c', 'd'].includes(value)))
+                },
+                deleteCondition: ({ listField }) => (listField.length === 0)
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(2)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
+                TableName: 'Ephemera',
+                ProjectionExpression: 'listField'
+            })
+            expect(dbMock.send.mock.calls[1][0].input).toEqual({
+                ConditionExpression: "listField = :Old0",
+                ExpressionAttributeValues: marshall({
+                    ":Old0": ['a', 'b']
+                }),
+                Key: marshall({
+                    EphemeraId: "TEST",
+                    DataCategory: "Meta::Test",
+                }),
+                TableName: "Ephemera"
+            })
+            expect(output).toEqual({})
+
+        })
+
     })
 })

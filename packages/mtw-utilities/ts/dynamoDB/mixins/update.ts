@@ -1,4 +1,4 @@
-import {  UpdateItemCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
+import {  DeleteItemCommand, DeleteItemCommandInput, UpdateItemCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
 import { DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import mapProjectionFields from './utils/mapProjectionFields'
@@ -8,44 +8,50 @@ import withGetOperations from "./get"
 import { DEVELOPER_MODE } from '../../constants'
 import delayPromise from "../delayPromise"
 
-type DynamicUpdateOutput = {
+type DynamicUpdateOutputCommon = {
     ExpressionAttributeNames: Record<string, any>;
     ExpressionAttributeValues: Record<string, any>;
-    setExpressions: string[];
-    removeExpressions: string[];
     conditionExpressions: string[];
 }
+type DynamicUpdateOutput = {
+    action: 'ignore';
+} | (DynamicUpdateOutputCommon & (
+    {
+        action: 'update';
+        setExpressions: string[];
+        removeExpressions: string[];
+    } | { action: 'delete' }
+))
 
-//
-// TODO: Can we replace empty objects with undefined, and do away with the need for this typeguard?
-//
-const isDynamicUpdateOutput = (item: {} | DynamicUpdateOutput): item is DynamicUpdateOutput => (Object.values(item).length > 0)
+type DynamicUpdateInProgress = {
+    ExpressionAttributeNames: Record<string, any>;
+    oldExpressionAttributeValues: Record<string, any>;
+    newExpressionAttributeValues: Record<string, any>;
+    conditionExpressions: string[];
+    setExpressions: string[];
+    removeExpressions: string[];
+}
 
-const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, checkKeys }: { updateKeys: string[]; reducer: (draft: WritableDraft<T>) => void, checkKeys?: string[] }) => (state: T | undefined): DynamicUpdateOutput | {} => {
+const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, checkKeys, deleteCondition }: { updateKeys: string[]; reducer: (draft: WritableDraft<T>) => void, checkKeys?: string[], deleteCondition?: (value: T) => boolean }) => (state: T | undefined): DynamicUpdateOutput => {
     const { ExpressionAttributeNames } = mapProjectionFields(updateKeys)
     const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
-    const newState = produce(state || {}, reducer)
+    const newState = produce(state || {}, reducer) as T
     if (newState === state) {
-        return {}
+        return { action: 'ignore' }
     }
     if (typeof state === 'object' && typeof newState === 'object') {
         //
-        // Updating an existing record
+        // Compare an existing record to changes
         //
-        const startingDraft: {
-            ExpressionAttributeNames: Record<string, any>;
-            ExpressionAttributeValues: Record<string, any>;
-            setExpressions: string[];
-            removeExpressions: string[];
-            conditionExpressions: string[];
-        } = {
+        const startingDraft: DynamicUpdateInProgress = {
             ExpressionAttributeNames: {},
-            ExpressionAttributeValues: {},
+            oldExpressionAttributeValues: {},
+            newExpressionAttributeValues: {},
             setExpressions: [],
             removeExpressions: [],
             conditionExpressions: []
         }
-        return produce(startingDraft, (draft) => {
+        const dynamicOutput: DynamicUpdateInProgress = produce(startingDraft, (draft) => {
             updateKeys.forEach((key, index) => {
                 const translatedKey = key in translateToExpressionAttributeNames ? translateToExpressionAttributeNames[key] : key
                 if (typeof state === 'object' && key in state && (typeof state[key] !== 'undefined')) {
@@ -55,7 +61,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
                         //
                         draft.removeExpressions.push(`${translatedKey}`)
                         if ((!checkKeys) || checkKeys.includes(key)) {
-                            draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
+                            draft.oldExpressionAttributeValues[`:Old${index}`] = state[key]
                             draft.conditionExpressions.push(`${translatedKey} = :Old${index}`)
                         }
                         if (translatedKey in ExpressionAttributeNames) {
@@ -66,10 +72,10 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
                         //
                         // Update existing item to new value
                         //
-                        draft.ExpressionAttributeValues[`:New${index}`] = newState[key]
+                        draft.newExpressionAttributeValues[`:New${index}`] = newState[key]
                         draft.setExpressions.push(`${translatedKey} = :New${index}`)
                         if ((!checkKeys) || checkKeys.includes(key)) {
-                            draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
+                            draft.oldExpressionAttributeValues[`:Old${index}`] = state[key]
                             draft.conditionExpressions.push(`${translatedKey} = :Old${index}`)
                         }
                         if (translatedKey in ExpressionAttributeNames) {
@@ -77,7 +83,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
                         }
                     }
                     else if ((checkKeys || []).includes(key)) {
-                        draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
+                        draft.oldExpressionAttributeValues[`:Old${index}`] = state[key]
                         draft.conditionExpressions.push(`${translatedKey} = :Old${index}`)
                     }
                 }
@@ -92,16 +98,32 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
                         //
                         // Add new item
                         //
-                        draft.ExpressionAttributeValues[`:New${index}`] = newState[key]
+                        draft.newExpressionAttributeValues[`:New${index}`] = newState[key]
                         draft.setExpressions.push(`${translatedKey} = :New${index}`)
                     }
                 }
             })
         })
+        if (deleteCondition && deleteCondition(newState)) {
+            return {
+                action: 'delete',
+                ExpressionAttributeNames: dynamicOutput.ExpressionAttributeNames,
+                ExpressionAttributeValues: dynamicOutput.oldExpressionAttributeValues,
+                conditionExpressions: dynamicOutput.conditionExpressions
+            }
+        }
+        return {
+            action: 'update',
+            ExpressionAttributeNames: dynamicOutput.ExpressionAttributeNames,
+            ExpressionAttributeValues: { ...dynamicOutput.oldExpressionAttributeValues, ...dynamicOutput.newExpressionAttributeValues },
+            conditionExpressions: dynamicOutput.conditionExpressions,
+            setExpressions: dynamicOutput.setExpressions,
+            removeExpressions: dynamicOutput.removeExpressions
+        }
     }
     else {
         //
-        // Putting a new record
+        // Evaluate a new record where none existed before
         //
         const startingDraft: {
             ExpressionAttributeNames: Record<string, any>;
@@ -116,7 +138,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
             removeExpressions: [],
             conditionExpressions: []
         }
-        return produce(startingDraft, (draft) => {
+        return { action: 'update', ...produce(startingDraft, (draft) => {
             draft.conditionExpressions.push(`attribute_not_exists(DataCategory)`)
             updateKeys.forEach((key, index) => {
                 const translatedKey = key in translateToExpressionAttributeNames ? translateToExpressionAttributeNames[key] : key
@@ -131,7 +153,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
                     draft.setExpressions.push(`${key} = :New${index}`)
                 }
             })
-        })
+        }) }
     }
 }
 
@@ -154,6 +176,22 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     // is the same as when it was fetched).
     //
     checkKeys?: string[];
+    //
+    // deleteCondition, if provided, checks whether the resulting record is one that should
+    // be deleted, rather than updated (e.g., an aggregate record that has been reduced down
+    // to the point where it is aggregating over nothing), and if so deletes
+    //
+    deleteCondition?: (output: T) => boolean;
+}
+
+type OptimisticUpdateFactoryOutput = {
+    action: 'ignore';
+} | {
+    action: 'update';
+    update: Omit<UpdateItemCommandInput, 'TableName' | 'ReturnValues'>;
+} | {
+    action: 'delete';
+    delete: Omit<DeleteItemCommandInput, 'TableName'>;
 }
 
 export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
@@ -164,24 +202,43 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
         // and if there are changes then generates the UpdateWriteCommandInput (less TableName and ReturnValues) that would
         // attempt to create those changes in the DB.
         //
+
+        //
+        // TODO: Refactor _optimisticUpdateFactory to return a discriminated union with 'action' proprerty of 'update' | 'delete' | 'ignore'
+        //
         _optimisticUpdateFactory<Fetch extends Partial<DBHandlerItem<KIncoming, T>>>(
                 previousItem: Fetch | { [x: string]: never } | undefined,
                 props: { Key: DBHandlerKey<KIncoming, T> } & UpdateExtendedProps<KIncoming, T, Fetch>
-            ): Omit<UpdateItemCommandInput, 'TableName' | 'ReturnValues'> | undefined
+            ): OptimisticUpdateFactoryOutput
         {
             const {
                 Key,
                 updateKeys,
                 updateReducer,
-                checkKeys
+                checkKeys,
+                deleteCondition
             } = props
             if (!updateKeys.length) {
-                return undefined
+                return { action: 'ignore' }
             }
             const undefineEmptyObject = (value: Fetch | { [x: string]: never } | undefined): Fetch | undefined => ((value && Object.keys(value).length) ? value as Fetch : undefined)
-            const updateOutput = updateByReducer({ updateKeys, reducer: updateReducer, checkKeys })(undefineEmptyObject(previousItem))
-            if (!isDynamicUpdateOutput(updateOutput)) {
-                return undefined
+            const updateOutput = updateByReducer({ updateKeys, reducer: updateReducer, checkKeys, deleteCondition })(undefineEmptyObject(previousItem))
+            if (updateOutput.action === 'ignore') {
+                return { action: 'ignore' }
+            }
+            else if (updateOutput.action === 'delete') {
+                const { ExpressionAttributeNames, ExpressionAttributeValues, conditionExpressions } = updateOutput
+                return {
+                    action: 'delete',
+                    delete: {
+                        Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
+                        ...(conditionExpressions.length ? {
+                            ConditionExpression: conditionExpressions.join(' AND ')
+                        } : {}),
+                        ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                        ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
+                    }
+                }
             }
             else {
                 const { ExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
@@ -190,16 +247,19 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                     removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
                 ].filter((value) => (value)).join(' ')
                 if (!UpdateExpression) {
-                    return undefined
+                    return { action: 'ignore' }
                 }
                 return {
-                    Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
-                    UpdateExpression,
-                    ...(conditionExpressions.length ? {
-                        ConditionExpression: conditionExpressions.join(' AND ')
-                    } : {}),
-                    ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
-                    ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
+                    action: 'update',
+                    update: {
+                        Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
+                        UpdateExpression,
+                        ...(conditionExpressions.length ? {
+                            ConditionExpression: conditionExpressions.join(' AND ')
+                        } : {}),
+                        ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                        ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
+                    }
                 }
             }
         }
@@ -216,6 +276,9 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
         // in completing a cycle without any other process side-effecting the same fields.
         //
 
+        //
+        // TODO: Refactor optimisticUpdate with exponentialBackoffWrapper
+        //
         async optimisticUpdate<Update extends Partial<DBHandlerItem<KIncoming, T>>>(props: { Key: ({ [key in KIncoming]: T } & { DataCategory: string }) } & UpdateExtendedProps<KIncoming, T, Update>): Promise<Update | undefined> {
             const {
                 Key,
@@ -223,7 +286,8 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 updateReducer,
                 maxRetries,
                 priorFetch,
-                checkKeys
+                checkKeys,
+                deleteCondition
             } = props
             if (!updateKeys) {
                 return undefined
@@ -239,17 +303,42 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                     ProjectionFields: updateKeys,
                 }))) as Update | { [x: string]: never } | undefined
                 const state = stateFetch || {}
-                const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer, checkKeys })
-                if (typeof updateOutput === 'undefined') {
+                
+                const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer, checkKeys, deleteCondition })
+                if (updateOutput.action === 'ignore') {
                     returnValue = state
                     break
+                }
+                else if (updateOutput.action === 'delete') {
+                    try {
+                        await this._client.send(new DeleteItemCommand({
+                            TableName: this._tableName,
+                            ...updateOutput.delete
+                        }))
+                    }
+                    catch (err: any) {
+                        if (err.code === 'ConditionalCheckFailedException') {
+                            await delayPromise(exponentialBackoff)
+                            exponentialBackoff = exponentialBackoff * 2
+                            retries++
+                            completed = false
+                        }
+                        else {
+                            if (DEVELOPER_MODE) {
+                                throw err
+                            }
+                            else {
+                                returnValue = props.catchException?.(err) ?? {}
+                            }
+                        }
+                    }
                 }
                 else {
                     try {
                         const { Attributes = {} } = await this._client.send(new UpdateItemCommand({
                             TableName: this._tableName,
                             ReturnValues: props.ReturnValues,
-                            ...updateOutput
+                            ...updateOutput.update
                         }))
                         returnValue = this._remapOutgoingObject(unmarshall(Attributes) as any)
                     }

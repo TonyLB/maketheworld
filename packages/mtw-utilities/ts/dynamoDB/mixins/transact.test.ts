@@ -104,4 +104,31 @@ describe('withTransactions', () => {
         ]})
     })
 
+    it('should process delete transaction on update with deleteCondition', async () => {
+        await dbHandler.transactWrite([
+            { Update: {
+                Key: {
+                    PrimaryKey: 'TestUpdate',
+                    DataCategory: 'Update'
+                },
+                updateKeys: ['listField'],
+                updateReducer: (draft) => {
+                    draft.listField = draft.listField.filter((value) => (['c', 'd'].includes(value)))
+                },
+                deleteCondition: ({ listField }) => (listField.length === 0),
+                priorFetch: { listField: ['a', 'b'] }
+            }}
+        ])
+        expect(getItemsMock).toHaveBeenCalledTimes(0)
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+            { Delete: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestUpdate', DataCategory: 'Update' }),
+                ExpressionAttributeValues: marshall({ ':Old0': ['a', 'b'] }),
+                ConditionExpression: 'listField = :Old0'
+            }}
+        ]})
+    })
+
 })
