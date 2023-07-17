@@ -425,7 +425,7 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
     }
 
 }
-export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends ReturnType<ReturnType<typeof GraphNode>> & ReturnType<ReturnType<typeof GraphEdge>>>(Base: GBase) => {
+export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdge<K, D, DBH>>>>(Base: GBase) => {
     return class GraphCache extends Base {
         Graph: NewGraphCacheData<K, DBH, D>;
 
