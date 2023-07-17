@@ -211,24 +211,24 @@ export class DeferredCacheGeneral <K, T>{
     }
 }
 
-type DeferredCacheOutputDistributor<T, A> = {
-    promiseFactory: (keys: string[]) => Promise<A>;
-    requiredKeys: string[];
-    transform: (args: A) => Record<string, T>;
+type DeferredCacheOutputDistributor<T, A, K extends string = string> = {
+    promiseFactory: (keys: K[]) => Promise<A>;
+    requiredKeys: K[];
+    transform: (args: A) => Record<K, T>;
 }
 
-export class DeferredCache<T> extends DeferredCacheGeneral<string, T> {
-    constructor({ callback, defaultValue }: { callback?: (key: string, value: T) => void, defaultValue?: (key: string) => T } = {}) {
-        super({ callback, defaultValue, comparison: (keyA: string, keyB: string) => (keyA === keyB) })
+export class DeferredCache<T, K extends string = string> extends DeferredCacheGeneral<K, T> {
+    constructor({ callback, defaultValue }: { callback?: (key: K, value: T) => void, defaultValue?: (key: K) => T } = {}) {
+        super({ callback, defaultValue, comparison: (keyA: K, keyB: K) => (keyA === keyB) })
     }
 
-    add<A>({ promiseFactory, requiredKeys, transform }: DeferredCacheOutputDistributor<T, A>): void {
+    add<A>({ promiseFactory, requiredKeys, transform }: DeferredCacheOutputDistributor<T, A, K>): void {
         this.generalAdd<A>({
             promiseFactory,
             requiredKeys,
             transform: (args: A) => {
                 const generalArgs = transform(args)
-                return Object.entries(generalArgs)
+                return Object.entries(generalArgs) as [K, T][]
             }
         })
     }
