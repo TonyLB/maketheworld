@@ -2,7 +2,7 @@ jest.mock('../../dynamoDB/index')
 import { ephemeraDB } from '../../dynamoDB/index'
 
 import { DependencyNode, CacheBase } from './baseClasses'
-import { GraphCache, DependencyTreeWalker } from './'
+import { LegacyGraphCache, DependencyTreeWalker } from './'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -129,8 +129,8 @@ describe('DependencyTreeWalker', () => {
     })
 })
 
-describe('GraphCache', () => {
-    const internalCache = new (GraphCache(CacheBase))()
+describe('LegacyGraphCache', () => {
+    const internalCache = new (LegacyGraphCache(CacheBase))()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
