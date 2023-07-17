@@ -397,13 +397,31 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
     _Edges: GraphEdgeData<K, DBH, D>;
     _Nodes: GraphNodeData<K, DBH>;
     
-    constructor(Nodes, Edges) {
+    constructor(Nodes: GraphNodeData<K, DBH>, Edges: GraphEdgeData<K, DBH, D>) {
         this._Nodes = Nodes
         this._Edges = Edges
     }
 
     async get(rootNode: K, direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D>> {
-        return new Graph({}, [], {}, true)
+        const rootNodeFetch = (await this._Nodes.get([rootNode]))[0]
+        const { edges } = rootNodeFetch[direction]
+        const rootGraph = new Graph({ [rootNodeFetch.PrimaryKey]: { key: rootNodeFetch.PrimaryKey } } as Record<K, { key: K }>, [], this._Edges._Cache._default || {} as D, true)
+        if (edges.length) {
+            //
+            // Prefetch child nodes in batch to facilitate graph calculations
+            //
+            this._Nodes.get(edges.map(({ target }) => (target)))
+            //
+            // TODO: Add merge function to graph utility class
+            //
+            //
+            // TODO: Merge subgraphs together with connecting edges
+            //
+            return rootGraph
+        }
+        else {
+            return rootGraph
+        }
     }
 
 }
