@@ -1,6 +1,6 @@
 import { Constructor, DBHandlerBase, DBHandlerLegalKey } from "../../dynamoDB/baseClasses";
 import withGetOperations from "../../dynamoDB/mixins/get";
-import { CacheConstructor } from "./baseClasses";
+import { CacheConstructor, GraphDBHandler } from "./baseClasses";
 import { DeferredCache } from "./deferredCache";
 
 export type GraphNodeCacheDirectEdge <K extends string = string> = {
@@ -23,8 +23,6 @@ export type GraphNodeCache <K extends string> = {
     forward: GraphNodeCacheComponent<K>;
     back: GraphNodeCacheComponent<K>;
 }
-
-export type GraphDBHandler<T extends string = string> = InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey', T>>>>
 
 type DBHandlerBatchGetReturn <K extends string> = {
     PrimaryKey: K;
@@ -127,7 +125,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
 
 }
 
-export const GraphNode = <K extends string, DBH extends InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>>>(dbHandler: DBH) => <GBase extends CacheConstructor>(Base: GBase) => {
+export const GraphNode = <K extends string, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends CacheConstructor>(Base: GBase) => {
     return class GraphNodeCache extends Base {
         Nodes: GraphNodeData<K, DBH>;
 
