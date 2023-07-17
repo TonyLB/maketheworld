@@ -1,8 +1,11 @@
 import { ephemeraDB as ephemeraDB } from '../../dynamoDB'
 import { unique } from '../../lists';
 import { extractConstrainedTag } from '../../types';
-import { CacheConstructor, DependencyEdge, DependencyNode, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
+import { Graph } from '../utils/graph';
+import { CacheConstructor, DependencyEdge, DependencyNode, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete, GraphDBHandler } from './baseClasses'
 import { DeferredCache } from './deferredCache';
+import GraphEdge, { GraphEdgeData } from './graphEdge';
+import GraphNode, { GraphNodeData } from './graphNode';
 
 export class DependencyTreeWalker<T extends Omit<DependencyNode, 'completeness'>> {
     _nodes: T[];
@@ -363,7 +366,7 @@ export class GraphCacheData {
 
 }
 
-export const GraphCache = <GBase extends CacheConstructor>(Base: GBase) => {
+export const LegacyGraphCache = <GBase extends CacheConstructor>(Base: GBase) => {
     return class GraphCache extends Base {
         Descent: GraphCacheData;
         Ancestry: GraphCacheData;
@@ -390,4 +393,30 @@ export const GraphCache = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-export default GraphCache
+export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D extends {}> {
+    _Edges: GraphEdgeData<K, DBH, D>;
+    _Nodes: GraphNodeData<K, DBH>;
+    
+    constructor(Nodes, Edges) {
+        this._Nodes = Nodes
+        this._Edges = Edges
+    }
+
+    async get(rootNode: K, direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D>> {
+        return new Graph({}, [], {}, true)
+    }
+
+}
+export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends ReturnType<ReturnType<typeof GraphNode>> & ReturnType<ReturnType<typeof GraphEdge>>>(Base: GBase) => {
+    return class GraphCache extends Base {
+        Graph: NewGraphCacheData<K, DBH, D>;
+
+        constructor(...rest: any) {
+            super(...rest)
+            this.Graph = new NewGraphCacheData(this.Nodes, this.Edges)
+        }
+    }
+}
+
+export default LegacyGraphCache
+
