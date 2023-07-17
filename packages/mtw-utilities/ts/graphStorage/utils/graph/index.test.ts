@@ -142,4 +142,24 @@ describe('Graph class', () => {
             ])
         })
     })
+
+    describe('merge', () => {
+
+        it('should deliver a merged graph', () => {
+            const testGraph = new Graph<string, { key: string }, {}>({ A: { key: 'A' }, B: { key: 'B' } }, [{ from: 'A', to: 'B' }], {},  true)
+            const subGraphOne = new Graph<string, { key: string }, {}>({ B: { key: 'B' }, C: { key: 'C' } }, [{ from: 'B', to: 'C' }], {}, true)
+            const subGraphTwo = new Graph<string, { key: string }, {}>({ D: { key: 'D' }, E: { key: 'E' }, 'F': { key: 'F' } }, [{ from: 'D', to: 'E' }, { from: 'D', to: 'F' }], {}, true)
+            const mergedGraph = testGraph.merge([subGraphOne, subGraphTwo], [{ from: 'C', to: 'D' }])
+            expect(mergedGraph.directional).toBe(true)
+            expect(Object.keys(mergedGraph.nodes).sort()).toEqual(['A', 'B', 'C', 'D', 'E', 'F'])
+            expect(mergedGraph.edges.sort(compareEdges)).toEqual([
+                { from: 'A', to: 'B' },
+                { from: 'B', to: 'C' },
+                { from: 'C', to: 'D' },
+                { from: 'D', to: 'E' },
+                { from: 'D', to: 'F' }
+            ])
+        })
+    })
+
 })

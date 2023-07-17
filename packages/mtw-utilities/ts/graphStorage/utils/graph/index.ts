@@ -1,4 +1,4 @@
-import { objectFilter } from "../../../objects";
+import { deepEqual, objectFilter } from "../../../objects";
 import { GraphEdge } from "./baseClasses"
 
 export class GraphNode <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> {
@@ -94,6 +94,18 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         )
     }
 
+    merge(graphs: Graph<K, T, E>[], connectingEdges: GraphEdge<K, E>[]): Graph<K, T, E> {
+        const nodes = graphs.reduce<Partial<Record<K, T>>>((previous, { nodes }) => ({
+            ...previous,
+            ...nodes
+        }), this.nodes)
+        const edges = [this, ...graphs].reduce<GraphEdge<K, E>[]>((previous, { edges }) => ([
+            ...previous,
+            ...(edges.filter((edge) => (!previous.find((checkEdge) => (deepEqual(edge, checkEdge))))))
+        ]), connectingEdges)
+        return new Graph(nodes, edges, this._default, this.directional)
+    }
+    
     _simpleWalkIterator(key: K, callback: (key: K) => void): void {
         if (this._alreadyVisited.includes(key)) {
             return
