@@ -2,9 +2,10 @@ import { ephemeraDB as ephemeraDB } from '../../dynamoDB'
 import { unique } from '../../lists';
 import { extractConstrainedTag } from '../../types';
 import { Graph } from '../utils/graph';
+import { GraphEdge } from '../utils/graph/baseClasses';
 import { CacheConstructor, DependencyEdge, DependencyNode, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete, GraphDBHandler } from './baseClasses'
 import { DeferredCache } from './deferredCache';
-import GraphEdge, { GraphEdgeData } from './graphEdge';
+import GraphEdgeCache, { GraphEdgeData } from './graphEdge';
 import GraphNode, { GraphNodeData } from './graphNode';
 
 export class DependencyTreeWalker<T extends Omit<DependencyNode, 'completeness'>> {
@@ -402,30 +403,43 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
         this._Edges = Edges
     }
 
-    async get(rootNode: K, direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D>> {
-        const rootNodeFetch = (await this._Nodes.get([rootNode]))[0]
-        const { edges } = rootNodeFetch[direction]
-        const rootGraph = new Graph({ [rootNodeFetch.PrimaryKey]: { key: rootNodeFetch.PrimaryKey } } as Record<K, { key: K }>, [], this._Edges._Cache._default || {} as D, true)
-        if (edges.length) {
+    async _getIterator(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[]): Promise<Graph<K, { key: K }, D>> {
+        const nodesFetch = (await this._Nodes.get(nodes))
+        const rootGraph = new Graph<K, { key: K }, D>(
+            nodesFetch.reduce<Record<K, { key: K }>>((previous, { PrimaryKey }) => ({ ...previous, [PrimaryKey]: { key: PrimaryKey } }), {} as Record<K, { key: K }>),
+            [],
+            this._Edges._Cache._default || {} as D,
+            true
+        )
+        const newTargets = nodesFetch
+            .reduce<K[]>((previous, nodeCache) => (
+                unique(previous, nodeCache[direction].edges.map(({ target }) => (target)))
+            ), [])
+            .filter((key) => (![...previouslyVisited, ...nodes].includes(key)))
+        if (newTargets.length) {
             //
             // Prefetch child nodes in batch to facilitate graph calculations
             //
-            this._Nodes.get(edges.map(({ target }) => (target)))
-            //
-            // TODO: Add merge function to graph utility class
-            //
-            //
-            // TODO: Merge subgraphs together with connecting edges
-            //
-            return rootGraph
+            const aggregateEdges = nodesFetch.reduce<GraphEdge<K, D>[]>((previous, nodeCache) => ([
+                ...previous,
+                ...nodeCache[direction].edges
+                    .map(({ target, context }) => ({ from: nodeCache.PrimaryKey, to: target, context } as unknown as GraphEdge<K, D>))
+            ]), [])
+            const subGraph = await this._getIterator(newTargets, direction, [...previouslyVisited, ...nodes])
+            return rootGraph.merge([subGraph], aggregateEdges)
         }
         else {
             return rootGraph
         }
+
+    }
+
+    async get(rootNode: K, direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D>> {
+        return this._getIterator([rootNode], direction, [])
     }
 
 }
-export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler, GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdge<K, D, DBH>>>>(Base: GBase) => {
+export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler, GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdgeCache<K, D, DBH>>>>(Base: GBase) => {
     return class GraphCache extends Base {
         Graph: NewGraphCacheData<K, DBH, D>;
 
