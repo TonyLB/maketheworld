@@ -1,8 +1,10 @@
 jest.mock('../../dynamoDB/index')
 import { ephemeraDB } from '../../dynamoDB/index'
 
-import { DependencyNode, CacheBase } from './baseClasses'
-import { LegacyGraphCache, DependencyTreeWalker } from './'
+import { DependencyNode, CacheBase, GraphDBHandler } from './baseClasses'
+import { LegacyGraphCache, DependencyTreeWalker, GraphCache } from './'
+import GraphEdge from './graphEdge'
+import GraphNode, { GraphNodeCache } from './graphNode'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -556,4 +558,109 @@ describe('LegacyGraphCache', () => {
 
         })
     })
+})
+
+describe('GraphCache', () => {
+    const dbHandler = {
+        getItem: jest.fn(),
+        getItems: jest.fn()
+    } as unknown as GraphDBHandler
+    const internalCache = new (GraphCache(GraphEdge(dbHandler)(GraphNode(dbHandler)(CacheBase))))()
+    jest.spyOn(internalCache.Edges, 'get')
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+        internalCache.clear()
+    })
+
+    it('should correctly fetch a tree recursively', async () => {
+        const nodeGetMock = jest.spyOn(internalCache.Nodes, 'get')
+            .mockImplementation((keys) => (
+                Promise.resolve(
+                    keys.map((key): GraphNodeCache<string> | undefined => ({
+                        A: {
+                            PrimaryKey: 'A',
+                            forward: {
+                                edges: [{ target: 'B', context: '' }, { target: 'C', context: '' }],
+                            },
+                            back: {
+                                edges: []
+                            }
+                        },
+                        B: {
+                            PrimaryKey: 'B',
+                            forward: {
+                                edges: [{ target: 'C', context: '' }],
+                            },
+                            back: {
+                                edges: [{ target: 'A', context: '' }]
+                            }
+                        },
+                        C: {
+                            PrimaryKey: 'C',
+                            forward: {
+                                edges: [{ target: 'D', context: '' }, { target: 'E', context: '' }],
+                            },
+                            back: {
+                                edges: [{ target: 'A', context: '' }, { target: 'B', context: '' }]
+                            }
+                        },
+                        D: {
+                            PrimaryKey: 'D',
+                            forward: {
+                                edges: [{ target: 'F', context: '' }],
+                            },
+                            back: {
+                                edges: [{ target: 'C', context: '' }]
+                            }
+                        },
+                        E: {
+                            PrimaryKey: 'E',
+                            forward: {
+                                edges: [{ target: 'F', context: '' }],
+                            },
+                            back: {
+                                edges: [{ target: 'C', context: '' }]
+                            }
+                        },
+                        F: {
+                            PrimaryKey: 'F',
+                            forward: {
+                                edges: [],
+                            },
+                            back: {
+                                edges: [{ target: 'D', context: '' }, { target: 'E', context: '' }]
+                            }
+                        },
+                    }[key])
+                ).filter((value): value is GraphNodeCache<string> => (Boolean(value)))
+            )
+        ))
+
+        const tree = await internalCache.Graph.get('A', 'forward')
+        expect(nodeGetMock).toHaveBeenCalledTimes(4)
+        expect(nodeGetMock).toHaveBeenCalledWith(['A'])
+        expect(nodeGetMock).toHaveBeenCalledWith(['B', 'C'])
+        expect(nodeGetMock).toHaveBeenCalledWith(['D', 'E'])
+        expect(nodeGetMock).toHaveBeenCalledWith(['F'])
+        expect(tree.nodes).toEqual({
+            A: { key: 'A' },
+            B: { key: 'B' },
+            C: { key: 'C' },
+            D: { key: 'D' },
+            E: { key: 'E' },
+            F: { key: 'F' }
+        })
+        expect(tree.edges).toEqual([
+            { from: 'A', to: 'B', context: '' },
+            { from: 'A', to: 'C', context: '' },
+            { from: 'B', to: 'C', context: '' },
+            { from: 'C', to: 'D', context: '' },
+            { from: 'C', to: 'E', context: '' },
+            { from: 'D', to: 'F', context: '' },
+            { from: 'E', to: 'F', context: '' }
+        ])
+    })
+
 })
