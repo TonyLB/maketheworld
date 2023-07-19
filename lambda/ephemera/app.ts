@@ -174,6 +174,16 @@ export const handler = async (event: any, context: any) => {
                         archived: event.detail.archived
                     })
                 }
+            case 'Graph Test':
+                if (event.detail.ephemeraId) {
+                    const graph = await internalCache.Graph.get(event.detail.ephemeraId, event.detail.direction || 'forward')
+                    const message = `Nodes: ${JSON.stringify(Object.values(graph.nodes), null, 4)}, Edges: ${JSON.stringify(graph.edges, null, 4)}`
+                    console.log(message)
+                    return message
+                }
+                else {
+                    return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
+                }
             case 'Canonize Asset':
             case 'Decanonize Asset':
                 const { assetId } = event.detail

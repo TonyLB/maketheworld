@@ -1,5 +1,5 @@
 import { CacheBase as GraphCacheBase, GraphDBHandler } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
-import GraphCache from "@tonylb/mtw-utilities/dist/graphStorage/cache"
+import { GraphCache } from "@tonylb/mtw-utilities/dist/graphStorage/cache"
 import GraphNode from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphNode"
 import GraphEdge from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphEdge"
 import { CacheBase, CacheConstructor } from "./baseClasses"
@@ -17,11 +17,11 @@ const graphDBHandler: GraphDBHandler = new (withGetOperations<'PrimaryKey', stri
 
 export const CacheGraph = <GBase extends CacheConstructor>(Base: GBase) => {
     return class CachGraph extends Base {
-        Graph: InstanceType<ReturnType<typeof GraphCache>>
+        Graph: InstanceType<ReturnType<typeof GraphCache>>["Graph"]
 
         constructor(...rest: any) {
             super(...rest)
-            this.Graph = new (GraphCache(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
+            this.Graph = new (GraphCache(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))().Graph
         }
     }
 }
