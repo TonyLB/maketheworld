@@ -22,4 +22,4 @@ export const graphStorageDB = new graphStorageDBMixin({
     options: { getBatchSize: 50 }
 })
 
-export const graphCache = new (GraphCache(GraphNode<string, typeof graphStorageDB>(graphStorageDB)(CacheBase)))()
+export const graphCache = new (GraphCache(graphStorageDB)(GraphNode<string, typeof graphStorageDB>(graphStorageDB)(CacheBase)))()

@@ -1,11 +1,15 @@
 import withGetOperations from "../../dynamoDB/mixins/get"
+import withPrimitives from "../../dynamoDB/mixins/primitives"
 import { CacheBase } from "./baseClasses"
 import GraphNode from './graphNode'
 
 describe('GraphNode cache', () => {
     const dbHandler = {
         getItems: jest.fn()
-    } as unknown as jest.Mocked<InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>>>
+    } as unknown as jest.Mocked<
+        InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>> &
+        InstanceType<ReturnType<ReturnType<typeof withPrimitives<'PrimaryKey'>>>>
+    >
     const internalCache = new (GraphNode(dbHandler)(CacheBase))()
     beforeEach(() => {
         jest.clearAllMocks()

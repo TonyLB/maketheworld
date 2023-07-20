@@ -4,6 +4,7 @@ import { GraphNodeData } from '../cache/graphNode'
 import legacyUpdateGraphStorage, { GraphStorageDBH, updateGraphStorage } from './'
 import withGetOperations from '../../dynamoDB/mixins/get'
 import produce from 'immer'
+import withPrimitives from '../../dynamoDB/mixins/primitives'
 
 const internalCache = {
     Descent: {
@@ -19,7 +20,11 @@ const internalCache = {
     Nodes: {
         get: jest.fn(),
         invalidate: jest.fn()
-    } as unknown as jest.Mocked<GraphNodeData<string, InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>>>>,
+    } as unknown as 
+        jest.Mocked<GraphNodeData<string, 
+            InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>> &
+            InstanceType<ReturnType<ReturnType<typeof withPrimitives<'PrimaryKey'>>>>
+        >>,
     clear: jest.fn(),
     flush: jest.fn()
 }

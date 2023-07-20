@@ -5,6 +5,7 @@ import { DependencyNode, CacheBase, GraphDBHandler } from './baseClasses'
 import { LegacyGraphCache, DependencyTreeWalker, GraphCache } from './'
 import GraphEdge from './graphEdge'
 import GraphNode, { GraphNodeCache } from './graphNode'
+import { marshall } from '@aws-sdk/util-dynamodb'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -561,17 +562,26 @@ describe('LegacyGraphCache', () => {
 })
 
 describe('GraphCache', () => {
+    const realDateNow = Date.now.bind(global.Date);
+
     const dbHandler = {
         getItem: jest.fn(),
-        getItems: jest.fn()
+        getItems: jest.fn(),
+        primitiveUpdate: jest.fn()
     } as unknown as GraphDBHandler
-    const internalCache = new (GraphCache(GraphEdge(dbHandler)(GraphNode(dbHandler)(CacheBase))))()
+    const internalCache = new ((GraphCache(dbHandler))(GraphEdge(dbHandler)(GraphNode(dbHandler)(CacheBase))))()
     jest.spyOn(internalCache.Edges, 'get')
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         internalCache.clear()
+        const dateNowStub = jest.fn(() => 1000)
+        global.Date.now = dateNowStub
+    })
+
+    afterEach(() => {
+        global.Date.now = realDateNow
     })
 
     it('should correctly fetch a tree recursively', async () => {
@@ -638,6 +648,7 @@ describe('GraphCache', () => {
             )
         ))
 
+        jest.spyOn(dbHandler, 'primitiveUpdate').mockResolvedValue({})
         const tree = await internalCache.Graph.get(['A'], 'forward')
         expect(nodeGetMock).toHaveBeenCalledTimes(4)
         expect(nodeGetMock).toHaveBeenCalledWith(['A'])
@@ -661,6 +672,66 @@ describe('GraphCache', () => {
             { from: 'D', to: 'F', context: '' },
             { from: 'E', to: 'F', context: '' }
         ])
+
+        //
+        // Should update all caches
+        //
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledTimes(6)
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
+            Key: { PrimaryKey: 'A', DataCategory: 'Graph::Forward' },
+            UpdateExpression: 'SET cache = :newCache',
+            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
+            ExpressionAttributeValues: marshall({
+                ':newCache': ['A::B', 'A::C', 'B::C', 'C::D', 'C::E', 'D::F', 'E::F'],
+                ':moment': 1000
+            })
+        })
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
+            Key: { PrimaryKey: 'B', DataCategory: 'Graph::Forward' },
+            UpdateExpression: 'SET cache = :newCache',
+            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
+            ExpressionAttributeValues: marshall({
+                ':newCache': ['B::C', 'C::D', 'C::E', 'D::F', 'E::F'],
+                ':moment': 1000
+            })
+        })
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
+            Key: { PrimaryKey: 'C', DataCategory: 'Graph::Forward' },
+            UpdateExpression: 'SET cache = :newCache',
+            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
+            ExpressionAttributeValues: marshall({
+                ':newCache': ['C::D', 'C::E', 'D::F', 'E::F'],
+                ':moment': 1000
+            })
+        })
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
+            Key: { PrimaryKey: 'D', DataCategory: 'Graph::Forward' },
+            UpdateExpression: 'SET cache = :newCache',
+            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
+            ExpressionAttributeValues: marshall({
+                ':newCache': ['D::F'],
+                ':moment': 1000
+            })
+        })
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
+            Key: { PrimaryKey: 'E', DataCategory: 'Graph::Forward' },
+            UpdateExpression: 'SET cache = :newCache',
+            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
+            ExpressionAttributeValues: marshall({
+                ':newCache': ['E::F'],
+                ':moment': 1000
+            })
+        })
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
+            Key: { PrimaryKey: 'F', DataCategory: 'Graph::Forward' },
+            UpdateExpression: 'SET cache = :newCache',
+            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
+            ExpressionAttributeValues: marshall({
+                ':newCache': [],
+                ':moment': 1000
+            })
+        })
+
     })
 
 })

@@ -73,7 +73,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
         const assetState = await internalCache.AssetState.get(assetMap)
 
         let executeMessageQueue: (PublishMessage | PerceptionShowMessage | PerceptionShowMoment)[] = []
-        const capitalize = (value) => ([value.slice(0, 1).toUppercase, value.slice(1)].join(''))
+        const capitalize = (value: string) => ([value.slice(0, 1).toUpperCase(), value.slice(1)].join(''))
         const executionOutput = produce({
                 ...assetState,
                 ...(roomFetch.reduce((previous, { EphemeraId, key }) => ({

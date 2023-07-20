@@ -1,4 +1,5 @@
 import withGetOperations from "../../dynamoDB/mixins/get";
+import withPrimitives from "../../dynamoDB/mixins/primitives";
 
 export type DependencyEdge = {
     EphemeraId: string;
@@ -42,4 +43,5 @@ export type CacheConstructor = Constructor<{
     flush(): Promise<void>;
 }>
 
-export type GraphDBHandler<T extends string = string> = InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey', T>>>>
+export type GraphDBHandler<T extends string = string> = InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey', T>>>> & 
+    InstanceType<ReturnType<ReturnType<typeof withPrimitives<'PrimaryKey', T>>>>
