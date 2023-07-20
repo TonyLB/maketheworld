@@ -15,26 +15,26 @@ describe('GraphNode cache', () => {
 
     it('should batch-get everything in an empty cache', async () => {
         dbHandler.getItems.mockResolvedValue([
-            { PrimaryKey: 'A', DataCategory: 'GRAPH::Forward', edgeSet: ['B::', 'C::'], cache: ['A::B::', 'A::C::', 'B::C::', 'C::D::'], cachedAt: 900 },
-            { PrimaryKey: 'A', DataCategory: 'GRAPH::Back', edgeSet: [], cache: [], cachedAt: 1000 },
-            { PrimaryKey: 'B', DataCategory: 'GRAPH::Back', edgeSet: ['A::'], cache: ['A::B::'], cachedAt: 900 },
-            { PrimaryKey: 'B', DataCategory: 'GRAPH::Forward', edgeSet: ['C::'], cache: ['B::C::', 'C::D::'], cachedAt: 1000 },
-            { PrimaryKey: 'C', DataCategory: 'GRAPH::Forward', edgeSet: ['D::'] },
-            { PrimaryKey: 'C', DataCategory: 'GRAPH::Back', edgeSet: ['A::', 'B::'], cache: ['A::C::', 'A::B::', 'B::C::'], cachedAt: 1000 },
-            { PrimaryKey: 'D', DataCategory: 'GRAPH::Forward', edgeSet: [], cache: [], cachedAt: 1000 },
-            { PrimaryKey: 'D', DataCategory: 'GRAPH::Back', edgeSet: ['C::'] }
+            { PrimaryKey: 'A', DataCategory: 'Graph::Forward', edgeSet: ['B::', 'C::'], cache: ['A::B::', 'A::C::', 'B::C::', 'C::D::'], cachedAt: 900 },
+            { PrimaryKey: 'A', DataCategory: 'Graph::Back', edgeSet: [], cache: [], cachedAt: 1000 },
+            { PrimaryKey: 'B', DataCategory: 'Graph::Back', edgeSet: ['A::'], cache: ['A::B::'], cachedAt: 900 },
+            { PrimaryKey: 'B', DataCategory: 'Graph::Forward', edgeSet: ['C::'], cache: ['B::C::', 'C::D::'], cachedAt: 1000 },
+            { PrimaryKey: 'C', DataCategory: 'Graph::Forward', edgeSet: ['D::'] },
+            { PrimaryKey: 'C', DataCategory: 'Graph::Back', edgeSet: ['A::', 'B::'], cache: ['A::C::', 'A::B::', 'B::C::'], cachedAt: 1000 },
+            { PrimaryKey: 'D', DataCategory: 'Graph::Forward', edgeSet: [], cache: [], cachedAt: 1000 },
+            { PrimaryKey: 'D', DataCategory: 'Graph::Back', edgeSet: ['C::'] }
         ])
         const results = await internalCache.Nodes.get(['A', 'B', 'C', 'D'])
         expect(dbHandler.getItems).toHaveBeenCalledWith({
             Keys: [
-                { PrimaryKey: 'A', DataCategory: 'GRAPH::Forward' },
-                { PrimaryKey: 'A', DataCategory: 'GRAPH::Back' },
-                { PrimaryKey: 'B', DataCategory: 'GRAPH::Forward' },
-                { PrimaryKey: 'B', DataCategory: 'GRAPH::Back' },
-                { PrimaryKey: 'C', DataCategory: 'GRAPH::Forward' },
-                { PrimaryKey: 'C', DataCategory: 'GRAPH::Back' },
-                { PrimaryKey: 'D', DataCategory: 'GRAPH::Forward' },
-                { PrimaryKey: 'D', DataCategory: 'GRAPH::Back' },
+                { PrimaryKey: 'A', DataCategory: 'Graph::Forward' },
+                { PrimaryKey: 'A', DataCategory: 'Graph::Back' },
+                { PrimaryKey: 'B', DataCategory: 'Graph::Forward' },
+                { PrimaryKey: 'B', DataCategory: 'Graph::Back' },
+                { PrimaryKey: 'C', DataCategory: 'Graph::Forward' },
+                { PrimaryKey: 'C', DataCategory: 'Graph::Back' },
+                { PrimaryKey: 'D', DataCategory: 'Graph::Forward' },
+                { PrimaryKey: 'D', DataCategory: 'Graph::Back' },
             ],
             ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'cachedAt', 'edgeSet', 'cache']
         })
@@ -100,23 +100,23 @@ describe('GraphNode cache', () => {
 
     it('should batch-get only as needed when cache has content', async () => {
         dbHandler.getItems.mockResolvedValueOnce([
-            { PrimaryKey: 'A', DataCategory: 'GRAPH::Forward', edgeSet: ['B::', 'C::'], cache: ['A::B::', 'A::C::', 'B::C::', 'C::D::'], cachedAt: 900 },
-            { PrimaryKey: 'A', DataCategory: 'GRAPH::Back', edgeSet: [], cache: [], cachedAt: 1000 },
-            { PrimaryKey: 'B', DataCategory: 'GRAPH::Back', edgeSet: ['A::'], cache: ['A::B::'], cachedAt: 900 },
-            { PrimaryKey: 'B', DataCategory: 'GRAPH::Forward', edgeSet: ['C::'], cache: ['B::C::', 'C::D::'], cachedAt: 1000 }
+            { PrimaryKey: 'A', DataCategory: 'Graph::Forward', edgeSet: ['B::', 'C::'], cache: ['A::B::', 'A::C::', 'B::C::', 'C::D::'], cachedAt: 900 },
+            { PrimaryKey: 'A', DataCategory: 'Graph::Back', edgeSet: [], cache: [], cachedAt: 1000 },
+            { PrimaryKey: 'B', DataCategory: 'Graph::Back', edgeSet: ['A::'], cache: ['A::B::'], cachedAt: 900 },
+            { PrimaryKey: 'B', DataCategory: 'Graph::Forward', edgeSet: ['C::'], cache: ['B::C::', 'C::D::'], cachedAt: 1000 }
         ]).mockResolvedValueOnce([
-            { PrimaryKey: 'C', DataCategory: 'GRAPH::Forward', edgeSet: ['D::'] },
-            { PrimaryKey: 'C', DataCategory: 'GRAPH::Back', edgeSet: ['A::', 'B::'], cache: ['A::C::', 'A::B::', 'B::C::'], cachedAt: 1000 },
-            { PrimaryKey: 'D', DataCategory: 'GRAPH::Forward', edgeSet: [], cache: [], cachedAt: 1000 },
-            { PrimaryKey: 'D', DataCategory: 'GRAPH::Back', edgeSet: ['C::'] }
+            { PrimaryKey: 'C', DataCategory: 'Graph::Forward', edgeSet: ['D::'] },
+            { PrimaryKey: 'C', DataCategory: 'Graph::Back', edgeSet: ['A::', 'B::'], cache: ['A::C::', 'A::B::', 'B::C::'], cachedAt: 1000 },
+            { PrimaryKey: 'D', DataCategory: 'Graph::Forward', edgeSet: [], cache: [], cachedAt: 1000 },
+            { PrimaryKey: 'D', DataCategory: 'Graph::Back', edgeSet: ['C::'] }
         ])
         const results = await internalCache.Nodes.get(['A', 'B'])
         expect(dbHandler.getItems).toHaveBeenCalledWith({
             Keys: [
-                { PrimaryKey: 'A', DataCategory: 'GRAPH::Forward' },
-                { PrimaryKey: 'A', DataCategory: 'GRAPH::Back' },
-                { PrimaryKey: 'B', DataCategory: 'GRAPH::Forward' },
-                { PrimaryKey: 'B', DataCategory: 'GRAPH::Back' }
+                { PrimaryKey: 'A', DataCategory: 'Graph::Forward' },
+                { PrimaryKey: 'A', DataCategory: 'Graph::Back' },
+                { PrimaryKey: 'B', DataCategory: 'Graph::Forward' },
+                { PrimaryKey: 'B', DataCategory: 'Graph::Back' }
             ],
             ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'cachedAt', 'edgeSet', 'cache']
         })
@@ -158,10 +158,10 @@ describe('GraphNode cache', () => {
         const secondResult = await internalCache.Nodes.get(['A', 'B', 'C', 'D'])
         expect(dbHandler.getItems).toHaveBeenCalledWith({
             Keys: [
-                { PrimaryKey: 'C', DataCategory: 'GRAPH::Forward' },
-                { PrimaryKey: 'C', DataCategory: 'GRAPH::Back' },
-                { PrimaryKey: 'D', DataCategory: 'GRAPH::Forward' },
-                { PrimaryKey: 'D', DataCategory: 'GRAPH::Back' },
+                { PrimaryKey: 'C', DataCategory: 'Graph::Forward' },
+                { PrimaryKey: 'C', DataCategory: 'Graph::Back' },
+                { PrimaryKey: 'D', DataCategory: 'Graph::Forward' },
+                { PrimaryKey: 'D', DataCategory: 'Graph::Back' },
             ],
             ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'cachedAt', 'edgeSet', 'cache']
         })

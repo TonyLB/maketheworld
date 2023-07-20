@@ -188,7 +188,7 @@ The *lightsOn* Compute is referenced by the *Cathedral* room in the base asset, 
 ```ts
 type GraphNodeCache = {
     PrimaryId: PrimaryKey;   // Either: 'EphemeraId: EphemeraKey' or 'AssetId: AssetKey' as needed
-    DataCategory: 'GRAPH::Forward' | 'GRAPH::Back';
+    DataCategory: 'Graph::Forward' | 'Graph::Back';
     edgeSet: `${PrimaryKey}::${contextString}`[];
     cache?: PrimaryKey[];
     cachedAt?: number;       // Epoch Time
@@ -211,7 +211,7 @@ would look like this:
 ```ts
 {
     EphemeraId: 'VARIABLE#A',
-    DataCategory: 'GRAPH::Forward',
+    DataCategory: 'Graph::Forward',
     edgeSet: ['COMPUTED#B::', 'COMPUTED#C::'],
     cache: ['COMPUTED#B', 'COMPUTED#C', 'COMPUTED#D', 'COMPUTED#E', 'COMPUTED#F', 'COMPUTED#G'],
     updatedAt: 9900,
@@ -225,7 +225,7 @@ would look like this:
 ```ts
 {
     EphemeraId: 'COMPUTED#A',
-    DataCategory: 'GRAPH::Backward',
+    DataCategory: 'Graph::Backward',
     edgeSet: ['COMPUTED#B::'],
     cache: ['COMPUTED#B', 'VARIABLE#A'],
     updateAt: 9900,
@@ -243,7 +243,7 @@ would look like this:
 ```ts
 type GraphEdge = {
     PrimaryId: PrimaryKey;
-    DataCategory: `GRAPH::${PrimaryKey}::${contextString}`;
+    DataCategory: `Graph::${PrimaryKey}::${contextString}`;
 }
 ```
 
