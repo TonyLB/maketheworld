@@ -1,4 +1,4 @@
-import { DeleteItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb"
+import { DeleteItemCommand, PutItemCommand, UpdateItemCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
 import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { asyncSuppressExceptions } from "../../errors"
@@ -24,6 +24,19 @@ export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends st
                     Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true })
                 }))
             }) as void
+        }
+
+        async primitiveUpdate(props: {
+            Key: DBHandlerKey<KIncoming, T>
+        } & Omit<UpdateItemCommandInput, 'TableName' | 'Key'>) {
+            const { Key, ...rest } = props
+            return await asyncSuppressExceptions(async () => {
+                return await this._client.send(new UpdateItemCommand({
+                    TableName: this._tableName,
+                    Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
+                    ...rest
+                }))
+            })
         }
     }
 }

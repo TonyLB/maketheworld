@@ -50,4 +50,29 @@ describe('withPrimitives', () => {
 
     })
 
+    describe('primitiveUpdate', () => {
+
+        it('should remap incoming primary key', async () => {
+
+            await dbHandler.primitiveUpdate({
+                Key: { PrimaryKey: 'TestTwo', DataCategory: 'DC2'},
+                UpdateExpression: 'SET #value = :newValue',
+                ConditionExpression: '#value = :oldValue',
+                ExpressionAttributeValues: marshall({ ':oldValue': 0, ':newValue': 5 }),
+                ExpressionAttributeNames: { '#value': 'value' }
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestTwo', DataCategory: 'DC2'}),
+                TableName: 'Ephemera',
+                UpdateExpression: 'SET #value = :newValue',
+                ConditionExpression: '#value = :oldValue',
+                ExpressionAttributeValues: marshall({ ':oldValue': 0, ':newValue': 5 }),
+                ExpressionAttributeNames: { '#value': 'value' }
+            })
+
+        })
+
+    })
+
 })
