@@ -403,7 +403,7 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
         this._Edges = Edges
     }
 
-    async _getIterator(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[]): Promise<Graph<K, { key: K }, D>> {
+    async get(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, { key: K }, D>> {
         const nodesFetch = (await this._Nodes.get(nodes))
         const rootGraph = new Graph<K, { key: K }, D>(
             nodesFetch.reduce<Record<K, { key: K }>>((previous, { PrimaryKey }) => ({ ...previous, [PrimaryKey]: { key: PrimaryKey } }), {} as Record<K, { key: K }>),
@@ -425,17 +425,13 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
                 ...nodeCache[direction].edges
                     .map(({ target, context }) => ({ from: nodeCache.PrimaryKey, to: target, context } as unknown as GraphEdge<K, D>))
             ]), [])
-            const subGraph = await this._getIterator(newTargets, direction, [...previouslyVisited, ...nodes])
+            const subGraph = await this.get(newTargets, direction, [...previouslyVisited, ...nodes])
             return rootGraph.merge([subGraph], aggregateEdges)
         }
         else {
             return rootGraph
         }
 
-    }
-
-    async get(rootNode: K, direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D>> {
-        return this._getIterator([rootNode], direction, [])
     }
 
 }
