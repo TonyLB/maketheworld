@@ -397,6 +397,7 @@ export const LegacyGraphCache = <GBase extends CacheConstructor>(Base: GBase) =>
 export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D extends {}> {
     _Edges: GraphEdgeData<K, DBH, D>;
     _Nodes: GraphNodeData<K, DBH>;
+    _cacheWrites: Promise<void>[] = [];
     
     constructor(Nodes: GraphNodeData<K, DBH>, Edges: GraphEdgeData<K, DBH, D>) {
         this._Nodes = Nodes
@@ -434,6 +435,10 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
 
     }
 
+    async flush() {
+        await Promise.all(this._cacheWrites)
+    }
+
 }
 export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler, GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdgeCache<K, D, DBH>>>>(Base: GBase) => {
     return class GraphCache extends Base {
@@ -443,6 +448,14 @@ export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHa
             super(...rest)
             this.Graph = new NewGraphCacheData(this.Nodes, this.Edges)
         }
+
+        override async flush() {
+            await Promise.all([
+                this.Graph.flush(),
+                super.flush()
+            ])
+        }
+
     }
 }
 
