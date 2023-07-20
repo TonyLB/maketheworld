@@ -122,6 +122,12 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         this._alreadyVisited = []
     }
 
+    fromRoot(rootKey: K): Graph<K, T, E> {
+        let subGraphKeys: K[] = []
+        this.simpleWalk(rootKey, (key) => (subGraphKeys.push(key)))
+        return this.subGraph(subGraphKeys)
+    }
+
     addEdge(edge: GraphEdge<K, E>): void {
         const { from, to } = edge
         if (!this.nodes[from]) {

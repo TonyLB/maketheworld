@@ -404,7 +404,7 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
         this._Edges = Edges
     }
 
-    async get(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, { key: K }, D>> {
+    async _getIterate(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, { key: K }, D>> {
         const nodesFetch = (await this._Nodes.get(nodes))
         const rootGraph = new Graph<K, { key: K }, D>(
             nodesFetch.reduce<Record<K, { key: K }>>((previous, { PrimaryKey }) => ({ ...previous, [PrimaryKey]: { key: PrimaryKey } }), {} as Record<K, { key: K }>),
@@ -426,7 +426,7 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
                 ...nodeCache[direction].edges
                     .map(({ target, context }) => ({ from: nodeCache.PrimaryKey, to: target, context } as unknown as GraphEdge<K, D>))
             ]), [])
-            const subGraph = await this.get(newTargets, direction, [...previouslyVisited, ...nodes])
+            const subGraph = await this._getIterate(newTargets, direction, [...previouslyVisited, ...nodes])
             return rootGraph.merge([subGraph], aggregateEdges)
         }
         else {
@@ -435,8 +435,23 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
 
     }
 
+    async get(nodes: K[], direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D>> {
+        const returnValue = this._getIterate(nodes, direction)
+        //
+        // TODO: Create PrimitiveUpdate batch request type of batchWrite
+        //
+
+        //
+        // TODO: For each node, create a primitive update of the cache value using
+        // the fromRoot extraction that starts at that node, and send the aggregate set
+        // of transactions to batchWrite
+        //
+        return returnValue
+    }
+
     async flush() {
         await Promise.all(this._cacheWrites)
+        this._cacheWrites = []
     }
 
 }
