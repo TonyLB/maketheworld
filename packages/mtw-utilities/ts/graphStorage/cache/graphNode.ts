@@ -66,16 +66,16 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
 
     async get(PrimaryKeys: K[]): Promise<GraphNodeCache<K>[]> {
         this._Cache.add({
-            promiseFactory: async (keys: string[]): Promise<DBHandlerBatchGetReturn<K>[]> => (
+            promiseFactory: (keys: string[]): Promise<DBHandlerBatchGetReturn<K>[]> => (
                 this._dbHandler.getItems<{ PrimaryKey: K; DataCategory: string; invalidatedAt?: number; cachedAt?: number; edgeSet: string[]; cache: string[] }>({
                     Keys: keys.map((key) => ([
                         {
                             PrimaryKey: key as K,
-                            DataCategory: 'GRAPH::Forward'
+                            DataCategory: 'Graph::Forward'
                         },
                         {
                             PrimaryKey: key as K,
-                            DataCategory: 'GRAPH::Back'
+                            DataCategory: 'Graph::Back'
                         }
                     ])).flat(1),
                     ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'cachedAt', 'edgeSet', 'cache']
@@ -85,7 +85,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
             transform: (items: DBHandlerBatchGetReturn<K>[]): Record<string, GraphNodeCache<K>> => {
                 const combinedValue = items.reduce<Record<string, GraphNodeCache<K>>>((previous, item) => {
                     const priorMatch = previous[item.PrimaryKey]
-                    if (item.DataCategory === 'GRAPH::Forward') {
+                    if (item.DataCategory === 'Graph::Forward') {
                         return {
                             ...previous,
                             [item.PrimaryKey]: {
@@ -100,7 +100,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
                             }
                         }
                     }
-                    if (item.DataCategory === 'GRAPH::Back') {
+                    if (item.DataCategory === 'Graph::Back') {
                         return {
                             ...previous,
                             [item.PrimaryKey]: {
