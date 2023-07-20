@@ -638,7 +638,7 @@ describe('GraphCache', () => {
             )
         ))
 
-        const tree = await internalCache.Graph.get('A', 'forward')
+        const tree = await internalCache.Graph.get(['A'], 'forward')
         expect(nodeGetMock).toHaveBeenCalledTimes(4)
         expect(nodeGetMock).toHaveBeenCalledWith(['A'])
         expect(nodeGetMock).toHaveBeenCalledWith(['B', 'C'])
