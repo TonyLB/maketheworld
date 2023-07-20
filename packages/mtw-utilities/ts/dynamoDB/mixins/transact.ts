@@ -37,16 +37,13 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
 
             const transactions = items.map<TransactWriteItem[]>((item) => {
                 if ('Put' in item) {
-                    const { ExpressionAttributeNames } = mapProjectionFields(Object.keys(item.Put))
-                    const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
-                    const remappedPut = Object.entries(item.Put).reduce<Record<string, any>>((previous, [key, value]) => ({ ...previous, [translateToExpressionAttributeNames[key] ?? key]: value }), {}) as DBHandlerItem<KIncoming, T>
-                    return [{
+                    const returnValue = {
                         Put: {
-                            Item: marshall(this._remapIncomingObject(remappedPut), { removeUndefinedValues: true }),
-                            TableName: this._tableName,
-                            ...(Object.keys(ExpressionAttributeNames).length ? { ExpressionAttributeNames }: {})
+                            Item: marshall(this._remapIncomingObject(item.Put), { removeUndefinedValues: true }),
+                            TableName: this._tableName
                         }
-                    }]
+                    }
+                    return [returnValue]
                 }
                 if ('Delete' in item) {
                     return [{

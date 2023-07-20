@@ -71,8 +71,14 @@ describe('withTransactions', () => {
         ])
         expect(dbMock.send).toHaveBeenCalledTimes(1)
         expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
-            { Put: { TableName: 'Ephemera', Item: marshall({ EphemeraId: 'TestPut', DataCategory: 'Put', '#name': 'PutTest' }), ExpressionAttributeNames: { '#name': 'Name' } } },
+            //
+            // Ignore reserved names in Put requests
+            //
+            { Put: { TableName: 'Ephemera', Item: marshall({ EphemeraId: 'TestPut', DataCategory: 'Put', Name: 'PutTest' }) } },
             { Delete: { TableName: 'Ephemera', Key: marshall({ EphemeraId: 'TestDelete', DataCategory: 'Delete' }) } },
+            //
+            // Build out ExpressionAttributeNames in Updates
+            //
             { Update: {
                 TableName: 'Ephemera',
                 Key: marshall({ EphemeraId: 'TestUpdate', DataCategory: 'Update' }),

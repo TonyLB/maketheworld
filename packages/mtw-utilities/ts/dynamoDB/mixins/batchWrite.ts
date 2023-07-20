@@ -2,6 +2,7 @@ import { BatchWriteItemCommand } from "@aws-sdk/client-dynamodb"
 import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import paginateList from "./utils/paginateList"
+import mapProjectionFields from "./utils/mapProjectionFields"
 
 export type BatchRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
     PutRequest: DBHandlerItem<KIncoming, KeyType>

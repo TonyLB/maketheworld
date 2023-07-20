@@ -36,6 +36,22 @@ describe('withBatchOperations', () => {
         })
     })
 
+    it('should pass reserved words unchanged', async () => {
+        await dbHandler.batchWriteDispatcher([
+            { PutRequest: { PrimaryKey: 'TestOne', DataCategory: 'DC1', key: 'Test' } },
+            { DeleteRequest: { PrimaryKey: 'TestTwo', DataCategory: 'DC2'} }
+        ])
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({
+            RequestItems: {
+                Ephemera: [
+                    { PutRequest: { Item: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1', 'key': 'Test' }) } },
+                    { DeleteRequest: { Key: marshall({ EphemeraId: 'TestTwo', DataCategory: 'DC2'}) } },
+                ]
+            }
+        })
+    })
+
     it('should batch by batchsize', async () => {
         await dbHandler.batchWriteDispatcher([
             { PutRequest: { PrimaryKey: 'TestOne', DataCategory: 'DC1'} },
