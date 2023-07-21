@@ -425,20 +425,20 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
                 unique(previous, nodeCache[direction].edges.map(({ target }) => (target)))
             ), [])
             .filter((key) => (![...previouslyVisited, ...nodes].includes(key)))
+        const aggregateEdges = nodesFetch.reduce<GraphEdge<K, D>[]>((previous, nodeCache) => ([
+            ...previous,
+            ...nodeCache[direction].edges
+                .map(({ target, context }) => ({ from: nodeCache.PrimaryKey, to: target, context } as unknown as GraphEdge<K, D>))
+        ]), [])
         if (newTargets.length) {
             //
             // Prefetch child nodes in batch to facilitate graph calculations
             //
-            const aggregateEdges = nodesFetch.reduce<GraphEdge<K, D>[]>((previous, nodeCache) => ([
-                ...previous,
-                ...nodeCache[direction].edges
-                    .map(({ target, context }) => ({ from: nodeCache.PrimaryKey, to: target, context } as unknown as GraphEdge<K, D>))
-            ]), [])
             const subGraph = await this._getIterate(newTargets, direction, [...previouslyVisited, ...nodes])
             return rootGraph.merge([subGraph], aggregateEdges)
         }
         else {
-            return rootGraph
+            return rootGraph.merge([], aggregateEdges)
         }
 
     }
@@ -451,18 +451,21 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
         
         const updateCachePromise = (async () => {
             await Promise.all((Object.values(returnValue.nodes) as { key: K }[])
-                .map((node) => (this._dbHandler.primitiveUpdate({
+                .map((node) => {
+                    const newCache = returnValue.fromRoot(node.key).edges.map(({ from, to, context }) => (`${from}::${to}${context ? `::${context}`: ''}`))
+                    return this._dbHandler.primitiveUpdate({
                         Key: { PrimaryKey: node.key, DataCategory: `Graph::${capitalize(direction)}` },
-                        UpdateExpression: 'SET cache = :newCache',
+                        UpdateExpression: 'SET cache = :newCache, cachedAt = :moment',
                         ExpressionAttributeValues: marshall({
-                            ':newCache': returnValue.fromRoot(node.key).edges.map(({ from, to, context }) => (`${from}::${to}${context ? `::${context}`: ''}`)),
+                            ':newCache': newCache,
                             ':moment': moment
                         }),
-                        ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment'
-                    }))
-                ))
+                        ConditionExpression: 'attribute_not_exists(cachedAt) OR cachedAt < :moment'
+                    })
+                })
+            )
         })()
-        this._cacheWrites.push(updateCachePromise)
+        this._cacheWrites = [...this._cacheWrites, updateCachePromise]
 
         return returnValue
     }
@@ -471,8 +474,8 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
         await Promise.all(this._cacheWrites)
         this._cacheWrites = []
     }
-
 }
+
 export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdgeCache<K, D, DBH>>>>(Base: GBase) => {
     return class GraphCache extends Base {
         Graph: NewGraphCacheData<K, DBH, D>;

@@ -179,6 +179,7 @@ export const handler = async (event: any, context: any) => {
                     const graph = await internalCache.Graph.get([event.detail.ephemeraId], event.detail.direction || 'forward')
                     const message = `Nodes: ${JSON.stringify(Object.values(graph.nodes), null, 4)}, Edges: ${JSON.stringify(graph.edges, null, 4)}`
                     console.log(message)
+                    await internalCache.flush()
                     return message
                 }
                 else {

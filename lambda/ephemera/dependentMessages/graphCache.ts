@@ -6,11 +6,16 @@ import withTransaction from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/transact
 import GraphNode from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphNode"
 import { CacheBase } from "../internalCache/baseClasses"
 import { EphemeraId } from "@tonylb/mtw-interfaces/dist/baseClasses"
-import GraphCache from "@tonylb/mtw-utilities/dist/graphStorage/cache"
+import { GraphCache } from "@tonylb/mtw-utilities/dist/graphStorage/cache"
+import withPrimitives from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/primitives"
+import GraphEdge from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphEdge"
+import { CacheBase as GraphCacheBase } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
 
 const graphStorageDBMixin = withTransaction<'PrimaryKey'>()(
     withUpdate<'PrimaryKey'>()(
-        withGetOperations<'PrimaryKey'>()(DBHandlerBase<'PrimaryKey'>)
+        withPrimitives<'PrimaryKey'>()(
+            withGetOperations<'PrimaryKey'>()(DBHandlerBase)
+        )
     )
 )
 
@@ -22,4 +27,4 @@ export const graphStorageDB = new graphStorageDBMixin({
     options: { getBatchSize: 50 }
 })
 
-export const graphCache = new (GraphCache(graphStorageDB)(GraphNode<string, typeof graphStorageDB>(graphStorageDB)(CacheBase)))()
+export const graphCache = new (GraphCache(graphStorageDB)(GraphNode(graphStorageDB)(GraphEdge(graphStorageDB)(GraphCacheBase))))()

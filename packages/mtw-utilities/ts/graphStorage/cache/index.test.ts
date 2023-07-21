@@ -677,60 +677,21 @@ describe('GraphCache', () => {
         // Should update all caches
         //
         expect(dbHandler.primitiveUpdate).toHaveBeenCalledTimes(6)
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
-            Key: { PrimaryKey: 'A', DataCategory: 'Graph::Forward' },
-            UpdateExpression: 'SET cache = :newCache',
-            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
+        const testArgument = (key: string, cache: string[]) => ({
+            Key: { PrimaryKey: key, DataCategory: 'Graph::Forward' },
+            UpdateExpression: 'SET cache = :newCache, cachedAt = :moment',
+            ConditionExpression: 'attribute_not_exists(cachedAt) OR cachedAt < :moment',
             ExpressionAttributeValues: marshall({
-                ':newCache': ['A::B', 'A::C', 'B::C', 'C::D', 'C::E', 'D::F', 'E::F'],
+                ':newCache': cache,
                 ':moment': 1000
             })
         })
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
-            Key: { PrimaryKey: 'B', DataCategory: 'Graph::Forward' },
-            UpdateExpression: 'SET cache = :newCache',
-            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
-            ExpressionAttributeValues: marshall({
-                ':newCache': ['B::C', 'C::D', 'C::E', 'D::F', 'E::F'],
-                ':moment': 1000
-            })
-        })
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
-            Key: { PrimaryKey: 'C', DataCategory: 'Graph::Forward' },
-            UpdateExpression: 'SET cache = :newCache',
-            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
-            ExpressionAttributeValues: marshall({
-                ':newCache': ['C::D', 'C::E', 'D::F', 'E::F'],
-                ':moment': 1000
-            })
-        })
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
-            Key: { PrimaryKey: 'D', DataCategory: 'Graph::Forward' },
-            UpdateExpression: 'SET cache = :newCache',
-            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
-            ExpressionAttributeValues: marshall({
-                ':newCache': ['D::F'],
-                ':moment': 1000
-            })
-        })
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
-            Key: { PrimaryKey: 'E', DataCategory: 'Graph::Forward' },
-            UpdateExpression: 'SET cache = :newCache',
-            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
-            ExpressionAttributeValues: marshall({
-                ':newCache': ['E::F'],
-                ':moment': 1000
-            })
-        })
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith({
-            Key: { PrimaryKey: 'F', DataCategory: 'Graph::Forward' },
-            UpdateExpression: 'SET cache = :newCache',
-            ConditionExpression: 'attribute_not_exists(cachedAt) or cachedAt <= :moment',
-            ExpressionAttributeValues: marshall({
-                ':newCache': [],
-                ':moment': 1000
-            })
-        })
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('A', ['A::B', 'A::C', 'B::C', 'C::D', 'C::E', 'D::F', 'E::F']))
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('B', ['B::C', 'C::D', 'C::E', 'D::F', 'E::F']))
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('C', ['C::D', 'C::E', 'D::F', 'E::F']))
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('D', ['D::F']))
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('E', ['E::F']))
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('F', []))
 
     })
 
