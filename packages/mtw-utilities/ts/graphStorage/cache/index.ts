@@ -450,6 +450,9 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
         const capitalize = (value: string) => ([value.slice(0, 1).toUpperCase(), value.slice(1)].join(''))
         
         const updateCachePromise = (async () => {
+            //
+            // TODO: ISS2741: Improve cache update to be more discriminating about which nodes need to be updated
+            //
             await Promise.all((Object.values(returnValue.nodes) as { key: K }[])
                 .map((node) => {
                     const newCache = returnValue.fromRoot(node.key).edges.map(({ from, to, context }) => (`${from}::${to}${context ? `::${context}`: ''}`))
