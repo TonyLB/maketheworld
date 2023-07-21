@@ -1,3 +1,4 @@
+import { marshall } from '@aws-sdk/util-dynamodb';
 import { ephemeraDB as ephemeraDB } from '../../dynamoDB'
 import { unique } from '../../lists';
 import { extractConstrainedTag } from '../../types';
@@ -394,22 +395,29 @@ export const LegacyGraphCache = <GBase extends CacheConstructor>(Base: GBase) =>
     }
 }
 
+type GraphCacheDataNodeType<K extends string> = {
+    key: K;
+    cachedAt?: number;
+}
+
 export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D extends {}> {
     _Edges: GraphEdgeData<K, DBH, D>;
     _Nodes: GraphNodeData<K, DBH>;
+    _dbHandler: DBH;
     _cacheWrites: Promise<void>[] = [];
     
-    constructor(Nodes: GraphNodeData<K, DBH>, Edges: GraphEdgeData<K, DBH, D>) {
+    constructor(Nodes: GraphNodeData<K, DBH>, Edges: GraphEdgeData<K, DBH, D>, dbhHandler: DBH) {
         this._Nodes = Nodes
         this._Edges = Edges
+        this._dbHandler = dbhHandler
     }
 
-    async get(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, { key: K }, D>> {
+    async _getIterate(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, { key: K }, { context?: string} & D>> {
         const nodesFetch = (await this._Nodes.get(nodes))
-        const rootGraph = new Graph<K, { key: K }, D>(
-            nodesFetch.reduce<Record<K, { key: K }>>((previous, { PrimaryKey }) => ({ ...previous, [PrimaryKey]: { key: PrimaryKey } }), {} as Record<K, { key: K }>),
+        const rootGraph = new Graph<K, GraphCacheDataNodeType<K>, D>(
+            nodesFetch.reduce<Record<K, GraphCacheDataNodeType<K>>>((previous, node) => ({ ...previous, [node.PrimaryKey]: { key: node.PrimaryKey, cachedAt: node[direction].cachedAt } }), {} as Record<K, GraphCacheDataNodeType<K>>),
             [],
-            this._Edges._Cache._default || {} as D,
+            {},
             true
         )
         const newTargets = nodesFetch
@@ -417,36 +425,67 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
                 unique(previous, nodeCache[direction].edges.map(({ target }) => (target)))
             ), [])
             .filter((key) => (![...previouslyVisited, ...nodes].includes(key)))
+        const aggregateEdges = nodesFetch.reduce<GraphEdge<K, D>[]>((previous, nodeCache) => ([
+            ...previous,
+            ...nodeCache[direction].edges
+                .map(({ target, context }) => ({ from: nodeCache.PrimaryKey, to: target, context } as unknown as GraphEdge<K, D>))
+        ]), [])
         if (newTargets.length) {
             //
             // Prefetch child nodes in batch to facilitate graph calculations
             //
-            const aggregateEdges = nodesFetch.reduce<GraphEdge<K, D>[]>((previous, nodeCache) => ([
-                ...previous,
-                ...nodeCache[direction].edges
-                    .map(({ target, context }) => ({ from: nodeCache.PrimaryKey, to: target, context } as unknown as GraphEdge<K, D>))
-            ]), [])
-            const subGraph = await this.get(newTargets, direction, [...previouslyVisited, ...nodes])
+            const subGraph = await this._getIterate(newTargets, direction, [...previouslyVisited, ...nodes])
             return rootGraph.merge([subGraph], aggregateEdges)
         }
         else {
-            return rootGraph
+            return rootGraph.merge([], aggregateEdges)
         }
 
+    }
+
+    async get(nodes: K[], direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D>> {
+        const returnValue = await this._getIterate(nodes, direction)
+
+        const moment = Date.now()
+        const capitalize = (value: string) => ([value.slice(0, 1).toUpperCase(), value.slice(1)].join(''))
+        
+        const updateCachePromise = (async () => {
+            //
+            // TODO: ISS2741: Improve cache update to be more discriminating about which nodes need to be updated
+            //
+            await Promise.all((Object.values(returnValue.nodes) as { key: K }[])
+                .map((node) => {
+                    const newCache = returnValue.fromRoot(node.key).edges.map(({ from, to, context }) => (`${from}::${to}${context ? `::${context}`: ''}`))
+                    return this._dbHandler.primitiveUpdate({
+                        Key: { PrimaryKey: node.key, DataCategory: `Graph::${capitalize(direction)}` },
+                        UpdateExpression: 'SET cache = :newCache, cachedAt = :moment',
+                        ExpressionAttributeValues: marshall({
+                            ':newCache': newCache,
+                            ':moment': moment
+                        }),
+                        ConditionExpression: 'attribute_not_exists(cachedAt) OR cachedAt < :moment'
+                    })
+                })
+            )
+        })()
+        this._cacheWrites = [...this._cacheWrites, updateCachePromise]
+
+        return returnValue
     }
 
     async flush() {
         await Promise.all(this._cacheWrites)
+        this._cacheWrites = []
     }
-
 }
-export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler, GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdgeCache<K, D, DBH>>>>(Base: GBase) => {
+
+export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdgeCache<K, D, DBH>>>>(Base: GBase) => {
     return class GraphCache extends Base {
         Graph: NewGraphCacheData<K, DBH, D>;
 
         constructor(...rest: any) {
             super(...rest)
-            this.Graph = new NewGraphCacheData(this.Nodes, this.Edges)
+            this.Graph = new NewGraphCacheData(this.Nodes, this.Edges, dbHandler)
         }
 
         override async flush() {

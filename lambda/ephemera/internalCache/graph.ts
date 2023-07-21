@@ -6,8 +6,9 @@ import { CacheBase, CacheConstructor } from "./baseClasses"
 import withGetOperations from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/get"
 import { DBHandlerBase } from "@tonylb/mtw-utilities/dist/dynamoDB/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import withPrimitives from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/primitives"
 
-const graphDBHandler: GraphDBHandler = new (withGetOperations<'PrimaryKey', string>()(DBHandlerBase))({
+const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: ephemeraDB._client,
     tableName: ephemeraDB._tableName,
     incomingKeyLabel: 'PrimaryKey',
@@ -17,11 +18,20 @@ const graphDBHandler: GraphDBHandler = new (withGetOperations<'PrimaryKey', stri
 
 export const CacheGraph = <GBase extends CacheConstructor>(Base: GBase) => {
     return class CachGraph extends Base {
-        Graph: InstanceType<ReturnType<typeof GraphCache>>["Graph"]
+        _graphCache: InstanceType<ReturnType<ReturnType<typeof GraphCache>>>
+        Graph: InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Graph"]
 
         constructor(...rest: any) {
             super(...rest)
-            this.Graph = new (GraphCache(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))().Graph
+            this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
+            this.Graph = this._graphCache.Graph
+        }
+
+        override async flush() {
+            await Promise.all([
+                this.Graph.flush(),
+                super.flush()
+            ])
         }
     }
 }
