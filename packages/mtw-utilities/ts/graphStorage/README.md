@@ -186,11 +186,13 @@ The *lightsOn* Compute is referenced by the *Cathedral* room in the base asset, 
 *to speed up tree traversal.*
 
 ```ts
+type GraphEdgeTargetEncoded = `${PrimaryKey}::${contextString}` | PrimaryKey
+type GraphEdgeEncoded = `${PrimaryKey}::${GraphEdgeTargetEncoded}`
 type GraphNodeCache = {
     PrimaryId: PrimaryKey;   // Either: 'EphemeraId: EphemeraKey' or 'AssetId: AssetKey' as needed
     DataCategory: 'Graph::Forward' | 'Graph::Back';
-    edgeSet: `${PrimaryKey}::${contextString}`[];
-    cache?: PrimaryKey[];
+    edgeSet: GraphEdgeTargetEncoded[];
+    cache?: GraphEdgeEncoded[];
     cachedAt?: number;       // Epoch Time
     invalidatedAt?: number;  // Epoch Time
     updatedAt?: number;      // Epoch Time
@@ -212,8 +214,8 @@ would look like this:
 {
     EphemeraId: 'VARIABLE#A',
     DataCategory: 'Graph::Forward',
-    edgeSet: ['COMPUTED#B::', 'COMPUTED#C::'],
-    cache: ['COMPUTED#B', 'COMPUTED#C', 'COMPUTED#D', 'COMPUTED#E', 'COMPUTED#F', 'COMPUTED#G'],
+    edgeSet: ['COMPUTED#B', 'COMPUTED#C'],
+    cache: ['VARIABLE#A::COMPUTED#B', 'VARIABLE#A::COMPUTED#C', 'VARIABLE#B::COMPUTED#D', 'VARIABLE#B::COMPUTED#E', 'VARIABLE#C::COMPUTED#F', 'VARIABLE#C::COMPUTED#G'],
     updatedAt: 9900,
     invalidatedAt: 9900,
     cachedAt: 10000
@@ -227,7 +229,7 @@ would look like this:
     EphemeraId: 'COMPUTED#A',
     DataCategory: 'Graph::Backward',
     edgeSet: ['COMPUTED#B::'],
-    cache: ['COMPUTED#B', 'VARIABLE#A'],
+    cache: ['COMPUTED#D::COMPUTED#B', 'COMPUTED#B::VARIABLE#A'],
     updateAt: 9900,
     invalidatedAt: 9900,
     cachedAt: 10000
@@ -243,7 +245,7 @@ would look like this:
 ```ts
 type GraphEdge = {
     PrimaryId: PrimaryKey;
-    DataCategory: `Graph::${PrimaryKey}::${contextString}`;
+    DataCategory: `Graph::${GraphEdgeTarget}`;
 }
 ```
 
@@ -277,7 +279,10 @@ property set to the current EpochTime.
 
 * The edge-set of each node
 * The cache of each sub-node
-* Whether the node's **invalidatedAt** occurred after the node's **cachedAt** (and therefore)
+* Whether the sub-node's **invalidatedAt** occurred after the root node's **cachedAt** (and therefore whether
+the information beneath that point may differ from the root node's cache)
+* Whether the sub-node's **invalidatedAt** occurred after the sub-node's **cachedAt** (and therefore whether
+the information in the sub-node's cache is fresh)
 
 With the complete edge-set for all nodes fetched speculatively, the process can double-check the correctness
 of the cache:
@@ -285,38 +290,15 @@ of the cache:
 * First, any edges that point to nodes that *aren't* included in the cache will indicate places where a
 further fetch is needed (either because one or more nodes have been invalidated since the root cache was formed,
 or because the cache only captured a sub-graph of a particularly large node-set). These further fetches are
-performed recursively (hopefully by accessing another valid cache somewhere in the branch being considered).
+performed recursively in the same sequence as the original fetch (check sub-node for valid cache, if cache
+available batch-read cache, otherwise batch-read direct edge-set).
 * Once there are no *missing* nodes, the node and edge-set is a possible superset of the result set:  The edge
 set can be reconstructed, and any nodes that aren't part of a graph-walk can be excluded from the results.
 
-#### Tree Caching
+#### Graph Caching
 
 *When a successful fetch is completed, it will be possible to calculate whether the cache needs to be*
-*updated with new data. Cache is updated as follows:*
-
-* The graph results are walked breadth-first (modified Dijkstra algorithm) until either (a) the whole sub-graph
-has been walked, or (b) the number of distinct nodes has passed the threshold of what the system is comfortable
-batchGetting at once (current limits are no more than 16MB total, and no more than 100 items, but those limits
-increase from time to time). The last full level of breadth-first scanning before the threshold is cached.
-* If the limited graph results are not identical to the cache then this node is a candidate for a cache update.
-* The cache is replaced with the new limited set of nodes, conditioned on both the **invalidatedAt** and **cachedAt**
-values not having changed since the fetch started. If either of those values have changed, the cache is not
-updated in this cycle. **cachedAt** is updated to the epoch time as part of this update.
-
-Example:
-
-Suppose a genuine source of truth that has the following structure:
-    - Node A has children B and C,
-    - Node B has children D and E,
-    - Node C has children F and G
-
-Suppose further that the threshold for nodes in the cache is five, and NodeA has a forward cache with the following nodes:
-['A', 'B', 'D', 'E']
-
-Walking the fetched edge-set would return 'A' in the first level, 'B' and 'C' in the second, and 'D', 'E', 'F', and 'G' in
-the third. Two levels of the graph contain three nodes, while three levels contain seven (greater than the treshold), so
-only two will be cached. The two-level cache nodes are ['A', 'B', 'C'], which is not the same set as ['A', 'B', 'D', 'E'],
-so this is a candidate for cache update.
+*updated with new data. Cache is updated as described in [Graph Caching](./README.caching.md)*
 
 ---
 
