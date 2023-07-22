@@ -8,7 +8,7 @@ export type GraphNodeCacheDirectEdge <K extends string = string> = {
     context: string;
 }
 
-type GraphNodeCacheEdge <K extends string> = GraphNodeCacheDirectEdge<K> & { source: K }
+export type GraphNodeCacheEdge <K extends string> = GraphNodeCacheDirectEdge<K> & { source: K }
 
 type GraphNodeCacheComponent <K extends string> = {
     edges: GraphNodeCacheDirectEdge<K>[];

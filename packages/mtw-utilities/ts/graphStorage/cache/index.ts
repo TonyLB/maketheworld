@@ -398,6 +398,8 @@ export const LegacyGraphCache = <GBase extends CacheConstructor>(Base: GBase) =>
 type GraphCacheDataNodeType<K extends string> = {
     key: K;
     cachedAt?: number;
+    cache?: string[];
+    invalidatedAt?: number;
 }
 
 export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D extends {}> {
@@ -415,14 +417,26 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
     async _getIterate(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, { key: K }, { context?: string} & D>> {
         const nodesFetch = (await this._Nodes.get(nodes))
         const rootGraph = new Graph<K, GraphCacheDataNodeType<K>, D>(
-            nodesFetch.reduce<Record<K, GraphCacheDataNodeType<K>>>((previous, node) => ({ ...previous, [node.PrimaryKey]: { key: node.PrimaryKey, cachedAt: node[direction].cachedAt } }), {} as Record<K, GraphCacheDataNodeType<K>>),
+            nodesFetch.reduce<Record<K, GraphCacheDataNodeType<K>>>((previous, node) => ({
+                ...previous,
+                [node.PrimaryKey]: {
+                    key: node.PrimaryKey,
+                    cachedAt: node[direction].cachedAt,
+                    cache: node[direction].cache,
+                    invalidatedAt: node[direction].invalidatedAt
+                }
+            }), {} as Record<K, GraphCacheDataNodeType<K>>),
             [],
             {},
             true
         )
         const newTargets = nodesFetch
             .reduce<K[]>((previous, nodeCache) => (
-                unique(previous, nodeCache[direction].edges.map(({ target }) => (target)))
+                unique(
+                    previous,
+                    nodeCache[direction].edges.map(({ target }) => (target)),
+                    (nodeCache[direction].cache || []).map(({ target }) => (target))
+                )
             ), [])
             .filter((key) => (![...previouslyVisited, ...nodes].includes(key)))
         const aggregateEdges = nodesFetch.reduce<GraphEdge<K, D>[]>((previous, nodeCache) => ([
