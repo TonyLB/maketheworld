@@ -7,7 +7,8 @@ import { GraphEdge } from '../utils/graph/baseClasses';
 import { CacheConstructor, DependencyEdge, DependencyNode, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete, GraphDBHandler } from './baseClasses'
 import { DeferredCache } from './deferredCache';
 import GraphEdgeCache, { GraphEdgeData } from './graphEdge';
-import GraphNode, { GraphNodeData } from './graphNode';
+import GraphNode, { GraphNodeCacheEdge, GraphNodeData } from './graphNode';
+import { deepEqual } from '../../objects';
 
 export class DependencyTreeWalker<T extends Omit<DependencyNode, 'completeness'>> {
     _nodes: T[];
@@ -398,7 +399,7 @@ export const LegacyGraphCache = <GBase extends CacheConstructor>(Base: GBase) =>
 type GraphCacheDataNodeType<K extends string> = {
     key: K;
     cachedAt?: number;
-    cache?: string[];
+    cache?: GraphNodeCacheEdge<K>[];
     invalidatedAt?: number;
 }
 
@@ -414,7 +415,7 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
         this._dbHandler = dbhHandler
     }
 
-    async _getIterate(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, { key: K }, { context?: string} & D>> {
+    async _getIterate(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, GraphCacheDataNodeType<K>, { context?: string} & D>> {
         const nodesFetch = (await this._Nodes.get(nodes))
         const rootGraph = new Graph<K, GraphCacheDataNodeType<K>, D>(
             nodesFetch.reduce<Record<K, GraphCacheDataNodeType<K>>>((previous, node) => ({
@@ -435,7 +436,7 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
                 unique(
                     previous,
                     nodeCache[direction].edges.map(({ target }) => (target)),
-                    (nodeCache[direction].cache || []).map(({ target }) => (target))
+                    (nodeCache[direction].cache || []).map(({ to }) => (to))
                 )
             ), [])
             .filter((key) => (![...previouslyVisited, ...nodes].includes(key)))
@@ -467,18 +468,22 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
             //
             // TODO: ISS2741: Improve cache update to be more discriminating about which nodes need to be updated
             //
-            await Promise.all((Object.values(returnValue.nodes) as { key: K }[])
-                .map((node) => {
-                    const newCache = returnValue.fromRoot(node.key).edges.map(({ from, to, context }) => (`${from}::${to}${context ? `::${context}`: ''}`))
-                    return this._dbHandler.primitiveUpdate({
-                        Key: { PrimaryKey: node.key, DataCategory: `Graph::${capitalize(direction)}` },
-                        UpdateExpression: 'SET cache = :newCache, cachedAt = :moment',
-                        ExpressionAttributeValues: marshall({
-                            ':newCache': newCache,
-                            ':moment': moment
-                        }),
-                        ConditionExpression: 'attribute_not_exists(cachedAt) OR cachedAt < :moment'
-                    })
+            await Promise.all((Object.values(returnValue.nodes) as GraphCacheDataNodeType<K>[])
+                .map(async (node) => {
+                    const edgeToString = ({ from, to, context }: GraphEdge<K, { context?: string }>): string => (`${from}::${to}${context ? `::${context}`: ''}`)
+                    const newCache = returnValue.fromRoot(node.key).edges.map(edgeToString).sort()
+                    if (!(node.cache && deepEqual(newCache, [...node.cache].map(edgeToString).sort()))) {
+                        console.log(`newCache: ${JSON.stringify(newCache, null, 4)} !== oldCache: ${JSON.stringify(node.cache, null, 4)}`)
+                        await this._dbHandler.primitiveUpdate({
+                            Key: { PrimaryKey: node.key, DataCategory: `Graph::${capitalize(direction)}` },
+                            UpdateExpression: 'SET cache = :newCache, cachedAt = :moment',
+                            ExpressionAttributeValues: marshall({
+                                ':newCache': newCache,
+                                ':moment': moment
+                            }),
+                            ConditionExpression: 'attribute_not_exists(cachedAt) OR cachedAt < :moment'
+                        })
+                    }
                 })
             )
         })()

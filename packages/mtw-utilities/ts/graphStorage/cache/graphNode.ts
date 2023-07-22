@@ -8,7 +8,11 @@ export type GraphNodeCacheDirectEdge <K extends string = string> = {
     context: string;
 }
 
-export type GraphNodeCacheEdge <K extends string> = GraphNodeCacheDirectEdge<K> & { source: K }
+export type GraphNodeCacheEdge <K extends string> = {
+    from: K;
+    to: K;
+    context: string;
+}
 
 type GraphNodeCacheComponent <K extends string> = {
     edges: GraphNodeCacheDirectEdge<K>[];
@@ -92,7 +96,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
                                 PrimaryKey: item.PrimaryKey,
                                 forward: {
                                     edges: item.edgeSet.map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
-                                    cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ source: edgeKey.split('::')[0] as K, target: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
+                                    cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ from: edgeKey.split('::')[0] as K, to: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
                                     invalidateAt: item.invalidatedAt,
                                     cachedAt: item.cachedAt
                                 },
@@ -108,7 +112,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
                                 forward: priorMatch?.forward || { edges: [] },
                                 back: {
                                     edges: item.edgeSet.map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
-                                    cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ source: edgeKey.split('::')[0] as K, target: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
+                                    cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ from: edgeKey.split('::')[0] as K, to: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
                                     invalidateAt: item.invalidatedAt,
                                     cachedAt: item.cachedAt
                                 }

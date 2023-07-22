@@ -51,10 +51,10 @@ describe('GraphNode cache', () => {
                         { target: 'C', context: '' }
                     ],
                     cache: [
-                        { source: 'A', target: 'B', context: '' },
-                        { source: 'A', target: 'C', context: '' },
-                        { source: 'B', target: 'C', context: '' },
-                        { source: 'C', target: 'D', context: '' }
+                        { from: 'A', to: 'B', context: '' },
+                        { from: 'A', to: 'C', context: '' },
+                        { from: 'B', to: 'C', context: '' },
+                        { from: 'C', to: 'D', context: '' }
                     ],
                     cachedAt: 900
                 },
@@ -65,14 +65,14 @@ describe('GraphNode cache', () => {
                 forward: {
                     edges: [{ target: 'C', context: '' }],
                     cache: [
-                        { source: 'B', target: 'C', context: '' },
-                        { source: 'C', target: 'D', context: '' }
+                        { from: 'B', to: 'C', context: '' },
+                        { from: 'C', to: 'D', context: '' }
                     ],
                     cachedAt: 1000
                 },
                 back: {
                     edges: [{ target: 'A', context: '' }],
-                    cache: [{ source: 'A', target: 'B', context: '' }],
+                    cache: [{ from: 'A', to: 'B', context: '' }],
                     cachedAt: 900
                 }
             },
@@ -87,9 +87,9 @@ describe('GraphNode cache', () => {
                         { target: 'B', context: '' }
                     ],
                     cache: [
-                        { source: 'A', target: 'C', context: '' },
-                        { source: 'A', target: 'B', context: '' },
-                        { source: 'B', target: 'C', context: '' }
+                        { from: 'A', to: 'C', context: '' },
+                        { from: 'A', to: 'B', context: '' },
+                        { from: 'B', to: 'C', context: '' }
                     ],
                     cachedAt: 1000
                 }
@@ -133,10 +133,10 @@ describe('GraphNode cache', () => {
                         { target: 'C', context: '' }
                     ],
                     cache: [
-                        { source: 'A', target: 'B', context: '' },
-                        { source: 'A', target: 'C', context: '' },
-                        { source: 'B', target: 'C', context: '' },
-                        { source: 'C', target: 'D', context: '' }
+                        { from: 'A', to: 'B', context: '' },
+                        { from: 'A', to: 'C', context: '' },
+                        { from: 'B', to: 'C', context: '' },
+                        { from: 'C', to: 'D', context: '' }
                     ],
                     cachedAt: 900
                 },
@@ -147,14 +147,14 @@ describe('GraphNode cache', () => {
                 forward: {
                     edges: [{ target: 'C', context: '' }],
                     cache: [
-                        { source: 'B', target: 'C', context: '' },
-                        { source: 'C', target: 'D', context: '' }
+                        { from: 'B', to: 'C', context: '' },
+                        { from: 'C', to: 'D', context: '' }
                     ],
                     cachedAt: 1000
                 },
                 back: {
                     edges: [{ target: 'A', context: '' }],
-                    cache: [{ source: 'A', target: 'B', context: '' }],
+                    cache: [{ from: 'A', to: 'B', context: '' }],
                     cachedAt: 900
                 }
             }
@@ -178,10 +178,10 @@ describe('GraphNode cache', () => {
                         { target: 'C', context: '' }
                     ],
                     cache: [
-                        { source: 'A', target: 'B', context: '' },
-                        { source: 'A', target: 'C', context: '' },
-                        { source: 'B', target: 'C', context: '' },
-                        { source: 'C', target: 'D', context: '' }
+                        { from: 'A', to: 'B', context: '' },
+                        { from: 'A', to: 'C', context: '' },
+                        { from: 'B', to: 'C', context: '' },
+                        { from: 'C', to: 'D', context: '' }
                     ],
                     cachedAt: 900
                 },
@@ -192,14 +192,14 @@ describe('GraphNode cache', () => {
                 forward: {
                     edges: [{ target: 'C', context: '' }],
                     cache: [
-                        { source: 'B', target: 'C', context: '' },
-                        { source: 'C', target: 'D', context: '' }
+                        { from: 'B', to: 'C', context: '' },
+                        { from: 'C', to: 'D', context: '' }
                     ],
                     cachedAt: 1000
                 },
                 back: {
                     edges: [{ target: 'A', context: '' }],
-                    cache: [{ source: 'A', target: 'B', context: '' }],
+                    cache: [{ from: 'A', to: 'B', context: '' }],
                     cachedAt: 900
                 }
             },
@@ -214,9 +214,9 @@ describe('GraphNode cache', () => {
                         { target: 'B', context: '' }
                     ],
                     cache: [
-                        { source: 'A', target: 'C', context: '' },
-                        { source: 'A', target: 'B', context: '' },
-                        { source: 'B', target: 'C', context: '' }
+                        { from: 'A', to: 'C', context: '' },
+                        { from: 'A', to: 'B', context: '' },
+                        { from: 'B', to: 'C', context: '' }
                     ],
                     cachedAt: 1000
                 }

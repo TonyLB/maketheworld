@@ -574,7 +574,7 @@ describe('GraphCache', () => {
     jest.spyOn(internalCache.Edges, 'get')
 
     const cacheFactory = (entries: string[]): GraphNodeCacheEdge<string>[] => (
-        entries.map((key) => ({ source: key.split('::')[0], target: key.split('::')[1], context: '' }))
+        entries.map((key) => ({ from: key.split('::')[0], to: key.split('::')[1], context: '' }))
     )
 
     beforeEach(() => {
@@ -655,6 +655,7 @@ describe('GraphCache', () => {
 
         jest.spyOn(dbHandler, 'primitiveUpdate').mockResolvedValue({})
         const tree = await internalCache.Graph.get(['A'], 'forward')
+        await internalCache.flush()
         expect(nodeGetMock).toHaveBeenCalledTimes(4)
         expect(nodeGetMock).toHaveBeenCalledWith(['A'])
         expect(nodeGetMock).toHaveBeenCalledWith(['B', 'C'])
@@ -772,6 +773,7 @@ describe('GraphCache', () => {
 
         jest.spyOn(dbHandler, 'primitiveUpdate').mockResolvedValue({})
         const tree = await internalCache.Graph.get(['A'], 'forward')
+        await internalCache.flush()
         expect(nodeGetMock).toHaveBeenCalledTimes(2)
         expect(nodeGetMock).toHaveBeenCalledWith(['A'])
         expect(nodeGetMock).toHaveBeenCalledWith(['B', 'C', 'D', 'E', 'F'])
@@ -787,24 +789,9 @@ describe('GraphCache', () => {
         ])
 
         //
-        // Should update all caches
+        // Does not need to update any caches
         //
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledTimes(6)
-        const testArgument = (key: string, cache: string[]) => ({
-            Key: { PrimaryKey: key, DataCategory: 'Graph::Forward' },
-            UpdateExpression: 'SET cache = :newCache, cachedAt = :moment',
-            ConditionExpression: 'attribute_not_exists(cachedAt) OR cachedAt < :moment',
-            ExpressionAttributeValues: marshall({
-                ':newCache': cache,
-                ':moment': 1000
-            })
-        })
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('A', ['A::B', 'A::C', 'B::C', 'C::D', 'C::E', 'D::F', 'E::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('B', ['B::C', 'C::D', 'C::E', 'D::F', 'E::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('C', ['C::D', 'C::E', 'D::F', 'E::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('D', ['D::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('E', ['E::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('F', []))
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledTimes(0)
 
     })
 
@@ -880,6 +867,7 @@ describe('GraphCache', () => {
 
         jest.spyOn(dbHandler, 'primitiveUpdate').mockResolvedValue({})
         const tree = await internalCache.Graph.get(['A'], 'forward')
+        await internalCache.flush()
         expect(nodeGetMock).toHaveBeenCalledTimes(3)
         expect(nodeGetMock).toHaveBeenCalledWith(['A'])
         expect(nodeGetMock).toHaveBeenCalledWith(['B', 'C', 'D', 'F'])
@@ -896,9 +884,9 @@ describe('GraphCache', () => {
         ])
 
         //
-        // Should update all caches
+        // Updates only the inconsistent cache
         //
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledTimes(6)
+        expect(dbHandler.primitiveUpdate).toHaveBeenCalledTimes(1)
         const testArgument = (key: string, cache: string[]) => ({
             Key: { PrimaryKey: key, DataCategory: 'Graph::Forward' },
             UpdateExpression: 'SET cache = :newCache, cachedAt = :moment',
@@ -909,11 +897,6 @@ describe('GraphCache', () => {
             })
         })
         expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('A', ['A::B', 'A::C', 'B::C', 'C::D', 'C::E', 'D::F', 'E::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('B', ['B::C', 'C::D', 'C::E', 'D::F', 'E::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('C', ['C::D', 'C::E', 'D::F', 'E::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('D', ['D::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('E', ['E::F']))
-        expect(dbHandler.primitiveUpdate).toHaveBeenCalledWith(testArgument('F', []))
 
     })
 
