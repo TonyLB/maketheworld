@@ -10,6 +10,9 @@ export type CharacterPossibleMapsItem = {
     mapsPossible: EphemeraMapId[];
 }
 
+//
+// TODO: ISS2723: Refactor CacheCharacterPossibleMaps data to use new Graph rather than legacy Descent
+//
 export class CacheCharacterPossibleMapsData {
     _Cache: DeferredCache<CharacterPossibleMapsItem> = new DeferredCache();
     _CharacterMeta: CacheCharacterMetaData;

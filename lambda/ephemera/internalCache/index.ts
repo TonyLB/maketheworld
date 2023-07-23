@@ -143,6 +143,9 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = CacheGraph(CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(ComponentMeta(AssetState(GraphCache(CachePlayerConnections(CacheCharacterConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))))))))))
+//
+// TODO: ISS2723: Refactor InternalCache mixins to have only one of GraphCache and CacheGraph :)
+//
+const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(AssetState(ComponentMeta(CacheGraph(GraphCache(CachePlayerConnections(CacheCharacterConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))))))))))
 export const internalCache = new InternalCache()
 export default internalCache

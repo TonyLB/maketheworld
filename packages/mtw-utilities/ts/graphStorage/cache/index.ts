@@ -409,7 +409,7 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
     _dbHandler: DBH;
     _cacheWrites: Promise<void>[] = [];
     
-    constructor(Nodes: GraphNodeData<K, DBH>, Edges: GraphEdgeData<K, DBH, D>, dbhHandler: DBH) {
+    constructor(Nodes: GraphNodeData<K, DBH>, Edges: GraphEdgeData<K, DBH, D & { context?: string }>, dbhHandler: DBH) {
         this._Nodes = Nodes
         this._Edges = Edges
         this._dbHandler = dbhHandler
@@ -458,7 +458,7 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
 
     }
 
-    async get(nodes: K[], direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D>> {
+    async get(nodes: K[], direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D & { context?: string }>> {
         const returnValue = await this._getIterate(nodes, direction)
 
         const moment = Date.now()

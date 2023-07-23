@@ -8,9 +8,10 @@ import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
-import GraphCache, { GraphCacheData } from '@tonylb/mtw-utilities/dist/graphStorage/cache'
 import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
+import CacheGraph, { GraphCacheType } from './graph';
+import ComponentMeta, { ComponentMetaData } from './componentMeta';
 
 export type StateItemId = EphemeraVariableId | EphemeraComputedId
 
@@ -127,9 +128,6 @@ export class EvaluateCodeData {
         return await this._Cache.get(address)
     }
 
-    //
-    // TODO: ISS-1570: Invalidate EvaluatedCode when relevant AssetState entries are set or invalidated
-    //
     invalidateByAssetStateId (EphemeraId: StateItemId): void {
         const addressesToInvalidate = this._Cache._cache
             .map(([address]) => (address))
@@ -139,11 +137,16 @@ export class EvaluateCodeData {
 }
 
 class AssetMap {
-    _Ancestry: GraphCacheData;
-    constructor(Ancestry: GraphCacheData) {
-        this._Ancestry = Ancestry
+    _Graph: GraphCacheType;
+    _ComponentMeta: ComponentMetaData;
+    constructor(Graph: GraphCacheType, ComponentMeta: ComponentMetaData) {
+        this._Graph = Graph
+        this._ComponentMeta = ComponentMeta
     }
 
+    //
+    // TODO: ISS-2750: Refactor AssetMap get to rely on key data from Graph edges rather than lookup
+    //
     async get(EphemeraId: string): Promise<AssetStateMapping> {
         if (extractConstrainedTag(isLegalDependencyTag)(EphemeraId) === 'Asset') {
             const [computedLookups, variableLookups] = await Promise.all([
@@ -173,27 +176,17 @@ class AssetMap {
             ), {})
         }
         else {
-            const knownAncestry = this._Ancestry.getPartial(EphemeraId).find(({ EphemeraId: check }) => (check === EphemeraId))
-            if (knownAncestry?.completeness === 'Complete') {
-                return knownAncestry.connections.reduce<AssetStateMapping>((previous, { EphemeraId, key }) => (
-                    (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
-                        ? { ...previous, [key]: EphemeraId }
-                        : previous
-                ), {})
-            }
-            const fetchedAncestry = await this._Ancestry.get(EphemeraId)
-            return (fetchedAncestry.find(({ EphemeraId: check }) => (check === EphemeraId))?.connections ?? [])
-                .filter(({ EphemeraId }) => (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
-                .reduce<AssetStateMapping>((previous, { EphemeraId, key }) => (
-                    (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
-                        ? { ...previous, [key]: EphemeraId }
-                        : previous
-                    ), {})
+            const ancestryGraph = await this._Graph.get([EphemeraId], 'back')
+            const dependentItems = ancestryGraph.edges
+                .filter(({ from }) => (from === EphemeraId))
+                .map(({ to, context }) => ({ to, context }))
+            const componentItems = await Promise.all(dependentItems.map(async (dependentItem) => (this._ComponentMeta.get(dependentItem.to as EphemeraVariableId | EphemeraComputedId, dependentItem.context || ''))))
+            return componentItems.reduce<AssetStateMapping>((previous, componentMeta) => (componentMeta ? { ...previous, [componentMeta.key]: componentMeta.EphemeraId } : previous), {})
         }
     }
 }
 
-export const AssetState = <GBase extends ReturnType<typeof GraphCache>>(Base: GBase) => {
+export const AssetState = <GBase extends ReturnType<typeof CacheGraph> & ReturnType<typeof ComponentMeta>>(Base: GBase) => {
     return class AssetState extends Base {
         AssetState: AssetStateData
         EvaluateCode: EvaluateCodeData
@@ -203,7 +196,7 @@ export const AssetState = <GBase extends ReturnType<typeof GraphCache>>(Base: GB
             super()
             this.AssetState = new AssetStateData((EphemeraId) => { this._invalidateAssetCallback(EphemeraId) })
             this.EvaluateCode = new EvaluateCodeData(this.AssetState)
-            this.AssetMap = new AssetMap(this.Ancestry)
+            this.AssetMap = new AssetMap(this.Graph, this.ComponentMeta)
         }
         override clear() {
             this.AssetState.clear()

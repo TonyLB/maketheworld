@@ -16,10 +16,12 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
     options: { getBatchSize: 50 }
 })
 
+export type GraphCacheType = InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Graph"]
+
 export const CacheGraph = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CachGraph extends Base {
+    return class CacheGraph extends Base {
         _graphCache: InstanceType<ReturnType<ReturnType<typeof GraphCache>>>
-        Graph: InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Graph"]
+        Graph: GraphCacheType
 
         constructor(...rest: any) {
             super(...rest)
