@@ -7,7 +7,6 @@ import CacheCharacterMeta from './characterMeta';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
 import CacheCharacterConnections from './characterConnections';
 import AssetState from './assetState';
-import GraphCache from '@tonylb/mtw-utilities/dist/graphStorage/cache';
 import ComponentMeta from './componentMeta';
 import ComponentRender from './componentRender';
 import CacheCharacterPossibleMaps from './characterPossibleMaps';
@@ -146,6 +145,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
 //
 // TODO: ISS2723: Refactor InternalCache mixins to have only one of GraphCache and CacheGraph :)
 //
-const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(AssetState(ComponentMeta(CacheGraph(GraphCache(CachePlayerConnections(CacheCharacterConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))))))))))
+const InternalCache = CachePlayerMeta(CacheCharacterPossibleMaps(ComponentRender(AssetState(ComponentMeta(CacheGraph(CachePlayerConnections(CacheCharacterConnections(CacheAssetRooms(CacheAssetMeta(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase)))))))))))))
 export const internalCache = new InternalCache()
 export default internalCache

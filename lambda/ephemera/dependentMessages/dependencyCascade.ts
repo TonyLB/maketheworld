@@ -8,6 +8,9 @@ import { DependencyNode, isLegalDependencyTag } from "@tonylb/mtw-utilities/dist
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 import { DependencyCascadeMessage, MessageBus } from "../messageBus/baseClasses"
 
+//
+// TODO: ISS2723: Refactor dependencyCascade to use new Graph storage subsystem rather than legacy
+//
 export const dependencyCascadeMessage = async ({ payloads, messageBus }: { payloads: DependencyCascadeMessage[]; messageBus: MessageBus }): Promise<void> => {
     //
     // knockOnCascades are EphemeraIds that exist in the Descent arguments of an incoming payload.  These are,
