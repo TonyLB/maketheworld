@@ -138,4 +138,9 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         }
         this.edges.push(edge)
     }
+
+    //
+    // TODO: ISS2327: Add generationOrder method on directed graphs, returning a sorted list of lists (since some nodes may be in
+    // cycles that cannot be ordered relative to each other)
+    //
 }

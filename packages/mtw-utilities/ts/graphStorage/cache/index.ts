@@ -465,15 +465,11 @@ export class NewGraphCacheData <K extends string, DBH extends GraphDBHandler, D 
         const capitalize = (value: string) => ([value.slice(0, 1).toUpperCase(), value.slice(1)].join(''))
         
         const updateCachePromise = (async () => {
-            //
-            // TODO: ISS2741: Improve cache update to be more discriminating about which nodes need to be updated
-            //
             await Promise.all((Object.values(returnValue.nodes) as GraphCacheDataNodeType<K>[])
                 .map(async (node) => {
                     const edgeToString = ({ from, to, context }: GraphEdge<K, { context?: string }>): string => (`${from}::${to}${context ? `::${context}`: ''}`)
                     const newCache = returnValue.fromRoot(node.key).edges.map(edgeToString).sort()
                     if (!(node.cache && deepEqual(newCache, [...node.cache].map(edgeToString).sort()))) {
-                        console.log(`newCache: ${JSON.stringify(newCache, null, 4)} !== oldCache: ${JSON.stringify(node.cache, null, 4)}`)
                         await this._dbHandler.primitiveUpdate({
                             Key: { PrimaryKey: node.key, DataCategory: `Graph::${capitalize(direction)}` },
                             UpdateExpression: 'SET cache = :newCache, cachedAt = :moment',

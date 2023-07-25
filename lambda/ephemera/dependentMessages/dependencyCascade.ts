@@ -18,6 +18,11 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     // we don't want to execute them *first* (when we might need to queue them for evaluation again after
     // changes to their dependencies)
     //
+
+    //
+    // TODO: Create Graph class method for generationOrder on directed graphs, returning a sorted list of lists (since some nodes may be in
+    // cycles that cannot be ordered relative to each other)
+    //
     await internalCache.Descent.getBatch(payloads.map(({ targetId }) => (targetId)))
     const allGenerations = internalCache.Descent.generationOrder(payloads.map(({ targetId }) => (targetId)))
     const firstGeneration = allGenerations.length > 0 ? allGenerations[0] : []
