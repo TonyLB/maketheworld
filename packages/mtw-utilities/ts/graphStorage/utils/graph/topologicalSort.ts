@@ -103,7 +103,7 @@ const tarjanStrongConnect = <K extends string, T extends { key: K } & Record<str
     }
 }
 
-export const topologicalSort = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, rootNode?: K): K[][] => {
+export const topologicalSort = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>): K[][] => {
     if (!graph.directional) {
         throw new Error('generationOrder method is meaningless on undirected graphs')
     }
@@ -115,6 +115,38 @@ export const topologicalSort = <K extends string, T extends { key: K } & Record<
         visitData: {}
     })
     return strongComponents
+}
+
+export const generationOrder = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>): K[][][] => {
+    const connectedComponents = topologicalSort(graph)
+    const nodeToConnectedComponentMapping = connectedComponents.reduce<Partial<Record<K, K>>>((previous, connectedComponent: K[]) => (connectedComponent.reduce<Partial<Record<K, K>>>((accumulator, node: K) => ({
+        ...accumulator,
+        [node]: connectedComponent[0]
+    }), previous)), {})
+    const { returnGenerations, currentGeneration } = connectedComponents.reduce<{ returnGenerations: K[][][], currentGeneration: K[][] }>((previous, evaluatingComponent) => {
+        const currentConnectedComponents = previous.currentGeneration.map((nodesInComponent) => (nodesInComponent[0]))
+        const anyForwardEdges = graph.edges.some(({ from, to }) => {
+            const originatingComponent = nodeToConnectedComponentMapping[from]
+            const destinationComponent = nodeToConnectedComponentMapping[to]
+            if (originatingComponent && destinationComponent) {
+                return currentConnectedComponents.includes(originatingComponent) && destinationComponent === evaluatingComponent[0]
+            }
+            return false
+        })
+        if (anyForwardEdges) {
+            return {
+                returnGenerations: [...previous.returnGenerations, previous.currentGeneration],
+                currentGeneration: [evaluatingComponent]
+            }
+        }
+        else {
+            return {
+                returnGenerations: previous.returnGenerations,
+                currentGeneration: [...previous.currentGeneration, evaluatingComponent]
+            }
+        }
+    },{ returnGenerations: [], currentGeneration: [] })
+    return currentGeneration.length ? [...returnGenerations, currentGeneration] : returnGenerations
 }
 
 export default topologicalSort

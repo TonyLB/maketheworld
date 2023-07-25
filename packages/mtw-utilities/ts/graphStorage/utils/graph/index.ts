@@ -1,5 +1,6 @@
 import { deepEqual, objectFilter } from "../../../objects";
 import { GraphEdge } from "./baseClasses"
+import topologicalSort from "./topologicalSort";
 
 export class GraphNode <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> {
     node?: T
@@ -139,6 +140,9 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         this.edges.push(edge)
     }
 
+    topologicalSort(): K[][] {
+        return topologicalSort(this)
+    }
     //
     // TODO: ISS2327: Add generationOrder method on directed graphs, returning a sorted list of lists (since some nodes may be in
     // cycles that cannot be ordered relative to each other)
