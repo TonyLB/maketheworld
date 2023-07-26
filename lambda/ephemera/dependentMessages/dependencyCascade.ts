@@ -19,12 +19,12 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     // changes to their dependencies)
     //
 
-    //
-    // TODO: Create Graph class method for generationOrder on directed graphs, returning a sorted list of lists (since some nodes may be in
-    // cycles that cannot be ordered relative to each other)
-    //
-    await internalCache.Descent.getBatch(payloads.map(({ targetId }) => (targetId)))
-    const allGenerations = internalCache.Descent.generationOrder(payloads.map(({ targetId }) => (targetId)))
+    const descentGraph = await internalCache.Graph.get(payloads.map(({ targetId }) => (targetId)), 'forward')
+    const rawGenerationOrder = descentGraph.generationOrder()
+    if (rawGenerationOrder.flat(2).some((stronglyConnectedComponent) => (stronglyConnectedComponent.length > 1))) {
+        throw new Error('Loops detected in dependencyCascade')
+    }
+    const allGenerations = rawGenerationOrder.map((generationLayer) => (generationLayer.flat(2)))
     const firstGeneration = allGenerations.length > 0 ? allGenerations[0] : []
 
     let deferredPayloads = payloads
@@ -33,6 +33,21 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     const readyPayloads = payloads
         .filter(({ targetId }) => (firstGeneration.includes(targetId)))
 
+    //
+    // TODO: Create Graph generationOrderWalk method
+    //
+
+    //
+    // TODO: Refactor dependencyCascade to:
+    //    * batch-fetch value information from all first-order dependencies of any Computed items
+    // in the entire graph
+    //    * calculate the entire graph update in memory in a single sweep
+    //    * create update transactions, using conditionChecks where the dependencies were fetched,
+    // and not where they were part of the cascade itself
+    //
+    // FUTURE TODO: Aggregate update transaction into a single transaction if it fits under size
+    // limits, otherwise fall back on the parallel update as previous
+    //
     const processOneMessage = async ({ targetId }: DependencyCascadeMessage): Promise<void> => {
         if (isEphemeraComputedId(targetId)) {
             await exponentialBackoffWrapper(async () => {
