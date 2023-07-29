@@ -200,7 +200,7 @@ describe('Graph class', () => {
         })
     })
 
-    describe('generationOrderWalk', () => {
+    describe('sortedWalk', () => {
         let testNodes: Record<string, { key: string }>
 
         beforeEach(() => {
@@ -222,14 +222,16 @@ describe('Graph class', () => {
                 { from: 'D', to: 'E' },
                 { from: 'D', to: 'F' }
             ]
-            const callback = jest.fn()
+            const callback = jest.fn().mockImplementation(async ({ keys }) => (keys.join('::')))
             const testGraph = new Graph(testNodes, testEdges, {},  true)
-            await testGraph.generationOrderWalk(callback)
-            expect(callback).toHaveBeenCalledTimes(4)
-            expect(callback).toHaveBeenCalledWith([['B'], ['A']])
-            expect(callback).toHaveBeenCalledWith([['C']])
-            expect(callback).toHaveBeenCalledWith([['D']])
-            expect(callback).toHaveBeenCalledWith([['F'], ['E']])
+            await testGraph.sortedWalk(callback)
+            expect(callback).toHaveBeenCalledTimes(6)
+            expect(callback).toHaveBeenCalledWith({ keys: ['B'], previous: [] })
+            expect(callback).toHaveBeenCalledWith({ keys: ['A'], previous: [] })
+            expect(callback).toHaveBeenCalledWith({ keys: ['C'], previous: ['A', 'B'] })
+            expect(callback).toHaveBeenCalledWith({ keys: ['D'], previous: ['C'] })
+            expect(callback).toHaveBeenCalledWith({ keys: ['F'], previous: ['D'] })
+            expect(callback).toHaveBeenCalledWith({ keys: ['E'], previous: ['D'] })
         })
 
         it('should correctly walk a cyclic tree', async () => {
@@ -238,16 +240,17 @@ describe('Graph class', () => {
                 { from: 'B', to: 'C' },
                 { from: 'C', to: 'D' },
                 { from: 'D', to: 'E' },
-                { from: 'E', to: 'F' },
-                { from: 'F', to: 'D' }
+                { from: 'E', to: 'C' },
+                { from: 'D', to: 'F' }
             ]
-            const callback = jest.fn()
+            const callback = jest.fn().mockImplementation(async ({ keys }) => (keys.join('::')))
             const testGraph = new Graph(testNodes, testEdges, {},  true)
-            await testGraph.generationOrderWalk(callback)
-            expect(callback).toHaveBeenCalledTimes(3)
-            expect(callback).toHaveBeenCalledWith([['B'], ['A']])
-            expect(callback).toHaveBeenCalledWith([['C']])
-            expect(callback).toHaveBeenCalledWith([['D', 'E', 'F']])
+            await testGraph.sortedWalk(callback)
+            expect(callback).toHaveBeenCalledTimes(4)
+            expect(callback).toHaveBeenCalledWith({ keys: ['B'], previous: [] })
+            expect(callback).toHaveBeenCalledWith({ keys: ['A'], previous: [] })
+            expect(callback).toHaveBeenCalledWith({ keys: ['C', 'D', 'E'], previous: ['A', 'B'] })
+            expect(callback).toHaveBeenCalledWith({ keys: ['F'], previous: ['C::D::E'] })
         })
 
     })

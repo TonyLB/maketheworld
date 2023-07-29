@@ -1,3 +1,4 @@
+import { unique } from "../../../lists";
 import { deepEqual, objectFilter } from "../../../objects";
 import { GraphEdge } from "./baseClasses"
 import topologicalSort, { generationOrder } from "./topologicalSort";
@@ -148,10 +149,42 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         return generationOrder(this)
     }
 
-    async generationOrderWalk(callback: (keys: K[][]) => Promise<void>): Promise<void> {
+    async sortedWalk<Previous>(callback: (props: { keys: K[]; previous: Previous[] }) => Promise<Previous>): Promise<void> {
         const generationOrderOutput = this.generationOrder()
+        const stronglyConnectedComponentByContents = generationOrderOutput.flat(1).reduce<Partial<Record<K, K>>>(
+            (previous, stronglyConnectedComponent) => (stronglyConnectedComponent.reduce<Partial<Record<K, K>>>((aggregator, key) => ({ ...aggregator, [key]: stronglyConnectedComponent[0] }), previous)),
+            {}
+        )
+
+        let resultPromises: Partial<Record<K, Promise<Previous>>> = {}
         for (const generation of generationOrderOutput) {
-            await callback(generation)
+            for (const stronglyConnectedComponent of generation) {
+                //
+                // Find all Edges leading from *outside* keys to *inside* keys. By definition of generationOrder,
+                // all those exits should lead to keys that have already been processed, and (therefore) have items
+                // in the aggregator records defined above.  Collect all unique SCC representatives that this new set of
+                // keys depends from, and deliver the saved Previous outputs to the callback.
+                //
+                resultPromises[stronglyConnectedComponent[0]] = (async (): Promise<Previous> => {
+                    if (stronglyConnectedComponent.length === 0) {
+                        throw new Error('sortedWalk error, empty strongly-connected-component encountered')
+                    }
+                    const dependencyEdges = this.edges
+                        .filter(({ to }) => (stronglyConnectedComponent.includes(to)))
+                        .filter(({ from }) => (!stronglyConnectedComponent.includes(from)))
+                    const dependencyResultPromises = unique(dependencyEdges.map(({ from }) => (from)))
+                        .map((dependency) => (stronglyConnectedComponentByContents[dependency]))
+                        .map((stronglyConnectedComponentRepresentative) => (
+                            stronglyConnectedComponentRepresentative &&
+                            resultPromises[stronglyConnectedComponentRepresentative]
+                        ))
+                        .filter((results) => (typeof results !== 'undefined'))
+                    const dependencyResults: Previous[] = (await Promise.all(dependencyResultPromises)).filter((results) => (typeof results !== 'undefined')) as Previous[]
+                    return await callback({ keys: stronglyConnectedComponent, previous: dependencyResults })
+                })()
+            }
         }
+        await Promise.all(Object.values(resultPromises))
+
     }
 }
