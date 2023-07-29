@@ -42,6 +42,15 @@ describe('withTransactions', () => {
                 }
             }},
             {
+                PrimitiveUpdate: {
+                    Key: { PrimaryKey: 'TestPrimitiveUpdate', DataCategory: 'PrimitiveUpdate' },
+                    UpdateExpression: 'SET value = :newValue',
+                    ConditionExpression: 'value = :oldValue',
+                    ProjectionFields: ['value'],
+                    ExpressionAttributeValues: { ':oldValue': 5, ':newValue': 6 }
+                }
+            },
+            {
                 ConditionCheck: {
                     Key: { PrimaryKey: 'TestCheck', DataCategory: 'Check' },
                     ConditionExpression: 'value = :value',
@@ -60,6 +69,14 @@ describe('withTransactions', () => {
                 UpdateExpression: 'SET TestValue = :New0',
                 ExpressionAttributeValues: marshall({ ':New0': 5 }),
                 ConditionExpression: 'attribute_not_exists(TestValue)'
+            }},
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestPrimitiveUpdate', DataCategory: 'PrimitiveUpdate' }),
+                UpdateExpression: 'SET #value = :newValue',
+                ConditionExpression: '#value = :oldValue',
+                ExpressionAttributeNames: { '#value': 'value' },
+                ExpressionAttributeValues: marshall({ ':oldValue': 5, ':newValue': 6 })
             }},
             {
                 ConditionCheck: {
