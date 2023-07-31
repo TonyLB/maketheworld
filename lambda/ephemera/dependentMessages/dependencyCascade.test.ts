@@ -8,10 +8,7 @@ jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
 import dependencyCascadeMessage from './dependencyCascade'
-import { DependencyNode } from '../internalCache/baseClasses'
-import { extractTree } from "@tonylb/mtw-utilities/dist/graphStorage/cache"
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
-import { objectEntryFilter } from '../lib/objects'
 import { objectFilterEntries } from '@tonylb/mtw-utilities/dist/objects'
 import { EphemeraComputedId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 

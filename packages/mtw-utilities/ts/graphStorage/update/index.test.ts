@@ -1,23 +1,12 @@
-import { marshall } from '@aws-sdk/util-dynamodb'
 import { GraphNodeData } from '../cache/graphNode'
 import updateGraphStorage, { GraphStorageDBH } from './'
 import withGetOperations from '../../dynamoDB/mixins/get'
 import produce from 'immer'
 import withPrimitives from '../../dynamoDB/mixins/primitives'
 import { GraphEdgeData } from '../cache/graphEdge'
-import { GraphCacheData, NewGraphCacheData } from '../cache'
+import { GraphCacheData } from '../cache'
 
 const internalCache = {
-    Descent: {
-        get: jest.fn(),
-        put: jest.fn(),
-        getPartial: jest.fn()
-    } as unknown as jest.Mocked<GraphCacheData>,
-    Ancestry: {
-        get: jest.fn(),
-        put: jest.fn(),
-        getPartial: jest.fn()
-    } as unknown as jest.Mocked<GraphCacheData>,
     Nodes: {
         get: jest.fn(),
         invalidate: jest.fn()
@@ -29,7 +18,7 @@ const internalCache = {
     Graph: {
         get: jest.fn()
     } as unknown as 
-    jest.Mocked<NewGraphCacheData<string, 
+    jest.Mocked<GraphCacheData<string, 
         InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>> &
         InstanceType<ReturnType<ReturnType<typeof withPrimitives<'PrimaryKey'>>>>,
         {}

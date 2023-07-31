@@ -1,6 +1,6 @@
 import { GraphNodeCache, GraphNodeCacheDirectEdge } from '../cache/graphNode'
 import { DependencyGraphAction, isDependencyGraphPut, isDependencyGraphDelete } from "../cache/baseClasses"
-import { GraphCache } from "../cache"
+import GraphCache from "../cache"
 import { Graph } from "../utils/graph"
 import { GraphEdge } from "../utils/graph/baseClasses"
 import { exponentialBackoffWrapper } from "../../dynamoDB"
