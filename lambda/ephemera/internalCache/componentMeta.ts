@@ -5,19 +5,23 @@ import { DeferredCache } from './deferredCache'
 import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraBookmarkAppearance, EphemeraMessageAppearance, EphemeraMomentAppearance, EphemeraKnowledgeAppearance } from '../cacheAsset/baseClasses'
 import {
     EphemeraBookmarkId,
+    EphemeraComputedId,
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
     EphemeraMomentId,
     EphemeraRoomId,
+    EphemeraVariableId,
     isEphemeraBookmarkId,
+    isEphemeraComputedId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraMessageId,
     isEphemeraMomentId,
-    isEphemeraRoomId
+    isEphemeraRoomId,
+    isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/dist/baseClasses';
 
 export type ComponentMetaRoomItem = {
@@ -62,9 +66,21 @@ export type ComponentMetaMomentItem = {
     assetId: string;
     appearances: EphemeraMomentAppearance[];
 }
-export type ComponentMetaItem = ComponentMetaRoomItem | ComponentMetaFeatureItem | ComponentMetaKnowledgeItem | ComponentMetaBookmarkItem | ComponentMetaMapItem | ComponentMetaMessageItem | ComponentMetaMomentItem
+export type ComponentMetaVariableItem = {
+    EphemeraId: EphemeraVariableId;
+    key: string;
+    assetId: string;
+    appearances: never[];
+}
+export type ComponentMetaComputedItem = {
+    EphemeraId: EphemeraComputedId;
+    key: string;
+    assetId: string;
+    appearances: never[];
+}
+export type ComponentMetaItem = ComponentMetaRoomItem | ComponentMetaFeatureItem | ComponentMetaKnowledgeItem | ComponentMetaBookmarkItem | ComponentMetaMapItem | ComponentMetaMessageItem | ComponentMetaMomentItem | ComponentMetaVariableItem | ComponentMetaComputedItem
 
-export type ComponentMetaFromId<T extends EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId> =
+export type ComponentMetaFromId<T extends EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId | EphemeraVariableId | EphemeraComputedId> =
     T extends EphemeraRoomId
         ? ComponentMetaRoomItem
         : T extends EphemeraFeatureId
@@ -79,7 +95,11 @@ export type ComponentMetaFromId<T extends EphemeraRoomId | EphemeraFeatureId | E
                             ? ComponentMetaMessageItem
                             : T extends EphemeraMomentId
                                 ? ComponentMetaMomentItem
-                                : never
+                                : T extends EphemeraVariableId
+                                    ? ComponentMetaVariableItem
+                                    : T extends EphemeraComputedId
+                                        ? ComponentMetaComputedItem
+                                        : never
 
 const generateCacheKey = (EphemeraId, assetId) => (`${assetId}::${EphemeraId}`)
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: string, assetId: string } => {
@@ -128,7 +148,7 @@ export class ComponentMetaData {
         this._Store[key] = value
     }
 
-    async _getPromiseFactory<T extends EphemeraRoomAppearance | EphemeraFeatureAppearance | EphemeraKnowledgeAppearance | EphemeraBookmarkAppearance | EphemeraMapAppearance | EphemeraMomentAppearance>(EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId, assetId: string): Promise<{ key: string; appearances: T[] } | undefined> {
+    async _getPromiseFactory<T extends EphemeraRoomAppearance | EphemeraFeatureAppearance | EphemeraKnowledgeAppearance | EphemeraBookmarkAppearance | EphemeraMapAppearance | EphemeraMomentAppearance | never>(EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId | EphemeraVariableId | EphemeraComputedId, assetId: string): Promise<{ key: string; appearances: T[] } | undefined> {
         return ephemeraDB.getItem<{ key: string; appearances: T[] }>({
             Key: {
                 EphemeraId,
@@ -138,7 +158,7 @@ export class ComponentMetaData {
         })
     }
 
-    async get<T extends EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId>(EphemeraId: T, assetId: string): Promise<ComponentMetaFromId<T>> {
+    async get<T extends EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId | EphemeraMomentId | EphemeraVariableId | EphemeraComputedId>(EphemeraId: T, assetId: string): Promise<ComponentMetaFromId<T>> {
         const cacheKey = generateCacheKey(EphemeraId, assetId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -271,6 +291,28 @@ export class ComponentMetaData {
                     }
                 })
             }
+            if (isEphemeraVariableId(EphemeraId) || isEphemeraComputedId(EphemeraId)) {
+                this._Cache.add({
+                    promiseFactory: () => (this._getPromiseFactory<never>(EphemeraId, assetId)),
+                    requiredKeys: [cacheKey],
+                    transform: (fetch) => {
+                        if (typeof fetch === 'undefined') {
+                            return {}
+                        }
+                        else {
+                            return {
+                                [cacheKey]: {
+                                    EphemeraId,
+                                    assetId,
+                                    key: fetch.key,
+                                    appearances: []
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+
         }
         await this._Cache.get(cacheKey)
         return this._Store[cacheKey] as ComponentMetaFromId<T>

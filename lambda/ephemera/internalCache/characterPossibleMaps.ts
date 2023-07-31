@@ -1,7 +1,7 @@
 import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
 import { DeferredCache } from './deferredCache';
-import GraphCache, { GraphCacheData } from '@tonylb/mtw-utilities/dist/graphStorage/cache';
+import CacheGraph, { GraphCacheType } from './graph';
 
 const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId) => (`${CharacterId}::${EphemeraId}`)
 
@@ -13,10 +13,10 @@ export type CharacterPossibleMapsItem = {
 export class CacheCharacterPossibleMapsData {
     _Cache: DeferredCache<CharacterPossibleMapsItem> = new DeferredCache();
     _CharacterMeta: CacheCharacterMetaData;
-    _Descent: GraphCacheData
-    constructor(characterMeta: CacheCharacterMetaData, descent: GraphCacheData) {
+    _Graph: GraphCacheType;
+    constructor(characterMeta: CacheCharacterMetaData, Graph: GraphCacheType) {
         this._CharacterMeta = characterMeta
-        this._Descent = descent
+        this._Graph = Graph
     }
 
     clear() {
@@ -36,14 +36,13 @@ export class CacheCharacterPossibleMapsData {
         const cacheKey = generateCacheKey(characterId, RoomId)
         this._Cache.add({
             promiseFactory: async () => {
-                const descent = await this._Descent.get(RoomId)
-                const descentRoomNode = descent.find(({ EphemeraId }) => (EphemeraId = RoomId))
+                const descentGraph = await this._Graph.get([RoomId], 'forward')
                 return {
                     EphemeraId: characterId,
                     //
                     // TODO: Limit possible maps by assets available to the character (global and personal ... later story)
                     //
-                    mapsPossible: (descentRoomNode?.connections || []).map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraMapId)
+                    mapsPossible: (Object.values(descentGraph.nodes) as { key: string }[]).map(({ key }) => (key)).filter(isEphemeraMapId)
                 }
             },
             requiredKeys: [cacheKey],
@@ -53,13 +52,13 @@ export class CacheCharacterPossibleMapsData {
     }
 }
 
-export const CacheCharacterPossibleMaps = <GBase extends ReturnType<typeof CacheCharacterMeta> & ReturnType<typeof GraphCache>>(Base: GBase) => {
+export const CacheCharacterPossibleMaps = <GBase extends ReturnType<typeof CacheCharacterMeta> & ReturnType<typeof CacheGraph>>(Base: GBase) => {
     return class CacheCharacterPossibleMaps extends Base {
         CharacterPossibleMaps: CacheCharacterPossibleMapsData;
 
         constructor(...rest: any) {
             super(...rest)
-            this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Descent)
+            this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         }
 
         override clear() {

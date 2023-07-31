@@ -8,13 +8,30 @@ import { unique } from "../../lists"
 import mapProjectionFields from "./utils/mapProjectionFields"
 
 type TransactionRequestUpdate<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = { Key: DBHandlerKey<KIncoming, KeyType> } & UpdateExtendedProps<KIncoming, KeyType>
+export type TransactionRequestConditionCheck<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
+    Key: DBHandlerKey<KIncoming, KeyType>;
+    ProjectionFields: string[];
+    ConditionExpression: string;
+    ExpressionAttributeValues?: Record<string, any>;
+}
+export type TransactionRequestPrimitiveUpdate<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
+    Key: DBHandlerKey<KIncoming, KeyType>;
+    ProjectionFields: string[];
+    UpdateExpression: string;
+    ConditionExpression?: string;
+    ExpressionAttributeValues?: Record<string, any>;
+}
 
 export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
     Put: DBHandlerItem<KIncoming, KeyType>
 } | {
     Update: TransactionRequestUpdate<KIncoming, KeyType>;
 } | {
+    PrimitiveUpdate: TransactionRequestPrimitiveUpdate<KIncoming, KeyType>;
+} | {
     Delete: DBHandlerKey<KIncoming, KeyType>
+} | {
+    ConditionCheck: TransactionRequestConditionCheck<KIncoming, KeyType>;
 }
 
 export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends
@@ -75,6 +92,49 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                             }
                         } as TransactWriteItem]
                     }
+                }
+                if ('ConditionCheck' in item) {
+                    const { ExpressionAttributeNames } = mapProjectionFields(item.ConditionCheck.ProjectionFields)
+                    const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})            
+                    const replaceAttributeNames = (incoming: string): string => (
+                        Object.entries(translateToExpressionAttributeNames).reduce<string>(
+                            (previous, [key, translated]) => {
+                                return previous.replace(new RegExp(`\\b(?<!:)${key}\\b`, 'g'), translated)
+                            },
+                            incoming
+                        )
+                    )
+                    return [{
+                        ConditionCheck: {
+                            TableName: this._tableName,
+                            Key: marshall(this._remapIncomingObject(item.ConditionCheck.Key), { removeUndefinedValues: true }),
+                            ConditionExpression: replaceAttributeNames(item.ConditionCheck.ConditionExpression),
+                            ExpressionAttributeNames,
+                            ...(item.ConditionCheck.ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(item.ConditionCheck.ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
+                        }
+                    }]
+                }
+                if ('PrimitiveUpdate' in item) {
+                    const { ExpressionAttributeNames } = mapProjectionFields(item.PrimitiveUpdate.ProjectionFields)
+                    const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})            
+                    const replaceAttributeNames = (incoming: string): string => (
+                        Object.entries(translateToExpressionAttributeNames).reduce<string>(
+                            (previous, [key, translated]) => {
+                                return previous.replace(new RegExp(`\\b(?<!:)${key}\\b`, 'g'), translated)
+                            },
+                            incoming
+                        )
+                    )
+                    return [{
+                        Update: {
+                            TableName: this._tableName,
+                            Key: marshall(this._remapIncomingObject(item.PrimitiveUpdate.Key), { removeUndefinedValues: true }),
+                            UpdateExpression: replaceAttributeNames(item.PrimitiveUpdate.UpdateExpression),
+                            ...(item.PrimitiveUpdate.ConditionExpression ? { ConditionExpression: replaceAttributeNames(item.PrimitiveUpdate.ConditionExpression) } : {}),
+                            ExpressionAttributeNames,
+                            ...(item.PrimitiveUpdate.ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(item.PrimitiveUpdate.ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
+                        }
+                    }]
                 }
                 return []
             }).flat()

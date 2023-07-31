@@ -1,8 +1,8 @@
 import { CacheBase as GraphCacheBase, GraphDBHandler } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
-import { GraphCache } from "@tonylb/mtw-utilities/dist/graphStorage/cache"
+import GraphCache from "@tonylb/mtw-utilities/dist/graphStorage/cache"
 import GraphNode from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphNode"
 import GraphEdge from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphEdge"
-import { CacheBase, CacheConstructor } from "./baseClasses"
+import { CacheConstructor } from "./baseClasses"
 import withGetOperations from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/get"
 import { DBHandlerBase } from "@tonylb/mtw-utilities/dist/dynamoDB/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
@@ -16,15 +16,20 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
     options: { getBatchSize: 50 }
 })
 
+export type GraphCacheType = InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Graph"]
+export type GraphNodeType = InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Nodes"]
+
 export const CacheGraph = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CachGraph extends Base {
+    return class CacheGraph extends Base {
         _graphCache: InstanceType<ReturnType<ReturnType<typeof GraphCache>>>
-        Graph: InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Graph"]
+        Graph: GraphCacheType
+        GraphNodes: GraphNodeType
 
         constructor(...rest: any) {
             super(...rest)
             this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
             this.Graph = this._graphCache.Graph
+            this.GraphNodes = this._graphCache.Nodes
         }
 
         override async flush() {
