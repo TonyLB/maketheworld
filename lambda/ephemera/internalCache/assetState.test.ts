@@ -7,7 +7,7 @@ import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
-describe('AssetState', () => {
+describe('StateCache', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -15,15 +15,87 @@ describe('AssetState', () => {
     })
 
     it('should send fetch correctly', async () => {
-        internalCache.AssetState.set('VARIABLE#testOne', 1)
+        internalCache.StateCache.set('VARIABLE#testOne', 1)
         ephemeraMock.getItems.mockResolvedValue([{
             EphemeraId: 'VARIABLE#testTwo',
             value: 2
         },
         {
             EphemeraId: 'COMPUTED#testThree',
-            value: 3
+            value: 3,
+            src: 'a + b',
+            dependencies: ['a', 'b']
         }])
+        const output = await internalCache.StateCache.get([
+            'VARIABLE#testOne',
+            'VARIABLE#testTwo',
+            'COMPUTED#testThree'
+        ])
+        expect(output).toEqual({
+            'VARIABLE#testOne': { value: 1 },
+            'VARIABLE#testTwo': { value: 2 },
+            'COMPUTED#testThree': { value: 3, src: 'a + b', dependencies: ['a', 'b'] }
+        })
+        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
+        expect(ephemeraMock.getItems).toHaveBeenCalledWith({
+            Keys: [
+                { EphemeraId: 'VARIABLE#testTwo', DataCategory: 'Meta::Variable' },
+                { EphemeraId: 'COMPUTED#testThree', DataCategory: 'Meta::Computed' }
+            ],
+            ProjectionFields: ['EphemeraId', 'value', 'src', 'dependencies']
+        })
+    })
+
+    it('should invalidate both promise and set', async () => {
+        ephemeraMock.getItems
+            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'first wrong answer' }])
+            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'correct answer' }])
+        await internalCache.StateCache.get(['VARIABLE#testOne'])
+        internalCache.StateCache.set('VARIABLE#testOne', 'second wrong answer')
+        internalCache.StateCache.invalidate('VARIABLE#testOne')
+        const output = await internalCache.StateCache.get(['VARIABLE#testOne'])
+        expect(output).toEqual({
+            'VARIABLE#testOne': { value: 'correct answer' }
+        })
+
+    })
+
+    it('should not fetch when value has been manually set', async () => {
+        ephemeraMock.getItems
+            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'first wrong answer' }])
+        internalCache.StateCache.set('VARIABLE#testOne', 'correct answer')
+        const output = await internalCache.StateCache.get(['VARIABLE#testOne'])
+        expect(output).toEqual({
+            'VARIABLE#testOne': { value: 'correct answer' }
+        })
+        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(0)
+    })
+})
+
+describe('AssetState', () => {
+    let stateCacheMock
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+        internalCache.clear()
+        stateCacheMock = jest.spyOn(internalCache.StateCache, "get")
+    })
+
+    it('should send fetch correctly', async () => {
+        stateCacheMock.mockResolvedValue({
+            'VARIABLE#testOne': { value: 1 },
+            'VARIABLE#testTwo': { value: 2 },
+            'COMPUTED#testThree': { value: 3 }
+        })
+        internalCache.AssetState.set('VARIABLE#testOne', 1)
+        // ephemeraMock.getItems.mockResolvedValue([{
+        //     EphemeraId: 'VARIABLE#testTwo',
+        //     value: 2
+        // },
+        // {
+        //     EphemeraId: 'COMPUTED#testThree',
+        //     value: 3
+        // }])
         const output = await internalCache.AssetState.get({
             a: 'VARIABLE#testOne',
             b: 'VARIABLE#testTwo',
@@ -34,40 +106,10 @@ describe('AssetState', () => {
             b: 2,
             c: 3
         })
-        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.getItems).toHaveBeenCalledWith({
-            Keys: [
-                { EphemeraId: 'VARIABLE#testTwo', DataCategory: 'Meta::Variable' },
-                { EphemeraId: 'COMPUTED#testThree', DataCategory: 'Meta::Computed' }
-            ],
-            ProjectionFields: ['EphemeraId', 'value']
-        })
+        expect(stateCacheMock).toHaveBeenCalledTimes(1)
+        expect(stateCacheMock).toHaveBeenCalledWith(['VARIABLE#testOne', 'VARIABLE#testTwo', 'COMPUTED#testThree'])
     })
 
-    it('should invalidate both promise and set', async () => {
-        ephemeraMock.getItems
-            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'first wrong answer' }])
-            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'correct answer' }])
-        await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
-        internalCache.AssetState.set('VARIABLE#testOne', 'second wrong answer')
-        internalCache.AssetState.invalidate('VARIABLE#testOne')
-        const output = await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
-        expect(output).toEqual({
-            testOne: 'correct answer'
-        })
-
-    })
-
-    it('should not fetch when value has been manually set', async () => {
-        ephemeraMock.getItems
-            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'first wrong answer' }])
-        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
-        const output = await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
-        expect(output).toEqual({
-            testOne: 'correct answer'
-        })
-        expect(ephemeraMock.getItems).toHaveBeenCalledTimes(0)
-    })
 })
 
 describe('EvaluateCode', () => {

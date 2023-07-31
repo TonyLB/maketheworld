@@ -18,7 +18,7 @@ export type TransactionRequestPrimitiveUpdate<KIncoming extends DBHandlerLegalKe
     Key: DBHandlerKey<KIncoming, KeyType>;
     ProjectionFields: string[];
     UpdateExpression: string;
-    ConditionExpression: string;
+    ConditionExpression?: string;
     ExpressionAttributeValues?: Record<string, any>;
 }
 
@@ -130,7 +130,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                             TableName: this._tableName,
                             Key: marshall(this._remapIncomingObject(item.PrimitiveUpdate.Key), { removeUndefinedValues: true }),
                             UpdateExpression: replaceAttributeNames(item.PrimitiveUpdate.UpdateExpression),
-                            ConditionExpression: replaceAttributeNames(item.PrimitiveUpdate.ConditionExpression),
+                            ...(item.PrimitiveUpdate.ConditionExpression ? { ConditionExpression: replaceAttributeNames(item.PrimitiveUpdate.ConditionExpression) } : {}),
                             ExpressionAttributeNames,
                             ...(item.PrimitiveUpdate.ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(item.PrimitiveUpdate.ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
                         }

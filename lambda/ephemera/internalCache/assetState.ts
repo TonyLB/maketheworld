@@ -12,17 +12,17 @@ import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/ca
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 import CacheGraph, { GraphCacheType } from './graph';
 import ComponentMeta, { ComponentMetaData } from './componentMeta';
+import { objectMap } from '../lib/objects';
 
 export type StateItemId = EphemeraVariableId | EphemeraComputedId
-
-export type AssetStateMapping = Record<string, StateItemId>
-
-type AssetStateOutput<T extends AssetStateMapping> = {
-    [key in keyof T]: any;
+export type StateItemReturn = {
+    value: any;
+    src?: string;
+    dependencies?: string[];
 }
 
-export class AssetStateData {
-    _StateCache: DeferredCache<any> = new DeferredCache<any>();
+export class StateData {
+    _StateCache: DeferredCache<StateItemReturn> = new DeferredCache<StateItemReturn>();
     _StateOverriden: Record<string, boolean> = {}
     _invalidateCallback: (EphemeraId: StateItemId) => void;
     
@@ -37,24 +37,24 @@ export class AssetStateData {
     flush() {
         this._StateCache.flush()
     }
-    async get<T extends AssetStateMapping>(keys: T): Promise<AssetStateOutput<T>> {
+    async get(keys: StateItemId[]): Promise<Record<StateItemId, StateItemReturn>> {
         this._StateCache.add({
             promiseFactory: async (keys: string[]) => {
-                return await ephemeraDB.getItems<{ EphemeraId: string; value: any; }>({
+                return await ephemeraDB.getItems<{ EphemeraId: string; value: any; src?: string; dependencies?: string[]; }>({
                     Keys: keys.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${extractConstrainedTag(isLegalDependencyTag)(EphemeraId)}` })),
-                    ProjectionFields: ['EphemeraId', 'value']
+                    ProjectionFields: ['EphemeraId', 'value', 'src', 'dependencies']
                 })
             },
             requiredKeys: Object.values(keys),
-            transform: (outputList) => (outputList.reduce((previous, { EphemeraId, value }) => ({ ...previous, [EphemeraId]: value }), {}))
+            transform: (outputList) => (outputList.reduce((previous, { EphemeraId, value, src, dependencies }) => ({ ...previous, [EphemeraId]: { value, src, dependencies } }), {}))
         })
         return Object.assign({}, ...(await Promise.all(
-            Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StateCache.get(EphemeraId) }))
-        ))) as AssetStateOutput<T>
+            keys.map(async (EphemeraId) => ({ [EphemeraId]: await this._StateCache.get(EphemeraId) }))
+        ))) as Record<StateItemId, StateItemReturn>
     }
 
     set(EphemeraId: StateItemId, value: any) {
-        this._StateCache.set(Infinity, EphemeraId, value)
+        this._StateCache.set(Infinity, EphemeraId, { value })
         this._StateOverriden[EphemeraId] = true
         this._invalidateCallback(EphemeraId)
     }
@@ -67,6 +67,37 @@ export class AssetStateData {
 
     isOverridden(EphemeraId: StateItemId) {
         return this._StateOverriden[EphemeraId]
+    }
+}
+
+export type AssetStateMapping = Record<string, StateItemId>
+
+type AssetStateOutput<T extends AssetStateMapping> = {
+    [key in keyof T]: any;
+}
+
+export class AssetStateData {
+    _StateCache: StateData;
+    
+    constructor(stateCache: StateData) {
+        this._StateCache = stateCache
+    }
+
+    async get<T extends AssetStateMapping>(keys: T): Promise<AssetStateOutput<T>> {
+        const rawStateValues = await this._StateCache.get(Object.values(keys))
+        return objectMap(keys, (ephemeraId) => (rawStateValues[ephemeraId].value)) as AssetStateOutput<T>
+    }
+
+    set(EphemeraId: StateItemId, value: any) {
+        this._StateCache.set(EphemeraId, value)
+    }
+
+    invalidate(EphemeraId: StateItemId) {
+        this._StateCache.invalidate(EphemeraId)
+    }
+
+    isOverridden(EphemeraId: StateItemId) {
+        return this._StateCache._StateOverriden[EphemeraId]
     }
 }
 
@@ -188,24 +219,26 @@ class AssetMap {
 
 export const AssetState = <GBase extends ReturnType<typeof CacheGraph> & ReturnType<typeof ComponentMeta>>(Base: GBase) => {
     return class AssetState extends Base {
+        StateCache: StateData
         AssetState: AssetStateData
         EvaluateCode: EvaluateCodeData
         AssetMap: AssetMap
 
         constructor(...rest: any) {
             super()
-            this.AssetState = new AssetStateData((EphemeraId) => { this._invalidateAssetCallback(EphemeraId) })
+            this.StateCache = new StateData((EphemeraId) => { this._invalidateAssetCallback(EphemeraId) })
+            this.AssetState = new AssetStateData(this.StateCache)
             this.EvaluateCode = new EvaluateCodeData(this.AssetState)
             this.AssetMap = new AssetMap(this.Graph, this.ComponentMeta)
         }
         override clear() {
-            this.AssetState.clear()
+            this.StateCache.clear()
             this.EvaluateCode.clear()
             super.clear()
         }
         override async flush() {
             await Promise.all([
-                this.AssetState.flush(),
+                this.StateCache.flush(),
                 super.flush()
             ])
         }
