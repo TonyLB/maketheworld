@@ -39,7 +39,7 @@ const optimisticUpdate = jest.fn().mockResolvedValue({})
 const transactWrite = jest.fn()
 const dbHandler = { optimisticUpdate, transactWrite } as unknown as GraphStorageDBH
 
-describe('graphStore new update', () => {
+describe('graphStore update', () => {
     const realDateNow = Date.now.bind(global.Date);
 
     beforeEach(() => {

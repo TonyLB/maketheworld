@@ -33,7 +33,7 @@ type DBHandlerBatchGetReturn <K extends string> = {
     DataCategory: string;
     invalidatedAt?: number;
     cachedAt?: number;
-    edgeSet: string[];
+    edgeSet?: string[];
     cache: string[]
 }
 
@@ -95,7 +95,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
                             [item.PrimaryKey]: {
                                 PrimaryKey: item.PrimaryKey,
                                 forward: {
-                                    edges: item.edgeSet.map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
+                                    edges: (item.edgeSet || []).map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
                                     cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ from: edgeKey.split('::')[0] as K, to: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
                                     invalidateAt: item.invalidatedAt,
                                     cachedAt: item.cachedAt
@@ -111,7 +111,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
                                 PrimaryKey: item.PrimaryKey,
                                 forward: priorMatch?.forward || { edges: [] },
                                 back: {
-                                    edges: item.edgeSet.map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
+                                    edges: (item.edgeSet || []).map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
                                     cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ from: edgeKey.split('::')[0] as K, to: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
                                     invalidateAt: item.invalidatedAt,
                                     cachedAt: item.cachedAt
