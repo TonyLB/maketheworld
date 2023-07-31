@@ -129,75 +129,101 @@ describe('DependencyCascadeMessage', () => {
 
     })
 
-    // it('should update in parallel and combine cascades', async () => {
-    //     ephemeraDBMock.getItem.mockImplementation(async ({ Key: { EphemeraId } }) => {
-    //         if (EphemeraId === 'COMPUTED#TestOne') {
-    //             return {
-    //                 src: 'a + b',
-    //                 value: 4
-    //             }
-    //         }
-    //         else {
-    //             return {
-    //                 src: '2 * 4',
-    //                 value: 7
-    //             }
-    //         }
-    //     })
-    //     internalCacheMock.AssetMap.get.mockImplementation(async (EphemeraId) => (EphemeraId === 'COMPUTED#TestOne' ? {
-    //         a: 'VARIABLE#VariableOne',
-    //         b: 'VARIABLE#VariableTwo'
-    //     }: {} as any))
-    //     internalCacheMock.AssetState.get.mockImplementation(async (addresses) => (Object.keys(addresses).length ? {
-    //         a: 1,
-    //         b: 2
-    //     }: {}))
-    //     internalCacheMock.AssetState.isOverridden.mockReturnValue(false)
-    //     internalCacheMock.EvaluateCode.get.mockImplementation(async ({ source }) => (source === 'a + b' ? 3 : 8))
-    //     internalCacheMock.Descent.generationOrder.mockReturnValue([['COMPUTED#TestOne', 'COMPUTED#TestTwo']])
-    //     const testDescent: DependencyNode[] = [
-    //         {
-    //             EphemeraId: 'COMPUTED#TestOne',
-    //             completeness: 'Partial',
-    //             connections: [
-    //                 { EphemeraId: 'COMPUTED#CascadeOne', key: 'testOne', assets: ['base'] },
-    //                 { EphemeraId: 'COMPUTED#CascadeTwo', key: 'testOne', assets: ['base'] }
-    //             ]
-    //         },
-    //         {
-    //             EphemeraId: 'COMPUTED#CascadeOne',
-    //             completeness: 'Partial',
-    //             connections: []
-    //         },
-    //         {
-    //             EphemeraId: 'COMPUTED#CascadeTwo',
-    //             completeness: 'Partial',
-    //             connections: []
-    //         },
-    //         {
-    //             EphemeraId: 'COMPUTED#TestTwo',
-    //             completeness: 'Partial',
-    //             connections: [
-    //                 { EphemeraId: 'COMPUTED#CascadeOne', key: 'testTwo', assets: ['base'] }
-    //             ]
-    //         }
-    //     ]
-    //     internalCacheMock.Descent.getBatch.mockResolvedValue(testDescent)
-    //     internalCacheMock.Descent.getPartial.mockImplementation((targetId) => (extractTree(testDescent, targetId)))
-    //     await dependencyCascadeMessage({
-    //         payloads: [
-    //             { type: 'DependencyCascade', targetId: 'COMPUTED#TestOne' },
-    //             { type: 'DependencyCascade', targetId: 'COMPUTED#TestTwo' }
-    //         ],
-    //         messageBus: messageBusMock
-    //     })
-    //     expect(transactMock).toHaveBeenCalledTimes(2)
-    //     expect(transactMock.mock.calls[0][0]).toMatchSnapshot()
-    //     expect(transactMock.mock.calls[1][0]).toMatchSnapshot()
-    //     expect(messageBusMock.send).toHaveBeenCalledTimes(2)
-    //     expect(messageBusMock.send.mock.calls.map(([item]) => (item))).toMatchSnapshot()
+    it('should combine parallel ancestor cascades', async () => {
+        stateCacheMock.mockImplementation((keys) => (objectFilterEntries(
+            {
+                'COMPUTED#TestOne': {
+                    src: 'a * 2',
+                    value: 4,
+                    dependencies: ['a']
+                },
+                'COMPUTED#TestTwo': {
+                    src: 'b * 3',
+                    value: 3,
+                    dependencies: ['b']
+                },
+                'COMPUTED#CascadeOne': {
+                    src: 'c + d',
+                    value: 7,
+                    dependencies: ['c', 'd']
+                },
+                'VARIABLE#VariableOne': { value: 1 },
+                'VARIABLE#VariableTwo': { value: 2 }
+            },
+            ([key]) => (keys.includes(key))
+        )))
+        ephemeraDBMock.transactWrite.mockResolvedValue()
+        internalCacheMock.AssetMap.get.mockResolvedValue({
+            a: 'VARIABLE#VariableOne',
+            b: 'VARIABLE#VariableTwo',
+            c: 'COMPUTED#TestOne',
+            d: 'COMPUTED#TestTwo'
+        })
+        const testGraph = new Graph<string, { key: string }, { context?: string }>(
+            {
+                'COMPUTED#TestOne': { key: 'COMPUTED#TestOne' },
+                'COMPUTED#TestTwo': { key: 'COMPUTED#TestTwo' },
+                'COMPUTED#CascadeOne': { key: 'COMPUTED#CascadeOne' }
+            },
+            [
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base' },
+                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeOne', context: 'base' }
+            ],
+            {},
+            true
+        )
 
-    // })
+        internalCacheMock.Graph.get.mockResolvedValue(testGraph)
+        internalCacheMock.GraphNodes.get.mockResolvedValue([])
+        await dependencyCascadeMessage({
+            payloads: [
+                { type: 'DependencyCascade', targetId: 'COMPUTED#TestOne' },
+                { type: 'DependencyCascade', targetId: 'COMPUTED#TestTwo' }
+            ],
+            messageBus: messageBusMock
+        })
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(3)
+        const conditionCheckOne = {
+            ConditionCheck: {
+                Key: { EphemeraId: 'VARIABLE#VariableOne', DataCategory: 'Meta::Variable' },
+                ConditionExpression: 'value = :value',
+                ProjectionFields: ['value'],
+                ExpressionAttributeValues: { ':value': 1 }
+            }
+        }
+        const conditionCheckTwo = {
+            ConditionCheck: {
+                Key: { EphemeraId: 'VARIABLE#VariableTwo', DataCategory: 'Meta::Variable' },
+                ConditionExpression: 'value = :value',
+                ProjectionFields: ['value'],
+                ExpressionAttributeValues: { ':value': 2 }
+            }
+        }
+        const cascadeTest = (ephemeraId: EphemeraComputedId, value: number) => ({
+            PrimitiveUpdate: {
+                Key: { EphemeraId: ephemeraId, DataCategory: 'Meta::Computed' },
+                ProjectionFields: ['value'],
+                UpdateExpression: 'SET value = :value',
+                ExpressionAttributeValues: { ':value': value }
+            }
+        })
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([conditionCheckOne, cascadeTest('COMPUTED#TestOne', 2)])
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([conditionCheckTwo, cascadeTest('COMPUTED#TestTwo', 6)])
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([conditionCheckOne, conditionCheckTwo, cascadeTest('COMPUTED#CascadeOne', 8)])
+
+    })
+
+    //
+    // TODO: ISS2751: Refactor new dependencyCascade to accept variable updates
+    //
+
+    //
+    // TODO: ISS2752: Refactor dependencyCascade to trigger room renders
+    //
+
+    //
+    // TODO: ISS2753: Refactor dependencyCascade to trigger map renders
+    //
 
     // it('should cascade computed after updating a variable', async () => {
     //     internalCacheMock.Descent.generationOrder.mockReturnValue([['VARIABLE#testVariable'], ['COMPUTED#TestOne', 'COMPUTED#TestTwo']])
