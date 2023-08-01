@@ -40,6 +40,12 @@ export const dependencyCascade = async ({ payloads, messageBus }: { payloads: De
                 .filter((target) => (isEphemeraVariableId(target) || (isEphemeraComputedId(target) && !descentGraph.nodes[target])))
             ))
     ) as (EphemeraVariableId | EphemeraComputedId)[]
+    const updatedVariableNodes = Object.assign({}, 
+        ...payloads
+            .filter((payload): payload is { targetId: EphemeraVariableId, value: any } => (isEphemeraVariableId(payload.targetId)))
+            .map(({ targetId, value }) => ({ [targetId]: value }))
+    )
+
     internalCache.StateCache.get(unique(allNonCascadedDependencies, allComputedIds))
     let transactWritePromises: Promise<void>[] = []
 
@@ -59,6 +65,40 @@ export const dependencyCascade = async ({ payloads, messageBus }: { payloads: De
             }
         }
         const key = keys[0]
+        if (isEphemeraVariableId(key) && typeof updatedVariableNodes[key] !== 'undefined') {
+            const variableId = key
+            const newValue = updatedVariableNodes[key]
+            const { value: oldValue } = await internalCache.StateCache.get([key])[key]
+            transactWritePromises = [
+                ...transactWritePromises,
+                ephemeraDB.transactWrite([
+                    {
+                        PrimitiveUpdate: {
+                            Key: {
+                                EphemeraId: variableId,
+                                DataCategory: 'Meta::Variable'
+                            },
+                            ProjectionFields: ['value'],
+                            UpdateExpression: 'SET value = :newValue',
+                            ConditionExpression: 'value = :oldValue',
+                            ExpressionAttributeValues: {
+                                ':newValue': newValue,
+                                ':oldValue': oldValue
+                            }
+                        }
+                    }
+                ]).then(() => {
+                    internalCache.AssetState.set(variableId, isNaN(newValue) ? 0 : newValue)
+                })
+            ]
+            return {
+                dependencies: previousDependencies,
+                values: {
+                    ...previousValues,
+                    [variableId]: newValue
+                }
+            }
+        }
         if (isEphemeraComputedId(key)) {
             const computedId = key
             const selfFetch = (await internalCache.StateCache.get([computedId])) || {}
