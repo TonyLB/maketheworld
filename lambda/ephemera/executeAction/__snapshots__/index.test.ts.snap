@@ -19,23 +19,6 @@ Array [
       ],
     },
   },
-  Object {
-    "PrimitiveUpdate": Object {
-      "ConditionExpression": "value = :oldValue",
-      "ExpressionAttributeValues": Object {
-        ":newValue": 3,
-        ":oldValue": 1,
-      },
-      "Key": Object {
-        "DataCategory": "Meta::Variable",
-        "EphemeraId": "VARIABLE#VariableOne",
-      },
-      "ProjectionFields": Array [
-        "value",
-      ],
-      "UpdateExpression": "SET value = :newValue",
-    },
-  },
 ]
 `;
 

@@ -180,55 +180,33 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
     
         if (changedVariables.length > 0) {
             //
-            // TODO: Roll update of variable values into DependencyCascade, rather than call transactWrite here
+            // TODO: Refactor dependencyCascade to also accept variable-IDs that are condition-only
+            // (to verify the context in which an action ran before executing its updates)
             //
-            await ephemeraDB.transactWrite([
-                ...(unchangedVariables.map((key) => ({
-                    ConditionCheck: {
-                        Key: {
-                            EphemeraId: assetMap[key],
-                            DataCategory: `Meta::Variable`
-                        },
-                        ProjectionFields: ['value'],
-                        ConditionExpression: '#value = :value',
-                        ExpressionAttributeValues: marshall({
-                            ':value': assetState[key]
-                        })
-                    }
-                }))),
-                ...(changedVariables.map((key) => ({
-                    PrimitiveUpdate: {
-                        Key: {
-                            EphemeraId: assetMap[key],
-                            DataCategory: 'Meta::Variable',
-                        },
-                        ProjectionFields: ['value'],
-                        UpdateExpression: 'SET value = :newValue',
-                        ConditionExpression: 'value = :oldValue',
-                        ExpressionAttributeValues: {
-                            ':oldValue': assetState[key],
-                            ':newValue': executionOutput[key]
+            await Promise.all([
+                ephemeraDB.transactWrite(
+                    unchangedVariables.map((key) => ({
+                        ConditionCheck: {
+                            Key: {
+                                EphemeraId: assetMap[key],
+                                DataCategory: `Meta::Variable`
+                            },
+                            ProjectionFields: ['value'],
+                            ConditionExpression: '#value = :value',
+                            ExpressionAttributeValues: marshall({
+                                ':value': assetState[key]
+                            })
                         }
-                    }
-                })))
+                    }))
+                ),
+                dependencyCascade({
+                    payloads: changedVariables.map((key) => ({
+                        targetId: assetMap[key] as EphemeraVariableId,
+                        value: executionOutput[key]
+                    })),
+                    messageBus
+                })
             ])
-            //
-            // TODO: Call DependencyCascade directly, rather than using messageBus, so that it can throw
-            // a canceled exception if needed
-            //
-            // changedVariables.forEach((key) => {
-            //     // internalCache.AssetState.set(assetMap[key], executionOutput[key])
-            //     messageBus.send({
-            //         type: 'DependencyCascade',
-            //     })
-            // })
-            await dependencyCascade({
-                payloads: changedVariables.map((key) => ({
-                    targetId: assetMap[key] as EphemeraVariableId,
-                    value: executionOutput[key]
-                })),
-                messageBus
-            })
         }
         executeMessageQueue.forEach((message) => {
             messageBus.send(message)
