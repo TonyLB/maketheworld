@@ -5,64 +5,44 @@ Array [
   Object {
     "ConditionCheck": Object {
       "ConditionExpression": "#value = :value",
-      "ExpressionAttributeNames": Object {
-        "#value": "value",
-      },
       "ExpressionAttributeValues": Object {
         ":value": Object {
           "N": "2",
         },
       },
       "Key": Object {
-        "DataCategory": Object {
-          "S": "Meta::Variable",
-        },
-        "EphemeraId": Object {
-          "S": "VARIABLE#VariableTwo",
-        },
+        "DataCategory": "Meta::Variable",
+        "EphemeraId": "VARIABLE#VariableTwo",
       },
-      "TableName": "Ephemera",
+      "ProjectionFields": Array [
+        "value",
+      ],
     },
   },
   Object {
-    "Update": Object {
-      "ConditionExpression": "#value = :oldValue",
-      "ExpressionAttributeNames": Object {
-        "#value": "value",
-      },
+    "PrimitiveUpdate": Object {
+      "ConditionExpression": "value = :oldValue",
       "ExpressionAttributeValues": Object {
-        ":newValue": Object {
-          "N": "3",
-        },
-        ":oldValue": Object {
-          "N": "1",
-        },
+        ":newValue": 3,
+        ":oldValue": 1,
       },
       "Key": Object {
-        "DataCategory": Object {
-          "S": "Meta::Variable",
-        },
-        "EphemeraId": Object {
-          "S": "VARIABLE#VariableOne",
-        },
+        "DataCategory": "Meta::Variable",
+        "EphemeraId": "VARIABLE#VariableOne",
       },
-      "TableName": "Ephemera",
-      "UpdateExpression": "SET #value = :newValue",
+      "ProjectionFields": Array [
+        "value",
+      ],
+      "UpdateExpression": "SET value = :newValue",
     },
   },
 ]
 `;
 
 exports[`ExecuteActionMessage should execute an action and cascade 2`] = `
-Array [
-  Object {
-    "actionId": "ACTION#TestTwo",
-    "characterId": "CHARACTER#SomebodyElse",
-    "type": "ExecuteAction",
-  },
-  Object {
-    "targetId": "VARIABLE#VariableOne",
-    "type": "DependencyCascade",
-  },
-]
+Object {
+  "actionId": "ACTION#TestTwo",
+  "characterId": "CHARACTER#SomebodyElse",
+  "type": "ExecuteAction",
+}
 `;

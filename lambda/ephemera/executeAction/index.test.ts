@@ -7,13 +7,16 @@ import { ephemeraDB, multiTableTransactWrite, exponentialBackoffWrapper } from "
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
+jest.mock('../dependentMessages/dependencyCascade')
+import dependencyCascade from '../dependentMessages/dependencyCascade'
+
 import executeActionMessage from '.'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
+const dependencyCascadeMock = dependencyCascade as jest.Mocked<typeof dependencyCascade>
 const internalCacheMock = jest.mocked(internalCache, true)
-const transactMock = multiTableTransactWrite as jest.Mock
 const exponentialBackoffMock = exponentialBackoffWrapper as jest.Mock
 
 describe('ExecuteActionMessage', () => {
@@ -55,10 +58,17 @@ describe('ExecuteActionMessage', () => {
             ],
             messageBus: messageBusMock
         })
-        expect(transactMock).toHaveBeenCalledTimes(1)
-        expect(transactMock.mock.calls[0][0]).toMatchSnapshot()
-        expect(messageBusMock.send).toHaveBeenCalledTimes(2)
-        expect(messageBusMock.send.mock.calls.map(([item]) => (item))).toMatchSnapshot()
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(1)
+        expect(ephemeraDBMock.transactWrite.mock.calls[0][0]).toMatchSnapshot()
+        expect(messageBusMock.send).toHaveBeenCalledTimes(1)
+        expect(messageBusMock.send.mock.calls[0][0]).toMatchSnapshot()
+        expect(dependencyCascadeMock).toHaveBeenCalledTimes(1)
+        expect(dependencyCascadeMock).toHaveBeenCalledWith({
+            payloads: [
+                { targetId: 'VARIABLE#VariableOne', value: 3 }
+            ],
+            messageBus: messageBusMock
+        })
 
     })
 

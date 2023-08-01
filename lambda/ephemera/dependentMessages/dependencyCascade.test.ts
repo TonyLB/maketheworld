@@ -7,7 +7,7 @@ import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
-import dependencyCascadeMessage from './dependencyCascade'
+import dependencyCascade from './dependencyCascade'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { objectFilterEntries } from '@tonylb/mtw-utilities/dist/objects'
 import { EphemeraComputedId } from '@tonylb/mtw-interfaces/dist/baseClasses'
@@ -16,7 +16,7 @@ const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const internalCacheMock = jest.mocked(internalCache, true)
 
-describe('DependencyCascadeMessage', () => {
+describe('DependencyCascade', () => {
     let stateCacheMock
     beforeEach(() => {
         jest.clearAllMocks()
@@ -84,10 +84,10 @@ describe('DependencyCascadeMessage', () => {
 
         internalCacheMock.Graph.get.mockResolvedValue(testGraph)
         internalCacheMock.GraphNodes.get.mockResolvedValue([])
-        await dependencyCascadeMessage({
+        await dependencyCascade({
             payloads: [
-                { type: 'DependencyCascade', targetId: 'COMPUTED#TestOne' },
-                { type: 'DependencyCascade', targetId: 'COMPUTED#TestTwo' }
+                { targetId: 'COMPUTED#TestOne' },
+                { targetId: 'COMPUTED#TestTwo' }
             ],
             messageBus: messageBusMock
         })
@@ -172,10 +172,10 @@ describe('DependencyCascadeMessage', () => {
 
         internalCacheMock.Graph.get.mockResolvedValue(testGraph)
         internalCacheMock.GraphNodes.get.mockResolvedValue([])
-        await dependencyCascadeMessage({
+        await dependencyCascade({
             payloads: [
-                { type: 'DependencyCascade', targetId: 'COMPUTED#TestOne' },
-                { type: 'DependencyCascade', targetId: 'COMPUTED#TestTwo' }
+                { targetId: 'COMPUTED#TestOne' },
+                { targetId: 'COMPUTED#TestTwo' }
             ],
             messageBus: messageBusMock
         })

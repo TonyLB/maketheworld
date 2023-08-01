@@ -2,7 +2,7 @@
 // mergeIntoEphemera merges a new list of EphemeraItems into the current database, updating
 // both the per-Asset entries and (if necessary) the Meta::<Component> aggregate entries
 //
-import { isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraComputedId, isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
@@ -11,12 +11,14 @@ import internalCache from "../internalCache"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import messageBus from "../messageBus"
 import { EphemeraItem } from "./baseClasses"
+import dependencyCascade from "../dependentMessages/dependencyCascade"
 
 export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {
     //
     // TODO:  Better error handling and validation throughout
     //
     const DataCategory = AssetKey(assetId)
+    let computedIdsNeedingCascade: EphemeraComputedId[] = []
     await ephemeraDB.mergeTransact({
         query: {
             IndexName: 'DataCategoryIndex',
@@ -49,10 +51,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                     activeCharacters = await internalCache.RoomCharacterList.get(ephemeraId)
                 }
                 if (isEphemeraComputedId(ephemeraId) && action.src) {
-                    messageBus.send({
-                        type: 'DependencyCascade',
-                        targetId: ephemeraId
-                    })
+                    computedIdsNeedingCascade = [...computedIdsNeedingCascade, ephemeraId]
                 }
                 return [{ Update: {
                     Key: { ...key, DataCategory: `Meta::${tag}` },
@@ -76,5 +75,10 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
             return []
         }
     })
+    await dependencyCascade({
+        payloads: computedIdsNeedingCascade.map((ephemeraId) => ({ targetId: ephemeraId })),
+        messageBus
+    })
+
 
 }

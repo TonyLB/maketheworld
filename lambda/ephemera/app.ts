@@ -29,6 +29,7 @@ import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
+import dependencyCascade from './dependentMessages/dependencyCascade.js'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -132,9 +133,9 @@ export const handler = async (event: any, context: any) => {
                 break
             case 'Calculate Cascade':
                 if (event.detail.EphemeraId && event.detail.Descent && event.detail.tag) {
-                    messageBus.send({
-                        type: 'DependencyCascade',
-                        targetId: event.detail.EphemeraId
+                    await dependencyCascade({
+                        payloads: [{ targetId: event.detail.EphemeraId }],
+                        messageBus
                     })
                 }
                 break
