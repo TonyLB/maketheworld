@@ -1,33 +1,30 @@
-import { marshall } from "@aws-sdk/util-dynamodb"
-import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual, objectFilterEntries } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
 import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
-import { DependencyCascadeMessage, MessageBus } from "../messageBus/baseClasses"
+import { MessageBus } from "../messageBus/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { TransactionRequest } from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/transact"
 import { StateItemId, StateItemReturn } from "../internalCache/assetState"
 import { objectEntryFilter, objectMap } from "../lib/objects"
 import evaluateCode from "../computation/sandbox"
 
-//
-// TODO: ISS2723: Refactor dependencyCascade to use new Graph storage subsystem rather than legacy
-//
+type DependencyCascadeMessage = {
+    targetId: EphemeraComputedId;
+} | {
+    targetId: EphemeraVariableId;
+    value: any;
+}
+
 type RollingResultsMap = Record<StateItemId, any>
 type DependencyCascadeRollingResults = {
     dependencies: RollingResultsMap;
     values: RollingResultsMap;
 }
 
-export const dependencyCascadeMessage = async ({ payloads, messageBus }: { payloads: DependencyCascadeMessage[]; messageBus: MessageBus }): Promise<void> => {
-    //
-    // knockOnCascades are EphemeraIds that exist in the Descent arguments of an incoming payload.  These are,
-    // in other words, items for which we might be creating a *new* cascade that would revisit the same node.  Therefore,
-    // we don't want to execute them *first* (when we might need to queue them for evaluation again after
-    // changes to their dependencies)
-    //
+export const dependencyCascade = async ({ payloads, messageBus }: { payloads: DependencyCascadeMessage[]; messageBus: MessageBus }): Promise<void> => {
 
     const descentGraph = await internalCache.Graph.get(payloads.map(({ targetId }) => (targetId)), 'forward')
     //
@@ -201,4 +198,4 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     // Object.values(deferredPayloads).forEach((payload) => { messageBus.send(payload) })
 }
 
-export default dependencyCascadeMessage
+export default dependencyCascade

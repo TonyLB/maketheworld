@@ -1,5 +1,3 @@
-import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
-
 import {
     MessageBus,
     isPublishMessage,
@@ -18,7 +16,6 @@ import {
     isRoomUpdateMessage,
     isDescentUpdateMessage,
     isAncestryUpdateMessage,
-    isDependencyCascadeMessage,
     isExecuteActionMessage,
     isMapSubscription,
     isMapUpdateMessage,
@@ -46,7 +43,6 @@ import { cacheAssetByIdMessage, cacheAssetMessage, cacheCharacterAssetsMessage }
 import playerUpdateMessage from '../playerUpdate'
 import roomUpdateMessage from '../roomUpdate'
 import dependentUpdateMessage from '../dependentMessages/dependentUpdate'
-import dependencyCascadeMessage from '../dependentMessages/dependencyCascade'
 import executeActionMessage from '../executeAction'
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
@@ -209,13 +205,6 @@ messageBus.subscribe({
     priority: 4,
     filter: isDescentUpdateMessage,
     callback: dependentUpdateMessage('Descent')
-})
-
-messageBus.subscribe({
-    tag: 'DependencyCascade',
-    priority: 5,
-    filter: isDependencyCascadeMessage,
-    callback: dependencyCascadeMessage
 })
 
 messageBus.subscribe({
