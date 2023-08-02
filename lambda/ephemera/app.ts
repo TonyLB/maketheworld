@@ -20,7 +20,7 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
@@ -132,9 +132,9 @@ export const handler = async (event: any, context: any) => {
                 }
                 break
             case 'Calculate Cascade':
-                if (event.detail.EphemeraId && event.detail.Descent && event.detail.tag) {
+                if (event.detail.EphemeraId && (isEphemeraVariableId(event.detail.EphemeraId) || isEphemeraComputedId(event.detail.EphemeraId))) {
                     await dependencyCascade({
-                        payloads: [{ targetId: event.detail.EphemeraId }],
+                        payloads: [{ targetId: event.detail.EphemeraId, value: event.detail.value }],
                         messageBus
                     })
                 }

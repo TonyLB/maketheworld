@@ -68,7 +68,7 @@ export const dependencyCascade = async ({ payloads, messageBus }: { payloads: De
         if (isEphemeraVariableId(key) && typeof updatedVariableNodes[key] !== 'undefined') {
             const variableId = key
             const newValue = updatedVariableNodes[key]
-            const { value: oldValue } = await internalCache.StateCache.get([key])[key]
+            const oldValue = (await internalCache.StateCache.get([key]))?.[key]?.value
             transactWritePromises = [
                 ...transactWritePromises,
                 ephemeraDB.transactWrite([
