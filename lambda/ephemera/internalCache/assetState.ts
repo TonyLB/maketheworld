@@ -40,12 +40,10 @@ export class StateData {
     async get(keys: StateItemId[]): Promise<Record<StateItemId, StateItemReturn>> {
         this._StateCache.add({
             promiseFactory: async (keys: string[]) => {
-                const returnValue = await ephemeraDB.getItems<{ EphemeraId: string; value: any; src?: string; dependencies?: string[]; }>({
+                return await ephemeraDB.getItems<{ EphemeraId: string; value: any; src?: string; dependencies?: string[]; }>({
                     Keys: keys.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${extractConstrainedTag(isLegalDependencyTag)(EphemeraId)}` })),
                     ProjectionFields: ['EphemeraId', 'value', 'src', 'dependencies']
                 })
-                console.log(`StateCache get: ${JSON.stringify(returnValue, null, 4)}`)
-                return returnValue
             },
             requiredKeys: keys,
             transform: (outputList) => (Object.assign({}, ...outputList.map(({ EphemeraId, value, src, dependencies }) => ({ [EphemeraId]: { value, src, dependencies } }))))
