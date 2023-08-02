@@ -45,8 +45,8 @@ export class StateData {
                     ProjectionFields: ['EphemeraId', 'value', 'src', 'dependencies']
                 })
             },
-            requiredKeys: Object.values(keys),
-            transform: (outputList) => (outputList.reduce((previous, { EphemeraId, value, src, dependencies }) => ({ ...previous, [EphemeraId]: { value, src, dependencies } }), {}))
+            requiredKeys: keys,
+            transform: (outputList) => (Object.assign({}, ...outputList.map(({ EphemeraId, value, src, dependencies }) => ({ [EphemeraId]: { value, src, dependencies } }))))
         })
         return Object.assign({}, ...(await Promise.all(
             keys.map(async (EphemeraId) => ({ [EphemeraId]: await this._StateCache.get(EphemeraId) }))
