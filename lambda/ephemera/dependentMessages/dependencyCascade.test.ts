@@ -316,7 +316,6 @@ describe('DependencyCascade', () => {
 
     })
 
-
     it('should render a side-effected room', async () => {
         stateCacheMock.mockImplementation((keys) => (objectFilterEntries(
             {
@@ -384,9 +383,79 @@ describe('DependencyCascade', () => {
         })
 
     })
-    
-    //
-    // TODO: ISS2753: Refactor dependencyCascade to trigger map renders
-    //
 
+    it('should update a side-effected map', async () => {
+        stateCacheMock.mockImplementation((keys) => (objectFilterEntries(
+            {
+                'COMPUTED#TestOne': {
+                    src: 'a * 2',
+                    value: 2,
+                    dependencies: ['a']
+                },
+                'VARIABLE#VariableOne': { value: 1 }
+            },
+            ([key]) => (keys.includes(key))
+        )))
+        ephemeraDBMock.transactWrite.mockResolvedValue()
+        internalCacheMock.AssetMap.get.mockResolvedValue({
+            a: 'VARIABLE#VariableOne',
+            c: 'COMPUTED#TestOne',
+        })
+        const testGraph = new Graph<string, { key: string }, { context?: string }>(
+            {
+                'COMPUTED#TestOne': { key: 'COMPUTED#TestOne' },
+                'VARIABLE#VariableOne': { key: 'VARIABLE#VariableOne' },
+                'ROOM#TestRoom': { key: 'ROOM#TestRoom' },
+                'MAP#TestMap': { key: 'MAP#TestMap' }
+            },
+            [
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base' },
+                { from: 'COMPUTED#TestOne', to: 'ROOM#TestRoom', context: 'base' },
+                { from: 'ROOM#TestRoom', to: 'MAP#TestMap', context: 'base' }
+            ],
+            {},
+            true
+        )
+
+        internalCacheMock.Graph.get.mockResolvedValue(testGraph)
+        internalCacheMock.GraphNodes.get.mockResolvedValue([])
+        await dependencyCascade({
+            payloads: [
+                { targetId: 'VARIABLE#VariableOne', value: 2 }
+            ],
+            messageBus: messageBusMock
+        })
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
+        const cascadeTest = (ephemeraId: EphemeraComputedId, value: number) => ({
+            PrimitiveUpdate: {
+                Key: { EphemeraId: ephemeraId, DataCategory: 'Meta::Computed' },
+                ProjectionFields: ['value'],
+                UpdateExpression: 'SET value = :value',
+                ExpressionAttributeValues: { ':value': value }
+            }
+        })
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([{
+            PrimitiveUpdate: {
+                Key: { EphemeraId: 'VARIABLE#VariableOne', DataCategory: 'Meta::Variable' },
+                ConditionExpression: 'value = :oldValue',
+                UpdateExpression: 'SET value = :newValue',
+                ProjectionFields: ['value'],
+                ExpressionAttributeValues: { ':newValue': 2, ':oldValue': 1 }
+            }
+        }])
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([cascadeTest('COMPUTED#TestOne', 4)])
+
+        expect(messageBusMock.send).toHaveBeenCalledTimes(2)
+        expect(messageBus.send).toHaveBeenCalledWith({
+            type: 'Perception',
+            ephemeraId: 'ROOM#TestRoom',
+            header: true
+        })
+        expect(messageBus.send).toHaveBeenCalledWith({
+            type: 'MapUpdate',
+            mapId: 'MAP#TestMap'
+        })
+
+    })
+    
 })
