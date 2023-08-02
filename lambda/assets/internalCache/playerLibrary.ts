@@ -1,5 +1,5 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library'
 import { CacheConstructor } from './baseClasses'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'

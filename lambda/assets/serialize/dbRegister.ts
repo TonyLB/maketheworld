@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { legacyAssetDB as assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'

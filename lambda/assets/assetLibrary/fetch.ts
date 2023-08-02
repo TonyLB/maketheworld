@@ -1,4 +1,4 @@
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { legacyAssetDB as assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 const convertAssetQuery = (queryItems) => {

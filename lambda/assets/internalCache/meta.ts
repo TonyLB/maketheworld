@@ -1,6 +1,6 @@
 import { DeferredCache } from './deferredCache'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index'
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 import { isAssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 
