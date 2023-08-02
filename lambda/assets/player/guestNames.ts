@@ -3,7 +3,7 @@
 // guest characters that can be combined with they/them gender for a non-assumption
 // first experience
 
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { legacyAssetDB as assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 //
 export const guestNames = [

@@ -719,7 +719,7 @@ type AssetDBKey = {
     DataCategory: string;
 }
 
-export const assetDB = {
+export const legacyAssetDB = {
     getItem: abstractGetItem<AssetDBKey>(assetsTable),
     batchGetItem: abstractBatchGet<AssetDBKey>(assetsTable),
     query: assetsQueryFactory(dbClient),

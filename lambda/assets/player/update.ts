@@ -1,7 +1,7 @@
 import { PlayerSettingsMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { legacyAssetDB as assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 
 export const playerSettingMessage = async ({ payloads, messageBus }: { payloads: PlayerSettingsMessage[], messageBus: MessageBus }): Promise<void> => {

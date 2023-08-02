@@ -1,7 +1,7 @@
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { v4 as uuidv4 } from 'uuid'
 
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { ebClient } from '../clients'
 import internalCache from "../internalCache"

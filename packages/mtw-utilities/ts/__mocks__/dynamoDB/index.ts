@@ -7,7 +7,7 @@ const dbMock = () => ({
     deleteItem: jest.fn()
 })
 
-export const assetDB = dbMock()
+export const legacyAssetDB = dbMock()
 export const ephemeraDB = dbMock()
 export const connectionDB = dbMock()
 

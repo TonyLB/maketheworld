@@ -1,6 +1,6 @@
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
 
-import { assetDB, ephemeraDB as ephemeraDB } from '../dynamoDB'
+import { legacyAssetDB, ephemeraDB as ephemeraDB } from '../dynamoDB'
 import { splitType } from '../types'
 import { asyncSuppressExceptions } from '../errors'
 
@@ -25,7 +25,7 @@ export const healPlayers = async () => {
         cognitoClient.send(new ListUsersCommand({
             UserPoolId: COGNITO_POOL_ID
         })),
-        assetDB.query({
+        legacyAssetDB.query({
             IndexName: 'DataCategoryIndex',
             DataCategory: 'Meta::Character',
             ProjectionFields: ['AssetId', '#name', 'fileName', 'scopedId', 'player'],
@@ -56,7 +56,7 @@ export const healPlayers = async () => {
         }), {})
     await Promise.all(
         userNames.map((userName = '') => (
-            assetDB.update({
+            legacyAssetDB.update({
                 AssetId: `PLAYER#${userName}`,
                 DataCategory: 'Meta::Player',
                 UpdateExpression: "SET #code = if_not_exists(#code, :false), #characters = :characters",
@@ -99,7 +99,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
         }
 
         const healGlobalAssets = async () => {
-            const Items = await assetDB.query({
+            const Items = await legacyAssetDB.query({
                 IndexName: 'DataCategoryIndex',
                 DataCategory: 'Meta::Asset',
                 FilterExpression: "#zone = :canon",
@@ -196,7 +196,7 @@ export const convertAssetQuery = (queryItems) => {
 
 export const generatePersonalAssetLibrary = async (player) => {
     if (player) {
-        const items = await assetDB.query({
+        const items = await legacyAssetDB.query({
             IndexName: 'PlayerIndex',
             player,
             ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],
@@ -215,7 +215,7 @@ export const generatePersonalAssetLibrary = async (player) => {
 }
 
 export const generateLibrary = async () => {
-    const items = await assetDB.query({
+    const items = await legacyAssetDB.query({
         IndexName: 'ZoneIndex',
         zone: 'Library',
         ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],

@@ -1,6 +1,6 @@
 import { GetObjectCommand, S3Client, SelectObjectContentCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { FetchAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
