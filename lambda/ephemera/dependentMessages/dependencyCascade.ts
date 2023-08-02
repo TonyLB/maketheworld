@@ -1,4 +1,4 @@
-import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual, objectFilterEntries } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
@@ -189,6 +189,17 @@ export const dependencyCascade = async ({ payloads, messageBus }: { payloads: De
                 type: 'Perception',
                 ephemeraId: key,
                 header: true
+            })
+        }
+        if (isEphemeraMapId(key)) {
+            //
+            // TODO: Optimize map dependency cascades so that they only happen when there has been
+            // either (a) an update of the map itself or (b) an update of the name or exits of an
+            // attached room
+            //
+            messageBus.send({
+                type: 'MapUpdate',
+                mapId: key
             })
         }
         return {
