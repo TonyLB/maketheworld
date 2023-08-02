@@ -1,4 +1,4 @@
-import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual, objectFilterEntries } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
@@ -183,6 +183,13 @@ export const dependencyCascade = async ({ payloads, messageBus }: { payloads: De
                     }
                 }
             }
+        }
+        if (isEphemeraRoomId(key)) {
+            messageBus.send({
+                type: 'Perception',
+                ephemeraId: key,
+                header: true
+            })
         }
         return {
             dependencies: previousDependencies,
