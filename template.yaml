@@ -195,7 +195,6 @@ Resources:
                 - Execute Action
                 - Publish Notification
                 - Update Notification
-                - Graph Test
         Diagnostics:
           Type: CloudWatchEvent
           Properties:

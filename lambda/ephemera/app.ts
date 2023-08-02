@@ -164,6 +164,7 @@ export const handler = async (event: any, context: any) => {
                         }]
                     })
                 }
+                break
             case 'Update Notification':
                 if (event.detail.player && event.detail.notificationId && (typeof event.detail.read === 'boolean') && (typeof event.detail.archived === 'boolean')) {
                     messageBus.send({
@@ -175,17 +176,7 @@ export const handler = async (event: any, context: any) => {
                         archived: event.detail.archived
                     })
                 }
-            case 'Graph Test':
-                if (event.detail.ephemeraId) {
-                    const graph = await internalCache.Graph.get([event.detail.ephemeraId], event.detail.direction || 'forward')
-                    const message = `Nodes: ${JSON.stringify(Object.values(graph.nodes), null, 4)}, Edges: ${JSON.stringify(graph.edges, null, 4)}`
-                    console.log(message)
-                    await internalCache.flush()
-                    return message
-                }
-                else {
-                    return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
-                }
+                break
             case 'Canonize Asset':
             case 'Decanonize Asset':
                 const { assetId } = event.detail
