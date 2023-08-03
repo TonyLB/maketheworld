@@ -54,7 +54,8 @@ export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string 
             // TODO: Figure out how to not need to sometimes use explicit any for the items property in this calling pattern
             //
             items: DBHandlerItem<KIncoming, T>[];
-            mergeFunction: (props: { incoming: DBHandlerItem<KIncoming, T>, current: DBHandlerItem<KIncoming, T> }) => ('ignore' | 'delete' | DBHandlerItem<KIncoming, T>)
+            mergeFunction: (props: { incoming: DBHandlerItem<KIncoming, T>, current: DBHandlerItem<KIncoming, T> }) => ('ignore' | 'delete' | DBHandlerItem<KIncoming, T>);
+            extractKey?: (incoming: Omit<DBHandlerItem<KIncoming, T>, KIncoming>) => T
         }) {
             //
             // TODO:  Better error handling and validation throughout
@@ -62,11 +63,15 @@ export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string 
             const {
                 query,
                 items,
-                mergeFunction
+                mergeFunction,
+                extractKey
             } = props
             const currentItems = await this.query<MergeQueryResults<KIncoming, T>>(query)
+            const incomingItems = extractKey
+                ? items.map((item) => ({ ...item, [this._incomingKeyLabel]: extractKey(item) }))
+                : items
             const findByKey = (findItem: DBHandlerItem<KIncoming, T> | DBHandlerKey<KIncoming, T>) => (item: DBHandlerItem<KIncoming, T> | DBHandlerKey<KIncoming, T>): boolean => (item[this._incomingKeyLabel] === findItem[this._incomingKeyLabel] && item.DataCategory === findItem.DataCategory)
-            const keysToExamine = [currentItems, items].flat().reduce<DBHandlerKey<KIncoming, T>[]>((previous, item) => {
+            const keysToExamine = [currentItems, incomingItems].flat().reduce<DBHandlerKey<KIncoming, T>[]>((previous, item) => {
                 if (previous.find(findByKey(item))) {
                     return previous
                 }
@@ -82,7 +87,7 @@ export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string 
             }, [])
             const batchActions = keysToExamine.reduce<BatchRequest<KIncoming, T>[]>((previous, key) => {
                 const currentItem = currentItems.find(findByKey(key))
-                const incomingItem = items.find(findByKey(key))
+                const incomingItem = incomingItems.find(findByKey(key))
                 if (currentItem) {
                     if (incomingItem) {
                         const mergeOutput = mergeFunction({ incoming: incomingItem, current: currentItem })
