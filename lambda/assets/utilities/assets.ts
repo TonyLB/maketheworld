@@ -1,5 +1,5 @@
 import AssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/"
-import { legacyAssetDB as assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 //
@@ -16,7 +16,7 @@ export const assetWorkspaceFromAssetId = async (AssetId: string, scoped?: boolea
     if (scoped) {
         const addresses = (await assetDB.query({
             IndexName: 'ScopedIdIndex',
-            scopedId,
+            Key: { scopedId },
             ProjectionFields: ['address']
         }))
         if (addresses && addresses.length && isAssetWorkspaceAddress(addresses[0].address)) {
@@ -25,8 +25,10 @@ export const assetWorkspaceFromAssetId = async (AssetId: string, scoped?: boolea
         return undefined
     }
     const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
-        AssetId,
-        DataCategory: dataCategory,
+        Key: {
+            AssetId,
+            DataCategory: dataCategory
+        },
         ProjectionFields: ['address']
     })) || {}
     if (!isAssetWorkspaceAddress(address)) {

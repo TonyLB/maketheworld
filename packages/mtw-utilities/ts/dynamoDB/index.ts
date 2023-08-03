@@ -692,21 +692,23 @@ export const multiTableTransactWriteGeneric = async (items: TransactWriteItem[])
     await dbClient.send(new TransactWriteItemsCommand({ TransactItems: remappedItems }))
 }
 
-export const ephemeraDB = new (
-        withMerge<'EphemeraId', string>()(
-            withTransaction<'EphemeraId', string>()(
-                withUpdate<'EphemeraId', string>()(
-                    withGetOperations<'EphemeraId', string>()(
-                        withQuery<'EphemeraId', string>()(
-                            withBatchWrite<'EphemeraId', string>()(
-                                withPrimitives<'EphemeraId', string>()(DBHandlerBase)
-                            )
+const combinedMixins = <T extends string>() => (
+    withMerge<T, string>()(
+        withTransaction<T, string>()(
+            withUpdate<T, string>()(
+                withGetOperations<T, string>()(
+                    withQuery<T, string>()(
+                        withBatchWrite<T, string>()(
+                            withPrimitives<T, string>()(DBHandlerBase)
                         )
                     )
                 )
             )
         )
-    )({
+    )
+)
+
+export const ephemeraDB = new (combinedMixins<'EphemeraId'>())({
     client: dbClient,
     tableName: ephemeraTable,
     incomingKeyLabel: 'EphemeraId',
@@ -728,6 +730,14 @@ export const legacyAssetDB = {
     putItem: abstractPutItem<AssetDBKey>(assetsTable),
     deleteItem: abstractDeleteItem<AssetDBKey>(assetsTable)
 }
+
+export const assetDB = new (combinedMixins<'AssetId'>())({
+    client: dbClient,
+    tableName: assetsTable,
+    incomingKeyLabel: 'AssetId',
+    internalKeyLabel: 'AssetId',
+    options: { getBatchSize: 50 }
+})
 
 type ConnectionDBKey = {
     ConnectionId: string;
