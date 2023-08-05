@@ -1,4 +1,4 @@
-import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 import { AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/dist/asset'
 
@@ -34,8 +34,10 @@ export class CachePlayerSettingData {
                 guestName?: string;
                 guestId?: string;
             }>({
-                AssetId: `PLAYER#${player}`,
-                DataCategory: 'Meta::Player',
+                Key: {
+                    AssetId: `PLAYER#${player}`,
+                    DataCategory: 'Meta::Player'
+                },
                 ProjectionFields: ['Settings', 'guestName', 'guestId']
             })
             const { Settings = { onboardCompleteTags: [] }, guestName, guestId } = fetch || {}
