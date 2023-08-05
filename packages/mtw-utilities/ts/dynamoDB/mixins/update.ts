@@ -2,7 +2,7 @@ import {  DeleteItemCommand, DeleteItemCommandInput, UpdateItemCommand, UpdateIt
 import { DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import mapProjectionFields from './utils/mapProjectionFields'
-import produce from "immer"
+import { produce } from "immer"
 import { WritableDraft } from "immer/dist/internal"
 import withGetOperations from "./get"
 import { DEVELOPER_MODE } from '../../constants'
