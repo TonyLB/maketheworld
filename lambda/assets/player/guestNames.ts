@@ -3,7 +3,7 @@
 // guest characters that can be combined with they/them gender for a non-assumption
 // first experience
 
-import { legacyAssetDB as assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 //
 export const guestNames = [
@@ -31,15 +31,12 @@ export const guestNames = [
 export const newGuestName = async (): Promise<string> => {
     const currentTime = Date.now()
     const baseName = guestNames[currentTime % guestNames.length]
-    const value = await assetDB.optimisticUpdate({
-        key: {
+    const value = (await assetDB.optimisticUpdate({
+        Key: {
             AssetId: `Global`,
             DataCategory: 'GuestNameCounters'
         },
-        updateKeys: ['#name'],
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
+        updateKeys: ['Name'],
         updateReducer: (draft) => {
             if (!('Name' in draft)) {
                 draft.Name = {}
@@ -50,7 +47,7 @@ export const newGuestName = async (): Promise<string> => {
             draft.Name[baseName]++
         },
         ReturnValues: 'UPDATED_NEW'
-    })
+    })) || { Name: {} }
     const nameCount = value.Name[baseName]
     if (!nameCount) {
         throw new Error('Failure in add Guest name')
