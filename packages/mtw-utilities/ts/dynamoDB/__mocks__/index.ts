@@ -14,6 +14,7 @@ const dbMock = () => ({
 
 export const legacyAssetDB = dbMock()
 export const ephemeraDB = dbMock()
+export const assetDB = dbMock()
 export const connectionDB = dbMock()
 export const messageDB = {
     putItem: jest.fn()

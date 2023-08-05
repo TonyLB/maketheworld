@@ -102,6 +102,27 @@ describe('withMerge', () => {
             expect(batchWriteMock).toHaveBeenCalledWith([{ PutRequest: { PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 0 }}])
         })
 
+        it('should use extractKey when provided matched incoming keys', async () => {
+            queryMock.mockResolvedValue([{
+                PrimaryKey: 'TestOne',
+                DataCategory: 'DC1',
+                TestValue: 5
+            }])
+            mergeFunction.mockImplementation(({ incoming }) => (incoming))
+            await dbHandler.merge({
+                query: { Key: { PrimaryKey: 'TestOne' } },
+                items: [
+                        { key: 'TestOne', DataCategory: 'DC1', TestValue: 0 }
+                    ] as any,
+                mergeFunction,
+                extractKey: ({ key }) => ((key))
+            })
+            expect(queryMock).toHaveBeenCalledTimes(1)
+            expect(queryMock).toHaveBeenCalledWith({ Key: { PrimaryKey: 'TestOne' } })
+            expect(batchWriteMock).toHaveBeenCalledTimes(1)
+            expect(batchWriteMock).toHaveBeenCalledWith([{ PutRequest: { PrimaryKey: 'TestOne', key: 'TestOne', DataCategory: 'DC1', TestValue: 0 }}])
+        })
+
     })
 
     describe('mergeTransact', () => {
