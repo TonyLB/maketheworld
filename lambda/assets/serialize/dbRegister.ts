@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { legacyAssetDB as assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
@@ -146,14 +146,18 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 zone: address.zone,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
             }),
-            mergeIntoDataRange({
-                table: 'assets',
-                search: { DataCategory: AssetKey(asset.key) },
+            assetDB.merge({
+                query: {
+                    IndexName: 'DataCategoryIndex',
+                    Key: {
+                        DataCategory: AssetKey(asset.key)
+                    }
+                },
                 items: asset.instance
                     ? []
                     : Object.values(assets)
                         .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
-                        .map(itemRegistry(assets)),
+                        .map(itemRegistry(assets)) as any,
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
                         return 'delete'
@@ -172,19 +176,11 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                     let prefix = ''
                     switch(tag) {
                         case 'Feature':
-                            prefix = 'FEATURE'
-                            break
                         case 'Map':
-                            prefix = 'MAP'
-                            break
                         case 'Bookmark':
-                            prefix = 'BOOKMARK'
-                            break
                         case 'Message':
-                            prefix = 'MESSAGE'
-                            break
                         case 'Moment':
-                            prefix = 'MOMENT'
+                            prefix = tag.toUpperCase()
                             break
                         default:
                             prefix = 'ROOM'

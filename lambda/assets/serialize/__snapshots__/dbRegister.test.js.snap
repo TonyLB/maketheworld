@@ -90,10 +90,12 @@ Object {
     },
   ],
   "mergeFunction": [Function],
-  "search": Object {
-    "DataCategory": "ASSET#TEST",
+  "query": Object {
+    "IndexName": "DataCategoryIndex",
+    "Key": Object {
+      "DataCategory": "ASSET#TEST",
+    },
   },
-  "table": "assets",
 }
 `;
 
@@ -166,10 +168,12 @@ Object {
     },
   ],
   "mergeFunction": [Function],
-  "search": Object {
-    "DataCategory": "ASSET#TEST",
+  "query": Object {
+    "IndexName": "DataCategoryIndex",
+    "Key": Object {
+      "DataCategory": "ASSET#TEST",
+    },
   },
-  "table": "assets",
 }
 `;
 
@@ -195,10 +199,12 @@ Object {
   "extractKey": [Function],
   "items": Array [],
   "mergeFunction": [Function],
-  "search": Object {
-    "DataCategory": "ASSET#TEST",
+  "query": Object {
+    "IndexName": "DataCategoryIndex",
+    "Key": Object {
+      "DataCategory": "ASSET#TEST",
+    },
   },
-  "table": "assets",
 }
 `;
 
@@ -261,10 +267,12 @@ Object {
     },
   ],
   "mergeFunction": [Function],
-  "search": Object {
-    "DataCategory": "ASSET#TEST",
+  "query": Object {
+    "IndexName": "DataCategoryIndex",
+    "Key": Object {
+      "DataCategory": "ASSET#TEST",
+    },
   },
-  "table": "assets",
 }
 `;
 
@@ -296,10 +304,12 @@ Object {
     },
   ],
   "mergeFunction": [Function],
-  "search": Object {
-    "DataCategory": "ASSET#TEST",
+  "query": Object {
+    "IndexName": "DataCategoryIndex",
+    "Key": Object {
+      "DataCategory": "ASSET#TEST",
+    },
   },
-  "table": "assets",
 }
 `;
 
@@ -331,9 +341,11 @@ Object {
     },
   ],
   "mergeFunction": [Function],
-  "search": Object {
-    "DataCategory": "ASSET#primitives",
+  "query": Object {
+    "IndexName": "DataCategoryIndex",
+    "Key": Object {
+      "DataCategory": "ASSET#primitives",
+    },
   },
-  "table": "assets",
 }
 `;

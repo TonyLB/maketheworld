@@ -1,7 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { legacyAssetDB as assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 jest.mock('../internalCache', () => ({
     PlayerLibrary: {
@@ -153,7 +153,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save meta, rooms for Story type', async () => {
@@ -223,7 +223,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save meta only for instanced Story type', async () => {
@@ -294,7 +294,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     //
@@ -392,7 +392,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save exits in default appearance for Rooms', async () => {
@@ -512,7 +512,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save primitive elements in global keys', async () => {
@@ -553,6 +553,6 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 })
