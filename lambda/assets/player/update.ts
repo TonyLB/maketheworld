@@ -1,7 +1,7 @@
 import { PlayerSettingsMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
-import { legacyAssetDB as assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 
 export const playerSettingMessage = async ({ payloads, messageBus }: { payloads: PlayerSettingsMessage[], messageBus: MessageBus }): Promise<void> => {
@@ -15,8 +15,8 @@ export const playerSettingMessage = async ({ payloads, messageBus }: { payloads:
             ]
         }), {})
         await Promise.all(Object.entries(settingsUpdate).map(async ([player, updates]) => {
-            const { Settings } = await assetDB.optimisticUpdate({
-                key: {
+            const { Settings } = (await assetDB.optimisticUpdate({
+                Key: {
                     AssetId: `PLAYER#${player}`,
                     DataCategory: 'Meta::Player'
                 },
@@ -43,7 +43,7 @@ export const playerSettingMessage = async ({ payloads, messageBus }: { payloads:
                         })
                     })
                 }
-            })
+            })) || {}
             if (Settings) {
                 internalCache.PlayerSettings.set(player, Settings)
             }
