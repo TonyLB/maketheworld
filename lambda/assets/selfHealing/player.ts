@@ -1,7 +1,7 @@
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { v4 as uuidv4 } from 'uuid'
 
-import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { ebClient } from '../clients'
 import internalCache from "../internalCache"
@@ -25,11 +25,10 @@ export const generatePersonalAssetLibrary = async (player) => {
     if (player) {
         const items = await assetDB.query({
             IndexName: 'PlayerIndex',
-            player,
-            ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],
-            ExpressionAttributeNames: {
-                '#name': 'Name'
-            }
+            Key: {
+                player,
+            },
+            ProjectionFields: ['AssetId', 'DataCategory', 'Name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],
         })
         const { Characters, Assets } = convertAssetQuery(items)
         return {
@@ -47,7 +46,7 @@ export const healPlayer = async (player: string) => {
     const confirmedGuestId = guestId || uuidv4()
     if (!guestName || !guestId) {
         await assetDB.optimisticUpdate({
-            key: {
+            Key: {
                 AssetId: `PLAYER#${player}`,
                 DataCategory: 'Meta::Player'
             },
