@@ -1,5 +1,5 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
-import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library'
 import { CacheConstructor } from './baseClasses'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
@@ -41,15 +41,14 @@ export class CachePlayerLibraryData {
         if (!(player in this.CharacterLibraries)) {
             const Items = await assetDB.query({
                 IndexName: 'PlayerIndex',
-                player,
+                Key: {
+                    player
+                },
                 KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
                 ExpressionAttributeValues: {
                     ':dcPrefix': 'Meta::'
                 },
-                ExpressionAttributeNames: {
-                    '#name': 'Name'
-                },
-                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'images', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit', 'scopedId']
+                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'images', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit', 'scopedId']
             })
             const Characters = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
