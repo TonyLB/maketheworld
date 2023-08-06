@@ -183,6 +183,7 @@ Resources:
                 - Update Player
                 - Canonize Asset
                 - Decanonize Asset
+                - Set Canon Assets
         Development:
           Type: CloudWatchEvent
           Properties:
@@ -949,6 +950,7 @@ Resources:
                   detail-type:
                     - Heal Asset
                     - Heal Player
+                    - Heal Global Values
             Coordination:
               Type: CloudWatchEvent
               Properties:

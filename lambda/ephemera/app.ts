@@ -20,7 +20,7 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
@@ -184,6 +184,19 @@ export const handler = async (event: any, context: any) => {
                     messageBus.send({
                         type: event["detail-type"] === 'Canonize Asset' ? 'CanonAdd' : 'CanonRemove',
                         assetId: `ASSET#${assetId}`
+                    })
+                    await messageBus.flush()
+                    return await extractReturnValue(messageBus)
+                }
+                else {
+                    return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
+                }
+            case 'Set Canon Assets':
+                const { assetIds } = event.detail
+                if (assetIds && Array.isArray(assetIds)) {
+                    messageBus.send({
+                        type: 'CanonSet',
+                        assetIds: assetIds.filter(isEphemeraAssetId)
                     })
                     await messageBus.flush()
                     return await extractReturnValue(messageBus)
