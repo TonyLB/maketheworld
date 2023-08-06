@@ -20,7 +20,7 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
@@ -194,12 +194,9 @@ export const handler = async (event: any, context: any) => {
             case 'Set Canon Assets':
                 const { assetIds } = event.detail
                 if (assetIds && Array.isArray(assetIds)) {
-                    //
-                    // TODO: Add CanonSet messageBus message
-                    //
                     messageBus.send({
                         type: 'CanonSet',
-                        assetIds
+                        assetIds: assetIds.filter(isEphemeraAssetId)
                     })
                     await messageBus.flush()
                     return await extractReturnValue(messageBus)
@@ -207,9 +204,6 @@ export const handler = async (event: any, context: any) => {
                 else {
                     return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
                 }
-            //
-            // TODO: Create 'Set Canon Assets' EventBridge event
-            //
         }
     }
     else if (routeKey === '$connect') {
