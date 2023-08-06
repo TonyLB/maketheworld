@@ -1,8 +1,6 @@
 import { DeferredCache } from './deferredCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import AssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/index'
-import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
+import AssetWorkspace, { AssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/index'
 import Meta, { MetaData } from './meta'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 
