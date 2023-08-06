@@ -1,4 +1,3 @@
-import putAssetNormalized from './putAssetNormalized.js'
 import StateSynthesizer from './stateSynthesis'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
 import {
@@ -429,10 +428,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         
             const stateSynthesizer = new StateSynthesizer(assetWorkspace, messageBus)
         
-            await Promise.all([
-                putAssetNormalized({ assetId, normalForm: ephemeraItems }),
-                mergeIntoEphemera(assetId, ephemeraItems)
-            ])
+            await mergeIntoEphemera(assetId, ephemeraItems)
         
             stateSynthesizer.sendDependencyMessages()
 

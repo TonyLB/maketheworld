@@ -10,10 +10,6 @@ export const decacheAssetMessage = async ({ payloads, messageBus }: { payloads: 
             ephemeraDB.deleteItem({
                 EphemeraId: AssetKey(assetId),
                 DataCategory: 'Meta::Asset'
-            }),
-            ephemeraDB.deleteItem({
-                EphemeraId: AssetKey(assetId),
-                DataCategory: 'Meta::AssetNormalized'
             })
         ])
     }))
