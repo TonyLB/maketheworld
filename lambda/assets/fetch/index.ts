@@ -1,6 +1,6 @@
 import { GetObjectCommand, S3Client, SelectObjectContentCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { FetchAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
@@ -16,8 +16,10 @@ const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId
         const DataCategory = (splitType(AssetId)[0] === 'CHARACTER') ? 'Meta::Character' : 'Meta::Asset'
         if (DataCategory === 'Meta::Asset') {
             const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
-                AssetId,
-                DataCategory,
+                Key: {
+                    AssetId,
+                    DataCategory
+                },
                 ProjectionFields: ['address']
             })) || {}
             if (address) {
@@ -30,7 +32,9 @@ const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId
         else {
             const queryOutput = await assetDB.query({
                 IndexName: 'ScopedIdIndex',
-                scopedId: splitType(AssetId)[1],
+                Key: {
+                    scopedId: splitType(AssetId)[1]
+                },
                 KeyConditionExpression: 'DataCategory = :dc',
                 ExpressionAttributeValues: {
                     ':dc': DataCategory
@@ -64,12 +68,11 @@ const fetchAssetProperties = ({ s3Client }: { s3Client: S3Client }) => async ({ 
         //
         if (DataCategory === 'Meta::Asset') {
             const { fileName: fetchFileName, zone, subFolder, player } = (await assetDB.getItem<{ fileName: string; zone: string; subFolder: string; player: string; }>({
-                AssetId,
-                DataCategory,
-                ProjectionFields: ['fileName', '#zone', 'player', 'subFolder'],
-                ExpressionAttributeNames: {
-                    '#zone': 'zone'
-                }
+                Key: {
+                    AssetId,
+                    DataCategory
+                },
+                ProjectionFields: ['fileName', 'zone', 'player', 'subFolder']
             })) || {}
             if (zone === 'Personal' && fetchFileName) {
                 derivedFileName = `Personal/${player}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.json`
@@ -78,7 +81,9 @@ const fetchAssetProperties = ({ s3Client }: { s3Client: S3Client }) => async ({ 
         else {
             const queryOutput = await assetDB.query({
                 IndexName: 'ScopedIdIndex',
-                scopedId: splitType(AssetId)[1],
+                Key: {
+                    scopedId: splitType(AssetId)[1]
+                },
                 KeyConditionExpression: 'DataCategory = :dc',
                 ExpressionAttributeValues: {
                     ':dc': DataCategory
