@@ -950,6 +950,7 @@ Resources:
                   detail-type:
                     - Heal Asset
                     - Heal Player
+                    - Heal Global Values
             Coordination:
               Type: CloudWatchEvent
               Properties:

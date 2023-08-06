@@ -30,6 +30,7 @@ import { assetWorkspaceFromAssetId } from "./utilities/assets"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 import { newGuestName } from "./player/guestNames"
+import { healGlobalValues } from "./selfHealing/globalValues"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -81,6 +82,13 @@ export const handler = async (event, context) => {
                 return JSON.stringify(returnVal, null, 4)
             }
             return JSON.stringify(`No player specified for Heal Player event`)
+        }
+        if (event["detail-type"] === 'Heal Global Values') {
+            const returnVal = await healGlobalValues({
+                shouldHealConnections: Boolean(event.detail?.connections),
+                shouldHealGlobalAssets: typeof event.detail?.assets !== 'boolean' || event.detail?.assets
+            })
+            return JSON.stringify(returnVal, null, 4)
         }
     }
     if (event?.source === 'mtw.coordination') {
