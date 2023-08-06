@@ -327,10 +327,17 @@ export type MapUpdateMessage = {
     mapId?: EphemeraMapId;
 }
 
-export type CanonUpdateMessage = {
+export type CanonSetMessage = {
+    type: 'CanonSet';
+    assetIds: EphemeraAssetId[];
+}
+
+export type CanonAddRemoveMessage = {
     type: 'CanonAdd' | 'CanonRemove';
     assetId: EphemeraAssetId;
 }
+
+export type CanonUpdateMessage = CanonAddRemoveMessage | CanonSetMessage
 
 export type MessageType = PublishMessage |
     PublishNotification |

@@ -80,6 +80,9 @@ export const healPlayers = async () => {
 //
 export const healGlobalValues = async ({ shouldHealConnections = true, shouldHealGlobalAssets = true }) => {
     return await asyncSuppressExceptions(async () => {
+        //
+        // TODO: Refactor healConnections to operate on Connections table
+        //
         const healConnections = async () => {
             const Items = await ephemeraDB.query({
                 IndexName: 'DataCategoryIndex',
@@ -98,6 +101,9 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
             })
         }
 
+        //
+        // Lift healGlobalAssets to asset lambda
+        //
         const healGlobalAssets = async () => {
             const Items = await legacyAssetDB.query({
                 IndexName: 'DataCategoryIndex',
@@ -152,6 +158,10 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
                 }
             }
             const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
+            //
+            // TODO: Replace direct call to ephemeraDB optimisticUpdate with a call to a SetCanonAssets
+            // EventBridge event
+            //
             await ephemeraDB.optimisticUpdate({
                 Key: {
                     EphemeraId: 'Global',

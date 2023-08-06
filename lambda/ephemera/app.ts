@@ -191,6 +191,25 @@ export const handler = async (event: any, context: any) => {
                 else {
                     return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
                 }
+            case 'Set Canon Assets':
+                const { assetIds } = event.detail
+                if (assetIds && Array.isArray(assetIds)) {
+                    //
+                    // TODO: Add CanonSet messageBus message
+                    //
+                    messageBus.send({
+                        type: 'CanonSet',
+                        assetIds
+                    })
+                    await messageBus.flush()
+                    return await extractReturnValue(messageBus)
+                }
+                else {
+                    return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
+                }
+            //
+            // TODO: Create 'Set Canon Assets' EventBridge event
+            //
         }
     }
     else if (routeKey === '$connect') {

@@ -183,6 +183,7 @@ Resources:
                 - Update Player
                 - Canonize Asset
                 - Decanonize Asset
+                - Set Canon Assets
         Development:
           Type: CloudWatchEvent
           Properties:
