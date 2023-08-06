@@ -12,7 +12,6 @@ const dbMock = () => ({
     transactWrite: jest.fn()
 })
 
-export const legacyAssetDB = dbMock()
 export const ephemeraDB = dbMock()
 export const assetDB = dbMock()
 export const connectionDB = dbMock()

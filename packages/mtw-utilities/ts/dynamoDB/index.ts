@@ -716,21 +716,6 @@ export const ephemeraDB = new (combinedMixins<'EphemeraId'>())({
     options: { getBatchSize: 50 }
 })
 
-type AssetDBKey = {
-    AssetId: string;
-    DataCategory: string;
-}
-
-export const legacyAssetDB = {
-    getItem: abstractGetItem<AssetDBKey>(assetsTable),
-    batchGetItem: abstractBatchGet<AssetDBKey>(assetsTable),
-    query: assetsQueryFactory(dbClient),
-    update: abstractUpdate<AssetDBKey>(assetsTable),
-    optimisticUpdate: abstractOptimisticUpdate(assetsTable),
-    putItem: abstractPutItem<AssetDBKey>(assetsTable),
-    deleteItem: abstractDeleteItem<AssetDBKey>(assetsTable)
-}
-
 export const assetDB = new (combinedMixins<'AssetId'>())({
     client: dbClient,
     tableName: assetsTable,
