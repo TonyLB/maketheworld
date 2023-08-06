@@ -1,6 +1,6 @@
 import { DeferredCache } from './deferredCache'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index'
-import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 import { isAssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 
@@ -29,8 +29,10 @@ export class MetaData {
 
     async _getPromiseFactory(AssetId: `ASSET#${string}` | `CHARACTER#${string}`): Promise<MetaCache> {
         const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
-            AssetId,
-            DataCategory: 'Meta::Asset',
+            Key: {
+                AssetId,
+                DataCategory: 'Meta::Asset'
+            },
             ProjectionFields: ['address']
         })) || {}
         if (isAssetWorkspaceAddress(address)) {
