@@ -7,6 +7,13 @@ import { ebClient } from '../clients'
 import internalCache from "../internalCache"
 import { newGuestName } from "../player/guestNames"
 
+import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
+
+const { COGNITO_POOL_ID } = process.env
+
+const params = { region: process.env.AWS_REGION }
+const cognitoClient = new CognitoIdentityProviderClient(params)
+
 export const convertAssetQuery = (queryItems) => {
     const Characters = queryItems
         .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
@@ -74,4 +81,22 @@ export const healPlayer = async (player: string) => {
             })
         }]
     }))
+}
+
+export const healAllPlayers = async () => {
+    //
+    // TODO: Filter on only confirmed players, to prevent healing in lots of unconfirmed names
+    //
+    const { Users = [] } = await cognitoClient.send(new ListUsersCommand({
+            UserPoolId: COGNITO_POOL_ID
+        }))
+    const userNames = Users
+        .map(({ Username }) => (Username))
+        .filter((userName) => (userName))
+    await Promise.all(
+        userNames
+            .filter((userName): userName is string => (Boolean(userName)))
+            .map(healPlayer)
+    )
+    return {}
 }
