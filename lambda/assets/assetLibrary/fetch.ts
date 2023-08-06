@@ -1,4 +1,4 @@
-import { legacyAssetDB as assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 const convertAssetQuery = (queryItems) => {
@@ -18,15 +18,14 @@ const convertAssetQuery = (queryItems) => {
 export const fetchLibrary = async (RequestId: string) => {
     const Items = await assetDB.query({
         IndexName: 'ZoneIndex',
-        zone: 'Library',
+        Key: {
+            zone: 'Library'
+        },
         KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
         ExpressionAttributeValues: {
             ':dcPrefix': 'Meta::'
         },
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
-        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
+        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
     })
 
     const { Characters, Assets } = convertAssetQuery(Items)
