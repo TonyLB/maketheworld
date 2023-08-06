@@ -1,5 +1,5 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
-import { legacyAssetDB as assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { LibraryAsset, LibraryCharacter } from '../mtw-interfaces/dist/library'
 import { CacheConstructor } from './baseClasses'
 
@@ -45,20 +45,19 @@ export class CacheLibraryData {
         if (Object.keys(this.Assets || {}).length + Object.keys(this.Characters || {}).length === 0) {
             const Items = await assetDB.query({
                 IndexName: 'ZoneIndex',
-                zone: 'Library',
+                Key: {
+                    zone: 'Library',
+                },
                 KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
                 ExpressionAttributeValues: {
                     ':dcPrefix': 'Meta::'
                 },
-                ExpressionAttributeNames: {
-                    '#name': 'Name'
-                },
-                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'images', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
+                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'images', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
             })
             this.Characters = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
                 .map(({ AssetId, Name, scopedId, fileName, images, FirstImpression, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: AssetId, Name, scopedId, fileName, fileURL: images?.length ? images[0] : undefined, Pronouns, FirstImpression, OneCoolThing, Outfit }))
-                .reduce((previous, item) => ({ ...previous, [item.CharacterId]: item }), {} as Record<string, LibraryCharacter>)
+                .reduce((previous, item) => ({ ...previous, [item.CharacterId]: item as LibraryCharacter }), {} as Record<string, LibraryCharacter>)
             this.Assets = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
                 .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
