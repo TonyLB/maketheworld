@@ -1,6 +1,6 @@
 import { RemoveAssetMessage, MessageBus } from "../messageBus/baseClasses"
 
-import { legacyAssetDB as assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
 import { healPlayer } from "../selfHealing/player"
