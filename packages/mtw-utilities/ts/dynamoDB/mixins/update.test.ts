@@ -441,6 +441,57 @@ describe('withUpdate', () => {
 
         })
 
+        it('should call successCallback if provided', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Item: marshall({ testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }) })
+                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
 
+            const successCallback = jest.fn()
+            const output = await dbHandler.optimisticUpdate({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                updateKeys: ['testOne', 'testTwo', 'testThree', 'testFour'],
+                updateReducer: (draft) => {
+                    draft.testOne = 'Different Test',
+                    draft.testTwo = undefined
+                    draft.testThree = 'New test'
+                },
+                successCallback
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(2)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                TableName: 'Ephemera',
+                ProjectionExpression: 'testOne, testTwo, testThree, testFour'
+            })
+            expect(dbMock.send.mock.calls[1][0].input).toEqual({
+                ConditionExpression: "testOne = :Old0 AND testTwo = :Old1 AND attribute_not_exists(testThree)",
+                ExpressionAttributeValues: marshall({
+                  ":New0": "Different Test",
+                  ":New2": "New test",
+                  ":Old0": "Testing",
+                  ":Old1": "Also Testing"
+                }),
+                Key: marshall({
+                    EphemeraId: "TestOne",
+                    DataCategory: "DC1",
+                }),
+                TableName: "Ephemera",
+                UpdateExpression: "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
+            })
+            expect(output).toEqual({
+                PrimaryKey: "TEST",
+                DataCategory: "Meta::Test",
+                testOne: "Different Test",
+                testThree: "New test",
+                testFour: "Unchanged"
+            })
+            expect(successCallback).toHaveBeenCalledWith({
+                PrimaryKey: "TEST",
+                DataCategory: "Meta::Test",
+                testOne: "Different Test",
+                testThree: "New test",
+                testFour: "Unchanged"
+            })
+        })
     })
 })
