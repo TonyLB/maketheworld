@@ -1,4 +1,4 @@
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { legacyConnectionDB as connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
 export class CacheConnectionsByPlayerData {

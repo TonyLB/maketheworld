@@ -1,5 +1,5 @@
 import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
-import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { legacyConnectionDB as connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"

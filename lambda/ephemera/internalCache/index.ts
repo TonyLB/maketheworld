@@ -1,6 +1,6 @@
 import { CacheConstructor, CacheBase } from './baseClasses'
 
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { legacyConnectionDB as connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import CacheRoomCharacterLists from './roomCharacterLists';
 import CacheCharacterMeta from './characterMeta';

@@ -1,4 +1,4 @@
-import { connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { legacyConnectionDB as connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { LibrarySubscribeMessage, LibraryUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"

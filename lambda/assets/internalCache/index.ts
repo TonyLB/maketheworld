@@ -1,5 +1,4 @@
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
+import { legacyConnectionDB as connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor, CacheBase } from './baseClasses'
 import CacheLibrary from './library'
 import { S3Client } from "@aws-sdk/client-s3"

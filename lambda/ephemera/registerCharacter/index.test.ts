@@ -1,7 +1,7 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
     ephemeraDB,
-    connectionDB,
+    legacyConnectionDB as connectionDB,
     multiTableTransactWrite
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 

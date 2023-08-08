@@ -729,7 +729,7 @@ type ConnectionDBKey = {
     DataCategory: string;
 }
 
-export const connectionDB = {
+export const legacyConnectionDB = {
     getItem: abstractGetItem<ConnectionDBKey>(connectionsTable),
     batchGetItem: abstractBatchGet<ConnectionDBKey>(connectionsTable),
     query: connectionsQueryFactory(dbClient),
