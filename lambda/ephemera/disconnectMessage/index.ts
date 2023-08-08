@@ -1,6 +1,6 @@
 import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
-import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper, multiTableTransactWrite, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { marshall } from "@aws-sdk/util-dynamodb"
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
@@ -16,22 +16,9 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
             return
         }
         const { RoomId, Name } = characterFetch || {}
-        const { Pronouns, assets, ...rest } = characterFetch || {}
 
-        const currentActiveCharacters = await internalCache.RoomCharacterList.get(RoomId)
+        let remainingConnections: string[] = []
 
-        const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
-
-        const remainingCharacters = [
-            ...(currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== characterId)),
-            ...((remainingConnections.length > 0)
-                ? [{
-                    ...rest,
-                    ConnectionIds: remainingConnections
-                }]
-                : []
-            )
-        ]
         await newConnectionDB.transactWrite([
             {
                 Delete: {
@@ -48,6 +35,14 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                     updateKeys: ['connections'],
                     updateReducer: (draft) => {
                         draft.connections = draft.connections.filter((value) => (value !== connectionId))
+                        //
+                        // TODO: ISS2835: Make transactWrite support successCallback
+                        //
+
+                        //
+                        // TODO: Only update remainingConnections on successCallback
+                        //
+                        remainingConnections = [...draft.connections]
                     },
                     deleteCondition: ({ connections = [] }) => (connections.length === 0)
                 }
@@ -65,23 +60,39 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                 }
             }
         ])
-        await multiTableTransactWrite([
-            {
-                Update: {
-                    TableName: 'Ephemera',
-                    Key: marshall({
-                        EphemeraId: RoomId,
-                        DataCategory: 'Meta::Room'
-                    }),
-                    UpdateExpression: 'SET activeCharacters = :newCharacters',
-                    ExpressionAttributeValues: marshall({
-                        ':newCharacters': remainingCharacters,
-                        ':oldCharacters': currentActiveCharacters
-                    }),
-                    ConditionExpression: 'activeCharacters = :oldCharacters'
+        const { activeCharacters: remainingCharacters = [] } = (await ephemeraDB.optimisticUpdate({
+            Key: {
+                EphemeraId: RoomId,
+                DataCategory: 'Meta::Room'
+            },
+            updateKeys: ['activeCharacters'],
+            updateReducer: (draft) => {
+                const matchIndex = (draft.activeCharacters as { EphemeraId: string }[]).findIndex(({ EphemeraId }) => (EphemeraId === characterId))
+                if (matchIndex === -1) {
+                    return
+                }
+                const { ConnectionIds = [] } = draft.activeCharacters[matchIndex]
+                const newConnections = ConnectionIds.filter((checkConnectionId) => (connectionId !== checkConnectionId))
+                if (newConnections.length === 0) {
+                    draft.activeCharacters = draft.activeCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterId))
+                }
+                else {
+                    draft.activeCharacters[matchIndex].ConnectionIds = newConnections
                 }
             }
-        ])
+            //
+            // TODO: ISS2834: Make optimisticUpdate support successCallback
+            //
+
+            //
+            // TODO: Use successCallback to update RoomCharacterList cache
+            //
+        })) || {}
+        internalCache.RoomCharacterList.set({
+            key: RoomId,
+            value: remainingCharacters
+        })
+
         if (remainingConnections.length === 0) {
             messageBus.send({
                 type: 'EphemeraUpdate',
@@ -106,10 +117,6 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                 roomId: RoomId
             })
         }
-        internalCache.RoomCharacterList.set({
-            key: RoomId,
-            value: remainingCharacters
-        })
 
     }, { retryErrors: ['TransactionCanceledException']})
 }
