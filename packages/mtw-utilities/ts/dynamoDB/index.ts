@@ -724,6 +724,14 @@ export const assetDB = new (combinedMixins<'AssetId'>())({
     options: { getBatchSize: 50 }
 })
 
+export const connectionDB = new (combinedMixins<'ConnectionId'>())({
+    client: dbClient,
+    tableName: connectionsTable,
+    incomingKeyLabel: 'ConnectionId',
+    internalKeyLabel: 'ConnectionId',
+    options: { getBatchSize: 50 }
+})
+
 type ConnectionDBKey = {
     ConnectionId: string;
     DataCategory: string;
