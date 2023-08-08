@@ -197,14 +197,16 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     successCallback?: (output: T) => void;
 }
 
-type OptimisticUpdateFactoryOutput = {
+type OptimisticUpdateFactoryOutput<T extends {}> = {
     action: 'ignore';
 } | {
     action: 'update';
     update: Omit<UpdateItemCommandInput, 'TableName' | 'ReturnValues'>;
+    newState: T;
 } | {
     action: 'delete';
     deletes: Omit<DeleteItemCommandInput, 'TableName'>[];
+    newState: T;
 }
 
 export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
@@ -222,7 +224,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
         _optimisticUpdateFactory<Fetch extends Partial<DBHandlerItem<KIncoming, T>>>(
                 previousItem: Fetch | { [x: string]: never } | undefined,
                 props: { Key: DBHandlerKey<KIncoming, T> } & UpdateExtendedProps<KIncoming, T, Fetch>
-            ): OptimisticUpdateFactoryOutput
+            ): OptimisticUpdateFactoryOutput<Fetch>
         {
             const {
                 Key,
@@ -255,7 +257,8 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
                         },
                         ...cascadeDeletes.map((key) => ({ Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true }) }))
-                    ]
+                    ],
+                    newState: updateOutput.newState
                 }
             }
             else {
@@ -277,7 +280,8 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                         } : {}),
                         ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
                         ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
-                    }
+                    },
+                    newState: updateOutput.newState
                 }
             }
         }

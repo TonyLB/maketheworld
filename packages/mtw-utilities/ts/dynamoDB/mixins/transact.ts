@@ -52,6 +52,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 ProjectionFields: aggregateProjectionFields
             }) : []
 
+            let successCallbacks: (() => void)[] = []
             const transactions = items.map<TransactWriteItem[]>((item) => {
                 if ('Put' in item) {
                     const returnValue = {
@@ -76,7 +77,11 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                     if (updateTransaction.action === 'ignore') {
                         return []
                     }
-                    else if (updateTransaction.action === 'delete') {
+                    const { successCallback } = item.Update
+                    if (successCallback) {
+                        successCallbacks = [...successCallbacks, () => { successCallback(updateTransaction.newState) }]
+                    }
+                    if (updateTransaction.action === 'delete') {
                         return updateTransaction.deletes.map((deleteItem) => ({
                             Delete: {
                                 TableName: this._tableName,
@@ -139,6 +144,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 return []
             }).flat()
             await this._client.send(new TransactWriteItemsCommand({ TransactItems: transactions }))
+            successCallbacks.forEach((callback) => { callback() })
         }
     }
 }
