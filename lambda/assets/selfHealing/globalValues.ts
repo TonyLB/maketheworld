@@ -1,4 +1,4 @@
-import { assetDB, connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { assetDB, legacyConnectionDB as connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { ebClient } from "../clients"

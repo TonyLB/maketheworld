@@ -1,5 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { legacyConnectionDB as connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 

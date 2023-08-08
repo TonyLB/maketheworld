@@ -1,5 +1,5 @@
 import { ConnectMessage, MessageBus } from "../messageBus/baseClasses"
-import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { legacyConnectionDB as connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
 import { pushCharacterEphemera } from "../cacheAsset";
