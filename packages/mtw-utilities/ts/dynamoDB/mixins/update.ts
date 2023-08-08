@@ -191,6 +191,10 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     // to also delete (e.g., removing a meta record and removing any cache records associated with it)
     //
     deleteCascade?: (output: DBHandlerItem<KIncoming, KeyType>) => DBHandlerKey<KIncoming, KeyType>[];
+    //
+    // successCallback, if provided, is called with the results *only* after the update succeeds
+    //
+    successCallback?: (output: T) => void;
 }
 
 type OptimisticUpdateFactoryOutput = {
@@ -302,7 +306,8 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 priorFetch,
                 checkKeys,
                 deleteCondition,
-                deleteCascade
+                deleteCascade,
+                successCallback
             } = props
             if (!updateKeys) {
                 return undefined
@@ -379,6 +384,9 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             // TODO: Create custom error type to throw when the optimisticUpdate fails
             // entirely
             //
+            if (successCallback && completed) {
+                successCallback(returnValue as Update)
+            }
             return returnValue as Update
         }
     }
