@@ -109,7 +109,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                             TableName: this._tableName,
                             Key: marshall(this._remapIncomingObject(item.ConditionCheck.Key), { removeUndefinedValues: true }),
                             ConditionExpression: replaceAttributeNames(item.ConditionCheck.ConditionExpression),
-                            ExpressionAttributeNames,
+                            ...(Object.keys(ExpressionAttributeNames).length > 0 ? { ExpressionAttributeNames } : {}),
                             ...(item.ConditionCheck.ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(item.ConditionCheck.ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
                         }
                     }]
@@ -131,7 +131,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                             Key: marshall(this._remapIncomingObject(item.PrimitiveUpdate.Key), { removeUndefinedValues: true }),
                             UpdateExpression: replaceAttributeNames(item.PrimitiveUpdate.UpdateExpression),
                             ...(item.PrimitiveUpdate.ConditionExpression ? { ConditionExpression: replaceAttributeNames(item.PrimitiveUpdate.ConditionExpression) } : {}),
-                            ExpressionAttributeNames,
+                            ...(Object.keys(ExpressionAttributeNames).length > 0 ? { ExpressionAttributeNames } : {}),
                             ...(item.PrimitiveUpdate.ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(item.PrimitiveUpdate.ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
                         }
                     }]
