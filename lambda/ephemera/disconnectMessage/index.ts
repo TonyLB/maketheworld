@@ -1,6 +1,6 @@
 import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
-import { legacyConnectionDB as connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { marshall } from "@aws-sdk/util-dynamodb"
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
@@ -8,10 +8,9 @@ import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
-        const [currentConnections, characterFetch, mapSubscriptions] = await Promise.all([
+        const [currentConnections, characterFetch] = await Promise.all([
             internalCache.CharacterConnections.get(characterId),
             internalCache.CharacterMeta.get(characterId),
-            internalCache.Global.get("mapSubscriptions")
         ])
         if (!(currentConnections && currentConnections.length)) {
             return
@@ -33,74 +32,56 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                 : []
             )
         ]
-        const adjustMeta = remainingConnections.length > 0
-            ? [{
-                Update: {
-                    TableName: 'Connections',
-                    Key: marshall({
-                        ConnectionId: characterId,
-                        DataCategory: 'Meta::Character'
-                    }),
-                    UpdateExpression: 'SET connections = :newConnections',
-                    ExpressionAttributeValues: marshall({
-                        ':newConnections': remainingConnections,
-                        ':oldConnections': currentConnections
-                    }),
-                    ConditionExpression: 'connections = :oldConnections'
-                }
-            }]
-            : [{
+        await newConnectionDB.transactWrite([
+            {
                 Delete: {
-                    TableName: 'Connections',
-                    Key: marshall({
-                        ConnectionId: characterId,
-                        DataCategory: 'Meta::Character'
-                    }),
-                }
-            }]
-        const adjustMapSubscriptions = (mapSubscriptions || []).find(({ connectionId: check }) => (check === connectionId))
-            ? [{
-                Update: {
-                    TableName: 'Connections',
-                    Key: marshall({
-                        ConnectionId: 'Map',
-                        DataCategory: 'Subscriptions'
-                    }),
-                    UpdateExpression: 'SET connections = :newConnections',
-                    ExpressionAttributeValues: marshall({
-                        ':newConnections': (mapSubscriptions || []).filter(({ connectionId: check }) => (check !== connectionId)),
-                        ':oldConnections': mapSubscriptions
-                    }),
-                    ConditionExpression: 'connections = :oldConnections'
-                }
-            }]
-            : []
-        await multiTableTransactWrite([{
-            Delete: {
-                TableName: 'Connections',
-                Key: marshall({
                     ConnectionId: `CONNECTION#${connectionId}`,
                     DataCategory: characterId
-                })
+                }
+            },
+            {
+                Update: {
+                    Key: {
+                        ConnectionId: characterId,
+                        DataCategory: 'Meta::Character'
+                    },
+                    updateKeys: ['connections'],
+                    updateReducer: (draft) => {
+                        draft.connections = draft.connections.filter((value) => (value !== connectionId))
+                    },
+                    deleteCondition: ({ connections = [] }) => (connections.length === 0)
+                }
+            },
+            {
+                Update: {
+                    Key: {
+                        ConnectionId: 'Map',
+                        DataCategory: 'Subscriptions'
+                    },
+                    updateKeys: ['connections'],
+                    updateReducer: (draft) => {
+                        draft.connections = draft.connections.filter((value) => (value !== connectionId))
+                    }
+                }
             }
-        },
-        ...adjustMapSubscriptions,
-        ...adjustMeta,
-        {
-            Update: {
-                TableName: 'Ephemera',
-                Key: marshall({
-                    EphemeraId: RoomId,
-                    DataCategory: 'Meta::Room'
-                }),
-                UpdateExpression: 'SET activeCharacters = :newCharacters',
-                ExpressionAttributeValues: marshall({
-                    ':newCharacters': remainingCharacters,
-                    ':oldCharacters': currentActiveCharacters
-                }),
-                ConditionExpression: 'activeCharacters = :oldCharacters'
+        ])
+        await multiTableTransactWrite([
+            {
+                Update: {
+                    TableName: 'Ephemera',
+                    Key: marshall({
+                        EphemeraId: RoomId,
+                        DataCategory: 'Meta::Room'
+                    }),
+                    UpdateExpression: 'SET activeCharacters = :newCharacters',
+                    ExpressionAttributeValues: marshall({
+                        ':newCharacters': remainingCharacters,
+                        ':oldCharacters': currentActiveCharacters
+                    }),
+                    ConditionExpression: 'activeCharacters = :oldCharacters'
+                }
             }
-        }])
+        ])
         if (remainingConnections.length === 0) {
             messageBus.send({
                 type: 'EphemeraUpdate',
