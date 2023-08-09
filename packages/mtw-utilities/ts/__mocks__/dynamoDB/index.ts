@@ -19,4 +19,3 @@ export const publishMessage = jest.fn()
 export const messageDeltaQuery = jest.fn()
 
 export const exponentialBackoffWrapper = jest.fn((testFunc) => { testFunc() })
-export const multiTableTransactWrite = jest.fn()
