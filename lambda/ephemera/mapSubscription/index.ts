@@ -1,10 +1,9 @@
 import { MapSubscriptionMessage, MapUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
-import { legacyConnectionDB as connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
-import { marshall } from "@aws-sdk/util-dynamodb"
 
 export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payloads: MapSubscriptionMessage[], messageBus: MessageBus }): Promise<void> => {
 
@@ -16,83 +15,70 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
         let subscriptionSuccess = false
         await exponentialBackoffWrapper(async () => {
 
-            const [checkCharactersFetch, checkSubscriptions] = await Promise.all([
-                Promise.all(
-                    payloads.map(({ characterId }) => (
-                        connectionDB.getItem<{ DataCategory: EphemeraCharacterId }>({
-                            ConnectionId: `CONNECTION#${connectionId}`,
-                            DataCategory: characterId,
-                            ProjectionFields: ['DataCategory']
-                        })
-                    ))
-                ),
-                internalCache.Global.get('mapSubscriptions')
-            ])
+            const checkCharactersFetch = await newConnectionDB.getItems({
+                Keys: payloads.map(({ characterId }) => ({
+                    ConnectionId: `CONNECTION#${connectionId}`,
+                    DataCategory: characterId
+                })),
+                ProjectionFields: ['DataCategory']
+            })
             const checkCharacters = checkCharactersFetch
                 .filter((value): value is { DataCategory: EphemeraCharacterId } => (typeof value !== 'undefined'))
                 .map(({ DataCategory }) => (DataCategory))
             const validCharacters = payloads
                 .map(({ characterId }) => (characterId))
                 .filter((characterId) => (checkCharacters.includes(characterId)))
-            const newConnections = (checkSubscriptions || []).find(({ connectionId: check }) => (check === connectionId))
-                ? (checkSubscriptions || []).map((subscriptions) => (subscriptions.connectionId === connectionId ? { connectionId, characterIds: unique(subscriptions.characterIds, validCharacters) as EphemeraCharacterId[] } : subscriptions))
-                : [
-                    ...(checkSubscriptions || []),
-                    {
-                        connectionId, characterIds: validCharacters
-                    }
-                ]
-            if (newConnections.length) {
-                await multiTableTransactWrite([
-                    {
-                        Update: {
-                            TableName: 'Connections',
-                            Key: marshall({
-                                ConnectionId: 'Map',
-                                DataCategory: 'Subscriptions'
-                            }),
-                            UpdateExpression: 'SET connections = :newConnections',
-                            ExpressionAttributeValues: marshall({
-                                ':newConnections': newConnections,
-                                ...((typeof checkSubscriptions === 'undefined')
-                                    ? {}
-                                    : { ':oldConnections': checkSubscriptions }
+            await newConnectionDB.transactWrite([
+                {
+                    Update: {
+                        Key: {
+                            ConnectionId: 'Map',
+                            DataCategory: 'Subscriptions'
+                        },
+                        updateKeys: ['connections'],
+                        updateReducer: (draft) => {
+                            const connectionSubscriptionIndex = (draft.connections as { connectionId: string; characterIds: EphemeraCharacterId[] }[]).findIndex(({ connectionId: checkConnectionId }) => (checkConnectionId === connectionId))
+                            if (connectionSubscriptionIndex === -1) {
+                                draft.connections = [...draft.connections, { connectionId, characterIds: validCharacters }]
+                            }
+                            else {
+                                draft.connections[connectionSubscriptionIndex].characterIds = unique(
+                                    draft.connections[connectionSubscriptionIndex].characterIds,
+                                    validCharacters
                                 )
-                            }),
-                            ConditionExpression: (typeof checkSubscriptions === 'undefined')
-                                ? 'attribute_not_exists(connections)'
-                                : 'connections = :oldConnections'
+                            }
+                        },
+                        successCallback: ({ connections }) => {
+                            internalCache.Global.set({ key: 'mapSubscriptions', value: connections })
+                            subscriptionSuccess = true                
                         }
-                    },
-                    {
+                    }
+                },
+                {
+                    ConditionCheck: {
+                        Key: {
+                            ConnectionId: `CONNECTION#${connectionId}`,
+                            DataCategory: 'Meta::Connection'
+                        },
+                        ProjectionFields: ['DataCategory'],
+                        ConditionExpression: 'attribute_exists(DataCategory)'
+                    }
+                },
+                ...(
+                    validCharacters.map((characterId) => ({
                         ConditionCheck: {
-                            TableName: 'Connections',
-                            Key: marshall({
-                                ConnectionId: `CONNECTION#${connectionId}`,
-                                DataCategory: 'Meta::Connection'
-                            }),
-                            ConditionExpression: 'attribute_exists(DataCategory)'
-                        }
-                    },
-                    ...payloads.map(({ characterId }) => ({
-                        ConditionCheck: {
-                            TableName: 'Connections',
-                            Key: marshall({
+                            Key: {
                                 ConnectionId: `CONNECTION#${connectionId}`,
                                 DataCategory: characterId
-                            }),
+                            },
+                            ProjectionFields: ['DataCategory'],
                             ConditionExpression: 'attribute_exists(DataCategory)'
                         }
                     }))
-                ])
-                internalCache.Global.set({ key: 'mapSubscriptions', value: newConnections })
-                subscriptionSuccess = true    
-            }
+                )
+            ])
         }, {
             retryErrors: ['TransactionCanceledException'],
-            retryCallback: async () => {
-                internalCache.Global.invalidate('mapSubscriptions')
-            }
         })
 
         if (subscriptionSuccess) {
