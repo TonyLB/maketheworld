@@ -1,4 +1,4 @@
-import { assetDB, legacyConnectionDB as connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { assetDB, connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { ebClient } from "../clients"
@@ -9,7 +9,9 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
         const healConnections = async () => {
             const Items = await connectionDB.query({
                 IndexName: 'DataCategoryIndex',
-                DataCategory: 'Meta::Connection',
+                Key: {
+                    DataCategory: 'Meta::Connection'
+                },
                 ProjectionFields: ['ConnectionId', 'player']
             })
         
