@@ -1,6 +1,6 @@
 import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
-import { legacyConnectionDB as connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper, multiTableTransactWrite, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { marshall } from "@aws-sdk/util-dynamodb"
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
@@ -8,126 +8,100 @@ import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {
-        const [currentConnections, characterFetch, mapSubscriptions] = await Promise.all([
+        const [currentConnections, characterFetch] = await Promise.all([
             internalCache.CharacterConnections.get(characterId),
             internalCache.CharacterMeta.get(characterId),
-            internalCache.Global.get("mapSubscriptions")
         ])
         if (!(currentConnections && currentConnections.length)) {
             return
         }
         const { RoomId, Name } = characterFetch || {}
-        const { Pronouns, assets, ...rest } = characterFetch || {}
 
-        const currentActiveCharacters = await internalCache.RoomCharacterList.get(RoomId)
-
-        const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
-
-        const remainingCharacters = [
-            ...(currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== characterId)),
-            ...((remainingConnections.length > 0)
-                ? [{
-                    ...rest,
-                    ConnectionIds: remainingConnections
-                }]
-                : []
-            )
-        ]
-        const adjustMeta = remainingConnections.length > 0
-            ? [{
-                Update: {
-                    TableName: 'Connections',
-                    Key: marshall({
-                        ConnectionId: characterId,
-                        DataCategory: 'Meta::Character'
-                    }),
-                    UpdateExpression: 'SET connections = :newConnections',
-                    ExpressionAttributeValues: marshall({
-                        ':newConnections': remainingConnections,
-                        ':oldConnections': currentConnections
-                    }),
-                    ConditionExpression: 'connections = :oldConnections'
-                }
-            }]
-            : [{
+        await newConnectionDB.transactWrite([
+            {
                 Delete: {
-                    TableName: 'Connections',
-                    Key: marshall({
-                        ConnectionId: characterId,
-                        DataCategory: 'Meta::Character'
-                    }),
-                }
-            }]
-        const adjustMapSubscriptions = (mapSubscriptions || []).find(({ connectionId: check }) => (check === connectionId))
-            ? [{
-                Update: {
-                    TableName: 'Connections',
-                    Key: marshall({
-                        ConnectionId: 'Map',
-                        DataCategory: 'Subscriptions'
-                    }),
-                    UpdateExpression: 'SET connections = :newConnections',
-                    ExpressionAttributeValues: marshall({
-                        ':newConnections': (mapSubscriptions || []).filter(({ connectionId: check }) => (check !== connectionId)),
-                        ':oldConnections': mapSubscriptions
-                    }),
-                    ConditionExpression: 'connections = :oldConnections'
-                }
-            }]
-            : []
-        await multiTableTransactWrite([{
-            Delete: {
-                TableName: 'Connections',
-                Key: marshall({
                     ConnectionId: `CONNECTION#${connectionId}`,
                     DataCategory: characterId
+                }
+            },
+            {
+                Update: {
+                    Key: {
+                        ConnectionId: characterId,
+                        DataCategory: 'Meta::Character'
+                    },
+                    updateKeys: ['connections'],
+                    updateReducer: (draft) => {
+                        draft.connections = draft.connections.filter((value) => (value !== connectionId))
+                    },
+                    deleteCondition: ({ connections = [] }) => (connections.length === 0),
+                    successCallback: ({ connections }) => {
+                        if (connections.length === 0) {
+                            messageBus.send({
+                                type: 'EphemeraUpdate',
+                                updates: [{
+                                    type: 'CharacterInPlay',
+                                    CharacterId: characterId,
+                                    Connected: false,
+                                    targets: ['GLOBAL', `!CONNECTION#${connectionId}`]
+                                }]
+                            })
+                            messageBus.send({
+                                type: 'PublishMessage',
+                                targets: [RoomId, `!${characterId}`],
+                                displayProtocol: 'WorldMessage',
+                                message: [{
+                                    tag: 'String',
+                                    value: `${Name || 'Someone'} has disconnected.`
+                                }]
+                            })
+                            messageBus.send({
+                                type: 'RoomUpdate',
+                                roomId: RoomId
+                            })
+                        }
+                    }
+                }
+            },
+            {
+                Update: {
+                    Key: {
+                        ConnectionId: 'Map',
+                        DataCategory: 'Subscriptions'
+                    },
+                    updateKeys: ['connections'],
+                    updateReducer: (draft) => {
+                        draft.connections = draft.connections.filter((value) => (value !== connectionId))
+                    }
+                }
+            }
+        ])
+        await ephemeraDB.optimisticUpdate({
+            Key: {
+                EphemeraId: RoomId,
+                DataCategory: 'Meta::Room'
+            },
+            updateKeys: ['activeCharacters'],
+            updateReducer: (draft) => {
+                const matchIndex = (draft.activeCharacters as { EphemeraId: string }[]).findIndex(({ EphemeraId }) => (EphemeraId === characterId))
+                if (matchIndex === -1) {
+                    return
+                }
+                const { ConnectionIds = [] } = draft.activeCharacters[matchIndex]
+                const newConnections = ConnectionIds.filter((checkConnectionId) => (connectionId !== checkConnectionId))
+                if (newConnections.length === 0) {
+                    draft.activeCharacters = draft.activeCharacters.filter(({ EphemeraId }) => (EphemeraId !== characterId))
+                }
+                else {
+                    draft.activeCharacters[matchIndex].ConnectionIds = newConnections
+                }
+            },
+            successCallback: ({ activeCharacters }) => {
+                internalCache.RoomCharacterList.set({
+                    key: RoomId,
+                    value: activeCharacters
                 })
             }
-        },
-        ...adjustMapSubscriptions,
-        ...adjustMeta,
-        {
-            Update: {
-                TableName: 'Ephemera',
-                Key: marshall({
-                    EphemeraId: RoomId,
-                    DataCategory: 'Meta::Room'
-                }),
-                UpdateExpression: 'SET activeCharacters = :newCharacters',
-                ExpressionAttributeValues: marshall({
-                    ':newCharacters': remainingCharacters,
-                    ':oldCharacters': currentActiveCharacters
-                }),
-                ConditionExpression: 'activeCharacters = :oldCharacters'
-            }
-        }])
-        if (remainingConnections.length === 0) {
-            messageBus.send({
-                type: 'EphemeraUpdate',
-                updates: [{
-                    type: 'CharacterInPlay',
-                    CharacterId: characterId,
-                    Connected: false,
-                    targets: ['GLOBAL', `!CONNECTION#${connectionId}`]
-                }]
-            })
-            messageBus.send({
-                type: 'PublishMessage',
-                targets: [RoomId, `!${characterId}`],
-                displayProtocol: 'WorldMessage',
-                message: [{
-                    tag: 'String',
-                    value: `${Name || 'Someone'} has disconnected.`
-                }]
-            })
-            messageBus.send({
-                type: 'RoomUpdate',
-                roomId: RoomId
-            })
-        }
-        internalCache.RoomCharacterList.set({
-            key: RoomId,
-            value: remainingCharacters
         })
 
     }, { retryErrors: ['TransactionCanceledException']})
