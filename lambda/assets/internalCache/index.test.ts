@@ -1,5 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { legacyConnectionDB as connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {

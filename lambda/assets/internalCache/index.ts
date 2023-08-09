@@ -1,4 +1,4 @@
-import { legacyConnectionDB as connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor, CacheBase } from './baseClasses'
 import CacheLibrary from './library'
 import { S3Client } from "@aws-sdk/client-s3"
@@ -30,8 +30,10 @@ class CacheConnectionData {
                     // read to guarantee (as much as possible) the result
                     //
                     const getArguments = {
-                        ConnectionId: `CONNECTION#${this.connectionId}`,
-                        DataCategory: 'Meta::Connection',
+                        Key: {
+                            ConnectionId: `CONNECTION#${this.connectionId}`,
+                            DataCategory: 'Meta::Connection'
+                        },
                         ProjectionFields: ['player'],
                     }
                     const { player = '' } = await connectionDB.getItem<{ player: string }>(getArguments) || {}
@@ -52,8 +54,10 @@ class CacheConnectionData {
             case 'librarySubscriptions':
                 if (typeof this.librarySubscriptions === 'undefined') {
                     const { ConnectionIds = [] } = (await connectionDB.getItem<{ ConnectionIds: string[] }>({
-                        ConnectionId: 'Library',
-                        DataCategory: 'Subscriptions',
+                        Key: {
+                            ConnectionId: 'Library',
+                            DataCategory: 'Subscriptions'
+                        },
                         ProjectionFields: ['ConnectionIds']
                     })) || {}
                     this.librarySubscriptions = ConnectionIds
