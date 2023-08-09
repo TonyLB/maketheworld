@@ -1,4 +1,4 @@
-import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { LibrarySubscribeMessage, LibraryUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
@@ -9,7 +9,7 @@ export const librarySubscribeMessage = async ({ payloads, messageBus }: { payloa
     let subscriptionSuccess = false
     await asyncSuppressExceptions(async () => {
         await exponentialBackoffWrapper(async () => {
-            await newConnectionDB.transactWrite([
+            await connectionDB.transactWrite([
                 {
                     Update: {
                         Key: {
@@ -58,7 +58,7 @@ export const libraryUnsubscribeMessage = async ({ payloads, messageBus }: { payl
     const connectionId = await internalCache.Connection.get('connectionId')
 
     await connectionDB.optimisticUpdate({
-        key: {
+        Key: {
             ConnectionId: 'Library',
             DataCategory: 'Subscriptions'
         },
