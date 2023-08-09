@@ -17,8 +17,6 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
         }
         const { RoomId, Name } = characterFetch || {}
 
-        let remainingConnections: string[] = []
-
         await newConnectionDB.transactWrite([
             {
                 Delete: {
@@ -35,16 +33,34 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                     updateKeys: ['connections'],
                     updateReducer: (draft) => {
                         draft.connections = draft.connections.filter((value) => (value !== connectionId))
-                        //
-                        // TODO: ISS2835: Make transactWrite support successCallback
-                        //
-
-                        //
-                        // TODO: Only update remainingConnections on successCallback
-                        //
-                        remainingConnections = [...draft.connections]
                     },
-                    deleteCondition: ({ connections = [] }) => (connections.length === 0)
+                    deleteCondition: ({ connections = [] }) => (connections.length === 0),
+                    successCallback: ({ connections }) => {
+                        if (connections.length === 0) {
+                            messageBus.send({
+                                type: 'EphemeraUpdate',
+                                updates: [{
+                                    type: 'CharacterInPlay',
+                                    CharacterId: characterId,
+                                    Connected: false,
+                                    targets: ['GLOBAL', `!CONNECTION#${connectionId}`]
+                                }]
+                            })
+                            messageBus.send({
+                                type: 'PublishMessage',
+                                targets: [RoomId, `!${characterId}`],
+                                displayProtocol: 'WorldMessage',
+                                message: [{
+                                    tag: 'String',
+                                    value: `${Name || 'Someone'} has disconnected.`
+                                }]
+                            })
+                            messageBus.send({
+                                type: 'RoomUpdate',
+                                roomId: RoomId
+                            })
+                        }
+                    }
                 }
             },
             {
@@ -60,7 +76,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                 }
             }
         ])
-        const { activeCharacters: remainingCharacters = [] } = (await ephemeraDB.optimisticUpdate({
+        await ephemeraDB.optimisticUpdate({
             Key: {
                 EphemeraId: RoomId,
                 DataCategory: 'Meta::Room'
@@ -79,44 +95,14 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                 else {
                     draft.activeCharacters[matchIndex].ConnectionIds = newConnections
                 }
+            },
+            successCallback: ({ activeCharacters }) => {
+                internalCache.RoomCharacterList.set({
+                    key: RoomId,
+                    value: activeCharacters
+                })
             }
-            //
-            // TODO: ISS2834: Make optimisticUpdate support successCallback
-            //
-
-            //
-            // TODO: Use successCallback to update RoomCharacterList cache
-            //
-        })) || {}
-        internalCache.RoomCharacterList.set({
-            key: RoomId,
-            value: remainingCharacters
         })
-
-        if (remainingConnections.length === 0) {
-            messageBus.send({
-                type: 'EphemeraUpdate',
-                updates: [{
-                    type: 'CharacterInPlay',
-                    CharacterId: characterId,
-                    Connected: false,
-                    targets: ['GLOBAL', `!CONNECTION#${connectionId}`]
-                }]
-            })
-            messageBus.send({
-                type: 'PublishMessage',
-                targets: [RoomId, `!${characterId}`],
-                displayProtocol: 'WorldMessage',
-                message: [{
-                    tag: 'String',
-                    value: `${Name || 'Someone'} has disconnected.`
-                }]
-            })
-            messageBus.send({
-                type: 'RoomUpdate',
-                roomId: RoomId
-            })
-        }
 
     }, { retryErrors: ['TransactionCanceledException']})
 }
