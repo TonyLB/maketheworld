@@ -1,12 +1,11 @@
 import { RegisterCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import messageBus from "../messageBus"
-import { exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB, ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
-import { marshall } from "@aws-sdk/util-dynamodb"
-import { RoomCharacterListItem } from "../internalCache/baseClasses"
-import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { isEphemeraCharacterId, isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { roomCharacterListReducer } from "../internalCache/baseClasses"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
@@ -28,122 +27,99 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     return
                 }
                 const { Name = '', HomeId, RoomId, fileURL, Color } = characterFetch
-                const activeCharacters = await internalCache.RoomCharacterList.get(RoomId)
                 const newConnections = unique(currentConnections || [], [connectionId]) as string[]
-                const metaCharacterUpdate = (typeof currentConnections !== 'undefined')
-                    ? {
-                        TableName: 'Connections',
-                        Key: marshall({
-                            ConnectionId: CharacterId,
-                            DataCategory: 'Meta::Character'
-                        }),
-                        ExpressionAttributeValues: marshall({
-                            ':oldConnections': currentConnections,
-                            ':newConnections': newConnections
-                        }),
-                        UpdateExpression: 'SET connections = :newConnections',
-                        ConditionExpression: 'connections = :oldConnections'
-                    }
-                    : {
-                        TableName: 'Connections',
-                        Key: marshall({
-                            ConnectionId: CharacterId,
-                            DataCategory: 'Meta::Character'
-                        }),
-                        ExpressionAttributeValues: marshall({
-                            ':newConnections': newConnections
-                        }),
-                        UpdateExpression: 'SET connections = :newConnections',
-                        ConditionExpression: 'attribute_not_exists(connections)'
-                    }
-                const characterRoomUpdate = RoomId
-                    ? []
-                    : [{
-                        Update: {
-                            TableName: 'Ephemera',
-                            Key: marshall({
-                                EphemeraId: CharacterId,
-                                DataCategory: 'Meta::Character',
-                            }),
-                            UpdateExpression: 'SET RoomId = :roomId',
-                            ExpressionAttributeValues: marshall({
-                                ':roomId': HomeId,
-                            }),
-                            ConditionExpression: 'attribute_not_exists(RoomId)'
-                        }
-                    }]
-                const newActiveCharacters: RoomCharacterListItem[] = [
-                    ...(activeCharacters || []).filter((character) => (character.EphemeraId !== CharacterId)),
+                await connectionDB.transactWrite([
                     {
-                        EphemeraId: CharacterId,
-                        Name,
-                        fileURL,
-                        Color,
-                        ConnectionIds: newConnections
-                    }
-                ]
-                const activeCharactersUpdate = {
-                    Update: {
-                        TableName: 'Ephemera',
-                        Key: marshall({
-                            EphemeraId: RoomId,
-                            DataCategory: 'Meta::Room'
-                        }),
-                        UpdateExpression: 'SET activeCharacters = :newActiveCharacters',
-                        ExpressionAttributeValues: marshall({
-                            ':oldActiveCharacters': activeCharacters,
-                            ':newActiveCharacters': newActiveCharacters
-                        }, { removeUndefinedValues: true}),
-                        ConditionExpression: 'activeCharacters = :oldActiveCharacters'
-                    }
-                }
-                await multiTableTransactWrite([{
-                    Update: metaCharacterUpdate
-                },
-                {
-                    Put: {
-                        TableName: 'Connections',
-                        Item: marshall({
+                        Put: {
                             ConnectionId: `CONNECTION#${connectionId}`,
                             DataCategory: CharacterId
-                        })
-                    }
-                },
-                ...characterRoomUpdate,
-                activeCharactersUpdate
+                        }
+                    },
+                    { Update: {
+                        Key: {
+                            ConnectionId: CharacterId,
+                            DataCategory: 'Meta::Character'
+                        },
+                        updateKeys: ['connections'],
+                        updateReducer: (draft) => {
+                            draft.connections = unique(draft.connections || [], [connectionId])
+                        },
+                        successCallback: ({ connections }) => {
+                            if (connections.length <= 1) {
+                                messageBus.send({
+                                    type: 'EphemeraUpdate',
+                                    updates: [{
+                                        type: 'CharacterInPlay',
+                                        CharacterId,
+                                        Name: Name || '',
+                                        Connected: true,
+                                        RoomId: RoomId || HomeId,
+                                        fileURL: fileURL || '',
+                                        Color: Color || 'grey',
+                                        targets: ['GLOBAL', `CONNECTION#${connectionId}`]
+                                    }]        
+                                })
+                                messageBus.send({
+                                    type: 'PublishMessage',
+                                    targets: [RoomId || HomeId, `!${CharacterId}`],
+                                    displayProtocol: 'WorldMessage',
+                                    message: [{
+                                        tag: 'String',
+                                        value: `${Name || 'Someone'} has connected.`
+                                    }]
+                                })
+                                messageBus.send({
+                                    type: 'CacheCharacterAssets',
+                                    characterId: CharacterId
+                                })
+                                messageBus.send({
+                                    type: 'RoomUpdate',
+                                    roomId: RoomId || HomeId
+                                })
+                            }        
+                        }
+                    }}
                 ])
-                if ((currentConnections || []).length === 0) {
-                    messageBus.send({
-                        type: 'EphemeraUpdate',
-                        updates: [{
-                            type: 'CharacterInPlay',
-                            CharacterId,
-                            Name: Name || '',
-                            Connected: true,
-                            RoomId: RoomId || HomeId,
-                            fileURL: fileURL || '',
-                            Color: Color || 'grey',
-                            targets: ['GLOBAL', `CONNECTION#${connectionId}`]
-                        }]        
-                    })
-                    messageBus.send({
-                        type: 'PublishMessage',
-                        targets: [RoomId || HomeId, `!${CharacterId}`],
-                        displayProtocol: 'WorldMessage',
-                        message: [{
-                            tag: 'String',
-                            value: `${Name || 'Someone'} has connected.`
-                        }]
-                    })
-                    messageBus.send({
-                        type: 'CacheCharacterAssets',
-                        characterId: CharacterId
-                    })
-                    messageBus.send({
-                        type: 'RoomUpdate',
-                        roomId: RoomId || HomeId
-                    })
-                }
+                await ephemeraDB.transactWrite([
+                    {
+                        Update: {
+                            Key: {
+                                EphemeraId: RoomId || HomeId,
+                                DataCategory: 'Meta::Room'
+                            },
+                            updateKeys: ['activeCharacters'],
+                            updateReducer: (draft) => {
+                                draft.activeCharacters = roomCharacterListReducer(
+                                    draft.activeCharacters,
+                                    {
+                                        EphemeraId: CharacterId,
+                                        Name,
+                                        fileURL,
+                                        Color,
+                                        ConnectionIds: newConnections
+                                    }
+                                )
+                            },
+                            successCallback: ({ EphemeraId, activeCharacters }) => {
+                                if (typeof EphemeraId !== 'undefined' && isEphemeraRoomId(EphemeraId)) {
+                                    internalCache.RoomCharacterList.set({ key: EphemeraId, value: activeCharacters })
+                                }
+                            }
+                        },
+                    },
+                    {
+                        Update: {
+                            Key: {
+                                EphemeraId: CharacterId,
+                                DataCategory: 'Meta::Character'
+                            },
+                            updateKeys: ['RoomId', 'HomeId'],
+                            updateReducer: (draft) => {
+                                draft.RoomId = draft.RoomId || draft.HomeId
+                            }
+                        }
+                    }
+                ])
                 messageBus.send({
                     type: 'Perception',
                     characterId: CharacterId,
@@ -151,8 +127,6 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     header: true
                 })
     
-                internalCache.RoomCharacterList.set({ key: RoomId || HomeId, value: newActiveCharacters })
-
             }, { retryErrors: ['TransactionCanceledException']})
     
         }

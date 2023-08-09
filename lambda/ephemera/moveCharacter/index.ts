@@ -1,9 +1,8 @@
 import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
-import { legacyConnectionDB as connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
-import { marshall } from "@aws-sdk/util-dynamodb"
-import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { roomCharacterListReducer } from "../internalCache/baseClasses"
 
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async (payload) => {
@@ -14,7 +13,6 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
         await exponentialBackoffWrapper(async () => {
 
-            internalCache.RoomCharacterList.invalidate(payload.roomId)
             const [characterMeta, connections] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
                 internalCache.CharacterConnections.get(payload.characterId)
@@ -22,7 +20,6 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             if (payload.roomId === characterMeta.RoomId) {
                 return
             }
-            internalCache.RoomCharacterList.invalidate(characterMeta.RoomId)
             await ephemeraDB.transactWrite([
                 {
                     PrimitiveUpdate: {
@@ -73,9 +70,8 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         },
                         updateKeys: ['activeCharacters'],
                         updateReducer: (draft) => {
-                            draft.activeCharacters = [
-                                ...draft.activeCharacters
-                                    .filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId)),
+                            draft.activeCharacters = roomCharacterListReducer(
+                                draft.activeCharacters,
                                 {
                                     EphemeraId: characterMeta.EphemeraId,
                                     Name: characterMeta.Name,
@@ -83,7 +79,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     Color: characterMeta.Color,
                                     ConnectionIds: connections || []
                                 }
-                            ]
+                            )
                         },
                         successCallback: ({ activeCharacters }) => {
                             internalCache.RoomCharacterList.set({ key: payload.roomId, value: activeCharacters })

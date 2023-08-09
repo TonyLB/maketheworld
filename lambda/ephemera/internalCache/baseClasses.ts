@@ -52,6 +52,12 @@ export type RoomCharacterListItem = {
     Name: string;
 }
 
+export const roomCharacterListReducer = (previous: RoomCharacterListItem[], entry: RoomCharacterListItem): RoomCharacterListItem[] => ([
+    ...previous
+        .filter(({ EphemeraId }) => (EphemeraId !== entry.EphemeraId)),
+    entry
+])
+
 export type DependencyEdge = {
     EphemeraId: string;
     key?: string;
