@@ -1,7 +1,7 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
     ephemeraDB,
-    legacyConnectionDB as connectionDB,
+    connectionDB,
     multiTableTransactWrite
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
@@ -20,6 +20,14 @@ const internalCacheMock = jest.mocked(internalCache, true)
 import registerCharacter from '.'
 
 describe("registerCharacter", () => {
+    const transactWriteMockImplementation = (props: Record<string, any>) => async (items) => {
+        items.forEach((item) => {
+            if ('Update' in item && item.Update.successCallback) {
+                item.Update.successCallback(props)
+            }
+        })
+    }
+
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
@@ -37,17 +45,69 @@ describe("registerCharacter", () => {
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
         internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([{
-                EphemeraId: 'CHARACTER#BCD',
-                Name: 'TestToo',
-                ConnectionIds: ['QRS']
-            }])
+            EphemeraId: 'CHARACTER#BCD',
+            Name: 'TestToo',
+            ConnectionIds: ['QRS']
+        }])
         internalCacheMock.CharacterConnections.get.mockResolvedValue([])
+        connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['TestConnection']}))
+        ephemeraDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({
+            EphemeraId: 'ROOM#TestABC',
+            activeCharacters: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    ConnectionIds: ['QRS']
+                },
+                {
+                    EphemeraId: 'CHARACTER#ABC',
+                    Name: 'Tess',
+                    Color: 'purple',
+                    ConnectionIds: ['TestConnection']
+                }
+            ]
+        }))
         await registerCharacter({
             payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }],
             messageBus
         })
-        expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
-        expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
+        expect(connectionDBMock.transactWrite).toHaveBeenCalledWith([
+            { Put: { ConnectionId: 'CONNECTION#TestConnection', DataCategory: 'CHARACTER#ABC' } },
+            {
+                Update: {
+                    Key: {
+                        ConnectionId: 'CHARACTER#ABC',
+                        DataCategory: 'Meta::Character'
+                    },
+                    updateKeys: ['connections'],
+                    updateReducer: expect.any(Function),
+                    successCallback: expect.any(Function)
+                }
+            }
+        ])
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([
+            {
+                Update: {
+                    Key: {
+                        EphemeraId: 'ROOM#TestABC',
+                        DataCategory: 'Meta::Room'
+                    },
+                    updateKeys: ['activeCharacters'],
+                    updateReducer: expect.any(Function),
+                    successCallback: expect.any(Function)
+                }
+            },
+            {
+                Update: {
+                    Key: {
+                        EphemeraId: 'CHARACTER#ABC',
+                        DataCategory: 'Meta::Character'
+                    },
+                    updateKeys: ['RoomId', 'HomeId'],
+                    updateReducer: expect.any(Function)
+                }
+            }
+        ])
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
@@ -116,9 +176,56 @@ describe("registerCharacter", () => {
                 ConnectionIds: ['previous']
             }])
         internalCacheMock.CharacterConnections.get.mockResolvedValue(['previous'])
+        connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['previous', 'TestConnection']}))
+        ephemeraDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({
+            EphemeraId: 'ROOM#TestABC',
+            activeCharacters: [
+                {
+                    EphemeraId: 'CHARACTER#ABC',
+                    Name: 'Tess',
+                    Color: 'purple',
+                    ConnectionIds: ['previous', 'TestConnection']
+                }
+            ]
+        }))
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }], messageBus })
-        expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
-        expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
+        expect(connectionDBMock.transactWrite).toHaveBeenCalledWith([
+            { Put: { ConnectionId: 'CONNECTION#TestConnection', DataCategory: 'CHARACTER#ABC' } },
+            {
+                Update: {
+                    Key: {
+                        ConnectionId: 'CHARACTER#ABC',
+                        DataCategory: 'Meta::Character'
+                    },
+                    updateKeys: ['connections'],
+                    updateReducer: expect.any(Function),
+                    successCallback: expect.any(Function)
+                }
+            }
+        ])
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([
+            {
+                Update: {
+                    Key: {
+                        EphemeraId: 'ROOM#TestABC',
+                        DataCategory: 'Meta::Room'
+                    },
+                    updateKeys: ['activeCharacters'],
+                    updateReducer: expect.any(Function),
+                    successCallback: expect.any(Function)
+                }
+            },
+            {
+                Update: {
+                    Key: {
+                        EphemeraId: 'CHARACTER#ABC',
+                        DataCategory: 'Meta::Character'
+                    },
+                    updateKeys: ['RoomId', 'HomeId'],
+                    updateReducer: expect.any(Function)
+                }
+            }
+        ])
         expect(messageBusMock.send).toHaveBeenCalledTimes(2)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',

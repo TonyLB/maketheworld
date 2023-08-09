@@ -2,21 +2,7 @@ import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
-import { EphemeraCharacterId, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
-
-export type ActiveCharacterListEntry = {
-    EphemeraId: EphemeraCharacterId;
-    Name: string;
-    fileURL?: string;
-    Color?: LegalCharacterColor;
-    ConnectionIds: string[];
-}
-
-export const activeListReducer = (previous: ActiveCharacterListEntry[], entry: ActiveCharacterListEntry): ActiveCharacterListEntry[] => ([
-    ...previous
-        .filter(({ EphemeraId }) => (EphemeraId !== entry.EphemeraId)),
-    entry
-])
+import { roomCharacterListReducer } from "../internalCache/baseClasses"
 
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async (payload) => {
@@ -84,7 +70,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         },
                         updateKeys: ['activeCharacters'],
                         updateReducer: (draft) => {
-                            draft.activeCharacters = activeListReducer(
+                            draft.activeCharacters = roomCharacterListReducer(
                                 draft.activeCharacters,
                                 {
                                     EphemeraId: characterMeta.EphemeraId,
