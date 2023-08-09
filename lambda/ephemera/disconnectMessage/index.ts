@@ -1,7 +1,6 @@
 import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
-import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper, multiTableTransactWrite, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { marshall } from "@aws-sdk/util-dynamodb"
+import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"

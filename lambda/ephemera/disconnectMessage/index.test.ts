@@ -2,8 +2,7 @@ jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
     ephemeraDB,
     legacyConnectionDB as connectionDB,
-    connectionDB as newConnectionDB,
-    multiTableTransactWrite
+    connectionDB as newConnectionDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 jest.mock('../messageBus')
@@ -15,7 +14,6 @@ import internalCache from '../internalCache'
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const newConnectionDBMock = newConnectionDB as jest.Mocked<typeof newConnectionDB>
-const multiTableTransactWriteMock = multiTableTransactWrite as jest.Mock
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const internalCacheMock = jest.mocked(internalCache, true)
 
