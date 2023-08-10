@@ -1,4 +1,4 @@
-import { legacyConnectionDB as connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
 export class CachePlayerConnectionsData {
@@ -9,8 +9,10 @@ export class CachePlayerConnectionsData {
     async get(player: string): Promise<string[] | undefined> {
         if (!(this.ConnectionsByPlayer)) {
             this.ConnectionsByPlayer = connectionDB.getItem<{ connections: Record<string, string> }>({
-                    ConnectionId: 'Global',
-                    DataCategory: 'Connections',
+                    Key: {
+                        ConnectionId: 'Global',
+                        DataCategory: 'Connections'
+                    },
                     ProjectionFields: ['connections']
                 }).then((value) => (value?.connections))
                 .then((connections) => (
