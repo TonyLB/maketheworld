@@ -1,5 +1,5 @@
 import { MapSubscriptionMessage, MapUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
-import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
@@ -15,7 +15,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
         let subscriptionSuccess = false
         await exponentialBackoffWrapper(async () => {
 
-            const checkCharactersFetch = await newConnectionDB.getItems({
+            const checkCharactersFetch = await connectionDB.getItems({
                 Keys: payloads.map(({ characterId }) => ({
                     ConnectionId: `CONNECTION#${connectionId}`,
                     DataCategory: characterId
@@ -28,7 +28,7 @@ export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payload
             const validCharacters = payloads
                 .map(({ characterId }) => (characterId))
                 .filter((characterId) => (checkCharacters.includes(characterId)))
-            await newConnectionDB.transactWrite([
+            await connectionDB.transactWrite([
                 {
                     Update: {
                         Key: {
@@ -140,7 +140,7 @@ export const mapUnsubscribeMessage = async ({ payloads, messageBus }: { payloads
     const RequestId = await internalCache.Global.get('RequestId')
 
     await connectionDB.optimisticUpdate({
-        key: {
+        Key: {
             ConnectionId: 'Map',
             DataCategory: 'Subscriptions'
         },
