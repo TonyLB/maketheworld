@@ -12,9 +12,6 @@ export const assetDB = dbMock()
 export const legacyConnectionDB = dbMock()
 export const connectionDB = dbMock()
 
-export const batchWriteDispatcher = jest.fn()
-export const mergeIntoDataRange = jest.fn()
-
 export const publishMessage = jest.fn()
 export const messageDeltaQuery = jest.fn()
 
