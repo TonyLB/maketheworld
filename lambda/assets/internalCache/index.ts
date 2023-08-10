@@ -7,6 +7,7 @@ import CacheConnectionsByPlayer from './connectionsByPlayer'
 import JSONFile from './jsonFile'
 import Meta from './meta'
 import CachePlayerSettings from './playerSettings'
+import CacheGraph from './graph'
 
 type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player' | 's3Client' | 'librarySubscriptions'
 class CacheConnectionData {
@@ -97,6 +98,6 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
     }
 }
 
-const InternalCache = JSONFile(Meta(CacheConnectionsByPlayer(CachePlayerSettings(CachePlayerLibrary(CacheLibrary(CacheConnection(CacheBase)))))))
+const InternalCache = JSONFile(Meta(CacheConnectionsByPlayer(CachePlayerSettings(CachePlayerLibrary(CacheLibrary(CacheConnection(CacheGraph(CacheBase))))))))
 export const internalCache = new InternalCache()
 export default internalCache
