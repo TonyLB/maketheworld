@@ -1,7 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
-import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 jest.mock('../internalCache', () => ({
     PlayerLibrary: {
