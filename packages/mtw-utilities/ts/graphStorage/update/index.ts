@@ -1,4 +1,5 @@
-import { GraphNodeCache, GraphNodeCacheDirectEdge } from '../cache/graphNode'
+import { GraphNodeCacheDirectEdge } from '../cache/graphNode'
+import GraphOfUpdates, { GraphOfUpdatesEdge, GraphOfUpdatesNode } from './graphOfUpdates'
 import { DependencyGraphAction, isDependencyGraphPut, isDependencyGraphDelete } from "../cache/baseClasses"
 import GraphCache from "../cache"
 import { Graph } from "../utils/graph"
@@ -23,24 +24,7 @@ export type GraphStorageDBH = InstanceType<ReturnType<ReturnType<typeof withGetO
     InstanceType<ReturnType<ReturnType<typeof withUpdate<'PrimaryKey'>>>> &
     InstanceType<ReturnType<ReturnType<typeof withTransaction<'PrimaryKey'>>>>
 
-type GraphOfUpdatesNode = Partial<Omit<GraphNodeCache<string>, 'PrimaryKey'>> & {
-    key: string;
-    needsForwardUpdate?: boolean;
-    needsForwardInvalidate?: boolean;
-    forwardInvalidatedAt?: number;
-    needsBackUpdate?: boolean;
-    needsBackInvalidate?: boolean;
-    backInvalidatedAt?: number;
-}
-
-type GraphOfUpdatesEdge = {
-    context: string;
-    action: 'put' | 'delete';
-}
-
-class GraphOfUpdates extends Graph<string, GraphOfUpdatesNode, GraphOfUpdatesEdge> {}
-
-const updateGraphStorageBatch = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH; threshold?: number }) => async (graph: GraphOfUpdates): Promise<void> => {
+export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH; threshold?: number }) => async (graph: GraphOfUpdates): Promise<void> => {
     const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
     fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
 
