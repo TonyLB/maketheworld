@@ -1,8 +1,7 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
     ephemeraDB,
-    legacyConnectionDB as connectionDB,
-    connectionDB as newConnectionDB
+    connectionDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 jest.mock('../messageBus')
@@ -13,7 +12,6 @@ import internalCache from '../internalCache'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
-const newConnectionDBMock = newConnectionDB as jest.Mocked<typeof newConnectionDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const internalCacheMock = jest.mocked(internalCache, true)
 
@@ -48,8 +46,8 @@ describe("disconnectMessage", () => {
                 }
             ])
         internalCacheMock.CharacterConnections.get.mockResolvedValue(['XYZ'])
-        connectionDBMock.query.mockResolvedValueOnce([{ DataCategory: 'CHARACTER#ABC' }])
-        newConnectionDBMock.transactWrite.mockImplementation(async (items) => {
+        connectionDBMock.query.mockResolvedValueOnce([{ ConnectionId: 'CONNECTION#XYZ', DataCategory: 'CHARACTER#ABC' }])
+        connectionDBMock.transactWrite.mockImplementation(async (items) => {
             items.forEach((item) => {
                 if ('Update' in item && item.Update.successCallback) {
                     item.Update.successCallback({ connections: [] })
@@ -72,8 +70,8 @@ describe("disconnectMessage", () => {
             payloads: [{ type: 'Disconnect', connectionId: 'XYZ' }],
             messageBus
         })
-        expect(newConnectionDBMock.transactWrite).toHaveBeenCalledTimes(1)
-        expect(newConnectionDBMock.transactWrite.mock.calls[0][0]).toEqual([
+        expect(connectionDBMock.transactWrite).toHaveBeenCalledTimes(1)
+        expect(connectionDBMock.transactWrite.mock.calls[0][0]).toEqual([
             { Delete: { ConnectionId: 'CONNECTION#XYZ', DataCategory: 'CHARACTER#ABC' } },
             { Update: {
                 Key: { ConnectionId: 'CHARACTER#ABC', DataCategory: 'Meta::Character' },
@@ -144,9 +142,8 @@ describe("disconnectMessage", () => {
                 }
             ])
         internalCacheMock.CharacterConnections.get.mockResolvedValue(['QRS', 'XYZ'])
-        connectionDBMock.query.mockResolvedValueOnce([{ DataCategory: 'CHARACTER#ABC' }])
-        connectionDBMock.query.mockResolvedValueOnce([{ DataCategory: 'CHARACTER#ABC' }])
-        newConnectionDBMock.transactWrite.mockImplementation(async (items) => {
+        connectionDBMock.query.mockResolvedValue([{ ConnectionId: 'CONNECTION#XYZ', DataCategory: 'CHARACTER#ABC' }])
+        connectionDBMock.transactWrite.mockImplementation(async (items) => {
             items.forEach((item) => {
                 if ('Update' in item && item.Update.successCallback) {
                     item.Update.successCallback({ connections: ['QRS'] })
@@ -174,8 +171,8 @@ describe("disconnectMessage", () => {
             payloads: [{ type: 'Disconnect', connectionId: 'XYZ' }],
             messageBus
         })
-        expect(newConnectionDBMock.transactWrite).toHaveBeenCalledTimes(1)
-        expect(newConnectionDBMock.transactWrite.mock.calls[0][0]).toEqual([
+        expect(connectionDBMock.transactWrite).toHaveBeenCalledTimes(1)
+        expect(connectionDBMock.transactWrite.mock.calls[0][0]).toEqual([
             { Delete: { ConnectionId: 'CONNECTION#XYZ', DataCategory: 'CHARACTER#ABC' } },
             { Update: {
                 Key: { ConnectionId: 'CHARACTER#ABC', DataCategory: 'Meta::Character' },
