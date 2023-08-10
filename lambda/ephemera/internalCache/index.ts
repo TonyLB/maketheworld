@@ -1,6 +1,6 @@
 import { CacheConstructor, CacheBase } from './baseClasses'
 
-import { legacyConnectionDB as connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import CacheRoomCharacterLists from './roomCharacterLists';
 import CacheCharacterMeta from './characterMeta';
@@ -48,8 +48,10 @@ export class CacheGlobalData {
                     let exponentialBackoff = 50
                     while(attempts < 5) {
                         const { player = '' } = await connectionDB.getItem<{ player: string }>({
-                            ConnectionId: `CONNECTION#${this.ConnectionId}`,
-                            DataCategory: 'Meta::Connection',
+                            Key: {
+                                ConnectionId: `CONNECTION#${this.ConnectionId}`,
+                                DataCategory: 'Meta::Connection'
+                            },
                             ProjectionFields: ['player']
                         }) || {}
                         if (player) {
@@ -78,8 +80,10 @@ export class CacheGlobalData {
             case 'connections':
                 if (typeof this.connections === 'undefined') {
                     const { connections = {} } = (await connectionDB.getItem<{ connections: Record<string, string> }>({
-                        ConnectionId: 'Global',
-                        DataCategory: 'Connections',
+                        Key: {
+                            ConnectionId: 'Global',
+                            DataCategory: 'Connections'    
+                        },
                         ProjectionFields: ['connections']
                     })) || {}
                     this.connections = Object.keys(connections)
@@ -88,8 +92,10 @@ export class CacheGlobalData {
             case 'mapSubscriptions':
                 if (typeof this.mapSubscriptions === 'undefined') {
                     const { connections = [] } = (await connectionDB.getItem<{ connections: MapSubscriptionConnection[] }>({
-                        ConnectionId: 'Map',
-                        DataCategory: 'Subscriptions',
+                        Key: {
+                            ConnectionId: 'Map',
+                            DataCategory: 'Subscriptions'
+                        },
                         ProjectionFields: ['connections']
                     })) || {}
                     this.mapSubscriptions = connections
