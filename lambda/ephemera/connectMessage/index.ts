@@ -1,5 +1,5 @@
 import { ConnectMessage, MessageBus } from "../messageBus/baseClasses"
-import { legacyConnectionDB as connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
 import { pushCharacterEphemera } from "../cacheAsset";
@@ -47,10 +47,6 @@ export const connectMessage = async ({ payloads, messageBus }: { payloads: Conne
             const { guestId, guestName } = lookupByUserName[payload.userName]
             return [
                 ...previous,
-                //
-                // TODO: Check for the existence of needed guest character, and
-                // synthesize into the ephemera table if absent
-                //
                 confirmGuestCharacter({ characterId: guestId, name: guestName }),
                 connectionDB.putItem({
                     ConnectionId: `CONNECTION#${connectionId}`,
@@ -60,7 +56,7 @@ export const connectMessage = async ({ payloads, messageBus }: { payloads: Conne
             ]
         }, [
             connectionDB.optimisticUpdate({
-                key: {
+                Key: {
                     ConnectionId: 'Global',
                     DataCategory: 'Connections'    
                 },
