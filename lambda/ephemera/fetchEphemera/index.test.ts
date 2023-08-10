@@ -1,14 +1,13 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { legacyConnectionDB as connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
-import { fetchEphemeraForCharacter, fetchPlayerEphemera } from '.'
+import { fetchPlayerEphemera } from '.'
 
-const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const internalCacheMock = jest.mocked(internalCache, true)
 
@@ -20,7 +19,8 @@ describe('fetchPlayerEphemera', () => {
 
     it('should serialize fetched Character records', async () => {
         connectionDBMock.query.mockResolvedValue([{
-            ConnectionId: `CHARACTER#ABC`
+            ConnectionId: `CHARACTER#ABC`,
+            DataCategory: 'Meta::Character'
         }])
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#ABC',

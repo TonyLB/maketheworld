@@ -1,8 +1,8 @@
-import { legacyConnectionDB as connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
-import { EphemeraMapId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { EphemeraClientMessageEphemeraUpdateItem } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 const serialize = ({
@@ -25,9 +25,11 @@ const serialize = ({
 
 export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: FetchPlayerEphemeraMessage[], messageBus: MessageBus }): Promise<void> => {
     if (payloads.length > 0) {
-        const connectedCharacters = await connectionDB.query<{ ConnectionId: string }[]>({
+        const connectedCharacters = await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
             IndexName: 'DataCategoryIndex',
-            DataCategory: 'Meta::Character',
+            Key: {
+                DataCategory: 'Meta::Character'
+            },
             ProjectionFields: ['ConnectionId']
         })
         const [Items, connectionId] = await Promise.all([
