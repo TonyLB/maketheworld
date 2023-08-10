@@ -1,6 +1,6 @@
 import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../messageBus/baseClasses"
 
-import { legacyConnectionDB as connectionDB, connectionDB as newConnectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
@@ -16,7 +16,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
         }
         const { RoomId, Name } = characterFetch || {}
 
-        await newConnectionDB.transactWrite([
+        await connectionDB.transactWrite([
             {
                 Delete: {
                     ConnectionId: `CONNECTION#${connectionId}`,
@@ -134,8 +134,8 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
 
     await Promise.all(payloads.map(async (payload) => {
         const ConnectionId = `CONNECTION#${payload.connectionId}`
-        const characterQuery = await connectionDB.query<{ DataCategory: EphemeraCharacterId }[]>({
-            ConnectionId,
+        const characterQuery = await connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
+            Key: { ConnectionId },
             ExpressionAttributeValues: {
                 ':dcPrefix': 'CHARACTER#'
             },
@@ -149,7 +149,7 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
                 DataCategory: 'Meta::Connection'
             }),
             connectionDB.optimisticUpdate({
-                key: {
+                Key: {
                     ConnectionId: 'Global',
                     DataCategory: 'Connections'
                 },
@@ -159,7 +159,7 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
                 }
             }),
             connectionDB.optimisticUpdate({
-                key: {
+                Key: {
                     ConnectionId: 'Library',
                     DataCategory: 'Subscriptions'
                 },
