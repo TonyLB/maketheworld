@@ -18,7 +18,8 @@ import {
     isNormalBookmark,
     isNormalMessage,
     isNormalMoment,
-    isNormalKnowledge
+    isNormalKnowledge,
+    isNormalImport
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
@@ -27,7 +28,6 @@ import {
     EphemeraExit,
     EphemeraItem,
     EphemeraItemDependency,
-    EphemeraMoment,
     EphemeraPushArgs
 } from './baseClasses'
 import { conditionsFromContext } from './utilities'
@@ -43,6 +43,8 @@ import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
 import { ebClient } from '../clients.js'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
+import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
+import { graphStorageDB } from '../dependentMessages/graphCache'
 
 //
 // TODO:
@@ -433,6 +435,13 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             stateSynthesizer.sendDependencyMessages()
 
             await Promise.all([
+                setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(
+                    AssetKey(assetItem.key),
+                    Object.values(assetWorkspace.normal || {})
+                        .filter(isNormalImport)
+                        .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+                    'back'
+                ),    
                 pushEphemera({
                     EphemeraId: AssetKey(assetItem.key),
                     scopeMap: assetWorkspace.namespaceIdToDB

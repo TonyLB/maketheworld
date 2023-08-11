@@ -4,6 +4,8 @@ jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
     ephemeraDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/setEdges')
+import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
 
 jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')
 import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
@@ -71,9 +73,11 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const evaluateCodeMock = evaluateCode as jest.Mock
+const setEdgesMock = setEdges as jest.Mock
 
 describe('cacheAsset', () => {
     const messageBusMock = { send: jest.fn() } as unknown as MessageBus
+    const setEdgesInternalMock = jest.fn()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
@@ -105,6 +109,7 @@ describe('cacheAsset', () => {
             Test: 'ASSET#Test'
         }
         internalCacheMock.CharacterConnections.get.mockResolvedValue([])
+        setEdgesMock.mockReturnValue(setEdgesInternalMock)
     })
 
     it('should skip processing when check option and already present', async () => {
@@ -364,6 +369,11 @@ describe('cacheAsset', () => {
                 testKnowledge: 'KNOWLEDGE#GHI'
             }
         })
+        expect(setEdgesInternalMock).toHaveBeenCalledWith(
+            'ASSET#test',
+            [],
+            'back'
+        )
     })
 
     it('should correctly extract query-ready exits from room contents', async () => {
@@ -514,5 +524,84 @@ describe('cacheAsset', () => {
                 open: 'VARIABLE#QRS'
             }
         })
+    })
+
+    it('should set graph edges when asset has imports', async () => {
+        const topLevelAppearance: BaseAppearance = {
+            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
+            contents: []
+        }
+
+        const mockEvaluate = jest.fn().mockReturnValue(true)
+        evaluateCodeMock.mockReturnValue(mockEvaluate)
+
+        mockNamespaceMap = {
+            test: 'ASSET#test',
+            ABC: 'ROOM#DEF',
+        }
+        mockTestAsset = {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    contents: [{
+                        key: 'Import-0',
+                        tag: 'Import',
+                        index: 0
+                    },
+                    {
+                        key: 'ABC',
+                        tag: 'Room',
+                        index: 1
+                    }]
+                }]
+            },
+            'Import-0': {
+                tag: 'Import',
+                key: 'Import-0',
+                appearances: [{
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
+                    contents: [
+                        { key: 'ABC', tag: 'Room', index: 0 }
+                    ]
+                }],
+                from: 'base',
+                mapping: {}
+            },
+            ABC: {
+                key: 'ABC',
+                tag: 'Room',
+                appearances: [{
+                    contextStack: [
+                        { key: 'test', tag: 'Asset', index: 0 },
+                        { key: 'Import-0', tag: 'Import', index: 0 }
+                    ],
+                    contents: [],
+                    name: [],
+                    render: []
+                },
+                {
+                    ...topLevelAppearance,
+                    name: [{ tag: 'String', value: 'Vortex' }],
+                    render: []
+                }] as ComponentAppearance[]
+            },
+        }
+
+        await cacheAssetMessage({
+            payloads: [{
+                type: 'CacheAsset',
+                address: { fileName: 'Test', zone: 'Library' },
+                options: {}
+            }],
+            messageBus: messageBusMock
+        })
+        expect(setEdgesInternalMock).toHaveBeenCalledWith(
+            'ASSET#test',
+            [{ target: 'ASSET#base', context: '' }],
+            'back'
+        )
     })
 })
