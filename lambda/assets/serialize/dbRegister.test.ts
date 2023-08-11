@@ -3,16 +3,22 @@ import { jest, describe, it, expect } from '@jest/globals'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
+jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/setEdges')
+import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
+
 jest.mock('../internalCache', () => ({
     PlayerLibrary: {
-        set: jest.fn().mockResolvedValue({})
+        set: jest.fn()
     },
     Library: {
-        set: jest.fn().mockResolvedValue({})
+        set: jest.fn()
     }
 }))
 
 import { dbRegister } from './dbRegister'
+
+const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
+const setEdgesMock = setEdges as jest.Mock
 
 describe('dbRegister', () => {
     beforeEach(() => {
@@ -55,8 +61,8 @@ describe('dbRegister', () => {
                     key: 'TESSIcon'
                 }
             }
-        })
-        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
+        } as any)
+        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save meta, rooms for Asset type', async () => {
@@ -151,9 +157,9 @@ describe('dbRegister', () => {
                     }]
                 }
             }
-        })
-        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
+        } as any)
+        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDBMock.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save meta, rooms for Story type', async () => {
@@ -221,9 +227,9 @@ describe('dbRegister', () => {
                     }]
                 }
             }
-        })
-        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
+        } as any)
+        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDBMock.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save meta only for instanced Story type', async () => {
@@ -292,9 +298,9 @@ describe('dbRegister', () => {
                     }]
                 }
             }
-        })
-        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
+        } as any)
+        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDBMock.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     //
@@ -390,9 +396,9 @@ describe('dbRegister', () => {
                     }]
                 }
             }
-        })
-        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
+        } as any)
+        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDBMock.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save exits in default appearance for Rooms', async () => {
@@ -456,7 +462,6 @@ describe('dbRegister', () => {
                     },
                     {
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }],
-                        contents: [],
                         render: ['Should not render'],
                         name: [{ tag: 'String', value: 'Should not' }],
                         contents: [{
@@ -510,9 +515,9 @@ describe('dbRegister', () => {
                     }]
                 }
             }
-        })
-        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
+        } as any)
+        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDBMock.merge.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save primitive elements in global keys', async () => {
@@ -551,8 +556,9 @@ describe('dbRegister', () => {
                     }]
                 }
             }
-        })
-        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(assetDB.merge.mock.calls[0][0]).toMatchSnapshot()
+        } as any)
+        expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
+        expect(assetDBMock.merge.mock.calls[0][0]).toMatchSnapshot()
     })
+
 })
