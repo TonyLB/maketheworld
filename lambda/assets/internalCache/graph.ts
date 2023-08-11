@@ -8,7 +8,7 @@ import { DBHandlerBase } from "@tonylb/mtw-utilities/dist/dynamoDB/baseClasses"
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import withPrimitives from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/primitives"
 
-const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
+export const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
     tableName: assetDB._tableName,
     incomingKeyLabel: 'PrimaryKey',

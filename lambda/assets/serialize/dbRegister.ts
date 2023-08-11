@@ -2,10 +2,13 @@ import { v4 as uuidv4 } from 'uuid'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
-import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
+import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { EphemeraCharacterId, EphemeraError } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
+import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
+import { graphDBHandler } from '../internalCache/graph'
+import { graphStorageDB } from './graphCache'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -134,6 +137,13 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 })
                 : Promise.resolve({})
         await Promise.all([
+            setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(
+                AssetKey(asset.key),
+                Object.values(assets)
+                    .filter(isNormalImport)
+                    .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+                'back'
+            ),
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
                 DataCategory: `Meta::Asset`,

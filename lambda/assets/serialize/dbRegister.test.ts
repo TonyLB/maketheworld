@@ -21,9 +21,11 @@ const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
 const setEdgesMock = setEdges as jest.Mock
 
 describe('dbRegister', () => {
+    const setEdgesMockInternal = jest.fn()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
+        setEdgesMock.mockReturnValue(setEdgesMockInternal)
     })
     it('should put a single element for a Character file', async () => {
         await dbRegister({
@@ -559,6 +561,77 @@ describe('dbRegister', () => {
         } as any)
         expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(assetDBMock.merge.mock.calls[0][0]).toMatchSnapshot()
+    })
+
+    it('should save asset graph edges when asset has imports', async () => {
+        await dbRegister({
+            address: {
+                fileName: 'test',
+                zone: 'Library'
+            },
+            status: {
+                json: 'Clean'
+            },
+            namespaceIdToDB: {},
+            normal: {
+                test: {
+                    tag: 'Asset',
+                    key: 'test',
+                    name: 'test',
+                    zone: 'Library',
+                    appearances: [{
+                        contextStack: [],
+                        contents: [{
+                            tag: 'Import',
+                            key: 'Import-0',
+                            index: 0
+                        },
+                        {
+                            tag: 'Room',
+                            key: 'VORTEX',
+                            index: 1
+                        }]
+                    }]
+                },
+                'Import-0': {
+                    tag: 'Import',
+                    key: 'Import-0',
+                    appearances: [{
+                        key: 'VORTEX',
+                        tag: 'Room',
+                        index: 0
+                    }],
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
+                    from: 'primitives',
+                    mapping: { VORTEXT: { key: 'VORTEX', type: 'Room' } }
+                },
+                VORTEX: {
+                    tag: 'Room',
+                    key: 'VORTEX',
+                    appearances: [{
+                        contextStack: [
+                            { key: 'test', tag: 'Asset', index: 0 },
+                            { key: 'Import-0', tag: 'Import', index: 0 }
+                        ],
+                        contents: [],
+                        render: [],
+                        name: []
+                    },
+                    {
+                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
+                        contents: [],
+                        render: [],
+                        name: []
+                    }]
+                }
+            }
+        } as any)
+        expect(setEdgesMockInternal).toHaveBeenCalledTimes(1)
+        expect(setEdgesMockInternal).toHaveBeenCalledWith(
+            'ASSET#test',
+            [{ target: 'ASSET#primitives', context: '' }],
+            'back'
+        )
     })
 
 })
