@@ -9,6 +9,7 @@ import messageBus from '../messageBus'
 import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
 import { graphDBHandler } from '../internalCache/graph'
 import { graphStorageDB } from './graphCache'
+import { CharacterKey } from '@tonylb/mtw-utilities/dist/types'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -238,6 +239,13 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 })
                 : Promise.resolve({})
         await Promise.all([
+            setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(
+                CharacterKey(character.key),
+                Object.values(assets)
+                    .filter(isNormalImport)
+                    .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+                'back'
+            ),
             assetDB.putItem({
                 AssetId: assetWorkspace.namespaceIdToDB[character.key],
                 DataCategory: `Meta::Character`,

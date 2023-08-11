@@ -61,10 +61,25 @@ describe('dbRegister', () => {
                 TESSIcon: {
                     tag: 'Image',
                     key: 'TESSIcon'
+                },
+                'Import-0': {
+                    tag: 'Import',
+                    key: 'Import-0',
+                    appearances: [{
+                        contextStack: [{ key: 'TESS', tag: 'Character', index: 0 }],
+                        contents: []
+                    }],
+                    from: 'primitives',
                 }
             }
         } as any)
         expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
+        expect(setEdgesMockInternal).toHaveBeenCalledTimes(1)
+        expect(setEdgesMockInternal).toHaveBeenCalledWith(
+            'CHARACTER#TESS',
+            [{ target: 'ASSET#primitives', context: '' }],
+            'back'
+        )
     })
 
     it('should save meta, rooms for Asset type', async () => {
@@ -597,13 +612,15 @@ describe('dbRegister', () => {
                     tag: 'Import',
                     key: 'Import-0',
                     appearances: [{
-                        key: 'VORTEX',
-                        tag: 'Room',
-                        index: 0
+                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
+                        contents: [{
+                            key: 'VORTEX',
+                            tag: 'Room',
+                            index: 0
+                        }]
                     }],
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
                     from: 'primitives',
-                    mapping: { VORTEXT: { key: 'VORTEX', type: 'Room' } }
+                    mapping: { VORTEX: { key: 'VORTEX', type: 'Room' } }
                 },
                 VORTEX: {
                     tag: 'Room',
