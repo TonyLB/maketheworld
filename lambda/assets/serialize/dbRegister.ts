@@ -138,13 +138,13 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 })
                 : Promise.resolve({})
         await Promise.all([
-            setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(
-                AssetKey(asset.key),
-                Object.values(assets)
+            setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{
+                itemId: AssetKey(asset.key),
+                edges: Object.values(assets)
                     .filter(isNormalImport)
                     .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                { direction: 'back' }
-            ),
+                options: { direction: 'back' }
+            }]),
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
                 DataCategory: `Meta::Asset`,
@@ -239,13 +239,13 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 })
                 : Promise.resolve({})
         await Promise.all([
-            setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(
-                CharacterKey(character.key),
-                Object.values(assets)
+            setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{
+                itemId: CharacterKey(character.key),
+                edges: Object.values(assets)
                     .filter(isNormalImport)
                     .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                { direction: 'back' }
-            ),
+                options: { direction: 'back' }
+            }]),
             assetDB.putItem({
                 AssetId: assetWorkspace.namespaceIdToDB[character.key],
                 DataCategory: `Meta::Character`,

@@ -75,11 +75,11 @@ describe('dbRegister', () => {
         } as any)
         expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(setEdgesMockInternal).toHaveBeenCalledTimes(1)
-        expect(setEdgesMockInternal).toHaveBeenCalledWith(
-            'CHARACTER#TESS',
-            [{ target: 'ASSET#primitives', context: '' }],
-            { direction: 'back' }
-        )
+        expect(setEdgesMockInternal).toHaveBeenCalledWith([{
+            itemId: 'CHARACTER#TESS',
+            edges: [{ target: 'ASSET#primitives', context: '' }],
+            options: { direction: 'back' }
+        }])
     })
 
     it('should save meta, rooms for Asset type', async () => {
@@ -644,11 +644,11 @@ describe('dbRegister', () => {
             }
         } as any)
         expect(setEdgesMockInternal).toHaveBeenCalledTimes(1)
-        expect(setEdgesMockInternal).toHaveBeenCalledWith(
-            'ASSET#test',
-            [{ target: 'ASSET#primitives', context: '' }],
-            { direction: 'back' }
-        )
+        expect(setEdgesMockInternal).toHaveBeenCalledWith([{
+            itemId: 'ASSET#test',
+            edges: [{ target: 'ASSET#primitives', context: '' }],
+            options: { direction: 'back' }
+        }])
     })
 
 })

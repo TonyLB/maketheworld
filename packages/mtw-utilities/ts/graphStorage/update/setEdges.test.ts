@@ -59,13 +59,13 @@ describe('graph setEdges', () => {
             ] },
             back: { edges: [] }
         }])
-        await setEdges({ internalCache, dbHandler: dbHandlerMock })(
-            'A',
-            [
+        await setEdges({ internalCache, dbHandler: dbHandlerMock })([{
+            itemId: 'A',
+            edges: [
                 { target: 'C', context: 'test' },
                 { target: 'B', context: 'test' }
             ]
-        )
+        }])
         expect(updateGraphStorageBatchMock).toHaveBeenCalledTimes(0)
     })
 
@@ -77,13 +77,13 @@ describe('graph setEdges', () => {
             ] },
             back: { edges: [] }
         }])
-        await setEdges({ internalCache, dbHandler: dbHandlerMock })(
-            'A',
-            [
+        await setEdges({ internalCache, dbHandler: dbHandlerMock })([{
+            itemId: 'A',
+            edges: [
                 { target: 'C', context: 'test' },
                 { target: 'B', context: 'test' }
             ]
-        )
+        }])
         expect(updateGraphStorageInternalMock).toHaveBeenCalledTimes(1)
         expect(updateGraphStorageInternalMock.mock.calls[0][0].nodes).toEqual({
             A: { key: 'A' },
@@ -103,12 +103,12 @@ describe('graph setEdges', () => {
             ] },
             back: { edges: [] }
         }])
-        await setEdges({ internalCache, dbHandler: dbHandlerMock })(
-            'A',
-            [
+        await setEdges({ internalCache, dbHandler: dbHandlerMock })([{
+            itemId: 'A',
+            edges: [
                 { target: 'B', context: 'test' }
             ]
-        )
+        }])
         expect(updateGraphStorageInternalMock).toHaveBeenCalledTimes(1)
         expect(updateGraphStorageInternalMock.mock.calls[0][0].nodes).toEqual({
             A: { key: 'A' },
@@ -128,14 +128,14 @@ describe('graph setEdges', () => {
             ] },
             back: { edges: [] }
         }])
-        await setEdges({ internalCache, dbHandler: dbHandlerMock })(
-            'A',
-            [
+        await setEdges({ internalCache, dbHandler: dbHandlerMock })([{
+            itemId: 'A',
+            edges: [
                 { target: 'B', context: 'test' },
                 { target: 'B', context: 'testTwo' },
                 { target: 'D', context: 'test' }
             ]
-        )
+        }])
         expect(updateGraphStorageInternalMock).toHaveBeenCalledTimes(1)
         expect(updateGraphStorageInternalMock.mock.calls[0][0].nodes).toEqual({
             A: { key: 'A' },
@@ -159,15 +159,15 @@ describe('graph setEdges', () => {
             ] },
             forward: { edges: [] }
         }])
-        await setEdges({ internalCache, dbHandler: dbHandlerMock })(
-            'A',
-            [
+        await setEdges({ internalCache, dbHandler: dbHandlerMock })([{
+            itemId: 'A',
+            edges: [
                 { target: 'B', context: 'test' },
                 { target: 'B', context: 'testTwo' },
                 { target: 'D', context: 'test' }
             ],
-            { direction: 'back' }
-        )
+            options: { direction: 'back' }
+        }])
         expect(updateGraphStorageInternalMock).toHaveBeenCalledTimes(1)
         expect(updateGraphStorageInternalMock.mock.calls[0][0].nodes).toEqual({
             A: { key: 'A' },
@@ -192,14 +192,14 @@ describe('graph setEdges', () => {
             ] },
             back: { edges: [] }
         }])
-        await setEdges({ internalCache, dbHandler: dbHandlerMock })(
-            'A',
-            [
+        await setEdges({ internalCache, dbHandler: dbHandlerMock })([{
+            itemId: 'A',
+            edges: [
                 { target: 'B', context: 'test' },
                 { target: 'D', context: 'test' },
             ],
-            { contextFilter: (context) => (context === 'test') }
-        )
+            options: { contextFilter: (context) => (context === 'test') }
+        }])
         expect(updateGraphStorageInternalMock).toHaveBeenCalledTimes(1)
         expect(updateGraphStorageInternalMock.mock.calls[0][0].nodes).toEqual({
             A: { key: 'A' },
