@@ -40,7 +40,7 @@ describe('GraphNode cache', () => {
                 { PrimaryKey: 'D', DataCategory: 'Graph::Forward' },
                 { PrimaryKey: 'D', DataCategory: 'Graph::Back' },
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'cachedAt', 'edgeSet', 'cache']
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'updatedAt', 'cachedAt', 'edgeSet', 'cache']
         })
         expect(results).toEqual([
             {
@@ -122,7 +122,7 @@ describe('GraphNode cache', () => {
                 { PrimaryKey: 'B', DataCategory: 'Graph::Forward' },
                 { PrimaryKey: 'B', DataCategory: 'Graph::Back' }
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'cachedAt', 'edgeSet', 'cache']
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'updatedAt', 'cachedAt', 'edgeSet', 'cache']
         })
         expect(results).toEqual([
             {
@@ -167,7 +167,7 @@ describe('GraphNode cache', () => {
                 { PrimaryKey: 'D', DataCategory: 'Graph::Forward' },
                 { PrimaryKey: 'D', DataCategory: 'Graph::Back' },
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'cachedAt', 'edgeSet', 'cache']
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'updatedAt', 'cachedAt', 'edgeSet', 'cache']
         })
         expect(secondResult).toEqual([
             {

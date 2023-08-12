@@ -29,6 +29,10 @@ describe('withTransactions', () => {
         jest.spyOn(dbHandler, 'getItems').mockImplementation(getItemsMock)
     })
 
+    afterEach(() => {
+        dbMock.send.mockClear()
+    })
+
     it('should assign transaction items correctly', async () => {
         getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestUpdate', DataCategory: 'Update' }])
         await dbHandler.transactWrite([
@@ -282,9 +286,19 @@ describe('withTransactions', () => {
     it('should not call successCallbacks on exception', async () => {
         getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestUpdate', DataCategory: 'Update' }])
         const successCallback = jest.fn()
-        dbMock.send.mockRejectedValue(new Error('ConditionalCheckFailedException'))
+        const dbMockWithException = {
+            send: jest.fn().mockRejectedValue(new Error('ConditionalCheckFailedException'))
+        }
+        
+        const dbHandlerLocal = new mixinClass({
+            client: dbMockWithException as any,
+            tableName: 'Ephemera',
+            incomingKeyLabel: 'PrimaryKey',
+            internalKeyLabel: 'EphemeraId',
+            options: { getBatchSize: 3 }
+        })    
         await expect(async () => {
-                await dbHandler.transactWrite([
+                await dbHandlerLocal.transactWrite([
                     { Update: {
                         Key: { PrimaryKey: 'TestUpdate', DataCategory: 'Update' },
                         updateKeys: ['TestValue'],
@@ -305,4 +319,45 @@ describe('withTransactions', () => {
             }).rejects.toThrow('ConditionalCheckFailedException')
         expect(successCallback).toHaveBeenCalledTimes(0)
     })
+
+    it('should correctly use checkKey argument when provided', async () => {
+        await dbHandler.transactWrite([
+            { Update: {
+                Key: { PrimaryKey: 'TestUpdate', DataCategory: 'Update' },
+                updateKeys: ['TestValue', 'updatedAt'],
+                updateReducer: (draft) => {
+                    draft.TestValue = 5
+                },
+                checkKeys: ['updatedAt'],
+                priorFetch: { PrimaryKey: 'TestUpdate', DataCategory: 'Update' }
+            }},
+            { Update: {
+                Key: { PrimaryKey: 'TestUpdateTwo', DataCategory: 'Update' },
+                updateKeys: ['TestValue', 'updatedAt'],
+                updateReducer: (draft) => {
+                    draft.TestValue = 5
+                },
+                checkKeys: ['updatedAt'],
+                priorFetch: { PrimaryKey: 'TestUpdateTwo', DataCategory: 'Update', TestValue: 3, updatedAt: 1000 }
+            }}
+        ])
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestUpdate', DataCategory: 'Update' }),
+                UpdateExpression: 'SET TestValue = :New0',
+                ExpressionAttributeValues: marshall({ ':New0': 5 }),
+                ConditionExpression: 'attribute_not_exists(updatedAt)'
+            }},
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestUpdateTwo', DataCategory: 'Update' }),
+                UpdateExpression: 'SET TestValue = :New0',
+                ExpressionAttributeValues: marshall({ ':New0': 5, ':Old1': 1000 }),
+                ConditionExpression: 'updatedAt = :Old1'
+            }}
+        ]})
+    })
+
 })
