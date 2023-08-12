@@ -13,11 +13,17 @@ type MergeQueryResults<KIncoming extends DBHandlerLegalKey, T extends string> = 
 
 type MergeAction<KIncoming extends DBHandlerLegalKey, T extends string> = 'ignore' | 'delete' | DBHandlerItem<KIncoming, T>
 
+type MergeActionProperty<KIncoming extends DBHandlerLegalKey, T extends string> = {
+    key: DBHandlerKey<KIncoming, T>;
+    action: MergeAction<KIncoming, T> | undefined;
+}
+
 type MergeTransactProps<KIncoming extends DBHandlerLegalKey, T extends string> = {
     query: QueryKeyProps<KIncoming, T>;
     items: DBHandlerItem<KIncoming, T>[];
     mergeFunction: (props: { incoming: DBHandlerItem<KIncoming, T>, current: DBHandlerItem<KIncoming, T> }) => MergeAction<KIncoming, T>;
-    transactFactory: (props: { key: DBHandlerKey<KIncoming, T>; action: MergeAction<KIncoming, T> }) => Promise<TransactionRequest<KIncoming, T>[]>
+    transactFactory: (props: { key: DBHandlerKey<KIncoming, T>; action: MergeAction<KIncoming, T> }) => Promise<TransactionRequest<KIncoming, T>[]>;
+    beforeTransact?: (mergeItems: MergeActionProperty<KIncoming, T>[]) => Promise<void>;
 }
 
 //
@@ -140,7 +146,8 @@ export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string 
                 query,
                 items,
                 mergeFunction,
-                transactFactory
+                transactFactory,
+                beforeTransact
             } = props
             const currentItems = await this.query<MergeQueryResults<KIncoming, T>>(query)
             const findByKey = (findItem: DBHandlerItem<KIncoming, T> | DBHandlerKey<KIncoming, T>) => (item: DBHandlerItem<KIncoming, T> | DBHandlerKey<KIncoming, T>): boolean => (item[this._incomingKeyLabel] === findItem[this._incomingKeyLabel] && item.DataCategory === findItem.DataCategory)
@@ -159,50 +166,63 @@ export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string 
                 }
             }, [])
 
-            const { batchActions, transactions } = (await Promise.all(keysToExamine.map(async (key) => {
+            const { mergeOutput, batchActions, transactions } = (await Promise.all(keysToExamine.map(async (key) => {
                     const currentItem = currentItems.find(findByKey(key))
                     const incomingItem = items.find(findByKey(key))
                     let batchRequest: BatchRequest<KIncoming, T> | undefined = undefined
+                    let mergeOutput: MergeActionProperty<KIncoming, T> = { key, action: undefined }
                     //
                     // TODO: Add a distinguishing factor for transactFactory, telling it whether a put is a new item or update
                     //
                     if (currentItem) {
                         if (incomingItem) {
-                            const mergeOutput = mergeFunction({ incoming: incomingItem, current: currentItem })
-                            if (typeof mergeOutput === 'string') {
-                                if (mergeOutput === 'delete') {
+                            const action = mergeFunction({ incoming: incomingItem, current: currentItem })
+                            if (typeof action === 'string') {
+                                if (action === 'delete') {
                                     batchRequest = { DeleteRequest: key }
                                 }
                             }
                             else {
-                                batchRequest = { PutRequest: mergeOutput }
+                                batchRequest = { PutRequest: action }
                             }
+                            mergeOutput.action = action
                         }
                         else {
                             batchRequest = { DeleteRequest: key }
+                            mergeOutput.action = 'delete'
                         }
                     }
                     else {
                         if (incomingItem) {
                             batchRequest = { PutRequest: incomingItem }
+                            mergeOutput.action = incomingItem
+                        }
+                        else {
+                            mergeOutput.action = 'ignore'
                         }
                     }
                     if (!batchRequest) {
                         return {
+                            mergeOutput,
                             batchRequest: undefined,
                             associatedTransactions: []
                         }
                     }
                     const associatedTransactions = await transactFactory({ key, action: 'DeleteRequest' in batchRequest ? 'delete' : batchRequest.PutRequest })
                     return {
+                        mergeOutput,
                         batchRequest,
                         associatedTransactions
                     }
                 })))
-                .reduce<{ batchActions: BatchRequest<KIncoming, T>[], transactions: TransactionRequest<KIncoming, T>[][] }>((previous, { batchRequest, associatedTransactions }) => {
-                    if (!batchRequest) { return previous }
+                .reduce<{ mergeOutput: MergeActionProperty<KIncoming, T>[]; batchActions: BatchRequest<KIncoming, T>[], transactions: TransactionRequest<KIncoming, T>[][] }>((previous, { mergeOutput, batchRequest, associatedTransactions }) => {
+                    if (!batchRequest) { return {
+                        ...previous,
+                        mergeOutput: mergeOutput.action ? [...previous.mergeOutput, mergeOutput] : previous.mergeOutput,
+                    } }
                     if (associatedTransactions.length) {
                         return {
+                            mergeOutput: mergeOutput.action ? [...previous.mergeOutput, mergeOutput] : previous.mergeOutput,
                             batchActions: previous.batchActions,
                             transactions: [
                                 ...previous.transactions,
@@ -215,11 +235,15 @@ export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string 
                     }
                     else {
                         return {
+                            mergeOutput: mergeOutput.action ? [...previous.mergeOutput, mergeOutput] : previous.mergeOutput,
                             batchActions: [...previous.batchActions, batchRequest],
                             transactions: previous.transactions
                         }
                     }
-                }, { batchActions: [], transactions: [] })
+                }, { mergeOutput: [], batchActions: [], transactions: [] })
+            if (beforeTransact) {
+                await beforeTransact(mergeOutput)
+            }
             await Promise.all([
                 ...(batchActions.length ? [this.batchWriteDispatcher(batchActions)] : []),
                 ...transactions.map((transactionList) => (this.transactWrite(transactionList)))

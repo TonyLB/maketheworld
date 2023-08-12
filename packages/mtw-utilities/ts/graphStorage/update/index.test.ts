@@ -57,7 +57,6 @@ describe('graphStore update', () => {
         Key,
         updateKeys: ['edgeSet', 'updatedAt', 'invalidatedAt'],
         updateReducer: expect.any(Function),
-        priorFetch: { updatedAt: undefined },
         checkKeys: ['updatedAt']
     })
 
@@ -327,10 +326,7 @@ describe('graphStore update', () => {
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(3)
-        expect(transactWrite.mock.calls[0][0][0].Update).toEqual({
-            ...testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }),
-            priorFetch: { updatedAt: 500 }
-        })
+        expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::ASSETTWO'], updatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::ASSET', 'ASSET#ImportOne::ASSETTWO'], updatedAt: 1000 })
