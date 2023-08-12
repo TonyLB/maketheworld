@@ -239,4 +239,52 @@ describe('withMerge', () => {
 
     })
 
+    it('should execute beforeTransaction when provided', async () => {
+        const transactFactory = jest.fn().mockResolvedValueOnce([{
+            Update: {
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'Meta::Test' },
+                updateKeys: ['cached'],
+                updateReducer: (draft) => { draft.cached = [...draft.cached || [], 'TestOne']}
+            }
+        }]).mockResolvedValue([])
+        const beforeTransact = jest.fn().mockResolvedValue({})
+        queryMock.mockResolvedValue([{
+            PrimaryKey: 'TestOne',
+            DataCategory: 'DC1',
+            TestValue: 5
+        },
+        {
+            PrimaryKey: 'TestOne',
+            DataCategory: 'DC3',
+            TestValue: 6
+        }])
+        mergeFunction.mockReturnValueOnce('ignore').mockReturnValueOnce({ PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 5 })
+        await dbHandler.mergeTransact({
+            query: { Key: { PrimaryKey: 'TestOne' } },
+            items: [
+                { PrimaryKey: 'TestOne', DataCategory: 'DC2', TestValue: 0 },
+                { PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 5 }
+            ] as any,
+            mergeFunction,
+            transactFactory,
+            beforeTransact
+        })
+        expect(queryMock).toHaveBeenCalledTimes(1)
+        expect(queryMock).toHaveBeenCalledWith({ Key: { PrimaryKey: 'TestOne' } })
+        expect(batchWriteMock).toHaveBeenCalledTimes(1)
+        expect(beforeTransact).toHaveBeenCalledWith([
+            { key: { PrimaryKey: 'TestOne', DataCategory: 'DC1' }, action: { PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 5 } },
+            { key: { PrimaryKey: 'TestOne', DataCategory: 'DC3' }, action: 'delete' },
+            { key: { PrimaryKey: 'TestOne', DataCategory: 'DC2' }, action: { PrimaryKey: 'TestOne', DataCategory: 'DC2', TestValue: 0 } }
+        ])
+        expect(transactFactory).toHaveBeenCalledTimes(3)
+        expect(transactFactory).toHaveBeenCalledWith({ key: { PrimaryKey: 'TestOne', DataCategory: 'DC1' }, action: { PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 5 } })
+        expect(transactFactory).toHaveBeenCalledWith({ key: { PrimaryKey: 'TestOne', DataCategory: 'DC3' }, action: 'delete' })
+        expect(transactFactory).toHaveBeenCalledWith({ key: { PrimaryKey: 'TestOne', DataCategory: 'DC2' }, action: { PrimaryKey: 'TestOne', DataCategory: 'DC2', TestValue: 0 } })
+        expect(transactWriteMock).toHaveBeenCalledTimes(1)
+        expect(transactWriteMock).toHaveBeenCalledWith([
+            { Put: { PrimaryKey: 'TestOne', DataCategory: 'DC1', TestValue: 5 } },
+            { Update: { Key: { PrimaryKey: 'TestOne', DataCategory: 'Meta::Test' }, updateKeys: ['cached'], updateReducer: expect.any(Function) } }
+        ])
+    })
 })
