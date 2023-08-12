@@ -25,7 +25,7 @@ export const setEdges = <C extends InstanceType<ReturnType<ReturnType<typeof Gra
         })
 
     if (graph.edges.length) {
-        updateGraphStorageBatch(metaProps)(graph)
+        await updateGraphStorageBatch(metaProps)(graph)
     }
 }
 
