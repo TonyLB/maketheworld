@@ -39,9 +39,6 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
         ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class TransactionDBHandler extends Base {
         async transactWrite(items: TransactionRequest<KIncoming, T>[]) {
-            //
-            // TODO: ISS2713: Wrap transaction call in exponentialBackoffWrapper if there are any Updates in it
-            //
             const itemsToFetch = items.reduce<TransactionRequestUpdate<KIncoming, T>[]>((previous, item) => ('Update' in item && (!('priorFetch' in item.Update)) ? [...previous, item.Update] : previous), [])
             const aggregateProjectionFields = unique(
                 [this._incomingKeyLabel, 'DataCategory'],
