@@ -369,11 +369,11 @@ describe('cacheAsset', () => {
                 testKnowledge: 'KNOWLEDGE#GHI'
             }
         })
-        expect(setEdgesInternalMock).toHaveBeenCalledWith(
-            'ASSET#test',
-            [],
-            { direction: 'back' }
-        )
+        expect(setEdgesInternalMock).toHaveBeenCalledWith([{
+            itemId: 'ASSET#test',
+            edges: [],
+            options: { direction: 'back' }
+        }])
     })
 
     it('should correctly extract query-ready exits from room contents', async () => {
@@ -598,10 +598,10 @@ describe('cacheAsset', () => {
             }],
             messageBus: messageBusMock
         })
-        expect(setEdgesInternalMock).toHaveBeenCalledWith(
-            'ASSET#test',
-            [{ target: 'ASSET#base', context: '' }],
-            { direction: 'back' }
-        )
+        expect(setEdgesInternalMock).toHaveBeenCalledWith([{
+            itemId: 'ASSET#test',
+            edges: [{ target: 'ASSET#base', context: '' }],
+            options: { direction: 'back' }
+        }])
     })
 })

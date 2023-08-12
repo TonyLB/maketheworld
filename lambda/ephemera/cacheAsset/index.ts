@@ -435,13 +435,13 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             stateSynthesizer.sendDependencyMessages()
 
             await Promise.all([
-                setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(
-                    AssetKey(assetItem.key),
-                    Object.values(assetWorkspace.normal || {})
+                setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{
+                    itemId: AssetKey(assetItem.key),
+                    edges: Object.values(assetWorkspace.normal || {})
                         .filter(isNormalImport)
                         .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                    { direction: 'back' }
-                ),    
+                    options: { direction: 'back' }
+                }]),    
                 pushEphemera({
                     EphemeraId: AssetKey(assetItem.key),
                     scopeMap: assetWorkspace.namespaceIdToDB
