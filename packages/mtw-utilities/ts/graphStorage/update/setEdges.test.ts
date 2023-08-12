@@ -166,7 +166,7 @@ describe('graph setEdges', () => {
                 { target: 'B', context: 'testTwo' },
                 { target: 'D', context: 'test' }
             ],
-            'back'
+            { direction: 'back' }
         )
         expect(updateGraphStorageInternalMock).toHaveBeenCalledTimes(1)
         expect(updateGraphStorageInternalMock.mock.calls[0][0].nodes).toEqual({
@@ -179,6 +179,36 @@ describe('graph setEdges', () => {
             { to: 'A', from: 'B', context: 'testTwo', action: 'put' },
             { to: 'A', from: 'D', context: 'test', action: 'put' },
             { to: 'A', from: 'C', context: 'test', action: 'delete' }
+        ])
+    })
+
+    it('should respect contextFilter if provided', async () => {
+        internalCache.Nodes.get.mockResolvedValue([{
+            PrimaryKey: 'A',
+            forward: { edges: [
+                { target: 'C', context: 'test' },
+                { target: 'B', context: 'test' },
+                { target: 'D', context: 'testTwo' }
+            ] },
+            back: { edges: [] }
+        }])
+        await setEdges({ internalCache, dbHandler: dbHandlerMock })(
+            'A',
+            [
+                { target: 'B', context: 'test' },
+                { target: 'D', context: 'test' },
+            ],
+            { contextFilter: (context) => (context === 'test') }
+        )
+        expect(updateGraphStorageInternalMock).toHaveBeenCalledTimes(1)
+        expect(updateGraphStorageInternalMock.mock.calls[0][0].nodes).toEqual({
+            A: { key: 'A' },
+            C: { key: 'C' },
+            D: { key: 'D' }
+        })
+        expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
+            { from: 'A', to: 'D', context: 'test', action: 'put' },
+            { from: 'A', to: 'C', context: 'test', action: 'delete' }
         ])
     })
 

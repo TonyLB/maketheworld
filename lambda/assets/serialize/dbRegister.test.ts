@@ -78,7 +78,7 @@ describe('dbRegister', () => {
         expect(setEdgesMockInternal).toHaveBeenCalledWith(
             'CHARACTER#TESS',
             [{ target: 'ASSET#primitives', context: '' }],
-            'back'
+            { direction: 'back' }
         )
     })
 
@@ -647,7 +647,7 @@ describe('dbRegister', () => {
         expect(setEdgesMockInternal).toHaveBeenCalledWith(
             'ASSET#test',
             [{ target: 'ASSET#primitives', context: '' }],
-            'back'
+            { direction: 'back' }
         )
     })
 

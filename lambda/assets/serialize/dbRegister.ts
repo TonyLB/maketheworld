@@ -143,7 +143,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 Object.values(assets)
                     .filter(isNormalImport)
                     .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                'back'
+                { direction: 'back' }
             ),
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
@@ -244,7 +244,7 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 Object.values(assets)
                     .filter(isNormalImport)
                     .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                'back'
+                { direction: 'back' }
             ),
             assetDB.putItem({
                 AssetId: assetWorkspace.namespaceIdToDB[character.key],

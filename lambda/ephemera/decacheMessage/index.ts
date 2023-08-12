@@ -8,7 +8,7 @@ import { graphStorageDB } from "../dependentMessages/graphCache";
 
 export const decacheAssetMessage = async ({ payloads, messageBus }: { payloads: DecacheAssetMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async ({ assetId }) => {
-        await (setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(AssetKey(assetId), [], 'back'))
+        await (setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(AssetKey(assetId), [], { direction: 'back' }))
         await Promise.all([
             mergeIntoEphemera(assetId, []),
             ephemeraDB.deleteItem({
