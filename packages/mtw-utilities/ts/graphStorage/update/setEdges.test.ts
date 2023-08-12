@@ -166,7 +166,7 @@ describe('graph setEdges', () => {
                 { target: 'B', context: 'testTwo' },
                 { target: 'D', context: 'test' }
             ],
-            'back'
+            { direction: 'back' }
         )
         expect(updateGraphStorageInternalMock).toHaveBeenCalledTimes(1)
         expect(updateGraphStorageInternalMock.mock.calls[0][0].nodes).toEqual({

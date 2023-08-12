@@ -372,7 +372,7 @@ describe('cacheAsset', () => {
         expect(setEdgesInternalMock).toHaveBeenCalledWith(
             'ASSET#test',
             [],
-            'back'
+            { direction: 'back' }
         )
     })
 
@@ -601,7 +601,7 @@ describe('cacheAsset', () => {
         expect(setEdgesInternalMock).toHaveBeenCalledWith(
             'ASSET#test',
             [{ target: 'ASSET#base', context: '' }],
-            'back'
+            { direction: 'back' }
         )
     })
 })

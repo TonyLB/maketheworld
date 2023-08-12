@@ -3,11 +3,17 @@ import GraphCache from "../cache";
 import { GraphNodeCacheDirectEdge } from "../cache/graphNode";
 import GraphOfUpdates from "./graphOfUpdates";
 
+type SetEdgesOptions = {
+    direction?: 'forward' | 'back';
+    contextFilter?: (value: string) => boolean;
+}
+
 //
 // setEdges performs the puts and deletes necessary to change what the edges of a given node currently *are*
 // into a requested end state
 //
-export const setEdges = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH }) => async (itemId: T, edges: GraphNodeCacheDirectEdge[], direction: 'forward' | 'back' = 'forward'): Promise<void> => {
+export const setEdges = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH }) => async (itemId: T, edges: GraphNodeCacheDirectEdge[], options: SetEdgesOptions = {}): Promise<void> => {
+    const { direction = 'forward' } = options
     const [current] = await metaProps.internalCache.Nodes.get([itemId])
     const currentEdges = current[direction].edges
     const graph = new GraphOfUpdates({}, [], {}, true)

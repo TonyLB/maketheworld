@@ -440,7 +440,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     Object.values(assetWorkspace.normal || {})
                         .filter(isNormalImport)
                         .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                    'back'
+                    { direction: 'back' }
                 ),    
                 pushEphemera({
                     EphemeraId: AssetKey(assetItem.key),
