@@ -78,7 +78,6 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
             throw new Error('Cannot update node with no actions in GraphStorage update')
         }
         const needsInvalidate = Boolean(node[`needs${capitalize(direction)}Invalidate`])
-        const oldUpdated = node[direction]?.updatedAt
         const newEdgeSet = (graph.nodes[key]?.[direction]?.edges || []).map(({ target, context }) => (`${target}${ context ? `::${context}` : ''}`))
         return {
             Update: {
@@ -94,18 +93,18 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
                         draft.invalidatedAt = moment
                     }
                 },
-                priorFetch: { updatedAt: oldUpdated },
                 checkKeys: ['updatedAt']
             }
         }
     }
 
     const moment = Date.now()
+    const nodeList = Object.values(graph.nodes) as GraphOfUpdatesNode[]
     const transactions: TransactionRequest<'PrimaryKey'>[] = [
-        ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
+        ...nodeList
             .filter(({ needsForwardUpdate, forward }) => (needsForwardUpdate || !forward))
             .map(({ key }) => (updateTransaction(graph, key, 'forward', moment))),
-        ...(Object.values(graph.nodes) as GraphOfUpdatesNode[])
+        ...nodeList
             .filter(({ needsBackUpdate, back }) => (needsBackUpdate || !back))
             .map(({ key }) => (updateTransaction(graph, key, 'back', moment))),
         ...(graph.edges.map(({ from, to, context, action, ...rest }) => (
