@@ -13,9 +13,9 @@ type SetEdgesOptions = {
 // into a requested end state
 //
 export const setEdges = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH }) => async (itemId: T, edges: GraphNodeCacheDirectEdge[], options: SetEdgesOptions = {}): Promise<void> => {
-    const { direction = 'forward' } = options
+    const { direction = 'forward', contextFilter } = options
     const [current] = await metaProps.internalCache.Nodes.get([itemId])
-    const currentEdges = current[direction].edges
+    const currentEdges = current[direction].edges.filter(contextFilter ? ({ context }) => (contextFilter(context)) : () => (true))
     const graph = new GraphOfUpdates({}, [], {}, true)
     edges
         .filter((edge) => (!currentEdges.find((checkEdge) => (checkEdge.target === edge.target && checkEdge.context === edge.context))))
