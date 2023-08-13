@@ -93,7 +93,13 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
                         draft.invalidatedAt = moment
                     }
                 },
-                checkKeys: ['updatedAt']
+                checkKeys: ['updatedAt'],
+                successCallback: (updateItem) => {
+                    const { PrimaryKey } = updateItem
+                    if (PrimaryKey) {
+                        metaProps.internalCache.Nodes.set(PrimaryKey, direction, updateItem)
+                    }
+                }
             }
         }
     }
