@@ -34,9 +34,14 @@ export const CacheGraph = <GBase extends CacheConstructor>(Base: GBase) => {
 
         override async flush() {
             await Promise.all([
-                this.Graph.flush(),
+                this._graphCache.flush(),
                 super.flush()
             ])
+        }
+
+        override clear() {
+            this._graphCache.clear()
+            super.clear()
         }
     }
 }
