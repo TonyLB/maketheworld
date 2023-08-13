@@ -24,6 +24,11 @@ type GraphNodeCacheComponent <K extends string> = {
 
 export type GraphNodeCache <K extends string> = {
     PrimaryKey: K;
+    direction: 'forward' | 'back'
+} & GraphNodeCacheComponent<K>
+
+export type GraphNodeResult<K extends string> = {
+    PrimaryKey: K;
     forward: GraphNodeCacheComponent<K>;
     back: GraphNodeCacheComponent<K>;
 }
@@ -38,6 +43,8 @@ type DBHandlerBatchGetReturn <K extends string> = {
     cache: string[]
 }
 
+const capitalize = (value: string) => ([value.slice(0, 1).toUpperCase(), value.slice(1)].join(''))
+
 export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>>> {
     _Cache: DeferredCache<GraphNodeCache<K>>;
     _dbHandler: DBH;
@@ -45,14 +52,10 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
     constructor(dbHandler: DBH) {
         this._dbHandler = dbHandler
         this._Cache = new DeferredCache<GraphNodeCache<K>>({
-            defaultValue: (PrimaryKey: string) => ({
-                PrimaryKey: PrimaryKey as K,
-                forward: {
-                    edges: []
-                },
-                back: {
-                    edges: []
-                },
+            defaultValue: (cacheKey: string) => ({
+                PrimaryKey: cacheKey.split('::')[0] as K,
+                direction: cacheKey.split('::')[1] as 'forward' | 'back',
+                edges: []
             })
         })
     }
@@ -69,65 +72,56 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
         this._Cache.invalidate(key)
     }
 
-    async get(PrimaryKeys: K[]): Promise<GraphNodeCache<K>[]> {
+    async get(PrimaryKeys: K[]): Promise<GraphNodeResult<K>[]> {
         this._Cache.add({
             promiseFactory: (keys: string[]): Promise<DBHandlerBatchGetReturn<K>[]> => (
                 this._dbHandler.getItems<{ PrimaryKey: K; DataCategory: string; invalidatedAt?: number; updatedAt?: number; cachedAt?: number; edgeSet: string[]; cache: string[] }>({
-                    Keys: keys.map((key) => ([
-                        {
-                            PrimaryKey: key as K,
-                            DataCategory: 'Graph::Forward'
-                        },
-                        {
-                            PrimaryKey: key as K,
-                            DataCategory: 'Graph::Back'
-                        }
-                    ])).flat(1),
+                    Keys: keys.map((key) => ({
+                        PrimaryKey: key.split('::')[0] as K,
+                        DataCategory: `Graph::${capitalize(key.split('::')[1])}`
+                    })),
                     ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'updatedAt', 'cachedAt', 'edgeSet', 'cache']
                 })
             ),
-            requiredKeys: PrimaryKeys,
+            requiredKeys: PrimaryKeys.map((primaryKey) => ([`${primaryKey}::forward`, `${primaryKey}::back`])).flat(),
             transform: (items: DBHandlerBatchGetReturn<K>[]): Record<string, GraphNodeCache<K>> => {
                 const combinedValue = items.reduce<Record<string, GraphNodeCache<K>>>((previous, item) => {
-                    const priorMatch = previous[item.PrimaryKey]
-                    if (item.DataCategory === 'Graph::Forward') {
-                        return {
-                            ...previous,
-                            [item.PrimaryKey]: {
-                                PrimaryKey: item.PrimaryKey,
-                                forward: {
-                                    edges: (item.edgeSet || []).map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
-                                    cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ from: edgeKey.split('::')[0] as K, to: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
-                                    invalidateAt: item.invalidatedAt,
-                                    updatedAt: item.updatedAt,
-                                    cachedAt: item.cachedAt
-                                },
-                                back: priorMatch?.back || { edges: [] }
-                            }
+                    if (!(['Graph::Forward', 'Graph::Back'].includes(item.DataCategory))) {
+                        return previous
+                    }
+                    const direction = item.DataCategory === 'Graph::Forward' ? 'forward' : 'back'
+                    return {
+                        ...previous,
+                        [`${item.PrimaryKey}::${direction}`]: {
+                            PrimaryKey: item.PrimaryKey,
+                            direction,
+                            edges: (item.edgeSet || []).map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
+                            cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ from: edgeKey.split('::')[0] as K, to: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
+                            invalidateAt: item.invalidatedAt,
+                            updatedAt: item.updatedAt,
+                            cachedAt: item.cachedAt
                         }
                     }
-                    if (item.DataCategory === 'Graph::Back') {
-                        return {
-                            ...previous,
-                            [item.PrimaryKey]: {
-                                PrimaryKey: item.PrimaryKey,
-                                forward: priorMatch?.forward || { edges: [] },
-                                back: {
-                                    edges: (item.edgeSet || []).map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
-                                    cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ from: edgeKey.split('::')[0] as K, to: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
-                                    invalidateAt: item.invalidatedAt,
-                                    updatedAt: item.updatedAt,
-                                    cachedAt: item.cachedAt
-                                }
-                            }
-                        }
-                    }
-                    return previous
                 }, {})
                 return combinedValue
             }
         })
-        return await Promise.all(PrimaryKeys.map((key) => (this._Cache.get(key))))
+        return await Promise.all(PrimaryKeys.map(async (key) => {
+            const [{ PrimaryKey: forwardPK, direction: forwardDirection, ...forward}, { PrimaryKey: backPK, direction: backDirection, ...back}] = await Promise.all([
+                this._Cache.get(`${key}::forward`),
+                this._Cache.get(`${key}::back`)
+            ])
+            return {
+                PrimaryKey: key,
+                forward,
+                back
+            }
+        }))
+    }
+
+    set(key: K, direction: 'forward' | 'back', value) {
+        const cacheKey = `${key}::${direction}`
+        this._Cache.set(Infinity, cacheKey, value)
     }
 
 }

@@ -57,6 +57,7 @@ describe('graphStore update', () => {
         Key,
         updateKeys: ['edgeSet', 'updatedAt', 'invalidatedAt'],
         updateReducer: expect.any(Function),
+        successCallback: expect.any(Function),
         checkKeys: ['updatedAt']
     })
 

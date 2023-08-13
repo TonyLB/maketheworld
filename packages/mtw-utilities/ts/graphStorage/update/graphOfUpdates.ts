@@ -1,7 +1,7 @@
-import { GraphNodeCache } from "../cache/graphNode";
+import { GraphNodeResult } from "../cache/graphNode";
 import { Graph } from "../utils/graph";
 
-export type GraphOfUpdatesNode = Partial<Omit<GraphNodeCache<string>, 'PrimaryKey'>> & {
+export type GraphOfUpdatesNode = Partial<Omit<GraphNodeResult<string>, 'PrimaryKey'>> & {
     key: string;
     needsForwardUpdate?: boolean;
     needsForwardInvalidate?: boolean;

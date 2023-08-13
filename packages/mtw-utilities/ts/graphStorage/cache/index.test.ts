@@ -1,7 +1,7 @@
 import { CacheBase, GraphDBHandler } from './baseClasses'
 import GraphCache from './'
 import GraphEdge from './graphEdge'
-import GraphNode, { GraphNodeCache, GraphNodeCacheEdge } from './graphNode'
+import GraphNode, { GraphNodeCache, GraphNodeCacheEdge, GraphNodeResult } from './graphNode'
 import { marshall } from '@aws-sdk/util-dynamodb'
 
 describe('GraphCache', () => {
@@ -35,7 +35,7 @@ describe('GraphCache', () => {
         const nodeGetMock = jest.spyOn(internalCache.Nodes, 'get')
             .mockImplementation((keys) => (
                 Promise.resolve(
-                    keys.map((key): GraphNodeCache<string> | undefined => ({
+                    keys.map((key): GraphNodeResult<string> | undefined => ({
                         A: {
                             PrimaryKey: 'A',
                             forward: {
@@ -91,7 +91,7 @@ describe('GraphCache', () => {
                             }
                         },
                     }[key])
-                ).filter((value): value is GraphNodeCache<string> => (Boolean(value)))
+                ).filter((value): value is GraphNodeResult<string> => (Boolean(value)))
             )
         ))
 
@@ -147,7 +147,7 @@ describe('GraphCache', () => {
         const nodeGetMock = jest.spyOn(internalCache.Nodes, 'get')
             .mockImplementation((keys) => (
                 Promise.resolve(
-                    keys.map((key): GraphNodeCache<string> | undefined => ({
+                    keys.map((key): GraphNodeResult<string> | undefined => ({
                         A: {
                             PrimaryKey: 'A',
                             forward: {
@@ -209,7 +209,7 @@ describe('GraphCache', () => {
                             }
                         },
                     }[key])
-                ).filter((value): value is GraphNodeCache<string> => (Boolean(value)))
+                ).filter((value): value is GraphNodeResult<string> => (Boolean(value)))
             )
         ))
 
@@ -241,7 +241,7 @@ describe('GraphCache', () => {
         const nodeGetMock = jest.spyOn(internalCache.Nodes, 'get')
             .mockImplementation((keys) => (
                 Promise.resolve(
-                    keys.map((key): GraphNodeCache<string> | undefined => ({
+                    keys.map((key): GraphNodeResult<string> | undefined => ({
                         A: {
                             PrimaryKey: 'A',
                             forward: {
@@ -303,7 +303,7 @@ describe('GraphCache', () => {
                             }
                         },
                     }[key])
-                ).filter((value): value is GraphNodeCache<string> => (Boolean(value)))
+                ).filter((value): value is GraphNodeResult<string> => (Boolean(value)))
             )
         ))
 
