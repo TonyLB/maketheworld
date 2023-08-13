@@ -8,7 +8,7 @@ type SetEdgesOptions = {
     contextFilter?: (value: string) => boolean;
 }
 
-type SetEdgesNodeArgument<T extends string> = {
+export type SetEdgesNodeArgument<T extends string> = {
     itemId: T;
     edges: GraphNodeCacheDirectEdge[];
     options?: SetEdgesOptions

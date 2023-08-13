@@ -15,6 +15,8 @@ import { mergeIntoEphemera } from './perAsset'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
+jest.mock('./dependencyUpdate')
+
 import { cacheAssetMessage } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'

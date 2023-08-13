@@ -12,6 +12,7 @@ import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import messageBus from "../messageBus"
 import { EphemeraItem } from "./baseClasses"
 import dependencyCascade from "../dependentMessages/dependencyCascade"
+import { updateDependenciesFromMergeActions } from "./dependencyUpdate"
 
 export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {
     //
@@ -26,6 +27,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
         },
         items: items.map((item) => ({ ...item, DataCategory })) as any,
         mergeFunction: ({ incoming }) => (incoming),
+        beforeTransact: updateDependenciesFromMergeActions(assetId),
         transactFactory: async ({ key, action }) => {
             const [ephemeraTag] = splitType(key.EphemeraId)
             const [_, assetKey] = splitType(key.DataCategory)
