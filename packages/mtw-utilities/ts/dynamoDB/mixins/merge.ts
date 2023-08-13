@@ -13,7 +13,7 @@ type MergeQueryResults<KIncoming extends DBHandlerLegalKey, T extends string> = 
 
 type MergeAction<KIncoming extends DBHandlerLegalKey, T extends string> = 'ignore' | 'delete' | DBHandlerItem<KIncoming, T>
 
-type MergeActionProperty<KIncoming extends DBHandlerLegalKey, T extends string> = {
+export type MergeActionProperty<KIncoming extends DBHandlerLegalKey, T extends string> = {
     key: DBHandlerKey<KIncoming, T>;
     action: MergeAction<KIncoming, T> | undefined;
 }

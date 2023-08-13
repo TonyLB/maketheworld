@@ -10,7 +10,17 @@ import {
     EphemeraMessageId,
     EphemeraMomentId,
     EphemeraRoomId,
-    EphemeraVariableId
+    EphemeraVariableId,
+    isEphemeraActionId,
+    isEphemeraBookmarkId,
+    isEphemeraComputedId,
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraMapId,
+    isEphemeraMessageId,
+    isEphemeraMomentId,
+    isEphemeraRoomId,
+    isEphemeraVariableId
 } from "@tonylb/mtw-interfaces/dist/baseClasses";
 import { TaggedMessageContent } from "@tonylb/mtw-interfaces/dist/messages";
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
@@ -154,6 +164,17 @@ export type EphemeraComputed = {
 }
 
 export type EphemeraItem = EphemeraFeature | EphemeraKnowledge | EphemeraBookmark | EphemeraMessage | EphemeraMoment | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
+
+export const isEphemeraFeatureItem = (item: EphemeraItem): item is EphemeraFeature => (isEphemeraFeatureId(item.EphemeraId))
+export const isEphemeraKnowledgeItem = (item: EphemeraItem): item is EphemeraKnowledge => (isEphemeraKnowledgeId(item.EphemeraId))
+export const isEphemeraBookmarkItem = (item: EphemeraItem): item is EphemeraBookmark => (isEphemeraBookmarkId(item.EphemeraId))
+export const isEphemeraMessageItem = (item: EphemeraItem): item is EphemeraMessage => (isEphemeraMessageId(item.EphemeraId))
+export const isEphemeraMomentItem = (item: EphemeraItem): item is EphemeraMoment => (isEphemeraMomentId(item.EphemeraId))
+export const isEphemeraRoomItem = (item: EphemeraItem): item is EphemeraRoom => (isEphemeraRoomId(item.EphemeraId))
+export const isEphemeraMapItem = (item: EphemeraItem): item is EphemeraMap => (isEphemeraMapId(item.EphemeraId))
+export const isEphemeraActionItem = (item: EphemeraItem): item is EphemeraAction => (isEphemeraActionId(item.EphemeraId))
+export const isEphemeraVariableItem = (item: EphemeraItem): item is EphemeraVariable => (isEphemeraVariableId(item.EphemeraId))
+export const isEphemeraComputedItem = (item: EphemeraItem): item is EphemeraComputed => (isEphemeraComputedId(item.EphemeraId))
 
 type LegalEphemeraTag = 'Asset' | (EphemeraItem['EphemeraId'] extends `${infer T}#${string}` ? Capitalize<Lowercase<T>> : never)
 

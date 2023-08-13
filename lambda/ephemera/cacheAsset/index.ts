@@ -428,11 +428,11 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 .map(ephemeraExtractor)
                 .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
         
-            const stateSynthesizer = new StateSynthesizer(assetWorkspace, messageBus)
+            // const stateSynthesizer = new StateSynthesizer(assetWorkspace, messageBus)
         
             await mergeIntoEphemera(assetId, ephemeraItems)
         
-            stateSynthesizer.sendDependencyMessages()
+            // stateSynthesizer.sendDependencyMessages()
 
             await Promise.all([
                 setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{
