@@ -1,4 +1,3 @@
-import StateSynthesizer from './stateSynthesis'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
 import {
     isNormalAsset,
@@ -428,11 +427,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 .map(ephemeraExtractor)
                 .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
         
-            // const stateSynthesizer = new StateSynthesizer(assetWorkspace, messageBus)
-        
             await mergeIntoEphemera(assetId, ephemeraItems)
-        
-            // stateSynthesizer.sendDependencyMessages()
 
             await Promise.all([
                 setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{
