@@ -14,8 +14,6 @@ import {
     isCacheAssetMessage,
     isPlayerUpdateMessage,
     isRoomUpdateMessage,
-    isDescentUpdateMessage,
-    isAncestryUpdateMessage,
     isExecuteActionMessage,
     isMapSubscription,
     isMapUpdateMessage,
@@ -42,7 +40,6 @@ import decacheAssetMessage from '../decacheMessage'
 import { cacheAssetByIdMessage, cacheAssetMessage, cacheCharacterAssetsMessage } from '../cacheAsset'
 import playerUpdateMessage from '../playerUpdate'
 import roomUpdateMessage from '../roomUpdate'
-import dependentUpdateMessage from '../dependentMessages/dependentUpdate'
 import executeActionMessage from '../executeAction'
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
@@ -193,18 +190,6 @@ messageBus.subscribe({
     priority: 1,
     filter: isCanonUpdateMessage,
     callback: canonUpdateMessage
-})
-messageBus.subscribe({
-    tag: 'AncestryUpdate',
-    priority: 3,
-    filter: isAncestryUpdateMessage,
-    callback: dependentUpdateMessage('Ancestry')
-})
-messageBus.subscribe({
-    tag: 'DescentUpdate',
-    priority: 4,
-    filter: isDescentUpdateMessage,
-    callback: dependentUpdateMessage('Descent')
 })
 
 messageBus.subscribe({

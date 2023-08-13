@@ -4,7 +4,7 @@ import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/dist/messages"
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, EphemeraComputedId, EphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
-import { DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
+import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
     EphemeraCharacterId,
     EphemeraFeatureId,
@@ -304,14 +304,6 @@ export type RoomUpdateMessage = {
 export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
 export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
 
-export type DescentUpdateMessage = {
-    type: 'DescentUpdate';
-} & DependencyGraphAction
-
-export type AncestryUpdateMessage = {
-    type: 'AncestryUpdate';
-} & DependencyGraphAction
-
 export type ExecuteActionMessage = {
     type: 'ExecuteAction';
     actionId: EphemeraActionId;
@@ -364,8 +356,6 @@ export type MessageType = PublishMessage |
     CacheCharacterAssetsMessage |
     PlayerUpdateMessage |
     RoomUpdateMessage |
-    DescentUpdateMessage |
-    AncestryUpdateMessage |
     ExecuteActionMessage |
     MapUpdateMessage |
     CanonUpdateMessage
@@ -413,8 +403,6 @@ export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessag
 export const isMapUpdateMessage = (prop: MessageType): prop is MapUpdateMessage => (prop.type === 'MapUpdate')
 export const isCanonUpdateMessage = (prop: MessageType): prop is CanonUpdateMessage => (['CanonAdd', 'CanonRemove', 'CanonSet'].includes(prop.type))
 
-export const isDescentUpdateMessage = (prop: MessageType): prop is DescentUpdateMessage => (prop.type === 'DescentUpdate')
-export const isAncestryUpdateMessage = (prop: MessageType): prop is AncestryUpdateMessage => (prop.type === 'AncestryUpdate')
 export const isExecuteActionMessage = (prop: MessageType): prop is ExecuteActionMessage => (prop.type === 'ExecuteAction')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
