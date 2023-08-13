@@ -10,8 +10,8 @@ Caching is built to be an idempotent, error-correcting process.  If something go
 cached information, the way to fix it is to cache it again.
 
 Data-derivatives are stored in several largely-independent layers of data:
-- [Content Layer](./README.contentLayer.md): This layer stores the content of the underlying Assets (rooms, features, etc.) as it will be needed to render the world
-- [Ancestry Layer](./README.ancestry.md): This layer stores the connections between different assets (what is dependent upon what earlier asset)
+- [Content Layer](./README.contentLayer.md): This layer stores the content of the underlying components (rooms, features, etc.) as it will be needed to render the world
+- Graph Layer: (see packages/mtw-utilities) This layer stores the connections between different assets and components (what is dependent upon what earlier asset)
 - [State Layer](./README.state.md): This layer stores the current state of all variables in the programmatic layer of the assets, and allows the world to be responsive
 - [Character Layer](./README.characterLayer.md): This layer stores the content of the underlying Character assets, as needed to render and play each character in
 the world
