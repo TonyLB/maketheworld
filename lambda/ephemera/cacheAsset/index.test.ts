@@ -20,6 +20,7 @@ jest.mock('./dependencyUpdate')
 import { cacheAssetMessage } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
 const internalCacheMock = jest.mocked(internalCache, true)
 
@@ -48,7 +49,8 @@ let mockTestAsset: NormalForm = {
     }
 }
 let mockNamespaceMap: Record<string, string> = {
-    Test: 'ASSET#Test'
+    Test: 'ASSET#Test',
+    Tess: 'CHARACTER#Tess'
 }
 
 jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
@@ -111,6 +113,12 @@ describe('cacheAsset', () => {
             Test: 'ASSET#Test'
         }
         internalCacheMock.CharacterConnections.get.mockResolvedValue([])
+        internalCacheMock.Graph.get.mockResolvedValue(new Graph(
+            { 'ASSET#BASE': { key: 'ASSET#BASE'}, 'ASSET#Test': { key: 'ASSET#Test' } },
+            [{ to: 'ASSET#BASE', from: 'ASSET#Test', context: '' }],
+            {},
+            true
+        ))
         setEdgesMock.mockReturnValue(setEdgesInternalMock)
     })
 
@@ -178,8 +186,6 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        // ephemeraDBMock.getItem
-        //     .mockResolvedValueOnce({  State: {} })
         mockNamespaceMap = {
             test: 'ASSET#test',
             ABC: 'ROOM#DEF',
@@ -605,5 +611,114 @@ describe('cacheAsset', () => {
             edges: [{ target: 'ASSET#base', context: '' }],
             options: { direction: 'back' }
         }])
+    })
+
+    it('should correctly cache character', async () => {
+        const topLevelAppearance: BaseAppearance = {
+            contextStack: [{ key: 'test', tag: 'Character', index: 0}],
+            contents: []
+        }
+
+        const mockEvaluate = jest.fn().mockReturnValue(true)
+        evaluateCodeMock.mockReturnValue(mockEvaluate)
+        internalCacheMock.CharacterMeta.get.mockResolvedValue({
+            EphemeraId: 'CHARACTER#Tess',
+            RoomId: 'ROOM#VORTEX',
+            HomeId: 'ROOM#VORTEX',
+            Name: 'Tess',
+            Pronouns: {
+                subject: 'they',
+                object: 'them',
+                possessive: 'their',
+                adjective: 'theirs',
+                reflexive: 'themself'
+            },
+            assets: [],
+        })
+
+        mockNamespaceMap = {
+            Tess: 'CHARACTER#Tess',
+        }
+        mockTestAsset = {
+            Tess: {
+                key: 'Tess',
+                tag: 'Character',
+                fileName: 'Tess',
+                Name: 'Tess',
+                FirstImpression: 'Frumpy Goth',
+                OneCoolThing: 'Fuchsia eyes',
+                Outfit: 'A patchwork frock jacket',
+                images: [],
+                Pronouns: {
+                    subject: 'they',
+                    object: 'them',
+                    possessive: 'their',
+                    adjective: 'theirs',
+                    reflexive: 'themself'
+                },
+                assets: ['Test', 'BASE'],
+                appearances: [{
+                    contextStack: [],
+                    contents: [{
+                        key: 'Import-0',
+                        tag: 'Import',
+                        index: 0
+                    },
+                    {
+                        key: 'Import-1',
+                        tag: 'Import',
+                        index: 0
+                    }]
+                }]
+            },
+            'Import-0': {
+                tag: 'Import',
+                key: 'Import-0',
+                appearances: [{
+                    contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
+                    contents: []
+                }],
+                from: 'BASE',
+                mapping: {}
+            },
+            'Import-1': {
+                tag: 'Import',
+                key: 'Import-1',
+                appearances: [{
+                    contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
+                    contents: []
+                }],
+                from: 'Test',
+                mapping: {}
+            }
+        }
+
+        await cacheAssetMessage({
+            payloads: [{
+                type: 'CacheAsset',
+                address: { fileName: 'Tess', zone: 'Personal', player: 'Test' },
+                options: {}
+            }],
+            messageBus: messageBusMock
+        })
+        // expect(setEdgesInternalMock).toHaveBeenCalledWith([{
+        //     itemId: 'ASSET#Tess',
+        //     edges: [{ target: 'ASSET#BASE', context: '' }, { target: 'ASSET#Test', context: '' }],
+        //     options: { direction: 'back' }
+        // }])
+        expect(internalCacheMock.CharacterMeta.set).toHaveBeenCalledWith({
+            EphemeraId: 'CHARACTER#Tess',
+            RoomId: 'ROOM#VORTEX',
+            HomeId: 'ROOM#VORTEX',
+            Name: 'Tess',
+            Pronouns: {
+                subject: 'they',
+                object: 'them',
+                possessive: 'their',
+                adjective: 'theirs',
+                reflexive: 'themself'
+            },
+            assets: ['BASE', 'Test']
+        })
     })
 })

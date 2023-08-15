@@ -44,6 +44,7 @@ import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
 import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
 import { graphStorageDB } from '../dependentMessages/graphCache'
+import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort'
 
 //
 // TODO:
@@ -357,22 +358,26 @@ export const pushEphemera = async({
 }
 
 const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter): Promise<CharacterMetaItem | undefined> => {
-    const previous = await internalCache.CharacterMeta.get(character.EphemeraId, { check: true })
+    const [previous, graph] = await Promise.all([
+        internalCache.CharacterMeta.get(character.EphemeraId, { check: true }),
+        internalCache.Graph.get((character.assets || []).map(AssetKey), 'back')
+    ])
     if (!previous) {
         return undefined
     }
+    const sortedAssets = topologicalSort(graph.subGraph(character.assets.map(AssetKey)).reverse()).flat().map((assetId) => (assetId.split('#')?.[1] || '')).filter((value) => (value))
     const updated: CharacterMetaItem = {
         ...previous,
         Pronouns: character.Pronouns,
         Name: character.Name,
-        assets: character.assets,
+        assets: sortedAssets
     }
     internalCache.CharacterMeta.set(updated)
     return updated
 }
 
-export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, 'address' | 'Connected' | 'ConnectionIds'> & { address?: AssetWorkspaceAddress; Connected?: boolean; ConnectionIds?: string[] }) => {
-    const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color', 'assets']
+export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, 'address' | 'Connected' | 'ConnectionIds'> & { address?: AssetWorkspaceAddress; Connected?: boolean; ConnectionIds?: string[] }, meta?: CharacterMetaItem) => {
+    const updateKeys: (keyof EphemeraCharacter)[] = ['address', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'fileURL', 'Color']
     await ephemeraDB.optimisticUpdate({
         Key: {
             EphemeraId: character.EphemeraId,
@@ -381,6 +386,7 @@ export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, '
         updateKeys: [...updateKeys, 'Name'],
         updateReducer: (draft) => {
             draft.Name = character.Name
+            draft.assets = meta ? meta.assets : character.assets
             updateKeys.forEach((key) => {
                 draft[key] = character[key]
             })
@@ -475,8 +481,8 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
                     continue
                 }
+                const ephemeraToCache = await pushCharacterEphemeraToInternalCache(ephemeraItem as EphemeraCharacter)
                 if (check || updateOnly) {
-                    const ephemeraToCache = await pushCharacterEphemeraToInternalCache(ephemeraItem as EphemeraCharacter)
                     const { EphemeraId = null, RoomId = 'ROOM#VORTEX' } = ephemeraToCache || {}
                     if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
                         continue
@@ -504,7 +510,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 }
                 const [characterConnections] = await Promise.all([
                     internalCache.CharacterConnections.get(characterEphemeraId),
-                    pushCharacterEphemera(ephemeraItem as EphemeraCharacter)
+                    pushCharacterEphemera(ephemeraItem as EphemeraCharacter, ephemeraToCache)
                 ])
                 if (characterConnections && characterConnections.length) {
                     messageBus.send({
