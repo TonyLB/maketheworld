@@ -96,6 +96,15 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         )
     }
 
+    reverse(): Graph<K, T, E> {
+        return new Graph(
+            this.nodes,
+            this.edges.map(({ from, to, ...rest }) => ({ to: from, from: to, ...rest })) as GraphEdge<K, E>[],
+            this._default,
+            this.directional
+        )
+    }
+
     merge(graphs: Graph<K, T, E>[], connectingEdges: GraphEdge<K, E>[]): Graph<K, T, E> {
         const nodes = graphs.reduce<Partial<Record<K, T>>>((previous, { nodes }) => ({
             ...previous,

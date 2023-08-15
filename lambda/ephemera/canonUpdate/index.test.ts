@@ -11,6 +11,7 @@ import internalCache from '../internalCache'
 
 import { canonUpdateMessage } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
+import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
 const internalCacheMock = jest.mocked(internalCache, true)
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
@@ -28,7 +29,26 @@ describe('cacheAsset', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => (produce(testEphemeraRecord, updateReducer)))
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer, successCallback }) => {
+            const returnValue = produce(testEphemeraRecord, updateReducer)
+            successCallback?.(returnValue)
+            return returnValue
+        })
+        internalCacheMock.Global.get.mockResolvedValue(['Base', 'TownCenter'])
+        internalCacheMock.Graph.get.mockResolvedValue(new Graph(
+            {
+                'ASSET#Base': { key: 'ASSET#Base' },
+                'ASSET#TownCenter': { key: 'ASSET#TownCenter' },
+                'ASSET#Test': { key: 'ASSET#Test' }
+            },
+            [
+                { to: 'ASSET#Base', from: 'ASSET#TownCenter', context: '' },
+                { to: 'ASSET#Base', from: 'ASSET#Test', context: '' },
+                { to: 'ASSET#TownCenter', from: 'ASSET#Test', context: '' }
+            ],
+            {},
+            true
+        ))
     })
 
     it('should add and rerender a new canon asset', async () => {
@@ -131,6 +151,30 @@ describe('cacheAsset', () => {
             type: 'Perception',
             ephemeraId: 'ASSET#TownCenter'
         })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'Perception',
+            ephemeraId: 'ASSET#Test'
+        })
+    })
+
+    it('should reorder into descent order', async () => {
+        internalCacheMock.Global.get.mockResolvedValueOnce(['TownCenter', 'Base'])
+
+        await canonUpdateMessage({
+            payloads: [{
+                type: 'CanonSet',
+                assetIds: ['ASSET#TownCenter', 'ASSET#Test', 'ASSET#Base']
+            }],
+            messageBus: messageBusMock
+        })
+
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(produce(testEphemeraRecord, ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer)).toEqual({
+            ...testEphemeraKey,
+            assets: ['Base', 'TownCenter', 'Test']
+        })
+        expect(internalCacheMock.Global.set).toHaveBeenCalledWith({ key: 'assets', value: ['Base', 'TownCenter', 'Test'] })
+        expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'Perception',
             ephemeraId: 'ASSET#Test'
