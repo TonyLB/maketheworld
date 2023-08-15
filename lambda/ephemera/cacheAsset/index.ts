@@ -383,7 +383,7 @@ export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, '
             EphemeraId: character.EphemeraId,
             DataCategory: 'Meta::Character'
         },
-        updateKeys: [...updateKeys, 'Name'],
+        updateKeys: [...updateKeys, 'assets', 'Name'],
         updateReducer: (draft) => {
             draft.Name = character.Name
             draft.assets = meta ? meta.assets : character.assets
