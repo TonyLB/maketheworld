@@ -29,11 +29,11 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
             }
             const orderIndexByAsset = Object.assign({}, ...([...canonAssets, ...characterMeta.assets || []].map((asset, index) => ({ [asset]: index })))) as Record<string, number>
             const { targetAsset, minIndex: targetAssetListIndex } = roomAssets.reduce<{ targetAsset?: string, minIndex?: number }>((previous, asset) => {
-                const assetIndex = orderIndexByAsset[asset]
+                const assetIndex = orderIndexByAsset[asset.split('#')[1]]
                 if (typeof assetIndex !== 'undefined') {
                     if (typeof previous.minIndex === 'undefined' || previous.minIndex > assetIndex) {
                         return {
-                            targetAsset: asset,
+                            targetAsset: asset.split('#')[1],
                             minIndex: assetIndex
                         }
                     }

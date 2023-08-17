@@ -12,6 +12,7 @@ import internalCache from '../internalCache'
 import moveCharacter, { RoomStackItem } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { EphemeraId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { RoomKey } from '@tonylb/mtw-utilities/dist/types'
 
 const internalCacheMock = jest.mocked(internalCache, true)
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
@@ -21,7 +22,7 @@ const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 // current location, and to adjust roomEphemera activeCharacterList items accordingly
 //
 const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId) => (ephemeraId: EphemeraId) => {
-    const fromRoomId = fromRoomStack.slice(-1)[0]?.RoomId
+    const fromRoomId = RoomKey(fromRoomStack.slice(-1)[0]?.RoomId)
     switch(ephemeraId) {
         case toRoomId:
             return {
@@ -31,7 +32,7 @@ const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRo
             }
         case fromRoomId:
             return {
-                EphemeraId: 'ROOM#To',
+                EphemeraId: fromRoomId,
                 DataCategory: 'Meta::Room',
                 activeCharacters: [{ 'CHARACTER#Test': { EphemeraId: 'CHARACTER#Test', Name: 'Test', Connections: ['abcdef'] } }]
             }
@@ -54,7 +55,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
     })
     internalCacheMock.CharacterMeta.get.mockResolvedValue({
         EphemeraId: 'CHARACTER#Test',
-        RoomId: (fromRoomStack.slice(-1)[0]?.RoomId || '') as EphemeraRoomId,
+        RoomId: RoomKey(fromRoomStack.slice(-1)[0]?.RoomId || ''),
         Name: 'Test',
         HomeId: 'ROOM#VORTEX',
         assets,
@@ -96,9 +97,9 @@ describe('moveCharacter', () => {
 
     it('should change rooms appropriately', async () => {
         wrapMocks(
-            [{ asset: 'primitives', RoomId: 'ROOM#VORTEX' }],
+            [{ asset: 'primitives', RoomId: 'VORTEX' }],
             'ROOM#TestTwo',
-            ['ASSET#draftOne', 'ASSET#draftTwo']
+            ['draftOne', 'draftTwo']
         )
         await moveCharacter({
             payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' }],
@@ -132,13 +133,89 @@ describe('moveCharacter', () => {
             expect('Update' in firstTransact).toBe(true)
         }
         else {
-            expect(produce({ RoomId: 'ROOM#VORTEX', RoomStack: [{ asset: 'primitives', RoomId: 'ROOM#VORTEX' }] }, firstTransact.Update.updateReducer)).toEqual({
+            expect(produce({ RoomId: 'ROOM#VORTEX', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }] }, firstTransact.Update.updateReducer)).toEqual({
                 RoomId: 'TestTwo',
                 RoomStack: [
-                    { asset: 'primitives', RoomId: 'ROOM#VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'ROOM#TestTwo' }
+                    { asset: 'primitives', RoomId: 'VORTEX' },
+                    { asset: 'TownCenter', RoomId: 'TestTwo' }
                 ]
             })
         }
-    })    
+    })
+
+    it('should replace items in RoomStack when moved in same asset', async () => {
+        wrapMocks(
+            [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
+            'ROOM#TestThree',
+            ['draftOne', 'draftTwo']
+        )
+        await moveCharacter({
+            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestThree' }],
+            messageBus: messageBusMock
+        })
+        const firstTransact = ephemeraDBMock.transactWrite.mock.calls[0][0][0]
+        if (!('Update' in firstTransact)) {
+            expect('Update' in firstTransact).toBe(true)
+        }
+        else {
+            expect(produce({ RoomId: 'ROOM#TestTwo', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }] }, firstTransact.Update.updateReducer)).toEqual({
+                RoomId: 'TestThree',
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'VORTEX' },
+                    { asset: 'TownCenter', RoomId: 'TestThree' }
+                ]
+            })
+        }
+    })
+
+    it('should add items to RoomStack when moved into a child asset', async () => {
+        wrapMocks(
+            [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
+            'ROOM#TestThree',
+            ['draftOne', 'draftTwo']
+        )
+        await moveCharacter({
+            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestFour' }],
+            messageBus: messageBusMock
+        })
+        const firstTransact = ephemeraDBMock.transactWrite.mock.calls[0][0][0]
+        if (!('Update' in firstTransact)) {
+            expect('Update' in firstTransact).toBe(true)
+        }
+        else {
+            expect(produce({ RoomId: 'ROOM#TestTwo', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }] }, firstTransact.Update.updateReducer)).toEqual({
+                RoomId: 'TestFour',
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'VORTEX' },
+                    { asset: 'TownCenter', RoomId: 'TestTwo' },
+                    { asset: 'draftOne', RoomId: 'TestFour' }
+                ]
+            })
+        }
+    })
+
+    it('should remove items from RoomStack when moved back to a parent asset', async () => {
+        wrapMocks(
+            [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }, { asset: 'draftOne', RoomId: 'TestFour' }],
+            'ROOM#TestFour',
+            ['draftOne', 'draftTwo']
+        )
+        await moveCharacter({
+            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestOne' }],
+            messageBus: messageBusMock
+        })
+        const firstTransact = ephemeraDBMock.transactWrite.mock.calls[0][0][0]
+        if (!('Update' in firstTransact)) {
+            expect('Update' in firstTransact).toBe(true)
+        }
+        else {
+            expect(produce({ RoomId: 'ROOM#TestFour', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }, { asset: 'draftOne', RoomId: 'TestFour' }] }, firstTransact.Update.updateReducer)).toEqual({
+                RoomId: 'TestOne',
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'TestOne' }
+                ]
+            })
+        }
+    })
+
 })
