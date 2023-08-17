@@ -4,6 +4,11 @@ import internalCache from "../internalCache"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { roomCharacterListReducer } from "../internalCache/baseClasses"
 
+export type RoomStackItem = {
+    asset: string;
+    RoomId: string;
+}
+
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async (payload) => {
         //
@@ -13,24 +18,50 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
         await exponentialBackoffWrapper(async () => {
 
-            const [characterMeta, connections] = await Promise.all([
+            const [characterMeta, connections, roomAssets = [], canonAssets = []] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
-                internalCache.CharacterConnections.get(payload.characterId)
+                internalCache.CharacterConnections.get(payload.characterId),
+                internalCache.RoomAssets.get(payload.roomId),
+                internalCache.Global.get('assets')
             ])
             if (payload.roomId === characterMeta.RoomId) {
                 return
             }
+            const orderIndexByAsset = Object.assign({}, ...([...canonAssets, ...characterMeta.assets || []].map((asset, index) => ({ [asset]: index })))) as Record<string, number>
+            const { targetAsset, minIndex: targetAssetListIndex } = roomAssets.reduce<{ targetAsset?: string, minIndex?: number }>((previous, asset) => {
+                const assetIndex = orderIndexByAsset[asset.split('#')[1]]
+                if (typeof assetIndex !== 'undefined') {
+                    if (typeof previous.minIndex === 'undefined' || previous.minIndex > assetIndex) {
+                        return {
+                            targetAsset: asset.split('#')[1],
+                            minIndex: assetIndex
+                        }
+                    }
+                }
+                return previous
+            }, {})
+
             await ephemeraDB.transactWrite([
                 {
-                    PrimitiveUpdate: {
+                    Update: {
                         Key: {
                             EphemeraId: characterMeta.EphemeraId,
                             DataCategory: 'Meta::Character'
                         },
-                        ProjectionFields: ['RoomId'],
-                        UpdateExpression: 'SET RoomId = :newRoomId',
-                        ExpressionAttributeValues: {
-                            ':newRoomId': splitType(payload.roomId)[1]
+                        updateKeys: ['RoomId', 'RoomStack'],
+                        updateReducer: (draft) => {
+                            draft.RoomId = splitType(payload.roomId)[1]
+                            if (!(typeof targetAssetListIndex === 'undefined')) {
+                                const roomStack = draft.RoomStack || [{ asset: 'primitives', RoomId: 'VORTEX' }] as RoomStackItem[]
+                                const indexOfFirstReplacement = roomStack.findIndex(({ asset: stackAsset }) => (!(stackAsset in orderIndexByAsset && orderIndexByAsset[stackAsset] < targetAssetListIndex)))
+                                draft.RoomStack = [
+                                    ...(indexOfFirstReplacement === -1 ? roomStack : roomStack.slice(0, indexOfFirstReplacement)),
+                                    {
+                                        asset: targetAsset,
+                                        RoomId: draft.RoomId
+                                    }
+                                ]
+                            }
                         }
                     }
                 },

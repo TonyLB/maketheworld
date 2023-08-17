@@ -1,6 +1,7 @@
 import { EphemeraAssetId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
+import { AssetKey } from '@tonylb/mtw-utilities/dist/types';
 
 export type AssetRoomsItem = {
     EphemeraId: EphemeraAssetId;
@@ -54,12 +55,43 @@ export class CacheAssetRoomsData {
     }
 }
 
+export class CacheRoomAssetsData {
+    RoomAssetsById: Record<EphemeraRoomId, { EphemeraId: EphemeraRoomId, cached: EphemeraAssetId[] }> = {};
+    clear() {
+        this.RoomAssetsById = {}
+    }
+    async get(roomId: EphemeraRoomId): Promise<EphemeraAssetId[] | undefined> {
+        if (!(this.RoomAssetsById[roomId])) {
+            const roomAssets = await ephemeraDB.getItem<{ cached?: string[] }>({
+                Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
+                ProjectionFields: ['cached']
+            })
+            if (roomAssets) {
+                this.RoomAssetsById[roomId] = {
+                    EphemeraId: roomId,
+                    cached: (roomAssets.cached || []).map(AssetKey)
+                }
+            }
+            else {
+                this.RoomAssetsById[roomId] = {
+                    EphemeraId: roomId,
+                    cached: []
+                }
+            }
+        }
+        return this.RoomAssetsById[roomId]?.cached || []
+    }
+
+}
+
 export const CacheAssetRooms = <GBase extends CacheConstructor>(Base: GBase) => {
     return class CacheAssetRooms extends Base {
         AssetRooms: CacheAssetRoomsData = new CacheAssetRoomsData()
+        RoomAssets: CacheRoomAssetsData = new CacheRoomAssetsData()
 
         override clear() {
             this.AssetRooms.clear()
+            this.RoomAssets.clear()
             super.clear()
         }
     }
