@@ -52,9 +52,10 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                         updateReducer: (draft) => {
                             draft.RoomId = splitType(payload.roomId)[1]
                             if (!(typeof targetAssetListIndex === 'undefined')) {
-                                const indexOfFirstReplacement = (draft.RoomStack as RoomStackItem[]).findIndex(({ asset: stackAsset }) => (!(stackAsset in orderIndexByAsset && orderIndexByAsset[stackAsset] < targetAssetListIndex)))
+                                const roomStack = draft.RoomStack || [{ asset: 'primitives', RoomId: 'VORTEX' }] as RoomStackItem[]
+                                const indexOfFirstReplacement = roomStack.findIndex(({ asset: stackAsset }) => (!(stackAsset in orderIndexByAsset && orderIndexByAsset[stackAsset] < targetAssetListIndex)))
                                 draft.RoomStack = [
-                                    ...(indexOfFirstReplacement === -1 ? draft.RoomStack : draft.RoomStack.slice(0, indexOfFirstReplacement)),
+                                    ...(indexOfFirstReplacement === -1 ? roomStack : roomStack.slice(0, indexOfFirstReplacement)),
                                     {
                                         asset: targetAsset,
                                         RoomId: draft.RoomId
