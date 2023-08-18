@@ -17,10 +17,6 @@ import { RoomKey } from '@tonylb/mtw-utilities/dist/types'
 const internalCacheMock = jest.mocked(internalCache, true)
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
-//
-// TODO: Parameterize testEphemeraRecord to accept a roomStack for the character's
-// current location, and to adjust roomEphemera activeCharacterList items accordingly
-//
 const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId) => (ephemeraId: EphemeraId) => {
     const fromRoomId = RoomKey(fromRoomStack.slice(-1)[0]?.RoomId)
     switch(ephemeraId) {
