@@ -27,6 +27,7 @@ describe("disconnectMessage", () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             RoomId: 'ROOM#TestABC',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             Name: 'Tess',
             Color: 'purple',
             HomeId: 'ROOM#VORTEX',
@@ -125,6 +126,7 @@ describe("disconnectMessage", () => {
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
             RoomId: 'ROOM#TestABC',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }

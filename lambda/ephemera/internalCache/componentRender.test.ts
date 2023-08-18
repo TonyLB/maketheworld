@@ -336,6 +336,7 @@ describe('ComponentRender cache handler', () => {
             Name: 'Tess',
             assets: ['Personal'],
             RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
@@ -407,6 +408,7 @@ describe('ComponentRender cache handler', () => {
             Name: 'Tess',
             assets: ['Personal'],
             RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
@@ -472,6 +474,7 @@ describe('ComponentRender cache handler', () => {
             Name: 'Tess',
             assets: ['Personal'],
             RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
@@ -537,6 +540,7 @@ describe('ComponentRender cache handler', () => {
             Name: 'Tess',
             assets: ['Personal'],
             RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
@@ -664,6 +668,7 @@ describe('ComponentRender cache handler', () => {
             Name: 'Tess',
             assets: [],
             RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })

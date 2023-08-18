@@ -24,6 +24,7 @@ describe('Perception message', () => {
             Name: 'Tess',
             assets: ['Personal'],
             RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
         })
@@ -66,6 +67,7 @@ describe('Perception message', () => {
                 Name: 'Tess',
                 assets: ['Personal'],
                 RoomId: 'ROOM#VORTEX',
+                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
                 Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
             })
@@ -118,6 +120,7 @@ describe('Perception message', () => {
                 Name: 'Tess',
                 assets: ['Personal'],
                 RoomId: 'ROOM#VORTEX',
+                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
                 Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
             })
@@ -153,6 +156,7 @@ describe('Perception message', () => {
                 Name: 'Tess',
                 assets: ['Personal'],
                 RoomId: 'ROOM#VORTEX',
+                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
                 Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
             })
@@ -193,6 +197,7 @@ describe('Perception message', () => {
                 Name: 'Tess',
                 assets: ['Personal'],
                 RoomId: 'ROOM#VORTEX',
+                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
                 Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
             })

@@ -624,6 +624,7 @@ describe('cacheAsset', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#Tess',
             RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             Name: 'Tess',
             Pronouns: {
@@ -709,6 +710,7 @@ describe('cacheAsset', () => {
         expect(internalCacheMock.CharacterMeta.set).toHaveBeenCalledWith({
             EphemeraId: 'CHARACTER#Tess',
             RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             Name: 'Tess',
             Pronouns: {

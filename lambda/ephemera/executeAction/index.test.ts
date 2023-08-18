@@ -26,6 +26,7 @@ describe('ExecuteActionMessage', () => {
         Color: 'purple',
         EphemeraId: 'CHARACTER#Somebody',
         RoomId: 'ROOM#VORTEX',
+        RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
         HomeId: 'ROOM#VORTEX',
         assets: []
     }

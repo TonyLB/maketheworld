@@ -56,6 +56,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
     internalCacheMock.CharacterMeta.get.mockResolvedValue({
         EphemeraId: 'CHARACTER#Test',
         RoomId: RoomKey(fromRoomStack.slice(-1)[0]?.RoomId || ''),
+        RoomStack: fromRoomStack,
         Name: 'Test',
         HomeId: 'ROOM#VORTEX',
         assets,
