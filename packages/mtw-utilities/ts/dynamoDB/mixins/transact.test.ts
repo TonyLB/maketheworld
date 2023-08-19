@@ -324,6 +324,48 @@ describe('withTransactions', () => {
         expect(successCallback).toHaveBeenCalledTimes(0)
     })
 
+    it('should call successCallbacks on ignore if succeedAll passed', async () => {
+        getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestUpdate', DataCategory: 'Update' }])
+        const successCallback = jest.fn()
+        await dbHandler.transactWrite([
+            { Update: {
+                Key: { PrimaryKey: 'TestUpdate', DataCategory: 'Update' },
+                updateKeys: ['TestValue'],
+                updateReducer: (draft) => {},
+                successCallback,
+                succeedAll: true
+            }},
+            {
+                ConditionCheck: {
+                    Key: { PrimaryKey: 'TestCheck', DataCategory: 'Check' },
+                    ConditionExpression: 'value = :value',
+                    ProjectionFields: ['value'],
+                    ExpressionAttributeValues: { ':value': 5 }
+                }
+            }
+        ])
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+            {
+                ConditionCheck: {
+                    TableName: 'Ephemera',
+                    Key: marshall({ EphemeraId: 'TestCheck', DataCategory: 'Check' }),
+                    ConditionExpression: '#value = :value',
+                    ExpressionAttributeNames: { '#value': 'value' },
+                    ExpressionAttributeValues: marshall({ ':value': 5 })
+                }
+            }
+        ]})
+        expect(successCallback).toHaveBeenCalledWith({
+            PrimaryKey: 'TestUpdate',
+            DataCategory: 'Update'
+        },
+        {
+            PrimaryKey: 'TestUpdate',
+            DataCategory: 'Update'
+        })
+    })
+
     it('should correctly use checkKey argument when provided', async () => {
         await dbHandler.transactWrite([
             { Update: {

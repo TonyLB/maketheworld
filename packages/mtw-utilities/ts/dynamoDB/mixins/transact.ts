@@ -71,11 +71,17 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 if ('Update' in item) {
                     const fetchedItem = item.Update.priorFetch || fetchedItems.find((checkItem) => (checkItem[this._incomingKeyLabel] === item.Update.Key[this._incomingKeyLabel] && checkItem.DataCategory === item.Update.Key.DataCategory))
                     const updateTransaction = this._optimisticUpdateFactory(fetchedItem, item.Update)
+                    const { successCallback, succeedAll } = item.Update
                     if (updateTransaction.action === 'ignore') {
+                        if (succeedAll && successCallback) {
+                            successCallbacks = [...successCallbacks, () => { successCallback(fetchedItem as DBHandlerItem<KIncoming, T>, fetchedItem as DBHandlerItem<KIncoming, T>) }]
+                        }
                         return []
                     }
-                    const { successCallback } = item.Update
                     if (updateTransaction.action === 'delete') {
+                        if (succeedAll && successCallback) {
+                            successCallbacks = [...successCallbacks, () => { successCallback(fetchedItem as DBHandlerItem<KIncoming, T>, fetchedItem as DBHandlerItem<KIncoming, T>) }]
+                        }
                         return updateTransaction.deletes.map((deleteItem) => ({
                             Delete: {
                                 TableName: this._tableName,
