@@ -45,11 +45,9 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             internalCache.CharacterConnections.set(CharacterId, connections)
                             if (connections.length <= 1) {
                                 messageBus.send({
-                                    type: 'MoveCharacter',
+                                    type: 'CheckLocation',
                                     characterId: CharacterId,
-                                    roomId: RoomId || HomeId,
-                                    suppressSelfMessage: true,
-                                    arriveMessage: ' has connected.'
+                                    forceMove: true
                                 })
                                 messageBus.send({
                                     type: 'CacheCharacterAssets',

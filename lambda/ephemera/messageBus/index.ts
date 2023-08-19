@@ -171,7 +171,7 @@ messageBus.subscribe({
 })
 messageBus.subscribe({
     tag: 'CacheCharacterAssets',
-    priority: 5,
+    priority: 2,
     filter: isCacheCharacterAssetsMessage,
     callback: cacheCharacterAssetsMessage
 })
