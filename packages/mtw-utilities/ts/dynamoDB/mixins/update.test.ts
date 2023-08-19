@@ -47,7 +47,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: 'testOne, testTwo, testThree, testFour'
+                ProjectionExpression: 'testOne, testTwo, testThree, testFour, EphemeraId, DataCategory'
             })
             expect(dbMock.send.mock.calls[1][0].input).toEqual({
                 ConditionExpression: "testOne = :Old0 AND testTwo = :Old1 AND attribute_not_exists(testThree)",
@@ -131,7 +131,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: 'testOne, testTwo, testThree, testFour'
+                ProjectionExpression: 'testOne, testTwo, testThree, testFour, EphemeraId, DataCategory'
             })
             expect(dbMock.send.mock.calls[1][0].input).toEqual({
                 ConditionExpression: "testFour = :Old3",
@@ -173,7 +173,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: '#name, #zone, #key, #value',
+                ProjectionExpression: '#name, #zone, #key, #value, EphemeraId, DataCategory',
                 ExpressionAttributeNames: {
                     '#name': 'Name',
                     '#zone': 'zone',
@@ -229,7 +229,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: 'testOne, testTwo'
+                ProjectionExpression: 'testOne, testTwo, EphemeraId, DataCategory'
             })
             expect(dbMock.send.mock.calls[1][0].input).toEqual({
                 ConditionExpression: "attribute_not_exists(DataCategory)",
@@ -297,7 +297,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: 'optionalField'
+                ProjectionExpression: 'optionalField, EphemeraId, DataCategory'
             })
             expect(dbMock.send.mock.calls[1][0].input).toEqual({
                 ConditionExpression: "attribute_not_exists(optionalField)",
@@ -332,7 +332,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: 'listField'
+                ProjectionExpression: 'listField, EphemeraId, DataCategory'
             })
             expect(dbMock.send.mock.calls[1][0].input).toEqual({
                 ConditionExpression: "listField = :Old0",
@@ -370,7 +370,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: 'listField'
+                ProjectionExpression: 'listField, EphemeraId, DataCategory'
             })
             expect(dbMock.send.mock.calls[1][0].input).toEqual({
                 ConditionExpression: "listField = :Old0",
@@ -410,7 +410,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: 'listField'
+                ProjectionExpression: 'listField, EphemeraId, DataCategory'
             })
             expect(dbMock.send.mock.calls[1][0].input).toEqual({
                 ConditionExpression: "listField = :Old0",
@@ -443,12 +443,12 @@ describe('withUpdate', () => {
 
         it('should call successCallback if provided', async () => {
             dbMock.send
-                .mockResolvedValueOnce({ Item: marshall({ testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }) })
+                .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }) })
                 .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
 
             const successCallback = jest.fn()
             const output = await dbHandler.optimisticUpdate({
-                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                Key: { PrimaryKey: 'TEST', DataCategory: 'Meta::Test'},
                 updateKeys: ['testOne', 'testTwo', 'testThree', 'testFour'],
                 updateReducer: (draft) => {
                     draft.testOne = 'Different Test',
@@ -459,9 +459,9 @@ describe('withUpdate', () => {
             })
             expect(dbMock.send).toHaveBeenCalledTimes(2)
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
-                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                Key: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test'}),
                 TableName: 'Ephemera',
-                ProjectionExpression: 'testOne, testTwo, testThree, testFour'
+                ProjectionExpression: 'testOne, testTwo, testThree, testFour, EphemeraId, DataCategory'
             })
             expect(dbMock.send.mock.calls[1][0].input).toEqual({
                 ConditionExpression: "testOne = :Old0 AND testTwo = :Old1 AND attribute_not_exists(testThree)",
@@ -472,8 +472,8 @@ describe('withUpdate', () => {
                   ":Old1": "Also Testing"
                 }),
                 Key: marshall({
-                    EphemeraId: "TestOne",
-                    DataCategory: "DC1",
+                    EphemeraId: "TEST",
+                    DataCategory: "Meta::Test",
                 }),
                 TableName: "Ephemera",
                 UpdateExpression: "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
@@ -493,6 +493,49 @@ describe('withUpdate', () => {
                 testFour: "Unchanged"
             },
             {
+                PrimaryKey: "TEST",
+                DataCategory: "Meta::Test",
+                testOne: 'Testing',
+                testTwo: 'Also Testing',
+                testFour: 'Unchanged'
+            })
+        })
+
+        it('should call successCallback on delete or ignore if succeedAll is set', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1', testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }) })
+
+            const successCallback = jest.fn()
+            const output = await dbHandler.optimisticUpdate({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                updateKeys: ['testOne', 'testTwo', 'testThree', 'testFour'],
+                updateReducer: (draft) => {},
+                successCallback,
+                succeedAll: true
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                TableName: 'Ephemera',
+                ProjectionExpression: 'testOne, testTwo, testThree, testFour, EphemeraId, DataCategory'
+            })
+            expect(output).toEqual({
+                PrimaryKey: "TestOne",
+                DataCategory: "DC1",
+                testOne: "Testing",
+                testTwo: "Also Testing",
+                testFour: "Unchanged"
+            })
+            expect(successCallback).toHaveBeenCalledWith({
+                PrimaryKey: "TestOne",
+                DataCategory: "DC1",
+                testOne: "Testing",
+                testTwo: "Also Testing",
+                testFour: "Unchanged"
+            },
+            {
+                PrimaryKey: "TestOne",
+                DataCategory: "DC1",
                 testOne: 'Testing',
                 testTwo: 'Also Testing',
                 testFour: 'Unchanged'
