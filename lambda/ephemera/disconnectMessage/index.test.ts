@@ -51,7 +51,7 @@ describe("disconnectMessage", () => {
         connectionDBMock.transactWrite.mockImplementation(async (items) => {
             items.forEach((item) => {
                 if ('Update' in item && item.Update.successCallback) {
-                    item.Update.successCallback({ connections: [] })
+                    item.Update.successCallback({ connections: [] }, { connections: [] })
                 }
             })
         })
@@ -63,7 +63,10 @@ describe("disconnectMessage", () => {
                         Name: 'TestToo',
                         ConnectionIds: ['BCD']
                     }
-                ]})
+                ]},
+                {
+                    activeCharacters: []
+                })
             }
             return {}
         })
@@ -148,7 +151,7 @@ describe("disconnectMessage", () => {
         connectionDBMock.transactWrite.mockImplementation(async (items) => {
             items.forEach((item) => {
                 if ('Update' in item && item.Update.successCallback) {
-                    item.Update.successCallback({ connections: ['QRS'] })
+                    item.Update.successCallback({ connections: ['QRS'] }, { connections: [] })
                 }
             })
         })
@@ -165,7 +168,10 @@ describe("disconnectMessage", () => {
                         Name: 'Tess',
                         ConnectionIds: ['QRS']
                     }
-                ]})
+                ]},
+                {
+                    activeCharacters: []
+                })
             }
             return {}
         })

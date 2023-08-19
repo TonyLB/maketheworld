@@ -31,7 +31,7 @@ describe('cacheAsset', () => {
         jest.restoreAllMocks()
         ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer, successCallback }) => {
             const returnValue = produce(testEphemeraRecord, updateReducer)
-            successCallback?.(returnValue)
+            successCallback?.(returnValue, testEphemeraRecord)
             return returnValue
         })
         internalCacheMock.Global.get.mockResolvedValue(['Base', 'TownCenter'])

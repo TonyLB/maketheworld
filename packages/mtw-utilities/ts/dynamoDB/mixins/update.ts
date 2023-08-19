@@ -194,7 +194,7 @@ export type UpdateExtendedProps<KIncoming extends DBHandlerLegalKey, KeyType ext
     //
     // successCallback, if provided, is called with the results *only* after the update succeeds
     //
-    successCallback?: (output: T) => void;
+    successCallback?: (output: T, prior: T) => void;
 }
 
 type OptimisticUpdateFactoryOutput<T extends {}> = {
@@ -320,13 +320,15 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             let exponentialBackoff = 100
             let returnValue: Record<string, any> = {}
             let completed = false
+            let updated = false
+            let state: Update | { [x: string]: never } = {}
             while(!completed && (retries <= (maxRetries ?? 5))) {
                 completed = true
                 const stateFetch = ((!retries && priorFetch) || (await this.getItem<Update>({
                     Key,
                     ProjectionFields: updateKeys,
                 }))) as Update | { [x: string]: never } | undefined
-                const state = stateFetch || {}
+                state = stateFetch || {}
                 
                 const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer, checkKeys, deleteCondition, deleteCascade })
                 if (updateOutput.action === 'ignore') {
@@ -382,14 +384,15 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             }
                         }
                     }
+                    updated = true
                 }
             }
             //
             // TODO: Create custom error type to throw when the optimisticUpdate fails
             // entirely
             //
-            if (successCallback && completed) {
-                successCallback(returnValue as Update)
+            if (successCallback && updated) {
+                successCallback(returnValue as Update, state as Update)
             }
             return returnValue as Update
         }

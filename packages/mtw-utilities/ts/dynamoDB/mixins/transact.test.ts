@@ -280,6 +280,10 @@ describe('withTransactions', () => {
             PrimaryKey: 'TestUpdate',
             DataCategory: 'Update',
             TestValue: 5
+        },
+        {
+            PrimaryKey: 'TestUpdate',
+            DataCategory: 'Update'
         })
     })
 

@@ -36,7 +36,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], assets: string[]): void => {
     internalCacheMock.CharacterMeta.get.mockResolvedValue(characterMetaMock)
     ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ Key, updateReducer, successCallback }) => {
         const returnValue = produce(characterMetaMock, updateReducer)
-        successCallback?.(returnValue)
+        successCallback?.(returnValue, characterMetaMock)
         return returnValue
     })
 }
