@@ -24,7 +24,8 @@ import {
     isUnregisterCharacterMessage,
     isCacheAssetByIdMessage,
     isCacheCharacterAssetsMessage,
-    isCanonUpdateMessage
+    isCanonUpdateMessage,
+    isCheckLocation
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -45,6 +46,7 @@ import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscriptio
 import mapUpdateMessage from '../mapUpdate'
 import publishNotification from '../publishNotification'
 import { canonUpdateMessage } from '../canonUpdate'
+import checkLocation from "../checkLocation"
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -142,6 +144,12 @@ messageBus.subscribe({
     priority: 4,
     filter: isMoveCharacter,
     callback: moveCharacter
+})
+messageBus.subscribe({
+    tag: 'CheckLocation',
+    priority: 3,
+    filter: isCheckLocation,
+    callback: checkLocation
 })
 messageBus.subscribe({
     tag: 'DecacheAsset',
