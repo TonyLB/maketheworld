@@ -260,6 +260,11 @@ export type MoveCharacterMessage = {
     leaveMessage?: string;
 }
 
+export type CheckLocationMessage = {
+    type: 'CheckLocation';
+    characterId: EphemeraCharacterId;
+}
+
 export type DecacheAssetMessage = {
     type: 'DecacheAsset';
     assetId: string;
@@ -350,6 +355,7 @@ export type MessageType = PublishMessage |
     FetchImportDefaultsMessage |
     PerceptionMessage |
     MoveCharacterMessage |
+    CheckLocationMessage |
     DecacheAssetMessage |
     CacheAssetMessage |
     CacheAssetByIdMessage |
@@ -392,6 +398,7 @@ export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDef
 
 export const isPerception = (prop: MessageType): prop is PerceptionMessage => (prop.type === 'Perception')
 export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage => (prop.type === 'MoveCharacter')
+export const isCheckLocation = (prop: MessageType): prop is CheckLocationMessage => (prop.type === 'CheckLocation')
 
 export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')

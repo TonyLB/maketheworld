@@ -2,17 +2,21 @@ import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonyl
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
+import { RoomStackItem } from '../moveCharacter';
 
 export type CharacterMetaItem = {
     EphemeraId: EphemeraCharacterId;
     Name: string;
     RoomId: EphemeraRoomId;
+    RoomStack: RoomStackItem[];
     Color?: LegalCharacterColor;
     fileURL?: string;
     HomeId: EphemeraRoomId;
     assets: string[];
     Pronouns: NormalCharacterPronouns;
 }
+
+const defaultRoomStack = [{ asset: 'primitives', RoomId: 'VORTEX' }]
 
 export class CacheCharacterMetaData {
     CharacterMetaById: Record<EphemeraCharacterId, CharacterMetaItem> = {};
@@ -28,8 +32,8 @@ export class CacheCharacterMetaData {
                         EphemeraId: characterId,
                         DataCategory: 'Meta::Character'
                     },
-                    ProjectionFields: ['EphemeraId', 'Name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns']
-                }) || { EphemeraId: '', Name: '', RoomId: 'VORTEX', Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
+                    ProjectionFields: ['EphemeraId', 'Name', 'RoomId', 'RoomStack', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns']
+                }) || { EphemeraId: '', Name: '', RoomId: 'VORTEX', RoomStack: defaultRoomStack, Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
             if (options?.check && !characterData.EphemeraId) {
                 return undefined
             }
@@ -37,6 +41,7 @@ export class CacheCharacterMetaData {
                 ...characterData,
                 assets: characterData.assets || [],
                 RoomId: `ROOM#${characterData.RoomId || characterData.HomeId || 'VORTEX'}`,
+                RoomStack: characterData.RoomStack ?? defaultRoomStack,
                 HomeId: `ROOM#${characterData.HomeId || 'VORTEX'}`,
                 EphemeraId: characterId
             }
