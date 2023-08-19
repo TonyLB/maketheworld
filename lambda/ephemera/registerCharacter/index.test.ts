@@ -43,29 +43,7 @@ describe("registerCharacter", () => {
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
-        internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([{
-            EphemeraId: 'CHARACTER#BCD',
-            Name: 'TestToo',
-            ConnectionIds: ['QRS']
-        }])
-        internalCacheMock.CharacterConnections.get.mockResolvedValue([])
         connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['TestConnection']}))
-        ephemeraDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({
-            EphemeraId: 'ROOM#TestABC',
-            activeCharacters: [
-                {
-                    EphemeraId: 'CHARACTER#BCD',
-                    Name: 'TestToo',
-                    ConnectionIds: ['QRS']
-                },
-                {
-                    EphemeraId: 'CHARACTER#ABC',
-                    Name: 'Tess',
-                    Color: 'purple',
-                    ConnectionIds: ['TestConnection']
-                }
-            ]
-        }))
         await registerCharacter({
             payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }],
             messageBus
@@ -84,29 +62,6 @@ describe("registerCharacter", () => {
                 }
             }
         ])
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([
-            {
-                Update: {
-                    Key: {
-                        EphemeraId: 'ROOM#TestABC',
-                        DataCategory: 'Meta::Room'
-                    },
-                    updateKeys: ['activeCharacters'],
-                    updateReducer: expect.any(Function),
-                    successCallback: expect.any(Function)
-                }
-            },
-            {
-                Update: {
-                    Key: {
-                        EphemeraId: 'CHARACTER#ABC',
-                        DataCategory: 'Meta::Character'
-                    },
-                    updateKeys: ['RoomId', 'HomeId'],
-                    updateReducer: expect.any(Function)
-                }
-            }
-        ])
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
@@ -116,47 +71,17 @@ describe("registerCharacter", () => {
             }
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'EphemeraUpdate',
-            updates: [{
-                type: 'CharacterInPlay',
-                CharacterId: 'CHARACTER#ABC',
-                Connected: true,
-                Name: 'Tess',
-                RoomId: 'ROOM#TestABC',
-                fileURL: '',
-                Color: 'purple',
-                targets: ['GLOBAL', 'CONNECTION#TestConnection']
-            }]
+            type: 'MoveCharacter',
+            characterId: 'CHARACTER#ABC',
+            roomId: 'ROOM#TestABC',
+            suppressSelfMessage: true,
+            arriveMessage: ' has connected.'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            targets: ['ROOM#TestABC', '!CHARACTER#ABC'],
-            displayProtocol: 'WorldMessage',
-            message: [{
-                tag: 'String',
-                value: `Tess has connected.`
-            }]
+            type: 'CacheCharacterAssets',
+            characterId: 'CHARACTER#ABC'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'RoomUpdate',
-            roomId: 'ROOM#TestABC'
-        })
-        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'ROOM#TestABC',
-            value: [
-                {
-                    EphemeraId: 'CHARACTER#BCD',
-                    Name: 'TestToo',
-                    ConnectionIds: ['QRS']
-                },
-                {
-                    EphemeraId: 'CHARACTER#ABC',
-                    Name: 'Tess',
-                    Color: 'purple',
-                    ConnectionIds: ['TestConnection']
-                }
-            ]
-        })
+        expect(internalCacheMock.CharacterConnections.set).toHaveBeenCalledWith('CHARACTER#ABC', ['TestConnection'])
     })
 
     it("should update correctly on subsequent connections", async () => {
@@ -170,63 +95,9 @@ describe("registerCharacter", () => {
             assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
-        internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([{
-                EphemeraId: 'CHARACTER#ABC',
-                Name: 'Tess',
-                ConnectionIds: ['previous']
-            }])
-        internalCacheMock.CharacterConnections.get.mockResolvedValue(['previous'])
         connectionDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({ connections: ['previous', 'TestConnection']}))
-        ephemeraDBMock.transactWrite.mockImplementation(transactWriteMockImplementation({
-            EphemeraId: 'ROOM#TestABC',
-            activeCharacters: [
-                {
-                    EphemeraId: 'CHARACTER#ABC',
-                    Name: 'Tess',
-                    Color: 'purple',
-                    ConnectionIds: ['previous', 'TestConnection']
-                }
-            ]
-        }))
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'CHARACTER#ABC' }], messageBus })
-        expect(connectionDBMock.transactWrite).toHaveBeenCalledWith([
-            { Put: { ConnectionId: 'CONNECTION#TestConnection', DataCategory: 'CHARACTER#ABC' } },
-            {
-                Update: {
-                    Key: {
-                        ConnectionId: 'CHARACTER#ABC',
-                        DataCategory: 'Meta::Character'
-                    },
-                    updateKeys: ['connections'],
-                    updateReducer: expect.any(Function),
-                    successCallback: expect.any(Function)
-                }
-            }
-        ])
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([
-            {
-                Update: {
-                    Key: {
-                        EphemeraId: 'ROOM#TestABC',
-                        DataCategory: 'Meta::Room'
-                    },
-                    updateKeys: ['activeCharacters'],
-                    updateReducer: expect.any(Function),
-                    successCallback: expect.any(Function)
-                }
-            },
-            {
-                Update: {
-                    Key: {
-                        EphemeraId: 'CHARACTER#ABC',
-                        DataCategory: 'Meta::Character'
-                    },
-                    updateKeys: ['RoomId', 'HomeId'],
-                    updateReducer: expect.any(Function)
-                }
-            }
-        ])
-        expect(messageBusMock.send).toHaveBeenCalledTimes(2)
+        expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
@@ -235,21 +106,7 @@ describe("registerCharacter", () => {
                 RequestId: 'Request123'
             }
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'Perception',
-            characterId: 'CHARACTER#ABC',
-            ephemeraId: 'ROOM#TestABC',
-            header: true
-        })
-        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: 'ROOM#TestABC',
-            value: [{
-                EphemeraId: 'CHARACTER#ABC',
-                Name: 'Tess',
-                Color: 'purple',
-                ConnectionIds: ['previous', 'TestConnection']
-            }]
-        })
+        expect(internalCacheMock.CharacterConnections.set).toHaveBeenCalledWith('CHARACTER#ABC', ['previous', 'TestConnection'])
     })
 
 })
