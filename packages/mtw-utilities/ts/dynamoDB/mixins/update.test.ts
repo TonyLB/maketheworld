@@ -491,6 +491,11 @@ describe('withUpdate', () => {
                 testOne: "Different Test",
                 testThree: "New test",
                 testFour: "Unchanged"
+            },
+            {
+                testOne: 'Testing',
+                testTwo: 'Also Testing',
+                testFour: 'Unchanged'
             })
         })
     })

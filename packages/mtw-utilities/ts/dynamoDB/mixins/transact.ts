@@ -75,9 +75,6 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                         return []
                     }
                     const { successCallback } = item.Update
-                    if (successCallback) {
-                        successCallbacks = [...successCallbacks, () => { successCallback(updateTransaction.newState) }]
-                    }
                     if (updateTransaction.action === 'delete') {
                         return updateTransaction.deletes.map((deleteItem) => ({
                             Delete: {
@@ -87,6 +84,9 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                         }))
                     }
                     else {
+                        if (successCallback) {
+                            successCallbacks = [...successCallbacks, () => { successCallback(updateTransaction.newState, fetchedItem as DBHandlerItem<KIncoming, T>) }]
+                        }
                         return [{
                             Update: {
                                 TableName: this._tableName,
