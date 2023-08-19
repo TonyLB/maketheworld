@@ -17,20 +17,20 @@ import { RoomKey } from '@tonylb/mtw-utilities/dist/types'
 const internalCacheMock = jest.mocked(internalCache, true)
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
-const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId) => (ephemeraId: EphemeraId) => {
+const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, fromDisconnected?: boolean) => (ephemeraId: EphemeraId) => {
     const fromRoomId = RoomKey(fromRoomStack.slice(-1)[0]?.RoomId)
     switch(ephemeraId) {
         case toRoomId:
             return {
                 EphemeraId: toRoomId,
                 DataCategory: 'Meta::Room',
-                activeCharacters: [{ 'CHARACTER#TestTwo': { EphemeraId: 'CHARACTER#TestTwo', Name: 'TestTwo', Connections: ['zyxwvut'] } }]
+                activeCharacters: [{ EphemeraId: 'CHARACTER#TestTwo', Name: 'TestTwo', Connections: ['zyxwvut'] }]
             }
         case fromRoomId:
             return {
                 EphemeraId: fromRoomId,
                 DataCategory: 'Meta::Room',
-                activeCharacters: [{ 'CHARACTER#Test': { EphemeraId: 'CHARACTER#Test', Name: 'Test', Connections: ['abcdef'] } }]
+                activeCharacters: fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', Connections: ['abcdef'] }]
             }
         case 'CHARACTER#Test':
             return {
@@ -43,17 +43,19 @@ const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRo
     throw new Error(`Misuse of testEphemeraRecord utility (EphemeraId: ${ephemeraId}, args: ${JSON.stringify(fromRoomStack, null, 4)} x ${fromRoomId } x ${toRoomId})`)
 }
 
-const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, assets: string[]): void => {
+const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, assets: string[], fromDisconnected?: boolean): void => {
     ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ Key, updateReducer, successCallback }) => {
-        const returnValue = produce(testEphemeraRecord(fromRoomStack, toRoomId)(Key.EphemeraId as EphemeraId), updateReducer)
-        successCallback?.(returnValue)
+        const priorValue = testEphemeraRecord(fromRoomStack, toRoomId, fromDisconnected)(Key.EphemeraId as EphemeraId)
+        const returnValue = produce(priorValue, updateReducer)
+        successCallback?.(returnValue, priorValue)
         return returnValue
     })
     ephemeraDBMock.transactWrite.mockImplementation(async (items) => {
         items.forEach((item) => {
             if ('Update' in item && item.Update.successCallback) {
-                const returnValue = produce(testEphemeraRecord(fromRoomStack, toRoomId)(item.Update.Key.EphemeraId as EphemeraId), item.Update.updateReducer)
-                item.Update.successCallback(returnValue)
+                const priorValue = testEphemeraRecord(fromRoomStack, toRoomId, fromDisconnected)(item.Update.Key.EphemeraId as EphemeraId)
+                const returnValue = produce(priorValue, item.Update.updateReducer)
+                item.Update.successCallback(returnValue, priorValue)
             }
         })
     })
@@ -72,6 +74,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
             reflexive: 'themself'
         }
     })
+    internalCacheMock.RoomCharacterList.get.mockResolvedValue(fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', Name: 'Test', ConnectionIds: ['CONNECTION#abcdef'] }])
 }
 
 describe('moveCharacter', () => {
@@ -197,6 +200,86 @@ describe('moveCharacter', () => {
             characterId: 'CHARACTER#Test',
             previousRoomId: 'ROOM#VORTEX',
             roomId: 'ROOM#TestTwo'
+        })
+    })
+
+    it('should handle appearance from disconnected', async () => {
+        wrapMocks(
+            [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            'ROOM#VORTEX',
+            ['draftOne', 'draftTwo'],
+            true
+        )
+        await moveCharacter({
+            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#VORTEX', arriveMessage: ' has connected.', suppressSelfMessage: true }],
+            messageBus: messageBusMock
+        })
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([{
+            Update: {
+                Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
+                updateKeys: ['RoomId', 'RoomStack'],
+                updateReducer: expect.any(Function),
+                successCallback: expect.any(Function)
+            }
+        },
+        {
+            Update: {
+                Key: { EphemeraId: 'ROOM#VORTEX', DataCategory: 'Meta::Room' },
+                updateKeys: ['activeCharacters'],
+                updateReducer: expect.any(Function),
+                successCallback: expect.any(Function)
+            }
+        }])
+        const firstTransact = ephemeraDBMock.transactWrite.mock.calls[0][0][0]
+        if (!('Update' in firstTransact)) {
+            expect('Update' in firstTransact).toBe(true)
+        }
+        else {
+            expect(produce({ RoomId: 'ROOM#VORTEX', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }] }, firstTransact.Update.updateReducer)).toEqual({
+                RoomId: 'VORTEX',
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'VORTEX' }
+                ]
+            })
+        }
+        expect(messageBusMock.send).toHaveBeenCalledTimes(5)
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'EphemeraUpdate',
+            updates: [{
+                type: 'CharacterInPlay',
+                CharacterId: 'CHARACTER#Test',
+                Connected: true,
+                Name: 'Test',
+                RoomId: 'VORTEX',
+                fileURL: '',
+                Color: 'grey',
+                targets: ['GLOBAL', 'CONNECTION#abcdef'],
+            }]
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'Perception',
+            characterId: 'CHARACTER#Test',
+            ephemeraId: 'ROOM#VORTEX',
+            header: true
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['ROOM#VORTEX', '!CHARACTER#Test'],
+            displayProtocol: 'WorldMessage',
+            message: [{
+                tag: 'String',
+                value: 'Test has connected.'
+            }]
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'RoomUpdate',
+            roomId: 'ROOM#VORTEX'
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'MapUpdate',
+            characterId: 'CHARACTER#Test',
+            previousRoomId: 'ROOM#VORTEX',
+            roomId: 'ROOM#VORTEX'
         })
     })
 
