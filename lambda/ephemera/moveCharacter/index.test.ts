@@ -40,7 +40,7 @@ const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRo
                 RoomStack: fromRoomStack
             }
     }
-    throw new Error('Misuse of testEphemeraRecord utility')
+    throw new Error(`Misuse of testEphemeraRecord utility (EphemeraId: ${ephemeraId}, args: ${JSON.stringify(fromRoomStack, null, 4)} x ${fromRoomId } x ${toRoomId})`)
 }
 
 const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, assets: string[]): void => {
@@ -48,6 +48,14 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
         const returnValue = produce(testEphemeraRecord(fromRoomStack, toRoomId)(Key.EphemeraId as EphemeraId), updateReducer)
         successCallback?.(returnValue)
         return returnValue
+    })
+    ephemeraDBMock.transactWrite.mockImplementation(async (items) => {
+        items.forEach((item) => {
+            if ('Update' in item && item.Update.successCallback) {
+                const returnValue = produce(testEphemeraRecord(fromRoomStack, toRoomId)(item.Update.Key.EphemeraId as EphemeraId), item.Update.updateReducer)
+                item.Update.successCallback(returnValue)
+            }
+        })
     })
     internalCacheMock.CharacterMeta.get.mockResolvedValue({
         EphemeraId: 'CHARACTER#Test',
@@ -71,7 +79,7 @@ describe('moveCharacter', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        internalCacheMock.Global.get.mockResolvedValue(['primitives', 'TownCenter'])
+        internalCacheMock.Global.get.mockImplementation((key) => (key === 'assets' ? Promise.resolve(['primitives', 'TownCenter']) : Promise.resolve('abcdef')) as any),
         internalCacheMock.CharacterConnections.get.mockResolvedValue(['abcdef'])
 
         internalCacheMock.RoomAssets.get.mockImplementation(async (roomId) => {
@@ -106,7 +114,8 @@ describe('moveCharacter', () => {
             Update: {
                 Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
                 updateKeys: ['RoomId', 'RoomStack'],
-                updateReducer: expect.any(Function)
+                updateReducer: expect.any(Function),
+                successCallback: expect.any(Function)
             }
         },
         {
@@ -138,6 +147,57 @@ describe('moveCharacter', () => {
                 ]
             })
         }
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'EphemeraUpdate',
+            updates: [{
+                type: 'CharacterInPlay',
+                CharacterId: 'CHARACTER#Test',
+                Connected: true,
+                Name: 'Test',
+                RoomId: 'TestTwo',
+                fileURL: '',
+                Color: 'grey',
+                targets: ['GLOBAL', 'CONNECTION#abcdef'],
+            }]
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['ROOM#VORTEX', 'CHARACTER#Test'],
+            displayProtocol: 'WorldMessage',
+            message: [{
+                tag: 'String',
+                value: 'Test has left.'
+            }]
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'RoomUpdate',
+            roomId: 'ROOM#VORTEX'
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'Perception',
+            characterId: 'CHARACTER#Test',
+            ephemeraId: 'ROOM#TestTwo',
+            header: true
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['ROOM#TestTwo', 'CHARACTER#Test'],
+            displayProtocol: 'WorldMessage',
+            message: [{
+                tag: 'String',
+                value: 'Test has arrived.'
+            }]
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'RoomUpdate',
+            roomId: 'ROOM#TestTwo'
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'MapUpdate',
+            characterId: 'CHARACTER#Test',
+            previousRoomId: 'ROOM#VORTEX',
+            roomId: 'ROOM#TestTwo'
+        })
     })
 
     it('should replace items in RoomStack when moved in same asset', async () => {
@@ -168,7 +228,7 @@ describe('moveCharacter', () => {
     it('should add items to RoomStack when moved into a child asset', async () => {
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
-            'ROOM#TestThree',
+            'ROOM#TestFour',
             ['draftOne', 'draftTwo']
         )
         await moveCharacter({
@@ -194,7 +254,7 @@ describe('moveCharacter', () => {
     it('should remove items from RoomStack when moved back to a parent asset', async () => {
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }, { asset: 'draftOne', RoomId: 'TestFour' }],
-            'ROOM#TestFour',
+            'ROOM#TestOne',
             ['draftOne', 'draftTwo']
         )
         await moveCharacter({

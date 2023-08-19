@@ -3,6 +3,7 @@ import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dis
 import internalCache from "../internalCache"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { roomCharacterListReducer } from "../internalCache/baseClasses"
+import { EphemeraCharacterId, isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 export type RoomStackItem = {
     asset: string;
@@ -10,6 +11,7 @@ export type RoomStackItem = {
 }
 
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
+    const connectionId = await internalCache.Global.get('ConnectionId')
     await Promise.all(payloads.map(async (payload) => {
         //
         // TODO: Validate the RoomId as one that is valid for the character to move to, before
@@ -62,6 +64,21 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     }
                                 ]
                             }
+                        },
+                        successCallback: ({ RoomId }) => {
+                            messageBus.send({
+                                type: 'EphemeraUpdate',
+                                updates: [{
+                                    type: 'CharacterInPlay',
+                                    CharacterId: characterMeta.EphemeraId,
+                                    Name: characterMeta.Name || '',
+                                    Connected: true,
+                                    RoomId: RoomId || characterMeta.HomeId,
+                                    fileURL: characterMeta.fileURL || '',
+                                    Color: characterMeta.Color || 'grey',
+                                    targets: ['GLOBAL', `CONNECTION#${connectionId}`]
+                                }]        
+                            })
                         }
                     }
                 },
