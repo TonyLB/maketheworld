@@ -19,6 +19,10 @@ export class CacheCharacterConnectionsData {
         }
         return await this.CharacterConnectionsById[characterId]
     }
+
+    set(characterId: EphemeraCharacterId, connections: string[]): void {
+        this.CharacterConnectionsById[characterId] = Promise.resolve(connections)
+    }
 }
 
 export const CacheCharacterConnections = <GBase extends CacheConstructor>(Base: GBase) => {
