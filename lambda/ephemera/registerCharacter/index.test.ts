@@ -73,7 +73,8 @@ describe("registerCharacter", () => {
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'CheckLocation',
             characterId: 'CHARACTER#ABC',
-            forceMove: true
+            forceMove: true,
+            arriveMessage: ' has connected.'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'CacheCharacterAssets',

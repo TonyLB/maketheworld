@@ -10,14 +10,10 @@ import { EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const [ConnectionId, RequestId, mapSubscriptions] = await Promise.all([
-        internalCache.Global.get('ConnectionId'),
+    const [RequestId, mapSubscriptions] = await Promise.all([
         internalCache.Global.get('RequestId'),
         internalCache.Global.get('mapSubscriptions')
     ])
-    if (!ConnectionId) {
-        console.log('No ConnectionId specified in ephemeraUpdate')
-    }
 
     //
     // For reference later, calculate for each CharacterId that appears in the mapSubscriptions table, which connections

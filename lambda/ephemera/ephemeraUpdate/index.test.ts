@@ -17,7 +17,7 @@ describe('EphemeraUpdateMessage', () => {
     })
 
     it('should call apiClient against registered connectionId', async () => {
-        internalCacheMock.Global.get.mockResolvedValueOnce("TestConnection").mockResolvedValueOnce('Request123').mockResolvedValueOnce([])
+        internalCacheMock.Global.get.mockResolvedValueOnce('Request123').mockResolvedValueOnce([])
         await ephemeraUpdateMessage({
             payloads: [{
                 type: 'EphemeraUpdate',

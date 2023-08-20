@@ -497,15 +497,6 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                                 header: true
                             })
                         }
-                        else {
-                            const { HomeId } = await internalCache.CharacterMeta.get(characterEphemeraId)
-                            messageBus.send({
-                                type: 'MoveCharacter',
-                                characterId: characterEphemeraId,
-                                roomId: HomeId,
-                                leaveMessage: ' left to return home.'
-                            })            
-                        }
                     }
                 }
                 const [characterConnections] = await Promise.all([
@@ -516,6 +507,12 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     messageBus.send({
                         type: 'CacheCharacterAssets',
                         characterId: characterEphemeraId
+                    })
+                    messageBus.send({
+                        type: 'CheckLocation',
+                        characterId: characterEphemeraId,
+                        arriveMessage: ` has returned from visiting in a temporary space.`,
+                        leaveMessage: ` has lost access to this space, and been removed.`
                     })
                 }
             }
