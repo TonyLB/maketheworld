@@ -265,6 +265,9 @@ export type MoveCharacterMessage = {
 export type CheckLocationMessage = {
     type: 'CheckLocation';
     characterId: EphemeraCharacterId;
+    forceMove?: boolean;
+    arriveMessage?: string;
+    leaveMessage?: string;
 }
 
 export type DecacheAssetMessage = {

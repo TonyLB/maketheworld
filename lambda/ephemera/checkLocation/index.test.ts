@@ -84,7 +84,7 @@ describe('checkLocation', () => {
             Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
             updateKeys: ['RoomId', 'RoomStack'],
             updateReducer: expect.any(Function),
-            successCallback: expect.any(Function)
+            successCallback: expect.any(Function),
         })
         expect(produce(
                 {
@@ -127,7 +127,7 @@ describe('checkLocation', () => {
             Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
             updateKeys: ['RoomId', 'RoomStack'],
             updateReducer: expect.any(Function),
-            successCallback: expect.any(Function)
+            successCallback: expect.any(Function),
         })
         expect(produce(
                 {
@@ -149,4 +149,97 @@ describe('checkLocation', () => {
         expect(messageBusMock.send).toHaveBeenCalledTimes(0)
     })
 
+    it('should move on forceMove even when stack remains valid', async () => {
+        wrapMocks(
+            [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TownSquare' },
+                { asset: 'draftOne', RoomId: 'Laboratory' },
+                { asset: 'draftTwo', RoomId: 'Oubliette' }
+            ],
+            ['draftOne', 'draftTwo']
+        )
+        await checkLocation({
+            payloads: [{ type: 'CheckLocation', characterId: 'CHARACTER#Test', forceMove: true }],
+            messageBus: messageBusMock
+        })
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
+            updateKeys: ['RoomId', 'RoomStack'],
+            updateReducer: expect.any(Function),
+            successCallback: expect.any(Function),
+            succeedAll: true
+        })
+        expect(produce(
+                {
+                    RoomStack: [
+                        { asset: 'primitives', RoomId: 'VORTEX' },
+                        { asset: 'TownCenter', RoomId: 'TownSquare' },
+                        { asset: 'draftOne', RoomId: 'Laboratory' },
+                        { asset: 'draftTwo', RoomId: 'Oubliette' }
+                    ]
+                },
+                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
+            )).toEqual({
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'VORTEX' },
+                    { asset: 'TownCenter', RoomId: 'TownSquare' },
+                    { asset: 'draftOne', RoomId: 'Laboratory' },
+                    { asset: 'draftTwo', RoomId: 'Oubliette' }
+                ]
+            })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'MoveCharacter',
+            characterId: 'CHARACTER#Test',
+            roomId: 'ROOM#Oubliette'
+        })
+    })
+
+    it('should convey arriveMessage and leaveMessage', async () => {
+        wrapMocks(
+            [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TownSquare' },
+                { asset: 'draftOne', RoomId: 'Laboratory' },
+                { asset: 'draftTwo', RoomId: 'Oubliette' }
+            ],
+            ['draftOne', 'draftTwo']
+        )
+        await checkLocation({
+            payloads: [{ type: 'CheckLocation', characterId: 'CHARACTER#Test', forceMove: true, leaveMessage: ' has vanished.', arriveMessage: ' has appeared.' }],
+            messageBus: messageBusMock
+        })
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
+            updateKeys: ['RoomId', 'RoomStack'],
+            updateReducer: expect.any(Function),
+            successCallback: expect.any(Function),
+            succeedAll: true
+        })
+        expect(produce(
+                {
+                    RoomStack: [
+                        { asset: 'primitives', RoomId: 'VORTEX' },
+                        { asset: 'TownCenter', RoomId: 'TownSquare' },
+                        { asset: 'draftOne', RoomId: 'Laboratory' },
+                        { asset: 'draftTwo', RoomId: 'Oubliette' }
+                    ]
+                },
+                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
+            )).toEqual({
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'VORTEX' },
+                    { asset: 'TownCenter', RoomId: 'TownSquare' },
+                    { asset: 'draftOne', RoomId: 'Laboratory' },
+                    { asset: 'draftTwo', RoomId: 'Oubliette' }
+                ]
+            })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'MoveCharacter',
+            characterId: 'CHARACTER#Test',
+            roomId: 'ROOM#Oubliette',
+            leaveMessage: ' has vanished.',
+            arriveMessage: ' has appeared.'
+        })
+    })
 })

@@ -71,11 +71,9 @@ describe("registerCharacter", () => {
             }
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'MoveCharacter',
+            type: 'CheckLocation',
             characterId: 'CHARACTER#ABC',
-            roomId: 'ROOM#TestABC',
-            suppressSelfMessage: true,
-            arriveMessage: ' has connected.'
+            forceMove: true
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'CacheCharacterAssets',

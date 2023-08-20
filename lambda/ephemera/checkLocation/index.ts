@@ -19,7 +19,7 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
         ])
 
         const accessibleAssets = [...canonAssets, ...characterMeta.assets]
-        if (characterMeta.RoomStack.every(({ asset }) => (accessibleAssets.includes(asset)))) {
+        if (!payload.forceMove && characterMeta.RoomStack.every(({ asset }) => (accessibleAssets.includes(asset)))) {
             return
         }
 
@@ -38,20 +38,25 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
                 }
             },
             successCallback: ({ RoomStack, RoomId }) => {
+                const { forceMove, arriveMessage, leaveMessage } = payload
                 internalCache.CharacterMeta.set({ ...characterMeta, RoomStack })
                 const stackRoomId = (RoomStack as RoomStackItem[]).slice(-1)[0]?.RoomId
 
-                if (stackRoomId && (RoomKey(stackRoomId) !== RoomId)) {
+                if (forceMove || (stackRoomId && (RoomKey(stackRoomId) !== RoomId))) {
                     messageBus.send({
                         type: 'MoveCharacter',
                         characterId: payload.characterId,
-                        roomId: RoomKey(stackRoomId)
+                        roomId: RoomKey(stackRoomId),
+                        arriveMessage,
+                        leaveMessage,
+                        suppressSelfMessage: true
                         //
                         // TODO: Figure out UI for departure and arrival messages to differentiate from normal travel
                         //
                     })
                 }
-            }
+            },
+            succeedAll: payload.forceMove
         })
     }))
 }

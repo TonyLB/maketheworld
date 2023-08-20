@@ -24,7 +24,6 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 if (!characterFetch) {
                     return
                 }
-                const { HomeId, RoomId } = characterFetch
                 await connectionDB.transactWrite([
                     {
                         Put: {
@@ -45,10 +44,9 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             internalCache.CharacterConnections.set(CharacterId, connections)
                             if (connections.length <= 1) {
                                 messageBus.send({
-                                    type: 'MoveCharacter',
+                                    type: 'CheckLocation',
                                     characterId: CharacterId,
-                                    roomId: RoomId || HomeId,
-                                    suppressSelfMessage: true,
+                                    forceMove: true,
                                     arriveMessage: ' has connected.'
                                 })
                                 messageBus.send({
