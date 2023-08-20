@@ -48,7 +48,8 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
                         characterId: payload.characterId,
                         roomId: RoomKey(stackRoomId),
                         arriveMessage,
-                        leaveMessage
+                        leaveMessage,
+                        suppressSelfMessage: true
                         //
                         // TODO: Figure out UI for departure and arrival messages to differentiate from normal travel
                         //

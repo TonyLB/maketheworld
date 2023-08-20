@@ -29,10 +29,38 @@ describe('withUpdate', () => {
 
     describe('optimisticUpdate', () => {
 
+        it('should ignore when update produces no change', async () => {
+            dbMock.send
+                .mockResolvedValueOnce({ Item: marshall({ testOne: 'Testing', testTwo: { testing: 'Map' }, testThree: [{ nested: 'List' }] }) })
+                .mockResolvedValueOnce({})
+
+            const output = await dbHandler.optimisticUpdate({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                updateKeys: ['testOne', 'testTwo', 'testThree'],
+                updateReducer: (draft) => {
+                    draft.testTwo = { ...draft.testTwo }
+                    draft.testThree = [...draft.testThree]
+                }
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                TableName: 'Ephemera',
+                ProjectionExpression: 'testOne, testTwo, testThree, EphemeraId, DataCategory'
+            })
+            expect(output).toEqual({
+                PrimaryKey: "TestOne",
+                DataCategory: "DC1",
+                testOne: "Testing",
+                testTwo: { testing: 'Map' },
+                testThree: [{ nested: 'List' }]
+            })
+        })
+
         it('should remap incoming primary key', async () => {
             dbMock.send
                 .mockResolvedValueOnce({ Item: marshall({ testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }) })
-                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
+                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
 
             const output = await dbHandler.optimisticUpdate({
                 Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
@@ -65,8 +93,8 @@ describe('withUpdate', () => {
                 UpdateExpression: "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
             })
             expect(output).toEqual({
-                PrimaryKey: "TEST",
-                DataCategory: "Meta::Test",
+                PrimaryKey: "TestOne",
+                DataCategory: "DC1",
                 testOne: "Different Test",
                 testThree: "New test",
                 testFour: "Unchanged"
@@ -75,7 +103,7 @@ describe('withUpdate', () => {
 
         it('should accept priorFetch argument', async () => {
             dbMock.send
-                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
+                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
 
             const output = await dbHandler.optimisticUpdate<{ testOne: string; testTwo?: string; testThree?: string; testFour: string }>({
                 Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
@@ -104,8 +132,8 @@ describe('withUpdate', () => {
                 UpdateExpression: "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
             })
             expect(output).toEqual({
-                PrimaryKey: "TEST",
-                DataCategory: "Meta::Test",
+                PrimaryKey: "TestOne",
+                DataCategory: "DC1",
                 testOne: "Different Test",
                 testThree: "New test",
                 testFour: "Unchanged"
@@ -115,7 +143,7 @@ describe('withUpdate', () => {
         it('should accept checkKeys argument', async () => {
             dbMock.send
                 .mockResolvedValueOnce({ Item: marshall({ testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }) })
-                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
+                .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1', testOne: 'Different Test', testThree: 'New test', testFour: 'Unchanged' })})
 
             const output = await dbHandler.optimisticUpdate<{ testOne: string; testTwo?: string; testThree?: string; testFour: string }>({
                 Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
@@ -148,13 +176,14 @@ describe('withUpdate', () => {
                 UpdateExpression: "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
             })
             expect(output).toEqual({
-                PrimaryKey: "TEST",
-                DataCategory: "Meta::Test",
+                PrimaryKey: "TestOne",
+                DataCategory: "DC1",
                 testOne: "Different Test",
                 testThree: "New test",
                 testFour: "Unchanged"
             })
         })
+
         it('should replace reserved words with ExpressionAttributeName items', async () => {
             dbMock.send
                 .mockResolvedValueOnce({ Item: marshall({ Name: 'Testing', zone: 'Also Testing', value: 'Unchanged' }) })
@@ -202,8 +231,8 @@ describe('withUpdate', () => {
                 }
             })
             expect(output).toEqual({
-                PrimaryKey: "TEST",
-                DataCategory: "Meta::Test",
+                PrimaryKey: "TestOne",
+                DataCategory: "DC1",
                 Name: "Different Test",
                 key: "New test",
                 value: "Unchanged"

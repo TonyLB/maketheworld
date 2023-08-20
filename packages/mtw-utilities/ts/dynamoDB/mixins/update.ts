@@ -8,6 +8,7 @@ import withGetOperations from "./get"
 import { DEVELOPER_MODE } from '../../constants'
 import delayPromise from "../delayPromise"
 import { unique } from "../../lists"
+import { deepEqual } from "../../objects"
 
 type DynamicUpdateOutputCommon<T extends Record<string, any>> = {
     ExpressionAttributeNames: Record<string, any>;
@@ -39,7 +40,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
     const { ExpressionAttributeNames } = mapProjectionFields(updateKeys)
     const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
     const newState = produce(state || {}, reducer) as T
-    if (newState === state) {
+    if (deepEqual(newState, state)) {
         return { action: 'ignore' }
     }
     if (typeof state === 'object' && typeof newState === 'object') {
@@ -71,7 +72,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, reducer, c
                             draft.ExpressionAttributeNames[translatedKey] = key
                         }
                     }
-                    else if (newState[key] !== state[key]) {
+                    else if (!deepEqual(newState[key], state[key])) {
                         //
                         // Update existing item to new value
                         //
@@ -335,7 +336,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 
                 const updateOutput = this._optimisticUpdateFactory(stateFetch, { Key, updateKeys, updateReducer, checkKeys, deleteCondition, deleteCascade })
                 if (updateOutput.action === 'ignore') {
-                    returnValue = state
+                    returnValue = { ...Key, ...state}
                     break
                 }
                 else if (updateOutput.action === 'delete') {
@@ -344,6 +345,9 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             TableName: this._tableName,
                             ...deleteItem
                         })))))
+                        if (successCallback && succeedAll) {
+                            returnValue = { ...Key, ...state}
+                        }
                     }
                     catch (err: any) {
                         if (err.code === 'ConditionalCheckFailedException') {
@@ -369,7 +373,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             ReturnValues: props.ReturnValues,
                             ...updateOutput.update
                         }))
-                        returnValue = this._remapOutgoingObject(unmarshall(Attributes) as any)
+                        returnValue = this._remapOutgoingObject(props.ReturnValues ? unmarshall(Attributes) as any : { ...Key, ...updateOutput.newState })
                     }
                     catch (err: any) {
                         if (err.code === 'ConditionalCheckFailedException') {
