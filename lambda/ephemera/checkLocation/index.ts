@@ -1,4 +1,4 @@
-import { MoveCharacterMessage, MessageBus, CheckLocationMessage, isCheckLocationPlayer } from "../messageBus/baseClasses"
+import { MoveCharacterMessage, MessageBus, CheckLocationMessage, isCheckLocationPlayer, isCheckLocationRoom, CheckLocationPlayerMessage } from "../messageBus/baseClasses"
 import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
@@ -11,11 +11,29 @@ import { RoomStackItem } from "../moveCharacter"
 // then a moveCharacter action is queued in order to relocate the character somewhere legal
 //
 export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckLocationMessage[], messageBus: MessageBus }): Promise<void> => {
-        //
-        // TODO: Refactor checkLocation to scan payloads for roomId types and expand them out into characterId types using
-        // the current active characters in the room
-        //
-        await Promise.all(payloads.filter(isCheckLocationPlayer).map(async (payload) => {
+    //
+    // TODO: Refactor checkLocation to scan payloads for roomId types and expand them out into characterId types using
+    // the current active characters in the room
+    //
+    const roomPayloads = payloads.filter(isCheckLocationRoom)
+    const roomLookupPayloads: CheckLocationPlayerMessage[] = (await Promise.all(
+        roomPayloads.map(async (payload) => {
+            const { roomId, ...rest } = payload
+            const characterList = await internalCache.RoomCharacterList.get(roomId)
+            return characterList.map(({ EphemeraId }) => ({
+                ...rest,
+                characterId: EphemeraId
+            }))
+        })
+    )).flat()
+    const finalPayloads = roomLookupPayloads.reduce<CheckLocationPlayerMessage[]>((previous, payload) => {
+        if (previous.find(({ characterId }) => (payload.characterId === characterId))) {
+            return previous
+        }
+        return [...previous, payload]
+    }, payloads.filter(isCheckLocationPlayer))
+
+    await Promise.all(finalPayloads.map(async (payload) => {
 
         const [characterMeta, canonAssets = []] = await Promise.all([
             internalCache.CharacterMeta.get(payload.characterId),

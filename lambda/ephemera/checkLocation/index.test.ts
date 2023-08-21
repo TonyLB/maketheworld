@@ -245,4 +245,52 @@ describe('checkLocation', () => {
             suppressSelfMessage: true
         })
     })
+
+    it('should update characters in room when roomId passed', async () => {
+        wrapMocks(
+            [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TownSquare' },
+                { asset: 'draftOne', RoomId: 'Laboratory' },
+                { asset: 'draftTwo', RoomId: 'Oubliette' }
+            ],
+            ['draftOne']
+        )
+        internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', Name: 'Test', ConnectionIds: [] }])
+        await checkLocation({
+            payloads: [{ type: 'CheckLocation', roomId: 'ROOM#Oubliette', leaveMessage: ' has vanished.', arriveMessage: ' has appeared.' }],
+            messageBus: messageBusMock
+        })
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
+            updateKeys: ['RoomId', 'RoomStack'],
+            updateReducer: expect.any(Function),
+            successCallback: expect.any(Function)
+        })
+        expect(produce(
+                {
+                    RoomStack: [
+                        { asset: 'primitives', RoomId: 'VORTEX' },
+                        { asset: 'TownCenter', RoomId: 'TownSquare' },
+                        { asset: 'draftOne', RoomId: 'Laboratory' },
+                        { asset: 'draftTwo', RoomId: 'Oubliette' }
+                    ]
+                },
+                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
+            )).toEqual({
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'VORTEX' },
+                    { asset: 'TownCenter', RoomId: 'TownSquare' },
+                    { asset: 'draftOne', RoomId: 'Laboratory' }
+                ]
+            })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'MoveCharacter',
+            characterId: 'CHARACTER#Test',
+            roomId: 'ROOM#Laboratory',
+            leaveMessage: ' has vanished.',
+            arriveMessage: ' has appeared.',
+            suppressSelfMessage: true
+        })
+    })
 })
