@@ -7,7 +7,10 @@ import { AssetKey } from '@tonylb/mtw-utilities/dist/types';
 import topologicalSort from '../mtw-utilities/dist/graphStorage/utils/graph/topologicalSort';
 
 export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: CanonUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const previousAssets = (await internalCache.Global.get('assets')) || []
+    const [previousAssets = []] = await Promise.all([
+        internalCache.Global.get('assets'),
+        
+    ])
     const assetGraph = await internalCache.Graph.get(
         unique(
             previousAssets,
@@ -54,17 +57,21 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
         successCallback: ({ assets }) => {
             internalCache.Global.set({ key: 'assets', value: assets })
             if (messageBus) {
+                const removedAssets = previousAssets.filter((previousAsset) => (!assets.find((currentAsset) => (currentAsset === previousAsset))))
                 const changedAssets = [
-                    ...(previousAssets.filter((previousAsset) => (!assets.find((currentAsset) => (currentAsset === previousAsset))))),
+                    ...removedAssets,
                     ...(assets.filter((currentAsset) => (!previousAssets.find((previousAsset) => (currentAsset === previousAsset))))
                     )
                 ]
                 changedAssets.forEach((assetId) => {
-                        messageBus.send({
-                            type: 'Perception',
-                            ephemeraId: `ASSET#${assetId}`
-                        })    
+                    messageBus.send({
+                        type: 'Perception',
+                        ephemeraId: `ASSET#${assetId}`
                     })
+                })
+                if (removedAssets.length) {
+
+                }
             }
         },
         ReturnValues: 'UPDATED_NEW'

@@ -1,4 +1,4 @@
-import { MoveCharacterMessage, MessageBus, CheckLocationMessage } from "../messageBus/baseClasses"
+import { MoveCharacterMessage, MessageBus, CheckLocationMessage, isCheckLocationPlayer } from "../messageBus/baseClasses"
 import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
@@ -11,7 +11,11 @@ import { RoomStackItem } from "../moveCharacter"
 // then a moveCharacter action is queued in order to relocate the character somewhere legal
 //
 export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckLocationMessage[], messageBus: MessageBus }): Promise<void> => {
-    await Promise.all(payloads.map(async (payload) => {
+        //
+        // TODO: Refactor checkLocation to scan payloads for roomId types and expand them out into characterId types using
+        // the current active characters in the room
+        //
+        await Promise.all(payloads.filter(isCheckLocationPlayer).map(async (payload) => {
 
         const [characterMeta, canonAssets = []] = await Promise.all([
             internalCache.CharacterMeta.get(payload.characterId),
