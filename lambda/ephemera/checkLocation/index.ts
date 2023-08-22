@@ -1,7 +1,7 @@
-import { MoveCharacterMessage, MessageBus, CheckLocationMessage, isCheckLocationPlayer, isCheckLocationRoom, CheckLocationPlayerMessage } from "../messageBus/baseClasses"
-import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { MessageBus, CheckLocationMessage, isCheckLocationPlayer, isCheckLocationRoom, CheckLocationPlayerMessage, isCheckLocationAsset, CheckLocationRoomMessage } from "../messageBus/baseClasses"
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
-import { RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
+import { RoomKey } from "@tonylb/mtw-utilities/dist/types"
 import { RoomStackItem } from "../moveCharacter"
 
 //
@@ -12,8 +12,27 @@ import { RoomStackItem } from "../moveCharacter"
 //
 export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckLocationMessage[], messageBus: MessageBus }): Promise<void> => {
     //
-    // TODO: Refactor checkLocation to scan payloads for roomId types and expand them out into characterId types using
-    // the current active characters in the room
+    // Scan payloads for assetId types and expand them out into roomId types using
+    // the descendants of the assetId
+    //
+    const assetPayloads = payloads.filter(isCheckLocationAsset)
+    const assetDescendantGraph = await internalCache.Graph.get(assetPayloads.map(({ assetId }) => (assetId)), 'forward')
+    const secondPayloads = assetPayloads.reduce<(CheckLocationPlayerMessage | CheckLocationRoomMessage)[]>((previous, payload) => {
+        const { assetId, ...rest } = payload
+        //
+        // TODO: Find room descendants that can be reached from the node by using only edges that
+        // have context equal to the asset Key.
+        //
+
+        //
+        // TODO: Add roomId payloads if they do not already exist in the previous listing
+        //
+        return previous
+    }, payloads.filter((payload): payload is (CheckLocationPlayerMessage | CheckLocationRoomMessage) => (!isCheckLocationAsset(payload))))
+
+    //
+    // Scan payloads for roomId types and expand them out into characterId types using
+    // the characterList items of each room
     //
     const roomPayloads = payloads.filter(isCheckLocationRoom)
     const roomLookupPayloads: CheckLocationPlayerMessage[] = (await Promise.all(

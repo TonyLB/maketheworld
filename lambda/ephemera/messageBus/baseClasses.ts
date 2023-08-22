@@ -277,7 +277,11 @@ export type CheckLocationRoomMessage = CheckLocationMessageInvariantPayload & {
     roomId: EphemeraRoomId
 }
 
-export type CheckLocationMessage = CheckLocationPlayerMessage | CheckLocationRoomMessage
+export type CheckLocationAssetMessage = CheckLocationMessageInvariantPayload & {
+    assetId: EphemeraAssetId
+}
+
+export type CheckLocationMessage = CheckLocationPlayerMessage | CheckLocationRoomMessage | CheckLocationAssetMessage
 
 export type DecacheAssetMessage = {
     type: 'DecacheAsset';
@@ -415,6 +419,7 @@ export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage
 export const isCheckLocation = (prop: MessageType): prop is CheckLocationMessage => (prop.type === 'CheckLocation')
 export const isCheckLocationPlayer = (prop: MessageType): prop is CheckLocationPlayerMessage => (isCheckLocation(prop) && 'characterId' in prop)
 export const isCheckLocationRoom = (prop: MessageType): prop is CheckLocationRoomMessage => (isCheckLocation(prop) && 'roomId' in prop)
+export const isCheckLocationAsset = (prop: MessageType): prop is CheckLocationAssetMessage => (isCheckLocation(prop) && 'assetId' in prop)
 
 export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')

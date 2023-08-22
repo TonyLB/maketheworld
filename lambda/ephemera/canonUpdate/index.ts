@@ -8,8 +8,7 @@ import topologicalSort from '../mtw-utilities/dist/graphStorage/utils/graph/topo
 
 export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: CanonUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     const [previousAssets = []] = await Promise.all([
-        internalCache.Global.get('assets'),
-        
+        internalCache.Global.get('assets')
     ])
     const assetGraph = await internalCache.Graph.get(
         unique(
@@ -54,7 +53,7 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
             draft.assets = topologicalSort(unsortedGraph).flat().map((assetKey) => (assetKey.split('#')?.[1] || ''))
         },
         priorFetch: { EphemeraId: 'Global', DataCategory: 'Assets', assets: previousAssets },
-        successCallback: ({ assets }) => {
+        successCallback: ({ assets }, { assets: previousAssets }) => {
             internalCache.Global.set({ key: 'assets', value: assets })
             if (messageBus) {
                 const removedAssets = previousAssets.filter((previousAsset) => (!assets.find((currentAsset) => (currentAsset === previousAsset))))
@@ -69,9 +68,9 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
                         ephemeraId: `ASSET#${assetId}`
                     })
                 })
-                if (removedAssets.length) {
-
-                }
+                removedAssets.forEach((assetId) => {
+                    
+                })
             }
         },
         ReturnValues: 'UPDATED_NEW'
