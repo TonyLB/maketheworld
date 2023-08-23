@@ -365,7 +365,7 @@ const pushCharacterEphemeraToInternalCache = async (character: EphemeraCharacter
     if (!previous) {
         return undefined
     }
-    const sortedAssets = topologicalSort(graph.subGraph(character.assets.map(AssetKey)).reverse()).flat().map((assetId) => (assetId.split('#')?.[1] || '')).filter((value) => (value))
+    const sortedAssets = topologicalSort(graph.filter({ keys: character.assets.map(AssetKey) }).reverse()).flat().map((assetId) => (assetId.split('#')?.[1] || '')).filter((value) => (value))
     const updated: CharacterMetaItem = {
         ...previous,
         Pronouns: character.Pronouns,
