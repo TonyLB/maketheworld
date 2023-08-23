@@ -108,7 +108,7 @@ describe('Graph class', () => {
 
     })
 
-    describe('subGraph', () => {
+    describe('filter', () => {
         let testNodes: Record<string, { key: string }>
         let testEdges: GraphEdge<string, {}>[]
 
@@ -131,9 +131,9 @@ describe('Graph class', () => {
             ]
         })
 
-        it('should deliver a subGraph', () => {
+        it('should deliver a subGraph when filtered by key nodes', () => {
             const testGraph = new Graph(testNodes, testEdges, {},  true)
-            const subGraph = testGraph.subGraph(['A', 'C', 'D', 'E', 'G'])
+            const subGraph = testGraph.filter({ keys: ['A', 'C', 'D', 'E', 'G'] })
             expect(subGraph.directional).toBe(true)
             expect(Object.keys(subGraph.nodes).sort()).toEqual(['A', 'C', 'D', 'E'])
             expect(subGraph.edges.sort(compareEdges)).toEqual([

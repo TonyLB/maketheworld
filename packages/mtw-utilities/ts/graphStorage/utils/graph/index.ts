@@ -54,6 +54,10 @@ export class GraphNode <K extends string, T extends { key: K } & Record<string, 
 
 }
 
+export type GraphFilterArguments<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = {
+    keys?: K[]
+}
+
 export class Graph <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> {
     nodes: Partial<Record<K, T>>
     edges: GraphEdge<K, E>[]
@@ -85,15 +89,6 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
             const newNode = callback(previousNode)
             this.setNode(previousNode.key, newNode)
         })
-    }
-
-    subGraph(keys: K[]): Graph<K, T, E> {
-        return new Graph(
-            objectFilter(this.nodes as Record<string, T>, ({ key }) => (keys.includes(key))) as Record<K, T>,
-            this.edges.filter(({ from, to }) => (keys.includes(from) && keys.includes(to))),
-            this._default,
-            this.directional
-        )
     }
 
     reverse(): Graph<K, T, E> {
@@ -136,7 +131,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     fromRoot(rootKey: K): Graph<K, T, E> {
         let subGraphKeys: K[] = []
         this.simpleWalk(rootKey, (key) => (subGraphKeys.push(key)))
-        return this.subGraph(subGraphKeys)
+        return this.filter({ keys: subGraphKeys })
     }
 
     addEdge(edge: GraphEdge<K, E>): void {
@@ -195,5 +190,25 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         }
         await Promise.all(Object.values(resultPromises))
 
+    }
+
+    filter(props: GraphFilterArguments<K, T, E>): Graph<K, T, E> {
+        //
+        // TODO: Refactor filter to start from first generation of connected components and simple-walk
+        // forward applying conditions as it goes (what does this mean for 'keys' argument?  Would
+        // nodes not specified, but required to connect the graph, be included?)
+        //
+        if ('keys' in props) {
+            const { keys } = props
+            if (keys) {
+                return new Graph(
+                    objectFilter(this.nodes as Record<string, T>, ({ key }) => (keys.includes(key))) as Record<K, T>,
+                    this.edges.filter(({ from, to }) => (keys.includes(from) && keys.includes(to))),
+                    this._default,
+                    this.directional
+                )
+            }
+        }
+        return this
     }
 }
