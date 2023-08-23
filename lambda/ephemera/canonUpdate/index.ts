@@ -47,7 +47,7 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
                         .filter((value): value is string => (Boolean(value)))
                 )
             }
-            const unsortedGraph = assetGraph.subGraph(unsortedAssets.map((assetId) => (AssetKey(assetId)))).reverse()
+            const unsortedGraph = assetGraph.filter({ keys: unsortedAssets.map((assetId) => (AssetKey(assetId))) }).reverse()
             draft.assets = topologicalSort(unsortedGraph).flat().map((assetKey) => (assetKey.split('#')?.[1] || ''))
         },
         priorFetch: { EphemeraId: 'Global', DataCategory: 'Assets', assets: previousAssets },
