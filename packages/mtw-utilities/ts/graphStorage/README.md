@@ -43,8 +43,6 @@ added, removed, or their connections updated
 
 ---
 
-### Source of Truth storage
-
 *Any graph is stored as a set of Nodes and a set of Edges.*
 
 #### GraphNode
@@ -122,6 +120,24 @@ Whenever an edge is added, it must be added to the edge-sets of both nodes with 
 Likewise when an edge is removed. If these additions or deletions change the set of direct connections
 (i.e., no similar edge exists with a different context) then the GraphNodeCache must have its invalidated
 property set to the current EpochTime.
+
+---
+
+### Filter and Restrict
+
+---
+
+The Graph class utility provides two ways to select a sub-graph from an existing graph:
+- The **filter** method views the entire graph simultaneously, selecting nodes or edges based upon their
+individual qualities.  So you could filter for a sub-graph including only certain nodes (and only the
+edges between them).  But you could not effectively filter for only nodes that exist in certain relationships
+to each other.
+- The **restrict** method is more computationally expensive per node, but selects nodes and edges
+using a graph-walk algorithm. So you can restrict a sub-graph to contain only elements that can be reached
+from a certain set of root nodes by following edges of a specific context ... and edges later in the graph
+that have that context (but cannot be reached exclusively through such edges) would be excluded:  They would
+match a filter condition, but are not in the right relationship with other items in the graph to succeed
+in a restrict condition.
 
 ---
 
