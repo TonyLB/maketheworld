@@ -32,7 +32,7 @@ export const connectedComponents = <K extends string, T extends { key: K } & Rec
         : previous
     ), {})
 
-    return Object.values(keysByComponent).map((keys) => (graph.subGraph(keys))).sort(compareComponents)
+    return Object.values(keysByComponent).map((keys) => (graph.filter({ keys }))).sort(compareComponents)
 }
 
 export default connectedComponents
