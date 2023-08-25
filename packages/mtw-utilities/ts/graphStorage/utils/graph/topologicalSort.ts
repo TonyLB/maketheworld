@@ -105,7 +105,11 @@ const tarjanStrongConnect = <K extends string, T extends { key: K } & Record<str
 
 export const topologicalSort = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>): K[][] => {
     if (!graph.directional) {
-        throw new Error('generationOrder method is meaningless on undirected graphs')
+        //
+        // topological Sort is undetermined on undirected graphs, so just return all keys
+        // as an answer equally valid/invalid with any others
+        //
+        return [Object.keys(graph.nodes) as K[]]
     }
 
     const { strongComponents } = (Object.keys(graph.nodes) as K[]).reduce<TarjanRecursiveReduceData<K>>(tarjanStrongConnect(graph), {

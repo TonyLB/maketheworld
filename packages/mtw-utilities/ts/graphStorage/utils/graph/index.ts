@@ -78,7 +78,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     edges: GraphEdge<K, E>[]
     directional: boolean;
     _default: Omit<T, 'key'>;
-    _alreadyVisited: K[] = [];
+    _topologicalSortCache?: K[][];
 
     constructor(nodes: Partial<Record<K, T>>, edges: GraphEdge<K, E>[], defaultItem: Omit<T, 'key'>, directional: boolean = false) {
         this.nodes = { ...nodes }
@@ -128,11 +128,6 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     }
     
     //
-    // TODO: Refactor simpleWalkIterator to take a previous set of values and reduce to a next set of values,
-    // rather than recursing in place
-    //
-
-    //
     // TODO: Extend simpleWalk to progress from a set of keys, rather than a single key, and move forward in waves.
     //
 
@@ -140,12 +135,8 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     // TODO: Extend simpleWalk options for edge restriction
     //
     _simpleWalkIterator(key: K, callback: (key: K) => void, options?: GraphSimpleWalkIteratorOptions<K, T, E>): (previous: Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>) => Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>> {
-        return (previous) => {
+        return ((previous) => {
             const { condition = () => (true), allPaths = false, previousPath = [] } = options || {}
-            if (this._alreadyVisited.includes(key)) {
-                return previous
-            }
-            this._alreadyVisited.push(key)
             const edges = this.getNode(key)?.edges || []
             callback(key)
             return Object.assign(previous,
@@ -162,25 +153,19 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
                     return { [edge.to]: {
                         key: edge.to,
                         validPaths: [],
-                        completed: false
+                        completed: previous[edge.to]?.completed
                     } }
-                })
+                }),
                 //
-                // TODO: Set the current node being visited to have completed: true
+                // Set the current node being visited to have completed: true
                 //
+                { [key]: {
+                    ...previous[key] || { key, validPaths: [] },
+                    completed: true
+                } }
             )
-        }
+        }).bind(this)
     }
-
-    //
-    // TODO: Refactor topologicalSort to cache the sort when first called, invalidate if the graph is changed,
-    // and return a cached value if available
-    //
-
-    //
-    // TODO: Create a topologicalSortOrder utility method on the class to allow sorting lists that extend { key: K }
-    // into topologicalSortOrder
-    //
 
     //
     // TODO: Refactor simpleWalk to use the new _simpleWalkIterator reducer as long as it returns values that have
@@ -188,9 +173,18 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     // record to iterate on next.
     //
     simpleWalk(key: K, callback: (key: K) => void): void {
-        this._alreadyVisited = []
-        this._simpleWalkIterator(key, callback)
-        this._alreadyVisited = []
+        let walkedNodes = {
+            [key]: {
+                key,
+                validPaths: [[]] as E[][],
+                completed: false
+            }
+        } as Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>
+        const sortOrder = this._topologicalSortOrder.bind(this)
+        let nextNode: GraphSimpleWalkIteratorInProcess<K, T, E> | undefined
+        while(nextNode = (Object.values(walkedNodes) as GraphSimpleWalkIteratorInProcess<K, T, E>[]).sort(sortOrder).find(({ completed }) => (!completed))) {
+            walkedNodes = this._simpleWalkIterator(nextNode.key, callback)(walkedNodes)
+        }
     }
 
     fromRoot(rootKey: K): Graph<K, T, E> {
@@ -208,10 +202,24 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
             this.nodes[to] = { key: to, ...this._default } as T
         }
         this.edges.push(edge)
+        this._topologicalSortCache = undefined
     }
 
     topologicalSort(): K[][] {
-        return topologicalSort(this)
+        if (!this._topologicalSortCache) {
+            this._topologicalSortCache = topologicalSort(this)
+        }
+        return this._topologicalSortCache
+    }
+
+    _topologicalSortOrder(a: { key: K }, b: { key: K }): number {
+        const sortList = this.topologicalSort()
+        const aIndex = sortList.findIndex((keys) => (keys.includes(a.key)))
+        const bIndex = sortList.findIndex((keys) => (keys.includes(b.key)))
+        if (aIndex === -1 || bIndex === -1) {
+            throw new Error('Item not found in topologicalSortOrder')
+        }
+        return Math.sign(aIndex - bIndex)
     }
 
     generationOrder(): K[][][] {
