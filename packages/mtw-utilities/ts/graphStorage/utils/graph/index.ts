@@ -58,6 +58,21 @@ export type GraphFilterArguments<K extends string, T extends { key: K } & Record
     keys?: K[]
 }
 
+export type GraphSimpleWalkOptions<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = {
+    condition?: (props: { node: T, edge: E, path: E[] }) => true;
+    allPaths?: boolean;
+}
+
+export type GraphSimpleWalkIteratorOptions<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = GraphSimpleWalkOptions<K, T, E> & {
+    previousPath?: E[];
+}
+
+type GraphSimpleWalkIteratorInProcess<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = {
+    key: K;
+    validPaths: E[][];
+    completed?: boolean;
+}
+
 export class Graph <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> {
     nodes: Partial<Record<K, T>>
     edges: GraphEdge<K, E>[]
@@ -112,16 +127,66 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         return new Graph(nodes, edges, this._default, this.directional)
     }
     
-    _simpleWalkIterator(key: K, callback: (key: K) => void): void {
-        if (this._alreadyVisited.includes(key)) {
-            return
+    //
+    // TODO: Refactor simpleWalkIterator to take a previous set of values and reduce to a next set of values,
+    // rather than recursing in place
+    //
+
+    //
+    // TODO: Extend simpleWalk to progress from a set of keys, rather than a single key, and move forward in waves.
+    //
+
+    //
+    // TODO: Extend simpleWalk options for edge restriction
+    //
+    _simpleWalkIterator(key: K, callback: (key: K) => void, options?: GraphSimpleWalkIteratorOptions<K, T, E>): (previous: Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>) => Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>> {
+        return (previous) => {
+            const { condition = () => (true), allPaths = false, previousPath = [] } = options || {}
+            if (this._alreadyVisited.includes(key)) {
+                return previous
+            }
+            this._alreadyVisited.push(key)
+            const edges = this.getNode(key)?.edges || []
+            callback(key)
+            return Object.assign(previous,
+                //
+                // TODO: Remove any paths that have already included this node (to prevent
+                // looping paths)
+                //
+
+                //
+                // TODO: If there are any remaining valid paths, extend them by the edge
+                // and add those validPaths to the validPaths for the item in previous (if any)
+                //
+                ...edges.map((edge) => {
+                    return { [edge.to]: {
+                        key: edge.to,
+                        validPaths: [],
+                        completed: false
+                    } }
+                })
+                //
+                // TODO: Set the current node being visited to have completed: true
+                //
+            )
         }
-        this._alreadyVisited.push(key)
-        const edges = this.getNode(key)?.edges || []
-        edges.forEach(({ to }) => (this._simpleWalkIterator(to, callback)))
-        callback(key)
     }
 
+    //
+    // TODO: Refactor topologicalSort to cache the sort when first called, invalidate if the graph is changed,
+    // and return a cached value if available
+    //
+
+    //
+    // TODO: Create a topologicalSortOrder utility method on the class to allow sorting lists that extend { key: K }
+    // into topologicalSortOrder
+    //
+
+    //
+    // TODO: Refactor simpleWalk to use the new _simpleWalkIterator reducer as long as it returns values that have
+    // not yet been completed, successively sorting with topologicalSortOrder, and taking the first incomplete
+    // record to iterate on next.
+    //
     simpleWalk(key: K, callback: (key: K) => void): void {
         this._alreadyVisited = []
         this._simpleWalkIterator(key, callback)
