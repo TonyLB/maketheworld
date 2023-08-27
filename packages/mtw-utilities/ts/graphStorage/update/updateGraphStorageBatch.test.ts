@@ -1,10 +1,11 @@
 import { GraphNodeData } from '../cache/graphNode'
-import updateGraphStorage from './'
+import updateGraphStorageBatch from './updateGraphStorageBatch'
 import withGetOperations from '../../dynamoDB/mixins/get'
 import produce from 'immer'
 import withPrimitives from '../../dynamoDB/mixins/primitives'
 import { GraphEdgeData } from '../cache/graphEdge'
 import { GraphCacheData } from '../cache'
+import { Graph } from '../utils/graph'
 import { GraphStorageDBH } from './baseClasses'
 
 const internalCache = {
@@ -40,7 +41,7 @@ const optimisticUpdate = jest.fn().mockResolvedValue({})
 const transactWrite = jest.fn()
 const dbHandler = { optimisticUpdate, transactWrite } as unknown as GraphStorageDBH
 
-describe('graphStore update', () => {
+describe('updateGraphStorageBatch', () => {
     const realDateNow = Date.now.bind(global.Date);
 
     beforeEach(() => {
@@ -64,23 +65,20 @@ describe('graphStore update', () => {
 
     it('should correctly add disjoint edges', async () => {
         internalCache.Nodes.get.mockResolvedValue([])
-        await updateGraphStorage({ internalCache, dbHandler })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                putItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ASSET']
-                }
-            },
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
             {
-                EphemeraId: 'ASSET#ImportThree',
-                putItem: {
-                    EphemeraId: 'ASSET#ImportFour',
-                    assets: ['ASSET']
-                }
-            }],
-            ancestry: []
-        })
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
+                'ASSET#ImportThree': { key: 'ASSET#ImportThree' },
+                'ASSET#ImportFour': { key: 'ASSET#ImportFour' }
+            },
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'put' },
+                { from: 'ASSET#ImportThree', to: 'ASSET#ImportFour', context: 'ASSET', action: 'put' }
+            ],
+            {},
+            true
+        ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(10)
@@ -106,30 +104,20 @@ describe('graphStore update', () => {
 
     it('should correctly add connecting edges', async () => {
         internalCache.Nodes.get.mockResolvedValue([])
-        await updateGraphStorage({ internalCache, dbHandler })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                putItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ASSET']
-                }
-            },
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
             {
-                EphemeraId: 'ASSET#ImportTwo',
-                putItem: {
-                    EphemeraId: 'ASSET#ImportThree',
-                    assets: ['ASSET']
-                }
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
+                'ASSET#ImportThree': { key: 'ASSET#ImportThree' }
             },
-            {
-                EphemeraId: 'ASSET#ImportThree',
-                putItem: {
-                    EphemeraId: 'ASSET#ImportOne',
-                    assets: ['ASSET']
-                }
-            }],
-            ancestry: []
-        })
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'put' },
+                { from: 'ASSET#ImportTwo', to: 'ASSET#ImportThree', context: 'ASSET', action: 'put' },
+                { from: 'ASSET#ImportThree', to: 'ASSET#ImportOne', context: 'ASSET', action: 'put' }
+            ],
+            {},
+            true
+        ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(9)
@@ -155,23 +143,18 @@ describe('graphStore update', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'TEST' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                putItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ASSET']
-                }
-            },
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
             {
-                EphemeraId: 'ASSET#ImportOne',
-                putItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['DifferentAsset']
-                }
-            }],
-            ancestry: []
-        })
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' }
+            },
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'put' },
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'DifferentAsset', action: 'put' }
+            ],
+            {},
+            true
+        ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(4)
@@ -190,23 +173,20 @@ describe('graphStore update', () => {
             { PrimaryKey: 'ASSET#ImportThree', forward: { edges: [{ target: 'ASSET#ImportFour', context: 'ASSET' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportFour', back: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] }, forward: { edges: [] } },
         ])
-        await updateGraphStorage({ internalCache, dbHandler })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                deleteItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ASSET']
-                }
-            },
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
             {
-                EphemeraId: 'ASSET#ImportThree',
-                deleteItem: {
-                    EphemeraId: 'ASSET#ImportFour',
-                    assets: ['ASSET']
-                }
-            }],
-            ancestry: []
-        })
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
+                'ASSET#ImportThree': { key: 'ASSET#ImportThree' },
+                'ASSET#ImportFour': { key: 'ASSET#ImportFour' }
+            },
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'delete' },
+                { from: 'ASSET#ImportThree', to: 'ASSET#ImportFour', context: 'ASSET', action: 'delete' }
+            ],
+            {},
+            true
+        ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(6)
@@ -228,23 +208,19 @@ describe('graphStore update', () => {
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] } },
             { PrimaryKey: 'ASSET#ImportThree', back: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                deleteItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ASSET']
-                }
-            },
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
             {
-                EphemeraId: 'ASSET#ImportTwo',
-                deleteItem: {
-                    EphemeraId: 'ASSET#ImportThree',
-                    assets: ['ASSET']
-                }
-            }],
-            ancestry: []
-        })
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
+                'ASSET#ImportThree': { key: 'ASSET#ImportThree' }
+            },
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'delete' },
+                { from: 'ASSET#ImportTwo', to: 'ASSET#ImportThree', context: 'ASSET', action: 'delete' }
+            ],
+            {},
+            true
+        ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(6)
@@ -265,16 +241,17 @@ describe('graphStore update', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }, { target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }, { target: 'ASSET#ImportOne', context: 'TEST' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                deleteItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ASSET']
-                }
-            }],
-            ancestry: []
-        })
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+            {
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' }
+            },
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'delete' }
+            ],
+            {},
+            true
+        ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(3)
@@ -290,16 +267,18 @@ describe('graphStore update', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }, { target: 'ASSET#ImportTwo', context: 'ASSETTWO' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }, { target: 'ASSET#ImportOne', context: 'ASSETTWO' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                deleteItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['TEST', 'ASSET']
-                }
-            }],
-            ancestry: []
-        })
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+            {
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
+            },
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'TEST', action: 'delete' },
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'delete' }
+            ],
+            {},
+            true
+        ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(3)
@@ -315,16 +294,17 @@ describe('graphStore update', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }], updatedAt: 500 }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorage({ internalCache, dbHandler })({
-            descent: [{
-                EphemeraId: 'ASSET#ImportOne',
-                putItem: {
-                    EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ASSETTWO']
-                }
-            }],
-            ancestry: []
-        })
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+            {
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' }
+            },
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSETTWO', action: 'put' }
+            ],
+            {},
+            true
+        ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(transactWrite.mock.calls[0][0].length).toEqual(3)

@@ -1,7 +1,7 @@
-import { GraphStorageDBH, updateGraphStorageBatch } from ".";
+import updateGraphStorageBatch from "./updateGraphStorageBatch";
 import GraphCache from "../cache";
 import { GraphNodeCacheDirectEdge } from "../cache/graphNode";
-import GraphOfUpdates from "./graphOfUpdates";
+import GraphOfUpdates, { GraphStorageDBH } from "./baseClasses";
 
 type SetEdgesOptions = {
     direction?: 'forward' | 'back';
