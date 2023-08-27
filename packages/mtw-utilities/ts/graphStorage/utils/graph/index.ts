@@ -134,7 +134,8 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
             const filteredEdges = edges.filter((edge) => {
                 const targetNode = this.getNode(edge.to)
                 return !(
-                    (options?.nodeCondition && !(targetNode && options.nodeCondition(targetNode)))
+                    (options?.nodeCondition && !(targetNode && options.nodeCondition(targetNode))) ||
+                    (options?.edgeCondition && !(options.edgeCondition(edge)))
                 )
             })
             const incomingPaths = previous[key]?.validPaths || []
@@ -178,7 +179,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         }).bind(this)
     }
 
-    simpleWalk(callback: (props: { key: K; edges: GraphEdge<K, E>[] }) => void, options: GraphRestrictArguments<K, T, E> = {}): void {
+    simpleWalk(callback: (props: { key: K; node: T; edges: GraphEdge<K, E>[] }) => void, options: GraphRestrictArguments<K, T, E> = {}): void {
         //
         // Initialize the start of the search by either accepting the fromRoots option,
         // or taking the first generation of nodes in the graph in its entirety
@@ -225,7 +226,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         //
         this.topologicalSort().flat()
             .filter((nodeKey) => (nodeKey in walkedNodes))
-            .forEach((key) => { callback({ key, edges: walkedNodes[key].edges || [] }) })
+            .forEach((key) => { callback({ key, node: this.getNode(key)?.node as T || { key, ...this._default }, edges: walkedNodes[key].edges || [] }) })
     }
 
     addEdge(edge: GraphEdge<K, E>): void {
@@ -324,8 +325,20 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     // of connection (not just the node or edge being observed), but is computationally more expensive
     //
     restrict(props: GraphRestrictArguments<K, T, E>): Graph<K, T, E> {
-        let subGraphKeys: K[] = []
-        this.simpleWalk(({ key }) => (subGraphKeys.push(key)), props)
-        return this.filter({ keys: subGraphKeys })
+        let subGraphNodes: T[] = []
+        let subGraphEdges: GraphEdge<K, E>[] = []
+        this.simpleWalk(
+            ({ node, edges }) => {
+                subGraphNodes.push(node)
+                subGraphEdges = [...subGraphEdges, ...edges]
+            },
+            props
+        )
+        return new Graph(
+            Object.assign({}, ...subGraphNodes.map((node) => ({ [node.key]: node }))),
+            subGraphEdges,
+            this._default,
+            this.directional
+        )
     }
 }

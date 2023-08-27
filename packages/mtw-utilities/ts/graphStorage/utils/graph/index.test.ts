@@ -91,9 +91,9 @@ describe('Graph class', () => {
             const testGraph = new Graph(testNodes, testEdges, {},  true)
             testGraph.simpleWalk(callback, { fromRoots: ['A'] })
             expect(callback).toHaveBeenCalledTimes(3)
-            expect(callback).toHaveBeenCalledWith({ key: 'A', edges: [{ from: 'A', to: 'B' }, { from: 'A', to: 'C' }] })
-            expect(callback).toHaveBeenCalledWith({ key: 'B', edges: [{ from: 'B', to: 'C' }] })
-            expect(callback).toHaveBeenCalledWith({ key: 'C', edges: [] })
+            expect(callback).toHaveBeenCalledWith({ key: 'A', node: { key: 'A' }, edges: [{ from: 'A', to: 'B' }, { from: 'A', to: 'C' }] })
+            expect(callback).toHaveBeenCalledWith({ key: 'B', node: { key: 'B' }, edges: [{ from: 'B', to: 'C' }] })
+            expect(callback).toHaveBeenCalledWith({ key: 'C', node: { key: 'C' }, edges: [] })
         })
 
         it('should correctly walk a cyclic tree', () => {
@@ -101,9 +101,9 @@ describe('Graph class', () => {
             const testGraph = new Graph(testNodes, testEdges, {},  true)
             testGraph.simpleWalk(callback, { fromRoots: ['D'] })
             expect(callback).toHaveBeenCalledTimes(3)
-            expect(callback).toHaveBeenCalledWith({ key: 'D', edges: [{ from: 'D', to: 'E' }] })
-            expect(callback).toHaveBeenCalledWith({ key: 'E', edges: [{ from: 'E', to: 'F' }] })
-            expect(callback).toHaveBeenCalledWith({ key: 'F', edges: [{ from: 'F', to: 'D' }] })
+            expect(callback).toHaveBeenCalledWith({ key: 'D', node: { key: 'D' }, edges: [{ from: 'D', to: 'E' }] })
+            expect(callback).toHaveBeenCalledWith({ key: 'E', node: { key: 'E' }, edges: [{ from: 'E', to: 'F' }] })
+            expect(callback).toHaveBeenCalledWith({ key: 'F', node: { key: 'F' }, edges: [{ from: 'F', to: 'D' }] })
         })
 
     })
@@ -145,7 +145,7 @@ describe('Graph class', () => {
 
     describe('restrict', () => {
         let testNodes: Record<string, { key: string }>
-        let testEdges: GraphEdge<string, {}>[]
+        let testEdges: GraphEdge<string, { context: string }>[]
 
         beforeEach(() => {
             testNodes = {
@@ -157,12 +157,12 @@ describe('Graph class', () => {
                 F: { key: 'F' },
             }
             testEdges = [
-                { from: 'A', to: 'B' },
-                { from: 'B', to: 'C' },
-                { from: 'A', to: 'C' },
-                { from: 'C', to: 'D' },
-                { from: 'D', to: 'E' },
-                { from: 'E', to: 'F' }
+                { from: 'A', to: 'B', context: 'tag' },
+                { from: 'B', to: 'C', context: 'tag' },
+                { from: 'A', to: 'C', context: 'notag' },
+                { from: 'C', to: 'D', context: 'notag' },
+                { from: 'D', to: 'E', context: 'tag' },
+                { from: 'E', to: 'F', context: 'tag' }
             ]
         })
 
@@ -172,9 +172,20 @@ describe('Graph class', () => {
             expect(subGraph.directional).toBe(true)
             expect(Object.keys(subGraph.nodes).sort()).toEqual(['A', 'B', 'C'])
             expect(subGraph.edges.sort(compareEdges)).toEqual([
-                { from: 'A', to: 'B' },
-                { from: 'A', to: 'C' },
-                { from: 'B', to: 'C' }
+                { from: 'A', to: 'B', context: 'tag'  },
+                { from: 'A', to: 'C', context: 'notag'  },
+                { from: 'B', to: 'C', context: 'tag'  }
+            ])
+        })
+
+        it('should deliver a subGraph when restricted by edges', () => {
+            const testGraph = new Graph(testNodes, testEdges, {},  true)
+            const subGraph = testGraph.restrict({ fromRoots: ['A'], edgeCondition: ({ context }) => (context === 'tag') })
+            expect(subGraph.directional).toBe(true)
+            expect(Object.keys(subGraph.nodes).sort()).toEqual(['A', 'B', 'C'])
+            expect(subGraph.edges.sort(compareEdges)).toEqual([
+                { from: 'A', to: 'B', context: 'tag'  },
+                { from: 'B', to: 'C', context: 'tag'  }
             ])
         })
     })
