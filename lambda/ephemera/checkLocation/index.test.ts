@@ -13,6 +13,7 @@ import { MessageBus } from '../messageBus/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/dist/types'
 import { RoomStackItem } from '../moveCharacter'
 import checkLocation from '.'
+import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
 const internalCacheMock = jest.mocked(internalCache, true)
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
@@ -259,6 +260,75 @@ describe('checkLocation', () => {
         internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', Name: 'Test', ConnectionIds: [] }])
         await checkLocation({
             payloads: [{ type: 'CheckLocation', roomId: 'ROOM#Oubliette', leaveMessage: ' has vanished.', arriveMessage: ' has appeared.' }],
+            messageBus: messageBusMock
+        })
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
+            updateKeys: ['RoomId', 'RoomStack'],
+            updateReducer: expect.any(Function),
+            successCallback: expect.any(Function)
+        })
+        expect(produce(
+                {
+                    RoomStack: [
+                        { asset: 'primitives', RoomId: 'VORTEX' },
+                        { asset: 'TownCenter', RoomId: 'TownSquare' },
+                        { asset: 'draftOne', RoomId: 'Laboratory' },
+                        { asset: 'draftTwo', RoomId: 'Oubliette' }
+                    ]
+                },
+                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
+            )).toEqual({
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'VORTEX' },
+                    { asset: 'TownCenter', RoomId: 'TownSquare' },
+                    { asset: 'draftOne', RoomId: 'Laboratory' }
+                ]
+            })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'MoveCharacter',
+            characterId: 'CHARACTER#Test',
+            roomId: 'ROOM#Laboratory',
+            leaveMessage: ' has vanished.',
+            arriveMessage: ' has appeared.',
+            suppressSelfMessage: true
+        })
+    })
+
+    it('should update characters in asset when assetId passed', async () => {
+        wrapMocks(
+            [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TownSquare' },
+                { asset: 'draftOne', RoomId: 'Laboratory' },
+                { asset: 'draftTwo', RoomId: 'Oubliette' }
+            ],
+            ['draftOne']
+        )
+        internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', Name: 'Test', ConnectionIds: [] }])
+        const assetGraph = new Graph<string, { key: string }, { context?: string }>(
+            {
+                'ASSET#primitives': { key: 'ASSET#primitives' },
+                'ASSET#TownCenter': { key: 'ASSET#TownCenter' },
+                'ASSET#draftOne': { key: 'ASSET#draftOne' },
+                'ASSET#draftTwo': { key: 'ASSET#draftTwo' },
+                'ROOM#VORTEX': { key: 'ROOM#VORTEX' },
+                'ROOM#TownSquare': { key: 'ROOM#TownSquare' },
+                'ROOM#Laboratory': { key: 'ROOM#Laboratory' },
+                'ROOM#Oubliette': { key: 'ROOM#Oubliette' },
+            },
+            [
+                { from: 'ASSET#primitives', to: 'ROOM#VORTEX', context: 'primitives' },
+                { from: 'ASSET#TownCenter', to: 'ROOM#TownSquare', context: 'TownCenter' },
+                { from: 'ASSET#draftOne', to: 'ROOM#Laboratory', context: 'draftOne' },
+                { from: 'ASSET#draftTwo', to: 'ROOM#Oubliette', context: 'draftTwo' },
+            ],
+            {},
+            true
+        )
+        internalCacheMock.Graph.get.mockResolvedValue(assetGraph)
+        await checkLocation({
+            payloads: [{ type: 'CheckLocation', assetId: 'ASSET#draftTwo', leaveMessage: ' has vanished.', arriveMessage: ' has appeared.' }],
             messageBus: messageBusMock
         })
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({

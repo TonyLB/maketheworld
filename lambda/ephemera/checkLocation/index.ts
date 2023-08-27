@@ -3,6 +3,7 @@ import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { RoomKey } from "@tonylb/mtw-utilities/dist/types"
 import { RoomStackItem } from "../moveCharacter"
+import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 //
 // checkLocation message handler tests whether the RoomStack (and RoomId) currently assigned to the character still
@@ -19,22 +20,28 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
     const assetDescendantGraph = await internalCache.Graph.get(assetPayloads.map(({ assetId }) => (assetId)), 'forward')
     const secondPayloads = assetPayloads.reduce<(CheckLocationPlayerMessage | CheckLocationRoomMessage)[]>((previous, payload) => {
         const { assetId, ...rest } = payload
-        //
-        // TODO: Find room descendants that can be reached from the node by using only edges that
-        // have context equal to the asset Key.
-        //
 
-        //
-        // TODO: Add roomId payloads if they do not already exist in the previous listing
-        //
-        return previous
+        const roomDescendantGraph = assetDescendantGraph.restrict({
+            fromRoots: [assetId],
+            edgeCondition: ({ context }) => (context === assetId.split('#')[1])
+        })
+        const roomPayloads = Object.keys(roomDescendantGraph.nodes)
+            .filter(isEphemeraRoomId)
+
+        return [
+            ...previous.filter((payload) => (!(isCheckLocationRoom(payload) && roomPayloads.includes(payload.roomId)))),
+            ...roomPayloads.map((roomId) => ({
+                roomId,
+                ...rest
+            }))
+        ]
     }, payloads.filter((payload): payload is (CheckLocationPlayerMessage | CheckLocationRoomMessage) => (!isCheckLocationAsset(payload))))
 
     //
     // Scan payloads for roomId types and expand them out into characterId types using
     // the characterList items of each room
     //
-    const roomPayloads = payloads.filter(isCheckLocationRoom)
+    const roomPayloads = secondPayloads.filter(isCheckLocationRoom)
     const roomLookupPayloads: CheckLocationPlayerMessage[] = (await Promise.all(
         roomPayloads.map(async (payload) => {
             const { roomId, ...rest } = payload
@@ -50,7 +57,7 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
             return previous
         }
         return [...previous, payload]
-    }, payloads.filter(isCheckLocationPlayer))
+    }, secondPayloads.filter(isCheckLocationPlayer))
 
     await Promise.all(finalPayloads.map(async (payload) => {
 
