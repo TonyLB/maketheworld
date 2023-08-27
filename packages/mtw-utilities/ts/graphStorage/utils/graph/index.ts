@@ -66,7 +66,7 @@ export type GraphRestrictArguments<K extends string, T extends { key: K } & Reco
 
 type GraphSimpleWalkIteratorInProcess<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = {
     key: K;
-    edges: E[];
+    edges: GraphEdge<K, E>[];
     validPaths: E[][];
     completed?: boolean;
 }
@@ -131,6 +131,12 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     _simpleWalkIterator(key: K, options?: GraphRestrictArguments<K, T, E>): (previous: Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>) => Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>> {
         return ((previous) => {
             const edges = this.getNode(key)?.edges || []
+            const filteredEdges = edges.filter((edge) => {
+                const targetNode = this.getNode(edge.to)
+                return !(
+                    (options?.nodeCondition && !(targetNode && options.nodeCondition(targetNode)))
+                )
+            })
             const incomingPaths = previous[key]?.validPaths || []
             return Object.assign(previous,
                 //
@@ -139,11 +145,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
                 // (if any).  If any are not already present, add them and set completed back to
                 // false
                 //
-                ...edges.map((edge) => {
-                    const targetNode = this.getNode(edge.to)
-                    if (options?.nodeCondition && !(targetNode && options.nodeCondition(targetNode))) {
-                        return {}
-                    }
+                ...filteredEdges.map((edge) => {
                     const previousPaths = previous[edge.to]?.validPaths || []
                     const validExtendedPaths = incomingPaths
                         .filter((path) => (!path.find(({ from }) => (from === edge.to))))
@@ -156,6 +158,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
                         return { [edge.to]: {
                             key: edge.to,
                             validPaths: [...previousPaths, ...uniqueNewPaths],
+                            edges: previous[edge.to]?.edges || [],
                             completed: false
                         } }
                     }
@@ -167,7 +170,8 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
                 // Set the current node being visited to have completed: true
                 //
                 { [key]: {
-                    ...previous[key] || { key, validPaths: [], edges: [] },
+                    ...previous[key] || { key, validPaths: [] },
+                    edges: filteredEdges,
                     completed: true
                 } }
             )
@@ -221,7 +225,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         //
         this.topologicalSort().flat()
             .filter((nodeKey) => (nodeKey in walkedNodes))
-            .forEach((key) => { callback({ key, edges: [] }) })
+            .forEach((key) => { callback({ key, edges: walkedNodes[key].edges || [] }) })
     }
 
     addEdge(edge: GraphEdge<K, E>): void {

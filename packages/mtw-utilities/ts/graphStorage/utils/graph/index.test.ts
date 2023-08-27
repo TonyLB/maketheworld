@@ -91,8 +91,8 @@ describe('Graph class', () => {
             const testGraph = new Graph(testNodes, testEdges, {},  true)
             testGraph.simpleWalk(callback, { fromRoots: ['A'] })
             expect(callback).toHaveBeenCalledTimes(3)
-            expect(callback).toHaveBeenCalledWith({ key: 'A', edges: [] })
-            expect(callback).toHaveBeenCalledWith({ key: 'B', edges: [] })
+            expect(callback).toHaveBeenCalledWith({ key: 'A', edges: [{ from: 'A', to: 'B' }, { from: 'A', to: 'C' }] })
+            expect(callback).toHaveBeenCalledWith({ key: 'B', edges: [{ from: 'B', to: 'C' }] })
             expect(callback).toHaveBeenCalledWith({ key: 'C', edges: [] })
         })
 
@@ -101,9 +101,9 @@ describe('Graph class', () => {
             const testGraph = new Graph(testNodes, testEdges, {},  true)
             testGraph.simpleWalk(callback, { fromRoots: ['D'] })
             expect(callback).toHaveBeenCalledTimes(3)
-            expect(callback).toHaveBeenCalledWith({ key: 'D', edges: [] })
-            expect(callback).toHaveBeenCalledWith({ key: 'E', edges: [] })
-            expect(callback).toHaveBeenCalledWith({ key: 'F', edges: [] })
+            expect(callback).toHaveBeenCalledWith({ key: 'D', edges: [{ from: 'D', to: 'E' }] })
+            expect(callback).toHaveBeenCalledWith({ key: 'E', edges: [{ from: 'E', to: 'F' }] })
+            expect(callback).toHaveBeenCalledWith({ key: 'F', edges: [{ from: 'F', to: 'D' }] })
         })
 
     })
