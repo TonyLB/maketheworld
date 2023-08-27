@@ -82,7 +82,7 @@ export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D ext
             await Promise.all((Object.values(returnValue.nodes) as GraphCacheDataNodeType<K>[])
                 .map(async (node) => {
                     const edgeToString = ({ from, to, context }: GraphEdge<K, { context?: string }>): string => (`${from}::${to}${context ? `::${context}`: ''}`)
-                    const newCache = returnValue.fromRoot(node.key).edges.map(edgeToString).sort()
+                    const newCache = returnValue.restrict({ fromRoots: [node.key] }).edges.map(edgeToString).sort()
                     if (!(node.cache && deepEqual(newCache, [...node.cache].map(edgeToString).sort()))) {
                         await this._dbHandler.primitiveUpdate({
                             Key: { PrimaryKey: node.key, DataCategory: `Graph::${capitalize(direction)}` },

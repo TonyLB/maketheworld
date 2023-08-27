@@ -58,12 +58,23 @@ export type GraphFilterArguments<K extends string, T extends { key: K } & Record
     keys?: K[]
 }
 
+export type GraphRestrictArguments<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = {
+    fromRoots?: K[];
+    nodeCondition?: (node: GraphNode<K, T, E>) => boolean;
+}
+
+type GraphSimpleWalkIteratorInProcess<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = {
+    key: K;
+    validPaths: E[][];
+    completed?: boolean;
+}
+
 export class Graph <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> {
     nodes: Partial<Record<K, T>>
     edges: GraphEdge<K, E>[]
     directional: boolean;
     _default: Omit<T, 'key'>;
-    _alreadyVisited: K[] = [];
+    _topologicalSortCache?: K[][];
 
     constructor(nodes: Partial<Record<K, T>>, edges: GraphEdge<K, E>[], defaultItem: Omit<T, 'key'>, directional: boolean = false) {
         this.nodes = { ...nodes }
@@ -112,26 +123,101 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         return new Graph(nodes, edges, this._default, this.directional)
     }
     
-    _simpleWalkIterator(key: K, callback: (key: K) => void): void {
-        if (this._alreadyVisited.includes(key)) {
-            return
+    //
+    // TODO: Extend simpleWalk options for edge restriction
+    //
+    _simpleWalkIterator(key: K, options?: GraphRestrictArguments<K, T, E>): (previous: Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>) => Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>> {
+        return ((previous) => {
+            const edges = this.getNode(key)?.edges || []
+            return Object.assign(previous,
+                //
+                // If there are any valid paths that haven't already visited this node, extend them by the edge
+                // and compare those new validPaths to the validPaths for the item in previous
+                // (if any).  If any are not already present, add them and set completed back to
+                // false
+                //
+                ...edges.map((edge) => {
+                    const targetNode = this.getNode(edge.to)
+                    if (options?.nodeCondition && !(targetNode && options.nodeCondition(targetNode))) {
+                        return {}
+                    }
+                    const incomingPaths = previous[edge.from]?.validPaths || []
+                    const previousPaths = previous[edge.to]?.validPaths || []
+                    const validExtendedPaths = incomingPaths
+                        .filter((path) => (!path.find(({ from }) => (from === edge.to))))
+                        .map((path) => ([...path, edge]))
+                    
+                    const uniqueNewPaths = validExtendedPaths.filter((path) => (
+                        !previousPaths.find((previousPath) => (deepEqual(previousPath, path)))
+                    ))
+                    if (uniqueNewPaths.length > 0) {
+                        return { [edge.to]: {
+                            key: edge.to,
+                            validPaths: [...previousPaths, ...uniqueNewPaths],
+                            completed: false
+                        } }
+                    }
+                    else {
+                        return {}
+                    }
+                }),
+                //
+                // Set the current node being visited to have completed: true
+                //
+                { [key]: {
+                    ...previous[key] || { key, validPaths: [] },
+                    completed: true
+                } }
+            )
+        }).bind(this)
+    }
+
+    simpleWalk(callback: (key: K) => void, options: GraphRestrictArguments<K, T, E> = {}): void {
+        //
+        // Initialize the start of the search by either accepting the fromRoots option,
+        // or taking the first generation of nodes in the graph in its entirety
+        //
+        let walkedNodes = {} as Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>
+        if (options.fromRoots) {
+            walkedNodes = Object.assign(walkedNodes,
+                ...options.fromRoots.map((key) => ({
+                    [key]: {
+                        key,
+                        validPaths: [[]] as E[][],
+                        completed: false
+                    }
+                }))
+            )
         }
-        this._alreadyVisited.push(key)
-        const edges = this.getNode(key)?.edges || []
-        edges.forEach(({ to }) => (this._simpleWalkIterator(to, callback)))
-        callback(key)
-    }
+        else {
+            const firstGeneration = this.generationOrder()[0].flat()
+            walkedNodes = Object.assign(walkedNodes,
+                ...firstGeneration.map((key) => ({
+                    [key]: {
+                        key,
+                        validPaths: [] as E[][],
+                        completed: false
+                    }
+                }))
+            )
+        }
 
-    simpleWalk(key: K, callback: (key: K) => void): void {
-        this._alreadyVisited = []
-        this._simpleWalkIterator(key, callback)
-        this._alreadyVisited = []
-    }
+        //
+        // Walk the graph until no more valid paths remain, aggregating all of the valid nodes and
+        // paths into the walkedNodes variable
+        //
+        const sortOrder = this._topologicalSortOrder.bind(this)
+        let nextNode: GraphSimpleWalkIteratorInProcess<K, T, E> | undefined
+        while(nextNode = (Object.values(walkedNodes) as GraphSimpleWalkIteratorInProcess<K, T, E>[]).sort(sortOrder).find(({ completed }) => (!completed))) {
+            walkedNodes = this._simpleWalkIterator(nextNode.key, options)(walkedNodes)
+        }
 
-    fromRoot(rootKey: K): Graph<K, T, E> {
-        let subGraphKeys: K[] = []
-        this.simpleWalk(rootKey, (key) => (subGraphKeys.push(key)))
-        return this.filter({ keys: subGraphKeys })
+        //
+        // Call callback on all nodes
+        //
+        this.topologicalSort().flat()
+            .filter((nodeKey) => (nodeKey in walkedNodes))
+            .forEach((key) => { callback(key) })
     }
 
     addEdge(edge: GraphEdge<K, E>): void {
@@ -143,10 +229,24 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
             this.nodes[to] = { key: to, ...this._default } as T
         }
         this.edges.push(edge)
+        this._topologicalSortCache = undefined
     }
 
     topologicalSort(): K[][] {
-        return topologicalSort(this)
+        if (!this._topologicalSortCache) {
+            this._topologicalSortCache = topologicalSort(this)
+        }
+        return this._topologicalSortCache
+    }
+
+    _topologicalSortOrder(a: { key: K }, b: { key: K }): number {
+        const sortList = this.topologicalSort()
+        const aIndex = sortList.findIndex((keys) => (keys.includes(a.key)))
+        const bIndex = sortList.findIndex((keys) => (keys.includes(b.key)))
+        if (aIndex === -1 || bIndex === -1) {
+            throw new Error('Item not found in topologicalSortOrder')
+        }
+        return Math.sign(aIndex - bIndex)
     }
 
     generationOrder(): K[][][] {
@@ -192,12 +292,11 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
 
     }
 
+    //
+    // filter operates on the graph as a whole, and therefore only accepts conditions that can be executed on individual
+    // nodes or edges
+    //
     filter(props: GraphFilterArguments<K, T, E>): Graph<K, T, E> {
-        //
-        // TODO: Refactor filter to start from first generation of connected components and simple-walk
-        // forward applying conditions as it goes (what does this mean for 'keys' argument?  Would
-        // nodes not specified, but required to connect the graph, be included?)
-        //
         if ('keys' in props) {
             const { keys } = props
             if (keys) {
@@ -210,5 +309,15 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
             }
         }
         return this
+    }
+
+    //
+    // restrict operates on the graph and its structure, and therefore accepts conditions that can remove whole branches
+    // of connection (not just the node or edge being observed), but is computationally more expensive
+    //
+    restrict(props: GraphRestrictArguments<K, T, E>): Graph<K, T, E> {
+        let subGraphKeys: K[] = []
+        this.simpleWalk((key) => (subGraphKeys.push(key)), props)
+        return this.filter({ keys: subGraphKeys })
     }
 }

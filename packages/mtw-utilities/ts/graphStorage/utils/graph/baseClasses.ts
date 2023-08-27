@@ -1,4 +1,4 @@
-export type GraphEdge <K extends string, E extends Record<string, any>> = E & {
+export type GraphEdge <K extends string, E extends Record<string, any>> = Omit<E, 'from' | 'to'> & {
     from: K;
     to: K;
 }
