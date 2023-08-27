@@ -89,7 +89,7 @@ describe('Graph class', () => {
         it('should correctly walk an acyclic tree', () => {
             const callback = jest.fn()
             const testGraph = new Graph(testNodes, testEdges, {},  true)
-            testGraph.simpleWalk('A', callback)
+            testGraph.simpleWalk(callback, { fromRoots: ['A'] })
             expect(callback).toHaveBeenCalledTimes(3)
             expect(callback).toHaveBeenCalledWith('A')
             expect(callback).toHaveBeenCalledWith('B')
@@ -99,7 +99,7 @@ describe('Graph class', () => {
         it('should correctly walk a cyclic tree', () => {
             const callback = jest.fn()
             const testGraph = new Graph(testNodes, testEdges, {},  true)
-            testGraph.simpleWalk('D', callback)
+            testGraph.simpleWalk(callback, { fromRoots: ['D'] })
             expect(callback).toHaveBeenCalledTimes(3)
             expect(callback).toHaveBeenCalledWith('D')
             expect(callback).toHaveBeenCalledWith('E')
