@@ -12,7 +12,7 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
     ])
     const assetGraph = await internalCache.Graph.get(
         unique(
-            previousAssets,
+            previousAssets.map(AssetKey),
             payloads.map((payload) => {
                 if (payload.type === 'CanonSet') {
                     return payload.assetIds
@@ -21,7 +21,7 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
                     return payload.assetId
                 }
             }).flat()
-        ).filter((item): item is string => (typeof item === 'string')).map((assetId) => (AssetKey(assetId))),
+        ),
         'back'
     )
     //
@@ -69,7 +69,10 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
                     })
                 })
                 removedAssets.forEach((assetId) => {
-                    
+                    messageBus.send({
+                        type: 'CheckLocation',
+                        assetId: `ASSET#${assetId}`
+                    })
                 })
             }
         },
