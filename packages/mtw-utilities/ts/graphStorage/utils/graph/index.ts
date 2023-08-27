@@ -141,20 +141,31 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
             callback(key)
             return Object.assign(previous,
                 //
-                // TODO: Remove any paths that have already included this node (to prevent
-                // looping paths)
-                //
-
-                //
-                // TODO: If there are any remaining valid paths, extend them by the edge
-                // and add those validPaths to the validPaths for the item in previous (if any)
+                // If there are any valid paths that haven't already visited this node, extend them by the edge
+                // and compare those new validPaths to the validPaths for the item in previous
+                // (if any).  If any are not already present, add them and set completed back to
+                // false
                 //
                 ...edges.map((edge) => {
-                    return { [edge.to]: {
-                        key: edge.to,
-                        validPaths: [],
-                        completed: previous[edge.to]?.completed
-                    } }
+                    const incomingPaths = previous[edge.from]?.validPaths || []
+                    const previousPaths = previous[edge.to]?.validPaths || []
+                    const validExtendedPaths = incomingPaths
+                        .filter((path) => (!path.find(({ from }) => (from === edge.to))))
+                        .map((path) => ([...path, edge]))
+                    
+                    const uniqueNewPaths = validExtendedPaths.filter((path) => (
+                        !previousPaths.find((previousPath) => (deepEqual(previousPath, path)))
+                    ))
+                    if (uniqueNewPaths.length > 0) {
+                        return { [edge.to]: {
+                            key: edge.to,
+                            validPaths: [...previousPaths, ...uniqueNewPaths],
+                            completed: false
+                        } }
+                    }
+                    else {
+                        return {}
+                    }
                 }),
                 //
                 // Set the current node being visited to have completed: true
@@ -168,9 +179,8 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     }
 
     //
-    // TODO: Refactor simpleWalk to use the new _simpleWalkIterator reducer as long as it returns values that have
-    // not yet been completed, successively sorting with topologicalSortOrder, and taking the first incomplete
-    // record to iterate on next.
+    // TODO: Refactor simpleWalk to do all edge-walking first, accumulating a list of paths going into each
+    // node, then run all the callbacks in topologicalSort order in a single sweep.
     //
     simpleWalk(key: K, callback: (key: K) => void): void {
         let walkedNodes = {
