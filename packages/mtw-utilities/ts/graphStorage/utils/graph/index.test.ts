@@ -91,9 +91,9 @@ describe('Graph class', () => {
             const testGraph = new Graph(testNodes, testEdges, {},  true)
             testGraph.simpleWalk(callback, { fromRoots: ['A'] })
             expect(callback).toHaveBeenCalledTimes(3)
-            expect(callback).toHaveBeenCalledWith('A')
-            expect(callback).toHaveBeenCalledWith('B')
-            expect(callback).toHaveBeenCalledWith('C')
+            expect(callback).toHaveBeenCalledWith({ key: 'A', edges: [] })
+            expect(callback).toHaveBeenCalledWith({ key: 'B', edges: [] })
+            expect(callback).toHaveBeenCalledWith({ key: 'C', edges: [] })
         })
 
         it('should correctly walk a cyclic tree', () => {
@@ -101,9 +101,9 @@ describe('Graph class', () => {
             const testGraph = new Graph(testNodes, testEdges, {},  true)
             testGraph.simpleWalk(callback, { fromRoots: ['D'] })
             expect(callback).toHaveBeenCalledTimes(3)
-            expect(callback).toHaveBeenCalledWith('D')
-            expect(callback).toHaveBeenCalledWith('E')
-            expect(callback).toHaveBeenCalledWith('F')
+            expect(callback).toHaveBeenCalledWith({ key: 'D', edges: [] })
+            expect(callback).toHaveBeenCalledWith({ key: 'E', edges: [] })
+            expect(callback).toHaveBeenCalledWith({ key: 'F', edges: [] })
         })
 
     })

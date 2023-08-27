@@ -19,7 +19,7 @@ export const connectedComponents = <K extends string, T extends { key: K } & Rec
         const component = componentLabels[key] || ''
         if (!component) {
             const newComponent = uuidv4()
-            graph.simpleWalk((key) => { componentLabels[key] = newComponent }, { fromRoots: [key] })
+            graph.simpleWalk(({ key }) => { componentLabels[key] = newComponent }, { fromRoots: [key] })
         }
     })
 
