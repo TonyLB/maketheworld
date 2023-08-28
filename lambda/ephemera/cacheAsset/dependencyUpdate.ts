@@ -8,6 +8,27 @@ import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemer
 import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 
+const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
+    isEphemeraComputedId(EphemeraId) ||
+    isEphemeraRoomId(EphemeraId) ||
+    isEphemeraKnowledgeId(EphemeraId) ||
+    isEphemeraBookmarkId(EphemeraId) ||
+    isEphemeraMapId(EphemeraId) ||
+    isEphemeraFeatureId(EphemeraId) ||
+    isEphemeraActionId(EphemeraId) ||
+    isEphemeraVariableId(EphemeraId) ||
+    isEphemeraMessageId(EphemeraId) ||
+    isEphemeraMomentId(EphemeraId)
+)
+
+const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId) => (
+    isEphemeraComputedId(EphemeraId) ||
+    isEphemeraRoomId(EphemeraId) ||
+    isEphemeraKnowledgeId(EphemeraId) ||
+    isEphemeraBookmarkId(EphemeraId) ||
+    isEphemeraMapId(EphemeraId)
+)
+
 const dependencyExtractor = ({ dependencies }: { dependencies: EphemeraItemDependency[] }) => (dependencies.map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraId))
 
 const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): EphemeraId[] => {
@@ -34,6 +55,9 @@ const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): E
 }
 
 const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraId[] => {
+    if (!isEphemeraInternallyBacklinked(item.EphemeraId)) {
+        return []
+    }
     if (isEphemeraComputedItem(item)) {
         return item.dependencies.map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraId)
     }
@@ -63,36 +87,12 @@ const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraId[] =
     return []
 }
 
-const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
-    isEphemeraComputedId(EphemeraId) ||
-    isEphemeraRoomId(EphemeraId) ||
-    isEphemeraKnowledgeId(EphemeraId) ||
-    isEphemeraBookmarkId(EphemeraId) ||
-    isEphemeraMapId(EphemeraId) ||
-    isEphemeraFeatureId(EphemeraId) ||
-    isEphemeraActionId(EphemeraId) ||
-    isEphemeraVariableId(EphemeraId) ||
-    isEphemeraMessageId(EphemeraId) ||
-    isEphemeraMomentId(EphemeraId)
-)
-
-const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId) => (
-    isEphemeraComputedId(EphemeraId) ||
-    isEphemeraRoomId(EphemeraId) ||
-    isEphemeraKnowledgeId(EphemeraId) ||
-    isEphemeraBookmarkId(EphemeraId) ||
-    isEphemeraMapId(EphemeraId)
-)
-
 export const updateDependenciesFromMergeActions = (context: string, graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>) => async (mergeActions: MergeActionProperty<'EphemeraId', string>[]) => {
     mergeActions.forEach((mergeAction) => {
         const { EphemeraId } = mergeAction.key
         const options = { direction: 'back' as const, contextFilter: (checkContext: string) => (checkContext === context)}
 
-        //
-        // TODO: Create a cut-out for Ephemera items that are backlinked to asset but not backlinked internally
-        //
-        if (!isEphemeraId(EphemeraId) || !isEphemeraInternallyBacklinked(EphemeraId)) {
+        if (!isEphemeraId(EphemeraId) || !isEphemeraBackLinkedToAsset(EphemeraId)) {
             return
         }
         if (mergeAction.action === 'delete') {
