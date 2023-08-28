@@ -1,5 +1,3 @@
-jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/setEdges')
-
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 

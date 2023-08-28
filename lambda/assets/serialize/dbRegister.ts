@@ -6,10 +6,9 @@ import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCha
 import { EphemeraCharacterId, EphemeraError } from '@tonylb/mtw-interfaces/dist/baseClasses.js'
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
-import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
-import { graphDBHandler } from '../internalCache/graph'
 import { graphStorageDB } from './graphCache'
 import { CharacterKey } from '@tonylb/mtw-utilities/dist/types'
+import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -137,14 +136,16 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                     Characters: {}
                 })
                 : Promise.resolve({})
+        const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
+        graphUpdate.setEdges([{
+            itemId: AssetKey(asset.key),
+            edges: Object.values(assets)
+                .filter(isNormalImport)
+                .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+            options: { direction: 'back' }
+        }])
         await Promise.all([
-            setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{
-                itemId: AssetKey(asset.key),
-                edges: Object.values(assets)
-                    .filter(isNormalImport)
-                    .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                options: { direction: 'back' }
-            }]),
+            graphUpdate.flush(),
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
                 DataCategory: `Meta::Asset`,
@@ -238,14 +239,16 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                     Characters: updatedCharacters
                 })
                 : Promise.resolve({})
+        const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
+        graphUpdate.setEdges([{
+            itemId: CharacterKey(character.key),
+            edges: Object.values(assets)
+                .filter(isNormalImport)
+                .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+            options: { direction: 'back' }
+        }])
         await Promise.all([
-            setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{
-                itemId: CharacterKey(character.key),
-                edges: Object.values(assets)
-                    .filter(isNormalImport)
-                    .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                options: { direction: 'back' }
-            }]),
+            graphUpdate.flush(),
             assetDB.putItem({
                 AssetId: assetWorkspace.namespaceIdToDB[character.key],
                 DataCategory: `Meta::Character`,

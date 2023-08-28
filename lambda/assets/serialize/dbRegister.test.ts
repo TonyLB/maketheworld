@@ -3,9 +3,6 @@ import { jest, describe, it, expect } from '@jest/globals'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
-jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/setEdges')
-import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
-
 jest.mock('../internalCache', () => ({
     PlayerLibrary: {
         set: jest.fn()
@@ -15,17 +12,19 @@ jest.mock('../internalCache', () => ({
     }
 }))
 
+jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/index')
+import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update/index'
+
 import { dbRegister } from './dbRegister'
 
 const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
-const setEdgesMock = setEdges as jest.Mock
+const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<any, string>>
 
 describe('dbRegister', () => {
-    const setEdgesMockInternal = jest.fn()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        setEdgesMock.mockReturnValue(setEdgesMockInternal)
+        GraphUpdateMock.mockClear()
     })
     it('should put a single element for a Character file', async () => {
         await dbRegister({
@@ -74,8 +73,8 @@ describe('dbRegister', () => {
             }
         } as any)
         expect(assetDBMock.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(setEdgesMockInternal).toHaveBeenCalledTimes(1)
-        expect(setEdgesMockInternal).toHaveBeenCalledWith([{
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(1)
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
             itemId: 'CHARACTER#TESS',
             edges: [{ target: 'ASSET#primitives', context: '' }],
             options: { direction: 'back' }
@@ -643,8 +642,8 @@ describe('dbRegister', () => {
                 }
             }
         } as any)
-        expect(setEdgesMockInternal).toHaveBeenCalledTimes(1)
-        expect(setEdgesMockInternal).toHaveBeenCalledWith([{
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(1)
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
             itemId: 'ASSET#test',
             edges: [{ target: 'ASSET#primitives', context: '' }],
             options: { direction: 'back' }
