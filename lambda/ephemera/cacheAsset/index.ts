@@ -42,9 +42,9 @@ import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
 import { ebClient } from '../clients.js'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
-import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort'
+import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
 
 //
 // TODO:
@@ -433,16 +433,20 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 .map(ephemeraExtractor)
                 .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
         
+            const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
+
             await mergeIntoEphemera(assetId, ephemeraItems)
 
+            graphUpdate.setEdges([{
+                itemId: AssetKey(assetItem.key),
+                edges: Object.values(assetWorkspace.normal || {})
+                    .filter(isNormalImport)
+                    .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+                options: { direction: 'back' }
+            }])
+
             await Promise.all([
-                setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{
-                    itemId: AssetKey(assetItem.key),
-                    edges: Object.values(assetWorkspace.normal || {})
-                        .filter(isNormalImport)
-                        .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                    options: { direction: 'back' }
-                }]),    
+                graphUpdate.flush(),
                 pushEphemera({
                     EphemeraId: AssetKey(assetItem.key),
                     scopeMap: assetWorkspace.namespaceIdToDB

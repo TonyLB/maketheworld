@@ -4,8 +4,8 @@ jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
     ephemeraDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/setEdges')
-import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
+jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/index')
+import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update/index'
 
 jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')
 import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
@@ -23,6 +23,7 @@ import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
 const internalCacheMock = jest.mocked(internalCache, true)
+const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<typeof internalCacheMock._graphCache, string>>
 
 let mockTestAsset: NormalForm = {
     'Import-0': {
@@ -75,13 +76,10 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
     })
 })
 
-const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const evaluateCodeMock = evaluateCode as jest.Mock
-const setEdgesMock = setEdges as jest.Mock
 
 describe('cacheAsset', () => {
     const messageBusMock = { send: jest.fn() } as unknown as MessageBus
-    const setEdgesInternalMock = jest.fn()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
@@ -119,7 +117,7 @@ describe('cacheAsset', () => {
             {},
             true
         ))
-        setEdgesMock.mockReturnValue(setEdgesInternalMock)
+        GraphUpdateMock.mockClear()
     })
 
     it('should skip processing when check option and already present', async () => {
@@ -377,7 +375,7 @@ describe('cacheAsset', () => {
                 testKnowledge: 'KNOWLEDGE#GHI'
             }
         })
-        expect(setEdgesInternalMock).toHaveBeenCalledWith([{
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
             itemId: 'ASSET#test',
             edges: [],
             options: { direction: 'back' }
@@ -606,7 +604,7 @@ describe('cacheAsset', () => {
             }],
             messageBus: messageBusMock
         })
-        expect(setEdgesInternalMock).toHaveBeenCalledWith([{
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
             itemId: 'ASSET#test',
             edges: [{ target: 'ASSET#base', context: '' }],
             options: { direction: 'back' }
