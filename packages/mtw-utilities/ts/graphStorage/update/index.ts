@@ -1,49 +1,7 @@
 import { GraphNodeCacheDirectEdge } from '../cache/graphNode'
 import GraphOfUpdates, { GraphStorageDBH } from './baseClasses'
-import { DependencyGraphAction, isDependencyGraphPut, isDependencyGraphDelete } from "../cache/baseClasses"
 import GraphCache from "../cache"
-import { Graph } from "../utils/graph"
-import { exponentialBackoffWrapper } from "../../dynamoDB"
 import updateGraphStorageBatch from './updateGraphStorageBatch'
-
-export type DescentUpdateMessage = {
-    type: 'DescentUpdate';
-} & DependencyGraphAction
-
-export type AncestryUpdateMessage = {
-    type: 'AncestryUpdate';
-} & DependencyGraphAction
-
-export const updateGraphStorage = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
-    const graph = new GraphOfUpdates({}, [], {}, true)
-
-    descent.forEach((item) => {
-        if (isDependencyGraphPut(item)) {
-            item.putItem.assets.forEach((asset) => { graph.addEdge({ from: item.EphemeraId, to: item.putItem.EphemeraId, context: asset, action: 'put' }) })
-        }
-        if (isDependencyGraphDelete(item)) {
-            item.deleteItem.assets.forEach((asset) => { graph.addEdge({ from: item.EphemeraId, to: item.deleteItem.EphemeraId, context: asset, action: 'delete' }) })
-        }
-    })    
-    ancestry.forEach((item) => {
-        if (isDependencyGraphPut(item)) {
-            item.putItem.assets.forEach((asset) => { graph.addEdge({ from: item.putItem.EphemeraId, to: item.EphemeraId, context: asset, action: 'put' }) })
-        }
-        if (isDependencyGraphDelete(item)) {
-            item.deleteItem.assets.forEach((asset) => { graph.addEdge({ from: item.deleteItem.EphemeraId, to: item.EphemeraId, context: asset, action: 'delete' }) })
-        }
-    })
-
-    await exponentialBackoffWrapper(
-        () => (updateGraphStorageBatch(metaProps)(new Graph(JSON.parse(JSON.stringify(graph.nodes)), graph.edges, {}, true))),
-        {
-            retryErrors: ['TransactionCanceledException'],
-            retryCallback: async () => {
-                Object.keys(graph.nodes).forEach((key) => { metaProps.internalCache.Nodes.invalidate(key) })
-            }
-        }
-    )
-}
 
 type SetEdgesOptions = {
     direction?: 'forward' | 'back';
@@ -84,6 +42,9 @@ export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof Gra
         // Pre-warm the cache with a batch load of all the items that will be needed
         //
         this.internalCache.Nodes.get(this.setEdgePayloads.map(({ itemId }) => (itemId)))
+        //
+        // Convert setEdge payloads into changes needed as expressed by put/delete actions
+        //
         await Promise.all(
             this.setEdgePayloads.map(
                 async ({ itemId, edges, options = {} }) => {
@@ -104,12 +65,16 @@ export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof Gra
                         })
                 })
         )
-        
+
+        //
+        // If any changes are needed, apply them in batch
+        //
         if (graph.edges.length) {
             await updateGraphStorageBatch({ internalCache: this.internalCache, dbHandler: this.dbHandler, threshold: this.threshold })(graph)
         }
+        this.setEdgePayloads = []
     
     }
 }
 
-export default updateGraphStorage
+export default GraphUpdate
