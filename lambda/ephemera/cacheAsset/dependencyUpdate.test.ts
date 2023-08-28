@@ -135,13 +135,12 @@ describe('dependencyUpdate', () => {
                 }
             }
         ])
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(1)
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([
-            { itemId: 'ROOM#ABC', edges: [], options: { direction: 'back', contextFilter: expect.any(Function) } },
-            { itemId: 'ROOM#DEF', edges: [{ target: 'COMPUTED#XYZ', context: 'test' }], options: { direction: 'back', contextFilter: expect.any(Function) } },
-            { itemId: 'MAP#LMNO', edges: [{ target: 'ROOM#DEF', context: 'test' }], options: { direction: 'back', contextFilter: expect.any(Function) } },
-            { itemId: 'KNOWLEDGE#GHI', edges: [], options: { direction: 'back', contextFilter: expect.any(Function) } },
-            { itemId: 'COMPUTED#XYZ', edges: [{ target: 'VARIABLE#TUV', context: 'test' }, { target: 'VARIABLE#QRS', context: 'test' }], options: { direction: 'back', contextFilter: expect.any(Function) } },
-        ])
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(5)
+        const testSetEdge = (itemId: string, edges: any[]) => ([{ itemId, edges, options: { direction: 'back', contextFilter: expect.any(Function) } }])
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#ABC', []))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#DEF', [{ target: 'ASSET#test', context: 'test' }, { target: 'COMPUTED#XYZ', context: 'test' }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('MAP#LMNO', [{ target: 'ASSET#test', context: 'test' }, { target: 'ROOM#DEF', context: 'test' }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('KNOWLEDGE#GHI', [{ target: 'ASSET#test', context: 'test' }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('COMPUTED#XYZ', [{ target: 'ASSET#test', context: 'test' }, { target: 'VARIABLE#TUV', context: 'test' }, { target: 'VARIABLE#QRS', context: 'test' }]))
     })
 })
