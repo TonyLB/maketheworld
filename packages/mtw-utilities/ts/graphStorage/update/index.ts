@@ -1,169 +1,80 @@
 import { GraphNodeCacheDirectEdge } from '../cache/graphNode'
-import GraphOfUpdates, { GraphOfUpdatesEdge, GraphOfUpdatesNode } from './graphOfUpdates'
-import { DependencyGraphAction, isDependencyGraphPut, isDependencyGraphDelete } from "../cache/baseClasses"
+import GraphOfUpdates, { GraphStorageDBH } from './baseClasses'
 import GraphCache from "../cache"
-import { Graph } from "../utils/graph"
-import { GraphEdge } from "../utils/graph/baseClasses"
-import { exponentialBackoffWrapper } from "../../dynamoDB"
-import withGetOperations from "../../dynamoDB/mixins/get"
-import withUpdate from "../../dynamoDB/mixins/update"
-import withTransaction, { TransactionRequest } from "../../dynamoDB/mixins/transact"
-import kargerStein from "../utils/graph/kargerStein"
+import updateGraphStorageBatch from './updateGraphStorageBatch'
 
-const capitalize = (value: string) => (`${value.slice(0, 1).toUpperCase()}${value.slice(1)}`)
-
-export type DescentUpdateMessage = {
-    type: 'DescentUpdate';
-} & DependencyGraphAction
-
-export type AncestryUpdateMessage = {
-    type: 'AncestryUpdate';
-} & DependencyGraphAction
-
-export type GraphStorageDBH = InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>> &
-    InstanceType<ReturnType<ReturnType<typeof withUpdate<'PrimaryKey'>>>> &
-    InstanceType<ReturnType<ReturnType<typeof withTransaction<'PrimaryKey'>>>>
-
-export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH; threshold?: number }) => async (graph: GraphOfUpdates): Promise<void> => {
-    const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
-    fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
-
-    const checkUpdateAgainstCurrent = (graph: GraphOfUpdates, edge: GraphEdge<string, GraphOfUpdatesEdge>, direction: 'forward' | 'back' ) => {
-        const { context, action } = edge
-        const { from, to } = direction === 'forward' ? { from: edge.from, to: edge.to } : { from: edge.to, to: edge.from }
-        const perfectDuplicate = (graph.nodes[from]?.[direction]?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext === context))
-        const nearDuplicate = (graph.nodes[from]?.[direction]?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext !== context))
-        if ((action === 'put' && !perfectDuplicate) || (action === 'delete' && perfectDuplicate)) {
-            const previousNode = graph.nodes?.[from]?.[direction]
-            const addToList: GraphNodeCacheDirectEdge[] = action === 'put' ? [{ target: to, context }] : []
-            graph.setNode(from, {
-                [`needs${capitalize(direction)}Update`]: true,
-                [direction]: previousNode
-                    ? {
-                        ...previousNode,
-                        edges: [
-                            ...previousNode.edges.filter(({ target, context: checkContext }) => (target !== to || context !== checkContext)),
-                            ...addToList
-                        ]
-                    }
-                    : {
-                        edges: addToList
-                    }
-            })
-            if (!nearDuplicate) {
-                graph.setNode(from, { [`needs${capitalize(direction)}Invalidate`]: true })
-            }
-        }
-    }
-
-    graph.edges = graph.edges.filter(({ action, from, to, context }) => (action === 'put' || graph.nodes[from]?.forward?.edges.find(({ target, context: checkContext }) => (target === to && context === checkContext))))
-    graph.edges.forEach((edge) => {
-        checkUpdateAgainstCurrent(graph, edge, 'forward')
-        checkUpdateAgainstCurrent(graph, edge, 'back')
-    })
-
-    //
-    // Check if current graph is split into smaller chunks by Karger-Stein algorithm and recurse if needed
-    //
-    const { subGraphs, cutSet } = kargerStein(graph, metaProps.threshold || 50)
-    if (Object.keys(cutSet.nodes).length) {
-        await Promise.all(subGraphs.map(updateGraphStorageBatch(metaProps)))
-        await updateGraphStorageBatch(metaProps)(cutSet)
-        return
-    }
-
-    const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number): TransactionRequest<'PrimaryKey'> => {
-        const node = graph.nodes[key]
-        if (!node) {
-            throw new Error('Cannot update node with no actions in GraphStorage update')
-        }
-        const needsInvalidate = Boolean(node[`needs${capitalize(direction)}Invalidate`])
-        const newEdgeSet = (graph.nodes[key]?.[direction]?.edges || []).map(({ target, context }) => (`${target}${ context ? `::${context}` : ''}`))
-        return {
-            Update: {
-                Key: {
-                    PrimaryKey: key,
-                    DataCategory: `Graph::${capitalize(direction)}`,                
-                },
-                updateKeys: ['edgeSet', 'updatedAt', 'invalidatedAt'],
-                updateReducer: (draft) => {
-                    draft.edgeSet = newEdgeSet
-                    draft.updatedAt = moment
-                    if (needsInvalidate) {
-                        draft.invalidatedAt = moment
-                    }
-                },
-                checkKeys: ['updatedAt'],
-                successCallback: (updateItem) => {
-                    const { PrimaryKey } = updateItem
-                    if (PrimaryKey) {
-                        metaProps.internalCache.Nodes.set(PrimaryKey, direction, updateItem)
-                    }
-                }
-            }
-        }
-    }
-
-    const moment = Date.now()
-    const nodeList = Object.values(graph.nodes) as GraphOfUpdatesNode[]
-    const transactions: TransactionRequest<'PrimaryKey'>[] = [
-        ...nodeList
-            .filter(({ needsForwardUpdate, forward }) => (needsForwardUpdate || !forward))
-            .map(({ key }) => (updateTransaction(graph, key, 'forward', moment))),
-        ...nodeList
-            .filter(({ needsBackUpdate, back }) => (needsBackUpdate || !back))
-            .map(({ key }) => (updateTransaction(graph, key, 'back', moment))),
-        ...(graph.edges.map(({ from, to, context, action, ...rest }) => (
-            action === 'put'
-            ? {
-                Put: {
-                    PrimaryKey: from,
-                    DataCategory: `Graph::${to}${context ? `::${context}` : ''}`,
-                    ...rest
-                }
-            }
-            : {
-                Delete: {
-                    PrimaryKey: from,
-                    DataCategory: `Graph::${to}${context ? `::${context}` : ''}`
-                }
-            }
-
-        )))
-    ]
-
-    await metaProps.dbHandler.transactWrite(transactions)
+type SetEdgesOptions = {
+    direction?: 'forward' | 'back';
+    contextFilter?: (value: string) => boolean;
 }
 
-export const updateGraphStorage = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>, T extends string>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH }) => async ({ descent, ancestry }: { descent: DependencyGraphAction[]; ancestry: DependencyGraphAction[] }): Promise<void> => {
-    const graph = new GraphOfUpdates({}, [], {}, true)
-
-    descent.forEach((item) => {
-        if (isDependencyGraphPut(item)) {
-            item.putItem.assets.forEach((asset) => { graph.addEdge({ from: item.EphemeraId, to: item.putItem.EphemeraId, context: asset, action: 'put' }) })
-        }
-        if (isDependencyGraphDelete(item)) {
-            item.deleteItem.assets.forEach((asset) => { graph.addEdge({ from: item.EphemeraId, to: item.deleteItem.EphemeraId, context: asset, action: 'delete' }) })
-        }
-    })    
-    ancestry.forEach((item) => {
-        if (isDependencyGraphPut(item)) {
-            item.putItem.assets.forEach((asset) => { graph.addEdge({ from: item.putItem.EphemeraId, to: item.EphemeraId, context: asset, action: 'put' }) })
-        }
-        if (isDependencyGraphDelete(item)) {
-            item.deleteItem.assets.forEach((asset) => { graph.addEdge({ from: item.deleteItem.EphemeraId, to: item.EphemeraId, context: asset, action: 'delete' }) })
-        }
-    })
-
-    await exponentialBackoffWrapper(
-        () => (updateGraphStorageBatch(metaProps)(new Graph(JSON.parse(JSON.stringify(graph.nodes)), graph.edges, {}, true))),
-        {
-            retryErrors: ['TransactionCanceledException'],
-            retryCallback: async () => {
-                Object.keys(graph.nodes).forEach((key) => { metaProps.internalCache.Nodes.invalidate(key) })
-            }
-        }
-    )
+export type SetEdgesNodeArgument<T extends string> = {
+    itemId: T;
+    edges: GraphNodeCacheDirectEdge[];
+    options?: SetEdgesOptions
 }
 
-export default updateGraphStorage
+export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>, T extends string> {
+    internalCache: C;
+    dbHandler: GraphStorageDBH;
+    threshold: number = 50;
+    setEdgePayloads: SetEdgesNodeArgument<T>[] = [];
+
+    constructor(props: { internalCache: C; dbHandler: GraphStorageDBH; threshold?: number }) {
+        const { internalCache, dbHandler, threshold } = props
+        this.internalCache = internalCache
+        this.dbHandler = dbHandler
+        if (typeof threshold !== 'undefined') {
+            this.threshold = threshold
+        }
+    }
+
+    setEdges(nodeUpdates: SetEdgesNodeArgument<T>[]): void {
+        this.setEdgePayloads = [
+            ...this.setEdgePayloads,
+            ...nodeUpdates
+        ]
+    }
+
+    async flush() {
+        const graph = new GraphOfUpdates({}, [], {}, true)
+        //
+        // Pre-warm the cache with a batch load of all the items that will be needed
+        //
+        this.internalCache.Nodes.get(this.setEdgePayloads.map(({ itemId }) => (itemId)))
+        //
+        // Convert setEdge payloads into changes needed as expressed by put/delete actions
+        //
+        await Promise.all(
+            this.setEdgePayloads.map(
+                async ({ itemId, edges, options = {} }) => {
+                    const { direction = 'forward', contextFilter } = options
+                    const [current] = await this.internalCache.Nodes.get([itemId])
+                    const currentEdges = current[direction].edges.filter(contextFilter ? ({ context }) => (contextFilter(context)) : () => (true))
+                    edges
+                        .filter((edge) => (!currentEdges.find((checkEdge) => (checkEdge.target === edge.target && checkEdge.context === edge.context))))
+                        .forEach((edge) => {
+                            const { from, to } = direction === 'forward' ? { from: itemId, to: edge.target } : { from: edge.target, to: itemId }
+                            graph.addEdge({ from, to, context: edge.context, action: 'put' })
+                        })
+                    currentEdges
+                        .filter((edge) => (!edges.find((checkEdge) => (checkEdge.target === edge.target && checkEdge.context === edge.context))))
+                        .forEach((edge) => {
+                            const { from, to } = direction === 'forward' ? { from: itemId, to: edge.target } : { from: edge.target, to: itemId }
+                            graph.addEdge({ from, to, context: edge.context, action: 'delete' })
+                        })
+                })
+        )
+
+        //
+        // If any changes are needed, apply them in batch
+        //
+        if (graph.edges.length) {
+            await updateGraphStorageBatch({ internalCache: this.internalCache, dbHandler: this.dbHandler, threshold: this.threshold })(graph)
+        }
+        this.setEdgePayloads = []
+    
+    }
+}
+
+export default GraphUpdate

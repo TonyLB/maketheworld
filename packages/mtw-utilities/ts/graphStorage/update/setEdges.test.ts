@@ -1,5 +1,5 @@
-jest.mock('.')
-import { GraphStorageDBH, updateGraphStorageBatch } from '.'
+jest.mock('./updateGraphStorageBatch')
+import updateGraphStorageBatch from './updateGraphStorageBatch'
 
 import { GraphNodeData } from '../cache/graphNode'
 import withGetOperations from '../../dynamoDB/mixins/get'
@@ -7,6 +7,7 @@ import withPrimitives from '../../dynamoDB/mixins/primitives'
 import { GraphEdgeData } from '../cache/graphEdge'
 import { GraphCacheData } from '../cache'
 import setEdges from './setEdges'
+import { GraphStorageDBH } from './baseClasses'
 
 const updateGraphStorageBatchMock = updateGraphStorageBatch as jest.Mock
 
