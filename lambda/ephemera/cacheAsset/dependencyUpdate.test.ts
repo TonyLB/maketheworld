@@ -1,27 +1,26 @@
 jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/setEdges')
-import setEdges from '@tonylb/mtw-utilities/dist/graphStorage/update/setEdges'
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
-import { MessageBus } from '../messageBus/baseClasses'
+jest.mock('@tonylb/mtw-utilities/dist/graphStorage/update/index')
+import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update/index'
+
 import { updateDependenciesFromMergeActions } from './dependencyUpdate'
 
 const internalCacheMock = jest.mocked(internalCache, true)
-const setEdgesMock = setEdges as jest.Mock
+const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<typeof internalCacheMock._graphCache, string>>
 
 describe('dependencyUpdate', () => {
-    const messageBusMock = { send: jest.fn() } as unknown as MessageBus
-    const setEdgesInternalMock = jest.fn()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
         internalCacheMock.CharacterConnections.get.mockResolvedValue([])
-        setEdgesMock.mockReturnValue(setEdgesInternalMock)
+        GraphUpdateMock.mockClear()
     })
 
     it('should create internal connections when merging ephemera', async () => {
-        await updateDependenciesFromMergeActions('test')([
+        await updateDependenciesFromMergeActions('test', new GraphUpdateMock({ internalCache: internalCacheMock, dbHandler: {} }))([
             {
                 key: {
                     EphemeraId: 'ROOM#ABC',
@@ -138,8 +137,8 @@ describe('dependencyUpdate', () => {
                 }
             }
         ])
-        expect(setEdgesInternalMock).toHaveBeenCalledTimes(1)
-        expect(setEdgesInternalMock).toHaveBeenCalledWith([
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(1)
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([
             { itemId: 'ROOM#ABC', edges: [], options: { direction: 'back', contextFilter: expect.any(Function) } },
             { itemId: 'ROOM#DEF', edges: [{ target: 'COMPUTED#XYZ', context: 'test' }], options: { direction: 'back', contextFilter: expect.any(Function) } },
             { itemId: 'MAP#LMNO', edges: [{ target: 'ROOM#DEF', context: 'test' }], options: { direction: 'back', contextFilter: expect.any(Function) } },
