@@ -13,8 +13,9 @@ import messageBus from "../messageBus"
 import { EphemeraItem } from "./baseClasses"
 import dependencyCascade from "../dependentMessages/dependencyCascade"
 import { updateDependenciesFromMergeActions } from "./dependencyUpdate"
+import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
 
-export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {
+export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[], graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>): Promise<void> => {
     //
     // TODO:  Better error handling and validation throughout
     //
@@ -27,7 +28,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
         },
         items: items.map((item) => ({ ...item, DataCategory })) as any,
         mergeFunction: ({ incoming }) => (incoming),
-        beforeTransact: updateDependenciesFromMergeActions(assetId),
+        beforeTransact: updateDependenciesFromMergeActions(assetId, graphUpdate),
         transactFactory: async ({ key, action }) => {
             const [ephemeraTag] = splitType(key.EphemeraId)
             const [_, assetKey] = splitType(key.DataCategory)

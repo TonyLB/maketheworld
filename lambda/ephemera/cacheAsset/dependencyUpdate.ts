@@ -1,11 +1,11 @@
 import { EphemeraBookmarkId, EphemeraComputedId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraRoomId, isEphemeraBookmarkId, isEphemeraComputedId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { TaggedMessageContent } from "@tonylb/mtw-interfaces/dist/messages"
 import { MergeActionProperty } from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/merge"
-import setEdges, { SetEdgesNodeArgument } from "@tonylb/mtw-utilities/dist/graphStorage/update/setEdges"
+import { SetEdgesNodeArgument } from "@tonylb/mtw-utilities/dist/graphStorage/update/setEdges"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import internalCache from "../internalCache"
-import { graphStorageDB } from "../dependentMessages/graphCache"
 import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraMapItem, isEphemeraRoomItem } from "./baseClasses"
+import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
 
 const dependencyExtractor = ({ dependencies }: { dependencies: EphemeraItemDependency[] }) => (dependencies.map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraId))
 
@@ -67,7 +67,7 @@ const isEphemeraDependentId = (EphemeraId: string): EphemeraId is (EphemeraCompu
     isEphemeraMapId(EphemeraId)
 )
 
-export const updateDependenciesFromMergeActions = (context: string) => async (mergeActions: MergeActionProperty<'EphemeraId', string>[]) => {
+export const updateDependenciesFromMergeActions = (context: string, graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>) => async (mergeActions: MergeActionProperty<'EphemeraId', string>[]) => {
     const nodeUpdates = mergeActions.reduce<SetEdgesNodeArgument<EphemeraId>[]>((previous, mergeAction) => {
         const { EphemeraId } = mergeAction.key
         const options = { direction: 'back' as const, contextFilter: (checkContext: string) => (checkContext === context)}
@@ -100,5 +100,5 @@ export const updateDependenciesFromMergeActions = (context: string) => async (me
         }
         return previous
     }, [])
-    await setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })(nodeUpdates)
+    graphUpdate.setEdges(nodeUpdates)
 }

@@ -5,17 +5,20 @@ import { mergeIntoEphemera } from "../cacheAsset/perAsset";
 import setEdges from "@tonylb/mtw-utilities/dist/graphStorage/update/setEdges";
 import internalCache from "../internalCache";
 import { graphStorageDB } from "../dependentMessages/graphCache";
+import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update";
 
 export const decacheAssetMessage = async ({ payloads, messageBus }: { payloads: DecacheAssetMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async ({ assetId }) => {
+        const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
         await (setEdges({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })([{ itemId: AssetKey(assetId), edges: [], options: { direction: 'back' } }]))
         await Promise.all([
-            mergeIntoEphemera(assetId, []),
+            mergeIntoEphemera(assetId, [], graphUpdate),
             ephemeraDB.deleteItem({
                 EphemeraId: AssetKey(assetId),
                 DataCategory: 'Meta::Asset'
             })
         ])
+        await graphUpdate.flush()
     }))
     messageBus.send({
         type: 'ReturnValue',

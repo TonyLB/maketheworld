@@ -435,7 +435,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         
             const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
 
-            await mergeIntoEphemera(assetId, ephemeraItems)
+            await mergeIntoEphemera(assetId, ephemeraItems, graphUpdate)
 
             graphUpdate.setEdges([{
                 itemId: AssetKey(assetItem.key),

@@ -361,7 +361,8 @@ describe('cacheAsset', () => {
                     { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
                     { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
                 ]
-            }]
+            }],
+            expect.any(Object)
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#test",
@@ -518,7 +519,8 @@ describe('cacheAsset', () => {
                 EphemeraId: 'VARIABLE#QRS',
                 key: 'open',
                 default: 'false'
-            }]
+            }],
+            expect.any(Object)
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#test",
