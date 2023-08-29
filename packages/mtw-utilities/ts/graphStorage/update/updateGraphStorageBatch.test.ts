@@ -8,9 +8,12 @@ import { GraphCacheData } from '../cache'
 import { Graph } from '../utils/graph'
 import { GraphStorageDBH } from './baseClasses'
 
+const internalCacheNodeSet = jest.fn()
+
 const internalCache = {
     Nodes: {
         get: jest.fn(),
+        set: internalCacheNodeSet,
         invalidate: jest.fn()
     } as unknown as 
         jest.Mocked<GraphNodeData<string, 
@@ -49,6 +52,15 @@ describe('updateGraphStorageBatch', () => {
         jest.resetAllMocks()
         const dateNowStub = jest.fn(() => 1000)
         global.Date.now = dateNowStub
+        internalCacheNodeSet.mockClear()
+        transactWrite.mockImplementation(async (items) => {
+            items.forEach((item) => {
+                if ('Update' in item && item.Update.successCallback) {
+                    const returnValue = produce({}, item.Update.updateReducer)
+                    item.Update.successCallback(returnValue, {})
+                }
+            })
+        })
     })
 
     afterEach(() => {
@@ -81,23 +93,32 @@ describe('updateGraphStorageBatch', () => {
         ))
 
         expect(transactWrite).toHaveBeenCalledTimes(1)
+        expect(internalCacheNodeSet).toHaveBeenCalledTimes(8)
         expect(transactWrite.mock.calls[0][0].length).toEqual(10)
         expect(transactWrite.mock.calls[0][0][0].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][0].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportTwo::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportOne', 'forward', { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }], updatedAt: 1000, invalidatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][1].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Forward' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][1].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000 })
+        expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportTwo', 'forward', { edges: [], updatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][2].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Forward' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][2].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportFour::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportThree', 'forward', { edges: [{ target: 'ASSET#ImportFour', context: 'ASSET' }], updatedAt: 1000, invalidatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][3].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportFour', DataCategory: 'Graph::Forward' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][3].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000 })
+        expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportFour', 'forward', { edges: [], updatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][4].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Back' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][4].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000 })
+        expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportOne', 'back', { edges: [], updatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][5].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][5].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportOne::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportTwo', 'back', { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }], updatedAt: 1000, invalidatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][6].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Back' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][6].Update.updateReducer)).toEqual({ edgeSet: [], updatedAt: 1000 })
+        expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportThree', 'back', { edges: [], updatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][7].Update).toEqual(testTransact({ PrimaryKey: 'ASSET#ImportFour', DataCategory: 'Graph::Back' }))
         expect(produce({ edgeSet: [] }, transactWrite.mock.calls[0][0][7].Update.updateReducer)).toEqual({ edgeSet: ['ASSET#ImportThree::ASSET'], updatedAt: 1000, invalidatedAt: 1000 })
+        expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportFour', 'back', { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }], updatedAt: 1000, invalidatedAt: 1000 })
         expect(transactWrite.mock.calls[0][0][8]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } })
         expect(transactWrite.mock.calls[0][0][9]).toEqual({ Put: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::ASSET#ImportFour::ASSET' } })
     })
