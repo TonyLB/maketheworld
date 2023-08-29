@@ -78,10 +78,15 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
                 },
                 checkKeys: ['updatedAt'],
                 successCallback: (updateItem) => {
-                    const { PrimaryKey } = updateItem
-                    if (PrimaryKey) {
-                        metaProps.internalCache.Nodes.set(PrimaryKey, direction, updateItem)
-                    }
+                    const { PrimaryKey, DataCategory, edgeSet, ...rest } = updateItem
+                    metaProps.internalCache.Nodes.set(
+                        key,
+                        direction,
+                        {
+                            edges: (edgeSet || []).map((edgeKey) => ({ target: edgeKey.split('::')[0], context: edgeKey.split('::').slice(1).join('::') })),
+                            ...rest
+                        }
+                    )
                 }
             }
         }
