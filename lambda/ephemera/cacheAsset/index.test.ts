@@ -9,8 +9,8 @@ import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update/index'
 
 jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')
 import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
-jest.mock('./perAsset')
-import { mergeIntoEphemera } from './perAsset'
+jest.mock('./mergeIntoEphemera')
+import { mergeIntoEphemera } from './mergeIntoEphemera'
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'

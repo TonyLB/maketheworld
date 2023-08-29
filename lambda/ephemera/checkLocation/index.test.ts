@@ -105,7 +105,8 @@ describe('checkLocation', () => {
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
-            roomId: 'ROOM#TownSquare'
+            roomId: 'ROOM#TownSquare',
+            suppressSelfMessage: true
         })
     })
 
@@ -191,7 +192,8 @@ describe('checkLocation', () => {
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
-            roomId: 'ROOM#Oubliette'
+            roomId: 'ROOM#Oubliette',
+            suppressSelfMessage: true
         })
     })
 
@@ -239,7 +241,8 @@ describe('checkLocation', () => {
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Oubliette',
             leaveMessage: ' has vanished.',
-            arriveMessage: ' has appeared.'
+            arriveMessage: ' has appeared.',
+            suppressSelfMessage: true
         })
     })
 })

@@ -25,7 +25,7 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
                     ? {
                         ...previousNode,
                         edges: [
-                            ...previousNode.edges.filter(({ target, context: checkContext }) => (target !== to || context !== checkContext)),
+                            ...(previousNode.edges || []).filter(({ target, context: checkContext }) => (target !== to || context !== checkContext)),
                             ...addToList
                         ]
                     }

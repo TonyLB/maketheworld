@@ -1,11 +1,32 @@
-import { EphemeraBookmarkId, EphemeraComputedId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraRoomId, isEphemeraBookmarkId, isEphemeraComputedId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraActionId, EphemeraBookmarkId, EphemeraComputedId, EphemeraFeatureId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraMomentId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraBookmarkId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { TaggedMessageContent } from "@tonylb/mtw-interfaces/dist/messages"
 import { MergeActionProperty } from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/merge"
-import { SetEdgesNodeArgument } from "@tonylb/mtw-utilities/dist/graphStorage/update/setEdges"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import internalCache from "../internalCache"
-import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraMapItem, isEphemeraRoomItem } from "./baseClasses"
+import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraMapItem, isEphemeraRoomItem } from "./baseClasses"
 import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
+import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
+
+const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
+    isEphemeraComputedId(EphemeraId) ||
+    isEphemeraRoomId(EphemeraId) ||
+    isEphemeraKnowledgeId(EphemeraId) ||
+    isEphemeraBookmarkId(EphemeraId) ||
+    isEphemeraMapId(EphemeraId) ||
+    isEphemeraFeatureId(EphemeraId) ||
+    isEphemeraActionId(EphemeraId) ||
+    isEphemeraVariableId(EphemeraId) ||
+    isEphemeraMessageId(EphemeraId) ||
+    isEphemeraMomentId(EphemeraId)
+)
+
+const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraFeatureId | EphemeraBookmarkId | EphemeraMapId) => (
+    isEphemeraComputedId(EphemeraId) ||
+    isEphemeraRoomId(EphemeraId) ||
+    isEphemeraFeatureId(EphemeraId) ||
+    isEphemeraBookmarkId(EphemeraId) ||
+    isEphemeraMapId(EphemeraId)
+)
 
 const dependencyExtractor = ({ dependencies }: { dependencies: EphemeraItemDependency[] }) => (dependencies.map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraId))
 
@@ -24,12 +45,21 @@ const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): E
                 item.to
             ]
         }
+        if (item.tag === 'Link' && (isEphemeraFeatureId(item.to) || isEphemeraActionId(item.to))) {
+            return [
+                ...previous,
+                item.to
+            ]
+        }
         return previous
     }, [])
     return unique(returnValue)
 }
 
 const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraId[] => {
+    if (!isEphemeraInternallyBacklinked(item.EphemeraId)) {
+        return []
+    }
     if (isEphemeraComputedItem(item)) {
         return item.dependencies.map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraId)
     }
@@ -48,6 +78,15 @@ const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraId[] =
             ])).flat(2)
         )
     }
+    if (isEphemeraFeatureItem(item)) {
+        return unique(
+            item.appearances.map(({ conditions, render, name }) => ([
+                ...conditions.map(dependencyExtractor),
+                ...extractDependenciesFromTaggedContent(render),
+                ...extractDependenciesFromTaggedContent(name),
+            ])).flat(2)
+        )
+    }
     if (isEphemeraBookmarkItem(item)) {
         return unique(
             item.appearances.map(({ conditions, render }) => ([
@@ -59,46 +98,33 @@ const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraId[] =
     return []
 }
 
-const isEphemeraDependentId = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMapId) => (
-    isEphemeraComputedId(EphemeraId) ||
-    isEphemeraRoomId(EphemeraId) ||
-    isEphemeraKnowledgeId(EphemeraId) ||
-    isEphemeraBookmarkId(EphemeraId) ||
-    isEphemeraMapId(EphemeraId)
-)
-
 export const updateDependenciesFromMergeActions = (context: string, graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>) => async (mergeActions: MergeActionProperty<'EphemeraId', string>[]) => {
-    const nodeUpdates = mergeActions.reduce<SetEdgesNodeArgument<EphemeraId>[]>((previous, mergeAction) => {
+    mergeActions.forEach((mergeAction) => {
         const { EphemeraId } = mergeAction.key
         const options = { direction: 'back' as const, contextFilter: (checkContext: string) => (checkContext === context)}
 
-        if (!isEphemeraId(EphemeraId) || !isEphemeraDependentId(EphemeraId)) {
-            return previous
+        if (!isEphemeraId(EphemeraId) || !isEphemeraBackLinkedToAsset(EphemeraId)) {
+            return
         }
         if (mergeAction.action === 'delete') {
-            return [
-                ...previous,
-                {
-                    itemId: EphemeraId,
-                    edges: [],
-                    options
-                }
-            ]
+            graphUpdate.setEdges([{
+                itemId: EphemeraId,
+                edges: [],
+                options
+            }])
         }
         if (typeof mergeAction.action !== 'string') {
             if (!mergeAction.action) {
-                return previous
+                return
             }
-            return [
-                ...previous,
-                {
-                    itemId: EphemeraId,
-                    edges: extractDependenciesFromEphemeraItem(mergeAction.action as unknown as EphemeraItem).map((target) => ({ target, context })),
-                    options
-                }
-            ]
+            graphUpdate.setEdges([{
+                itemId: EphemeraId,
+                edges: [
+                    { target: AssetKey(context), context },
+                    ...extractDependenciesFromEphemeraItem(mergeAction.action as unknown as EphemeraItem).map((target) => ({ target, context }))
+                ],
+                options
+            }])
         }
-        return previous
     }, [])
-    graphUpdate.setEdges(nodeUpdates)
 }
