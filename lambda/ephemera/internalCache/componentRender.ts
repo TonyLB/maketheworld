@@ -366,7 +366,9 @@ export class ComponentRenderData {
             ),
             renderBookmark: (bookmarkId) => (this.get(CharacterId, bookmarkId).then(({ Description }) => (Description)))
         }
-        const appearancesByAsset = await this._componentMeta(EphemeraId, unique(globalAssets || [], characterAssets) as string[])
+
+        const allAssets = unique(globalAssets || [], characterAssets) as string[]
+        const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets)
         const aggregateDependencies = unique(...(Object.values(appearancesByAsset) as (ComponentMetaMapItem | ComponentMetaRoomItem | ComponentMetaFeatureItem)[])
             .map(({ appearances }) => (
                 unique(...appearances.map(({ conditions }: { conditions: EphemeraCondition[] }) => (
@@ -379,10 +381,10 @@ export class ComponentRenderData {
             ))) as StateItemId[]
 
         if (isEphemeraRoomId(EphemeraId)) {
-            const assets = Object.assign({}, ...[...(globalAssets || []), ...characterAssets]
+            const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const possibleRoomAppearances = [...(globalAssets || []), ...characterAssets]
+            const possibleRoomAppearances = allAssets
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[]))
                 .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const [roomCharacterList, renderRoomAppearances] = (await Promise.all([
@@ -401,10 +403,10 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraFeatureId(EphemeraId)) {
-            const assets = Object.assign({}, ...[...(globalAssets || []), ...characterAssets]
+            const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const possibleFeatureAppearances = [...(globalAssets || []), ...characterAssets]
+            const possibleFeatureAppearances = allAssets
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraFeatureAppearance[]))
                 .reduce<EphemeraFeatureAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderFeatureAppearances = await filterAppearances(this._evaluateCode)(possibleFeatureAppearances)
@@ -419,10 +421,10 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraKnowledgeId(EphemeraId)) {
-            const assets = Object.assign({}, ...[...(globalAssets || []), ...characterAssets]
+            const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const possibleKnowledgeAppearances = [...(globalAssets || []), ...characterAssets]
+            const possibleKnowledgeAppearances = allAssets
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraFeatureAppearance[]))
                 .reduce<EphemeraKnowledgeAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderKnowledgeAppearances = await filterAppearances(this._evaluateCode)(possibleKnowledgeAppearances)
@@ -437,10 +439,10 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraBookmarkId(EphemeraId)) {
-            const assets = Object.assign({}, ...[...(globalAssets || []), ...characterAssets]
+            const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const possibleBookmarkAppearances = [...(globalAssets || []), ...characterAssets]
+            const possibleBookmarkAppearances = allAssets
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraBookmarkAppearance[]))
                 .reduce<EphemeraBookmarkAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderFeatureAppearances = await filterAppearances(this._evaluateCode)(possibleBookmarkAppearances)
@@ -455,7 +457,7 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraMessageId(EphemeraId)) {
-            const possibleMessageAppearances = [...(globalAssets || []), ...characterAssets]
+            const possibleMessageAppearances = allAssets
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraMessageAppearance[]))
                 .reduce<EphemeraMessageAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderMessageAppearances = await filterAppearances(this._evaluateCode)(possibleMessageAppearances)
@@ -469,10 +471,10 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraMapId(EphemeraId)) {
-            const assets = Object.assign({}, ...[...(globalAssets || []), ...characterAssets]
+            const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => ((appearancesByAsset[assetId]?.appearances || []).length))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
-            const possibleMapAppearances = [...(globalAssets || []), ...characterAssets]
+            const possibleMapAppearances = allAssets
                 .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraMapAppearance[]))
                 .reduce<EphemeraMapAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
             const renderMapAppearances = await filterAppearances(this._evaluateCode)(possibleMapAppearances)
@@ -485,7 +487,7 @@ export class ComponentRenderData {
                 ), {})
             const roomMetas = await Promise.all(allRooms.map(async (ephemeraId) => {
                 const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
-                const possibleRoomAppearances = [...(globalAssets || []), ...characterAssets]
+                const possibleRoomAppearances = allAssets
                     .map((assetId) => (((metaByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[])
                         .filter(({ name, exits }) => (name.length || exits.find(({ to }) => (isEphemeraRoomId(to) &&  allRooms.includes(to)))))
                     ))
