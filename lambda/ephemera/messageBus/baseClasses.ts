@@ -3,7 +3,7 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/dist/messages"
-import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, EphemeraComputedId, EphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
     EphemeraCharacterId,
@@ -262,13 +262,27 @@ export type MoveCharacterMessage = {
     suppressSelfMessage?: boolean;
 }
 
-export type CheckLocationMessage = {
+export type CheckLocationMessageInvariantPayload = {
     type: 'CheckLocation';
-    characterId: EphemeraCharacterId;
     forceMove?: boolean;
+    forceRender?: boolean;
     arriveMessage?: string;
     leaveMessage?: string;
 }
+
+export type CheckLocationPlayerMessage = CheckLocationMessageInvariantPayload & {
+    characterId: EphemeraCharacterId;
+}
+
+export type CheckLocationRoomMessage = CheckLocationMessageInvariantPayload & {
+    roomId: EphemeraRoomId
+}
+
+export type CheckLocationAssetMessage = CheckLocationMessageInvariantPayload & {
+    assetId: EphemeraAssetId
+}
+
+export type CheckLocationMessage = CheckLocationPlayerMessage | CheckLocationRoomMessage | CheckLocationAssetMessage
 
 export type DecacheAssetMessage = {
     type: 'DecacheAsset';
@@ -404,6 +418,9 @@ export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDef
 export const isPerception = (prop: MessageType): prop is PerceptionMessage => (prop.type === 'Perception')
 export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage => (prop.type === 'MoveCharacter')
 export const isCheckLocation = (prop: MessageType): prop is CheckLocationMessage => (prop.type === 'CheckLocation')
+export const isCheckLocationPlayer = (prop: MessageType): prop is CheckLocationPlayerMessage => (isCheckLocation(prop) && 'characterId' in prop)
+export const isCheckLocationRoom = (prop: MessageType): prop is CheckLocationRoomMessage => (isCheckLocation(prop) && 'roomId' in prop)
+export const isCheckLocationAsset = (prop: MessageType): prop is CheckLocationAssetMessage => (isCheckLocation(prop) && 'assetId' in prop)
 
 export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')

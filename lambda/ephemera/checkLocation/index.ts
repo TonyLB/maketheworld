@@ -1,8 +1,9 @@
-import { MoveCharacterMessage, MessageBus, CheckLocationMessage } from "../messageBus/baseClasses"
-import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { MessageBus, CheckLocationMessage, isCheckLocationPlayer, isCheckLocationRoom, CheckLocationPlayerMessage, isCheckLocationAsset, CheckLocationRoomMessage } from "../messageBus/baseClasses"
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
-import { RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
+import { RoomKey } from "@tonylb/mtw-utilities/dist/types"
 import { RoomStackItem } from "../moveCharacter"
+import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 
 //
 // checkLocation message handler tests whether the RoomStack (and RoomId) currently assigned to the character still
@@ -11,7 +12,54 @@ import { RoomStackItem } from "../moveCharacter"
 // then a moveCharacter action is queued in order to relocate the character somewhere legal
 //
 export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckLocationMessage[], messageBus: MessageBus }): Promise<void> => {
-    await Promise.all(payloads.map(async (payload) => {
+    //
+    // Scan payloads for assetId types and expand them out into roomId types using
+    // the descendants of the assetId
+    //
+    const assetPayloads = payloads.filter(isCheckLocationAsset)
+    const assetDescendantGraph = await internalCache.Graph.get(assetPayloads.map(({ assetId }) => (assetId)), 'forward')
+    const secondPayloads = assetPayloads.reduce<(CheckLocationPlayerMessage | CheckLocationRoomMessage)[]>((previous, payload) => {
+        const { assetId, ...rest } = payload
+
+        const roomDescendantGraph = assetDescendantGraph.restrict({
+            fromRoots: [assetId],
+            edgeCondition: ({ context }) => (context === assetId.split('#')[1])
+        })
+        const roomPayloads = Object.keys(roomDescendantGraph.nodes)
+            .filter(isEphemeraRoomId)
+
+        return [
+            ...previous.filter((payload) => (!(isCheckLocationRoom(payload) && roomPayloads.includes(payload.roomId)))),
+            ...roomPayloads.map((roomId) => ({
+                roomId,
+                ...rest
+            }))
+        ]
+    }, payloads.filter((payload): payload is (CheckLocationPlayerMessage | CheckLocationRoomMessage) => (!isCheckLocationAsset(payload))))
+
+    //
+    // Scan payloads for roomId types and expand them out into characterId types using
+    // the characterList items of each room
+    //
+    const roomPayloads = secondPayloads.filter(isCheckLocationRoom)
+    const roomLookupPayloads: CheckLocationPlayerMessage[] = (await Promise.all(
+        roomPayloads.map(async (payload) => {
+            const { roomId, ...rest } = payload
+            const characterList = await internalCache.RoomCharacterList.get(roomId)
+            return characterList.map(({ EphemeraId }) => ({
+                ...rest,
+                characterId: EphemeraId
+            }))
+        })
+    )).flat()
+    const finalPayloads = roomLookupPayloads.reduce<CheckLocationPlayerMessage[]>((previous, payload) => {
+        if (previous.find(({ characterId }) => (payload.characterId === characterId))) {
+            return previous
+        }
+        return [...previous, payload]
+    }, secondPayloads.filter(isCheckLocationPlayer))
+
+    await Promise.all(finalPayloads.map(async (payload) => {
 
         const [characterMeta, canonAssets = []] = await Promise.all([
             internalCache.CharacterMeta.get(payload.characterId),
@@ -38,7 +86,7 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
                 }
             },
             successCallback: ({ RoomStack, RoomId }) => {
-                const { forceMove, arriveMessage, leaveMessage } = payload
+                const { forceMove, forceRender, arriveMessage, leaveMessage } = payload
                 internalCache.CharacterMeta.set({ ...characterMeta, RoomStack })
                 const stackRoomId = (RoomStack as RoomStackItem[]).slice(-1)[0]?.RoomId
 
@@ -53,6 +101,13 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
                         //
                         // TODO: Figure out UI for departure and arrival messages to differentiate from normal travel
                         //
+                    })
+                }
+                else if (forceRender) {
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: characterMeta.EphemeraId,
+                        ephemeraId: RoomKey(stackRoomId)
                     })
                 }
             },
