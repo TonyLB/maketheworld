@@ -57,12 +57,8 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
             internalCache.Global.set({ key: 'assets', value: assets })
             if (messageBus) {
                 const removedAssets = previousAssets.filter((previousAsset) => (!assets.find((currentAsset) => (currentAsset === previousAsset))))
-                const changedAssets = [
-                    ...removedAssets,
-                    ...(assets.filter((currentAsset) => (!previousAssets.find((previousAsset) => (currentAsset === previousAsset))))
-                    )
-                ]
-                changedAssets.forEach((assetId) => {
+                const addedAssets = assets.filter((currentAsset) => (!previousAssets.find((previousAsset) => (currentAsset === previousAsset))))
+                addedAssets.forEach((assetId) => {
                     messageBus.send({
                         type: 'Perception',
                         ephemeraId: `ASSET#${assetId}`
@@ -71,7 +67,8 @@ export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: C
                 removedAssets.forEach((assetId) => {
                     messageBus.send({
                         type: 'CheckLocation',
-                        assetId: `ASSET#${assetId}`
+                        assetId: `ASSET#${assetId}`,
+                        forceRender: true
                     })
                 })
             }

@@ -265,6 +265,7 @@ export type MoveCharacterMessage = {
 export type CheckLocationMessageInvariantPayload = {
     type: 'CheckLocation';
     forceMove?: boolean;
+    forceRender?: boolean;
     arriveMessage?: string;
     leaveMessage?: string;
 }

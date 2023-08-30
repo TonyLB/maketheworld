@@ -106,14 +106,11 @@ describe('cacheAsset', () => {
             assets: ['Base']
         })
         expect(internalCacheMock.Global.set).toHaveBeenCalledWith({ key: 'assets', value: ['Base'] })
-        expect(messageBusMock.send).toHaveBeenCalledTimes(2)
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'Perception',
-            ephemeraId: 'ASSET#TownCenter'
-        })
+        expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'CheckLocation',
-            assetId: 'ASSET#TownCenter'
+            assetId: 'ASSET#TownCenter',
+            forceRender: true
         })
     })
 
@@ -150,14 +147,11 @@ describe('cacheAsset', () => {
             assets: ['Base', 'Test']
         })
         expect(internalCacheMock.Global.set).toHaveBeenCalledWith({ key: 'assets', value: ['Base', 'Test'] })
-        expect(messageBusMock.send).toHaveBeenCalledTimes(3)
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'Perception',
-            ephemeraId: 'ASSET#TownCenter'
-        })
+        expect(messageBusMock.send).toHaveBeenCalledTimes(2)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'CheckLocation',
-            assetId: 'ASSET#TownCenter'
+            assetId: 'ASSET#TownCenter',
+            forceRender: true
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'Perception',

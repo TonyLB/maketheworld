@@ -86,7 +86,7 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
                 }
             },
             successCallback: ({ RoomStack, RoomId }) => {
-                const { forceMove, arriveMessage, leaveMessage } = payload
+                const { forceMove, forceRender, arriveMessage, leaveMessage } = payload
                 internalCache.CharacterMeta.set({ ...characterMeta, RoomStack })
                 const stackRoomId = (RoomStack as RoomStackItem[]).slice(-1)[0]?.RoomId
 
@@ -101,6 +101,13 @@ export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckL
                         //
                         // TODO: Figure out UI for departure and arrival messages to differentiate from normal travel
                         //
+                    })
+                }
+                else if (forceRender) {
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: characterMeta.EphemeraId,
+                        ephemeraId: RoomKey(stackRoomId)
                     })
                 }
             },
