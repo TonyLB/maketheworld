@@ -40,11 +40,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[], 
                     updateReducer: (draft) => {
                         draft.cached = (draft.cached || []).filter((value) => (value !== assetKey))
                     },
-                    deleteCondition: ({ cached }) => (cached.length === 0),
-                    deleteCascade: ({ EphemeraId }) => ([
-                        { EphemeraId, DataCategory: 'Graph::Forward' },
-                        { EphemeraId, DataCategory: 'Graph::Back' }
-                    ])
+                    deleteCondition: ({ cached }) => (cached.length === 0)
                 }}]
             }
             if (typeof action === 'object') {

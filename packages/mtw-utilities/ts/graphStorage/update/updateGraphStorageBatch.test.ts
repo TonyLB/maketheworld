@@ -72,7 +72,9 @@ describe('updateGraphStorageBatch', () => {
         updateKeys: ['edgeSet', 'updatedAt', 'invalidatedAt'],
         updateReducer: expect.any(Function),
         successCallback: expect.any(Function),
-        checkKeys: ['updatedAt']
+        checkKeys: ['updatedAt'],
+        deleteCondition: expect.any(Function),
+        succeedAll: true
     })
 
     it('should correctly add disjoint edges', async () => {
