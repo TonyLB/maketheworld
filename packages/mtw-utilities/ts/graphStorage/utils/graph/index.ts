@@ -104,6 +104,18 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
         })
     }
 
+    //
+    // Create a deep copy of the existing structure
+    //
+    clone(): Graph<K, T, E> {
+        return new Graph(
+            JSON.parse(JSON.stringify(this.nodes)),
+            JSON.parse(JSON.stringify(this.edges)),
+            this._default,
+            this.directional
+        )
+    }
+
     reverse(): Graph<K, T, E> {
         return new Graph(
             this.nodes,

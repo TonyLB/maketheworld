@@ -63,6 +63,38 @@ describe('Graph class', () => {
         
     })
 
+    describe('clone', () => {
+        let testNodes: Record<string, { key: string, value?: string }>
+        let testEdges: GraphEdge<string, {}>[]
+
+        beforeEach(() => {
+            testNodes = {
+                A: { key: 'A', value: 'original' },
+                B: { key: 'B' },
+                C: { key: 'C' },
+                D: { key: 'D' },
+                E: { key: 'E' },
+                F: { key: 'F' },
+            }
+            testEdges = [
+                { from: 'A', to: 'B' },
+                { from: 'B', to: 'C' },
+                { from: 'A', to: 'C' },
+                { from: 'D', to: 'E' },
+                { from: 'E', to: 'F' },
+                { from: 'F', to: 'D' }
+            ]
+        })
+
+        it('should deep copy', () => {
+            const testGraph = new Graph(testNodes, testEdges, {}, true)
+            const clone = testGraph.clone()
+            testGraph.setNode('A', { value: 'changed' })
+            expect(testGraph.nodes['A']?.value).toBe('changed')
+            expect(clone.nodes['A']?.value).toBe('original')
+        })
+    })
+
     describe('simpleWalk', () => {
         let testNodes: Record<string, { key: string }>
         let testEdges: GraphEdge<string, {}>[]
