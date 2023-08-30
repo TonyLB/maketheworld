@@ -7,7 +7,7 @@ import kargerStein from "../utils/graph/kargerStein"
 
 const capitalize = (value: string) => (`${value.slice(0, 1).toUpperCase()}${value.slice(1)}`)
 
-export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH; threshold?: number }) => async (graph: GraphOfUpdates): Promise<void> => {
+export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>>(metaProps: { internalCache: C; dbHandler: GraphStorageDBH; threshold?: number; preCalculated?: boolean }) => async (graph: GraphOfUpdates): Promise<void> => {
     const fetchedNodes = await metaProps.internalCache.Nodes.get((Object.values(graph.nodes) as { key: string }[]).map(({ key }) => (key)))
     fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
 
@@ -40,20 +40,21 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
     }
 
     graph.edges = graph.edges.filter(({ action, from, to, context }) => (action === 'put' || graph.nodes[from]?.forward?.edges.find(({ target, context: checkContext }) => (target === to && context === checkContext))))
-    graph.edges.forEach((edge) => {
-        checkUpdateAgainstCurrent(graph, edge, 'forward')
-        checkUpdateAgainstCurrent(graph, edge, 'back')
-    })
 
     //
     // Check if current graph is split into smaller chunks by Karger-Stein algorithm and recurse if needed
     //
     const { subGraphs, cutSet } = kargerStein(graph, metaProps.threshold || 50)
     if (Object.keys(cutSet.nodes).length) {
-        await Promise.all(subGraphs.map(updateGraphStorageBatch(metaProps)))
-        await updateGraphStorageBatch(metaProps)(cutSet)
+        await Promise.all(subGraphs.map((subGraph) => (subGraph.clone())).map(updateGraphStorageBatch(metaProps)))
+        await updateGraphStorageBatch(metaProps)(cutSet.clone())
         return
     }
+
+    graph.edges.forEach((edge) => {
+        checkUpdateAgainstCurrent(graph, edge, 'forward')
+        checkUpdateAgainstCurrent(graph, edge, 'back')
+    })
 
     const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number): TransactionRequest<'PrimaryKey'> => {
         const node = graph.nodes[key]
@@ -87,7 +88,9 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
                             ...rest
                         }
                     )
-                }
+                },
+                deleteCondition: ({ edgeSet }) => ((edgeSet || []).length === 0),
+                succeedAll: true
             }
         }
     }
