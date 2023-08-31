@@ -22,7 +22,8 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         href: `/Character/${scopedId}/Play`,
         label: `Play: ${Name}`,
         type: 'MessagePanel',
-        characterId: scopedId
+        scopedId,
+        characterId: CharacterId
     })
     const { currentDraft } = useSelector(getPlayer)
     useOnboardingCheckpoint('navigatePlay')
