@@ -169,7 +169,10 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     })
                 }
                 if (isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
-                    const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
+                    const [mapDescribe, characterConnections] = await Promise.all([
+                        internalCache.ComponentRender.get(characterId, payload.ephemeraId),
+                        internalCache.CharacterConnections.get(characterId)
+                    ])
                     if ((!payload.mustIncludeRoomId) || mapDescribe.rooms.find(({ roomId }) => (payload.mustIncludeRoomId === roomId))) {
                         messageBus.send({
                             type: `EphemeraUpdate`,
@@ -177,6 +180,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                                 type: 'MapUpdate',
                                 active: true,
                                 targets: [characterId],
+                                connectionTargets: (characterConnections || []).map((connectionId) => (`CHARACTER#${connectionId}` as const)),
                                 ...mapDescribe,
                                 MapId: payload.ephemeraId
                             }]

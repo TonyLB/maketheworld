@@ -50,7 +50,7 @@ describe('fetchPlayerEphemera', () => {
                 Name: 'Testy',
                 fileURL: 'test.png',
                 Color: 'purple',
-                targets: ['CONNECTION#XYZ']
+                connectionTargets: ['CONNECTION#XYZ']
             }]
         })
     })

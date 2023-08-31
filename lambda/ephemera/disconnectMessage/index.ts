@@ -42,7 +42,7 @@ export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, c
                                     type: 'CharacterInPlay',
                                     CharacterId: characterId,
                                     Connected: false,
-                                    targets: ['GLOBAL', `!CONNECTION#${connectionId}`]
+                                    connectionTargets: ['GLOBAL', `!CONNECTION#${connectionId}`]
                                 }]
                             })
                             messageBus.send({

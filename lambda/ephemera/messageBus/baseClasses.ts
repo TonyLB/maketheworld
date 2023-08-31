@@ -12,7 +12,7 @@ import {
     EphemeraRoomId,
     isEphemeraMapId
 } from "@tonylb/mtw-interfaces/dist/baseClasses"
-import { EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/dist/ephemera"
 import { KnowledgeDescription } from "@tonylb/mtw-interfaces/dist/messages"
 
 export type PublishTargetRoom = `ROOM#${string}`
@@ -175,9 +175,15 @@ export type UnregisterCharacterMessage = {
 
 export type EphemeraPublishTarget = PublishTargetCharacter | PublishTargetConnection | PublishTargetGlobal | PublishTargetExcludeCharacter | PublishTargetExcludeConnection
 
+export type EphemeraPartialCharacterInPlayActive = Pick<EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, 'type' | 'CharacterId' | 'Connected'> & Partial<Omit<EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, 'type' | 'CharacterId' | 'Connected'>>
+
+export type EphemeraUpdateArgument = EphemeraClientMessageEphemeraUpdateMapItem  | EphemeraClientMessageEphemeraUpdateMapClear | EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive | EphemeraPartialCharacterInPlayActive
+
+export const isEphemeraCharacterArgument = (value: EphemeraUpdateArgument): value is EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive | EphemeraPartialCharacterInPlayActive => (value.type === 'CharacterInPlay')
+
 export type EphemeraUpdateMessage = {
     type: 'EphemeraUpdate';
-    updates: (EphemeraClientMessageEphemeraUpdateItem & { targets: EphemeraPublishTarget[] })[];
+    updates: (EphemeraUpdateArgument & { connectionTargets: EphemeraPublishTarget[] })[];
 }
 
 export type FetchPlayerEphemeraMessage = {

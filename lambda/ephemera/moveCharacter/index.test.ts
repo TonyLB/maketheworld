@@ -156,11 +156,8 @@ describe('moveCharacter', () => {
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#Test',
                 Connected: true,
-                Name: 'Test',
                 RoomId: 'TestTwo',
-                fileURL: '',
-                Color: 'grey',
-                targets: ['GLOBAL', 'CONNECTION#abcdef'],
+                connectionTargets: ['GLOBAL', 'CONNECTION#abcdef'],
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -249,11 +246,8 @@ describe('moveCharacter', () => {
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#Test',
                 Connected: true,
-                Name: 'Test',
                 RoomId: 'VORTEX',
-                fileURL: '',
-                Color: 'grey',
-                targets: ['GLOBAL', 'CONNECTION#abcdef'],
+                connectionTargets: ['GLOBAL', 'CONNECTION#abcdef'],
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({

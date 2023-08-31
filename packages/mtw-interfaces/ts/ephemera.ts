@@ -278,7 +278,7 @@ export type EphemeraClientMessageEphemeraUpdateCharacterInPlayActive = {
 
 export type EphemeraClientMessageEphemeraUpdateCharacterInPlay = EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive | EphemeraClientMessageEphemeraUpdateCharacterInPlayActive
 
-const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: any): message is EphemeraClientMessageEphemeraUpdateCharacterInPlay => {
+export const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: any): message is EphemeraClientMessageEphemeraUpdateCharacterInPlay => {
     if (typeof message === 'object' && 'type' in message && message.type === 'CharacterInPlay') {
         if ('Connected' in message && typeof message.Connected === 'boolean') {
             if (!message.Connected) {

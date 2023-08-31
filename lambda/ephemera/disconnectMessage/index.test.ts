@@ -96,7 +96,7 @@ describe("disconnectMessage", () => {
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#ABC',
                 Connected: false,
-                targets: ['GLOBAL', '!CONNECTION#XYZ']
+                connectionTargets: ['GLOBAL', '!CONNECTION#XYZ']
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
