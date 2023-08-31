@@ -29,7 +29,7 @@ describe('EphemeraUpdateMessage', () => {
                     Name: 'Tess',
                     fileURL: 'TestURL',
                     Color: 'purple',
-                    targets: ['CONNECTION#TestConnection']
+                    connectionTargets: ['CONNECTION#TestConnection']
                 }]
             }]
         })
@@ -63,7 +63,7 @@ describe('EphemeraUpdateMessage', () => {
                     Name: 'Tess',
                     fileURL: 'TestURL',
                     Color: 'purple',
-                    targets: ['GLOBAL']
+                    connectionTargets: ['GLOBAL']
                 }]
             }]
         })

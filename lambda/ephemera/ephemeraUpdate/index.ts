@@ -1,4 +1,4 @@
-import { EphemeraPublishTarget, EphemeraUpdateMessage, isPublishTargetCharacter, isPublishTargetConnection, isPublishTargetExcludeCharacter, isPublishTargetExcludeConnection, MessageBus, PublishTargetConnection } from "../messageBus/baseClasses"
+import { EphemeraPublishTarget, EphemeraUpdateMessage, isEphemeraCharacterArgument, isPublishTargetCharacter, isPublishTargetConnection, isPublishTargetExcludeCharacter, isPublishTargetExcludeConnection, MessageBus, PublishTargetConnection } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
 
@@ -6,13 +6,15 @@ import { apiClient } from '../apiClient'
 import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { objectMap } from "../lib/objects"
-import { EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { EphemeraClientMessageEphemeraUpdateCharacterInPlay, EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/dist/ephemera"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const [RequestId, mapSubscriptions] = await Promise.all([
+    const characterIds = payloads.map(({ updates }) => (updates.map(({ connectionTargets, ...rest }) => (rest)).filter(isEphemeraCharacterArgument).map(({ CharacterId }) => (CharacterId)))).flat(1)
+    const [RequestId, mapSubscriptions, ...characterMetaValues] = await Promise.all([
         internalCache.Global.get('RequestId'),
-        internalCache.Global.get('mapSubscriptions')
+        internalCache.Global.get('mapSubscriptions'),
+        ...unique(characterIds).map((characterId) => (internalCache.CharacterMeta.get(characterId)))
     ])
 
     //
@@ -67,14 +69,35 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
         payloads.map((payload) => (
             Promise.all(payload.updates.map(
                 async (update) => {
-                    const distributeTargets = await sortTargetsIntoConnections(update.targets)
+                    const distributeTargets = await sortTargetsIntoConnections(update.connectionTargets)
                     distributeTargets.forEach(({ connectionId, characters }) => {
                         if (update.type === 'CharacterInPlay') {
-                            const { targets, ...rest } = update
-                            updatesByConnectionId[connectionId] = [
-                                ...(updatesByConnectionId[connectionId] || []),
-                                rest
-                            ]
+                            const { connectionTargets, ...rest } = update
+                            if (update.Connected) {
+                                const characterDefaults = characterMetaValues
+                                    .filter((value) => (value))
+                                    .find(({ EphemeraId }) => (EphemeraId === update.CharacterId))
+                                updatesByConnectionId[connectionId] = [
+                                    ...(updatesByConnectionId[connectionId] || []),
+                                    {
+                                        ...(characterDefaults
+                                            ? {
+                                                Name: characterDefaults.Name,
+                                                RoomId: characterDefaults.RoomId,
+                                                fileURL: characterDefaults.fileURL,
+                                                Color: characterDefaults.Color
+                                            }
+                                            : {}),
+                                        ...rest
+                                    } as EphemeraClientMessageEphemeraUpdateCharacterInPlayActive
+                                ]
+                            }
+                            else {
+                                updatesByConnectionId[connectionId] = [
+                                    ...(updatesByConnectionId[connectionId] || []),
+                                    rest as EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive
+                                ]
+                            }
                         }
                         if (update.type === 'MapClear') {
                             const { targets, ...rest } = update

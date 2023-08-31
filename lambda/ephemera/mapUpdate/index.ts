@@ -40,6 +40,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                 .map((mapEntry) => ({
                                     type: 'MapUpdate' as 'MapUpdate',
                                     targets: [characterId],
+                                    connectionTargets: subscribedConnections,
                                     active: true as true,
                                     MapId: mapEntry.MapId,
                                     Name: mapEntry.Name,
@@ -52,6 +53,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                 .map((mapId) => ({
                                     type: 'MapUpdate' as 'MapUpdate',
                                     targets: [characterId],
+                                    connectionTargets: subscribedConnections,
                                     active: false as false,
                                     MapId: mapId,
                                 }))
@@ -75,6 +77,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                 .map((mapEntry) => ({
                                     type: 'MapUpdate' as 'MapUpdate',
                                     targets: [characterId],
+                                    connectionTargets: subscribedConnections,
                                     active: true,
                                     MapId: mapEntry.MapId,
                                     Name: mapEntry.Name,
@@ -87,6 +90,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                 .map(({ MapId }) => ({
                                     type: 'MapUpdate' as 'MapUpdate',
                                     targets: [characterId],
+                                    connectionTargets: subscribedConnections,
                                     active: false as false,
                                     MapId
                                 }))
@@ -96,6 +100,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
             }
             if (mapId) {
                 const allSubscribedCharacterIds = unique(mapSubscriptions.reduce<EphemeraCharacterId[]>((previous, { characterIds }) => ([ ...previous, ...characterIds]), [])) as EphemeraCharacterId[]
+                const subscribedConnections = mapSubscriptions.map(({ connectionId }) => (`CONNECTION#${connectionId}` as const))
                 await Promise.all(
                     allSubscribedCharacterIds
                         .map(async (characterId) => {
@@ -111,6 +116,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                         updates: [{
                                             type: 'MapUpdate',
                                             targets: [characterId],
+                                            connectionTargets: subscribedConnections,
                                             active: true,
                                             ...mapDescribe
                                         }]
@@ -122,6 +128,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                         updates: [{
                                             type: 'MapUpdate',
                                             targets: [characterId],
+                                            connectionTargets: subscribedConnections,
                                             active: false,
                                             MapId: mapId
                                         }]

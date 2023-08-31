@@ -73,12 +73,9 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                 updates: [{
                                     type: 'CharacterInPlay',
                                     CharacterId: characterMeta.EphemeraId,
-                                    Name: characterMeta.Name || '',
                                     Connected: true,
                                     RoomId: RoomId || characterMeta.HomeId,
-                                    fileURL: characterMeta.fileURL || '',
-                                    Color: characterMeta.Color || 'grey',
-                                    targets: ['GLOBAL', `CONNECTION#${connectionId}`]
+                                    connectionTargets: ['GLOBAL', `CONNECTION#${connectionId}`]
                                 }]        
                             })
                         }
