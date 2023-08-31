@@ -293,7 +293,7 @@ export const isEphemeraClientMessageEphemeraUpdateCharacterInPlay = (message: an
             if (!('Name' in message && typeof message.Name === 'string')) {
                 return false
             }
-            if ('fileURL' in message && !(typeof message.CharacterId === 'string')) {
+            if ('fileURL' in message && !(typeof message.fileURL === 'string')) {
                 return false
             }
             return ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color)
