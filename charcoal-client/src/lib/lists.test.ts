@@ -1,6 +1,6 @@
-import { jest, describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from '@jest/globals'
 
-import { unique } from './lists.js'
+import { unique } from './lists'
 
 describe('unique', () => {
     it('should return empty on no arguments', () => {
