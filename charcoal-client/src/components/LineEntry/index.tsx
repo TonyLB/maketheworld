@@ -94,7 +94,7 @@ interface EntryModeSpeedDialProps {}
 type EntryModeSpeedDialOptions = 'Map'
 
 const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = () => {
-    const { CharacterId } = useActiveCharacter()
+    const { scopedId } = useActiveCharacter()
     const navigate = useNavigate()
     return <Box sx={{ position: "relative", width: "60px", height: "60px" }}>
         <SpeedDial
@@ -108,7 +108,7 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = () => {
                 icon={<MapIcon />}
                 tooltipTitle={`Map`}
                 onClick={() => {
-                    navigate(`/Character/${CharacterId.split('#')[1]}/Map/`)
+                    navigate(`/Character/${scopedId}/Map/`)
                 }}
             />
         </SpeedDial>

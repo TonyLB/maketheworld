@@ -201,7 +201,7 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
     const { CharacterId } = useParams()
     const { guestId } = useSelector(getMySettings)
     const myCharacters = useSelector(getMyCharacters)
-    const { CharacterId: EphemeraId } = CharacterId === 'Guest' ? { CharacterId: `CHARACTER#${guestId}` as const } : myCharacters.find(({ scopedId }) => (scopedId === CharacterId))
+    const { CharacterId: EphemeraId } = CharacterId === 'Guest' ? { CharacterId: `CHARACTER#${guestId}` as const } : (myCharacters.find(({ scopedId }) => (scopedId === CharacterId)) || {})
     if (!EphemeraId) {
         return null
     }
