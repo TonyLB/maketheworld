@@ -1,7 +1,7 @@
 import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import { roomCharacterListReducer } from "../internalCache/baseClasses"
 
 export type RoomStackItem = {
@@ -74,7 +74,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     type: 'CharacterInPlay',
                                     CharacterId: characterMeta.EphemeraId,
                                     Connected: true,
-                                    RoomId: RoomId || characterMeta.HomeId,
+                                    RoomId: RoomKey(RoomId) || characterMeta.HomeId,
                                     connectionTargets: ['GLOBAL', `CONNECTION#${connectionId}`]
                                 }]        
                             })
