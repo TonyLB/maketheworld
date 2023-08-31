@@ -80,6 +80,15 @@ describe("registerCharacter", () => {
             type: 'CacheCharacterAssets',
             characterId: 'CHARACTER#ABC'
         })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'EphemeraUpdate',
+            updates: [{
+                type: 'CharacterInPlay',
+                CharacterId: 'CHARACTER#ABC',
+                Connected: true,
+                connectionTargets: ['GLOBAL', 'CONNECTION#TestConnection']
+            }]
+        })
         expect(internalCacheMock.CharacterConnections.set).toHaveBeenCalledWith('CHARACTER#ABC', ['TestConnection'])
     })
 

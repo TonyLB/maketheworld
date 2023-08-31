@@ -14,7 +14,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
         const RequestId = await internalCache.Global.get('RequestId')
         const handleOneRegistry = async (payload: RegisterCharacterMessage): Promise<void> => {
             const { characterId: CharacterId } = payload
-            if (!(isEphemeraCharacterId(CharacterId))) {
+            if (!(isEphemeraCharacterId(CharacterId) && connectionId)) {
                 return
             }
             await exponentialBackoffWrapper(async () => {
@@ -52,6 +52,15 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                                 messageBus.send({
                                     type: 'CacheCharacterAssets',
                                     characterId: CharacterId
+                                })
+                                messageBus.send({
+                                    type: 'EphemeraUpdate',
+                                    updates: [{
+                                        type: 'CharacterInPlay',
+                                        CharacterId,
+                                        Connected: true,
+                                        connectionTargets: ['GLOBAL', `CONNECTION#${connectionId}`]
+                                    }]
                                 })
                             }        
                         }
