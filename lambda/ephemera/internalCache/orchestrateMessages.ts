@@ -50,6 +50,16 @@ export class OrchestrateMessagesData {
         this.OrchestrateMessagesById[root].before = [messageGroupId, ...this.OrchestrateMessagesById[root].before]
         return messageGroupId
     }
+
+    after(root: MessageGroupId): MessageGroupId {
+        if (!(root in this.OrchestrateMessagesById)) {
+            throw new Error('root meesageGroupId not in cache in next call')
+        }
+        const messageGroupId = this._newMessageGroup(root)
+
+        this.OrchestrateMessagesById[root].after = [...this.OrchestrateMessagesById[root].after, messageGroupId]
+        return messageGroupId
+    }
 }
 
 
