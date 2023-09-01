@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid'
+
 import { CacheConstructor } from "./baseClasses"
 
 type MessageGroupId = string;
@@ -12,8 +14,31 @@ type OrchestrateMessagesGroup = {
 
 export class OrchestrateMessagesData {
     OrchestrateMessagesById: Record<MessageGroupId, OrchestrateMessagesGroup> = {};
+
     clear() {
         this.OrchestrateMessagesById = {}
+    }
+
+    _newMessageGroup(parentGroupId: MessageGroupId | ''): MessageGroupId {
+        const messageGroupId = uuidv4()
+        this.OrchestrateMessagesById[messageGroupId] = {
+            messageGroupId,
+            parentGroupId,
+            before: [],
+            after: [],
+            during: []
+        }
+        return messageGroupId
+    }
+
+    next(root: MessageGroupId): MessageGroupId {
+        if (!(root in this.OrchestrateMessagesById)) {
+            throw new Error('root meesageGroupId not in cache in next call')
+        }
+        const messageGroupId = this._newMessageGroup(root)
+
+        this.OrchestrateMessagesById[root].during = [...this.OrchestrateMessagesById[root].during, messageGroupId]
+        return messageGroupId
     }
 }
 
