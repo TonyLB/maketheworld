@@ -36,7 +36,29 @@ describe ('OrchestrateMessages', () => {
             during: ['UUID#3'],
             after: []
         })
+    })
 
+    it('should create before groupId', () => {
+        const root = testCache.OrchestrateMessages._newMessageGroup('')
+        testCache.OrchestrateMessages._newMessageGroup('') // Distractor data
+        const test = testCache.OrchestrateMessages.before(root)
+        testCache.OrchestrateMessages.before(root)
+
+        expect(test).toBe('UUID#3')
+        expect(testCache.OrchestrateMessages.OrchestrateMessagesById[test]).toEqual({
+            messageGroupId: 'UUID#3',
+            parentGroupId: 'UUID#1',
+            before: [],
+            during: [],
+            after: []
+        })
+        expect(testCache.OrchestrateMessages.OrchestrateMessagesById[root]).toEqual({
+            messageGroupId: 'UUID#1',
+            parentGroupId: '',
+            before: ['UUID#4', 'UUID#3'],
+            during: [],
+            after: []
+        })
     })
 })
 
