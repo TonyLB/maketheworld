@@ -156,7 +156,7 @@ describe('moveCharacter', () => {
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#Test',
                 Connected: true,
-                RoomId: 'TestTwo',
+                RoomId: 'ROOM#TestTwo',
                 connectionTargets: ['GLOBAL', 'CONNECTION#abcdef'],
             }]
         })
@@ -246,7 +246,7 @@ describe('moveCharacter', () => {
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#Test',
                 Connected: true,
-                RoomId: 'VORTEX',
+                RoomId: 'ROOM#VORTEX',
                 connectionTargets: ['GLOBAL', 'CONNECTION#abcdef'],
             }]
         })

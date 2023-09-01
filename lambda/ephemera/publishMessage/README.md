@@ -43,18 +43,13 @@ their relations with each other.
 ```js
 type MessageGroupId = string;
 
-type MessageGroupOrchestration = {
+type OrchestrateMessagesGroup = {
     messageGroupId: MessageGroupId;
-} &
-({
-    type: 'branch';
-    before: MessageGroupId[];           // A list of messageGroups that must occur before this one, with no necessary ordering relative to each other
-    after: MessageGroupId[];            // A list of messageGroups that must occur after this one, with no necessary ordering relative to each other
-    during: MessageGroupId[];           // A list of messageGroups that must be reported, in sequence order, after all "before" items and before all "after"
-} |
-{
-    type: 'leaf';
-})
+    parentGroupId: MessageGroupId;
+    before: MessageGroupId[];           // A list of child messageGroups that must occur before this one, with no necessary ordering relative to each other
+    after: MessageGroupId[];            // A list of child messageGroups that must occur after this one, with no necessary ordering relative to each other
+    during: MessageGroupId[];           // A list of child messageGroups that must be reported, in sequence order, after all "before" items and before all "after"
+}
 ```
 
 ---
