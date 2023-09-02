@@ -98,7 +98,8 @@ describe('Perception message', () => {
                 {
                     type: 'Perception',
                     characterId: 'CHARACTER#TESS',
-                    ephemeraId: 'MESSAGE#Test'
+                    ephemeraId: 'MESSAGE#Test',
+                    messageGroupId: 'UUID#1'
                 }
             ], messageBus: messageBusMock })
             expect(messageBusMock.send).toHaveBeenCalledTimes(2)
@@ -109,7 +110,8 @@ describe('Perception message', () => {
                 message: [{
                     tag: 'String',
                     value: 'Test Message'
-                }]
+                }],
+                messageGroupId: 'UUID#1'
             })
         })
 

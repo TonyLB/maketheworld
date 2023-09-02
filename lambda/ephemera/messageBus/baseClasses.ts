@@ -214,43 +214,42 @@ export type FetchImportDefaultsMessage = {
     assetId: string;
 }
 
-export type PerceptionAssetMessage = {
+type PerceptionBase = {
     type: 'Perception';
-    characterId?: EphemeraCharacterId;
-    ephemeraId: EphemeraAssetId;
+    messageGroupId?: MessageGroupId;
 }
 
+export type PerceptionAssetMessage = {
+    characterId?: EphemeraCharacterId;
+    ephemeraId: EphemeraAssetId;
+} & PerceptionBase
+
 export type PerceptionRoomMessage = {
-    type: 'Perception';
     characterId?: EphemeraCharacterId;
     ephemeraId: EphemeraRoomId;
     header?: boolean;
-}
+} & PerceptionBase
 
 export type PerceptionComponentMessage = {
-    type: 'Perception';
     characterId?: EphemeraCharacterId;
     ephemeraId: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId;
-}
+} & PerceptionBase
 
 export type PerceptionMapMessage = {
-    type: 'Perception';
     characterId: EphemeraCharacterId;
     ephemeraId: EphemeraMapId;
     mustIncludeRoomId?: EphemeraRoomId;
-}
+} & PerceptionBase
 
 export type PerceptionShowMessage = {
-    type: 'Perception';
     characterId?: EphemeraCharacterId;
     onlyForAssets?: string[];
     ephemeraId: EphemeraMessageId;
-}
+} & PerceptionBase
 
 export type PerceptionShowMoment = {
-    type: 'Perception';
     ephemeraId: EphemeraMomentId;
-}
+} & PerceptionBase
 
 export type PerceptionMessage = PerceptionAssetMessage | PerceptionRoomMessage | PerceptionComponentMessage | PerceptionMapMessage | PerceptionShowMessage | PerceptionShowMoment
 

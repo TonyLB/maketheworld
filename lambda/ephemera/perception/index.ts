@@ -37,7 +37,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                             messageBus.send({
                                 type: 'Perception',
                                 ephemeraId,
-                                characterId: EphemeraId
+                                characterId: EphemeraId,
+                                messageGroupId: payload.messageGroupId
                             })
                         })
                     )))
@@ -59,7 +60,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                             type: 'PublishMessage',
                             targets: [characterId],
                             displayProtocol: 'WorldMessage',
-                            message: messageRender
+                            message: messageRender,
+                            messageGroupId: payload.messageGroupId
                         })
                     }
                 }
@@ -88,14 +90,16 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 if (assetsByMessageId[messageId].find((asset) => (globalAssets.includes(asset)))) {
                     messageBus.send({
                         type: 'Perception',
-                        ephemeraId: messageId
+                        ephemeraId: messageId,
+                        messageGroupId: payload.messageGroupId ? internalCache.OrchestrateMessages.next(payload.messageGroupId) : undefined
                     })
                 }
                 else {
                     messageBus.send({
                         type: 'Perception',
                         ephemeraId: messageId,
-                        onlyForAssets: assetsByMessageId[messageId]
+                        onlyForAssets: assetsByMessageId[messageId],
+                        messageGroupId: payload.messageGroupId ? internalCache.OrchestrateMessages.next(payload.messageGroupId) : undefined
                     })
                 }
             })
@@ -106,7 +110,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 messageBus.send({
                     type: 'Perception',
                     ephemeraId: roomId,
-                    header: true
+                    header: true,
+                    messageGroupId: payload.messageGroupId
                 })
             })
         }
@@ -120,6 +125,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         targets: [characterId],
                         displayProtocol: payload.header ? 'RoomHeader' : 'RoomDescription',
                         ...roomDescribe,
+                        messageGroupId: payload.messageGroupId
                     })
                 }))
             }
@@ -143,7 +149,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     targets: [characterId],
                     displayProtocol: 'CharacterDescription',
                     ...characterDescription,
-                    CharacterId: ephemeraId
+                    CharacterId: ephemeraId,
+                    messageGroupId: payload.messageGroupId
                 })
             }
             else {
@@ -154,7 +161,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         targets: [characterId],
                         displayProtocol: 'FeatureDescription',
                         ...featureDescribe,
-                        FeatureId: ephemeraId
+                        FeatureId: ephemeraId,
+                        messageGroupId: payload.messageGroupId
                     })
                 }
                 if (isEphemeraKnowledgeId(ephemeraId)) {
@@ -165,7 +173,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                         targets,
                         displayProtocol: 'KnowledgeDescription',
                         ...knowledgeDescribe,
-                        KnowledgeId: ephemeraId
+                        KnowledgeId: ephemeraId,
+                        messageGroupId: payload.messageGroupId
                     })
                 }
                 if (isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
