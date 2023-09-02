@@ -40,10 +40,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
                 ProjectionFields: ['AssetId', 'zone']
             })
             const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
-            
-            console.log(`canonGraph: ${JSON.stringify(canonGraph.nodes, null, 4)} x ${JSON.stringify(canonGraph.edges, null, 4)}`)
             const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
-            console.log(`globalAssetsSorted: ${JSON.stringify(globalAssetsSorted, null, 4)}`)
 
             await ebClient.send(new PutEventsCommand({
                 Entries: [{
