@@ -84,6 +84,9 @@ describe('moveCharacter', () => {
         jest.restoreAllMocks()
         internalCacheMock.Global.get.mockImplementation((key) => (key === 'assets' ? Promise.resolve(['primitives', 'TownCenter']) : Promise.resolve('abcdef')) as any),
         internalCacheMock.CharacterConnections.get.mockResolvedValue(['abcdef'])
+        internalCacheMock.OrchestrateMessages.newMessageGroup.mockReturnValue('UUID#MessageGroup')
+        internalCacheMock.OrchestrateMessages.before.mockReturnValue('UUID#Before')
+        internalCacheMock.OrchestrateMessages.after.mockReturnValue('UUID#After')
 
         internalCacheMock.RoomAssets.get.mockImplementation(async (roomId) => {
             switch(roomId) {
@@ -167,7 +170,8 @@ describe('moveCharacter', () => {
             message: [{
                 tag: 'String',
                 value: 'Test has left.'
-            }]
+            }],
+            messageGroupId: 'UUID#Before'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'RoomUpdate',
@@ -177,7 +181,8 @@ describe('moveCharacter', () => {
             type: 'Perception',
             characterId: 'CHARACTER#Test',
             ephemeraId: 'ROOM#TestTwo',
-            header: true
+            header: true,
+            messageGroupId: 'UUID#MessageGroup'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
@@ -186,7 +191,8 @@ describe('moveCharacter', () => {
             message: [{
                 tag: 'String',
                 value: 'Test has arrived.'
-            }]
+            }],
+            messageGroupId: 'UUID#After'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'RoomUpdate',
@@ -254,7 +260,8 @@ describe('moveCharacter', () => {
             type: 'Perception',
             characterId: 'CHARACTER#Test',
             ephemeraId: 'ROOM#VORTEX',
-            header: true
+            header: true,
+            messageGroupId: 'UUID#MessageGroup'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
@@ -263,7 +270,8 @@ describe('moveCharacter', () => {
             message: [{
                 tag: 'String',
                 value: 'Test has connected.'
-            }]
+            }],
+            messageGroupId: 'UUID#After'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'RoomUpdate',

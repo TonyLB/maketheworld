@@ -19,6 +19,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
         await exponentialBackoffWrapper(async () => {
 
+            const messageGroupId = internalCache.OrchestrateMessages.newMessageGroup()
             const [characterMeta, connections, roomAssets = [], canonAssets = []] = await Promise.all([
                 internalCache.CharacterMeta.get(payload.characterId),
                 internalCache.CharacterConnections.get(payload.characterId),
@@ -101,7 +102,8 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                     message: [{
                                         tag: 'String',
                                         value: `${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`
-                                    }]
+                                    }],
+                                    messageGroupId: internalCache.OrchestrateMessages.before(messageGroupId)
                                 })
                                 messageBus.send({
                                     type: 'RoomUpdate',
@@ -136,7 +138,8 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                 type: 'Perception',
                                 characterId: payload.characterId,
                                 ephemeraId: payload.roomId,
-                                header: true
+                                header: true,
+                                messageGroupId
                             })
                 
                             messageBus.send({
@@ -146,7 +149,8 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                 message: [{
                                     tag: 'String',
                                     value: `${characterMeta.Name || 'Someone'}${payload.arriveMessage || ' has arrived.' }`
-                                }]
+                                }],
+                                messageGroupId: internalCache.OrchestrateMessages.after(messageGroupId)
                             })
                             messageBus.send({
                                 type: 'RoomUpdate',
