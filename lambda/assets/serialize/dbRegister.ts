@@ -178,13 +178,22 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                             prefix = 'ROOM'
                     }
                     if (assetWorkspace._isGlobal) {
-                        return `${prefix}#${key}`
+                        return {
+                            AssetId: `${prefix}#${key}`,
+                            DataCategory: AssetKey(asset.key)
+                        }
                     }
                     if (assetWorkspace.namespaceIdToDB[key]) {
-                        return assetWorkspace.namespaceIdToDB[key]
+                        return {
+                            AssetId: assetWorkspace.namespaceIdToDB[key],
+                            DataCategory: AssetKey(asset.key)
+                        }
                     }
                     console.log(`ERROR:  ScopeMap in dbRegister has no entry for ${key}`)
-                    return `${prefix}#${uuidv4()}`
+                    return {
+                        AssetId: `${prefix}#${uuidv4()}`,
+                        DataCategory: AssetKey(asset.key)
+                    }
                 }
             }),
             updateLibraryPromise

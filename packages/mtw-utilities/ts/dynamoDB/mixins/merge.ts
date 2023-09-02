@@ -61,7 +61,7 @@ export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string 
             //
             items: DBHandlerItem<KIncoming, T>[];
             mergeFunction: (props: { incoming: DBHandlerItem<KIncoming, T>, current: DBHandlerItem<KIncoming, T> }) => ('ignore' | 'delete' | DBHandlerItem<KIncoming, T>);
-            extractKey?: (incoming: Omit<DBHandlerItem<KIncoming, T>, KIncoming>) => T
+            extractKey?: (incoming: Omit<DBHandlerItem<KIncoming, T>, KIncoming>) => DBHandlerKey<KIncoming, T>
         }) {
             //
             // TODO:  Better error handling and validation throughout
@@ -74,7 +74,7 @@ export const withMerge = <KIncoming extends DBHandlerLegalKey, T extends string 
             } = props
             const currentItems = await this.query<MergeQueryResults<KIncoming, T>>(query)
             const incomingItems = extractKey
-                ? items.map((item) => ({ ...item, [this._incomingKeyLabel]: extractKey(item) }))
+                ? items.map((item) => ({ ...item, ...extractKey(item) }))
                 : items
             const findByKey = (findItem: DBHandlerItem<KIncoming, T> | DBHandlerKey<KIncoming, T>) => (item: DBHandlerItem<KIncoming, T> | DBHandlerKey<KIncoming, T>): boolean => (item[this._incomingKeyLabel] === findItem[this._incomingKeyLabel] && item.DataCategory === findItem.DataCategory)
             const keysToExamine = [currentItems, incomingItems].flat().reduce<DBHandlerKey<KIncoming, T>[]>((previous, item) => {
