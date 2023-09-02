@@ -14,6 +14,7 @@ import {
 } from "@tonylb/mtw-interfaces/dist/baseClasses"
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/dist/ephemera"
 import { KnowledgeDescription } from "@tonylb/mtw-interfaces/dist/messages"
+import { MessageGroupId } from "../internalCache/orchestrateMessages"
 
 export type PublishTargetRoom = `ROOM#${string}`
 
@@ -37,6 +38,7 @@ export const isPublishTargetGlobal = (key: string): key is PublishTargetGlobal =
 export type PublishMessageBase = {
     type: 'PublishMessage';
     targets: PublishTarget[];
+    messageGroupId?: MessageGroupId;
 }
 
 export type PublishWorldMessage = PublishMessageBase & {
