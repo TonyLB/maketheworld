@@ -118,7 +118,7 @@ class PublishMessageTargetMapper {
 }
 
 export const publishMessage = async ({ payloads }: { payloads: PublishMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const CreatedTime = Date.now()
+    const baseTime = Date.now()
     const mapper = new PublishMessageTargetMapper()
     await mapper.initialize(payloads)
 
@@ -127,6 +127,9 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     // TODO: Constrain messageByConnectionId to appropriate message type
     //
     let messagesByConnectionId: Record<string, any[]> = {}
+
+    const offsetsByMessageId = internalCache.OrchestrateMessages.allOffsets()
+    const pastOffsets = Math.max(-1, ...Object.values(offsetsByMessageId)) + 1
 
     const pushToQueues = async <T extends { Targets: PublishTarget[]; CreatedTime: number; MessageId: string; }>({ Targets, ...rest }: T) => {
         if (Targets.length) {
@@ -160,11 +163,12 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     }
 
     await Promise.all(payloads.map(async (payload, index) => {
+        const CreatedTime = baseTime + (payload.messageGroupId ? offsetsByMessageId[payload.messageGroupId] ?? pastOffsets + index : pastOffsets + index)
         if (isWorldMessage(payload)) {
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime: CreatedTime + index,
+                CreatedTime,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
             })
@@ -178,7 +182,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime: CreatedTime + index,
+                CreatedTime,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
                 Name: payload.name,
@@ -191,7 +195,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime: CreatedTime + index,
+                CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 RoomId: payload.RoomId,
                 Characters: payload.Characters
@@ -201,7 +205,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime: CreatedTime + index,
+                CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 RoomId: payload.RoomId,
                 Name: payload.Name,
@@ -215,7 +219,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime: CreatedTime + index,
+                CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 FeatureId: payload.FeatureId,
                 Name: payload.Name,
@@ -227,7 +231,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime: CreatedTime + index,
+                CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 KnowledgeId: payload.KnowledgeId,
                 Name: payload.Name,
@@ -239,7 +243,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime: CreatedTime + index,
+                CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 CharacterId: payload.CharacterId,
                 Name: payload.Name,

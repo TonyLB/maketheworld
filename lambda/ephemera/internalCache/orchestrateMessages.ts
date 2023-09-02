@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { CacheConstructor } from "./baseClasses"
 
-type MessageGroupId = string;
+export type MessageGroupId = string;
 
 type OrchestrateMessagesGroup = {
     messageGroupId: MessageGroupId;
