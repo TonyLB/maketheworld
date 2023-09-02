@@ -36,17 +36,6 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "defaultExits": Array [],
-  "defaultNames": Object {
-    "Welcome": Object {
-      "name": "Test",
-      "tag": "Room",
-    },
-    "clockTower": Object {
-      "name": "TestFeature",
-      "tag": "Feature",
-    },
-  },
   "importTree": Array [],
   "instance": undefined,
   "zone": "Library",
@@ -107,23 +96,6 @@ Object {
   "address": Object {
     "fileName": "test",
     "zone": "Library",
-  },
-  "defaultExits": Array [
-    Object {
-      "from": "Entry",
-      "name": "welcome",
-      "to": "Welcome",
-    },
-  ],
-  "defaultNames": Object {
-    "Entry": Object {
-      "name": "Entry",
-      "tag": "Room",
-    },
-    "Welcome": Object {
-      "name": "Test",
-      "tag": "Room",
-    },
   },
   "importTree": Array [],
   "instance": undefined,
@@ -186,8 +158,6 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "defaultExits": Array [],
-  "defaultNames": Object {},
   "importTree": Array [],
   "instance": true,
   "zone": "Library",
@@ -216,13 +186,6 @@ Object {
   "address": Object {
     "fileName": "test",
     "zone": "Library",
-  },
-  "defaultExits": Array [],
-  "defaultNames": Object {
-    "Welcome": Object {
-      "name": "Welcome",
-      "tag": "Room",
-    },
   },
   "importTree": Array [],
   "instance": undefined,
@@ -285,8 +248,6 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "defaultExits": Array [],
-  "defaultNames": Object {},
   "importTree": Array [],
   "instance": undefined,
   "zone": "Library",
@@ -322,8 +283,6 @@ Object {
     "fileName": "primitives",
     "zone": "Canon",
   },
-  "defaultExits": Array [],
-  "defaultNames": Object {},
   "importTree": Array [],
   "instance": undefined,
   "zone": "Canon",

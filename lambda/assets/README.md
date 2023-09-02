@@ -115,11 +115,6 @@ import ancestors that might have an impact on renders or operations of the asset
 descendants that might be impacted by this asset in their renders or operations
 - namespaceMap
 
-### *Asset Denormalizations*
-
-- defaultNames: A mapping from internal scopedId for components to the name (if any) that would be defined for that component in this asset if all conditions return false
-- defaultExits: A mapping of all exits defined in this asset if all conditions return false
-
 ---
 
 ## <Component\> records
