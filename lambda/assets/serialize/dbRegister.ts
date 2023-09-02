@@ -92,23 +92,6 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
     const assets: NormalForm = assetWorkspace.normal || {}
     const asset = Object.values(assets).find(isNormalAsset)
     if (asset && asset.key) {
-        const defaultExits = Object.values(assets)
-            .filter(isNormalExit)
-            .filter(({ appearances }) => ((appearances || []).find(noConditionContext)))
-            .map(({ name, to, from }) => ({ name, to, from }))
-        const defaultNames = Object.values(assets)
-            .filter(isNormalComponent)
-            .map(({ tag, key, appearances }) => ({
-                tag,
-                key,
-                name: (appearances || [])
-                    .filter(noConditionContext)
-                    .map(({ name = [] }) => (name.map((item) => (item.tag === 'String' ? item.value : '')).join('')))
-                    .join('')
-            }))
-            .filter(({ name }) => (Boolean(name)))
-            .map(({ tag, key, name }) => ({ [key]: { tag, name } }))
-            .reduce((previous, entry) => (Object.assign(previous, entry)), {})
         const updatedLibraryAssets = {
             [AssetKey(asset.key)]: {
                 AssetId: AssetKey(asset.key),
@@ -153,8 +136,6 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 Story: asset.Story,
                 instance: asset.instance,
                 importTree: [],
-                defaultExits,
-                defaultNames,
                 zone: address.zone,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
             }),
