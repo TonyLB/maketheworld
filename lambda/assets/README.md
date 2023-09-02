@@ -108,7 +108,6 @@ asset contains
 
 ### *Namespace Meta-Data*
 
-- importTree:  importTree is a nested map.  Each key at the top level represents the owning asset importing values from the asset named in the key.  The *value* stored under that key is, itself, a nested tree of what imports that named asset makes, and so on down the entire tree.
 - ancestryTree:  A denormalized nested map of all the Ancestry records (see below), which gives a quick way to fetch all
 import ancestors that might have an impact on renders or operations of the asset
 - descentTree:  Similary, a denormalized nested map of the Descent records, which gives a quick way to fetch all import

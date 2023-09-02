@@ -3,6 +3,7 @@ import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { ebClient } from "../clients"
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import internalCache from "../internalCache"
 
 export const healGlobalValues = async ({ shouldHealConnections = true, shouldHealGlobalAssets = true }) => {
     return await asyncSuppressExceptions(async () => {
@@ -36,56 +37,20 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
                 ExpressionAttributeValues: {
                     ':canon': 'Canon'
                 },
-                ProjectionFields: ['AssetId', 'importTree', 'zone']
+                ProjectionFields: ['AssetId', 'zone']
             })
-            const globalAssets = Items
-                .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
-                .filter(({ AssetId }) => (AssetId))
-                .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
-
-            //
-            // TODO: As part of moving fetchImportDefaults into asset lambda, figure out how the ancestry should
-            // be sorted
-            //
-            const unencumberedImports = (tree: Record<string, any>, excludeList: string[] = [], depth = 0) => {
-                if (depth > 200) {
-                    return []
-                }
-                const directImports = Object.entries(tree)
-                    .filter(([key]) => (!excludeList.includes(key)))
-                const unencumbered = directImports
-                    .map(([key, imports = {}]) => ({ key, imports: Object.keys(imports)}))
-                    .map(({ key, imports }: { key: string, imports: string[] }) => ([
-                        key,
-                        imports.filter((dependency) => (!excludeList.includes(dependency)))
-                    ]))
-                const unencumberedImportsAll = [
-                    ...unencumbered.filter(([key, imports]) => (imports.length === 0)).map(([key]) => key),
-                    ...Object.values(tree).map((recurse = {}) => (unencumberedImports(recurse, excludeList, depth + 1))).reduce((previous, list) => ([...previous, ...list]), [])
-                ]
-                return [...(new Set(unencumberedImportsAll))]
-            }
+            const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
             
-            const sortImportTree = (tree: Record<string, any>, currentList: string[] = []): string[] => {
-                const readyImports = unencumberedImports(tree, currentList)
-                if (readyImports.length > 0) {
-                    return [
-                        ...readyImports.sort((a, b) => (a.localeCompare(b))),
-                        ...sortImportTree(tree, [...currentList, ...readyImports])
-                    ]
-                }
-                else {
-                    return []
-                }
-            }
-            const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
+            console.log(`canonGraph: ${JSON.stringify(canonGraph.nodes, null, 4)} x ${JSON.stringify(canonGraph.edges, null, 4)}`)
+            const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
+            console.log(`globalAssetsSorted: ${JSON.stringify(globalAssetsSorted, null, 4)}`)
 
             await ebClient.send(new PutEventsCommand({
                 Entries: [{
                     EventBusName: process.env.EVENT_BUS_NAME,
                     Source: 'mtw.coordination',
                     DetailType: 'Set Canon Assets',
-                    Detail: JSON.stringify({ assetIds: globalAssetsSorted.map((assetId) => (`ASSET#${assetId}`)) })
+                    Detail: JSON.stringify({ assetIds: globalAssetsSorted })
                 }]
             }))
         }

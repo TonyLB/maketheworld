@@ -135,7 +135,6 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 address,
                 Story: asset.Story,
                 instance: asset.instance,
-                importTree: [],
                 zone: address.zone,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
             }),

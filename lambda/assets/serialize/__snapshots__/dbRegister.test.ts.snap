@@ -36,7 +36,6 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "importTree": Array [],
   "instance": undefined,
   "zone": "Library",
 }
@@ -97,7 +96,6 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "importTree": Array [],
   "instance": undefined,
   "zone": "Library",
 }
@@ -158,7 +156,6 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "importTree": Array [],
   "instance": true,
   "zone": "Library",
 }
@@ -187,7 +184,6 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "importTree": Array [],
   "instance": undefined,
   "zone": "Library",
 }
@@ -248,7 +244,6 @@ Object {
     "fileName": "test",
     "zone": "Library",
   },
-  "importTree": Array [],
   "instance": undefined,
   "zone": "Library",
 }
@@ -283,7 +278,6 @@ Object {
     "fileName": "primitives",
     "zone": "Canon",
   },
-  "importTree": Array [],
   "instance": undefined,
   "zone": "Canon",
 }
