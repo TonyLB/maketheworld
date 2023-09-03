@@ -8,8 +8,8 @@
   "license": "MIT",
   "scripts": {
     "test": "jest",
-    "build:dev": "esbuild app.ts --bundle --sourcemap --platform=node --target=es2020,node18 --minify --outfile=build/lambda.js",
-    "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --minify --outfile=build/lambda.js"
+    "build:dev": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js --sourcemap",
+    "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js"
   },
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.321.1",
