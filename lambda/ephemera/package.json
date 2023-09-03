@@ -1,5 +1,5 @@
 {
-  "name": "controlChannel",
+  "name": "ephemeralambda",
   "type": "module",
   "version": "1.0.0",
   "description": "A websocket channel to provide a persistent service-client connection for MTW",
@@ -25,14 +25,13 @@
     "@tonylb/mtw-wml": "file:./mtw-wml",
     "acorn": "^8.8.1",
     "acorn-walk": "^8.2.0",
-    "aws-xray-sdk": "^3.3.3",
     "esbuild": "^0.16.17",
     "immer": "^9.0.12",
     "node-fetch": "^3.2.0",
     "node-jose": "^2.0.0",
     "uuid": "^8.3.2"
   },
-  "files": [
+"files": [
     "mtw-utilities",
     "mtw-internal-bus",
     "mtw-interfaces",

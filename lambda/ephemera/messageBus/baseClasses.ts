@@ -1,4 +1,3 @@
-import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
@@ -139,7 +138,7 @@ export type ConnectMessage = {
 export type SyncRequest = {
     type: 'Sync';
     targetId: EphemeraCharacterId;
-    LastEvaluatedKey?: Record<string, AttributeValue>;
+    LastEvaluatedKey?: Record<string, any>;  // AttributeValue from @aws-sdk/client-dynamodb
     startingAt?: number;
     limit?: number;
     loopCount?: number;
@@ -147,7 +146,7 @@ export type SyncRequest = {
 
 export type SyncNotificationRequest = {
     type: 'SyncNotification';
-    LastEvaluatedKey?: Record<string, AttributeValue>;
+    LastEvaluatedKey?: Record<string, any>;   // AttributeValue from @aws-sdk/client-dynamodb
     startingAt?: number;
     limit?: number;
     loopCount?: number;

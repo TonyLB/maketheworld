@@ -1,4 +1,3 @@
-import { marshall } from "@aws-sdk/util-dynamodb"
 import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
@@ -192,9 +191,9 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                             },
                             ProjectionFields: ['value'],
                             ConditionExpression: '#value = :value',
-                            ExpressionAttributeValues: marshall({
+                            ExpressionAttributeValues: {
                                 ':value': assetState[key]
-                            })
+                            }
                         }
                     }))
                 ),
