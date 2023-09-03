@@ -453,13 +453,19 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref AssetRoute
       RouteResponseKey: "$default"
+  RealTimeDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      StageName: Prod
+      Description: Prod Deployment
   RealTimeStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       StageName: Prod
       Description: Prod Stage
       ApiId: !Ref RealTimeWebSocket
-      AutoDeploy: true
+      DeploymentId: !Ref RealTimeDeployment
   AssetTable:
       Type: AWS::DynamoDB::Table
       Properties:
