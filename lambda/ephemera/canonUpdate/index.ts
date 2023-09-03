@@ -4,7 +4,7 @@ import { CanonSetMessage, CanonUpdateMessage, MessageBus } from "../messageBus/b
 import { unique } from "@tonylb/mtw-utilities/dist/lists";
 import internalCache from "../internalCache";
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types';
-import topologicalSort from '../mtw-utilities/dist/graphStorage/utils/graph/topologicalSort';
+import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort';
 
 export const canonUpdateMessage = async ({ payloads, messageBus }: { payloads: CanonUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     const [previousAssets = []] = await Promise.all([
