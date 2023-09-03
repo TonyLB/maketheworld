@@ -88,6 +88,50 @@ Resources:
       Name: MTWRealTimeSocket
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.service"
+  AuthenticationPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      AuthenticationFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthenticationFunction
+      Principal: apigateway.amazonaws.com
+  AuthenticationFunction:
+      Type: AWS::Serverless::Function
+      # Metadata:
+      #   BuildMethod: esbuild
+      #   BuildProperties:
+      #     Minify: true
+      #     Target: "es2020"
+      #     Sourcemap: true
+      #     EntryPoints: 
+      #       - app.ts
+      Properties:
+          CodeUri: lambda/authentication/build/
+          Handler: lambda.handler
+          MemorySize: 512
+          Runtime: nodejs18.x
+          Timeout: 5
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+                  COGNITO_POOL_ID: !Ref UserPool
+                  COGNITO_USER_POOL_CLIENT: !Ref UserPoolClient
+                  COGNITO_KEYS_URL:
+                    Fn::Sub:
+                      - "https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}/.well-known/jwks.json"
+                      -
+                          Region: !Ref AWS::Region
+                          CognitoUserPool: !Ref UserPool
+                  EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+          Policies:
+            - DynamoDBCrudPolicy:
+                TableName: !Sub '${TablePrefix}_connections'
+            - Statement:
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - events:PutEvents  
   EphemeraPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -147,7 +191,10 @@ Resources:
           - Effect: Allow
             Resource: '*'
             Action:
-              - events:PutEvents  
+              - events:PutEvents
+        #
+        # TODO: Double-check that this Invoke permission can be safely removed, and remove
+        #
         - Statement:
           - Effect: Allow
             Action:
@@ -262,7 +309,7 @@ Resources:
               - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
               -
                   Region: !Ref AWS::Region
-                  ChannelArn: !GetAtt EphemeraFunction.Arn
+                  ChannelArn: !GetAtt AuthenticationFunction.Arn
       RequestTemplates:
         application/json: >
           {
