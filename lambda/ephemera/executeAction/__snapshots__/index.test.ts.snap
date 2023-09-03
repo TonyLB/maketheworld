@@ -6,9 +6,7 @@ Array [
     "ConditionCheck": Object {
       "ConditionExpression": "#value = :value",
       "ExpressionAttributeValues": Object {
-        ":value": Object {
-          "N": "2",
-        },
+        ":value": 2,
       },
       "Key": Object {
         "DataCategory": "Meta::Variable",

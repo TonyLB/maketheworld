@@ -2,7 +2,8 @@
   "name": "mtw-packages",
   "workspaces": [
     "packages/*",
-    "charcoal-client"
+    "charcoal-client",
+    "lambda/ephemera"
   ],
   "scripts": {
     "clean": "tsc --build --clean",
