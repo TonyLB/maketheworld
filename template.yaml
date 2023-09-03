@@ -864,17 +864,17 @@ Resources:
   #
   AssetsFunction:
       Type: AWS::Serverless::Function
-      Metadata:
-        BuildMethod: esbuild
-        BuildProperties:
-          Minify: true
-          Target: "es2020"
-          Sourcemap: true
-          EntryPoints: 
-            - app.ts
+      # Metadata:
+      #   BuildMethod: esbuild
+      #   BuildProperties:
+      #     Minify: true
+      #     Target: "es2020"
+      #     Sourcemap: true
+      #     EntryPoints: 
+      #       - app.ts
       Properties:
-          CodeUri: lambda/assets/
-          Handler: app.handler
+          CodeUri: lambda/assets/build/
+          Handler: lambda.handler
           MemorySize: 1024
           Runtime: nodejs18.x
           Timeout: 30

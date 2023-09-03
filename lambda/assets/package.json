@@ -5,7 +5,9 @@
   "description": "Handler lambda for S3 events in the MakeTheWorld asset storage system",
   "main": "app.ts",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build:dev": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js --sourcemap",
+    "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js"
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",
@@ -17,30 +19,21 @@
     "@aws-sdk/client-s3": "^3.42.0",
     "@aws-sdk/s3-request-presigner": "^3.44.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
-    "@tonylb/mtw-asset-workspace": "file:./mtw-asset-workspace",
-    "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
-    "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
-    "@tonylb/mtw-utilities": "file:./mtw-utilities",
-    "@tonylb/mtw-wml": "file:./mtw-wml",
+    "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
+    "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
+    "@tonylb/mtw-internal-bus": "file:../../packages/mtw-internal-bus",
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
+    "@tonylb/mtw-wml": "file:../../packages/mtw-wml",
     "acorn": "^8.8.1",
     "acorn-walk": "^8.2.0",
-    "esbuild": "^0.16.10",
     "immer": "^9.0.12",
     "jimp": "^0.16.2",
     "uuid": "^8.3.2"
   },
-  "files": [
-    "mtw-asset-workspace",
-    "mtw-utilities",
-    "mtw-interfaces",
-    "mtw-internal-bus",
-    "mtw-wml"
-  ],
   "devDependencies": {
-    "@ohm-js/cli": "^1.1.0",
     "@types/jest": "^28.1.4",
+    "esbuild": "^0.19.2",
     "jest": "^28.1.2",
-    "madge": "^5.0.1",
     "ts-jest": "^28.0.5",
     "typescript": "^4.7.4"
   }
