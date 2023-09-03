@@ -7,7 +7,8 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --minify --outfile=build/lambda.js"
   },
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.49.0",
