@@ -10,11 +10,10 @@ In order to workaround the problem, in this repository (where files *using* util
 change much more frequently than the packages themselves) the system currently assumes
 explicit copies of the distribution files for the relevant packages in each lambda.
 
-This has two extremely unfortunate down-sides:
-    - All libraries used by the packages need to be explicitly also installed in the
-    calling lambdas. This leaves a lot of (particularly) aws-sdk dependencies in the
-    lambdas themselves, where they're not directly needed.
-    - Each time a package is rebuilt, the distributions need to be manually copied again.
-    This is toil.  Toil stinks.
-
-TODO: Figure out a way to simplify and automate this setup. Perhaps using **claudia pack**?
+This has two unfortunate down-sides:
+    - All libraries used by the packages need to be explicitly linked with file dependencies,
+    rather than treated as first-class packages.
+    - Because AWS SAM is not happy with the links npm makes for such dependencies, each
+    lambda needs to be explicitly built using **npm run build** (or **build:dev**) in its
+    directory, rather than being auto-built as part of the **sam build** process.  A drag,
+    but maybe someday the SAM folks will fix it.

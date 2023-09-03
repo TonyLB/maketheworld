@@ -13,3 +13,4 @@ package-lock.json
 **/dist/*
 **/build/lambda.js
 **/build/lambda.js.map
+**/build/meta.json
