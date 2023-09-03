@@ -1,14 +1,12 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse'
 
 import {
     EphemeraAPIMessage,
     isRegisterCharacterAPIMessage,
     isFetchEphemeraAPIMessage,
-    isWhoAmIAPIMessage,
     isSyncAPIMessage,
     isActionAPIMessage,
     isLinkAPIMessage,
@@ -43,30 +41,6 @@ export const disconnect = async (connectionId: string) => {
     })
     await messageBus.flush()
 
-}
-
-//
-// TODO:  Create an authentication Lambda to attach to the $connect Route, and
-// use the validateJWT code (and passed Authorization querystring) to block
-// unauthenticated users from websocket access entirely..
-//
-export const connect = async (token: any) => {
-
-    const { userName } = (await validateJWT(token)) || {}
-    if (userName) {
-    
-        messageBus.send({
-            type: 'Connect',
-            userName
-        })
-
-    }
-    else {
-        messageBus.send({
-            type: 'ReturnValue',
-            body: { statusCode: 403 }
-        })
-    }
 }
 
 export const handler = async (event: any, context: any) => {
@@ -206,10 +180,6 @@ export const handler = async (event: any, context: any) => {
                 }
         }
     }
-    else if (routeKey === '$connect') {
-        const { Authorization = '' } = event.queryStringParameters || {}
-        await connect(Authorization)
-    }
     else if (routeKey === '$disconnect') {
         await disconnect(connectionId)
     }
@@ -335,7 +305,7 @@ export const handler = async (event: any, context: any) => {
                         ephemeraId: request.to
                     })
                 }
-        }
+            }
             if (isCommandAPIMessage(request)) {
                 const CharacterId = request.CharacterId
                 const actionPayload = await parseCommand({ CharacterId, command: request.command })

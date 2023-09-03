@@ -3,7 +3,6 @@ import {
     isPublishMessage,
     isEphemeraUpdate,
     isDisconnectMessage,
-    isConnectMessage,
     isSyncRequest,
     isSyncResponse,
     isRegisterCharacterMessage,
@@ -31,7 +30,6 @@ import {
 import publishMessage from '../publishMessage'
 import ephemeraUpdate from '../ephemeraUpdate'
 import disconnectMessage, { unregisterCharacterMessage } from '../disconnectMessage'
-import connectMessage from '../connectMessage'
 import { syncNotificationRequest, syncNotificationResponse, syncRequest, syncResponse } from '../syncHandler'
 import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
@@ -72,12 +70,6 @@ messageBus.subscribe({
     priority: 1,
     filter: isDisconnectMessage,
     callback: disconnectMessage
-})
-messageBus.subscribe({
-    tag: 'Connect',
-    priority: 1,
-    filter: isConnectMessage,
-    callback: connectMessage
 })
 messageBus.subscribe({
     tag: 'SyncResponse',
