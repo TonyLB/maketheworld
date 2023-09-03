@@ -7,39 +7,25 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build:dev": "esbuild app.ts --bundle --sourcemap --platform=node --target=es2020,node18 --minify --outfile=build/lambda.js",
+    "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --minify --outfile=build/lambda.js"
   },
   "dependencies": {
-    "@aws-sdk/client-apigatewaymanagementapi": "^3.49.0",
-    "@aws-sdk/client-cognito-identity-provider": "^3.49.0",
-    "@aws-sdk/client-dynamodb": "^3.49.0",
     "@aws-sdk/client-eventbridge": "^3.321.1",
-    "@aws-sdk/client-lambda": "^3.13.0",
-    "@aws-sdk/client-s3": "^3.163.0",
-    "@aws-sdk/s3-request-presigner": "^3.231.0",
-    "@aws-sdk/util-dynamodb": "^3.49.0",
-    "@tonylb/mtw-asset-workspace": "file:./mtw-asset-workspace",
-    "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
-    "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
-    "@tonylb/mtw-utilities": "file:./mtw-utilities",
-    "@tonylb/mtw-wml": "file:./mtw-wml",
-    "acorn": "^8.8.1",
-    "acorn-walk": "^8.2.0",
-    "esbuild": "^0.16.17",
+    "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
+    "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
+    "@tonylb/mtw-internal-bus": "file:../../packages/mtw-internal-bus",
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
+    "@tonylb/mtw-wml": "file:../../packages/mtw-wml",
     "immer": "^9.0.12",
     "node-fetch": "^3.2.0",
     "node-jose": "^2.0.0",
     "uuid": "^8.3.2"
   },
-"files": [
-    "mtw-utilities",
-    "mtw-internal-bus",
-    "mtw-interfaces",
-    "mtw-asset-workspace",
-    "mtw-wml"
-  ],
   "devDependencies": {
     "@types/jest": "^28.1.4",
+    "esbuild": "^0.19.2",
     "jest": "^28.1.2",
     "ts-jest": "^28.0.5",
     "typescript": "^4.7.4"

@@ -11,3 +11,6 @@ charcoal-client/node_modules/
 charcoal-client/.eslintcache
 package-lock.json
 **/dist/*
+**/build/lambda.js
+**/build/lambda.js.map
+**/build/meta.json
