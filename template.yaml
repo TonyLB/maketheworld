@@ -359,43 +359,6 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref PingRoute
       RouteResponseKey: "$default"
-  # DefaultRoute:
-  #   Type: AWS::ApiGatewayV2::Route
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     RouteKey: $default
-  #     AuthorizationType: NONE
-  #     OperationName: DefaultRoute
-  #     RouteResponseSelectionExpression: $default
-  #     Target: !Join
-  #       - '/'
-  #       - - 'integrations'
-  #         - !Ref DefaultInteg
-  # DefaultInteg:
-  #   Type: AWS::ApiGatewayV2::Integration
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     Description: Default Integration
-  #     IntegrationType: AWS_PROXY
-  #     IntegrationUri:
-  #         Fn::Sub:
-  #             - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
-  #             -
-  #                 Region: !Ref AWS::Region
-  #                 ChannelArn: !GetAtt EphemeraFunction.Arn
-  # DefaultIntegrationResponse:
-  #   Type: AWS::ApiGatewayV2::IntegrationResponse
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     IntegrationId: !Ref DefaultInteg
-  #     IntegrationResponseKey: "/200/"
-  # DefaultResponse:
-  #   Type: AWS::ApiGatewayV2::RouteResponse
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     RouteId: !Ref DefaultRoute
-  #     RouteResponseKey: "$default"
-
   #
   # The Route defines the mapping from a key to a particular integration.  In this case, the $default
   # key catches everything not specified explicitly
