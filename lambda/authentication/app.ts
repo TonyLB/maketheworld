@@ -1,4 +1,4 @@
-// Copyright 2020 Tony Lower-Basch. All Rights Reserved.
+// Copyright 2023 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
 import connect from './connect.js'

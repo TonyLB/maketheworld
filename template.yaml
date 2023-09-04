@@ -1017,6 +1017,38 @@ Resources:
                     - Canonize Asset
                     - Decanonize Asset
                     - Cache Asset By Id
+  DeliverMessageSyncFunction:
+      Type: AWS::Serverless::Function
+      # Metadata:
+      #   BuildMethod: esbuild
+      #   BuildProperties:
+      #     Minify: true
+      #     Target: "es2020"
+      #     Sourcemap: true
+      #     EntryPoints: 
+      #       - app.ts
+      Properties:
+          CodeUri: lambda/deliverMessageSync/build/
+          Handler: lambda.handler
+          MemorySize: 256
+          Runtime: nodejs18.x
+          Timeout: 3
+  MessageSyncStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Ref stateMachineName
+      Type: EXPRESS
+      DefinitionUri: ./stepFunctions/messageSync.asl.yaml
+      Tracing:
+        Enabled: true
+      DefinitionSubstitutions:
+        MessageDeltaTable: TableName: !Sub '${TablePrefix}_message_delta'
+        DeliveryMessageSyncFunctionArn: !GetAtt DeliverMessageSyncFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DeliveryMessageSyncFunction
+        - DynamoDBReadPolicy:
+            TableName: !Sub '${TablePrefix}_message_delta'
 
 Outputs:
   UserPoolClient:

@@ -1,0 +1,57 @@
+---
+Comment: Iterator to page through messageDelta queries and deliver to a user connection
+StartAt: Start
+States:
+    Start:
+        Type: Pass
+        Next: Query
+        Result:
+            LastEvaluatedKey: null
+        ResultPath: "$"
+    Query:
+        Type: Task
+        Next: Deliver
+        Resource: "arn:aws:states:::aws-sdk:dynamodb:query"
+        Parameters:
+            TableName: "${MessageDeltaTable}"
+            KeyConditionExpression: "Target = :target and deltaId >= :start"
+            ExpressionAttributeValues:
+                ":target":
+                    "S.$": "$.Target"
+                ":start":
+                    "S.$": "$.StartingAt"
+            "ExclusiveStartKey.$": "$.LastEvaluatedKey"
+            Limit: 50
+        ResultPath: "$"
+    Deliver:
+        Type: Task
+        Next: Check for more
+        Resource: "${DeliverMessageSync}"
+        ResultPath: null
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+    "Check for more":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.LastEvaluatedKey"
+                IsPresent: True
+                Next: Repeat
+        Default: Done
+    Repeat:
+        Type: Pass
+        Next: Query
+        Parameters:
+            "LastEvaluatedKey.$": "$.LastEvaluatedKey"
+            "ConnectionId.$": "$.ConnectionId"
+            "Target.$": "$.Target"
+            "StartingAt.$": "$.StartingAt"
+        ResultPath: null
+    Done:
+        Type: Succeed
+
