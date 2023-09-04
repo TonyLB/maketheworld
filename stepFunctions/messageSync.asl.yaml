@@ -5,8 +5,12 @@ States:
     Start:
         Type: Pass
         Next: Query
-        Result:
+        Parameters:
             LastEvaluatedKey: null
+            RemainingLoops: 10
+            "Target.$": "$.Target"
+            "ConnectionId.$": "$.ConnectionId"
+            "StartingAt.$": "$.StartingAt"
         ResultPath: "$"
     Query:
         Type: Task
@@ -14,7 +18,7 @@ States:
         Resource: "arn:aws:states:::aws-sdk:dynamodb:query"
         Parameters:
             TableName: "${MessageDeltaTable}"
-            KeyConditionExpression: "Target = :target and deltaId >= :start"
+            KeyConditionExpression: "Target = :target and DeltaId >= :start"
             ExpressionAttributeValues:
                 ":target":
                     "S.$": "$.Target"
@@ -22,11 +26,11 @@ States:
                     "S.$": "$.StartingAt"
             "ExclusiveStartKey.$": "$.LastEvaluatedKey"
             Limit: 50
-        ResultPath: "$"
+        ResultPath: "$.Query"
     Deliver:
         Type: Task
         Next: Check for more
-        Resource: "${DeliverMessageSync}"
+        Resource: "${DeliverMessageSyncFunctionArn}"
         ResultPath: null
         Retry:
             -
@@ -39,19 +43,28 @@ States:
         Type: Choice
         Choices:
             -
-                Variable: "$.LastEvaluatedKey"
+                Variable: "$.Query.LastEvaluatedKey"
                 IsPresent: True
-                Next: Repeat
+                Next: Update LastEvaluatedKey
         Default: Done
-    Repeat:
+    "Update LastEvaluatedKey":
         Type: Pass
-        Next: Query
+        Next: Repeat
         Parameters:
-            "LastEvaluatedKey.$": "$.LastEvaluatedKey"
-            "ConnectionId.$": "$.ConnectionId"
+            "LastEvaluatedKey.$": "$.Query.LastEvaluatedKey"
+            "RemainingLoops.$": "States.MathAdd($.RemainingLoops, -1)"
             "Target.$": "$.Target"
-            "StartingAt.$": "$.StartingAt"
-        ResultPath: null
+            "ConnectionId.$": "$.ConnectionId"
+            "StartingAt.$": "$.StartingAt"            
+        ResultPath: "$"
+    Repeat:
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.RemainingLoops"
+                NumericGreaterThan: 0
+                Next: Query
+        Default: Done
     Done:
         Type: Succeed
 
