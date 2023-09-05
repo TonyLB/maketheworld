@@ -8,13 +8,14 @@ States:
         Parameters:
             LastEvaluatedKey: null
             RemainingLoops: 10
+            "RequestId.$": "$.RequestId"
             "Target.$": "$.Target"
             "ConnectionId.$": "$.ConnectionId"
             "StartingAt.$": "$.StartingAt"
         ResultPath: "$"
     Query:
         Type: Task
-        Next: Deliver
+        Next: Check for more
         Resource: "arn:aws:states:::aws-sdk:dynamodb:query"
         Parameters:
             TableName: "${MessageDeltaTable}"
@@ -27,10 +28,26 @@ States:
             "ExclusiveStartKey.$": "$.LastEvaluatedKey"
             Limit: 50
         ResultPath: "$.Query"
+    "Check for more":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.Query.LastEvaluatedKey"
+                IsPresent: False
+                Next: Deliver final
+            -
+                Variable: "$.RemainingLoops"
+                NumericLessThan: 1
+                Next: Deliver final
+        Default: Deliver
     Deliver:
         Type: Task
-        Next: Check for more
+        Next: Update LastEvaluatedKey
         Resource: "${DeliverMessageSyncFunctionArn}"
+        Parameters:
+            "Target.$": "$.Target"
+            "ConnectionId.$": "$.ConnectionId"
+            "Items.$": "$.Query.Items"
         ResultPath: null
         Retry:
             -
@@ -39,32 +56,34 @@ States:
                 IntervalSeconds: 2
                 MaxAttempts: 3
                 BackoffRate: 1
-    "Check for more":
-        Type: Choice
-        Choices:
-            -
-                Variable: "$.Query.LastEvaluatedKey"
-                IsPresent: True
-                Next: Update LastEvaluatedKey
-        Default: Done
     "Update LastEvaluatedKey":
         Type: Pass
-        Next: Repeat
+        Next: Query
         Parameters:
             "LastEvaluatedKey.$": "$.Query.LastEvaluatedKey"
             "RemainingLoops.$": "States.MathAdd($.RemainingLoops, -1)"
+            "RequestId.$": "$.RequestId"
             "Target.$": "$.Target"
             "ConnectionId.$": "$.ConnectionId"
-            "StartingAt.$": "$.StartingAt"            
+            "StartingAt.$": "$.StartingAt"
         ResultPath: "$"
-    Repeat:
-        Type: Choice
-        Choices:
+    "Deliver final":
+        Type: Task
+        Next: Done
+        Resource: "${DeliverMessageSyncFunctionArn}"
+        Parameters:
+            "RequestId.$": "$.RequestId"
+            "Target.$": "$.Target"
+            "ConnectionId.$": "$.ConnectionId"
+            "Items.$": "$.Query.Items"
+        ResultPath: null
+        Retry:
             -
-                Variable: "$.RemainingLoops"
-                NumericGreaterThan: 0
-                Next: Query
-        Default: Done
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
     Done:
         Type: Succeed
 
