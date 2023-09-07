@@ -27,7 +27,7 @@ import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import dependencyCascade from './dependentMessages/dependencyCascade.js'
 import { sfnClient } from './clients'
 

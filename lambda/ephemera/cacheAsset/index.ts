@@ -1,4 +1,3 @@
-import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
 import {
     isNormalAsset,
     NormalItem,
@@ -41,7 +40,7 @@ import { CharacterMetaItem } from '../internalCache/characterMeta'
 import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
 import { ebClient } from '../clients.js'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
+import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
@@ -59,7 +58,7 @@ import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
 //
 // Translates from normal form to a fetch-ready record to be stored in the Ephemera table.
 //
-const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem: ComponentRenderItem): TaggedMessageContent => {
+const ephemeraTranslateRender = (assetWorkspace: ReadOnlyAssetWorkspace) => (renderItem: ComponentRenderItem): TaggedMessageContent => {
     if (renderItem.tag === 'Link') {
         const to = assetWorkspace.namespaceIdToDB[renderItem.to]
         if (!(to && isEphemeraActionId(to) || isEphemeraCharacterId(to) || isEphemeraFeatureId(to) || isEphemeraKnowledgeId(to))) {
@@ -112,7 +111,7 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
 //
 // Extract fetch-ready list of exits from EphemeraRoom contents
 //
-const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: NormalReference[]): EphemeraExit[] => {
+const ephemeraExtractExits = (assetWorkspace: ReadOnlyAssetWorkspace) => (contents: NormalReference[]): EphemeraExit[] => {
     return contents.reduce<EphemeraExit[]>((previous, item) => {
         const itemLookup = assetWorkspace.normal?.[item.key]
         if (itemLookup) {
@@ -170,7 +169,7 @@ const ephemeraExtractExits = (assetWorkspace: AssetWorkspace) => (contents: Norm
     }, [])
 }
 
-const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
+const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { namespaceIdToDB: namespaceMap, normal = {}, properties = {} } = assetWorkspace
     const conditionsTransform = conditionsFromContext(assetWorkspace)
     const conditionsRemap = (conditions: { if: string; not?: boolean; dependencies: string[] }[]): EphemeraCondition[] => {
@@ -401,7 +400,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
     for (const { address, options } of payloads) {
         const { check = false, updateOnly = false } = options
 
-        const assetWorkspace = new AssetWorkspace(address)
+        const assetWorkspace = new ReadOnlyAssetWorkspace(address)
         await assetWorkspace.loadJSON()
         //
         // Process file if an Asset

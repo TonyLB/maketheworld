@@ -1,5 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/dist/messages"
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/dist/baseClasses"
