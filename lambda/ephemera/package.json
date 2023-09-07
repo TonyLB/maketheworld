@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.321.1",
+    "@aws-sdk/client-sfn": "^3.405.0",
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:../../packages/mtw-internal-bus",

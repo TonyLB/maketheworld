@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT-0
 
 import { parseCommand } from './parse'
+import { StartExecutionCommand } from '@aws-sdk/client-sfn'
 
 import {
     EphemeraAPIMessage,
@@ -28,6 +29,7 @@ import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
 import dependencyCascade from './dependentMessages/dependencyCascade.js'
+import { sfnClient } from './clients'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -222,23 +224,33 @@ export const handler = async (event: any, context: any) => {
             }
             if (isSyncAPIMessage(request)) {
                 if (isEphemeraCharacterId(request.CharacterId)) {
-                    messageBus.send({
-                        type: 'Sync',
-                        targetId: request.CharacterId,
-                        startingAt: request.startingAt,
-                        limit: request.limit
-                    })
+                    await sfnClient.send(new StartExecutionCommand({
+                        stateMachineArn: process.env.SYNC_MESSAGE_SFN,
+                        input: JSON.stringify({
+                            RequestId: request.RequestId,
+                            ConnectionId: connectionId,
+                            Target: request.CharacterId,
+                            StartingAt: `${request.startingAt} || 0}`
+                        })
+                    }))
+                    return { statusCode: 200, body: "{}" }
                 }
                 else {
                     console.log(`Invalid CharacterId on SyncAPI`)
                 }
             }
             if (isSyncNotificationAPIMessage(request)) {
-                messageBus.send({
-                    type: 'SyncNotification',
-                    startingAt: request.startingAt,
-                    limit: request.limit
-                })
+                const player = await internalCache.Global.get("player")
+                await sfnClient.send(new StartExecutionCommand({
+                    stateMachineArn: process.env.SYNC_MESSAGE_SFN,
+                    input: JSON.stringify({
+                        RequestId: request.RequestId,
+                        ConnectionId: connectionId,
+                        Target: player,
+                        StartingAt: `${request.startingAt} || 0}`
+                    })
+                }))
+                return { statusCode: 200, body: "{}" }
             }
             if (isUpdateNotificationsAPIMessage(request)) {
                 const player = await internalCache.Global.get('player')

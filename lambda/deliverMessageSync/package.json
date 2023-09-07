@@ -1,8 +1,8 @@
 {
-  "name": "authentication",
+  "name": "delivermessagesync",
   "type": "module",
   "version": "1.0.0",
-  "description": "Authentication handler for MTW websocket",
+  "description": "Step Function utility to deliver queried message-sets from DynamoDB to websocket",
   "main": "app.ts",
   "scripts": {
     "test": "jest",
@@ -18,8 +18,6 @@
     "typescript": "^5.1.3"
   },
   "dependencies": {
-    "@aws-sdk/client-eventbridge": "^3.348.0",
-    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
-    "aws-jwt-verify": "^4.0.0"
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities"
   }
 }

@@ -178,6 +178,7 @@ Resources:
                   Region: !Ref AWS::Region
                   CognitoUserPool: !Ref UserPool
           EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+          SYNC_MESSAGE_SFN: !Ref MessageSyncStateMachine
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
@@ -192,15 +193,8 @@ Resources:
             Resource: '*'
             Action:
               - events:PutEvents
-        #
-        # TODO: Double-check that this Invoke permission can be safely removed, and remove
-        #
-        - Statement:
-          - Effect: Allow
-            Action:
-              - lambda:InvokeFunction
-            Resource:
-              - !GetAtt AssetsFunction.Arn
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !Sub '${TablePrefix}_message_sync_step_function'
         - Statement:
           - Effect: Allow
             Action: execute-api:ManageConnections
@@ -208,9 +202,7 @@ Resources:
         - Statement:
           - Effect: Allow
             Action:
-              - s3:PutObject
               - s3:GetObject
-              - s3:DeleteObject
             Resource:
               Fn::Sub:
                   - "arn:aws:s3:::${AssetBucket}/*"
@@ -1017,6 +1009,55 @@ Resources:
                     - Canonize Asset
                     - Decanonize Asset
                     - Cache Asset By Id
+  DeliverMessageSyncFunction:
+      Type: AWS::Serverless::Function
+      # Metadata:
+      #   BuildMethod: esbuild
+      #   BuildProperties:
+      #     Minify: true
+      #     Target: "es2020"
+      #     Sourcemap: true
+      #     EntryPoints: 
+      #       - app.ts
+      Properties:
+        CodeUri: lambda/deliverMessageSync/build/
+        Handler: lambda.handler
+        MemorySize: 256
+        Runtime: nodejs18.x
+        Timeout: 3
+        Environment:
+          Variables:
+            WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
+        Policies:
+          - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+  MessageSyncStateMachineLogs:
+    Type: AWS::Logs::LogGroup
+  MessageSyncStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub '${TablePrefix}_message_sync_step_function'
+      Type: EXPRESS
+      DefinitionUri: ./stepFunctions/messageSync.asl.yaml
+      Tracing:
+        Enabled: true
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup: 
+              LogGroupArn: !GetAtt MessageSyncStateMachineLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL
+      DefinitionSubstitutions:
+        MessageDeltaTable: !Sub '${TablePrefix}_message_delta'
+        DeliverMessageSyncFunctionArn: !GetAtt DeliverMessageSyncFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DeliverMessageSyncFunction
+        - DynamoDBReadPolicy:
+            TableName: !Sub '${TablePrefix}_message_delta'
+        - CloudWatchLogsFullAccess
 
 Outputs:
   UserPoolClient:

@@ -3,8 +3,6 @@ import {
     isPublishMessage,
     isEphemeraUpdate,
     isDisconnectMessage,
-    isSyncRequest,
-    isSyncResponse,
     isRegisterCharacterMessage,
     isFetchPlayerEphemera,
     isPerception,
@@ -17,8 +15,6 @@ import {
     isMapSubscription,
     isMapUpdateMessage,
     isPublishNotification,
-    isSyncNotificationRequest,
-    isSyncNotificationResponse,
     isMapUnsubscribe,
     isUnregisterCharacterMessage,
     isCacheAssetByIdMessage,
@@ -30,7 +26,6 @@ import {
 import publishMessage from '../publishMessage'
 import ephemeraUpdate from '../ephemeraUpdate'
 import disconnectMessage, { unregisterCharacterMessage } from '../disconnectMessage'
-import { syncNotificationRequest, syncNotificationResponse, syncRequest, syncResponse } from '../syncHandler'
 import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
@@ -70,30 +65,6 @@ messageBus.subscribe({
     priority: 1,
     filter: isDisconnectMessage,
     callback: disconnectMessage
-})
-messageBus.subscribe({
-    tag: 'SyncResponse',
-    priority: 2,
-    filter: isSyncResponse,
-    callback: syncResponse
-})
-messageBus.subscribe({
-    tag: 'SyncRequest',
-    priority: 3,
-    filter: isSyncRequest,
-    callback: syncRequest
-})
-messageBus.subscribe({
-    tag: 'SyncNotificationResponse',
-    priority: 2,
-    filter: isSyncNotificationResponse,
-    callback: syncNotificationResponse
-})
-messageBus.subscribe({
-    tag: 'SyncNotificationRequest',
-    priority: 3,
-    filter: isSyncNotificationRequest,
-    callback: syncNotificationRequest
 })
 messageBus.subscribe({
     tag: 'RegisterCharacter',
