@@ -168,37 +168,6 @@ Identifies the player information connected to the incoming connectionId.
 
 ***Cascades***: ReturnValue
 
-### Sync
-
-```ts
-type SyncRequest = {
-    type: 'Sync';
-    targetId: string;
-    LastEvaluatedKey?: Record<string, AttributeValue>;
-    startingAt?: number;
-    limit?: number;
-    loopCount?: number;
-}
-```
-
-Requests a paginated set of message-data sync be queried and delivered to the user
-
-***Cascades***: SyncResponse, Sync (recursive loop)
-
-### SyncResponse
-
-```ts
-type SyncResponse = {
-    type: 'SyncResponse',
-    messages: any[];
-    lastSync?: number;
-}
-```
-
-Delivers a paginated set of message-data sync to the user
-
-***Cascades***: None
-
 ### RegisterCharacter
 
 ```ts

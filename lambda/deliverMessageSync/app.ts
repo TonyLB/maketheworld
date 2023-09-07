@@ -16,25 +16,49 @@ export const handler = async (event: any) => {
         .map(unmarshall)
         .map(({ Target, DeltaId, RowId, ...rest }) => ({ Target: TargetId, MessageId: RowId, ...rest }))
 
-    if (RequestId) {
-        await apiClient.send({
-            ConnectionId,
-            Data: JSON.stringify({
-                messageType: 'Messages',
-                messages,
-                LastSync: Date.now(),
-                RequestId
+    if (TargetId.split('#').length > 1) {
+        if (RequestId) {
+            await apiClient.send({
+                ConnectionId,
+                Data: JSON.stringify({
+                    messageType: 'Messages',
+                    messages,
+                    LastSync: Math.max(...messages.map(({ CreatedTime }) => (CreatedTime))),
+                    RequestId
+                })
             })
-        })
+        }
+        else {
+            await apiClient.send({
+                ConnectionId,
+                Data: JSON.stringify({
+                    messageType: 'Messages',
+                    messages
+                })
+            })    
+        }
     }
     else {
-        await apiClient.send({
-            ConnectionId,
-            Data: JSON.stringify({
-                messageType: 'Messages',
-                messages
+        if (RequestId) {
+            await apiClient.send({
+                ConnectionId,
+                Data: JSON.stringify({
+                    messageType: 'Notifications',
+                    notifications: messages,
+                    LastSync: Math.max(...messages.map(({ CreatedTime }) => (CreatedTime))),
+                    RequestId
+                })
             })
-        })    
+        }
+        else {
+            await apiClient.send({
+                ConnectionId,
+                Data: JSON.stringify({
+                    messageType: 'Notifications',
+                    notifications: messages
+                })
+            })
+        }
     }
 
     return { statusCode: 200 }

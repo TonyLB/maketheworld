@@ -178,6 +178,7 @@ Resources:
                   Region: !Ref AWS::Region
                   CognitoUserPool: !Ref UserPool
           EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+          SYNC_MESSAGE_SFN: !Ref MessageSyncStateMachine
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
@@ -192,15 +193,8 @@ Resources:
             Resource: '*'
             Action:
               - events:PutEvents
-        #
-        # TODO: Double-check that this Invoke permission can be safely removed, and remove
-        #
-        - Statement:
-          - Effect: Allow
-            Action:
-              - lambda:InvokeFunction
-            Resource:
-              - !GetAtt AssetsFunction.Arn
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !Sub '${TablePrefix}_message_sync_step_function'
         - Statement:
           - Effect: Allow
             Action: execute-api:ManageConnections
@@ -208,9 +202,7 @@ Resources:
         - Statement:
           - Effect: Allow
             Action:
-              - s3:PutObject
               - s3:GetObject
-              - s3:DeleteObject
             Resource:
               Fn::Sub:
                   - "arn:aws:s3:::${AssetBucket}/*"

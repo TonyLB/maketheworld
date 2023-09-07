@@ -130,35 +130,6 @@ export type DisconnectMessage = {
     connectionId: string;
 }
 
-export type SyncRequest = {
-    type: 'Sync';
-    targetId: EphemeraCharacterId;
-    LastEvaluatedKey?: Record<string, any>;  // AttributeValue from @aws-sdk/client-dynamodb
-    startingAt?: number;
-    limit?: number;
-    loopCount?: number;
-}
-
-export type SyncNotificationRequest = {
-    type: 'SyncNotification';
-    LastEvaluatedKey?: Record<string, any>;   // AttributeValue from @aws-sdk/client-dynamodb
-    startingAt?: number;
-    limit?: number;
-    loopCount?: number;
-}
-
-export type SyncResponse = {
-    type: 'SyncResponse',
-    messages: any[];
-    lastSync?: number;
-}
-
-export type SyncNotificationResponse = {
-    type: 'SyncNotificationResponse';
-    notifications: any[];
-    lastSync?: number;
-}
-
 export type RegisterCharacterMessage = {
     type: 'RegisterCharacter';
     characterId: EphemeraCharacterId;
@@ -360,10 +331,6 @@ export type MessageType = PublishMessage |
     PublishNotification |
     ReturnValueMessage |
     DisconnectMessage |
-    SyncRequest |
-    SyncResponse |
-    SyncNotificationRequest |
-    SyncNotificationResponse |
     RegisterCharacterMessage |
     UnregisterCharacterMessage |
     EphemeraUpdateMessage |
@@ -400,10 +367,6 @@ export const isInformationNotification = (prop: PublishNotification): prop is Pu
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')
 
-export const isSyncRequest = (prop: MessageType): prop is SyncRequest => (prop.type === 'Sync')
-export const isSyncResponse = (prop: MessageType): prop is SyncResponse => (prop.type === 'SyncResponse')
-export const isSyncNotificationRequest = (prop: MessageType): prop is SyncNotificationRequest => (prop.type === 'SyncNotification')
-export const isSyncNotificationResponse = (prop: MessageType): prop is SyncNotificationResponse => (prop.type === 'SyncNotificationResponse')
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
 export const isUnregisterCharacterMessage = (prop: MessageType): prop is UnregisterCharacterMessage => (prop.type === 'UnregisterCharacter')
 

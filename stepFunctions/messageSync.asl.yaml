@@ -7,7 +7,7 @@ States:
         Next: Query
         Parameters:
             LastEvaluatedKey: null
-            RemainingLoops: 10
+            RemainingLoops: 40
             "RequestId.$": "$.RequestId"
             "Target.$": "$.Target"
             "ConnectionId.$": "$.ConnectionId"
