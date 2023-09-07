@@ -2,12 +2,11 @@ import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { v4 as uuidv4 } from 'uuid'
 
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAction, NormalAsset, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAction, NormalAsset, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-normal'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { ParseException } from "@tonylb/mtw-wml/dist/parser/baseClasses"
 import { deepEqual, objectFilterEntries } from "./objects"
 
 const { S3_BUCKET = 'Test', UPLOAD_BUCKET = 'Test' } = process.env;
@@ -108,10 +107,10 @@ export type WorkspaceProperties = {
 const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalKnowledge | NormalBookmark | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed | NormalMessage | NormalMoment) => (['Room', 'Feature', 'Knowledge', 'Bookmark', 'Message', 'Moment', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
 
 type AddressLookup = {
-    (key: `ASSET#${string}` | `CHARACTER#${string}`): Promise<AssetWorkspace | undefined>;
+    (key: `ASSET#${string}` | `CHARACTER#${string}`): Promise<ReadOnlyAssetWorkspace | undefined>;
 }
 
-export class AssetWorkspace {
+export class ReadOnlyAssetWorkspace {
     address: AssetWorkspaceAddress;
     status: AssetWorkspaceStatus = {
         json: 'Initial',
@@ -120,7 +119,6 @@ export class AssetWorkspace {
     normal?: NormalForm;
     namespaceIdToDB: NamespaceMapping = {};
     properties: WorkspaceProperties = {};
-    wml?: string;
     _isGlobal?: boolean;
     _workspaceFromKey?: AddressLookup;
     
@@ -188,6 +186,11 @@ export class AssetWorkspace {
         this.properties = properties as WorkspaceProperties
         this.status.json = 'Clean'
     }
+
+}
+
+export class AssetWorkspace extends ReadOnlyAssetWorkspace {
+    wml?: string;
 
     //
     // TODO: Refactor tokenizer, parser, and schema to accept generators, then make setWML capable of
