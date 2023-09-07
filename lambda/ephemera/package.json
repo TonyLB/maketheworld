@@ -17,8 +17,8 @@
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:../../packages/mtw-internal-bus",
+    "@tonylb/mtw-normal": "file:../../packages/mtw-normal",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
-    "@tonylb/mtw-wml": "file:../../packages/mtw-wml",
     "immer": "^9.0.12",
     "uuid": "^8.3.2"
   },

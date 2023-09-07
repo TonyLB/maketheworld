@@ -1,0 +1,11 @@
+{
+  "name": "@tonylb/mtw-normal",
+  "version": "1.0.0",
+  "description": "Type definitions and guards for the normal storage form of MTW data",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT"
+}

@@ -24,7 +24,7 @@ import {
 } from "@tonylb/mtw-interfaces/dist/baseClasses";
 import { TaggedMessageContent } from "@tonylb/mtw-interfaces/dist/messages";
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
-import { NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { NormalCharacterPronouns } from "@tonylb/mtw-normal"
 
 export type EphemeraItemDependency = {
     key: string;

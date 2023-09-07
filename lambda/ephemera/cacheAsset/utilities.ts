@@ -2,7 +2,7 @@ import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist"
 import {
     NormalReference,
     isNormalCondition
-} from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+} from "@tonylb/mtw-normal"
 import { EphemeraCondition } from "./baseClasses"
 
 export const conditionsFromContext = (assetWorkspace: AssetWorkspace) => (contextStack: NormalReference[]): EphemeraCondition[] => (

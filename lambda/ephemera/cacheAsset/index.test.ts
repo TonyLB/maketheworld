@@ -19,7 +19,7 @@ jest.mock('./dependencyUpdate')
 
 import { cacheAssetMessage } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
-import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-normal'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
 const internalCacheMock = jest.mocked(internalCache, true)
