@@ -19,7 +19,7 @@ import {
     isNormalMoment,
     isNormalKnowledge,
     isNormalImport
-} from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
+} from '@tonylb/mtw-normal'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
     EphemeraCharacter,
