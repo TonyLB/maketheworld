@@ -54,7 +54,7 @@ let mockNamespaceMap: Record<string, string> = {
     Tess: 'CHARACTER#Tess'
 }
 
-jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
+jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
             status: {
