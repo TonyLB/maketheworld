@@ -87,7 +87,7 @@ export type AssetPlayerSettingsAPIMessage = {
     actions: (AssetPlayerSettingsAddOnboarding | AssetPlayerSettingsRemoveOnboarding)[];
 }
 
-export type AssetAPIMessage = { RequestId?: string } & (
+export type AssetAPIMessage = { RequestId?: string; connectionId?: string } & (
     FetchLibraryAPIMessage |
     MetaDataAPIMessage |
     FetchImportsAPIMessage |
