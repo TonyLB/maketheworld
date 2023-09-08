@@ -45,7 +45,8 @@ const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
 
 export const handler = async (event, context) => {
 
-    const { connectionId } = event.requestContext || {}
+    const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
+    const { connectionId } = request?.connectionId || event.requestContext || {}
     internalCache.clear()
     internalCache.Connection.set({ key: 'connectionId', value: connectionId })
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
@@ -160,7 +161,6 @@ export const handler = async (event, context) => {
         }
     }
     
-    const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
     if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML', 'updatePlayerSettings'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
