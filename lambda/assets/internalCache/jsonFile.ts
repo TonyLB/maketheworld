@@ -1,6 +1,6 @@
 import { DeferredCache } from './deferredCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import AssetWorkspace, { AssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/index'
+import ReadOnlyAssetWorkspace, { NamespaceMapping, AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import Meta, { MetaData } from './meta'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
@@ -14,7 +14,7 @@ export class JSONFileData {
     _Cache: DeferredCache<JSONFileCache>;
     
     constructor(meta: MetaData) {
-        this._Meta = (key: EphemeraAssetId | EphemeraCharacterId) => (meta.get(key))
+        this._Meta = (key: EphemeraAssetId | EphemeraCharacterId) => (meta.get([key]).then((value) => (value[key])))
         this._Cache = new DeferredCache<JSONFileCache>({
             defaultValue: (cacheKey) => {
                 return {
@@ -41,7 +41,7 @@ export class JSONFileData {
                 namespaceIdToDB: {}
             }
         }
-        const assetWorkspace = new AssetWorkspace(address)
+        const assetWorkspace = new ReadOnlyAssetWorkspace(address)
         await assetWorkspace.loadJSON()
         return {
             normal: assetWorkspace.normal || {},

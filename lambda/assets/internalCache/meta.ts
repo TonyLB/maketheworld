@@ -5,7 +5,8 @@ import { CacheConstructor } from './baseClasses'
 import { isAssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 
 type MetaCache = {
-    address?: AssetWorkspaceAddress
+    AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
+    address?: AssetWorkspaceAddress;
 }
 
 export class MetaData {
@@ -14,7 +15,9 @@ export class MetaData {
     constructor() {
         this._Cache = new DeferredCache<MetaCache>({
             defaultValue: (cacheKey) => {
-                return {}
+                return {
+                    AssetId: cacheKey as `ASSET#${string}` | `CHARACTER#${string}`
+                }
             }
         })
     }
@@ -27,40 +30,34 @@ export class MetaData {
         this._Cache.clear()
     }
 
-    async _getPromiseFactory(AssetId: `ASSET#${string}` | `CHARACTER#${string}`): Promise<MetaCache> {
-        const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
-            Key: {
+    async _getPromiseFactory(AssetIds: (`ASSET#${string}` | `CHARACTER#${string}`)[]): Promise<MetaCache[]> {
+        const addresses = (await assetDB.getItems<MetaCache>({
+            Keys: AssetIds.map((AssetId) => ({
                 AssetId,
                 DataCategory: 'Meta::Asset'
-            },
-            ProjectionFields: ['address']
-        })) || {}
-        if (isAssetWorkspaceAddress(address)) {
-            return {
-                address
-            }
-        }
-        return {}
+            })),
+            ProjectionFields: ['AssetId', 'address']
+        })) || []
+        return addresses.filter(({ address }) => (isAssetWorkspaceAddress(address)))
     }
 
-    async get(AssetId: `ASSET#${string}` | `CHARACTER#${string}`): Promise<MetaCache> {
-        if (!this._Cache.isCached(AssetId)) {
-            this._Cache.add({
-                promiseFactory: () => (this._getPromiseFactory(AssetId)),
-                requiredKeys: [AssetId],
-                transform: (fetch) => {
-                    if (typeof fetch === 'undefined') {
-                        return {}
-                    }
-                    else {
-                        return {
-                            [AssetId]: fetch
+    async get(AssetIds: (`ASSET#${string}` | `CHARACTER#${string}`)[]): Promise<MetaCache[]> {
+        this._Cache.add({
+            promiseFactory: () => (this._getPromiseFactory(AssetIds)),
+            requiredKeys: AssetIds,
+            transform: (fetches) => {
+                return Object.assign(
+                    {},
+                    ...(fetches.map((fetch) => ({
+                        [fetch.AssetId]: {
+                            AssetId: fetch.AssetId,
+                            address: fetch.address
                         }
-                    }
-                }
-            })
-        }
-        return await this._Cache.get(AssetId)
+                    })))
+                )
+            }
+        })
+        return await Promise.all(AssetIds.map((AssetId) => (this._Cache.get(AssetId))))
     }
 
     invalidate(AssetId: `ASSET#${string}` | `CHARACTER#${string}`) {
