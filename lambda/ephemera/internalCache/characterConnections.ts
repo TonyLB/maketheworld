@@ -1,4 +1,4 @@
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 

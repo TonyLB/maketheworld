@@ -1,8 +1,8 @@
 import messageBus from '../messageBus'
 import internalCache from '../internalCache'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
-import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
+import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PublishMessage } from '../messageBus/baseClasses'
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { CharacterId?: EphemeraCharacterId; Message?: string; DisplayProtocol?: PublishMessage["displayProtocol"]; } = {}) => {

@@ -1,7 +1,7 @@
 import { ComponentMeta, ComponentMetaData, ComponentMetaFromId } from './componentMeta'
 import { DeferredCache } from './deferredCache'
 import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraCondition, EphemeraExit, EphemeraItemDependency, EphemeraMapRoom, EphemeraBookmarkAppearance, EphemeraMessageAppearance, EphemeraKnowledgeAppearance } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent, BookmarkDescribeData, KnowledgeDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
+import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent, BookmarkDescribeData, KnowledgeDescribeData } from '@tonylb/mtw-interfaces/ts/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import AssetState, { EvaluateCodeAddress, EvaluateCodeData, StateItemId } from './assetState';
@@ -25,11 +25,11 @@ import {
     isEphemeraMessageId,
     isEphemeraRoomId,
     isEphemeraVariableId
-} from '@tonylb/mtw-interfaces/dist/baseClasses';
+} from '@tonylb/mtw-interfaces/ts/baseClasses';
 import CacheRoomCharacterLists, { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { RoomCharacterListItem } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
-import { FlattenTaggedMessageContentOptions } from '@tonylb/mtw-interfaces/dist/messages';
+import { FlattenTaggedMessageContentOptions } from '@tonylb/mtw-interfaces/ts/messages';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 
 type MessageDescribeData = {

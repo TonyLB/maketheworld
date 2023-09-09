@@ -18,8 +18,8 @@ import {
     isUpdateNotificationsAPIMessage,
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
-} from '@tonylb/mtw-interfaces/dist/ephemera'
-import { isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+} from '@tonylb/mtw-interfaces/ts/ephemera'
+import { isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 

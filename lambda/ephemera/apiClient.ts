@@ -1,4 +1,4 @@
-import { EphemeraClientMessage } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { EphemeraClientMessage } from "@tonylb/mtw-interfaces/ts/ephemera"
 import { apiClient as rawAPIClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
 import messageBus from "./messageBus"
 

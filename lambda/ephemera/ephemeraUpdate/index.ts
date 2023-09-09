@@ -3,10 +3,10 @@ import { EphemeraPublishTarget, EphemeraUpdateMessage, isEphemeraCharacterArgume
 import internalCache from '../internalCache'
 
 import { apiClient } from '../apiClient'
-import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { objectMap } from "../lib/objects"
-import { EphemeraClientMessageEphemeraUpdateCharacterInPlay, EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/dist/ephemera"
+import { EphemeraClientMessageEphemeraUpdateCharacterInPlay, EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/ts/ephemera"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {

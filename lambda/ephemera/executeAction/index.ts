@@ -2,13 +2,13 @@ import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dis
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
 import { ExecuteActionMessage, MessageBus, PerceptionShowMessage, PerceptionShowMoment, PublishMessage } from "../messageBus/baseClasses"
-import { EphemeraMessageId, EphemeraMomentId, EphemeraVariableId, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraMessageId, EphemeraMomentId, EphemeraVariableId, LegalCharacterColor } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
 import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 import { defaultColorFromCharacterId } from "../lib/characterColor"
-import { EphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import dependencyCascade from "../dependentMessages/dependencyCascade"
 
 export const executeActionMessage = async ({ payloads, messageBus }: { payloads: ExecuteActionMessage[]; messageBus: MessageBus }): Promise<void> => {

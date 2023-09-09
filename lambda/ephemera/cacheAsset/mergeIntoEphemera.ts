@@ -2,7 +2,7 @@
 // mergeIntoEphemera merges a new list of EphemeraItems into the current database, updating
 // both the per-Asset entries and (if necessary) the Meta::<Component> aggregate entries
 //
-import { EphemeraComputedId, isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraComputedId, isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"

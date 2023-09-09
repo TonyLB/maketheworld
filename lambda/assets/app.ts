@@ -21,7 +21,7 @@ import {
     isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage,
     isAssetPlayerSettingsAPIMessage
-} from '@tonylb/mtw-interfaces/dist/asset.js'
+} from '@tonylb/mtw-interfaces/ts/asset.js'
 
 import messageBus from "./messageBus/index.js"
 import { extractReturnValue } from './returnValue'
@@ -174,16 +174,23 @@ export const handler = async (event, context) => {
             })
         }
         if (isMetaDataAPIMessage(request)) {
-            const { address } = await internalCache.Meta.get(request.assetId)
-            await apiClient.send({
-                ConnectionId: connectionId,
-                Data: JSON.stringify({
-                    RequestId: request.RequestId,
-                    messageType: 'MetaData',
-                    AssetId: request.assetId,
-                    zone: address ? address.zone : 'None'
-                })
-            })
+            const addresses = await internalCache.Meta.get(request.assetIds)
+            if (connectionId) {
+                await Promise.all(addresses.map(({ AssetId, address }) => (
+                    apiClient.send({
+                        ConnectionId: connectionId,
+                        Data: JSON.stringify({
+                            RequestId: request.RequestId,
+                            messageType: 'MetaData',
+                            AssetId,
+                            zone: address ? address.zone : 'None'
+                        })
+                    })
+                )))
+            }
+            else {
+                return addresses
+            }
         }
         if (isFetchImportsAPIMessage(request)) {
             messageBus.send({

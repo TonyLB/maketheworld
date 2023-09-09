@@ -22,7 +22,7 @@ import {
     isEphemeraMomentId,
     isEphemeraRoomId,
     isEphemeraVariableId
-} from '@tonylb/mtw-interfaces/dist/baseClasses';
+} from '@tonylb/mtw-interfaces/ts/baseClasses';
 
 export type ComponentMetaRoomItem = {
     EphemeraId: EphemeraRoomId;

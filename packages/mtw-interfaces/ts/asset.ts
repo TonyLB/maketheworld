@@ -9,7 +9,7 @@ export type FetchLibraryAPIMessage = {
 
 export type MetaDataAPIMessage = {
     message: 'metaData';
-    assetId: `ASSET#${string}` | `CHARACTER#${string}`;
+    assetIds: (`ASSET#${string}` | `CHARACTER#${string}`)[];
 }
 
 export type FetchImportsAPIMessage = {

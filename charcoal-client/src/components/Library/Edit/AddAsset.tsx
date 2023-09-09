@@ -49,7 +49,7 @@ export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () =>
         if (!key.length) {
             return 'You must specify a key'
         }
-        const { zone } = await dispatch(socketDispatchPromise({ message: 'metaData', assetId: `ASSET#${key}` }, { service: 'asset' })) as any
+        const { zone } = await dispatch(socketDispatchPromise({ message: 'metaData', assetIds: [`ASSET#${key}`] }, { service: 'asset' })) as any
         if (zone && zone !== 'None') {
             return `Key '${key}' is already in use`
         }

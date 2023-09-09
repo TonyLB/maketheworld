@@ -4,7 +4,7 @@ import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/d
 
 import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
-import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 

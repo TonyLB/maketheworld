@@ -1,6 +1,6 @@
-import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import internalCache from '../internalCache'
-import { EphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 const getCurrentRoom = async (CharacterId: EphemeraCharacterId) => {
     const { RoomId } = await internalCache.CharacterMeta.get(CharacterId) || {}

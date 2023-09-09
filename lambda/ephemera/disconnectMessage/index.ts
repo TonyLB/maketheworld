@@ -3,7 +3,7 @@ import { DisconnectMessage, MessageBus, UnregisterCharacterMessage } from "../me
 import { connectionDB, exponentialBackoffWrapper, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import messageBus from "../messageBus"
 import internalCache from "../internalCache"
-import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const atomicallyRemoveCharacterAdjacency = async (connectionId: string, characterId: EphemeraCharacterId) => {
     return exponentialBackoffWrapper(async () => {

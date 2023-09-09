@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData } from './characterMeta';
 import { DeferredCache } from './deferredCache';
 import CacheGraph, { GraphCacheType } from './graph';

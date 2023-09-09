@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/baseClasses";
+import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from "@tonylb/mtw-interfaces/ts/baseClasses";
 
 export class Deferred <T>{
     invalidationCounter: number;

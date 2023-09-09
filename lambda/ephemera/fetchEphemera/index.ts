@@ -2,8 +2,8 @@ import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
-import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { EphemeraClientMessageEphemeraUpdateItem } from '@tonylb/mtw-interfaces/dist/ephemera'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraClientMessageEphemeraUpdateItem } from '@tonylb/mtw-interfaces/ts/ephemera'
 
 const serialize = ({
     EphemeraId,

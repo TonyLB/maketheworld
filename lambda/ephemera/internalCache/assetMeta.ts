@@ -1,4 +1,4 @@
-import { EphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 

@@ -10,7 +10,7 @@ import internalCache from '../internalCache'
 import dependencyCascade from './dependencyCascade'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { objectFilterEntries } from '@tonylb/mtw-utilities/dist/objects'
-import { EphemeraComputedId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraComputedId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>

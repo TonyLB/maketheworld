@@ -1,4 +1,4 @@
-import { EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor, RoomCharacterListItem } from './baseClasses'
 

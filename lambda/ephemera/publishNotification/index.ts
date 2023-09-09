@@ -3,8 +3,8 @@ import { isInformationNotification, MessageBus, PublishNotification, PublishUpda
 import internalCache from '../internalCache'
 import { messageDeltaDB, messageDeltaUpdate } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { apiClient } from '../apiClient'
-import { EphemeraNotificationId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { InformationNotification, isUpdateMarksNotification, Notification } from '@tonylb/mtw-interfaces/dist/messages'
+import { EphemeraNotificationId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { InformationNotification, isUpdateMarksNotification, Notification } from '@tonylb/mtw-interfaces/ts/messages'
 
 const batchNotifications = (notifications: Notification[] = []): Notification[][]  => {
     //
