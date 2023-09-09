@@ -3,7 +3,7 @@ import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/d
 
 import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
-import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const mapSubscriptionMessage = async ({ payloads, messageBus }: { payloads: MapSubscriptionMessage[], messageBus: MessageBus }): Promise<void> => {
 

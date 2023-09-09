@@ -10,7 +10,7 @@ import AssetState from './assetState';
 import ComponentMeta from './componentMeta';
 import ComponentRender from './componentRender';
 import CacheCharacterPossibleMaps from './characterPossibleMaps';
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import CachePlayerConnections from './playerConnections';
 import CacheAssetMeta from './assetMeta';
 import CachePlayerMeta from './playerMeta';

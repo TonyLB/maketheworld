@@ -21,7 +21,7 @@ import {
     isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage,
     isAssetPlayerSettingsAPIMessage
-} from '@tonylb/mtw-interfaces/dist/asset.js'
+} from '@tonylb/mtw-interfaces/ts/asset.js'
 
 import messageBus from "./messageBus/index.js"
 import { extractReturnValue } from './returnValue'

@@ -1,8 +1,8 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library'
+import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/ts/library'
 import { CacheConstructor } from './baseClasses'
-import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 type PlayerLibrary = {
     Assets: Record<string, LibraryAsset>;

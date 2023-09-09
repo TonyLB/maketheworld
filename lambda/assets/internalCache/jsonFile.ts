@@ -2,7 +2,7 @@ import { DeferredCache } from './deferredCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetWorkspace, { AssetWorkspaceAddress, NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/index'
 import Meta, { MetaData } from './meta'
-import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 type JSONFileCache = {
     normal: NormalForm;

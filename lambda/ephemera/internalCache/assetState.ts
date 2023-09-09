@@ -3,7 +3,7 @@ import {
     EphemeraVariableId,
     isEphemeraComputedId,
     isEphemeraVariableId
-} from '@tonylb/mtw-interfaces/dist/baseClasses';
+} from '@tonylb/mtw-interfaces/ts/baseClasses';
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';

@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { NormalCharacterPronouns } from '@tonylb/mtw-normal'
 import { CacheConstructor } from './baseClasses'

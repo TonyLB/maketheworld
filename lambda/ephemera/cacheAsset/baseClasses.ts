@@ -21,8 +21,8 @@ import {
     isEphemeraMomentId,
     isEphemeraRoomId,
     isEphemeraVariableId
-} from "@tonylb/mtw-interfaces/dist/baseClasses";
-import { TaggedMessageContent } from "@tonylb/mtw-interfaces/dist/messages";
+} from "@tonylb/mtw-interfaces/ts/baseClasses";
+import { TaggedMessageContent } from "@tonylb/mtw-interfaces/ts/messages";
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
 import { NormalCharacterPronouns } from "@tonylb/mtw-normal"
 

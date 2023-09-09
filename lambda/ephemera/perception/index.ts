@@ -6,8 +6,8 @@ import {
     EphemeraMessageId,
     EphemeraRoomId,
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
-} from "@tonylb/mtw-interfaces/dist/baseClasses"
-import { isTaggedLink, isTaggedText } from "@tonylb/mtw-interfaces/dist/messages"
+} from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { isTaggedLink, isTaggedText } from "@tonylb/mtw-interfaces/ts/messages"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit' | 'fileURL' | 'Color']: EphemeraCharacter[K];

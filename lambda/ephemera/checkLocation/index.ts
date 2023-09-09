@@ -3,7 +3,7 @@ import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import internalCache from "../internalCache"
 import { RoomKey } from "@tonylb/mtw-utilities/dist/types"
 import { RoomStackItem } from "../moveCharacter"
-import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 //
 // checkLocation message handler tests whether the RoomStack (and RoomId) currently assigned to the character still

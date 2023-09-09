@@ -5,7 +5,7 @@ import internalCache from '../internalCache'
 import { messageDB, messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { RoomCharacterListItem } from '../internalCache/baseClasses'
 import { apiClient } from '../apiClient'
-import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 const batchMessages = (messages: any[] = [])  => {
     //

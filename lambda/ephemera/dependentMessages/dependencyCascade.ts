@@ -1,4 +1,4 @@
-import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual, objectFilterEntries } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"

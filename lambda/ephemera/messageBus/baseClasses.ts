@@ -1,8 +1,8 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
-import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/dist/messages"
-import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/dist/baseClasses"
+import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/ts/eventBridge'
+import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/ts/messages"
+import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
     EphemeraCharacterId,
@@ -10,9 +10,9 @@ import {
     EphemeraMapId,
     EphemeraRoomId,
     isEphemeraMapId
-} from "@tonylb/mtw-interfaces/dist/baseClasses"
-import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/dist/ephemera"
-import { KnowledgeDescription } from "@tonylb/mtw-interfaces/dist/messages"
+} from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/ts/ephemera"
+import { KnowledgeDescription } from "@tonylb/mtw-interfaces/ts/messages"
 import { MessageGroupId } from "../internalCache/orchestrateMessages"
 
 export type PublishTargetRoom = `ROOM#${string}`

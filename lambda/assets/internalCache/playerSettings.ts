@@ -1,6 +1,6 @@
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
-import { AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/dist/asset'
+import { AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/ts/asset'
 
 type CachePlayerSettingDataEntry = AssetClientPlayerSettings & {
     found: boolean;

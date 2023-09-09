@@ -1,4 +1,4 @@
-import { EphemeraAssetId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraAssetId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB";
 import { CanonSetMessage, CanonUpdateMessage, MessageBus } from "../messageBus/baseClasses";
 import { unique } from "@tonylb/mtw-utilities/dist/lists";

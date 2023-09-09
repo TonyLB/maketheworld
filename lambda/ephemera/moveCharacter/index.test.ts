@@ -11,7 +11,7 @@ import internalCache from '../internalCache'
 
 import moveCharacter, { RoomStackItem } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
-import { EphemeraId, EphemeraRoomId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { EphemeraId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/dist/types'
 
 const internalCacheMock = jest.mocked(internalCache, true)
