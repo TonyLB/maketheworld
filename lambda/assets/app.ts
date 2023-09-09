@@ -52,6 +52,22 @@ export const handler = async (event, context) => {
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
 
+    //
+    // Handle direct calls (not by way of API, probably by way of Step Functions)
+    //
+    if (event?.message) {
+        switch(event.message) {
+            case 'metaData':
+                return await Promise.all(
+                    (event.assetIds || []).map(async (assetId) => {
+                        const assetKey = AssetKey(assetId)
+                        const assetWorkspace = await assetWorkspaceFromAssetId(assetKey)
+                        return assetWorkspace?.address
+                    })
+                )
+        }
+    }
+
     // Handle Cognito PostConfirm messages
     if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
         //

@@ -1,0 +1,36 @@
+---
+Comment: Iterator to page through messageDelta queries and deliver to a user connection
+StartAt: Assign Addresses
+States:
+    "Assign Addresses":
+        Type: Task
+        Next: Cache Ephemera
+        Resource: "${AssetsFunctionArn}"
+        Parameters:
+            "message": "metaData"
+            "assetIds.$": "$.assetIds"
+        ResultPath: "$.addresses"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+    "Cache Ephemera":
+        Type: Task
+        Next: Done
+        Resource: "${EphemeraFunctionArn}"
+        Parameters:
+            "message": "cacheAssets"
+            "addresses.$": "$.addresses"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+        ResultPath: null
+    Done:
+        Type: Succeed

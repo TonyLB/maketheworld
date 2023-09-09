@@ -57,6 +57,24 @@ export const handler = async (event: any, context: any) => {
     }
     messageBus.clear()
 
+    //
+    // Handle direct calls (not by way of API, probably by way of Step Functions)
+    //
+    if (event?.message) {
+        switch(event.message) {
+            case 'cacheAssets':            
+                (event.addresses || []).forEach((address) => {
+                    messageBus.send({
+                        type: 'CacheAsset',
+                        address,
+                        options: { updateOnly: event.updateOnly }
+                    })
+                })
+                await messageBus.flush()
+                return {}
+        }
+    }
+
     // Handle EventBridge messages
     if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
@@ -159,7 +177,7 @@ export const handler = async (event: any, context: any) => {
                 if (assetId) {
                     messageBus.send({
                         type: event["detail-type"] === 'Canonize Asset' ? 'CanonAdd' : 'CanonRemove',
-                        assetId: `ASSET#${assetId}`
+                        assetId: `ASSET#${assetId}` as const
                     })
                     await messageBus.flush()
                     return await extractReturnValue(messageBus)
