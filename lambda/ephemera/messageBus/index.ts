@@ -8,7 +8,6 @@ import {
     isPerception,
     isMoveCharacter,
     isDecacheAsset,
-    isCacheAssetMessage,
     isPlayerUpdateMessage,
     isRoomUpdateMessage,
     isExecuteActionMessage,
@@ -17,7 +16,6 @@ import {
     isPublishNotification,
     isMapUnsubscribe,
     isUnregisterCharacterMessage,
-    isCacheCharacterAssetsMessage,
     isCanonUpdateMessage,
     isCheckLocation
 } from "./baseClasses"
@@ -30,7 +28,6 @@ import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
 import decacheAssetMessage from '../decacheMessage'
-import { cacheAssetMessage, cacheCharacterAssetsMessage } from '../cacheAsset'
 import playerUpdateMessage from '../playerUpdate'
 import roomUpdateMessage from '../roomUpdate'
 import executeActionMessage from '../executeAction'
@@ -118,18 +115,6 @@ messageBus.subscribe({
     priority: 1,
     filter: isDecacheAsset,
     callback: decacheAssetMessage
-})
-messageBus.subscribe({
-    tag: 'CacheAsset',
-    priority: 1,
-    filter: isCacheAssetMessage,
-    callback: cacheAssetMessage
-})
-messageBus.subscribe({
-    tag: 'CacheCharacterAssets',
-    priority: 2,
-    filter: isCacheCharacterAssetsMessage,
-    callback: cacheCharacterAssetsMessage
 })
 messageBus.subscribe({
     tag: 'UpdatePlayer',

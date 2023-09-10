@@ -1,18 +1,18 @@
-import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { CacheConstructor } from './baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 
 export type AssetAddressItem = {
-    EphemeraId: EphemeraAssetId;
+    EphemeraId: EphemeraAssetId | EphemeraCharacterId;
     address: AssetWorkspaceAddress
 }
 
 export class CacheAssetAddressData {
-    AssetAddressById: Record<EphemeraAssetId, AssetAddressItem> = {};
+    AssetAddressById: Record<EphemeraAssetId | EphemeraCharacterId, AssetAddressItem> = {};
     clear() {
         this.AssetAddressById = {}
     }
-    async get(assetId: EphemeraAssetId): Promise<AssetAddressItem | undefined> {
+    async get(assetId: EphemeraAssetId | EphemeraCharacterId): Promise<AssetAddressItem | undefined> {
         return this.AssetAddressById[assetId]
     }
     set(assetItem: AssetAddressItem): void {

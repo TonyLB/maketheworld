@@ -1042,6 +1042,7 @@ Resources:
       #     EntryPoints: 
       #       - app.ts
       Properties:
+        Tracing: Active
         CodeUri: lambda/addressLookup/build/
         Handler: lambda.handler
         MemorySize: 256
@@ -1096,7 +1097,7 @@ Resources:
         IncludeExecutionData: true
         Level: ALL
       DefinitionSubstitutions:
-        AssetsFunctionArn: !GetAtt AddressLookupFunction.Arn
+        AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
       Policies:
         - LambdaInvokePolicy:

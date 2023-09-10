@@ -19,7 +19,7 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
@@ -30,6 +30,8 @@ import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import dependencyCascade from './dependentMessages/dependencyCascade.js'
 import { sfnClient } from './clients'
+import { AssetAddressItem } from './internalCache/assetAddress'
+import { cacheAsset } from './cacheAsset'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -62,30 +64,12 @@ export const handler = async (event: any, context: any) => {
     //
     if (event?.message) {
         switch(event.message) {
-            //
-            // TODO: Make Cache Assets call into a direct call rather than passing it through
-            // the messageBus system (so it can be called recursively in a more straightforward
-            // manner)
-            //
-
-            //
-            // TODO: Make Cache Assets direct call accept and cache a list of addresses from
-            // address lookup (in the step function)
-            //
-
-            //
-            // TODO: Refactor Cache Assets to internally handle its own cascade of caches,
-            // depending upon the completeness of the list of addresses passed from address
-            // lookup.
-            //
-            case 'cacheAssets':            
-                (event.addresses || []).forEach((address) => {
-                    messageBus.send({
-                        type: 'CacheAsset',
-                        address,
-                        options: { updateOnly: event.updateOnly }
-                    })
+            case 'cacheAssets':
+                const addresses: { AssetId: EphemeraAssetId | EphemeraCharacterId; address: AssetWorkspaceAddress }[] = event.addresses || []
+                addresses.forEach((address) => {
+                    internalCache.AssetAddress.set({ EphemeraId: address.AssetId, address: address.address })
                 })
+                await Promise.all(event.assetIds.map((assetId) => (cacheAsset({ messageBus, assetId, updateOnly: event.options.updateOnly }))))
                 await messageBus.flush()
                 return {}
         }

@@ -1,7 +1,22 @@
 ---
 Comment: Iterator to page through messageDelta queries and deliver to a user connection
-StartAt: Check for Addresses
+StartAt: Check Options
 States:
+    "Check Options":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.options"
+                IsPresent: True
+                Next: Check for Addresses
+        Default: Default options
+    "Default options":
+        Type: Pass
+        Parameters:
+            updateOnly: false
+            check: false
+        ResultPath: "$.options"
+        Next: Check for Addresses
     "Check for Addresses":
         Type: Choice
         Choices:
@@ -32,7 +47,7 @@ States:
             "message": "cacheAssets"
             "assetIds.$": "$.assetIds"
             "addresses.$": "$.addresses"
-            "updateOnly.$": "$.updateOnly"
+            "options.$": "$.options"
         Retry:
             -
                 ErrorEquals:
