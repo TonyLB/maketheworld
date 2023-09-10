@@ -12,7 +12,8 @@
   "license": "MIT",
   "dependencies": {
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
-    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities"
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
+    "aws-xray-sdk": "^3.5.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.4",

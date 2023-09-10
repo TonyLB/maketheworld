@@ -6,6 +6,7 @@ import {
     QueryCommand,
     AttributeValue
 } from "@aws-sdk/client-dynamodb"
+import AWSXRay from 'aws-xray-sdk'
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
 import { asyncSuppressExceptions } from '../errors'
@@ -28,7 +29,7 @@ const messageTable = `${TABLE_PREFIX}_messages`
 const deltaTable = `${TABLE_PREFIX}_message_delta`
 
 const params = { region: process.env.AWS_REGION }
-const dbClient = new DynamoDBClient(params)
+const dbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params))
 
 const abstractDeleteItem = <Key extends { DataCategory: string }>(table: string) => async (key: Key): Promise<void> => {
     return await asyncSuppressExceptions(async () => {

@@ -20,6 +20,7 @@
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.348.0",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
-    "aws-jwt-verify": "^4.0.0"
+    "aws-jwt-verify": "^4.0.0",
+    "aws-xray-sdk": "^3.5.1"
   }
 }
