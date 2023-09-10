@@ -216,8 +216,6 @@ Resources:
               source:
                 - mtw.coordination
               detail-type:
-                - Decache Asset
-                - Remove Asset
                 - Update Player
                 - Canonize Asset
                 - Decanonize Asset

@@ -32,6 +32,7 @@ import dependencyCascade from './dependentMessages/dependencyCascade.js'
 import { sfnClient } from './clients'
 import { AssetAddressItem } from './internalCache/assetAddress'
 import { cacheAsset } from './cacheAsset'
+import decacheAsset from './decacheAsset'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -72,21 +73,16 @@ export const handler = async (event: any, context: any) => {
                 await Promise.all(event.assetIds.map((assetId) => (cacheAsset({ messageBus, assetId, updateOnly: event.options.updateOnly }))))
                 await messageBus.flush()
                 return {}
+            case 'decacheAssets':
+                await Promise.all(event.assetIds.map((assetId) => (decacheAsset({ messageBus, assetId }))))
+                await messageBus.flush()
+                return {}
         }
     }
 
     // Handle EventBridge messages
     if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
-            case 'Remove Asset':
-            case 'Decache Asset':
-                if (event.detail?.assetId) {
-                    messageBus.send({
-                        type: 'DecacheAsset',
-                        assetId: event.detail.assetId
-                    })
-                }
-                break
             case 'Update Player':
                 messageBus.send({
                     type: 'PlayerUpdate',
