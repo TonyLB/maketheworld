@@ -53,14 +53,6 @@ type UpdatePlayerCharacter = {
 
 ---
 
-### Cache Asset
-- zone
-- player (only if zone === 'Personal')
-- subFolder
-- fileName: base fileName (before suffixes like '.wml' or '.json')
-
----
-
 ### Decache Asset
 - assetId
 

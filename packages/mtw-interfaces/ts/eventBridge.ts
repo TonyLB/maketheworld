@@ -45,10 +45,3 @@ export type EventBridgeUpdatePlayer = {
         guestId?: string;
     }
 }
-
-export type EventBridgeCacheAsset = {
-    "detail-type": "Cache Asset";
-    details: {
-        updateOnly?: boolean;
-    } & AssetWorkspaceAddress
-}

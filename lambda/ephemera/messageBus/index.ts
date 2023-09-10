@@ -17,7 +17,6 @@ import {
     isPublishNotification,
     isMapUnsubscribe,
     isUnregisterCharacterMessage,
-    isCacheAssetByIdMessage,
     isCacheCharacterAssetsMessage,
     isCanonUpdateMessage,
     isCheckLocation
@@ -31,7 +30,7 @@ import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
 import decacheAssetMessage from '../decacheMessage'
-import { cacheAssetByIdMessage, cacheAssetMessage, cacheCharacterAssetsMessage } from '../cacheAsset'
+import { cacheAssetMessage, cacheCharacterAssetsMessage } from '../cacheAsset'
 import playerUpdateMessage from '../playerUpdate'
 import roomUpdateMessage from '../roomUpdate'
 import executeActionMessage from '../executeAction'
@@ -125,12 +124,6 @@ messageBus.subscribe({
     priority: 1,
     filter: isCacheAssetMessage,
     callback: cacheAssetMessage
-})
-messageBus.subscribe({
-    tag: 'CacheAssetById',
-    priority: 10,
-    filter: isCacheAssetByIdMessage,
-    callback: cacheAssetByIdMessage
 })
 messageBus.subscribe({
     tag: 'CacheCharacterAssets',

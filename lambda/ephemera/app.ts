@@ -62,6 +62,20 @@ export const handler = async (event: any, context: any) => {
     //
     if (event?.message) {
         switch(event.message) {
+            //
+            // TODO: Make Cache Assets call into a direct call rather than passing it through
+            // the messageBus system
+            //
+
+            //
+            // TODO: Make Cache Assets direct call return a list of cascading assets that need
+            // to be cached as a **consequence** of caching the first set of assets.
+            //
+
+            //
+            // TODO: Refactor Cache Assets step function to loop and handle cascading assets,
+            // while maintaining (and passing) an unique list of prior assets cached.
+            //
             case 'cacheAssets':            
                 (event.addresses || []).forEach((address) => {
                     messageBus.send({
@@ -86,25 +100,6 @@ export const handler = async (event: any, context: any) => {
                         assetId: event.detail.assetId
                     })
                 }
-                break
-            case 'Cache Asset':
-                const address: AssetWorkspaceAddress = event.detail.zone === 'Personal'
-                    ? {
-                        fileName: event.detail.fileName,
-                        zone: 'Personal',
-                        subFolder: event.detail.subFolder,
-                        player: event.detail.player
-                    }
-                    :  {
-                        fileName: event.detail.fileName,
-                        zone: event.detail.zone,
-                        subFolder: event.detail.subFolder
-                    }
-                messageBus.send({
-                    type: 'CacheAsset',
-                    address,
-                    options: { updateOnly: event.detail.updateOnly }
-                })
                 break
             case 'Update Player':
                 messageBus.send({

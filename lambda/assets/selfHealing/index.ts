@@ -1,9 +1,9 @@
 import { dbRegister } from "../serialize/dbRegister"
 import { asyncSuppressExceptions } from '@tonylb/mtw-utilities/dist/errors'
 import AssetWorkspace, { parseAssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/"
-import { ebClient } from "../clients"
-import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import { sfnClient } from "../clients"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
+import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 
 export const healAsset = async (fileName: string) => {
     const address = parseAssetWorkspaceAddress(fileName.replace(/\.wml$/, ''))
@@ -22,16 +22,13 @@ export const healAsset = async (fileName: string) => {
             ...((assetWorkspace.status.json !== 'Clean') ? [assetWorkspace.pushJSON()] : []),
             dbRegister(assetWorkspace)
         ])
-        await ebClient.send(new PutEventsCommand({
-            Entries: [{
-                EventBusName: process.env.EVENT_BUS_NAME,
-                Source: 'mtw.coordination',
-                DetailType: 'Cache Asset',
-                Detail: JSON.stringify({
-                    ...assetWorkspace.address,
-                    updateOnly: !Boolean(assetWorkspace._isGlobal)
-                })
-            }]
+
+        await sfnClient.send(new StartExecutionCommand({
+            stateMachineArn: process.env.CACHE_ASSETS_SFN,
+            input: JSON.stringify({
+                addresses: [assetWorkspace.address],
+                updateOnly: !Boolean(assetWorkspace._isGlobal)
+            })
         }))
         return {
             scopeMap: assetWorkspace.namespaceIdToDB

@@ -179,6 +179,7 @@ Resources:
                   CognitoUserPool: !Ref UserPool
           EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
           SYNC_MESSAGE_SFN: !Ref MessageSyncStateMachine
+          CACHE_ASSET_SFN: !Ref CacheAssetsStateMachine
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
@@ -218,7 +219,6 @@ Resources:
               detail-type:
                 - Decache Asset
                 - Remove Asset
-                - Cache Asset
                 - Update Player
                 - Canonize Asset
                 - Decanonize Asset
@@ -1008,7 +1008,6 @@ Resources:
                     - Remove Asset
                     - Canonize Asset
                     - Decanonize Asset
-                    - Cache Asset By Id
   DeliverMessageSyncFunction:
       Type: AWS::Serverless::Function
       # Metadata:

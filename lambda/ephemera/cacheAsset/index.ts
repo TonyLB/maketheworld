@@ -31,19 +31,20 @@ import {
 import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
-import { CacheAssetByIdMessage, CacheAssetMessage, CacheCharacterAssetsMessage, MessageBus } from '../messageBus/baseClasses.js'
+import { CacheAssetMessage, CacheCharacterAssetsMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './mergeIntoEphemera'
 import { EphemeraAssetId, EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/ts/messages.js'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
 import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
-import { ebClient } from '../clients.js'
+import { ebClient, sfnClient } from '../clients.js'
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
+import { StartExecutionCommand } from '@aws-sdk/client-sfn'
 
 //
 // TODO:
@@ -524,21 +525,6 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
 
 }
 
-export const cacheAssetByIdMessage = async ({ payloads, messageBus }: { payloads: CacheAssetByIdMessage[], messageBus: MessageBus }): Promise<void> => {
-    const assetsNeedingCache = await Promise.all(
-        (unique(payloads.map(({ assetId }) => (assetId))) as EphemeraAssetId[])
-            .filter(async (assetId: EphemeraAssetId) => (Boolean(await internalCache.AssetMeta.get(assetId))))
-    )
-    await ebClient.send(new PutEventsCommand({
-        Entries: assetsNeedingCache.map((assetId) => ({
-            EventBusName: process.env.EVENT_BUS_NAME,
-            Source: 'mtw.coordination',
-            DetailType: 'Cache Asset By Id',
-            Detail: JSON.stringify({ assetId })
-        }))
-    }))
-}
-
 export const cacheCharacterAssetsMessage = async ({ payloads, messageBus }: { payloads: CacheCharacterAssetsMessage[], messageBus: MessageBus }): Promise<void> => {
     const assetsNeedingCache = (await Promise.all(
         payloads.map(async ({ characterId }) => {
@@ -546,10 +532,10 @@ export const cacheCharacterAssetsMessage = async ({ payloads, messageBus }: { pa
             return assets.map(AssetKey)
         }))
     ).flat()
-    assetsNeedingCache.forEach((assetId) => {
-        messageBus.send({
-            type: 'CacheAssetById',
-            assetId
-        })    
-    })
+    await sfnClient.send(new StartExecutionCommand({
+        stateMachineArn: process.env.CACHE_ASSETS_SFN,
+        input: JSON.stringify({
+            assetIds: assetsNeedingCache
+        })
+    }))
 }

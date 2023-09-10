@@ -1,7 +1,15 @@
 ---
 Comment: Iterator to page through messageDelta queries and deliver to a user connection
-StartAt: Assign Addresses
+StartAt: Check for Addresses
 States:
+    "Check for Addresses":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.addresses"
+                IsPresent: True
+                Next: Cache Ephemera
+        Default: Assign Addresses
     "Assign Addresses":
         Type: Task
         Next: Cache Ephemera
@@ -24,6 +32,7 @@ States:
         Parameters:
             "message": "cacheAssets"
             "addresses.$": "$.addresses"
+            "updateOnly.$": "$.updateOnly"
         Retry:
             -
                 ErrorEquals:
