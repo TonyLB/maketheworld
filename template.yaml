@@ -1103,6 +1103,28 @@ Resources:
         - LambdaInvokePolicy:
             FunctionName: !Ref EphemeraFunction
         - CloudWatchLogsFullAccess
+  DecacheAssetsStateMachineLogs:
+    Type: AWS::Logs::LogGroup
+  DecacheAssetsStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub '${TablePrefix}_decache_assets_step_function'
+      Type: EXPRESS
+      DefinitionUri: ./stepFunctions/decacheAssets.asl.yaml
+      Tracing:
+        Enabled: true
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup: 
+              LogGroupArn: !GetAtt DecacheAssetsStateMachineLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL
+      DefinitionSubstitutions:
+        EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref EphemeraFunction
+        - CloudWatchLogsFullAccess
 
 Outputs:
   UserPoolClient:
