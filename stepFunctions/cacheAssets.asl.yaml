@@ -13,9 +13,8 @@ States:
     "Assign Addresses":
         Type: Task
         Next: Cache Ephemera
-        Resource: "${AssetsFunctionArn}"
+        Resource: "${AddressLookupFunctionArn}"
         Parameters:
-            "message": "metaData"
             "assetIds.$": "$.assetIds"
         ResultPath: "$.addresses"
         Retry:
@@ -31,6 +30,7 @@ States:
         Resource: "${EphemeraFunctionArn}"
         Parameters:
             "message": "cacheAssets"
+            "assetIds.$": "$.assetIds"
             "addresses.$": "$.addresses"
             "updateOnly.$": "$.updateOnly"
         Retry:

@@ -64,17 +64,19 @@ export const handler = async (event: any, context: any) => {
         switch(event.message) {
             //
             // TODO: Make Cache Assets call into a direct call rather than passing it through
-            // the messageBus system
+            // the messageBus system (so it can be called recursively in a more straightforward
+            // manner)
             //
 
             //
-            // TODO: Make Cache Assets direct call return a list of cascading assets that need
-            // to be cached as a **consequence** of caching the first set of assets.
+            // TODO: Make Cache Assets direct call accept and cache a list of addresses from
+            // address lookup (in the step function)
             //
 
             //
-            // TODO: Refactor Cache Assets step function to loop and handle cascading assets,
-            // while maintaining (and passing) an unique list of prior assets cached.
+            // TODO: Refactor Cache Assets to internally handle its own cascade of caches,
+            // depending upon the completeness of the list of addresses passed from address
+            // lookup.
             //
             case 'cacheAssets':            
                 (event.addresses || []).forEach((address) => {
