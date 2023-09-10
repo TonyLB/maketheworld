@@ -256,11 +256,6 @@ export type CheckLocationAssetMessage = CheckLocationMessageInvariantPayload & {
 
 export type CheckLocationMessage = CheckLocationPlayerMessage | CheckLocationRoomMessage | CheckLocationAssetMessage
 
-export type DecacheAssetMessage = {
-    type: 'DecacheAsset';
-    assetId: string;
-}
-
 export type PlayerUpdateMessage = {
     type: 'PlayerUpdate';
     player: string;
@@ -321,7 +316,6 @@ export type MessageType = PublishMessage |
     PerceptionMessage |
     MoveCharacterMessage |
     CheckLocationMessage |
-    DecacheAssetMessage |
     PlayerUpdateMessage |
     RoomUpdateMessage |
     ExecuteActionMessage |
@@ -359,8 +353,6 @@ export const isCheckLocation = (prop: MessageType): prop is CheckLocationMessage
 export const isCheckLocationPlayer = (prop: MessageType): prop is CheckLocationPlayerMessage => (isCheckLocation(prop) && 'characterId' in prop)
 export const isCheckLocationRoom = (prop: MessageType): prop is CheckLocationRoomMessage => (isCheckLocation(prop) && 'roomId' in prop)
 export const isCheckLocationAsset = (prop: MessageType): prop is CheckLocationAssetMessage => (isCheckLocation(prop) && 'assetId' in prop)
-
-export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 
 export const isPlayerUpdateMessage = (prop: MessageType): prop is PlayerUpdateMessage => (prop.type === 'PlayerUpdate')
 export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')

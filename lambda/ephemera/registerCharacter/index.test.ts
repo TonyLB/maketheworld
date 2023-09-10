@@ -76,10 +76,10 @@ describe("registerCharacter", () => {
             forceMove: true,
             arriveMessage: ' has connected.'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'CacheCharacterAssets',
-            characterId: 'CHARACTER#ABC'
-        })
+        // expect(messageBusMock.send).toHaveBeenCalledWith({
+        //     type: 'CacheCharacterAssets',
+        //     characterId: 'CHARACTER#ABC'
+        // })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{

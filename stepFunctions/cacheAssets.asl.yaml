@@ -1,5 +1,5 @@
 ---
-Comment: Iterator to page through messageDelta queries and deliver to a user connection
+Comment: Command step-function to execute cache of assets into Ephemera storage
 StartAt: Check Options
 States:
     "Check Options":

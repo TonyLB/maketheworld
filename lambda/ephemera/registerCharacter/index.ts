@@ -49,10 +49,15 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                                     forceMove: true,
                                     arriveMessage: ' has connected.'
                                 })
-                                messageBus.send({
-                                    type: 'CacheCharacterAssets',
-                                    characterId: CharacterId
-                                })
+                                //
+                                // TODO: Create a path to checking character assets are cached as part of first registry
+                                // of a character as being in-play
+                                //
+
+                                // messageBus.send({
+                                //     type: 'CacheCharacterAssets',
+                                //     characterId: CharacterId
+                                // })
                                 messageBus.send({
                                     type: 'EphemeraUpdate',
                                     updates: [{

@@ -17,11 +17,15 @@ import internalCache from '../internalCache'
 
 jest.mock('./dependencyUpdate')
 
-import { cacheAssetMessage } from '.'
+import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-normal'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
+//
+// TS nesting is deep enough that if we don't flag then it will complain
+//
+// @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<typeof internalCacheMock._graphCache, string>>
 
@@ -122,12 +126,10 @@ describe('cacheAsset', () => {
 
     it('should skip processing when check option and already present', async () => {
         internalCacheMock.AssetMeta.get.mockResolvedValue({ EphemeraId: 'ASSET#Test' })
-        await cacheAssetMessage({
-            payloads: [{
-                type: 'CacheAsset',
-                address: { fileName: 'Test', zone: 'Library' },
-                options: { check: true }
-            }],
+        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
+        await cacheAsset({
+            assetId: 'ASSET#Test',
+            check: true,
             messageBus: messageBusMock
         })
 
@@ -137,6 +139,7 @@ describe('cacheAsset', () => {
 
     it('should skip processing when asset is an instanced story', async () => {
         internalCacheMock.AssetMeta.get.mockResolvedValue({ EphemeraId: 'ASSET#Test' })
+        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
         mockTestAsset = {
             'Import-0': {
                 tag: 'Import',
@@ -162,12 +165,8 @@ describe('cacheAsset', () => {
                 }]
             }
         }
-        await cacheAssetMessage({
-            payloads: [{
-                type: 'CacheAsset',
-                address: { fileName: 'Test', zone: 'Library' },
-                options: {}
-            }],
+        await cacheAsset({
+            assetId: 'ASSET#Test',
             messageBus: messageBusMock
         })
     
@@ -176,6 +175,7 @@ describe('cacheAsset', () => {
     })
 
     it('should send rooms in need of update', async () => {
+        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
         const topLevelAppearance: BaseAppearance = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
             contents: []
@@ -302,12 +302,8 @@ describe('cacheAsset', () => {
             }
         }
 
-        await cacheAssetMessage({
-            payloads: [{
-                type: 'CacheAsset',
-                address: { fileName: 'Test', zone: 'Library' },
-                options: {}
-            }],
+        await cacheAsset({
+            assetId: 'ASSET#Test',
             messageBus: messageBusMock
         })
         expect(mergeIntoEphemera).toHaveBeenCalledWith(
@@ -384,6 +380,7 @@ describe('cacheAsset', () => {
     })
 
     it('should correctly extract query-ready exits from room contents', async () => {
+        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
         const topLevelAppearance: BaseAppearance = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
             contents: []
@@ -478,12 +475,8 @@ describe('cacheAsset', () => {
             }
         }
 
-        await cacheAssetMessage({
-            payloads: [{
-                type: 'CacheAsset',
-                address: { fileName: 'Test', zone: 'Library' },
-                options: {}
-            }],
+        await cacheAsset({
+            assetId: 'ASSET#Test',
             messageBus: messageBusMock
         })
         expect(mergeIntoEphemera).toHaveBeenCalledWith(
@@ -535,6 +528,7 @@ describe('cacheAsset', () => {
     })
 
     it('should set graph edges when asset has imports', async () => {
+        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
         const topLevelAppearance: BaseAppearance = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
             contents: []
@@ -598,12 +592,8 @@ describe('cacheAsset', () => {
             },
         }
 
-        await cacheAssetMessage({
-            payloads: [{
-                type: 'CacheAsset',
-                address: { fileName: 'Test', zone: 'Library' },
-                options: {}
-            }],
+        await cacheAsset({
+            assetId: 'ASSET#Test',
             messageBus: messageBusMock
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
@@ -614,11 +604,6 @@ describe('cacheAsset', () => {
     })
 
     it('should correctly cache character', async () => {
-        const topLevelAppearance: BaseAppearance = {
-            contextStack: [{ key: 'test', tag: 'Character', index: 0}],
-            contents: []
-        }
-
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
@@ -636,6 +621,7 @@ describe('cacheAsset', () => {
             },
             assets: [],
         })
+        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'CHARACTER#Tess', address: { fileName: 'Tess', zone: 'Personal', player: 'Test' } })
 
         mockNamespaceMap = {
             Tess: 'CHARACTER#Tess',
@@ -694,12 +680,8 @@ describe('cacheAsset', () => {
             }
         }
 
-        await cacheAssetMessage({
-            payloads: [{
-                type: 'CacheAsset',
-                address: { fileName: 'Tess', zone: 'Personal', player: 'Test' },
-                options: {}
-            }],
+        await cacheAsset({
+            assetId: 'CHARACTER#Tess',
             messageBus: messageBusMock
         })
         // expect(setEdgesInternalMock).toHaveBeenCalledWith([{

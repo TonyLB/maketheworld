@@ -1,0 +1,21 @@
+---
+Comment: Command step-function to execute decache
+StartAt: Decache Ephemera
+States:
+    "Decache Ephemera":
+        Type: Task
+        Next: Done
+        Resource: "${EphemeraFunctionArn}"
+        Parameters:
+            "message": "decacheAssets"
+            "assetIds.$": "$.assetIds"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+        ResultPath: null
+    Done:
+        Type: Succeed
