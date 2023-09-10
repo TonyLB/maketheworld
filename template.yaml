@@ -218,7 +218,6 @@ Resources:
               detail-type:
                 - Decache Asset
                 - Remove Asset
-                - Cache Asset
                 - Update Player
                 - Canonize Asset
                 - Decanonize Asset
@@ -1008,7 +1007,6 @@ Resources:
                     - Remove Asset
                     - Canonize Asset
                     - Decanonize Asset
-                    - Cache Asset By Id
   DeliverMessageSyncFunction:
       Type: AWS::Serverless::Function
       # Metadata:
@@ -1033,6 +1031,30 @@ Resources:
             - Effect: Allow
               Action: execute-api:ManageConnections
               Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+  AddressLookupFunction:
+      Type: AWS::Serverless::Function
+      # Metadata:
+      #   BuildMethod: esbuild
+      #   BuildProperties:
+      #     Minify: true
+      #     Target: "es2020"
+      #     Sourcemap: true
+      #     EntryPoints: 
+      #       - app.ts
+      Properties:
+        Tracing: Active
+        CodeUri: lambda/addressLookup/build/
+        Handler: lambda.handler
+        MemorySize: 256
+        Runtime: nodejs18.x
+        Timeout: 3
+        Environment:
+          Variables:
+            TABLE_PREFIX: !Ref TablePrefix
+            S3_BUCKET: !Sub '${TablePrefix}-assets'
+        Policies:
+          - DynamoDBReadPolicy:
+              TableName: !Sub '${TablePrefix}_assets'
   MessageSyncStateMachineLogs:
     Type: AWS::Logs::LogGroup
   MessageSyncStateMachine:
@@ -1057,6 +1079,31 @@ Resources:
             FunctionName: !Ref DeliverMessageSyncFunction
         - DynamoDBReadPolicy:
             TableName: !Sub '${TablePrefix}_message_delta'
+        - CloudWatchLogsFullAccess
+  CacheAssetsStateMachineLogs:
+    Type: AWS::Logs::LogGroup
+  CacheAssetsStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub '${TablePrefix}_cache_assets_step_function'
+      Type: EXPRESS
+      DefinitionUri: ./stepFunctions/cacheAssets.asl.yaml
+      Tracing:
+        Enabled: true
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup: 
+              LogGroupArn: !GetAtt CacheAssetsStateMachineLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL
+      DefinitionSubstitutions:
+        AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
+        EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AddressLookupFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref EphemeraFunction
         - CloudWatchLogsFullAccess
 
 Outputs:

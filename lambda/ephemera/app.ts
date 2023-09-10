@@ -19,7 +19,7 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
@@ -30,6 +30,8 @@ import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import dependencyCascade from './dependentMessages/dependencyCascade.js'
 import { sfnClient } from './clients'
+import { AssetAddressItem } from './internalCache/assetAddress'
+import { cacheAsset } from './cacheAsset'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -57,6 +59,22 @@ export const handler = async (event: any, context: any) => {
     }
     messageBus.clear()
 
+    //
+    // Handle direct calls (not by way of API, probably by way of Step Functions)
+    //
+    if (event?.message) {
+        switch(event.message) {
+            case 'cacheAssets':
+                const addresses: { AssetId: EphemeraAssetId | EphemeraCharacterId; address: AssetWorkspaceAddress }[] = event.addresses || []
+                addresses.forEach((address) => {
+                    internalCache.AssetAddress.set({ EphemeraId: address.AssetId, address: address.address })
+                })
+                await Promise.all(event.assetIds.map((assetId) => (cacheAsset({ messageBus, assetId, updateOnly: event.options.updateOnly }))))
+                await messageBus.flush()
+                return {}
+        }
+    }
+
     // Handle EventBridge messages
     if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
@@ -68,25 +86,6 @@ export const handler = async (event: any, context: any) => {
                         assetId: event.detail.assetId
                     })
                 }
-                break
-            case 'Cache Asset':
-                const address: AssetWorkspaceAddress = event.detail.zone === 'Personal'
-                    ? {
-                        fileName: event.detail.fileName,
-                        zone: 'Personal',
-                        subFolder: event.detail.subFolder,
-                        player: event.detail.player
-                    }
-                    :  {
-                        fileName: event.detail.fileName,
-                        zone: event.detail.zone,
-                        subFolder: event.detail.subFolder
-                    }
-                messageBus.send({
-                    type: 'CacheAsset',
-                    address,
-                    options: { updateOnly: event.detail.updateOnly }
-                })
                 break
             case 'Update Player':
                 messageBus.send({
@@ -159,7 +158,7 @@ export const handler = async (event: any, context: any) => {
                 if (assetId) {
                     messageBus.send({
                         type: event["detail-type"] === 'Canonize Asset' ? 'CanonAdd' : 'CanonRemove',
-                        assetId: `ASSET#${assetId}`
+                        assetId: `ASSET#${assetId}` as const
                     })
                     await messageBus.flush()
                     return await extractReturnValue(messageBus)

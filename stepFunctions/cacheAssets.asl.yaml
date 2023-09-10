@@ -1,0 +1,60 @@
+---
+Comment: Iterator to page through messageDelta queries and deliver to a user connection
+StartAt: Check Options
+States:
+    "Check Options":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.options"
+                IsPresent: True
+                Next: Check for Addresses
+        Default: Default options
+    "Default options":
+        Type: Pass
+        Parameters:
+            updateOnly: false
+            check: false
+        ResultPath: "$.options"
+        Next: Check for Addresses
+    "Check for Addresses":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.addresses"
+                IsPresent: True
+                Next: Cache Ephemera
+        Default: Assign Addresses
+    "Assign Addresses":
+        Type: Task
+        Next: Cache Ephemera
+        Resource: "${AddressLookupFunctionArn}"
+        Parameters:
+            "assetIds.$": "$.assetIds"
+        ResultPath: "$.addresses"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+    "Cache Ephemera":
+        Type: Task
+        Next: Done
+        Resource: "${EphemeraFunctionArn}"
+        Parameters:
+            "message": "cacheAssets"
+            "assetIds.$": "$.assetIds"
+            "addresses.$": "$.addresses"
+            "options.$": "$.options"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+        ResultPath: null
+    Done:
+        Type: Succeed

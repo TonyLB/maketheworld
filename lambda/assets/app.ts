@@ -52,6 +52,22 @@ export const handler = async (event, context) => {
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
 
+    //
+    // Handle direct calls (not by way of API, probably by way of Step Functions)
+    //
+    if (event?.message) {
+        switch(event.message) {
+            case 'metaData':
+                return await Promise.all(
+                    (event.assetIds || []).map(async (assetId) => {
+                        const assetKey = AssetKey(assetId)
+                        const assetWorkspace = await assetWorkspaceFromAssetId(assetKey)
+                        return assetWorkspace?.address
+                    })
+                )
+        }
+    }
+
     // Handle Cognito PostConfirm messages
     if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
         //
@@ -140,25 +156,6 @@ export const handler = async (event, context) => {
                 return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
             }
         }
-        if (event["detail-type"] === 'Cache Asset By Id') {
-            const { assetId } = event.detail
-            const assetKey = AssetKey(assetId)
-            const assetWorkspace = await assetWorkspaceFromAssetId(assetKey)
-            if (assetWorkspace) {
-                await ebClient.send(new PutEventsCommand({
-                    Entries: [{
-                        EventBusName: process.env.EVENT_BUS_NAME,
-                        Source: 'mtw.coordination',
-                        DetailType: 'Cache Asset',
-                        Detail: JSON.stringify(assetWorkspace.address)
-                    }]
-                }))
-                return await extractReturnValue(messageBus)
-            }
-            else {
-                return JSON.stringify(`Invalid arguments specified for Cache Asset By Id event`)
-            }
-        }
     }
     
     if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML', 'updatePlayerSettings'].includes(request.message)) {
@@ -173,6 +170,10 @@ export const handler = async (event, context) => {
                 type: 'FetchLibrary'
             })
         }
+        //
+        // TODO: Refactor cacheAssets step function to directly make address lookups, rather than depending on
+        // asset lambda calls (to reduce circular dependencies)
+        //
         if (isMetaDataAPIMessage(request)) {
             const addresses = await internalCache.Meta.get(request.assetIds)
             if (connectionId) {

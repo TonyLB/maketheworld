@@ -31,19 +31,18 @@ import {
 import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
-import { CacheAssetByIdMessage, CacheAssetMessage, CacheCharacterAssetsMessage, MessageBus } from '../messageBus/baseClasses.js'
+import { MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './mergeIntoEphemera'
-import { EphemeraAssetId, EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/ts/messages.js'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
-import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
-import { ebClient } from '../clients.js'
-import { PutEventsCommand } from '@aws-sdk/client-eventbridge'
+import { sfnClient } from '../clients.js'
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
+import { StartExecutionCommand } from '@aws-sdk/client-sfn'
 
 //
 // TODO:
@@ -393,163 +392,143 @@ export const pushCharacterEphemera = async (character: Omit<EphemeraCharacter, '
     })
 }
 
-export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: CacheAssetMessage[], messageBus: MessageBus }): Promise<void> => {
+type CacheAssetArguments = {
+    messageBus: MessageBus;
+    assetId: EphemeraAssetId | EphemeraCharacterId;
+    check?: boolean;
+    updateOnly?: boolean;
+}
+
+//
+// cacheAsset takes an Asset or Character Id (which must have had its address pre-populated in the internalCache.AssetAddress cache), looks it
+// up in the cache, and uses the address to read in data from the S3 data lake, and cache that data appropriately in Ephemera table structures.
+//
+export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnly = false }: CacheAssetArguments): Promise<void> => {
+
+    const address = await internalCache.AssetAddress.get(assetId)
+    if (typeof address === 'undefined') {
+        return
+    }
+    const assetWorkspace = new ReadOnlyAssetWorkspace(address.address)
+    await assetWorkspace.loadJSON()
     //
-    // To avoid race conditions, Cache payloads are currently evaluated sequentially
+    // Process file if an Asset
     //
-    for (const { address, options } of payloads) {
-        const { check = false, updateOnly = false } = options
-
-        const assetWorkspace = new ReadOnlyAssetWorkspace(address)
-        await assetWorkspace.loadJSON()
-        //
-        // Process file if an Asset
-        //
-        const assetItem = Object.values(assetWorkspace.normal || {}).find(isNormalAsset)
-        if (assetItem) {
-            if (check || updateOnly) {
-                const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || `ASSET#${assetItem.key}`
-                if (!(assetEphemeraId && isEphemeraAssetId(assetEphemeraId))) {
-                    continue
-                }
-                const { EphemeraId = null } = await internalCache.AssetMeta.get(assetEphemeraId) || {}
-                if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
-                    continue
-                }
+    const assetItem = Object.values(assetWorkspace.normal || {}).find(isNormalAsset)
+    if (assetItem) {
+        if (check || updateOnly) {
+            const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || `ASSET#${assetItem.key}`
+            if (!(assetEphemeraId && isEphemeraAssetId(assetEphemeraId))) {
+                return
             }
-        
-            //
-            // Instanced stories are not directly cached, they are instantiated ... so
-            // this would be a miscall, and should be ignored.
-            //
-            if (assetItem.instance) {
-                continue
+            const { EphemeraId = null } = await internalCache.AssetMeta.get(assetEphemeraId) || {}
+            if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
+                return
             }
-            const assetId = assetItem.key
-        
-            const ephemeraExtractor = ephemeraItemFromNormal(assetWorkspace)
-            const ephemeraItems: EphemeraItem[] = Object.values(assetWorkspace.normal || {})
-                .map(ephemeraExtractor)
-                .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
-        
-            const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
-
-            await mergeIntoEphemera(assetId, ephemeraItems, graphUpdate)
-
-            graphUpdate.setEdges([{
-                itemId: AssetKey(assetItem.key),
-                edges: Object.values(assetWorkspace.normal || {})
-                    .filter(isNormalImport)
-                    .map(({ from }) => ({ target: AssetKey(from), context: '' })),
-                options: { direction: 'back' }
-            }])
-
-            await Promise.all([
-                graphUpdate.flush(),
-                pushEphemera({
-                    EphemeraId: AssetKey(assetItem.key),
-                    scopeMap: assetWorkspace.namespaceIdToDB
-                })
-            ])
-
-            //
-            // Use MessageBus to queue RoomHeader messages for any room that has a person to
-            // report to
-            //
-            // TODO: Optimize RoomHeader messages to only deliver to characters who have
-            // the asset that is being cached
-            //
-            Object.values(assetWorkspace.normal || {})
-                .filter(isNormalRoom)
-                .map(({ key }) => (assetWorkspace.namespaceIdToDB[key]))
-                .filter((value) => (value))
-                .filter(isEphemeraRoomId)
-                .forEach((roomId) => {
-                    messageBus.send({
-                        type: 'Perception',
-                        ephemeraId: roomId,
-                        header: true
-                    })
-                })
         }
+    
+        //
+        // Instanced stories are not directly cached, they are instantiated ... so
+        // this would be a miscall, and should be ignored.
+        //
+        if (assetItem.instance) {
+            return
+        }
+        const assetId = assetItem.key
+    
+        const ephemeraExtractor = ephemeraItemFromNormal(assetWorkspace)
+        const ephemeraItems: EphemeraItem[] = Object.values(assetWorkspace.normal || {})
+            .map(ephemeraExtractor)
+            .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
+    
+        const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
+
+        await mergeIntoEphemera(assetId, ephemeraItems, graphUpdate)
+
+        graphUpdate.setEdges([{
+            itemId: AssetKey(assetItem.key),
+            edges: Object.values(assetWorkspace.normal || {})
+                .filter(isNormalImport)
+                .map(({ from }) => ({ target: AssetKey(from), context: '' })),
+            options: { direction: 'back' }
+        }])
+
+        await Promise.all([
+            graphUpdate.flush(),
+            pushEphemera({
+                EphemeraId: AssetKey(assetItem.key),
+                scopeMap: assetWorkspace.namespaceIdToDB
+            })
+        ])
 
         //
-        // Process file if a Character
+        // Use MessageBus to queue RoomHeader messages for any room that has a person to
+        // report to
         //
-        const characterItem = Object.values(assetWorkspace.normal || {}).find(isNormalCharacter)
-        if (characterItem) {
-            const ephemeraItem = ephemeraItemFromNormal(assetWorkspace)(characterItem)
-            if (ephemeraItem) {
-                const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
-                if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
-                    continue
+        // TODO: Optimize RoomHeader messages to only deliver to characters who have
+        // the asset that is being cached
+        //
+        Object.values(assetWorkspace.normal || {})
+            .filter(isNormalRoom)
+            .map(({ key }) => (assetWorkspace.namespaceIdToDB[key]))
+            .filter((value) => (value))
+            .filter(isEphemeraRoomId)
+            .forEach((roomId) => {
+                messageBus.send({
+                    type: 'Perception',
+                    ephemeraId: roomId,
+                    header: true
+                })
+            })
+    }
+
+    //
+    // Process file if a Character
+    //
+    const characterItem = Object.values(assetWorkspace.normal || {}).find(isNormalCharacter)
+    if (characterItem) {
+        const ephemeraItem = ephemeraItemFromNormal(assetWorkspace)(characterItem)
+        if (ephemeraItem) {
+            const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
+            if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
+                return
+            }
+            const ephemeraToCache = await pushCharacterEphemeraToInternalCache(ephemeraItem as EphemeraCharacter)
+            if (check || updateOnly) {
+                const { EphemeraId = null, RoomId = 'ROOM#VORTEX' } = ephemeraToCache || {}
+                if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
+                    return
                 }
-                const ephemeraToCache = await pushCharacterEphemeraToInternalCache(ephemeraItem as EphemeraCharacter)
-                if (check || updateOnly) {
-                    const { EphemeraId = null, RoomId = 'ROOM#VORTEX' } = ephemeraToCache || {}
-                    if ((check && Boolean(EphemeraId)) || (updateOnly && !Boolean(EphemeraId))) {
-                        continue
+                if (updateOnly) {
+                    const { assets = {} } = await internalCache.ComponentRender.get(characterEphemeraId, RoomId)
+                    if (Object.values(assets).length) {
+                        messageBus.send({
+                            type: 'Perception',
+                            ephemeraId: RoomId,
+                            characterId: characterEphemeraId,
+                            header: true
+                        })
                     }
-                    if (updateOnly) {
-                        const { assets = {} } = await internalCache.ComponentRender.get(characterEphemeraId, RoomId)
-                        if (Object.values(assets).length) {
-                            messageBus.send({
-                                type: 'Perception',
-                                ephemeraId: RoomId,
-                                characterId: characterEphemeraId,
-                                header: true
-                            })
-                        }
-                    }
                 }
-                const [characterConnections] = await Promise.all([
-                    internalCache.CharacterConnections.get(characterEphemeraId),
-                    pushCharacterEphemera(ephemeraItem as EphemeraCharacter, ephemeraToCache)
-                ])
-                if (characterConnections && characterConnections.length) {
-                    messageBus.send({
-                        type: 'CacheCharacterAssets',
-                        characterId: characterEphemeraId
-                    })
-                    messageBus.send({
-                        type: 'CheckLocation',
-                        characterId: characterEphemeraId,
-                        arriveMessage: ` has returned from visiting in a temporary space.`,
-                        leaveMessage: ` has lost access to this space, and been removed.`
-                    })
-                }
+            }
+            const [characterConnections] = await Promise.all([
+                internalCache.CharacterConnections.get(characterEphemeraId),
+                pushCharacterEphemera(ephemeraItem as EphemeraCharacter, ephemeraToCache)
+            ])
+            if (characterConnections && characterConnections.length) {
+                const { assets } = await internalCache.CharacterMeta.get(characterEphemeraId)
+                //
+                // TODO: Refactor cacheAsset to work with multiple assets in parallel
+                //
+                await Promise.all(assets.map(AssetKey).map((assetId) => (cacheAsset({ messageBus, assetId, check: true }))))
+                messageBus.send({
+                    type: 'CheckLocation',
+                    characterId: characterEphemeraId,
+                    arriveMessage: ` has returned from visiting in a temporary space.`,
+                    leaveMessage: ` has lost access to this space, and been removed.`
+                })
             }
         }
     }
 
-}
-
-export const cacheAssetByIdMessage = async ({ payloads, messageBus }: { payloads: CacheAssetByIdMessage[], messageBus: MessageBus }): Promise<void> => {
-    const assetsNeedingCache = await Promise.all(
-        (unique(payloads.map(({ assetId }) => (assetId))) as EphemeraAssetId[])
-            .filter(async (assetId: EphemeraAssetId) => (Boolean(await internalCache.AssetMeta.get(assetId))))
-    )
-    await ebClient.send(new PutEventsCommand({
-        Entries: assetsNeedingCache.map((assetId) => ({
-            EventBusName: process.env.EVENT_BUS_NAME,
-            Source: 'mtw.coordination',
-            DetailType: 'Cache Asset By Id',
-            Detail: JSON.stringify({ assetId })
-        }))
-    }))
-}
-
-export const cacheCharacterAssetsMessage = async ({ payloads, messageBus }: { payloads: CacheCharacterAssetsMessage[], messageBus: MessageBus }): Promise<void> => {
-    const assetsNeedingCache = (await Promise.all(
-        payloads.map(async ({ characterId }) => {
-            const { assets } = await internalCache.CharacterMeta.get(characterId)
-            return assets.map(AssetKey)
-        }))
-    ).flat()
-    assetsNeedingCache.forEach((assetId) => {
-        messageBus.send({
-            type: 'CacheAssetById',
-            assetId
-        })    
-    })
 }

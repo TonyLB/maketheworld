@@ -11,12 +11,12 @@ import { formatImage } from "../formatImage"
 import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/ts/asset"
 import { isNormalAsset } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
-import { ebClient } from "../clients"
-import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
+import { sfnClient } from "../clients"
 import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { healPlayer } from "../selfHealing/player"
+import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 
 const { UPLOAD_BUCKET } = process.env;
 
@@ -145,17 +145,14 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
                     if (assetWorkspace.address.zone === 'Personal') {
                         await healPlayer(player)
                     }
-                    await ebClient.send(new PutEventsCommand({
-                        Entries: [{
-                            EventBusName: process.env.EVENT_BUS_NAME,
-                            Source: 'mtw.coordination',
-                            DetailType: 'Cache Asset',
-                            Detail: JSON.stringify({
-                                ...assetWorkspace.address,
-                                updateOnly: Boolean(assetWorkspace.address.zone !== 'Personal')
-                            })
-                        }]
-                    }))            
+
+                    await sfnClient.send(new StartExecutionCommand({
+                        stateMachineArn: process.env.CACHE_ASSETS_SFN,
+                        input: JSON.stringify({
+                            addresses: [assetWorkspace.address],
+                            updateOnly: Boolean(assetWorkspace.address.zone !== 'Personal')
+                        })
+                    }))
                 }
                 else {
                     await assetWorkspace.pushWML()

@@ -261,27 +261,6 @@ export type DecacheAssetMessage = {
     assetId: string;
 }
 
-type CacheAssetOptions = {
-    check?: boolean;
-    updateOnly?: boolean;
-}
-
-export type CacheAssetMessage = {
-    type: 'CacheAsset';
-    address: AssetWorkspaceAddress;
-    options: CacheAssetOptions;
-}
-
-export type CacheAssetByIdMessage = {
-    type: 'CacheAssetById';
-    assetId: EphemeraAssetId;
-}
-
-export type CacheCharacterAssetsMessage = {
-    type: 'CacheCharacterAssets';
-    characterId: EphemeraCharacterId;
-}
-
 export type PlayerUpdateMessage = {
     type: 'PlayerUpdate';
     player: string;
@@ -343,9 +322,6 @@ export type MessageType = PublishMessage |
     MoveCharacterMessage |
     CheckLocationMessage |
     DecacheAssetMessage |
-    CacheAssetMessage |
-    CacheAssetByIdMessage |
-    CacheCharacterAssetsMessage |
     PlayerUpdateMessage |
     RoomUpdateMessage |
     ExecuteActionMessage |
@@ -385,9 +361,6 @@ export const isCheckLocationRoom = (prop: MessageType): prop is CheckLocationRoo
 export const isCheckLocationAsset = (prop: MessageType): prop is CheckLocationAssetMessage => (isCheckLocation(prop) && 'assetId' in prop)
 
 export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
-export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
-export const isCacheAssetByIdMessage = (prop: MessageType): prop is CacheAssetByIdMessage => (prop.type === 'CacheAssetById')
-export const isCacheCharacterAssetsMessage = (prop: MessageType): prop is CacheCharacterAssetsMessage => (prop.type === 'CacheCharacterAssets')
 
 export const isPlayerUpdateMessage = (prop: MessageType): prop is PlayerUpdateMessage => (prop.type === 'PlayerUpdate')
 export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')
