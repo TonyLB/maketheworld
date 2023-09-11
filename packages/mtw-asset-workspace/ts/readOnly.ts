@@ -147,7 +147,7 @@ export class ReadOnlyAssetWorkspace {
             Bucket: S3_BUCKET,
             Key: `${this.fileNameBase}.wml`
         })
-        const presignedOutput = await getSignedUrl(s3Client.internalClient, getCommand, { expiresIn: 60 })
+        const presignedOutput = await getSignedUrl(s3Client.internalClient as any, getCommand as any, { expiresIn: 60 })
         return presignedOutput
     
     }

@@ -1,5 +1,6 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
+import AWSXRay from 'aws-xray-sdk'
 import type { Readable } from "stream"
 
 import { healAsset } from "./selfHealing/"
@@ -33,7 +34,7 @@ import { newGuestName } from "./player/guestNames"
 import { healGlobalValues } from "./selfHealing/globalValues"
 
 const params = { region: process.env.AWS_REGION }
-const s3Client = new S3Client(params)
+const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
 
 const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
     const chunks: Buffer[] = []
