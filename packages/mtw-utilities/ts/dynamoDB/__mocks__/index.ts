@@ -16,14 +16,10 @@ export const ephemeraDB = dbMock()
 export const assetDB = dbMock()
 export const legacyConnectionDB = dbMock()
 export const connectionDB = dbMock()
-export const messageDB = {
-    putItem: jest.fn()
-}
 export const messageDeltaDB = {
     putItem: jest.fn()
 }
 
-export const publishMessage = jest.fn()
 export const messageDeltaQuery = jest.fn()
 
 export const exponentialBackoffWrapper = jest.fn(async (testFunc) => { await testFunc() })

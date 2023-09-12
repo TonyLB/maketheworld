@@ -25,20 +25,10 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 const connectionsTable = `${TABLE_PREFIX}_connections`
-const messageTable = `${TABLE_PREFIX}_messages`
 const deltaTable = `${TABLE_PREFIX}_message_delta`
 
 const params = { region: process.env.AWS_REGION }
 const dbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params))
-
-const abstractDeleteItem = <Key extends { DataCategory: string }>(table: string) => async (key: Key): Promise<void> => {
-    return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new DeleteItemCommand({
-            TableName: table,
-            Key: marshall(key, { removeUndefinedValues: true })
-        }))
-    }) as void
-}
 
 export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, options: { retryErrors: string[], retryCallback?: () => Promise<void> }): Promise<T | undefined> => {
     let retries = 0
@@ -112,25 +102,6 @@ export const connectionDB = new (combinedMixins<'ConnectionId'>())({
     options: { getBatchSize: 50 }
 })
 
-export const messageDB = {
-    putItem: async (Item) => {
-        return await asyncSuppressExceptions(async () => {
-            await dbClient.send(new PutItemCommand({
-                TableName: messageTable,
-                Item: marshall({
-                    ...Item,
-                    DataCategory: 'Meta::Message'
-                }, { removeUndefinedValues: true })
-            }))
-        })
-    }
-}
-
-type MessageDeltaDBKey = {
-    Target: string;
-    DeltaId: string;
-}
-
 export const messageDeltaDB = {
     putItem: async (Item) => {
         return await asyncSuppressExceptions(async () => {
@@ -140,41 +111,6 @@ export const messageDeltaDB = {
             }))
         })
     }
-}
-
-export const publishMessage = async (Item) => {
-    return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new PutItemCommand({
-            TableName: messageTable,
-            Item: marshall({
-                ...Item,
-                DataCategory: 'Meta::Message'
-            }, { removeUndefinedValues: true })
-        }))
-    })
-}
-
-export const messageDataCategoryQuery = async ({
-    DataCategory,
-    ExpressionAttributeNames,
-    ExclusiveStartKey
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        const { Items = [], LastEvaluatedKey } = await dbClient.send(new QueryCommand({
-            TableName: messageTable,
-            KeyConditionExpression: 'DataCategory = :dc',
-            IndexName: 'DataCategoryIndex',
-            ExpressionAttributeValues: marshall({
-                ':dc': DataCategory
-            }),
-            ExpressionAttributeNames,
-            ExclusiveStartKey
-        }))
-        return {
-            Items: Items.map((value) => (unmarshall(value))),
-            LastEvaluatedKey
-        }
-    }, async () => ([] as Record<string, any>[]))
 }
 
 export const messageDeltaQuery = async ({
@@ -251,5 +187,3 @@ export const messageDeltaUpdate = async <T extends { Target: string, DeltaId: st
         }
     }
 }
-
-export const messageDelete = abstractDeleteItem(messageTable)
