@@ -7,13 +7,6 @@ If you want to tinker with the system directly, it is an only slightly tweaked C
 The interface with the AWS resources is handled by the `npm run introspect` command (see below) which populate
 all variables needed for the client.
 
-If you are familiar with AWS Amplify, you will see a lot of that code here.  However, we could not commit fully
-to the Amplify lifecycle (because of the limits around custom Cloudformation, as of the time of build) and still
-deploy in the way Make The World needed.  So this is a manual Amplify build, which does not need to have
-`amplify init` run ... in fact, it's probably very much better that you don't.  If you tweak the graphQL schema
-of the back-end, however, you will need to use `aws appsync get-introspection-schema` on your API, and pipe it
-in JSON format into src/schema.json, then run `amplify codegen` in order to repopulate the graphQL schemata.
-
 ## Available Scripts
 
 In the project directory, you can run:
