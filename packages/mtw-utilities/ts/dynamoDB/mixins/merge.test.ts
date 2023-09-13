@@ -115,7 +115,7 @@ describe('withMerge', () => {
                         { key: 'TestOne', DataCategory: 'DC1', TestValue: 0 }
                     ] as any,
                 mergeFunction,
-                extractKey: ({ key }) => ((key))
+                extractKey: ({ key }) => (({ PrimaryKey: key, DataCategory: 'DC1' }))
             })
             expect(queryMock).toHaveBeenCalledTimes(1)
             expect(queryMock).toHaveBeenCalledWith({ Key: { PrimaryKey: 'TestOne' } })

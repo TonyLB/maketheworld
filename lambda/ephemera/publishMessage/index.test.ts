@@ -1,5 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { messageDB, messageDeltaDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { messageDeltaDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 jest.mock('@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient')
 import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
 
@@ -11,7 +11,6 @@ import internalCache from "../internalCache"
 
 import publishMessage from './index'
 
-const messageDBMock = messageDB as jest.Mocked<typeof messageDB>
 const messageDeltaDBMock = messageDeltaDB as jest.Mocked<typeof messageDeltaDB>
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
 const uuidMock = uuidv4 as jest.Mock
@@ -42,14 +41,6 @@ describe('PublishMessage', () => {
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]
-        })
-        expect(messageDBMock.putItem).toHaveBeenCalledWith({
-            MessageId: 'MESSAGE#UUID',
-            DataCategory: 'Meta::Message',
-            CreatedTime: 1000000000000,
-            Targets: ['CHARACTER#123'],
-            Message: [{ tag: 'String', value: 'Test' }],
-            DisplayProtocol: 'WorldMessage'
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
             Target: "CHARACTER#123",
@@ -106,14 +97,6 @@ describe('PublishMessage', () => {
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]
-        })
-        expect(messageDBMock.putItem).toHaveBeenCalledWith({
-            MessageId: 'MESSAGE#UUID',
-            DataCategory: 'Meta::Message',
-            CreatedTime: 1000000000000,
-            Targets: ['CHARACTER#123', 'CHARACTER#456'],
-            Message: [{ tag: 'String', value: 'Test' }],
-            DisplayProtocol: 'WorldMessage'
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
             Target: "CHARACTER#123",
@@ -178,14 +161,6 @@ describe('PublishMessage', () => {
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]
-        })
-        expect(messageDBMock.putItem).toHaveBeenCalledWith({
-            MessageId: 'MESSAGE#UUID',
-            DataCategory: 'Meta::Message',
-            CreatedTime: 1000000000000,
-            Targets: ['CHARACTER#456'],
-            Message: [{ tag: 'String', value: 'Test' }],
-            DisplayProtocol: 'WorldMessage'
         })
         expect(messageDeltaDBMock.putItem).not.toHaveBeenCalledWith({
             Target: "CHARACTER#123",
@@ -260,30 +235,6 @@ describe('PublishMessage', () => {
                 messageGroupId: 'UUID#1',
                 message: [{ tag: 'String', value: 'Room description' }]
             }]
-        })
-        expect(messageDBMock.putItem).toHaveBeenCalledWith({
-            MessageId: 'MESSAGE#UUID',
-            DataCategory: 'Meta::Message',
-            CreatedTime: 999999999999,
-            Targets: ['CHARACTER#123'],
-            Message: [{ tag: 'String', value: 'Test leaves' }],
-            DisplayProtocol: 'WorldMessage'
-        })
-        expect(messageDBMock.putItem).toHaveBeenCalledWith({
-            MessageId: 'MESSAGE#UUID',
-            DataCategory: 'Meta::Message',
-            CreatedTime: 1000000000000,
-            Targets: ['CHARACTER#123'],
-            Message: [{ tag: 'String', value: 'Room description' }],
-            DisplayProtocol: 'WorldMessage'
-        })
-        expect(messageDBMock.putItem).toHaveBeenCalledWith({
-            MessageId: 'MESSAGE#UUID',
-            DataCategory: 'Meta::Message',
-            CreatedTime: 1000000000001,
-            Targets: ['CHARACTER#123'],
-            Message: [{ tag: 'String', value: 'Test arrives' }],
-            DisplayProtocol: 'WorldMessage'
         })
         expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
             Target: "CHARACTER#123",

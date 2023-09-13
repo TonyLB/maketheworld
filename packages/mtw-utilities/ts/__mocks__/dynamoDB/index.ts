@@ -12,7 +12,6 @@ export const assetDB = dbMock()
 export const legacyConnectionDB = dbMock()
 export const connectionDB = dbMock()
 
-export const publishMessage = jest.fn()
 export const messageDeltaQuery = jest.fn()
 
 export const exponentialBackoffWrapper = jest.fn((testFunc) => { testFunc() })

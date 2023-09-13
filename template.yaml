@@ -185,8 +185,6 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_connections'
         - DynamoDBCrudPolicy:
-            TableName: !Sub '${TablePrefix}_messages'
-        - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_message_delta'
         - Statement:
           - Effect: Allow
@@ -581,48 +579,6 @@ Resources:
             Projection:
               ProjectionType: ALL
         TableName: !Sub '${TablePrefix}_connections'
-  MessagesTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      AttributeDefinitions:
-      - AttributeName: "MessageId"
-        AttributeType: "S"
-      - AttributeName: "DataCategory"
-        AttributeType: "S"
-      - AttributeName: "CreatedTime"
-        AttributeType: "N"
-      BillingMode: "PAY_PER_REQUEST"
-      KeySchema:
-      - AttributeName: "MessageId"
-        KeyType: "HASH"
-      - AttributeName: "DataCategory"
-        KeyType: "RANGE"
-      GlobalSecondaryIndexes:
-        - IndexName: DataCategoryIndex
-          KeySchema:
-            - AttributeName: DataCategory
-              KeyType: HASH
-            - AttributeName: MessageId
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-      LocalSecondaryIndexes:
-        - IndexName: CreatedTimeIndex
-          KeySchema:
-            - AttributeName: "MessageId"
-              KeyType: "HASH"
-            - AttributeName: "CreatedTime"
-              KeyType: "RANGE"
-          Projection:
-            ProjectionType: ALL
-      SSESpecification:
-        SSEEnabled: False
-      TableName: !Sub '${TablePrefix}_messages'
-      TimeToLiveSpecification:
-        AttributeName: ExpirationTime
-        Enabled: True
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
   MessageDeltaTable:
       Type: AWS::DynamoDB::Table
       Properties:

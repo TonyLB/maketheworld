@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage, isKnowledgeDescriptionPublishMessage } from "../messageBus/baseClasses"
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
-import { messageDB, messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { messageDeltaDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { RoomCharacterListItem } from '../internalCache/baseClasses'
 import { apiClient } from '../apiClient'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -36,24 +36,15 @@ const batchMessages = (messages: any[] = [])  => {
 }
 
 const publishMessageDynamoDB = async <T extends { MessageId: string; CreatedTime: number; Targets: string[] }>({ MessageId, CreatedTime, Targets, ...rest }: T): Promise<void> => {
-    await Promise.all([
-        messageDB.putItem({
-            MessageId,
-            DataCategory: 'Meta::Message',
+    await Promise.all(Targets
+        .map(async (target) => (messageDeltaDB.putItem({
+            Target: target,
+            DeltaId: `${CreatedTime}::${MessageId}`,
+            RowId: MessageId,
             CreatedTime,
-            Targets,
             ...rest
-        }),
-        ...(Targets
-            .map(async (target) => (messageDeltaDB.putItem({
-                Target: target,
-                DeltaId: `${CreatedTime}::${MessageId}`,
-                RowId: MessageId,
-                CreatedTime,
-                ...rest
-            })))
-        )
-    ])
+        })))
+    )
 }
 
 class PublishMessageTargetMapper {
