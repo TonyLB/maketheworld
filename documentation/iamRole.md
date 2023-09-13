@@ -29,7 +29,7 @@
 account.  You'll want to bookmark that.  When any future step says "Go to the AWS Console", it will involve going to that web-site and entering your IAM name
 and password.
 
-11.  Do **not** close the IAM Console yet.  You still have another role to create, in the next section.
+11.  Close the IAM Console
 
 
 (For more details and documentation, see the IAM tutorial on [Create an IAM Role](https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_create-admin-group.html))
