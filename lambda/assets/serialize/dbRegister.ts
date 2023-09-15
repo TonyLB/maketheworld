@@ -138,64 +138,6 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 zone: address.zone,
                 ...(address.zone === 'Personal' ? { player: address.player } : {})
             }),
-            assetDB.merge({
-                query: {
-                    IndexName: 'DataCategoryIndex',
-                    Key: {
-                        DataCategory: AssetKey(asset.key)
-                    }
-                },
-                items: asset.instance
-                    ? []
-                    : Object.values(assets)
-                        .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
-                        .map(itemRegistry(assets)) as any,
-                mergeFunction: ({ current, incoming }) => {
-                    if (!incoming) {
-                        return 'delete'
-                    }
-                    if (!current || (JSON.stringify(current) !== JSON.stringify(incoming))) {
-                        const { tag, key, ...rest } = incoming
-                        return {
-                            scopedId: key,
-                            ...rest
-                        }
-                    }
-
-                    return 'ignore'
-                },
-                extractKey: ({ tag, key }) => {
-                    let prefix = ''
-                    switch(tag) {
-                        case 'Feature':
-                        case 'Map':
-                        case 'Bookmark':
-                        case 'Message':
-                        case 'Moment':
-                            prefix = tag.toUpperCase()
-                            break
-                        default:
-                            prefix = 'ROOM'
-                    }
-                    if (assetWorkspace._isGlobal) {
-                        return {
-                            AssetId: `${prefix}#${key}`,
-                            DataCategory: AssetKey(asset.key)
-                        }
-                    }
-                    if (assetWorkspace.namespaceIdToDB[key]) {
-                        return {
-                            AssetId: assetWorkspace.namespaceIdToDB[key],
-                            DataCategory: AssetKey(asset.key)
-                        }
-                    }
-                    console.log(`ERROR:  ScopeMap in dbRegister has no entry for ${key}`)
-                    return {
-                        AssetId: `${prefix}#${uuidv4()}`,
-                        DataCategory: AssetKey(asset.key)
-                    }
-                }
-            }),
             updateLibraryPromise
         ])
     }
