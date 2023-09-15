@@ -27,7 +27,7 @@ Object {
 }
 `;
 
-exports[`dbRegister should save correct default appearance for Rooms and Features 1`] = `
+exports[`dbRegister should save meta for Asset type 1`] = `
 Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
@@ -41,57 +41,11 @@ Object {
 }
 `;
 
-exports[`dbRegister should save correct default appearance for Rooms and Features 2`] = `
-Object {
-  "extractKey": [Function],
-  "items": Array [
-    Object {
-      "defaultAppearances": Array [
-        Object {
-          "exits": Array [],
-          "name": "Test",
-          "render": Array [
-            "Test render!",
-            Object {
-              "tag": "Link",
-              "targetTag": "Feature",
-              "text": "(clock tower)",
-              "to": "clockTower",
-            },
-          ],
-        },
-      ],
-      "key": "Welcome",
-      "tag": "Room",
-    },
-    Object {
-      "defaultAppearances": Array [
-        Object {
-          "name": "TestFeature",
-          "render": Array [
-            "Test feature render",
-          ],
-        },
-      ],
-      "key": "clockTower",
-      "tag": "Feature",
-    },
-  ],
-  "mergeFunction": [Function],
-  "query": Object {
-    "IndexName": "DataCategoryIndex",
-    "Key": Object {
-      "DataCategory": "ASSET#TEST",
-    },
-  },
-}
-`;
-
-exports[`dbRegister should save exits in default appearance for Rooms 1`] = `
+exports[`dbRegister should save meta for Story type 1`] = `
 Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
-  "Story": undefined,
+  "Story": true,
   "address": Object {
     "fileName": "test",
     "zone": "Library",
@@ -101,53 +55,7 @@ Object {
 }
 `;
 
-exports[`dbRegister should save exits in default appearance for Rooms 2`] = `
-Object {
-  "extractKey": [Function],
-  "items": Array [
-    Object {
-      "defaultAppearances": Array [
-        Object {
-          "exits": Array [],
-          "name": "Test",
-          "render": Array [
-            "Test render!",
-          ],
-        },
-      ],
-      "key": "Welcome",
-      "tag": "Room",
-    },
-    Object {
-      "defaultAppearances": Array [
-        Object {
-          "exits": Array [
-            Object {
-              "name": "welcome",
-              "to": "Welcome",
-            },
-          ],
-          "name": "Entry",
-          "render": Array [
-            "Entry render!",
-          ],
-        },
-      ],
-      "key": "Entry",
-      "tag": "Room",
-    },
-  ],
-  "mergeFunction": [Function],
-  "query": Object {
-    "IndexName": "DataCategoryIndex",
-    "Key": Object {
-      "DataCategory": "ASSET#TEST",
-    },
-  },
-}
-`;
-
-exports[`dbRegister should save meta only for instanced Story type 1`] = `
+exports[`dbRegister should save meta for instanced Story type 1`] = `
 Object {
   "AssetId": "ASSET#TEST",
   "DataCategory": "Meta::Asset",
@@ -158,147 +66,5 @@ Object {
   },
   "instance": true,
   "zone": "Library",
-}
-`;
-
-exports[`dbRegister should save meta only for instanced Story type 2`] = `
-Object {
-  "extractKey": [Function],
-  "items": Array [],
-  "mergeFunction": [Function],
-  "query": Object {
-    "IndexName": "DataCategoryIndex",
-    "Key": Object {
-      "DataCategory": "ASSET#TEST",
-    },
-  },
-}
-`;
-
-exports[`dbRegister should save meta, rooms for Asset type 1`] = `
-Object {
-  "AssetId": "ASSET#TEST",
-  "DataCategory": "Meta::Asset",
-  "Story": undefined,
-  "address": Object {
-    "fileName": "test",
-    "zone": "Library",
-  },
-  "instance": undefined,
-  "zone": "Library",
-}
-`;
-
-exports[`dbRegister should save meta, rooms for Asset type 2`] = `
-Object {
-  "extractKey": [Function],
-  "items": Array [
-    Object {
-      "defaultAppearances": Array [
-        Object {
-          "rooms": Array [
-            Object {
-              "name": "Welcome",
-              "x": 0,
-              "y": 100,
-            },
-          ],
-        },
-      ],
-      "key": "Village",
-      "tag": "Map",
-    },
-    Object {
-      "defaultAppearances": Array [
-        Object {
-          "exits": Array [],
-          "name": "Welcome",
-          "render": Array [],
-        },
-      ],
-      "key": "Welcome",
-      "tag": "Room",
-    },
-    Object {
-      "defaultAppearances": Array [],
-      "key": "clockTower",
-      "tag": "Feature",
-    },
-  ],
-  "mergeFunction": [Function],
-  "query": Object {
-    "IndexName": "DataCategoryIndex",
-    "Key": Object {
-      "DataCategory": "ASSET#TEST",
-    },
-  },
-}
-`;
-
-exports[`dbRegister should save meta, rooms for Story type 1`] = `
-Object {
-  "AssetId": "ASSET#TEST",
-  "DataCategory": "Meta::Asset",
-  "Story": true,
-  "address": Object {
-    "fileName": "test",
-    "zone": "Library",
-  },
-  "instance": undefined,
-  "zone": "Library",
-}
-`;
-
-exports[`dbRegister should save meta, rooms for Story type 2`] = `
-Object {
-  "extractKey": [Function],
-  "items": Array [
-    Object {
-      "defaultAppearances": Array [],
-      "key": "Welcome",
-      "tag": "Room",
-    },
-  ],
-  "mergeFunction": [Function],
-  "query": Object {
-    "IndexName": "DataCategoryIndex",
-    "Key": Object {
-      "DataCategory": "ASSET#TEST",
-    },
-  },
-}
-`;
-
-exports[`dbRegister should save primitive elements in global keys 1`] = `
-Object {
-  "AssetId": "ASSET#primitives",
-  "DataCategory": "Meta::Asset",
-  "Story": undefined,
-  "address": Object {
-    "fileName": "primitives",
-    "zone": "Canon",
-  },
-  "instance": undefined,
-  "zone": "Canon",
-}
-`;
-
-exports[`dbRegister should save primitive elements in global keys 2`] = `
-Object {
-  "extractKey": [Function],
-  "items": Array [
-    Object {
-      "defaultAppearances": Array [],
-      "key": "VORTEX",
-      "tag": "Room",
-    },
-  ],
-  "mergeFunction": [Function],
-  "query": Object {
-    "IndexName": "DataCategoryIndex",
-    "Key": Object {
-      "DataCategory": "ASSET#primitives",
-    },
-  },
 }
 `;
