@@ -26,6 +26,7 @@ export const healAsset = async (fileName: string) => {
         await sfnClient.send(new StartExecutionCommand({
             stateMachineArn: process.env.CACHE_ASSETS_SFN,
             input: JSON.stringify({
+                assetIds: [assetWorkspace.assetId],
                 addresses: [assetWorkspace.address],
                 updateOnly: !Boolean(assetWorkspace._isGlobal)
             })

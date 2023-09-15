@@ -1,6 +1,6 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
-import { NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-normal'
+import { NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-normal'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
@@ -140,6 +140,18 @@ export class ReadOnlyAssetWorkspace {
 
     get fileName(): string {
         return this.address.fileName
+    }
+
+    get assetId(): `ASSET#${string}` | `CHARACTER#${string}` | undefined {
+        const assets: NormalForm = this.normal || {}
+        const asset = Object.values(assets).find(isNormalAsset)
+        if (asset && asset.key) {
+            return `ASSET#${asset.key}`
+        }
+        const character = Object.values(assets).find(isNormalCharacter)
+        if (character && character.key) {
+            return this.namespaceIdToDB[character.key] as `CHARACTER#${string}`
+        }
     }
 
     async presignedURL(): Promise<string> {
