@@ -55,6 +55,20 @@ describe('withTransactions', () => {
                 }
             },
             {
+                SetAdd: {
+                    Key: { PrimaryKey: 'TestSetAdd', DataCategory: 'SetAdd' },
+                    attributeName: 'testSetAttribute',
+                    Items: ['addOne', 'addTwo']
+                }
+            },
+            {
+                SetDelete: {
+                    Key: { PrimaryKey: 'TestSetDelete', DataCategory: 'SetDelete' },
+                    attributeName: 'testSetAttribute',
+                    Items: ['addOne', 'addTwo']
+                }
+            },
+            {
                 ConditionCheck: {
                     Key: { PrimaryKey: 'TestCheck', DataCategory: 'Check' },
                     ConditionExpression: 'value = :value',
@@ -81,6 +95,18 @@ describe('withTransactions', () => {
                 ConditionExpression: '#value = :oldValue',
                 ExpressionAttributeNames: { '#value': 'value' },
                 ExpressionAttributeValues: marshall({ ':oldValue': 5, ':newValue': 6 })
+            }},
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestSetAdd', DataCategory: 'SetAdd' }),
+                UpdateExpression: 'ADD testSetAttribute :value',
+                ExpressionAttributeValues: marshall({ ':value': new Set(['addOne', 'addTwo']) })
+            }},
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestSetDelete', DataCategory: 'SetDelete' }),
+                UpdateExpression: 'DELETE testSetAttribute :value',
+                ExpressionAttributeValues: marshall({ ':value': new Set(['addOne', 'addTwo']) })
             }},
             {
                 ConditionCheck: {

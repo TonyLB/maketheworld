@@ -5,7 +5,7 @@ import { UpdateExtendedProps } from "./update"
 import withGetOperations from "./get"
 import withUpdate from "./update"
 import { unique } from "../../lists"
-import mapProjectionFields from "./utils/mapProjectionFields"
+import mapProjectionFields, { reservedFields } from "./utils/mapProjectionFields"
 
 type TransactionRequestUpdate<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = { Key: DBHandlerKey<KIncoming, KeyType> } & UpdateExtendedProps<KIncoming, KeyType>
 export type TransactionRequestConditionCheck<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
@@ -22,12 +22,22 @@ export type TransactionRequestPrimitiveUpdate<KIncoming extends DBHandlerLegalKe
     ExpressionAttributeValues?: Record<string, any>;
 }
 
+export type TransactionRequestSetOperation<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
+    Key: DBHandlerKey<KIncoming, KeyType>;
+    attributeName: string;
+    Items: string[];
+}
+
 export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
     Put: DBHandlerItem<KIncoming, KeyType>
 } | {
     Update: TransactionRequestUpdate<KIncoming, KeyType>;
 } | {
     PrimitiveUpdate: TransactionRequestPrimitiveUpdate<KIncoming, KeyType>;
+} | {
+    SetAdd: TransactionRequestSetOperation<KIncoming, KeyType>;
+} | {
+    SetDelete: TransactionRequestSetOperation<KIncoming, KeyType>;
 } | {
     Delete: DBHandlerKey<KIncoming, KeyType>
 } | {
@@ -141,6 +151,38 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                             ...(item.PrimitiveUpdate.ConditionExpression ? { ConditionExpression: replaceAttributeNames(item.PrimitiveUpdate.ConditionExpression) } : {}),
                             ...(Object.keys(ExpressionAttributeNames).length > 0 ? { ExpressionAttributeNames } : {}),
                             ...(item.PrimitiveUpdate.ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(item.PrimitiveUpdate.ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
+                        }
+                    }]
+                }
+                if ('SetAdd' in item) {
+                    const { Key, attributeName, Items } = item.SetAdd
+                    if (reservedFields.includes(attributeName)) {
+                        throw new Error('setAdd is not (yet) able to handle reserved field names')
+                    }
+                    return [{
+                        Update: {
+                            TableName: this._tableName,
+                            Key: marshall(this._remapIncomingObject(item.SetAdd.Key), { removeUndefinedValues: true }),
+                            UpdateExpression: `ADD ${attributeName} :value`,
+                            ExpressionAttributeValues: marshall({
+                                ':value': new Set(Items)
+                            })
+                        }
+                    }]
+                }
+                if ('SetDelete' in item) {
+                    const { Key, attributeName, Items } = item.SetDelete
+                    if (reservedFields.includes(attributeName)) {
+                        throw new Error('setDelete is not (yet) able to handle reserved field names')
+                    }
+                    return [{
+                        Update: {
+                            TableName: this._tableName,
+                            Key: marshall(this._remapIncomingObject(item.SetDelete.Key), { removeUndefinedValues: true }),
+                            UpdateExpression: `DELETE ${attributeName} :value`,
+                            ExpressionAttributeValues: marshall({
+                                ':value': new Set(Items)
+                            })
                         }
                     }]
                 }
