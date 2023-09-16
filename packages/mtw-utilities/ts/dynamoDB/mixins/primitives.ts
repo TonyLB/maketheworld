@@ -3,9 +3,6 @@ import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegal
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { asyncSuppressExceptions } from "../../errors"
 
-//
-// TODO: Apply curried mixin pattern to other mixins and see if it can handle the complexity of DBHandler's connections
-//
 export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends Constructor<DBHandlerBase<KIncoming, T>>>(Base: GBase) => {
     return class PrimitivesDBHandler extends Base {
         async putItem(item: DBHandlerItem<KIncoming, T>) {
