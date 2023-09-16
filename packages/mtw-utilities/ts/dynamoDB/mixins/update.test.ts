@@ -27,6 +27,48 @@ describe('withUpdate', () => {
         dbMock.send.mockRestore()
     })
 
+    describe('setAdd', () => {
+        it('should create a set-add update primitive', async () => {
+            dbMock.send.mockResolvedValue({})
+
+            await dbHandler.setAdd({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                attributeName: 'testValue',
+                Items: ['Test1', 'Test2']
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                TableName: 'Ephemera',
+                UpdateExpression: 'ADD testValue :value',
+                ExpressionAttributeValues: {
+                    ':value': { SS: ['Test1', 'Test2' ]}
+                }
+            })
+        })
+    })
+
+    describe('setDelete', () => {
+        it('should create a set-delete update primitive', async () => {
+            dbMock.send.mockResolvedValue({})
+
+            await dbHandler.setDelete({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                attributeName: 'testValue',
+                Items: ['Test1', 'Test2']
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                TableName: 'Ephemera',
+                UpdateExpression: 'DELETE testValue :value',
+                ExpressionAttributeValues: {
+                    ':value': { SS: ['Test1', 'Test2' ]}
+                }
+            })
+        })
+    })
+
     describe('optimisticUpdate', () => {
 
         it('should ignore when update produces no change', async () => {

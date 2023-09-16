@@ -1,7 +1,7 @@
 import {  DeleteItemCommand, DeleteItemCommandInput, UpdateItemCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
 import { DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-import mapProjectionFields from './utils/mapProjectionFields'
+import mapProjectionFields, { reservedFields } from './utils/mapProjectionFields'
 import { produce } from "immer"
 import { WritableDraft } from "immer/dist/internal"
 import withGetOperations from "./get"
@@ -214,6 +214,44 @@ type OptimisticUpdateFactoryOutput<T extends {}> = {
 
 export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class UpdateDBHandler extends Base {
+
+        async setAdd(props: {
+            Key: ({ [key in KIncoming]: T } & { DataCategory: string });
+            attributeName: string;
+            Items: string[]
+        }) {
+            const { Key, attributeName, Items } = props
+            if (reservedFields.includes(attributeName)) {
+                throw new Error('setAdd is not (yet) able to handle reserved field names')
+            }
+            await this._client.send(new UpdateItemCommand({
+                TableName: this._tableName,
+                Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
+                UpdateExpression: `ADD ${attributeName} :value`,
+                ExpressionAttributeValues: marshall({
+                    ':value': new Set(Items)
+                })
+            }))
+        }
+
+        async setDelete(props: {
+            Key: ({ [key in KIncoming]: T } & { DataCategory: string });
+            attributeName: string;
+            Items: string[]
+        }) {
+            const { Key, attributeName, Items } = props
+            if (reservedFields.includes(attributeName)) {
+                throw new Error('setDelete is not (yet) able to handle reserved field names')
+            }
+            await this._client.send(new UpdateItemCommand({
+                TableName: this._tableName,
+                Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
+                UpdateExpression: `DELETE ${attributeName} :value`,
+                ExpressionAttributeValues: marshall({
+                    ':value': new Set(Items)
+                })
+            }))
+        }
 
         //
         // optimisticUpdateFactory accepts a fetched (or cached) previous value, runs it through a reducer to generate changes,
