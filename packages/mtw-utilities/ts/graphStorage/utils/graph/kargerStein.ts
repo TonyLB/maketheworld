@@ -1,7 +1,18 @@
 //
 // This implementation of a modified Karger-Stein stochastic minimum-cut algorithm takes a completely connected
-// graph and returns a list of connected sub-graphs (each below the threshold size), along with a (hopefully minimal)
-// cut-set of edges that are the removed connective tissue between those subGraphs.
+// graph and returns a sequence of lists of connected sub-graphs (each below the threshold size), such that:
+//    - Each edge is represented in precisely one graph in the total sequence of lists
+//    - Each element in the sequence is comprised of a list of graphs with no shared vertices in common (so
+//      they can be operated on completely independently in the context of just that sequence-item)
+//    - By nature of the Karger-Stein algorithm, the list of the sequence is *probably* minimized.
+//
+// One application is for graphUpdate, in which updates are written to edges and a denormalizing update written
+// to each node in a graph:  Graphs within a single sequence item can be updated in parallel.  Separate sequence
+// items need to be written serially to avoid clashing.
+//
+// TODO: Figure out how the low-level primitives could be rewritten such that they use (for instance) set operators
+// add and remove, and therefore can be run without condition expressions (ergo, run completely in parallel without
+// any chance of interference).
 //
 
 import { Graph } from "."
