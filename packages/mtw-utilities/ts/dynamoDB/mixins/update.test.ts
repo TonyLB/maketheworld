@@ -79,7 +79,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
                 TableName: 'Ephemera',
-                UpdateExpression: 'ADD testValue :addItems, DELETE testValue :deleteItems',
+                UpdateExpression: 'ADD testValue :addItems DELETE testValue :deleteItems',
                 ExpressionAttributeValues: {
                     ':addItems': { SS: ['Test1']},
                     ':deleteItems': { SS: ['Test2']}
@@ -104,7 +104,7 @@ describe('withUpdate', () => {
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
                 TableName: 'Ephemera',
-                UpdateExpression: 'SET setValue = :value, ADD testValue :addItems, DELETE testValue :deleteItems',
+                UpdateExpression: 'SET setValue = :value ADD testValue :addItems DELETE testValue :deleteItems',
                 ExpressionAttributeValues: {
                     ':value': { N: '5' },
                     ':addItems': { SS: ['Test1'] },
