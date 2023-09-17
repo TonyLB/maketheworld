@@ -27,43 +27,62 @@ describe('withUpdate', () => {
         dbMock.send.mockRestore()
     })
 
-    describe('setAdd', () => {
+    describe('setOperation', () => {
         it('should create a set-add update primitive', async () => {
             dbMock.send.mockResolvedValue({})
 
-            await dbHandler.setAdd({
+            await dbHandler.setOperation({
                 Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
                 attributeName: 'testValue',
-                Items: ['Test1', 'Test2']
+                addItems: ['Test1', 'Test2']
             })
             expect(dbMock.send).toHaveBeenCalledTimes(1)
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
                 TableName: 'Ephemera',
-                UpdateExpression: 'ADD testValue :value',
+                UpdateExpression: 'ADD testValue :addItems',
                 ExpressionAttributeValues: {
-                    ':value': { SS: ['Test1', 'Test2' ]}
+                    ':addItems': { SS: ['Test1', 'Test2' ]}
                 }
             })
         })
-    })
 
-    describe('setDelete', () => {
         it('should create a set-delete update primitive', async () => {
             dbMock.send.mockResolvedValue({})
 
-            await dbHandler.setDelete({
+            await dbHandler.setOperation({
                 Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
                 attributeName: 'testValue',
-                Items: ['Test1', 'Test2']
+                deleteItems: ['Test1', 'Test2']
             })
             expect(dbMock.send).toHaveBeenCalledTimes(1)
             expect(dbMock.send.mock.calls[0][0].input).toEqual({
                 Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
                 TableName: 'Ephemera',
-                UpdateExpression: 'DELETE testValue :value',
+                UpdateExpression: 'DELETE testValue :deleteItems',
                 ExpressionAttributeValues: {
-                    ':value': { SS: ['Test1', 'Test2' ]}
+                    ':deleteItems': { SS: ['Test1', 'Test2' ]}
+                }
+            })
+        })
+
+        it('should create a combined update primitive', async () => {
+            dbMock.send.mockResolvedValue({})
+
+            await dbHandler.setOperation({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                attributeName: 'testValue',
+                addItems: ['Test1'],
+                deleteItems: ['Test2']
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                TableName: 'Ephemera',
+                UpdateExpression: 'ADD testValue :addItems, DELETE testValue :deleteItems',
+                ExpressionAttributeValues: {
+                    ':addItems': { SS: ['Test1']},
+                    ':deleteItems': { SS: ['Test2']}
                 }
             })
         })
