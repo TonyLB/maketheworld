@@ -55,17 +55,11 @@ describe('withTransactions', () => {
                 }
             },
             {
-                SetAdd: {
+                SetOperation: {
                     Key: { PrimaryKey: 'TestSetAdd', DataCategory: 'SetAdd' },
                     attributeName: 'testSetAttribute',
-                    Items: ['addOne', 'addTwo']
-                }
-            },
-            {
-                SetDelete: {
-                    Key: { PrimaryKey: 'TestSetDelete', DataCategory: 'SetDelete' },
-                    attributeName: 'testSetAttribute',
-                    Items: ['addOne', 'addTwo']
+                    addItems: ['addOne', 'addTwo'],
+                    deleteItems: ['deleteOne']
                 }
             },
             {
@@ -99,14 +93,8 @@ describe('withTransactions', () => {
             { Update: {
                 TableName: 'Ephemera',
                 Key: marshall({ EphemeraId: 'TestSetAdd', DataCategory: 'SetAdd' }),
-                UpdateExpression: 'ADD testSetAttribute :value',
-                ExpressionAttributeValues: marshall({ ':value': new Set(['addOne', 'addTwo']) })
-            }},
-            { Update: {
-                TableName: 'Ephemera',
-                Key: marshall({ EphemeraId: 'TestSetDelete', DataCategory: 'SetDelete' }),
-                UpdateExpression: 'DELETE testSetAttribute :value',
-                ExpressionAttributeValues: marshall({ ':value': new Set(['addOne', 'addTwo']) })
+                UpdateExpression: 'ADD testSetAttribute :addItems, DELETE testSetAttribute :deleteItems',
+                ExpressionAttributeValues: marshall({ ':addItems': new Set(['addOne', 'addTwo']), ':deleteItems': new Set(['deleteOne']) })
             }},
             {
                 ConditionCheck: {

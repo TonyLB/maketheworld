@@ -25,7 +25,8 @@ export type TransactionRequestPrimitiveUpdate<KIncoming extends DBHandlerLegalKe
 export type TransactionRequestSetOperation<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
     Key: DBHandlerKey<KIncoming, KeyType>;
     attributeName: string;
-    Items: string[];
+    addItems?: string[];
+    deleteItems?: string[];
 }
 
 export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
@@ -35,9 +36,7 @@ export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType exte
 } | {
     PrimitiveUpdate: TransactionRequestPrimitiveUpdate<KIncoming, KeyType>;
 } | {
-    SetAdd: TransactionRequestSetOperation<KIncoming, KeyType>;
-} | {
-    SetDelete: TransactionRequestSetOperation<KIncoming, KeyType>;
+    SetOperation: TransactionRequestSetOperation<KIncoming, KeyType>;
 } | {
     Delete: DBHandlerKey<KIncoming, KeyType>
 } | {
@@ -154,34 +153,22 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                         }
                     }]
                 }
-                if ('SetAdd' in item) {
-                    const { Key, attributeName, Items } = item.SetAdd
+                if ('SetOperation' in item) {
+                    const { Key, attributeName, addItems = [], deleteItems = [] } = item.SetOperation
                     if (reservedFields.includes(attributeName)) {
-                        throw new Error('setAdd is not (yet) able to handle reserved field names')
+                        throw new Error('setOperation is not (yet) able to handle reserved field names')
                     }
                     return [{
                         Update: {
                             TableName: this._tableName,
-                            Key: marshall(this._remapIncomingObject(item.SetAdd.Key), { removeUndefinedValues: true }),
-                            UpdateExpression: `ADD ${attributeName} :value`,
+                            Key: marshall(this._remapIncomingObject(item.SetOperation.Key), { removeUndefinedValues: true }),
+                            UpdateExpression: [
+                                ...(addItems.length ? [`ADD ${attributeName} :addItems`] : []),
+                                ...(deleteItems.length ? [`DELETE ${attributeName} :deleteItems`] : [])
+                            ].join(', '),
                             ExpressionAttributeValues: marshall({
-                                ':value': new Set(Items)
-                            })
-                        }
-                    }]
-                }
-                if ('SetDelete' in item) {
-                    const { Key, attributeName, Items } = item.SetDelete
-                    if (reservedFields.includes(attributeName)) {
-                        throw new Error('setDelete is not (yet) able to handle reserved field names')
-                    }
-                    return [{
-                        Update: {
-                            TableName: this._tableName,
-                            Key: marshall(this._remapIncomingObject(item.SetDelete.Key), { removeUndefinedValues: true }),
-                            UpdateExpression: `DELETE ${attributeName} :value`,
-                            ExpressionAttributeValues: marshall({
-                                ':value': new Set(Items)
+                                ...(addItems.length ? { ':addItems': new Set(addItems) } : {}),
+                                ...(deleteItems.length ? { ':deleteItems': new Set(deleteItems) } : {})
                             })
                         }
                     }]
