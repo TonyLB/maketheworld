@@ -215,40 +215,26 @@ type OptimisticUpdateFactoryOutput<T extends {}> = {
 export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class UpdateDBHandler extends Base {
 
-        async setAdd(props: {
+        async setOperation(props: {
             Key: ({ [key in KIncoming]: T } & { DataCategory: string });
             attributeName: string;
-            Items: string[]
+            addItems?: string[];
+            deleteItems?: string[];
         }) {
-            const { Key, attributeName, Items } = props
+            const { Key, attributeName, addItems = [], deleteItems = [] } = props
             if (reservedFields.includes(attributeName)) {
-                throw new Error('setAdd is not (yet) able to handle reserved field names')
+                throw new Error('setOperation is not (yet) able to handle reserved field names')
             }
             await this._client.send(new UpdateItemCommand({
                 TableName: this._tableName,
                 Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
-                UpdateExpression: `ADD ${attributeName} :value`,
+                UpdateExpression: [
+                    ...(addItems.length ? [`ADD ${attributeName} :addItems`] : []),
+                    ...(deleteItems.length ? [`DELETE ${attributeName} :deleteItems`] : [])
+                ].join(', '),
                 ExpressionAttributeValues: marshall({
-                    ':value': new Set(Items)
-                })
-            }))
-        }
-
-        async setDelete(props: {
-            Key: ({ [key in KIncoming]: T } & { DataCategory: string });
-            attributeName: string;
-            Items: string[]
-        }) {
-            const { Key, attributeName, Items } = props
-            if (reservedFields.includes(attributeName)) {
-                throw new Error('setDelete is not (yet) able to handle reserved field names')
-            }
-            await this._client.send(new UpdateItemCommand({
-                TableName: this._tableName,
-                Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
-                UpdateExpression: `DELETE ${attributeName} :value`,
-                ExpressionAttributeValues: marshall({
-                    ':value': new Set(Items)
+                    ...(addItems.length ? { ':addItems': new Set(addItems) } : {}),
+                    ...(deleteItems.length ? { ':deleteItems': new Set(deleteItems) } : {})
                 })
             }))
         }
