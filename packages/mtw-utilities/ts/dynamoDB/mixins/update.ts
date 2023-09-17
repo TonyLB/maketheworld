@@ -220,8 +220,9 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
             attributeName: string;
             addItems?: string[];
             deleteItems?: string[];
+            setUpdate?: Omit<UpdateItemCommandInput, 'TableName' | 'Key'>
         }) {
-            const { Key, attributeName, addItems = [], deleteItems = [] } = props
+            const { Key, attributeName, addItems = [], deleteItems = [], setUpdate } = props
             if (reservedFields.includes(attributeName)) {
                 throw new Error('setOperation is not (yet) able to handle reserved field names')
             }
@@ -229,13 +230,18 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                 TableName: this._tableName,
                 Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
                 UpdateExpression: [
+                    ...(setUpdate ? [setUpdate.UpdateExpression] : []),
                     ...(addItems.length ? [`ADD ${attributeName} :addItems`] : []),
                     ...(deleteItems.length ? [`DELETE ${attributeName} :deleteItems`] : [])
                 ].join(', '),
-                ExpressionAttributeValues: marshall({
-                    ...(addItems.length ? { ':addItems': new Set(addItems) } : {}),
-                    ...(deleteItems.length ? { ':deleteItems': new Set(deleteItems) } : {})
-                })
+                ...((setUpdate && setUpdate.ExpressionAttributeNames) ? { ExpressionAttributeNames: setUpdate.ExpressionAttributeNames } : {}),
+                ExpressionAttributeValues: {
+                    ...(setUpdate ? setUpdate.ExpressionAttributeValues || {} : {}),
+                    ...marshall({
+                        ...(addItems.length ? { ':addItems': new Set(addItems) } : {}),
+                        ...(deleteItems.length ? { ':deleteItems': new Set(deleteItems) } : {})
+                    })
+                }
             }))
         }
 
