@@ -93,7 +93,7 @@ describe('withTransactions', () => {
             { Update: {
                 TableName: 'Ephemera',
                 Key: marshall({ EphemeraId: 'TestSetAdd', DataCategory: 'SetAdd' }),
-                UpdateExpression: 'ADD testSetAttribute :addItems, DELETE testSetAttribute :deleteItems',
+                UpdateExpression: 'ADD testSetAttribute :addItems DELETE testSetAttribute :deleteItems',
                 ExpressionAttributeValues: marshall({ ':addItems': new Set(['addOne', 'addTwo']), ':deleteItems': new Set(['deleteOne']) })
             }},
             {
@@ -440,7 +440,7 @@ describe('withTransactions', () => {
             { Update: {
                 TableName: 'Ephemera',
                 Key: marshall({ EphemeraId: 'TestSetAdd', DataCategory: 'SetAdd' }),
-                UpdateExpression: 'SET updateValue = :value, ADD testSetAttribute :addItems, DELETE testSetAttribute :deleteItems',
+                UpdateExpression: 'SET updateValue = :value ADD testSetAttribute :addItems DELETE testSetAttribute :deleteItems',
                 ExpressionAttributeValues: marshall({ ':addItems': new Set(['addOne', 'addTwo']), ':deleteItems': new Set(['deleteOne']), ':value': 5 })
             }}
         ]})

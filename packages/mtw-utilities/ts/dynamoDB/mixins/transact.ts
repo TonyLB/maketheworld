@@ -167,7 +167,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                                 ...(setUpdate ? [setUpdate.UpdateExpression] : []),
                                 ...(addItems.length ? [`ADD ${attributeName} :addItems`] : []),
                                 ...(deleteItems.length ? [`DELETE ${attributeName} :deleteItems`] : [])
-                            ].join(', '),
+                            ].join(' '),
                             ...((setUpdate && setUpdate.ExpressionAttributeNames) ? { ExpressionAttributeNames: setUpdate.ExpressionAttributeNames } : {}),
                             ExpressionAttributeValues: {
                                 ...(setUpdate ? setUpdate.ExpressionAttributeValues || {} : {}),

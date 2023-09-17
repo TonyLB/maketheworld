@@ -39,7 +39,7 @@ type DBHandlerBatchGetReturn <K extends string> = {
     invalidatedAt?: number;
     updatedAt?: number;
     cachedAt?: number;
-    edgeSet?: string[];
+    edgeSet?: Set<string>;
     cache: string[]
 }
 
@@ -75,7 +75,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
     async get(PrimaryKeys: K[]): Promise<GraphNodeResult<K>[]> {
         this._Cache.add({
             promiseFactory: (keys: string[]): Promise<DBHandlerBatchGetReturn<K>[]> => (
-                this._dbHandler.getItems<{ PrimaryKey: K; DataCategory: string; invalidatedAt?: number; updatedAt?: number; cachedAt?: number; edgeSet: string[]; cache: string[] }>({
+                this._dbHandler.getItems<DBHandlerBatchGetReturn<K>>({
                     Keys: keys.map((key) => ({
                         PrimaryKey: key.split('::')[0] as K,
                         DataCategory: `Graph::${capitalize(key.split('::')[1])}`
@@ -95,7 +95,7 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
                         [`${item.PrimaryKey}::${direction}`]: {
                             PrimaryKey: item.PrimaryKey,
                             direction,
-                            edges: (item.edgeSet || []).map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
+                            edges: ([...(item.edgeSet ?? [])]).map((edgeKey) => ({ target: edgeKey.split('::')[0] as K, context: edgeKey.split('::').slice(1).join('::') })),
                             cache: (typeof item.cache !== 'undefined') ? item.cache.map((edgeKey) => ({ from: edgeKey.split('::')[0] as K, to: edgeKey.split('::')[1] as K, context: edgeKey.split('::').slice(2).join('::') })) : undefined,
                             invalidateAt: item.invalidatedAt,
                             updatedAt: item.updatedAt,
