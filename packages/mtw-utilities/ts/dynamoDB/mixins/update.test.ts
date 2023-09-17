@@ -86,6 +86,32 @@ describe('withUpdate', () => {
                 }
             })
         })
+
+        it('should support setUpdate argument', async () => {
+            dbMock.send.mockResolvedValue({})
+
+            await dbHandler.setOperation({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1'},
+                attributeName: 'testValue',
+                addItems: ['Test1'],
+                deleteItems: ['Test2'],
+                setUpdate: {
+                    UpdateExpression: 'SET setValue = :value',
+                    ExpressionAttributeValues: marshall({ ':value': 5 })
+                }
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'}),
+                TableName: 'Ephemera',
+                UpdateExpression: 'SET setValue = :value, ADD testValue :addItems, DELETE testValue :deleteItems',
+                ExpressionAttributeValues: {
+                    ':value': { N: '5' },
+                    ':addItems': { SS: ['Test1'] },
+                    ':deleteItems': { SS: ['Test2'] }
+                }
+            })
+        })
     })
 
     describe('optimisticUpdate', () => {

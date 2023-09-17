@@ -1,4 +1,4 @@
-import { TransactWriteItem, TransactWriteItemsCommand, TransactWriteItemsCommandInput } from "@aws-sdk/client-dynamodb"
+import { TransactWriteItem, TransactWriteItemsCommand, TransactWriteItemsCommandInput, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
 import { Constructor, DBHandlerBase, DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { UpdateExtendedProps } from "./update"
@@ -27,6 +27,7 @@ export type TransactionRequestSetOperation<KIncoming extends DBHandlerLegalKey, 
     attributeName: string;
     addItems?: string[];
     deleteItems?: string[];
+    setUpdate?: Omit<UpdateItemCommandInput, 'TableName' | 'Key'>
 }
 
 export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
@@ -154,7 +155,7 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                     }]
                 }
                 if ('SetOperation' in item) {
-                    const { Key, attributeName, addItems = [], deleteItems = [] } = item.SetOperation
+                    const { Key, attributeName, addItems = [], deleteItems = [], setUpdate } = item.SetOperation
                     if (reservedFields.includes(attributeName)) {
                         throw new Error('setOperation is not (yet) able to handle reserved field names')
                     }
@@ -163,13 +164,18 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                             TableName: this._tableName,
                             Key: marshall(this._remapIncomingObject(item.SetOperation.Key), { removeUndefinedValues: true }),
                             UpdateExpression: [
+                                ...(setUpdate ? [setUpdate.UpdateExpression] : []),
                                 ...(addItems.length ? [`ADD ${attributeName} :addItems`] : []),
                                 ...(deleteItems.length ? [`DELETE ${attributeName} :deleteItems`] : [])
                             ].join(', '),
-                            ExpressionAttributeValues: marshall({
-                                ...(addItems.length ? { ':addItems': new Set(addItems) } : {}),
-                                ...(deleteItems.length ? { ':deleteItems': new Set(deleteItems) } : {})
-                            })
+                            ...((setUpdate && setUpdate.ExpressionAttributeNames) ? { ExpressionAttributeNames: setUpdate.ExpressionAttributeNames } : {}),
+                            ExpressionAttributeValues: {
+                                ...(setUpdate ? setUpdate.ExpressionAttributeValues || {} : {}),
+                                ...marshall({
+                                    ...(addItems.length ? { ':addItems': new Set(addItems) } : {}),
+                                    ...(deleteItems.length ? { ':deleteItems': new Set(deleteItems) } : {})
+                                })
+                            }
                         }
                     }]
                 }

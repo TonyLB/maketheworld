@@ -420,4 +420,30 @@ describe('withTransactions', () => {
         ]})
     })
 
+    it('should correctly use setUpdate argument when provided', async () => {
+        await dbHandler.transactWrite([
+            {
+                SetOperation: {
+                    Key: { PrimaryKey: 'TestSetAdd', DataCategory: 'SetAdd' },
+                    attributeName: 'testSetAttribute',
+                    addItems: ['addOne', 'addTwo'],
+                    deleteItems: ['deleteOne'],
+                    setUpdate: {
+                        UpdateExpression: 'SET updateValue = :value',
+                        ExpressionAttributeValues: marshall({ ':value': 5 })
+                    }
+                }
+            },
+        ])
+        expect(dbMock.send).toHaveBeenCalledTimes(1)
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestSetAdd', DataCategory: 'SetAdd' }),
+                UpdateExpression: 'SET updateValue = :value, ADD testSetAttribute :addItems, DELETE testSetAttribute :deleteItems',
+                ExpressionAttributeValues: marshall({ ':addItems': new Set(['addOne', 'addTwo']), ':deleteItems': new Set(['deleteOne']), ':value': 5 })
+            }}
+        ]})
+    })
+
 })
