@@ -72,7 +72,8 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
         this._Cache.invalidate(key)
     }
 
-    async get(PrimaryKeys: K[]): Promise<GraphNodeResult<K>[]> {
+    async get(PrimaryKeys: K[], options?: { consistentRead?: boolean }): Promise<GraphNodeResult<K>[]> {
+        const { consistentRead } = options || {}
         this._Cache.add({
             promiseFactory: (keys: string[]): Promise<DBHandlerBatchGetReturn<K>[]> => (
                 this._dbHandler.getItems<DBHandlerBatchGetReturn<K>>({
@@ -80,7 +81,8 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
                         PrimaryKey: key.split('::')[0] as K,
                         DataCategory: `Graph::${capitalize(key.split('::')[1])}`
                     })),
-                    ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'updatedAt', 'cachedAt', 'edgeSet', 'cache']
+                    ProjectionFields: ['PrimaryKey', 'DataCategory', 'invalidatedAt', 'updatedAt', 'cachedAt', 'edgeSet', 'cache'],
+                    ConsistentRead: consistentRead
                 })
             ),
             requiredKeys: PrimaryKeys.map((primaryKey) => ([`${primaryKey}::forward`, `${primaryKey}::back`])).flat(),
