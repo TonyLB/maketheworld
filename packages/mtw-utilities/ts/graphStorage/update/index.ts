@@ -72,6 +72,10 @@ export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof Gra
         if (graph.edges.length) {
             await updateGraphStorageBatch({ internalCache: this.internalCache, dbHandler: this.dbHandler, threshold: this.threshold })(graph)
         }
+        graph.edges.forEach(({ from, to }) => {
+            this.internalCache.Nodes.invalidate(`${from}::forward`)
+            this.internalCache.Nodes.invalidate(`${to}::back`)
+        })
         this.setEdgePayloads = []
     
     }
