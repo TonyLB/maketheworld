@@ -40,7 +40,9 @@ const internalCache = {
     flush: jest.fn()
 }
 
-const dbHandlerMock = {} as jest.Mocked<GraphStorageDBH>
+const dbHandlerMock = {
+    batchWriteDispatcher: jest.fn()
+} as unknown as jest.Mocked<GraphStorageDBH>
 
 describe('GraphUpdate', () => {
 
