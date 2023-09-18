@@ -37,7 +37,8 @@ export const withGetOperations = <KIncoming extends DBHandlerLegalKey, T extends
                         [this._tableName]: {
                             Keys,
                             ProjectionExpression: ProjectionFields.length ? ProjectionFields.join(', ') : this._internalKeyLabel,
-                            ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length ? ExpressionAttributeNames : undefined
+                            ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length ? ExpressionAttributeNames : undefined,
+                            ConsistentRead: props.ConsistentRead
                         }
                     } }))
                 })

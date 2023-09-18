@@ -8,11 +8,14 @@ import GraphCache from "@tonylb/mtw-utilities/dist/graphStorage/cache"
 import withPrimitives from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/primitives"
 import GraphEdge from "@tonylb/mtw-utilities/dist/graphStorage/cache/graphEdge"
 import { CacheBase as GraphCacheBase } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
+import withBatchWrite from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/batchWrite"
 
 const graphStorageDBMixin = withTransaction<'PrimaryKey'>()(
-    withUpdate<'PrimaryKey'>()(
-        withPrimitives<'PrimaryKey'>()(
-            withGetOperations<'PrimaryKey'>()(DBHandlerBase)
+    withBatchWrite<'PrimaryKey'>()(
+        withUpdate<'PrimaryKey'>()(
+            withPrimitives<'PrimaryKey'>()(
+                withGetOperations<'PrimaryKey'>()(DBHandlerBase)
+            )
         )
     )
 )
