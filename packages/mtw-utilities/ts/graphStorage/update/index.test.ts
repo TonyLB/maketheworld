@@ -100,8 +100,8 @@ describe('GraphUpdate', () => {
         expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
             { from: 'A', to: 'C', context: 'test', action: 'put' }
         ])
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A::forward')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C::back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'back')
     })
 
     it('should remove surplus edge', async () => {
@@ -129,8 +129,8 @@ describe('GraphUpdate', () => {
         expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
             { from: 'A', to: 'C', context: 'test', action: 'delete' }
         ])
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A::forward')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C::back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'back')
     })
 
     it('should combine multiple operations', async () => {
@@ -164,10 +164,10 @@ describe('GraphUpdate', () => {
             { from: 'A', to: 'D', context: 'test', action: 'put' },
             { from: 'A', to: 'C', context: 'test', action: 'delete' }
         ])
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A::forward')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B::back')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C::back')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('D::back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B', 'back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('D', 'back')
     })
 
     it('should work in backwards direction', async () => {
@@ -202,10 +202,10 @@ describe('GraphUpdate', () => {
             { to: 'A', from: 'D', context: 'test', action: 'put' },
             { to: 'A', from: 'C', context: 'test', action: 'delete' }
         ])
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A::back')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B::forward')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C::forward')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('D::forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B', 'forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('D', 'forward')
     })
 
     it('should respect contextFilter if provided', async () => {
@@ -238,9 +238,9 @@ describe('GraphUpdate', () => {
             { from: 'A', to: 'D', context: 'test', action: 'put' },
             { from: 'A', to: 'C', context: 'test', action: 'delete' }
         ])
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A::forward')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C::back')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('D::back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('D', 'back')
     })
 
     it('should aggregate multiple setEdges calls', async () => {
@@ -297,9 +297,9 @@ describe('GraphUpdate', () => {
             { from: 'A', to: 'C', context: 'test', action: 'delete' },
             { from: 'B', to: 'C', context: 'test', action: 'put' }
         ])
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A::forward')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B::forward')
-        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C::back')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B', 'forward')
+        expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'back')
     })
 
 })
