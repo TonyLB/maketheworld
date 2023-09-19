@@ -68,8 +68,14 @@ export class GraphNodeData <K extends string, DBH extends InstanceType<ReturnTyp
         this._Cache.clear()
     }
 
-    invalidate(key: K) {
-        this._Cache.invalidate(key)
+    invalidate(key: K, direction?: 'forward' | 'back') {
+        if (direction) {
+            this._Cache.invalidate(`${key}::${direction}`)
+        }
+        else {
+            this._Cache.invalidate(`${key}::forward`)
+            this._Cache.invalidate(`${key}::back`)
+        }
     }
 
     async get(PrimaryKeys: K[], options?: { consistentRead?: boolean }): Promise<GraphNodeResult<K>[]> {

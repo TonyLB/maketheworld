@@ -85,7 +85,7 @@ export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof Gra
             // TODO: Figure out whether cache is correctly invalidating, and if so why a consistentRead is not fetching more
             // up-to-date values
             //
-            graphCacheKeys.forEach((cacheKey) => { this.internalCache.Nodes.invalidate(cacheKey) })
+            graphCacheKeys.forEach((cacheKey) => { this.internalCache.Nodes.invalidate(cacheKey.split('::')[0], cacheKey.split('::')[1] as 'forward' | 'back') })
             const cacheNodes = await this.internalCache.Nodes.get(graphNodeKeys, { consistentRead: true })
             const deleteBatch = cacheNodes.map((cacheNode) => {
                 const { PrimaryKey } = cacheNode
