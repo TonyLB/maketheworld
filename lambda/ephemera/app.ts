@@ -30,7 +30,6 @@ import { executeAction } from './parse/executeAction'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import dependencyCascade from './dependentMessages/dependencyCascade.js'
 import { sfnClient } from './clients'
-import { AssetAddressItem } from './internalCache/assetAddress'
 import { cacheAsset } from './cacheAsset'
 import decacheAsset from './decacheAsset'
 
@@ -74,6 +73,9 @@ export const handler = async (event: any, context: any) => {
                 await messageBus.flush()
                 return {}
             case 'decacheAssets':
+                if (event.assetIds.find((assetId) => (!(isEphemeraAssetId(assetId) || isEphemeraCharacterId(assetId))))) {
+                    throw new Error('AssetIds incorrectly formatted for decacheAssets')
+                }
                 await Promise.all(event.assetIds.map((assetId) => (decacheAsset({ messageBus, assetId }))))
                 await messageBus.flush()
                 return {}
