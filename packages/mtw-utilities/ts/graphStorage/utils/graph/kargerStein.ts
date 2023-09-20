@@ -16,6 +16,7 @@
 //
 
 import { Graph } from "."
+import { unique } from "../../../lists";
 import { objectEntryMap, objectFilter } from "../../../objects";
 import { GraphEdge } from "./baseClasses";
 
@@ -30,6 +31,82 @@ type KargerSteinMergeLabel<K extends string> = {
 }
 
 type KargerSteinMergeSet<K extends string> = Partial<Record<K, KargerSteinMergeLabel<K>>>
+
+//
+// KargerSteinState is a class to hold the iteration state of the modified Karger-Stein algorithm
+//
+class KargerSteinState<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> {
+    _baseGraph: Graph<K, T, E>;
+    _nodeClusters: K[][];
+
+    constructor(baseGraph: Graph<K, T, E>, nodeClusters: K[][] = []) {
+        this._baseGraph = baseGraph
+        this._nodeClusters = nodeClusters
+    }
+
+    findSubGraphIndex(node: K): number {
+        return this._nodeClusters.findIndex((nodes) => (nodes.includes(node)))
+    }
+
+    //
+    // cutSet is the set of nodes and edges that are still potentially in the final cut set. cutSet will likely
+    // share nodes with many (perhaps all) subGraphs. cutSet will not share any edges in common with any subGraph.
+    // Together, the set of all edges (cutSet and subGraphs) will always include all edges of the original graph
+    // to be segmented.
+    //
+    get cutSet(): Graph<K, T, E> {
+        const cutSetEdges = this._baseGraph.edges.filter(({ from, to }) => {
+            const indexA = this.findSubGraphIndex(from)
+            const indexB = this.findSubGraphIndex(to)
+            return (indexA === -1 || indexA !== indexB)
+        })
+        const cutSetNodes = unique(cutSetEdges.map(({ from, to }) => ([from, to])).flat())
+        return new Graph<K, T, E>(Object.assign({}, ...(cutSetNodes.map((node) => ({ [node]: { key: node }})))), cutSetEdges, this._baseGraph._default, this._baseGraph.directional)
+    }
+    //
+    // subGraphs are connected components that have been grouped by the algorithm. Each subGraph has a set of nodes
+    // that are distinct from the nodes of any other subGraph.
+    //
+    get subGraphs(): Graph<K, T, E>[] {
+        return this._nodeClusters.map((nodes) => (this._baseGraph.filter({ keys: nodes })))
+    }
+
+
+    //
+    // Given a potential subGraph, test whether it is small enough to meet the threshold requirements of the
+    // grouping algorithm.
+    //
+    edgeMergeValid(edge: GraphEdge<K, E>, threshold: number): boolean {
+        const indexA = this.findSubGraphIndex(edge.from)
+        const indexB = this.findSubGraphIndex(edge.to)
+
+        const proposedNodes = unique(
+            [edge.from, edge.to],
+            indexA >= 0 ? this._nodeClusters[indexA] : [],
+            indexB >= 0 ? this._nodeClusters[indexB] : []
+        )
+        const subGraph = this._baseGraph.filter({ keys: proposedNodes })
+        return (Object.keys(subGraph.nodes).length + subGraph.edges.length) < threshold
+    }
+
+    //
+    // Given two subGraphs that are connected (in the cutSet) by at least one edge, return a new KargerSteinState
+    // that combines the two into a single larger subGraph component, and merges all connecting edges from cutSet.
+    //
+    mergeSubGraphs(edge: GraphEdge<K, E>): KargerSteinState<K, T, E> {
+        const indexA = this.findSubGraphIndex(edge.from)
+        const indexB = this.findSubGraphIndex(edge.to)
+        const newCluster = unique(
+            [edge.from, edge.to],
+            indexA >= 0 ? this._nodeClusters[indexA] : [],
+            indexB >= 0 ? this._nodeClusters[indexB] : []
+        )
+
+        const untouchedClusters = this._nodeClusters.filter((_, index) => (index !== indexA && index !== indexB))
+
+        return new KargerSteinState<K, T, E>(this._baseGraph, [...untouchedClusters, newCluster])
+    }
+}
 
 export const countMergedNodesAndEdges = <K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>>(graph: Graph<K, T, E>, mergeLabels: KargerSteinMergeSet<K>, edge: GraphEdge<K, E>): number => {
     const fromLabel = mergeLabels[edge.from]?.key || edge.from
