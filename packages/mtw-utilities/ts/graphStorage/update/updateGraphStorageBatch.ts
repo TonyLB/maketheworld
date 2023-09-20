@@ -24,95 +24,104 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
         }
     }
 
-    graph.edges = graph.edges.filter(({ action, from, to, context }) => (action === 'put' || graph.nodes[from]?.forward?.edges.find(({ target, context: checkContext }) => (target === to && context === checkContext))))
-
     //
-    // Check if current graph is split into smaller chunks by Karger-Stein algorithm and recurse if needed
+    // kargerSteinBreakdown recursively applies the kargerStein algorithm to make smaller and smaller
+    // cutSets (by separating out subGraphs under the threshold) until it reaches a list of (possibly
+    // intersecting) edgesets that can be updated inside the threshold limits.
     //
-    const { subGraphs, cutSet } = kargerStein(graph, metaProps.threshold || 50)
-    if (Object.keys(cutSet.nodes).length) {
-        await Promise.all(subGraphs.map((subGraph) => (subGraph.clone())).map(updateGraphStorageBatch(metaProps)))
-        await updateGraphStorageBatch(metaProps)(cutSet.clone())
-        return
+    const kargerSteinBreakdown = (graph: GraphOfUpdates): GraphOfUpdates[] => {
+        const { subGraphs, cutSet } = kargerStein(graph, metaProps.threshold || 50)
+        if (Object.keys(cutSet.nodes).length) {
+            return [
+                ...subGraphs,
+                ...kargerSteinBreakdown(cutSet)
+            ]
+        }
+        return subGraphs
     }
+
+    graph.edges = graph.edges.filter(({ action, from, to, context }) => (action === 'put' || graph.nodes[from]?.forward?.edges.find(({ target, context: checkContext }) => (target === to && context === checkContext))))
 
     graph.edges.forEach((edge) => {
         checkUpdateAgainstCurrent(graph, edge, 'forward')
         checkUpdateAgainstCurrent(graph, edge, 'back')
     })
 
-    const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number): TransactionRequest<'PrimaryKey'>[] => {
-        const node = graph.nodes[key]
-        if (!node) {
-            throw new Error('Cannot update node with no actions in GraphStorage update')
-        }
-        let addItems: string[] = []
-        let deleteItems: string[] = []
-        switch(direction) {
-            case 'forward':
-                addItems = graph.edges.filter(({ from, action }) => (action === 'put' && from === key)).map(({ to, context }) => (`${to}${context ? `::${context}` : ''}`))
-                deleteItems = graph.edges.filter(({ from, action }) => (action === 'delete' && from === key)).map(({ to, context }) => (`${to}${context ? `::${context}` : ''}`))
-                break
-            case 'back':
-                addItems = graph.edges.filter(({ to, action }) => (action === 'put' && to === key)).map(({ from, context }) => (`${from}${context ? `::${context}` : ''}`))
-                deleteItems = graph.edges.filter(({ to, action }) => (action === 'delete' && to === key)).map(({ from, context }) => (`${from}${context ? `::${context}` : ''}`))
-                break
-        }
-        if (addItems.length === 0 && deleteItems.length === 0) {
-            return []
-        }
-        const needsInvalidate = Boolean(node[`needs${capitalize(direction)}Invalidate`])
-        return [{
-            SetOperation: {
-                Key: {
-                    PrimaryKey: key,
-                    DataCategory: `Graph::${capitalize(direction)}`,                
-                },
-                attributeName: 'edgeSet',
-                addItems,
-                deleteItems,
-                setUpdate: {
-                    UpdateExpression: needsInvalidate ? 'SET updatedAt = :moment, invalidatedAt = :moment' : 'SET updatedAt = :moment',
-                    ExpressionAttributeValues: marshall({ ':moment': moment })
-                }
+    await Promise.all(kargerSteinBreakdown(graph).map(async (subGraph: GraphOfUpdates) => {
+    
+        const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number): TransactionRequest<'PrimaryKey'>[] => {
+            const node = graph.nodes[key]
+            if (!node) {
+                throw new Error('Cannot update node with no actions in GraphStorage update')
             }
-        }]
-    }
-
-    const moment = Date.now()
-    const nodeList = Object.values(graph.nodes) as GraphOfUpdatesNode[]
-    const transactions: TransactionRequest<'PrimaryKey'>[] = [
-        ...nodeList
-            .filter(({ needsForwardUpdate, forward }) => (needsForwardUpdate || !forward))
-            .map(({ key }) => (updateTransaction(graph, key, 'forward', moment))).flat(),
-        ...nodeList
-            .filter(({ needsBackUpdate, back }) => (needsBackUpdate || !back))
-            .map(({ key }) => (updateTransaction(graph, key, 'back', moment))).flat(),
-        ...(graph.edges.map(({ from, to, context, action, ...rest }) => (
-            action === 'put'
-            ? {
-                Put: {
-                    PrimaryKey: from,
-                    DataCategory: `Graph::${to}${context ? `::${context}` : ''}`,
-                    ...rest
-                }
+            let addItems: string[] = []
+            let deleteItems: string[] = []
+            switch(direction) {
+                case 'forward':
+                    addItems = graph.edges.filter(({ from, action }) => (action === 'put' && from === key)).map(({ to, context }) => (`${to}${context ? `::${context}` : ''}`))
+                    deleteItems = graph.edges.filter(({ from, action }) => (action === 'delete' && from === key)).map(({ to, context }) => (`${to}${context ? `::${context}` : ''}`))
+                    break
+                case 'back':
+                    addItems = graph.edges.filter(({ to, action }) => (action === 'put' && to === key)).map(({ from, context }) => (`${from}${context ? `::${context}` : ''}`))
+                    deleteItems = graph.edges.filter(({ to, action }) => (action === 'delete' && to === key)).map(({ from, context }) => (`${from}${context ? `::${context}` : ''}`))
+                    break
             }
-            : {
-                Delete: {
-                    PrimaryKey: from,
-                    DataCategory: `Graph::${to}${context ? `::${context}` : ''}`
-                }
+            if (addItems.length === 0 && deleteItems.length === 0) {
+                return []
             }
-
-        )))
-    ]
-
-    await metaProps.dbHandler.transactWrite(transactions)
-
-    //
-    // TODO: ISS-3025, ISS-3026: Create post-update phase where all updated edge directions are re-cached, and deletes are
-    // run for any that now have an absent edge set.
-    //
+            const needsInvalidate = Boolean(node[`needs${capitalize(direction)}Invalidate`])
+            return [{
+                SetOperation: {
+                    Key: {
+                        PrimaryKey: key,
+                        DataCategory: `Graph::${capitalize(direction)}`,                
+                    },
+                    attributeName: 'edgeSet',
+                    addItems,
+                    deleteItems,
+                    setUpdate: {
+                        UpdateExpression: needsInvalidate ? 'SET updatedAt = :moment, invalidatedAt = :moment' : 'SET updatedAt = :moment',
+                        ExpressionAttributeValues: marshall({ ':moment': moment })
+                    }
+                }
+            }]
+        }
+    
+        const moment = Date.now()
+        const nodeList = Object.values(subGraph.nodes) as GraphOfUpdatesNode[]
+        const transactions: TransactionRequest<'PrimaryKey'>[] = [
+            ...nodeList
+                .filter(({ needsForwardUpdate, forward }) => (needsForwardUpdate || !forward))
+                .map(({ key }) => (updateTransaction(subGraph, key, 'forward', moment)))
+                .flat(),
+            ...nodeList
+                .filter(({ needsBackUpdate, back }) => (needsBackUpdate || !back))
+                .map(({ key }) => (updateTransaction(subGraph, key, 'back', moment)))
+                .flat(),
+            ...(subGraph.edges.map(({ from, to, context, action, ...rest }) => (
+                action === 'put'
+                ? {
+                    Put: {
+                        PrimaryKey: from,
+                        DataCategory: `Graph::${to}${context ? `::${context}` : ''}`,
+                        ...rest
+                    }
+                }
+                : {
+                    Delete: {
+                        PrimaryKey: from,
+                        DataCategory: `Graph::${to}${context ? `::${context}` : ''}`
+                    }
+                }
+    
+            )))
+        ]
+    
+        if (transactions.length) {
+            await metaProps.dbHandler.transactWrite(transactions)
+        }
+    
+    }))
 }
 
 export default updateGraphStorageBatch
