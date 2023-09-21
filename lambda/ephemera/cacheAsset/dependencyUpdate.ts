@@ -3,7 +3,7 @@ import { TaggedMessageContent } from "@tonylb/mtw-interfaces/ts/messages"
 import { MergeActionProperty } from "@tonylb/mtw-utilities/dist/dynamoDB/mixins/merge"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import internalCache from "../internalCache"
-import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraMapItem, isEphemeraRoomItem } from "./baseClasses"
+import { EphemeraItem, EphemeraItemDependency, isEphemeraBookmarkItem, isEphemeraComputedItem, isEphemeraFeatureItem, isEphemeraMapItem, isEphemeraRoomItem, isEphemeraVariableItem } from "./baseClasses"
 import GraphUpdate from "@tonylb/mtw-utilities/dist/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
 
@@ -98,6 +98,17 @@ const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraId[] =
     return []
 }
 
+const assetBacklink = (context: string) => (item: EphemeraItem) => {
+    if (isEphemeraComputedItem(item) || isEphemeraVariableItem(item) || isEphemeraRoomItem(item)) {
+        return {
+            target: AssetKey(context),
+            context,
+            scopedId: item.key
+        }
+    }
+    return { target: AssetKey(context), context }
+}
+
 export const updateDependenciesFromMergeActions = (context: string, graphUpdate: GraphUpdate<typeof internalCache._graphCache, string>) => async (mergeActions: MergeActionProperty<'EphemeraId', string>[]) => {
     mergeActions.forEach((mergeAction) => {
         const { EphemeraId } = mergeAction.key
@@ -117,11 +128,12 @@ export const updateDependenciesFromMergeActions = (context: string, graphUpdate:
             if (!mergeAction.action) {
                 return
             }
+            const item = mergeAction.action as unknown as EphemeraItem
             graphUpdate.setEdges([{
                 itemId: EphemeraId,
                 edges: [
-                    { target: AssetKey(context), context },
-                    ...extractDependenciesFromEphemeraItem(mergeAction.action as unknown as EphemeraItem).map((target) => ({ target, context }))
+                    assetBacklink(context)(item),
+                    ...extractDependenciesFromEphemeraItem(item).map((target) => ({ target, context }))
                 ],
                 options
             }])
