@@ -10,17 +10,17 @@ type SetEdgesOptions = {
     contextFilter?: (value: string) => boolean;
 }
 
-export type SetEdgesNodeArgument<T extends string> = {
+export type SetEdgesNodeArgument<T extends string, E extends GraphNodeCacheDirectEdge> = {
     itemId: T;
-    edges: GraphNodeCacheDirectEdge[];
+    edges: E[];
     options?: SetEdgesOptions
 }
 
-export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>, T extends string> {
+export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof GraphCache>>>, T extends string, E extends GraphNodeCacheDirectEdge = GraphNodeCacheDirectEdge & { scopedId?: string }> {
     internalCache: C;
     dbHandler: GraphStorageDBH;
     threshold: number = 50;
-    setEdgePayloads: SetEdgesNodeArgument<T>[] = [];
+    setEdgePayloads: SetEdgesNodeArgument<T, E>[] = [];
 
     constructor(props: { internalCache: C; dbHandler: GraphStorageDBH; threshold?: number }) {
         const { internalCache, dbHandler, threshold } = props
@@ -31,7 +31,7 @@ export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof Gra
         }
     }
 
-    setEdges(nodeUpdates: SetEdgesNodeArgument<T>[]): void {
+    setEdges(nodeUpdates: SetEdgesNodeArgument<T, E>[]): void {
         this.setEdgePayloads = [
             ...this.setEdgePayloads,
             ...nodeUpdates
@@ -55,9 +55,9 @@ export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof Gra
                     const currentEdges = current[direction].edges.filter(contextFilter ? ({ context }) => (contextFilter(context)) : () => (true))
                     edges
                         .filter((edge) => (!currentEdges.find((checkEdge) => (checkEdge.target === edge.target && checkEdge.context === edge.context))))
-                        .forEach((edge) => {
-                            const { from, to } = direction === 'forward' ? { from: itemId, to: edge.target } : { from: edge.target, to: itemId }
-                            graph.addEdge({ from, to, context: edge.context, action: 'put' })
+                        .forEach(({ target, context, ...rest }) => {
+                            const { from, to } = direction === 'forward' ? { from: itemId, to: target } : { from: target, to: itemId }
+                            graph.addEdge({ from, to, context, action: 'put', ...rest })
                         })
                     currentEdges
                         .filter((edge) => (!edges.find((checkEdge) => (checkEdge.target === edge.target && checkEdge.context === edge.context))))
