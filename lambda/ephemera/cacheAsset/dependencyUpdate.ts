@@ -28,44 +28,51 @@ const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (Ephe
     isEphemeraMapId(EphemeraId)
 )
 
-const dependencyExtractor = ({ dependencies }: { dependencies: EphemeraItemDependency[] }) => (dependencies.map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraId))
+const dependencyExtractor = ({ dependencies }: { dependencies: EphemeraItemDependency[] }): { target: EphemeraId; scopedId?: string }[] => (
+    dependencies.map(({ EphemeraId, key }) => (isEphemeraId(EphemeraId) ? [{ target: EphemeraId, scopedId: key }]: [])).flat()
+)
 
-const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): EphemeraId[] => {
-    const returnValue = values.reduce<EphemeraId[]>((previous, item) => {
+const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): { target: EphemeraId; scopedId?: string }[] => {
+    const returnValue = values.reduce<{ target: EphemeraId; scopedId?: string }[]>((previous, item) => {
         if (item.tag === 'Condition') {
             return [
                 ...previous,
-                ...item.conditions.map(dependencyExtractor).flat(),
-                ...extractDependenciesFromTaggedContent(item.contents)
+                ...[
+                    ...item.conditions.map(dependencyExtractor).flat(),
+                    ...extractDependenciesFromTaggedContent(item.contents)
+                ].filter(({ target }) => (!previous.map(({ target }) => (target)).includes(target)))
             ]
         }
         if (item.tag === 'Bookmark') {
             return [
-                ...previous,
-                item.to
+                ...previous.filter(({ target }) => (target !== item.to)),
+                { target: item.to }
             ]
         }
         if (item.tag === 'Link' && (isEphemeraFeatureId(item.to) || isEphemeraActionId(item.to))) {
             return [
-                ...previous,
-                item.to
+                ...previous.filter(({ target }) => (target !== item.to)),
+                { target: item.to }
             ]
         }
         return previous
     }, [])
-    return unique(returnValue)
+    return returnValue
 }
 
-const extractDependenciesFromEphemeraItem = (item: EphemeraItem): EphemeraId[] => {
+//
+// TODO: ISS3039: Refactor output to { target: EphemeraId; scopedId?: string }[]
+//
+const extractDependenciesFromEphemeraItem = (item: EphemeraItem): { target: EphemeraId; scopedId?: string }[] => {
     if (!isEphemeraInternallyBacklinked(item.EphemeraId)) {
         return []
     }
     if (isEphemeraComputedItem(item)) {
-        return item.dependencies.map(({ EphemeraId }) => (EphemeraId)).filter(isEphemeraId)
+        return item.dependencies.map(({ EphemeraId, key }) => (isEphemeraId(EphemeraId) ? [{ target: EphemeraId, scopedId: key }]: [])).flat()
     }
     if (isEphemeraMapItem(item)) {
         return unique(
-            item.appearances.map(({ rooms }) => (rooms.map(({ EphemeraId }) => (EphemeraId)))).flat().filter(isEphemeraId)
+            item.appearances.map(({ rooms }) => (rooms.map(({ EphemeraId }) => (EphemeraId)))).flat().filter(isEphemeraId).map((EphemeraId) => ({ target: EphemeraId }))
         )
     }
     if (isEphemeraRoomItem(item)) {
@@ -133,7 +140,7 @@ export const updateDependenciesFromMergeActions = (context: string, graphUpdate:
                 itemId: EphemeraId,
                 edges: [
                     assetBacklink(context)(item),
-                    ...extractDependenciesFromEphemeraItem(item).map((target) => ({ target, context }))
+                    ...extractDependenciesFromEphemeraItem(item).map((dependency) => ({ ...dependency, context }))
                 ],
                 options
             }])
