@@ -41,9 +41,10 @@ const internalCache = {
     flush: jest.fn()
 }
 
-const optimisticUpdate = jest.fn().mockResolvedValue({})
 const transactWrite = jest.fn()
-const dbHandler = { optimisticUpdate, transactWrite } as unknown as GraphStorageDBH
+const setOperation = jest.fn()
+const batchWriteDispatcher = jest.fn()
+const dbHandler = { setOperation, batchWriteDispatcher } as unknown as GraphStorageDBH
 
 describe('updateGraphStorageBatch', () => {
     const realDateNow = Date.now.bind(global.Date);
@@ -61,7 +62,7 @@ describe('updateGraphStorageBatch', () => {
         global.Date.now = realDateNow
     })
 
-    const testTransact = ({ Key, addItems = [], deleteItems = [], moment = 1000, invalidate }: { Key: { PrimaryKey: string; DataCategory: string }, addItems?: string[], deleteItems?: string[], moment?: number, invalidate?: boolean }) => ({ SetOperation: {
+    const testSetOperation = ({ Key, addItems = [], deleteItems = [], moment = 1000, invalidate }: { Key: { PrimaryKey: string; DataCategory: string }, addItems?: string[], deleteItems?: string[], moment?: number, invalidate?: boolean }) => ({
         Key,
         attributeName: 'edgeSet',
         addItems,
@@ -70,7 +71,7 @@ describe('updateGraphStorageBatch', () => {
             UpdateExpression: invalidate ? 'SET updatedAt = :moment, invalidatedAt = :moment' : 'SET updatedAt = :moment',
             ExpressionAttributeValues: marshall({ ':moment': moment })
         }
-    }})
+    })
 
     it('should correctly add disjoint edges', async () => {
         internalCache.Nodes.get.mockResolvedValue([])
@@ -89,14 +90,14 @@ describe('updateGraphStorageBatch', () => {
             true
         ))
 
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite.mock.calls[0][0]).toEqual([
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportFour::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportOne::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportThree::ASSET'], invalidate: true }),
-            { Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
-            { Put: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::ASSET#ImportFour::ASSET' } }
+        expect(setOperation).toHaveBeenCalledTimes(4)
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportFour::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportOne::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportThree::ASSET'], invalidate: true }))
+        expect(batchWriteDispatcher).toHaveBeenCalledWith([
+            { PutRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
+            { PutRequest: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::ASSET#ImportFour::ASSET' } }
         ])
         // expect(internalCacheNodeSet).toHaveBeenCalledTimes(8)
         // expect(internalCacheNodeSet).toHaveBeenCalledWith('ASSET#ImportOne', 'forward', { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }], updatedAt: 1000, invalidatedAt: 1000 })
@@ -122,17 +123,17 @@ describe('updateGraphStorageBatch', () => {
             true
         ))
 
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite.mock.calls[0][0]).toEqual([
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportThree::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportOne::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportThree::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportOne::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }),
-            { Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
-            { Put: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::ASSET#ImportThree::ASSET' } },
-            { Put: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::ASSET#ImportOne::ASSET' } }
+        expect(setOperation).toHaveBeenCalledTimes(6)
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportThree::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportOne::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportThree::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportOne::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }))
+        expect(batchWriteDispatcher).toHaveBeenCalledWith([
+            { PutRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
+            { PutRequest: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::ASSET#ImportThree::ASSET' } },
+            { PutRequest: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::ASSET#ImportOne::ASSET' } }
         ])
     })
 
@@ -154,13 +155,12 @@ describe('updateGraphStorageBatch', () => {
             true
         ))
 
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite.mock.calls[0][0].length).toEqual(4)
-        expect(transactWrite.mock.calls[0][0]).toEqual([
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::DifferentAsset'] }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportOne::ASSET', 'ASSET#ImportOne::DifferentAsset'] }),
-            { Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
-            { Put: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::DifferentAsset' } }
+        expect(setOperation).toHaveBeenCalledTimes(2)
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportTwo::ASSET', 'ASSET#ImportTwo::DifferentAsset'] }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportOne::ASSET', 'ASSET#ImportOne::DifferentAsset'] }))
+        expect(batchWriteDispatcher).toHaveBeenCalledWith([
+            { PutRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
+            { PutRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::DifferentAsset' } }
         ])
     })
 
@@ -186,14 +186,14 @@ describe('updateGraphStorageBatch', () => {
             true
         ))
 
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite.mock.calls[0][0]).toEqual([
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportFour::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportOne::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportThree::ASSET'], invalidate: true }),
-            { Delete: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
-            { Delete: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::ASSET#ImportFour::ASSET' } }
+        expect(setOperation).toHaveBeenCalledTimes(4)
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportFour::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportOne::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportThree::ASSET'], invalidate: true }))
+        expect(batchWriteDispatcher).toHaveBeenCalledWith([
+            { DeleteRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
+            { DeleteRequest: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::ASSET#ImportFour::ASSET' } }
         ])
 
     })
@@ -218,14 +218,14 @@ describe('updateGraphStorageBatch', () => {
             true
         ))
 
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite.mock.calls[0][0]).toEqual([
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportThree::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportOne::ASSET'], invalidate: true }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }),
-            { Delete: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
-            { Delete: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::ASSET#ImportThree::ASSET' } }
+        expect(setOperation).toHaveBeenCalledTimes(4)
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportThree::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportOne::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }))
+        expect(batchWriteDispatcher).toHaveBeenCalledWith([
+            { DeleteRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } },
+            { DeleteRequest: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::ASSET#ImportThree::ASSET' } }
         ])
     })
 
@@ -246,11 +246,11 @@ describe('updateGraphStorageBatch', () => {
             true
         ))
 
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite.mock.calls[0][0]).toEqual([
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportTwo::ASSET'] }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportOne::ASSET'] }),
-            { Delete: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } }
+        expect(setOperation).toHaveBeenCalledTimes(2)
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportTwo::ASSET'] }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportOne::ASSET'] }))
+        expect(batchWriteDispatcher).toHaveBeenCalledWith([
+            { DeleteRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } }
         ])
 
     })
@@ -273,12 +273,11 @@ describe('updateGraphStorageBatch', () => {
             true
         ))
 
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-        expect(transactWrite.mock.calls[0][0].length).toEqual(3)
-        expect(transactWrite.mock.calls[0][0]).toEqual([
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportTwo::ASSET'] }),
-            testTransact({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportOne::ASSET'] }),
-            { Delete: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } }
+        expect(setOperation).toHaveBeenCalledTimes(2)
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, deleteItems: ['ASSET#ImportTwo::ASSET'] }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, deleteItems: ['ASSET#ImportOne::ASSET'] }))
+        expect(batchWriteDispatcher).toHaveBeenCalledWith([
+            { DeleteRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET' } }
         ])
     })
 

@@ -48,13 +48,20 @@ States:
             "assetIds.$": "$.assetIds"
             "addresses.$": "$.addresses"
             "options.$": "$.options"
-        Retry:
+        Catch:
             -
                 ErrorEquals:
-                    - States.TaskFailed
-                IntervalSeconds: 2
-                MaxAttempts: 3
-                BackoffRate: 1
+                    - States.ALL
+                Next: Decache
         ResultPath: null
+    Decache:
+        Type: Task
+        Next: Failure
+        Resource: "${EphemeraFunctionArn}"
+        Parameters:
+            "message": "decacheAssets"
+            "assetIds.$": "$.assetIds"
+    Failure:
+        Type: Fail
     Done:
         Type: Succeed
