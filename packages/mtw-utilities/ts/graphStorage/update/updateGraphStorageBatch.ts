@@ -49,7 +49,7 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
 
     await Promise.all(kargerSteinBreakdown(graph).map(async (subGraph: GraphOfUpdates) => {
     
-        const updateTransaction = (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number): TransactionRequest<'PrimaryKey'>[] => {
+        const updateTransaction = (dbHandler: GraphStorageDBH) => (graph: GraphOfUpdates, key: string, direction: 'forward' | 'back', moment: number): Promise<void>[] => {
             const node = graph.nodes[key]
             if (!node) {
                 throw new Error('Cannot update node with no actions in GraphStorage update')
@@ -70,8 +70,8 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
                 return []
             }
             const needsInvalidate = Boolean(node[`needs${capitalize(direction)}Invalidate`])
-            return [{
-                SetOperation: {
+            return [
+                dbHandler.setOperation({
                     Key: {
                         PrimaryKey: key,
                         DataCategory: `Graph::${capitalize(direction)}`,                
@@ -83,43 +83,43 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
                         UpdateExpression: needsInvalidate ? 'SET updatedAt = :moment, invalidatedAt = :moment' : 'SET updatedAt = :moment',
                         ExpressionAttributeValues: marshall({ ':moment': moment })
                     }
-                }
-            }]
+                })
+            ]
         }
     
         const moment = Date.now()
         const nodeList = Object.values(subGraph.nodes) as GraphOfUpdatesNode[]
-        const transactions: TransactionRequest<'PrimaryKey'>[] = [
+
+        const batchWrites = subGraph.edges.map(({ from, to, context, action, ...rest }) => (
+            action === 'put'
+            ? {
+                PutRequest: {
+                    PrimaryKey: from,
+                    DataCategory: `Graph::${to}${context ? `::${context}` : ''}`,
+                    ...rest
+                }
+            }
+            : {
+                DeleteRequest: {
+                    PrimaryKey: from,
+                    DataCategory: `Graph::${to}${context ? `::${context}` : ''}`
+                }
+            }
+
+        ))
+        const transactions: Promise<any>[] = [
             ...nodeList
                 .filter(({ needsForwardUpdate, forward }) => (needsForwardUpdate || !forward))
-                .map(({ key }) => (updateTransaction(subGraph, key, 'forward', moment)))
+                .map(({ key }) => (updateTransaction(metaProps.dbHandler)(subGraph, key, 'forward', moment)))
                 .flat(),
             ...nodeList
                 .filter(({ needsBackUpdate, back }) => (needsBackUpdate || !back))
-                .map(({ key }) => (updateTransaction(subGraph, key, 'back', moment)))
+                .map(({ key }) => (updateTransaction(metaProps.dbHandler)(subGraph, key, 'back', moment)))
                 .flat(),
-            ...(subGraph.edges.map(({ from, to, context, action, ...rest }) => (
-                action === 'put'
-                ? {
-                    Put: {
-                        PrimaryKey: from,
-                        DataCategory: `Graph::${to}${context ? `::${context}` : ''}`,
-                        ...rest
-                    }
-                }
-                : {
-                    Delete: {
-                        PrimaryKey: from,
-                        DataCategory: `Graph::${to}${context ? `::${context}` : ''}`
-                    }
-                }
-    
-            )))
+            metaProps.dbHandler.batchWriteDispatcher(batchWrites)
         ]
     
-        if (transactions.length) {
-            await metaProps.dbHandler.transactWrite(transactions)
-        }
+        await Promise.all(transactions)
     
     }))
 }
