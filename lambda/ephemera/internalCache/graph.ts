@@ -18,18 +18,21 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 
 export type GraphCacheType = InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Graph"]
 export type GraphNodeType = InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Nodes"]
+export type GraphEdgeType = InstanceType<ReturnType<ReturnType<typeof GraphCache>>>["Edges"]
 
 export const CacheGraph = <GBase extends CacheConstructor>(Base: GBase) => {
     return class CacheGraph extends Base {
         _graphCache: InstanceType<ReturnType<ReturnType<typeof GraphCache>>>
         Graph: GraphCacheType
         GraphNodes: GraphNodeType
+        GraphEdges: GraphEdgeType
 
         constructor(...rest: any) {
             super(...rest)
             this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
             this.Graph = this._graphCache.Graph
             this.GraphNodes = this._graphCache.Nodes
+            this.GraphEdges = this._graphCache.Edges
         }
 
         override async flush() {
