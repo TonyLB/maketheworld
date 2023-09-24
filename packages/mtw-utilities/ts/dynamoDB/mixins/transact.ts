@@ -184,6 +184,15 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
             await this._client.send(new TransactWriteItemsCommand({ TransactItems: transactions }))
             successCallbacks.forEach((callback) => { callback() })
         }
+
+        //
+        // TODO: Add transactAggregateGraph operation that accepts a graph with nodes of the following types:
+        //    - ValueFetch (with priorFetch option) to make child steps dependent upon the value of unchanged parent nodes
+        //    - AggregateUpdate to take in parent values, update a node using a reducer, and pass on the updated values
+        //
+        // Process each topological layer of the aggregateGraph as a transaction, using ConditionCheck and Update transactWrite
+        // arguments.
+        //
     }
 }
 

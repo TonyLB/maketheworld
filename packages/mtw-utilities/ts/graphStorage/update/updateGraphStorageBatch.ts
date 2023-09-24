@@ -1,7 +1,6 @@
 import GraphOfUpdates, { GraphOfUpdatesEdge, GraphOfUpdatesNode, GraphStorageDBH } from './baseClasses'
 import GraphCache from "../cache"
 import { GraphEdge } from "../utils/graph/baseClasses"
-import { TransactionRequest } from "../../dynamoDB/mixins/transact"
 import kargerStein from "../utils/graph/kargerStein"
 import { marshall } from '@aws-sdk/util-dynamodb'
 
