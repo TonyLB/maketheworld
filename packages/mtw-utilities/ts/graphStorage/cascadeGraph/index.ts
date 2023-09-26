@@ -1,4 +1,5 @@
 import { unique } from "../../lists";
+import { objectMap } from "../../objects";
 import { Graph } from "../utils/graph";
 
 type CascadeGraphPriorResult<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends{}, EdgeTemplateData extends {}, NodeWorkingData extends {}> = {
@@ -11,29 +12,25 @@ type CascadeGraphPriorResult<KeyType extends string, NodeTemplateData extends {}
 export class CascadeGraphWorkspace<
         KeyType extends string,
         NodeTemplateData extends {},
-        EdgeTemplateData extends {},
         NodeFetchData extends {},
+        EdgeTemplateData extends {},
         NodeWorkingData extends {}
     > {
     _template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>;
-    _working?: Graph<KeyType, { key: KeyType } & ({} | NodeFetchData | (NodeFetchData & NodeWorkingData)), {}>;
+    _working: Graph<KeyType, { key: KeyType } & ({} | NodeFetchData | (NodeFetchData & NodeWorkingData)), {}>;
 
     constructor(props: {
         template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>;
-        nodeData: ({ key: KeyType } & NodeFetchData)[];
     }) {
-        this._template = props.template.filter({ keys: props.nodeData.map(({ key }) => (key)) })
-        this._working = new Graph<KeyType, { key: KeyType } & ({} | NodeFetchData | (NodeFetchData & NodeWorkingData)), {}>(
-            Object.assign({}, ...props.nodeData.map(({ key, ...rest }) => ({ [key]: { key, ...rest }}))),
-            [],
-            {} as Omit<{ key: KeyType }, "key">
+        this._template = props.template
+        this._working = new Graph<KeyType, { key: KeyType } & ({} | NodeFetchData | (NodeFetchData & NodeWorkingData)), {}>(Object.assign({}, Object.keys(this._template.nodes).map((key) => ({ [key]: { key }}))) as Record<KeyType, { key: KeyType }>, props.template.edges, {} as Omit<{ key: KeyType }, "key">
         )
     }
 
 }
 export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends {}, EdgeTemplateData extends {}, NodeWorkingData extends {}> {
     _template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>
-    _fetch: (nodes: KeyType[]) => Promise<{ key: KeyType } & NodeFetchData>[];
+    _fetch: (nodes: KeyType[]) => Promise<({ key: KeyType } & NodeFetchData)[]>;
     _process: (props: {
             template: { key: KeyType } & NodeTemplateData;
             fetch: NodeFetchData;
@@ -43,7 +40,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
 
     constructor(props: {
         template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>;
-        fetch: (nodes: KeyType[]) => Promise<{ key: KeyType } & NodeFetchData>[];
+        fetch: (nodes: KeyType[]) => Promise<({ key: KeyType } & NodeFetchData)[]>;
         process: (props: {
                 template: { key: KeyType } & NodeTemplateData;
                 fetch: NodeFetchData;
@@ -69,8 +66,15 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
         //    - fetch all nodes in the current generation
         //    - Create a promise to process each stronglyConnectedComponent
         //
-        let resultPromises: Partial<Record<KeyType, Promise<Previous>>> = {}
+        let resultPromises: Partial<Record<KeyType, Promise<NodeWorkingData>>> = {}
+        const workspace = new CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>({
+            template: this._template,
+        })
         for (const generation of generationOrderOutput) {
+            const fetchedNodes = await this._fetch(unique(generation.flat(1)))
+            fetchedNodes.forEach(({ key, ...nodeData }) => {
+                workspace._working.setNode(key, { key, ...nodeData })
+            })
             for (const stronglyConnectedComponent of generation) {
                 //
                 // Find all Edges leading from *outside* keys to *inside* keys. By definition of generationOrder,
@@ -78,10 +82,24 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
                 // in the resultPromises records defined above.  Collect all unique SCC representatives that this new set of
                 // keys depends from, and deliver the saved Previous outputs to the callback.
                 //
-                resultPromises[stronglyConnectedComponent[0]] = (async (): Promise<Previous> => {
+                resultPromises[stronglyConnectedComponent[0]] = (async (): Promise<NodeWorkingData> => {
                     if (stronglyConnectedComponent.length === 0) {
-                        throw new Error('sortedWalk error, empty strongly-connected-component encountered')
+                        throw new Error('CascadeGraph error, empty strongly-connected-component encountered')
                     }
+                    //
+                    // TODO: Refactor for more generalized case, where processing occurs on stronglyConnectedComponents
+                    // simultaneously
+                    //
+                    if (stronglyConnectedComponent.length > 1) {
+                        throw new Error('CascadeGraph error, circular dependency encountered')
+                    }
+                    const key = stronglyConnectedComponent[0]
+
+                    //
+                    // Wait for all needed prior results to have their promises evaluated (which will
+                    // result in their data being assigned into the workspace graph) so that their data
+                    // is available for next stage processing.
+                    //
                     const dependencyEdges = this._template.edges
                         .filter(({ to }) => (stronglyConnectedComponent.includes(to)))
                         .filter(({ from }) => (!stronglyConnectedComponent.includes(from)))
@@ -92,8 +110,20 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
                             resultPromises[stronglyConnectedComponentRepresentative]
                         ))
                         .filter((results) => (typeof results !== 'undefined'))
-                    const dependencyResults: Previous[] = (await Promise.all(dependencyResultPromises)).filter((results) => (typeof results !== 'undefined')) as Previous[]
-                    return await callback({ keys: stronglyConnectedComponent, previous: dependencyResults })
+                    await Promise.all(dependencyResultPromises)
+
+                    const nodeTemplateData = this._template.nodes[key]
+                    if (typeof nodeTemplateData === 'undefined') {
+                        throw new Error('CascadeGraph error, internal key call out of bounds')
+                    }
+                    return await this._process({
+                            template: nodeTemplateData,
+                            fetch: workspace._working.nodes[key] as { key: KeyType } & NodeFetchData,
+                            priors: []
+                        }).then((results: NodeWorkingData) => {
+                            workspace._working.setNode(key, { key, ...results })
+                            return results
+                        })
                 })()
             }
         }
