@@ -36,7 +36,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
             fetch: NodeFetchData;
             priors: CascadeGraphPriorResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>[];
         }) => Promise<NodeWorkingData>;
-    _aggregate: (graph: CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>) => Promise<CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>>;
+    _aggregate?: (graph: CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>) => Promise<CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>>;
 
     constructor(props: {
         template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>;
@@ -46,7 +46,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
                 fetch: NodeFetchData;
                 priors: CascadeGraphPriorResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>[];
             }) => Promise<NodeWorkingData>;
-        aggregate: (graph: CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>) => Promise<CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>>;
+        aggregate?: (graph: CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>) => Promise<CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>>;
     }) {
         this._template = props.template
         this._fetch = props.fetch
@@ -117,9 +117,14 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
                         throw new Error('CascadeGraph error, internal key call out of bounds')
                     }
                     return await this._process({
-                            template: nodeTemplateData,
+                            template: nodeTemplateData as { key: KeyType } & NodeTemplateData,
                             fetch: workspace._working.nodes[key] as { key: KeyType } & NodeFetchData,
-                            priors: []
+                            priors: dependencyEdges.map(({ from, to, ...edge }) => ({
+                                key: from,
+                                fetch: workspace._working.nodes[from] as { key: KeyType } & NodeFetchData,
+                                edge: edge as unknown as EdgeTemplateData,
+                                result: workspace._working.nodes[from] as NodeWorkingData,
+                            }))
                         }).then((results: NodeWorkingData) => {
                             workspace._working.setNode(key, { key, ...results })
                             return results
@@ -130,3 +135,5 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
         await Promise.all(Object.values(resultPromises))
     }
 }
+
+export default CascadeGraph
