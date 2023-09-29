@@ -8,7 +8,7 @@ type CascadeGraphWorkingResultUnfinished<KeyType extends string, NodeTemplateDat
 
 type CascadeGraphWorkingResultFinished<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends{}, EdgeTemplateData extends {}, NodeWorkingData extends {}> = {
     key: KeyType;
-    fetch: NodeFetchData;
+    fetch?: NodeFetchData;
     result: NodeWorkingData;
 }
 
@@ -23,9 +23,14 @@ type CascadeGraphPriorResult<KeyType extends string, NodeTemplateData extends {}
     edge: EdgeTemplateData;
 }
 
+type CascadeGraphBaseTemplate = {
+    needsFetch?: boolean;
+    needsProcessing?: boolean;
+}
+
 export class CascadeGraphWorkspace<
         KeyType extends string,
-        NodeTemplateData extends {},
+        NodeTemplateData extends CascadeGraphBaseTemplate,
         NodeFetchData extends {},
         EdgeTemplateData extends {},
         NodeWorkingData extends {}
@@ -47,7 +52,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
     _fetch: (nodes: KeyType[]) => Promise<({ key: KeyType } & NodeFetchData)[]>;
     _process: (props: {
             template: { key: KeyType } & NodeTemplateData;
-            fetch: NodeFetchData;
+            fetch?: NodeFetchData;
             priors: CascadeGraphPriorResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>[];
         }) => Promise<NodeWorkingData>;
     _aggregate?: (graph: CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>) => Promise<CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>>;
@@ -57,7 +62,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
         fetch: (nodes: KeyType[]) => Promise<({ key: KeyType } & NodeFetchData)[]>;
         process: (props: {
                 template: { key: KeyType } & NodeTemplateData;
-                fetch: NodeFetchData;
+                fetch?: NodeFetchData;
                 priors: CascadeGraphPriorResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>[];
             }) => Promise<NodeWorkingData>;
         aggregate?: (graph: CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>) => Promise<CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>>;
@@ -80,6 +85,9 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
             template: this._template,
         })
         for (const generation of generationOrderOutput) {
+            //
+            // TODO: 
+            //
             const fetchedNodes = await this._fetch(unique(generation.flat(1)))
             fetchedNodes.forEach(({ key, ...nodeData }) => {
                 workspace._working.setNode(key, { key, fetch: nodeData as unknown as NodeFetchData })

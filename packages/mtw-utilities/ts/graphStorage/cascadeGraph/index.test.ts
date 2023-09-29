@@ -38,7 +38,7 @@ describe('CascadeGraph', () => {
         const testCall = (key: string, priors: { key: string; value: string }[] = []) => ({
             template: { key },
             fetch: { value: `Value-${key}`},
-            priors: priors.map(({ key, value }) => ({ key, edge: {}, fetch: {}, result: { value } }))
+            priors: priors.map(({ key, value }) => ({ key, edge: {}, fetch: { value: `Value-${key}` }, result: { value } }))
         })
         expect(process).toHaveBeenCalledTimes(6)
         expect(process).toHaveBeenCalledWith(testCall('B'))
