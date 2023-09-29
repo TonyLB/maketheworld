@@ -50,6 +50,11 @@ export class CascadeGraphWorkspace<
 export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends {}, EdgeTemplateData extends {}, NodeWorkingData extends {}> {
     _template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>
     _fetch: (nodes: KeyType[]) => Promise<({ key: KeyType } & NodeFetchData)[]>;
+    _unprocessed: (props: {
+        template: { key: KeyType } & NodeTemplateData;
+        fetch?: NodeFetchData;
+        priors: CascadeGraphPriorResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>[];
+    }) => NodeWorkingData;
     _process: (props: {
             template: { key: KeyType } & NodeTemplateData;
             fetch?: NodeFetchData;
@@ -60,6 +65,11 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
     constructor(props: {
         template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>;
         fetch: (nodes: KeyType[]) => Promise<({ key: KeyType } & NodeFetchData)[]>;
+        unprocessed: (props: {
+            template: { key: KeyType } & NodeTemplateData;
+            fetch?: NodeFetchData;
+            priors: CascadeGraphPriorResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>[];
+        }) => NodeWorkingData;
         process: (props: {
                 template: { key: KeyType } & NodeTemplateData;
                 fetch?: NodeFetchData;
@@ -69,6 +79,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
     }) {
         this._template = props.template
         this._fetch = props.fetch
+        this._unprocessed = props.unprocessed
         this._process = props.process
         this._aggregate = props.aggregate
     }
@@ -86,7 +97,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
         })
         for (const generation of generationOrderOutput) {
             //
-            // TODO: 
+            // TODO: Refactor fetchedNodes to only get those with needsFetch set
             //
             const fetchedNodes = await this._fetch(unique(generation.flat(1)))
             fetchedNodes.forEach(({ key, ...nodeData }) => {
@@ -134,6 +145,9 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
                     if (typeof nodeFetchData === 'undefined' || typeof nodeTemplateData === 'undefined') {
                         throw new Error('CascadeGraph error, internal key call out of bounds')
                     }
+                    //
+                    // TODO: Refactor process to only run on nodes with needsProcessing set true
+                    //
                     return await this._process({
                             template: nodeTemplateData as { key: KeyType } & NodeTemplateData,
                             fetch: nodeFetchData,

@@ -32,6 +32,7 @@ describe('CascadeGraph', () => {
         const cascadeGraph = new CascadeGraph({
             template,
             fetch,
+            unprocessed: ({ fetch }) => (fetch || {}),
             process
         })
         await cascadeGraph.execute()
@@ -45,6 +46,46 @@ describe('CascadeGraph', () => {
         expect(process).toHaveBeenCalledWith(testCall('A'))
         expect(process).toHaveBeenCalledWith(testCall('C', [{ key: 'A', value: 'A::A' }, { key: 'B', value: 'B::B' }]))
         expect(process).toHaveBeenCalledWith(testCall('D', [{ key: 'C', value: 'C::C' }]))
+        expect(process).toHaveBeenCalledWith(testCall('E', [{ key: 'D', value: 'D::D' }]))
+        expect(process).toHaveBeenCalledWith(testCall('F', [{ key: 'D', value: 'D::D' }]))
+    })
+
+    it('should respect needsFetch and needsProcess options', async () => {
+        const testEdges = [
+            { from: 'A', to: 'C' },
+            { from: 'B', to: 'C' },
+            { from: 'C', to: 'D' },
+            { from: 'D', to: 'E' },
+            { from: 'D', to: 'F' }
+        ]
+        const fetch = jest.fn().mockImplementation(async (keys) => (keys.map((key) => ({ key, value: `Value-${key}` }))))
+        const process = jest.fn().mockImplementation(async ({ template }) => ({ value: `${template.key}::${template.key}` }))
+        const taggedTestNodes = {
+            A: { key: 'A', needsProcessing: false },
+            B: { key: 'B', needsProcessing: false },
+            C: { key: 'C', needsFetch: false },
+            D: { key: 'D' },
+            E: { key: 'E' },
+            F: { key: 'F' },
+        }
+        const template = new Graph(testNodes, testEdges, {},  true)
+        const cascadeGraph = new CascadeGraph({
+            template,
+            fetch,
+            unprocessed: ({ fetch }) => (fetch || {}),
+            process
+        })
+        await cascadeGraph.execute()
+        const testCall = (key: string, priors: { key: string; value: string; fetch?: boolean }[] = [], fetch: boolean = true ) => ({
+            template: { key },
+            fetch: fetch ? { value: `Value-${key}`} : {},
+            priors: priors.map(({ key, value, fetch = true }) => ({ key, edge: {}, fetch: fetch ? { value: `Value-${key}` } : {}, result: { value } }))
+        })
+        expect(process).toHaveBeenCalledTimes(6)
+        expect(process).toHaveBeenCalledWith(testCall('B'))
+        expect(process).toHaveBeenCalledWith(testCall('A'))
+        expect(process).toHaveBeenCalledWith(testCall('C', [{ key: 'A', value: 'Value-A' }, { key: 'B', value: 'Value-B' }], false))
+        expect(process).toHaveBeenCalledWith(testCall('D', [{ key: 'C', value: 'C::C', fetch: false }]))
         expect(process).toHaveBeenCalledWith(testCall('E', [{ key: 'D', value: 'D::D' }]))
         expect(process).toHaveBeenCalledWith(testCall('F', [{ key: 'D', value: 'D::D' }]))
     })
