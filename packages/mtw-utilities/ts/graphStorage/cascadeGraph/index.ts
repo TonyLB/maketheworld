@@ -1,12 +1,26 @@
-import { unique } from "../../lists";
-import { objectMap } from "../../objects";
-import { Graph } from "../utils/graph";
+import { unique } from "../../lists"
+import { Graph } from "../utils/graph"
 
-type CascadeGraphPriorResult<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends{}, EdgeTemplateData extends {}, NodeWorkingData extends {}> = {
+type CascadeGraphWorkingResultUnfinished<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends{}, EdgeTemplateData extends {}, NodeWorkingData extends {}> = {
     key: KeyType;
-    edge: EdgeTemplateData;
+    fetch?: NodeFetchData;
+}
+
+type CascadeGraphWorkingResultFinished<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends{}, EdgeTemplateData extends {}, NodeWorkingData extends {}> = {
+    key: KeyType;
     fetch: NodeFetchData;
     result: NodeWorkingData;
+}
+
+type CascadeGraphWorkingResult<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends{}, EdgeTemplateData extends {}, NodeWorkingData extends {}> =
+    CascadeGraphWorkingResultUnfinished<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData> |
+    CascadeGraphWorkingResultFinished<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>
+
+const isCascadeGraphWorkingFinished = <KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends{}, EdgeTemplateData extends {}, NodeWorkingData extends {}>
+    (item: CascadeGraphWorkingResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>): item is CascadeGraphWorkingResultFinished<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData> => ('result' in item && typeof item.result !== 'undefined')
+
+type CascadeGraphPriorResult<KeyType extends string, NodeTemplateData extends {}, NodeFetchData extends{}, EdgeTemplateData extends {}, NodeWorkingData extends {}> = CascadeGraphWorkingResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData> & {
+    edge: EdgeTemplateData;
 }
 
 export class CascadeGraphWorkspace<
@@ -17,7 +31,7 @@ export class CascadeGraphWorkspace<
         NodeWorkingData extends {}
     > {
     _template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>;
-    _working: Graph<KeyType, { key: KeyType } & ({} | NodeFetchData | (NodeFetchData & NodeWorkingData)), {}>;
+    _working: Graph<KeyType, CascadeGraphWorkingResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>, {}>;
 
     constructor(props: {
         template: Graph<KeyType, { key: KeyType } & NodeTemplateData, EdgeTemplateData>;
@@ -61,11 +75,6 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
             {}
         )
 
-        //
-        // TODO: Refactor code borrowed from sortedWalk to:
-        //    - fetch all nodes in the current generation
-        //    - Create a promise to process each stronglyConnectedComponent
-        //
         let resultPromises: Partial<Record<KeyType, Promise<NodeWorkingData>>> = {}
         const workspace = new CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>({
             template: this._template,
@@ -73,7 +82,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
         for (const generation of generationOrderOutput) {
             const fetchedNodes = await this._fetch(unique(generation.flat(1)))
             fetchedNodes.forEach(({ key, ...nodeData }) => {
-                workspace._working.setNode(key, { key, ...nodeData })
+                workspace._working.setNode(key, { key, fetch: nodeData as unknown as NodeFetchData })
             })
             for (const stronglyConnectedComponent of generation) {
                 //
@@ -113,20 +122,27 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends {}, N
                     await Promise.all(dependencyResultPromises)
 
                     const nodeTemplateData = this._template.nodes[key]
-                    if (typeof nodeTemplateData === 'undefined') {
+                    const nodeFetchData = workspace._working.nodes[key]?.fetch
+                    if (typeof nodeFetchData === 'undefined' || typeof nodeTemplateData === 'undefined') {
                         throw new Error('CascadeGraph error, internal key call out of bounds')
                     }
                     return await this._process({
                             template: nodeTemplateData as { key: KeyType } & NodeTemplateData,
-                            fetch: workspace._working.nodes[key] as { key: KeyType } & NodeFetchData,
-                            priors: dependencyEdges.map(({ from, to, ...edge }) => ({
-                                key: from,
-                                fetch: workspace._working.nodes[from] as { key: KeyType } & NodeFetchData,
-                                edge: edge as unknown as EdgeTemplateData,
-                                result: workspace._working.nodes[from] as NodeWorkingData,
-                            }))
+                            fetch: nodeFetchData,
+                            priors: dependencyEdges.map(({ from, to, ...edge }) => {
+                                const workingItem = workspace._working.nodes[from]
+                                if (!(workingItem && isCascadeGraphWorkingFinished(workingItem))) {
+                                    throw new Error('CascadeGraph error, dependent item has not been worked')
+                                }
+                                return {
+                                    key: from,
+                                    fetch: workingItem.fetch,
+                                    edge: edge as unknown as EdgeTemplateData,
+                                    result: workingItem.result
+                                }
+                            })
                         }).then((results: NodeWorkingData) => {
-                            workspace._working.setNode(key, { key, ...results })
+                            workspace._working.setNode(key, { key, result: results })
                             return results
                         })
                 })()

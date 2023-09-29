@@ -26,8 +26,8 @@ describe('CascadeGraph', () => {
             { from: 'D', to: 'E' },
             { from: 'D', to: 'F' }
         ]
-        const fetch = jest.fn().mockImplementation(async (keys) => (keys.map((key) => ({ key }))))
-        const process = jest.fn().mockImplementation(async ({ fetch }) => ({ value: `${fetch.key}::${fetch.key}` }))
+        const fetch = jest.fn().mockImplementation(async (keys) => (keys.map((key) => ({ key, value: `Value-${key}` }))))
+        const process = jest.fn().mockImplementation(async ({ template }) => ({ value: `${template.key}::${template.key}` }))
         const template = new Graph(testNodes, testEdges, {},  true)
         const cascadeGraph = new CascadeGraph({
             template,
@@ -35,7 +35,11 @@ describe('CascadeGraph', () => {
             process
         })
         await cascadeGraph.execute()
-        const testCall = (key: string, priors: { key: string; value: string }[] = []) => ({ template: { key }, fetch: { key }, priors: priors.map(({ key, value }) => ({ key, edge: {}, fetch: { key, value }, result: { key, value } })) })
+        const testCall = (key: string, priors: { key: string; value: string }[] = []) => ({
+            template: { key },
+            fetch: { value: `Value-${key}`},
+            priors: priors.map(({ key, value }) => ({ key, edge: {}, fetch: {}, result: { value } }))
+        })
         expect(process).toHaveBeenCalledTimes(6)
         expect(process).toHaveBeenCalledWith(testCall('B'))
         expect(process).toHaveBeenCalledWith(testCall('A'))
