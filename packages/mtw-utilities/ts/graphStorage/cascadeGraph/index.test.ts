@@ -68,7 +68,7 @@ describe('CascadeGraph', () => {
             E: { key: 'E' },
             F: { key: 'F' },
         }
-        const template = new Graph(testNodes, testEdges, {},  true)
+        const template = new Graph(taggedTestNodes, testEdges, {},  true)
         const cascadeGraph = new CascadeGraph({
             template,
             fetch,
@@ -77,13 +77,11 @@ describe('CascadeGraph', () => {
         })
         await cascadeGraph.execute()
         const testCall = (key: string, priors: { key: string; value: string; fetch?: boolean }[] = [], fetch: boolean = true ) => ({
-            template: { key },
-            fetch: fetch ? { value: `Value-${key}`} : {},
-            priors: priors.map(({ key, value, fetch = true }) => ({ key, edge: {}, fetch: fetch ? { value: `Value-${key}` } : {}, result: { value } }))
+            template: Object.assign({ key }, fetch ? {} : { needsFetch: false }),
+            fetch: fetch ? { value: `Value-${key}`} : undefined,
+            priors: priors.map(({ key, value, fetch = true }) => ({ key, edge: {}, fetch: fetch ? { value: `Value-${key}` } : undefined, result: { value } }))
         })
-        expect(process).toHaveBeenCalledTimes(6)
-        expect(process).toHaveBeenCalledWith(testCall('B'))
-        expect(process).toHaveBeenCalledWith(testCall('A'))
+        expect(process).toHaveBeenCalledTimes(4)
         expect(process).toHaveBeenCalledWith(testCall('C', [{ key: 'A', value: 'Value-A' }, { key: 'B', value: 'Value-B' }], false))
         expect(process).toHaveBeenCalledWith(testCall('D', [{ key: 'C', value: 'C::C', fetch: false }]))
         expect(process).toHaveBeenCalledWith(testCall('E', [{ key: 'D', value: 'D::D' }]))
