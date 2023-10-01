@@ -141,7 +141,7 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends Casca
                             return {
                                 key: from,
                                 fetch: workingItem.fetch,
-                                edge: edge as unknown as EdgeTemplateData,
+                                edge: edge.data || {} as unknown as EdgeTemplateData,
                                 result: workingItem.result
                             }
                         })

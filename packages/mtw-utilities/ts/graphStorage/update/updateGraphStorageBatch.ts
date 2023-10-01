@@ -11,7 +11,7 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
     fetchedNodes.forEach(({ PrimaryKey, ...nodeCache }) => (graph.setNode(PrimaryKey, { key: PrimaryKey, ...nodeCache })))
 
     const checkUpdateAgainstCurrent = (graph: GraphOfUpdates, edge: GraphEdge<string, GraphOfUpdatesEdge>, direction: 'forward' | 'back' ) => {
-        const { context, action } = edge
+        const { context, data: { action } = {} } = edge
         const { from, to } = direction === 'forward' ? { from: edge.from, to: edge.to } : { from: edge.to, to: edge.from }
         const perfectDuplicate = (graph.nodes[from]?.[direction]?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext === context))
         const nearDuplicate = (graph.nodes[from]?.[direction]?.edges || []).find(({ target, context: checkContext }) => (target === to && checkContext !== context))
@@ -39,7 +39,7 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
         return subGraphs
     }
 
-    graph.edges = graph.edges.filter(({ action, from, to, context }) => (action === 'put' || graph.nodes[from]?.forward?.edges.find(({ target, context: checkContext }) => (target === to && context === checkContext))))
+    graph.edges = graph.edges.filter(({ data: { action } = {}, from, to, context }) => (action === 'put' || graph.nodes[from]?.forward?.edges.find(({ target, context: checkContext }) => (target === to && context === checkContext))))
 
     graph.edges.forEach((edge) => {
         checkUpdateAgainstCurrent(graph, edge, 'forward')
@@ -57,12 +57,12 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
             let deleteItems: string[] = []
             switch(direction) {
                 case 'forward':
-                    addItems = graph.edges.filter(({ from, action }) => (action === 'put' && from === key)).map(({ to, context }) => (`${to}${context ? `::${context}` : ''}`))
-                    deleteItems = graph.edges.filter(({ from, action }) => (action === 'delete' && from === key)).map(({ to, context }) => (`${to}${context ? `::${context}` : ''}`))
+                    addItems = graph.edges.filter(({ from, data: { action } = {} }) => (action === 'put' && from === key)).map(({ to, context }) => (`${to}${context ? `::${context}` : ''}`))
+                    deleteItems = graph.edges.filter(({ from, data: { action } = {} }) => (action === 'delete' && from === key)).map(({ to, context }) => (`${to}${context ? `::${context}` : ''}`))
                     break
                 case 'back':
-                    addItems = graph.edges.filter(({ to, action }) => (action === 'put' && to === key)).map(({ from, context }) => (`${from}${context ? `::${context}` : ''}`))
-                    deleteItems = graph.edges.filter(({ to, action }) => (action === 'delete' && to === key)).map(({ from, context }) => (`${from}${context ? `::${context}` : ''}`))
+                    addItems = graph.edges.filter(({ to, data: { action } = {} }) => (action === 'put' && to === key)).map(({ from, context }) => (`${from}${context ? `::${context}` : ''}`))
+                    deleteItems = graph.edges.filter(({ to, data: { action } = {} }) => (action === 'delete' && to === key)).map(({ from, context }) => (`${from}${context ? `::${context}` : ''}`))
                     break
             }
             if (addItems.length === 0 && deleteItems.length === 0) {
@@ -89,7 +89,7 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
         const moment = Date.now()
         const nodeList = Object.values(subGraph.nodes) as GraphOfUpdatesNode[]
 
-        const batchWrites = subGraph.edges.map(({ from, to, context, action, ...rest }) => (
+        const batchWrites = subGraph.edges.map(({ from, to, context, data: { action, ...rest } = {} }) => (
             action === 'put'
             ? {
                 PutRequest: {

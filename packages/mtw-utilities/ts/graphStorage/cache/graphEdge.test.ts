@@ -19,9 +19,9 @@ describe('GraphEdge cache', () => {
 
     it('should batch-get everything in an empty cache', async () => {
         dbHandler.getItems.mockResolvedValue([
-            { PrimaryKey: 'A', DataCategory: 'Edge::B' },
-            { PrimaryKey: 'A', DataCategory: 'Edge::C' },
-            { PrimaryKey: 'B', DataCategory: 'Edge::C' }
+            { PrimaryKey: 'A', DataCategory: 'Graph::B' },
+            { PrimaryKey: 'A', DataCategory: 'Graph::C' },
+            { PrimaryKey: 'B', DataCategory: 'Graph::C' }
         ])
         const results = await internalCache.Edges.get([
             { from: 'A', to: 'B' },
@@ -30,40 +30,72 @@ describe('GraphEdge cache', () => {
         ])
         expect(dbHandler.getItems).toHaveBeenCalledWith({
             Keys: [
-                { PrimaryKey: 'A', DataCategory: 'Edge::B' },
-                { PrimaryKey: 'A', DataCategory: 'Edge::C' },
-                { PrimaryKey: 'B', DataCategory: 'Edge::C' },
+                { PrimaryKey: 'A', DataCategory: 'Graph::B' },
+                { PrimaryKey: 'A', DataCategory: 'Graph::C' },
+                { PrimaryKey: 'B', DataCategory: 'Graph::C' },
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory']
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'data']
         })
         expect(results).toEqual([
             {
-                key: 'A::B',
+                from: 'A',
+                to: 'B'
+            },
+            {
+                from: 'A',
+                to: 'C'
+            },
+            {
+                from: 'B',
+                to: 'C'
+            },
+        ])
+    })
+
+
+    it('should load edge with data payload', async () => {
+        dbHandler.getItems.mockResolvedValue([
+            { PrimaryKey: 'A', DataCategory: 'Graph::B', data: { scopedId: 'a' } },
+            { PrimaryKey: 'A', DataCategory: 'Graph::C', data: { scopedId: 'a' } },
+            { PrimaryKey: 'B', DataCategory: 'Graph::C' }
+        ])
+        const results = await internalCache.Edges.get([
+            { from: 'A', to: 'B' },
+            { from: 'A', to: 'C' },
+            { from: 'B', to: 'C' },
+        ])
+        expect(dbHandler.getItems).toHaveBeenCalledWith({
+            Keys: [
+                { PrimaryKey: 'A', DataCategory: 'Graph::B' },
+                { PrimaryKey: 'A', DataCategory: 'Graph::C' },
+                { PrimaryKey: 'B', DataCategory: 'Graph::C' },
+            ],
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'data']
+        })
+        expect(results).toEqual([
+            {
                 from: 'A',
                 to: 'B',
-                data: {}
+                data: { scopedId: 'a' }
             },
             {
-                key: 'A::C',
                 from: 'A',
                 to: 'C',
-                data: {}
+                data: { scopedId: 'a' }
             },
             {
-                key: 'B::C',
                 from: 'B',
-                to: 'C',
-                data: {}
+                to: 'C'
             },
         ])
     })
 
     it('should batch-get only as needed when cache has content', async () => {
         dbHandler.getItems.mockResolvedValueOnce([
-            { PrimaryKey: 'A', DataCategory: 'Edge::B' },
-            { PrimaryKey: 'A', DataCategory: 'Edge::C' }
+            { PrimaryKey: 'A', DataCategory: 'Graph::B' },
+            { PrimaryKey: 'A', DataCategory: 'Graph::C' }
         ]).mockResolvedValueOnce([
-            { PrimaryKey: 'B', DataCategory: 'Edge::C' }
+            { PrimaryKey: 'B', DataCategory: 'Graph::C' }
         ])
         const results = await internalCache.Edges.get([
             { from: 'A', to: 'B' },
@@ -71,23 +103,19 @@ describe('GraphEdge cache', () => {
         ])
         expect(dbHandler.getItems).toHaveBeenCalledWith({
             Keys: [
-                { PrimaryKey: 'A', DataCategory: 'Edge::B' },
-                { PrimaryKey: 'A', DataCategory: 'Edge::C' }
+                { PrimaryKey: 'A', DataCategory: 'Graph::B' },
+                { PrimaryKey: 'A', DataCategory: 'Graph::C' }
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory']
+            ProjectionFields: ['PrimaryKey', 'DataCategory' ,'data']
         })
         expect(results).toEqual([
             {
-                key: 'A::B',
                 from: 'A',
-                to: 'B',
-                data: {}
+                to: 'B'
             },
             {
-                key: 'A::C',
                 from: 'A',
-                to: 'C',
-                data: {}
+                to: 'C'
             }
         ])
         const secondResult = await internalCache.Edges.get([
@@ -96,22 +124,18 @@ describe('GraphEdge cache', () => {
         ])
         expect(dbHandler.getItems).toHaveBeenCalledWith({
             Keys: [
-                { PrimaryKey: 'B', DataCategory: 'Edge::C' }
+                { PrimaryKey: 'B', DataCategory: 'Graph::C' }
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory']
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'data']
         })
         expect(secondResult).toEqual([
             {
-                key: 'A::C',
                 from: 'A',
-                to: 'C',
-                data: {}
+                to: 'C'
             },
             {
-                key: 'B::C',
                 from: 'B',
-                to: 'C',
-                data: {}
+                to: 'C'
             },
         ])
     })

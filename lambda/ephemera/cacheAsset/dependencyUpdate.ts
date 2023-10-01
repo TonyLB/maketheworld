@@ -28,12 +28,12 @@ const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (Ephe
     isEphemeraMapId(EphemeraId)
 )
 
-const dependencyExtractor = ({ dependencies }: { dependencies: EphemeraItemDependency[] }): { target: EphemeraId; scopedId?: string }[] => (
-    dependencies.map(({ EphemeraId, key }) => (isEphemeraId(EphemeraId) ? [{ target: EphemeraId, scopedId: key }]: [])).flat()
+const dependencyExtractor = ({ dependencies }: { dependencies: EphemeraItemDependency[] }): { target: EphemeraId; data?: { scopedId?: string } }[] => (
+    dependencies.map(({ EphemeraId, key }) => (isEphemeraId(EphemeraId) ? [{ target: EphemeraId, data: { scopedId: key } }]: [])).flat()
 )
 
-const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): { target: EphemeraId; scopedId?: string }[] => {
-    const returnValue = values.reduce<{ target: EphemeraId; scopedId?: string }[]>((previous, item) => {
+const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): { target: EphemeraId; data?: { scopedId?: string } }[] => {
+    const returnValue = values.reduce<{ target: EphemeraId; data?: { scopedId?: string } }[]>((previous, item) => {
         if (item.tag === 'Condition') {
             return [
                 ...previous,
@@ -63,12 +63,12 @@ const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): {
 //
 // TODO: ISS3039: Refactor output to { target: EphemeraId; scopedId?: string }[]
 //
-const extractDependenciesFromEphemeraItem = (item: EphemeraItem): { target: EphemeraId; scopedId?: string }[] => {
+const extractDependenciesFromEphemeraItem = (item: EphemeraItem): { target: EphemeraId; data?: { scopedId?: string } }[] => {
     if (!isEphemeraInternallyBacklinked(item.EphemeraId)) {
         return []
     }
     if (isEphemeraComputedItem(item)) {
-        return item.dependencies.map(({ EphemeraId, key }) => (isEphemeraId(EphemeraId) ? [{ target: EphemeraId, scopedId: key }]: [])).flat()
+        return item.dependencies.map(({ EphemeraId, key }) => (isEphemeraId(EphemeraId) ? [{ target: EphemeraId, data: { scopedId: key } }]: [])).flat()
     }
     if (isEphemeraMapItem(item)) {
         return unique(
@@ -110,7 +110,7 @@ const assetBacklink = (context: string) => (item: EphemeraItem) => {
         return {
             target: AssetKey(context),
             context,
-            scopedId: item.key
+            data: { scopedId: item.key  }
         }
     }
     return { target: AssetKey(context), context }
