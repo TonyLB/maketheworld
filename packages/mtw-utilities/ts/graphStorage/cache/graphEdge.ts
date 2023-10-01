@@ -1,5 +1,6 @@
 import { Constructor, DBHandlerBase, DBHandlerLegalKey } from "../../dynamoDB/baseClasses";
 import withGetOperations from "../../dynamoDB/mixins/get";
+import { GraphEdge } from "../utils/graph/baseClasses"
 import { CacheConstructor, GraphDBHandler } from "./baseClasses";
 import { DeferredCache } from "./deferredCache";
 
@@ -7,15 +8,11 @@ type GraphEdgeKey<K extends string> = `${K}::${K}` | `${K}::${K}::${string}`
 
 export type GraphEdgeCache <K extends string, D extends {}> = {
     key: GraphEdgeKey<K>;
-    from: K;
-    to: K;
-    context: string;
-    data: D;
-}
+} & GraphEdge<K, D>
 
 type DBHandlerBatchGetReturn <K extends string, D extends {}> = {
     PrimaryKey: K;
-    DataCategory: `Edge::${K | `${K}::${string}`}`;
+    DataCategory: `Graph::${K | `${K}::${string}`}`;
 } & D
 
 export class GraphEdgeData <K extends string, DBH extends GraphDBHandler, D extends {}> {
@@ -53,11 +50,11 @@ export class GraphEdgeData <K extends string, DBH extends GraphDBHandler, D exte
         this._Cache.invalidate(key)
     }
 
-    async get(PrimaryKeys: { from: K; to: K, context?: string }[]): Promise<GraphEdgeCache<K, D>[]> {
+    async get(PrimaryKeys: { from: K; to: K, context?: string }[]): Promise<GraphEdge<K, D>[]> {
         this._Cache.add({
             promiseFactory: async (keys: GraphEdgeKey<K>[]): Promise<DBHandlerBatchGetReturn<K, D>[]> => {
-                return await this._dbHandler.getItems<{ PrimaryKey: K; DataCategory: `Edge::${K | `${K}::${string}`}` } & Partial<D>>({
-                    Keys: keys.map((key) => ({ PrimaryKey: key.split('::')[0], DataCategory: `Edge::${key.split('::').slice(1).join('::')}` })),
+                return await this._dbHandler.getItems<{ PrimaryKey: K; DataCategory: `Graph::${K | `${K}::${string}`}` } & Partial<D>>({
+                    Keys: keys.map((key) => ({ PrimaryKey: key.split('::')[0], DataCategory: `Graph::${key.split('::').slice(1).join('::')}` })),
                     ProjectionFields: ['PrimaryKey', 'DataCategory']
                 }) as DBHandlerBatchGetReturn<K, D>[]
             },
@@ -71,7 +68,7 @@ export class GraphEdgeData <K extends string, DBH extends GraphDBHandler, D exte
                         ...previous,
                         [key]: {
                             key,
-                            from: item.PrimaryKey as K,
+                            from: item.PrimaryKey,
                             to: item.DataCategory.split('::')[1],
                             context: context ? context : undefined,
                             data: rest as unknown as D
@@ -81,12 +78,13 @@ export class GraphEdgeData <K extends string, DBH extends GraphDBHandler, D exte
                 return combinedValue
             }
         })
-        return await Promise.all(PrimaryKeys.map((key) => (this._Cache.get(`${key.from}::${key.to}${key.context ? `::${key.context}` as const : ''}` as const))))
+        return (await Promise.all(PrimaryKeys.map((key) => (this._Cache.get(`${key.from}::${key.to}${key.context ? `::${key.context}` as const : ''}` as const)))))
+            .map(({ key, ...rest }) => (rest as GraphEdge<K, D>))
     }
 
 }
 
-export const GraphEdge = <K extends string, D extends {}, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends CacheConstructor>(Base: GBase) => {
+export const GraphEdgeClass = <K extends string, D extends {}, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends CacheConstructor>(Base: GBase) => {
     return class GraphEdgeCache extends Base {
         Edges: GraphEdgeData<K, DBH, D>;
 
@@ -107,4 +105,4 @@ export const GraphEdge = <K extends string, D extends {}, DBH extends GraphDBHan
     }
 }
 
-export default GraphEdge
+export default GraphEdgeClass

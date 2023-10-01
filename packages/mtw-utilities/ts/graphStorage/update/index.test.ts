@@ -98,7 +98,7 @@ describe('GraphUpdate', () => {
             C: { key: 'C' }
         })
         expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
-            { from: 'A', to: 'C', context: 'test', action: 'put' }
+            { from: 'A', to: 'C', context: 'test', data: { action: 'put' } }
         ])
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'back')
@@ -127,7 +127,7 @@ describe('GraphUpdate', () => {
             C: { key: 'C' }
         })
         expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
-            { from: 'A', to: 'C', context: 'test', action: 'delete' }
+            { from: 'A', to: 'C', context: 'test', data: { action: 'delete' } }
         ])
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'back')
@@ -160,9 +160,9 @@ describe('GraphUpdate', () => {
             D: { key: 'D' }
         })
         expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
-            { from: 'A', to: 'B', context: 'testTwo', action: 'put' },
-            { from: 'A', to: 'D', context: 'test', action: 'put' },
-            { from: 'A', to: 'C', context: 'test', action: 'delete' }
+            { from: 'A', to: 'B', context: 'testTwo', data: { action: 'put' } },
+            { from: 'A', to: 'D', context: 'test', data: { action: 'put' } },
+            { from: 'A', to: 'C', context: 'test', data: { action: 'delete' } }
         ])
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B', 'back')
@@ -198,9 +198,9 @@ describe('GraphUpdate', () => {
             D: { key: 'D' }
         })
         expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
-            { to: 'A', from: 'B', context: 'testTwo', action: 'put' },
-            { to: 'A', from: 'D', context: 'test', action: 'put' },
-            { to: 'A', from: 'C', context: 'test', action: 'delete' }
+            { to: 'A', from: 'B', context: 'testTwo', data: { action: 'put' } },
+            { to: 'A', from: 'D', context: 'test', data: { action: 'put' } },
+            { to: 'A', from: 'C', context: 'test', data: { action: 'delete' } }
         ])
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'back')
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B', 'forward')
@@ -235,8 +235,8 @@ describe('GraphUpdate', () => {
             D: { key: 'D' }
         })
         expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
-            { from: 'A', to: 'D', context: 'test', action: 'put' },
-            { from: 'A', to: 'C', context: 'test', action: 'delete' }
+            { from: 'A', to: 'D', context: 'test', data: { action: 'put' } },
+            { from: 'A', to: 'C', context: 'test', data: { action: 'delete' } }
         ])
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('C', 'back')
@@ -294,8 +294,8 @@ describe('GraphUpdate', () => {
             C: { key: 'C' }
         })
         expect(updateGraphStorageInternalMock.mock.calls[0][0].edges).toEqual([
-            { from: 'A', to: 'C', context: 'test', action: 'delete' },
-            { from: 'B', to: 'C', context: 'test', action: 'put' }
+            { from: 'A', to: 'C', context: 'test', data: { action: 'delete' } },
+            { from: 'B', to: 'C', context: 'test', data: { action: 'put' } }
         ])
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('A', 'forward')
         expect(internalCache.Nodes.invalidate).toHaveBeenCalledWith('B', 'forward')

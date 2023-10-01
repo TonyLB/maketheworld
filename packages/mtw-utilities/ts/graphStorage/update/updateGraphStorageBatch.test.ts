@@ -6,7 +6,7 @@ import withPrimitives from '../../dynamoDB/mixins/primitives'
 import { GraphEdgeData } from '../cache/graphEdge'
 import { GraphCacheData } from '../cache'
 import { Graph } from '../utils/graph'
-import { GraphStorageDBH } from './baseClasses'
+import GraphOfUpdates, { GraphStorageDBH } from './baseClasses'
 import { marshall } from '@aws-sdk/util-dynamodb'
 
 const internalCacheNodeSet = jest.fn()
@@ -75,7 +75,7 @@ describe('updateGraphStorageBatch', () => {
 
     it('should correctly add disjoint edges', async () => {
         internalCache.Nodes.get.mockResolvedValue([])
-        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new GraphOfUpdates(
             {
                 'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
                 'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
@@ -83,8 +83,8 @@ describe('updateGraphStorageBatch', () => {
                 'ASSET#ImportFour': { key: 'ASSET#ImportFour' }
             },
             [
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'put' },
-                { from: 'ASSET#ImportThree', to: 'ASSET#ImportFour', context: 'ASSET', action: 'put' }
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', data: { action: 'put' } },
+                { from: 'ASSET#ImportThree', to: 'ASSET#ImportFour', context: 'ASSET', data: { action: 'put' } }
             ],
             {},
             true
@@ -108,16 +108,16 @@ describe('updateGraphStorageBatch', () => {
 
     it('should correctly add connecting edges', async () => {
         internalCache.Nodes.get.mockResolvedValue([])
-        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new GraphOfUpdates(
             {
                 'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
                 'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
                 'ASSET#ImportThree': { key: 'ASSET#ImportThree' }
             },
             [
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'put' },
-                { from: 'ASSET#ImportTwo', to: 'ASSET#ImportThree', context: 'ASSET', action: 'put' },
-                { from: 'ASSET#ImportThree', to: 'ASSET#ImportOne', context: 'ASSET', action: 'put' }
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', data: { action: 'put' } },
+                { from: 'ASSET#ImportTwo', to: 'ASSET#ImportThree', context: 'ASSET', data: { action: 'put' } },
+                { from: 'ASSET#ImportThree', to: 'ASSET#ImportOne', context: 'ASSET', data: { action: 'put' } }
             ],
             {},
             true
@@ -142,14 +142,14 @@ describe('updateGraphStorageBatch', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'TEST' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new GraphOfUpdates(
             {
                 'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
                 'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' }
             },
             [
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'put' },
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'DifferentAsset', action: 'put' }
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', data: { action: 'put' } },
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'DifferentAsset', data: { action: 'put' } }
             ],
             {},
             true
@@ -171,7 +171,7 @@ describe('updateGraphStorageBatch', () => {
             { PrimaryKey: 'ASSET#ImportThree', forward: { edges: [{ target: 'ASSET#ImportFour', context: 'ASSET' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportFour', back: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] }, forward: { edges: [] } },
         ])
-        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new GraphOfUpdates(
             {
                 'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
                 'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
@@ -179,8 +179,8 @@ describe('updateGraphStorageBatch', () => {
                 'ASSET#ImportFour': { key: 'ASSET#ImportFour' }
             },
             [
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'delete' },
-                { from: 'ASSET#ImportThree', to: 'ASSET#ImportFour', context: 'ASSET', action: 'delete' }
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', data: { action: 'delete' } },
+                { from: 'ASSET#ImportThree', to: 'ASSET#ImportFour', context: 'ASSET', data: { action: 'delete' } }
             ],
             {},
             true
@@ -204,15 +204,15 @@ describe('updateGraphStorageBatch', () => {
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }] }, forward: { edges: [{ target: 'ASSET#ImportThree', context: 'ASSET' }] } },
             { PrimaryKey: 'ASSET#ImportThree', back: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new GraphOfUpdates(
             {
                 'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
                 'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
                 'ASSET#ImportThree': { key: 'ASSET#ImportThree' }
             },
             [
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'delete' },
-                { from: 'ASSET#ImportTwo', to: 'ASSET#ImportThree', context: 'ASSET', action: 'delete' }
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', data: { action: 'delete' } },
+                { from: 'ASSET#ImportTwo', to: 'ASSET#ImportThree', context: 'ASSET', data: { action: 'delete' } }
             ],
             {},
             true
@@ -234,13 +234,13 @@ describe('updateGraphStorageBatch', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }, { target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }, { target: 'ASSET#ImportOne', context: 'TEST' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new GraphOfUpdates(
             {
                 'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
                 'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' }
             },
             [
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'delete' }
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', data: { action: 'delete' } }
             ],
             {},
             true
@@ -260,14 +260,14 @@ describe('updateGraphStorageBatch', () => {
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'ASSET' }, { target: 'ASSET#ImportTwo', context: 'ASSETTWO' }] }, back: { edges: [] } },
             { PrimaryKey: 'ASSET#ImportTwo', back: { edges: [{ target: 'ASSET#ImportOne', context: 'ASSET' }, { target: 'ASSET#ImportOne', context: 'ASSETTWO' }] }, forward: { edges: [] } }
         ])
-        await updateGraphStorageBatch({ internalCache, dbHandler })(new Graph(
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new GraphOfUpdates(
             {
                 'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
                 'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
             },
             [
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'TEST', action: 'delete' },
-                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', action: 'delete' }
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'TEST', data: { action: 'delete' } },
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', data: { action: 'delete' } }
             ],
             {},
             true

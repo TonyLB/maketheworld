@@ -2,7 +2,7 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 import { unique } from '../../lists';
 import { extractConstrainedTag } from '../../types';
 import { Graph } from '../utils/graph';
-import { GraphEdge } from '../utils/graph/baseClasses';
+import { GraphEdge, edgeToCacheKey } from '../utils/graph/baseClasses';
 import { isLegalDependencyTag, GraphDBHandler } from './baseClasses'
 import GraphEdgeCache, { GraphEdgeData } from './graphEdge';
 import GraphNode, { GraphNodeCacheEdge, GraphNodeData } from './graphNode';
@@ -17,6 +17,10 @@ type GraphCacheDataNodeType<K extends string> = {
     invalidatedAt?: number;
 }
 
+type GraphCacheOptions = {
+    fetchEdges?: boolean;
+}
+
 export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D extends {}> {
     _Edges: GraphEdgeData<K, DBH, D>;
     _Nodes: GraphNodeData<K, DBH>;
@@ -29,8 +33,8 @@ export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D ext
         this._dbHandler = dbhHandler
     }
 
-    async _getIterate(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = []): Promise<Graph<K, GraphCacheDataNodeType<K>, { context?: string} & D>> {
-        const nodesFetch = (await this._Nodes.get(nodes))
+    async _getIterate(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = [], options: GraphCacheOptions = {}): Promise<Graph<K, GraphCacheDataNodeType<K>, { context?: string} & D>> {
+        const nodesFetch = await this._Nodes.get(nodes)
         const rootGraph = new Graph<K, GraphCacheDataNodeType<K>, D>(
             nodesFetch.reduce<Record<K, GraphCacheDataNodeType<K>>>((previous, node) => ({
                 ...previous,
@@ -59,14 +63,22 @@ export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D ext
             ...nodeCache[direction].edges
                 .map(({ target, context }) => ({ from: nodeCache.PrimaryKey, to: target, context } as unknown as GraphEdge<K, D>))
         ]), [])
+        //
+        // TODO: Refactor Graph to use edges as declared in graphEdge (with data as a separate item, rather than merged into
+        // the record at top level)
+        //
         if (newTargets.length) {
-            //
-            // Prefetch child nodes in batch to facilitate graph calculations
-            //
-            const subGraph = await this._getIterate(newTargets, direction, [...previouslyVisited, ...nodes])
-            return rootGraph.merge([subGraph], aggregateEdges)
+            const [subGraph, finalEdges] = await Promise.all([
+                this._getIterate(newTargets, direction, [...previouslyVisited, ...nodes]),
+                options.fetchEdges ? this._Edges.get(aggregateEdges) : Promise.resolve(aggregateEdges)
+            ])
+            return rootGraph.merge([subGraph], finalEdges)
         }
         else {
+            if (options.fetchEdges) {
+                const finalEdges = await this._Edges.get(aggregateEdges)
+                return rootGraph.merge([], finalEdges)
+            }
             return rootGraph.merge([], aggregateEdges)
         }
 
@@ -81,7 +93,7 @@ export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D ext
         const updateCachePromise = (async () => {
             await Promise.all((Object.values(returnValue.nodes) as GraphCacheDataNodeType<K>[])
                 .map(async (node) => {
-                    const edgeToString = ({ from, to, context }: GraphEdge<K, { context?: string }>): string => (`${from}::${to}${context ? `::${context}`: ''}`)
+                    const edgeToString = ({ from, to, context }: Omit<GraphEdge<K, {}>, 'data'>): string => (`${from}::${to}${context ? `::${context}`: ''}`)
                     const newCache = returnValue.restrict({ fromRoots: [node.key] }).edges.map(edgeToString).sort()
                     if (!(node.cache && deepEqual(newCache, [...node.cache].map(edgeToString).sort()))) {
                         await this._dbHandler.primitiveUpdate({

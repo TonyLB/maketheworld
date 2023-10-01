@@ -57,13 +57,13 @@ export class GraphUpdate<C extends InstanceType<ReturnType<ReturnType<typeof Gra
                         .filter((edge) => (!currentEdges.find((checkEdge) => (checkEdge.target === edge.target && checkEdge.context === edge.context))))
                         .forEach(({ target, context, ...rest }) => {
                             const { from, to } = direction === 'forward' ? { from: itemId, to: target } : { from: target, to: itemId }
-                            graph.addEdge({ from, to, context, action: 'put', ...rest })
+                            graph.addEdge({ from, to, context, data: { action: 'put', ...rest } })
                         })
                     currentEdges
                         .filter((edge) => (!edges.find((checkEdge) => (checkEdge.target === edge.target && checkEdge.context === edge.context))))
                         .forEach((edge) => {
                             const { from, to } = direction === 'forward' ? { from: itemId, to: edge.target } : { from: edge.target, to: itemId }
-                            graph.addEdge({ from, to, context: edge.context, action: 'delete' })
+                            graph.addEdge({ from, to, context: edge.context, data: { action: 'delete' } })
                         })
                 })
         )

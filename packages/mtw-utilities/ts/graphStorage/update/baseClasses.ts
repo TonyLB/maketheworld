@@ -16,7 +16,6 @@ export type GraphOfUpdatesNode = Partial<Omit<GraphNodeResult<string>, 'PrimaryK
 }
 
 export type GraphOfUpdatesEdge = {
-    context: string;
     action: 'put' | 'delete';
 }
 
