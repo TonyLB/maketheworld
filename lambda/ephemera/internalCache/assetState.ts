@@ -1,7 +1,9 @@
 import {
     EphemeraComputedId,
     EphemeraVariableId,
+    isEphemeraAssetId,
     isEphemeraComputedId,
+    isEphemeraId,
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
@@ -10,9 +12,12 @@ import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
-import CacheGraph, { GraphCacheType } from './graph';
+import CacheGraph, { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
 import ComponentMeta, { ComponentMetaData } from './componentMeta';
 import { objectMap } from '../lib/objects';
+import internalCache from '.';
+import { GraphNodeData } from '@tonylb/mtw-utilities/dist/graphStorage/cache/graphNode';
+import { GraphEdgeData } from '@tonylb/mtw-utilities/dist/graphStorage/cache/graphEdge';
 
 export type StateItemId = EphemeraVariableId | EphemeraComputedId
 export const isStateItemId = (item: string): item is StateItemId => (isEphemeraVariableId(item) || isEphemeraComputedId(item))
@@ -169,56 +174,52 @@ export class EvaluateCodeData {
 }
 
 class AssetMap {
-    _Graph: GraphCacheType;
-    _ComponentMeta: ComponentMetaData;
-    constructor(Graph: GraphCacheType, ComponentMeta: ComponentMetaData) {
-        this._Graph = Graph
-        this._ComponentMeta = ComponentMeta
+    _GraphNodes: GraphNodeType;
+    _GraphEdges: GraphEdgeType;
+    constructor(GraphNodes: GraphNodeType, GraphEdges: GraphEdgeType) {
+        this._GraphNodes = GraphNodes
+        this._GraphEdges = GraphEdges
     }
 
     //
     // TODO: ISS-2750: Refactor AssetMap get to rely on key data from Graph edges rather than lookup
     //
     async get(EphemeraId: string): Promise<AssetStateMapping> {
-        if (extractConstrainedTag(isLegalDependencyTag)(EphemeraId) === 'Asset') {
-            const [computedLookups, variableLookups] = await Promise.all([
-                ephemeraDB.query<{ EphemeraId: string; DataCategory: string; key: string; }>({
-                    IndexName: 'DataCategoryIndex',
-                    Key: { DataCategory: EphemeraId },
-                    KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
-                    ExpressionAttributeValues: {
-                        ':ephemeraPrefix': 'COMPUTED'
-                    },
-                    ProjectionFields: ['key', 'EphemeraId']
-                }),
-                ephemeraDB.query<{ EphemeraId: string; DataCategory: string; key: string; }>({
-                    IndexName: 'DataCategoryIndex',
-                    Key: { DataCategory: EphemeraId },
-                    KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
-                    ExpressionAttributeValues: {
-                        ':ephemeraPrefix': 'VARIABLE'
-                    },
-                    ProjectionFields: ['key', 'EphemeraId']
-                })
-            ])
-            return [...computedLookups, ...variableLookups].reduce<Record<string, StateItemId>>((previous, { EphemeraId, key }) => (
-                (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
-                    ? { ...previous, [key]: EphemeraId }
+        if (isEphemeraAssetId(EphemeraId)) {
+            const [assetNodeLookup] = await this._GraphNodes.get([EphemeraId])
+            const edgesToLookup = assetNodeLookup.forward.edges.map(({ target, context }) => ({
+                from: EphemeraId,
+                to: target,
+                context
+            }))
+            const fetchedEdges = await this._GraphEdges.get(edgesToLookup)
+            return fetchedEdges.reduce<Record<string, StateItemId>>((previous, { to, data: { scopedId } = {} }) => (
+                (scopedId && (isStateItemId(to)))
+                    ? { ...previous, [scopedId]: to }
                     : previous
             ), {})
         }
         else {
-            const ancestryGraph = await this._Graph.get([EphemeraId], 'back')
-            const dependentItems = ancestryGraph.edges
-                .filter(({ from }) => (from === EphemeraId))
-                .map(({ to, context }) => ({ to, context }))
-            const componentItems = await Promise.all(dependentItems.map(async (dependentItem) => (this._ComponentMeta.get(dependentItem.to as EphemeraVariableId | EphemeraComputedId, dependentItem.context || ''))))
-            return componentItems.reduce<AssetStateMapping>((previous, componentMeta) => (componentMeta ? { ...previous, [componentMeta.key]: componentMeta.EphemeraId } : previous), {})
+            if (!isEphemeraId(EphemeraId)) {
+                throw new Error(`EphemeraId error (${EphemeraId})`)
+            }
+            const [itemNodeLookup] = await this._GraphNodes.get([EphemeraId])
+            const edgesToLookup = itemNodeLookup.back.edges.map(({ target, context }) => ({
+                to: EphemeraId,
+                from: target,
+                context
+            }))
+            const fetchedEdges = await this._GraphEdges.get(edgesToLookup)
+            return fetchedEdges.reduce<Record<string, StateItemId>>((previous, { from, data: { scopedId } = {} }) => (
+                (scopedId && (isStateItemId(from)))
+                    ? { ...previous, [scopedId]: from }
+                    : previous
+            ), {})
         }
     }
 }
 
-export const AssetState = <GBase extends ReturnType<typeof CacheGraph> & ReturnType<typeof ComponentMeta>>(Base: GBase) => {
+export const AssetState = <GBase extends ReturnType<typeof CacheGraph>>(Base: GBase) => {
     return class AssetState extends Base {
         StateCache: StateData
         AssetState: AssetStateData
@@ -230,7 +231,7 @@ export const AssetState = <GBase extends ReturnType<typeof CacheGraph> & ReturnT
             this.StateCache = new StateData((EphemeraId) => { this._invalidateAssetCallback(EphemeraId) })
             this.AssetState = new AssetStateData(this.StateCache)
             this.EvaluateCode = new EvaluateCodeData(this.AssetState)
-            this.AssetMap = new AssetMap(this.Graph, this.ComponentMeta)
+            this.AssetMap = new AssetMap(this.GraphNodes, this.GraphEdges)
         }
         override clear() {
             this.StateCache.clear()

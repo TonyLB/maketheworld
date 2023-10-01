@@ -441,7 +441,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
             .map(ephemeraExtractor)
             .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
     
-        const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
+        const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache as any, dbHandler: graphStorageDB })
 
         await mergeIntoEphemera(assetId, ephemeraItems, graphUpdate)
 
