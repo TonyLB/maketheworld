@@ -13,7 +13,8 @@ export type GraphEdgeCache <K extends string, D extends {}> = {
 type DBHandlerBatchGetReturn <K extends string, D extends {}> = {
     PrimaryKey: K;
     DataCategory: `Graph::${K | `${K}::${string}`}`;
-} & D
+    data?: D
+}
 
 export class GraphEdgeData <K extends string, DBH extends GraphDBHandler, D extends {}> {
     _Cache: DeferredCache<GraphEdgeCache<K, D>, GraphEdgeKey<K>>;
@@ -53,25 +54,25 @@ export class GraphEdgeData <K extends string, DBH extends GraphDBHandler, D exte
     async get(PrimaryKeys: { from: K; to: K, context?: string }[]): Promise<GraphEdge<K, D>[]> {
         this._Cache.add({
             promiseFactory: async (keys: GraphEdgeKey<K>[]): Promise<DBHandlerBatchGetReturn<K, D>[]> => {
-                return await this._dbHandler.getItems<{ PrimaryKey: K; DataCategory: `Graph::${K | `${K}::${string}`}` } & Partial<D>>({
+                return await this._dbHandler.getItems<DBHandlerBatchGetReturn<K, D>>({
                     Keys: keys.map((key) => ({ PrimaryKey: key.split('::')[0], DataCategory: `Graph::${key.split('::').slice(1).join('::')}` })),
-                    ProjectionFields: ['PrimaryKey', 'DataCategory']
-                }) as DBHandlerBatchGetReturn<K, D>[]
+                    ProjectionFields: ['PrimaryKey', 'DataCategory', 'data']
+                })
             },
             requiredKeys: PrimaryKeys.map(({ from, to, context }) => (`${from}::${to}${context ? `::${context}` as const : ''}` as const)),
             transform: (items: DBHandlerBatchGetReturn<K, D>[]): Record<string, GraphEdgeCache<K, D>> => {
                 const combinedValue = items.reduce<Record<string, GraphEdgeCache<K, D>>>((previous, item) => {
-                    const { PrimaryKey, DataCategory, ...rest } = item
-                    const key = `${item.PrimaryKey}::${item.DataCategory.split('::').slice(1).join('::')}`
-                    const context = item.DataCategory.split('::').slice(2).join('::')
+                    const { PrimaryKey, DataCategory, data } = item
+                    const key = `${PrimaryKey}::${DataCategory.split('::').slice(1).join('::')}`
+                    const context = DataCategory.split('::').slice(2).join('::')
                     return {
                         ...previous,
                         [key]: {
                             key,
-                            from: item.PrimaryKey,
-                            to: item.DataCategory.split('::')[1],
+                            from: PrimaryKey,
+                            to: DataCategory.split('::')[1],
                             context: context ? context : undefined,
-                            data: rest as unknown as D
+                            data
                         } as GraphEdgeCache<K, D>
                     }
                 }, {})

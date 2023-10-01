@@ -34,23 +34,20 @@ describe('GraphEdge cache', () => {
                 { PrimaryKey: 'A', DataCategory: 'Graph::C' },
                 { PrimaryKey: 'B', DataCategory: 'Graph::C' },
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory']
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'data']
         })
         expect(results).toEqual([
             {
                 from: 'A',
-                to: 'B',
-                data: {}
+                to: 'B'
             },
             {
                 from: 'A',
-                to: 'C',
-                data: {}
+                to: 'C'
             },
             {
                 from: 'B',
-                to: 'C',
-                data: {}
+                to: 'C'
             },
         ])
     })
@@ -58,8 +55,8 @@ describe('GraphEdge cache', () => {
 
     it('should load edge with data payload', async () => {
         dbHandler.getItems.mockResolvedValue([
-            { PrimaryKey: 'A', DataCategory: 'Graph::B', scopedId: 'a' },
-            { PrimaryKey: 'A', DataCategory: 'Graph::C', scopedId: 'a' },
+            { PrimaryKey: 'A', DataCategory: 'Graph::B', data: { scopedId: 'a' } },
+            { PrimaryKey: 'A', DataCategory: 'Graph::C', data: { scopedId: 'a' } },
             { PrimaryKey: 'B', DataCategory: 'Graph::C' }
         ])
         const results = await internalCache.Edges.get([
@@ -73,7 +70,7 @@ describe('GraphEdge cache', () => {
                 { PrimaryKey: 'A', DataCategory: 'Graph::C' },
                 { PrimaryKey: 'B', DataCategory: 'Graph::C' },
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory']
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'data']
         })
         expect(results).toEqual([
             {
@@ -88,8 +85,7 @@ describe('GraphEdge cache', () => {
             },
             {
                 from: 'B',
-                to: 'C',
-                data: {}
+                to: 'C'
             },
         ])
     })
@@ -110,18 +106,16 @@ describe('GraphEdge cache', () => {
                 { PrimaryKey: 'A', DataCategory: 'Graph::B' },
                 { PrimaryKey: 'A', DataCategory: 'Graph::C' }
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory']
+            ProjectionFields: ['PrimaryKey', 'DataCategory' ,'data']
         })
         expect(results).toEqual([
             {
                 from: 'A',
-                to: 'B',
-                data: {}
+                to: 'B'
             },
             {
                 from: 'A',
-                to: 'C',
-                data: {}
+                to: 'C'
             }
         ])
         const secondResult = await internalCache.Edges.get([
@@ -132,18 +126,16 @@ describe('GraphEdge cache', () => {
             Keys: [
                 { PrimaryKey: 'B', DataCategory: 'Graph::C' }
             ],
-            ProjectionFields: ['PrimaryKey', 'DataCategory']
+            ProjectionFields: ['PrimaryKey', 'DataCategory', 'data']
         })
         expect(secondResult).toEqual([
             {
                 from: 'A',
-                to: 'C',
-                data: {}
+                to: 'C'
             },
             {
                 from: 'B',
-                to: 'C',
-                data: {}
+                to: 'C'
             },
         ])
     })
