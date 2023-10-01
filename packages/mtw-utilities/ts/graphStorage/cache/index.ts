@@ -33,7 +33,7 @@ export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D ext
         this._dbHandler = dbhHandler
     }
 
-    async _getIterate(nodes: K[], direction: 'forward' | 'back', previouslyVisited: K[] = [], options: GraphCacheOptions = {}): Promise<Graph<K, GraphCacheDataNodeType<K>, { context?: string} & D>> {
+    async _getIterate(nodes: K[], direction: 'forward' | 'back', options: GraphCacheOptions = {}, previouslyVisited: K[] = []): Promise<Graph<K, GraphCacheDataNodeType<K>, { context?: string} & D>> {
         const nodesFetch = await this._Nodes.get(nodes)
         const rootGraph = new Graph<K, GraphCacheDataNodeType<K>, D>(
             nodesFetch.reduce<Record<K, GraphCacheDataNodeType<K>>>((previous, node) => ({
@@ -69,7 +69,7 @@ export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D ext
         //
         if (newTargets.length) {
             const [subGraph, finalEdges] = await Promise.all([
-                this._getIterate(newTargets, direction, [...previouslyVisited, ...nodes]),
+                this._getIterate(newTargets, direction, options, [...previouslyVisited, ...nodes]),
                 options.fetchEdges ? this._Edges.get(aggregateEdges) : Promise.resolve(aggregateEdges)
             ])
             return rootGraph.merge([subGraph], finalEdges)
@@ -84,8 +84,8 @@ export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D ext
 
     }
 
-    async get(nodes: K[], direction: 'forward' | 'back'): Promise<Graph<K, { key: K }, D & { context?: string }>> {
-        const returnValue = await this._getIterate(nodes, direction)
+    async get(nodes: K[], direction: 'forward' | 'back', options: GraphCacheOptions = {}): Promise<Graph<K, { key: K }, D & { context?: string }>> {
+        const returnValue = await this._getIterate(nodes, direction, options)
 
         const moment = Date.now()
         const capitalize = (value: string) => ([value.slice(0, 1).toUpperCase(), value.slice(1)].join(''))

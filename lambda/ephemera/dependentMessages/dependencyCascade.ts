@@ -23,13 +23,7 @@ type DependencyCascadeMessage = {
 
 export const dependencyCascade = async ({ payloads, messageBus }: { payloads: DependencyCascadeMessage[]; messageBus: MessageBus }): Promise<void> => {
 
-    const descentGraph = await internalCache.Graph.get(payloads.map(({ targetId }) => (targetId)), 'forward')
-
-    //
-    // TODO: Create an extended graph that includes the descentGraph, as well as all non-cascaded dependencies.
-    //   Make the extended graph suitable for passing to CascadeGraph (i.e., set needsFetch and needsProcessing
-    //   arguments appropriately).
-    //
+    const descentGraph = await internalCache.Graph.get(payloads.map(({ targetId }) => (targetId)), 'forward', { fetchEdges: true })
 
     //
     // Find all the items that will not be cascaded (Variables in or out of the Graph, and Computes from outside
