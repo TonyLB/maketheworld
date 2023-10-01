@@ -137,6 +137,34 @@ describe('updateGraphStorageBatch', () => {
         ])
     })
 
+    it('should correctly add edges with data payload', async () => {
+        internalCache.Nodes.get.mockResolvedValue([])
+        await updateGraphStorageBatch({ internalCache, dbHandler })(new GraphOfUpdates(
+            {
+                'ASSET#ImportOne': { key: 'ASSET#ImportOne' },
+                'ASSET#ImportTwo': { key: 'ASSET#ImportTwo' },
+                'ASSET#ImportThree': { key: 'ASSET#ImportThree' },
+                'ASSET#ImportFour': { key: 'ASSET#ImportFour' }
+            },
+            [
+                { from: 'ASSET#ImportOne', to: 'ASSET#ImportTwo', context: 'ASSET', data: { action: 'put', scopedId: 'a' } },
+                { from: 'ASSET#ImportThree', to: 'ASSET#ImportFour', context: 'ASSET', data: { action: 'put', scopedId: 'b' } }
+            ],
+            {},
+            true
+        ))
+
+        expect(setOperation).toHaveBeenCalledTimes(4)
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportTwo::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::Forward' }, addItems: ['ASSET#ImportFour::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportTwo', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportOne::ASSET'], invalidate: true }))
+        expect(setOperation).toHaveBeenCalledWith(testSetOperation({ Key: { PrimaryKey: 'ASSET#ImportFour', DataCategory: 'Graph::Back' }, addItems: ['ASSET#ImportThree::ASSET'], invalidate: true }))
+        expect(batchWriteDispatcher).toHaveBeenCalledWith([
+            { PutRequest: { PrimaryKey: 'ASSET#ImportOne', DataCategory: 'Graph::ASSET#ImportTwo::ASSET', scopedId: 'a' } },
+            { PutRequest: { PrimaryKey: 'ASSET#ImportThree', DataCategory: 'Graph::ASSET#ImportFour::ASSET', scopedId: 'b' } }
+        ])
+    })
+
     it('should store edges with different context separately', async () => {
         internalCache.Nodes.get.mockResolvedValue([
             { PrimaryKey: 'ASSET#ImportOne', forward: { edges: [{ target: 'ASSET#ImportTwo', context: 'TEST' }] }, back: { edges: [] } },

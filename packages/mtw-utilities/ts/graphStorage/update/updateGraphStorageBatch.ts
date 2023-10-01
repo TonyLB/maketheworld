@@ -89,7 +89,7 @@ export const updateGraphStorageBatch = <C extends InstanceType<ReturnType<Return
         const moment = Date.now()
         const nodeList = Object.values(subGraph.nodes) as GraphOfUpdatesNode[]
 
-        const batchWrites = subGraph.edges.map(({ from, to, context, data: { action } = {}, ...rest }) => (
+        const batchWrites = subGraph.edges.map(({ from, to, context, data: { action, ...rest } = {} }) => (
             action === 'put'
             ? {
                 PutRequest: {

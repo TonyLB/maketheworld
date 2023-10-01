@@ -17,6 +17,7 @@ export type GraphOfUpdatesNode = Partial<Omit<GraphNodeResult<string>, 'PrimaryK
 
 export type GraphOfUpdatesEdge = {
     action: 'put' | 'delete';
+    scopedId?: string;
 }
 
 export type GraphStorageDBH = InstanceType<ReturnType<ReturnType<typeof withGetOperations<'PrimaryKey'>>>> &

@@ -55,6 +55,45 @@ describe('GraphEdge cache', () => {
         ])
     })
 
+
+    it('should load edge with data payload', async () => {
+        dbHandler.getItems.mockResolvedValue([
+            { PrimaryKey: 'A', DataCategory: 'Graph::B', scopedId: 'a' },
+            { PrimaryKey: 'A', DataCategory: 'Graph::C', scopedId: 'a' },
+            { PrimaryKey: 'B', DataCategory: 'Graph::C' }
+        ])
+        const results = await internalCache.Edges.get([
+            { from: 'A', to: 'B' },
+            { from: 'A', to: 'C' },
+            { from: 'B', to: 'C' },
+        ])
+        expect(dbHandler.getItems).toHaveBeenCalledWith({
+            Keys: [
+                { PrimaryKey: 'A', DataCategory: 'Graph::B' },
+                { PrimaryKey: 'A', DataCategory: 'Graph::C' },
+                { PrimaryKey: 'B', DataCategory: 'Graph::C' },
+            ],
+            ProjectionFields: ['PrimaryKey', 'DataCategory']
+        })
+        expect(results).toEqual([
+            {
+                from: 'A',
+                to: 'B',
+                data: { scopedId: 'a' }
+            },
+            {
+                from: 'A',
+                to: 'C',
+                data: { scopedId: 'a' }
+            },
+            {
+                from: 'B',
+                to: 'C',
+                data: {}
+            },
+        ])
+    })
+
     it('should batch-get only as needed when cache has content', async () => {
         dbHandler.getItems.mockResolvedValueOnce([
             { PrimaryKey: 'A', DataCategory: 'Graph::B' },
