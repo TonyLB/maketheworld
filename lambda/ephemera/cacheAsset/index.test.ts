@@ -27,7 +27,7 @@ import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 //
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
-const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<typeof internalCacheMock._graphCache, string>>
+const GraphUpdateMock = GraphUpdate as jest.Mock<GraphUpdate<any, string>>
 
 let mockTestAsset: NormalForm = {
     'Import-0': {

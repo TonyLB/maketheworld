@@ -8,6 +8,7 @@ import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 describe('StateCache', () => {
+    let graphNodesMock
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -210,12 +211,19 @@ describe('EvaluateCode', () => {
 describe('AssetMap', () => {
     let graphGetMock = jest.fn()
     let componentMetaMock = jest.fn()
+    let graphNodesMock = jest.fn()
+    let graphEdgesMock = jest.fn()
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         internalCache.clear()
+        graphNodesMock.mockClear()
+        graphEdgesMock.mockClear()
+        graphGetMock.mockClear()
         jest.spyOn(internalCache.AssetMap._Graph, "get").mockImplementation(graphGetMock)
+        jest.spyOn(internalCache.GraphNodes, 'get').mockImplementation(graphNodesMock)
+        jest.spyOn(internalCache.GraphEdges, 'get').mockImplementation(graphEdgesMock)
         componentMetaMock.mockImplementation(async (ephemeraId: string) => {
             return {
                 EphemeraId: ephemeraId,
@@ -230,14 +238,14 @@ describe('AssetMap', () => {
     })
 
     it('should fetch graph ancestry information as needed on a computed argument', async () => {
-        graphGetMock.mockReturnValue(new Graph<string, { key: string }, { context: string }>({
+        graphGetMock.mockReturnValue(new Graph<string, { key: string }, { scopedId?: string }>({
                 'COMPUTED#testOne': { key: 'COMPUTED#testOne' },
                 'VARIABLE#argOne': { key: 'VARIABLE#argOne' },
                 'VARIABLE#argTwo': { key: 'VARIABLE#argTwo' }
             },
             [
-                { from: 'COMPUTED#testOne', to: 'VARIABLE#argOne', context: 'TestAsset' },
-                { from: 'COMPUTED#testOne', to: 'VARIABLE#argTwo', context: 'TestAsset' }
+                { from: 'COMPUTED#testOne', to: 'VARIABLE#argOne', context: 'TestAsset', data: { scopedId: 'a' } },
+                { from: 'COMPUTED#testOne', to: 'VARIABLE#argTwo', context: 'TestAsset', data: { scopedId: 'b' } }
             ],
             true
         ))
@@ -250,44 +258,27 @@ describe('AssetMap', () => {
     })
 
     it('should query per-asset information on an asset argument', async () => {
-        ephemeraMock.query.mockResolvedValueOnce([
-            { EphemeraId: 'COMPUTED#testOne', DataCategory: 'ASSET#Base', key: 'one' },
-            { EphemeraId: 'COMPUTED#testTwo', DataCategory: 'ASSET#Base', key: 'two' }
-        ]).mockResolvedValueOnce([
-            { EphemeraId: 'VARIABLE#testThree', DataCategory: 'ASSET#Base', key: 'three' }
+        graphNodesMock.mockResolvedValue([{
+            forward: {
+                edges: [
+                    { from: 'ASSET#Base', to: 'COMPUTED#testOne', context: 'Base' },
+                    { from: 'ASSET#Base', to: 'COMPUTED#testTwo', context: 'Base' },
+                    { from: 'ASSET#Base', to: 'VARIABLE#testThree', context: 'Base' },
+                    { from: 'ASSET#Base', to: 'ROOM#testFour', context: 'Base' }
+                ]
+            }
+        }])
+        graphEdgesMock.mockResolvedValue([
+            { from: 'ASSET#Base', to: 'COMPUTED#testOne', context: 'Base', data: { scopedId: 'one' } },
+            { from: 'ASSET#Base', to: 'COMPUTED#testTwo', context: 'Base', data: { scopedId: 'two' } },
+            { from: 'ASSET#Base', to: 'VARIABLE#testThree', context: 'Base', data: { scopedId: 'three' } },
+            { from: 'ASSET#Base', to: 'ROOM#testFour', context: 'Base', data: { scopedId: 'four' } }    
         ])
-        graphGetMock.mockReturnValue(new Graph<string, { key: string }, { context: string }>({
-                'COMPUTED#testOne': { key: 'COMPUTED#testOne' },
-                'VARIABLE#argOne': { key: 'VARIABLE#argOne' },
-                'VARIABLE#argTwo': { key: 'VARIABLE#argTwo' }
-            },
-            [
-                { from: 'COMPUTED#testOne', to: 'VARIABLE#argOne', context: 'TestAsset' },
-                { from: 'COMPUTED#testOne', to: 'VARIABLE#argTwo', context: 'TestAsset' }
-            ],
-            true
-        ))
 
         const output = await internalCache.AssetMap.get('ASSET#Base')
-        expect(ephemeraMock.query).toHaveBeenCalledTimes(2)
-        expect(ephemeraMock.query).toHaveBeenCalledWith({
-            IndexName: 'DataCategoryIndex',
-            Key: { DataCategory: 'ASSET#Base' },
-            KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
-            ExpressionAttributeValues: {
-                ':ephemeraPrefix': 'COMPUTED'
-            },
-            ProjectionFields: ['key', 'EphemeraId']
-        })
-        expect(ephemeraMock.query).toHaveBeenCalledWith({
-            IndexName: 'DataCategoryIndex',
-            Key: { DataCategory: 'ASSET#Base' },
-            KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
-            ExpressionAttributeValues: {
-                ':ephemeraPrefix': 'VARIABLE'
-            },
-            ProjectionFields: ['key', 'EphemeraId']
-        })
+        expect(ephemeraMock.query).toHaveBeenCalledTimes(0)
+        expect(graphNodesMock).toHaveBeenCalledTimes(1)
+        expect(graphNodesMock).toHaveBeenCalledWith(['ASSET#Base'])
         expect(output).toEqual({ one: 'COMPUTED#testOne', two: 'COMPUTED#testTwo', three: 'VARIABLE#testThree' })
     })
 

@@ -120,7 +120,7 @@ export class GraphCacheData <K extends string, DBH extends GraphDBHandler, D ext
     }
 }
 
-export const GraphCache = <K extends string, D extends {}, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdgeCache<K, D, DBH>>>>(Base: GBase) => {
+export const GraphCache = <K extends string, D extends { scopedId?: string }, DBH extends GraphDBHandler>(dbHandler: DBH) => <GBase extends ReturnType<ReturnType<typeof GraphNode<K, DBH>>> & ReturnType<ReturnType<typeof GraphEdgeCache<K, D, DBH>>>>(Base: GBase) => {
     return class GraphCache extends Base {
         Graph: GraphCacheData<K, DBH, D>;
 

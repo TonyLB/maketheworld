@@ -1,7 +1,9 @@
 import {
     EphemeraComputedId,
     EphemeraVariableId,
+    isEphemeraAssetId,
     isEphemeraComputedId,
+    isEphemeraId,
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
@@ -13,6 +15,7 @@ import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
 import CacheGraph, { GraphCacheType } from './graph';
 import ComponentMeta, { ComponentMetaData } from './componentMeta';
 import { objectMap } from '../lib/objects';
+import internalCache from '.';
 
 export type StateItemId = EphemeraVariableId | EphemeraComputedId
 export const isStateItemId = (item: string): item is StateItemId => (isEphemeraVariableId(item) || isEphemeraComputedId(item))
@@ -180,34 +183,24 @@ class AssetMap {
     // TODO: ISS-2750: Refactor AssetMap get to rely on key data from Graph edges rather than lookup
     //
     async get(EphemeraId: string): Promise<AssetStateMapping> {
-        if (extractConstrainedTag(isLegalDependencyTag)(EphemeraId) === 'Asset') {
-            const [computedLookups, variableLookups] = await Promise.all([
-                ephemeraDB.query<{ EphemeraId: string; DataCategory: string; key: string; }>({
-                    IndexName: 'DataCategoryIndex',
-                    Key: { DataCategory: EphemeraId },
-                    KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
-                    ExpressionAttributeValues: {
-                        ':ephemeraPrefix': 'COMPUTED'
-                    },
-                    ProjectionFields: ['key', 'EphemeraId']
-                }),
-                ephemeraDB.query<{ EphemeraId: string; DataCategory: string; key: string; }>({
-                    IndexName: 'DataCategoryIndex',
-                    Key: { DataCategory: EphemeraId },
-                    KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
-                    ExpressionAttributeValues: {
-                        ':ephemeraPrefix': 'VARIABLE'
-                    },
-                    ProjectionFields: ['key', 'EphemeraId']
-                })
-            ])
-            return [...computedLookups, ...variableLookups].reduce<Record<string, StateItemId>>((previous, { EphemeraId, key }) => (
-                (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
-                    ? { ...previous, [key]: EphemeraId }
+        if (isEphemeraAssetId(EphemeraId)) {
+            const [assetNodeLookup] = await internalCache.GraphNodes.get([EphemeraId])
+            const edgesToLookup = assetNodeLookup.forward.edges.map(({ target, context }) => ({
+                from: EphemeraId,
+                to: target,
+                context
+            }))
+            const fetchedEdges = await internalCache.GraphEdges.get(edgesToLookup)
+            return fetchedEdges.reduce<Record<string, StateItemId>>((previous, { to, data: { scopedId } = {} }) => (
+                (scopedId && (isStateItemId(to)))
+                    ? { ...previous, [scopedId]: to }
                     : previous
             ), {})
         }
         else {
+            if (!isEphemeraId(EphemeraId)) {
+                throw new Error(`EphemeraId error (${EphemeraId})`)
+            }
             const ancestryGraph = await this._Graph.get([EphemeraId], 'back')
             const dependentItems = ancestryGraph.edges
                 .filter(({ from }) => (from === EphemeraId))
