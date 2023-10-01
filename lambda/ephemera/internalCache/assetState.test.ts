@@ -209,8 +209,6 @@ describe('EvaluateCode', () => {
 })
 
 describe('AssetMap', () => {
-    let graphGetMock = jest.fn()
-    let componentMetaMock = jest.fn()
     let graphNodesMock = jest.fn()
     let graphEdgesMock = jest.fn()
 
@@ -220,37 +218,24 @@ describe('AssetMap', () => {
         internalCache.clear()
         graphNodesMock.mockClear()
         graphEdgesMock.mockClear()
-        graphGetMock.mockClear()
-        jest.spyOn(internalCache.AssetMap._Graph, "get").mockImplementation(graphGetMock)
-        jest.spyOn(internalCache.GraphNodes, 'get').mockImplementation(graphNodesMock)
-        jest.spyOn(internalCache.GraphEdges, 'get').mockImplementation(graphEdgesMock)
-        componentMetaMock.mockImplementation(async (ephemeraId: string) => {
-            return {
-                EphemeraId: ephemeraId,
-                key: ephemeraId === 'COMPUTED#testOne'
-                    ? 'compute'
-                    : ephemeraId === 'VARIABLE#argOne'
-                        ? 'a'
-                        : 'b'
-            }
-        })
-        jest.spyOn(internalCache.AssetMap._ComponentMeta, "get").mockImplementation(componentMetaMock)
+        jest.spyOn(internalCache.AssetMap._GraphNodes, 'get').mockImplementation(graphNodesMock)
+        jest.spyOn(internalCache.AssetMap._GraphEdges, 'get').mockImplementation(graphEdgesMock)
     })
 
     it('should fetch graph ancestry information as needed on a computed argument', async () => {
-        graphGetMock.mockReturnValue(new Graph<string, { key: string }, { scopedId?: string }>({
-                'COMPUTED#testOne': { key: 'COMPUTED#testOne' },
-                'VARIABLE#argOne': { key: 'VARIABLE#argOne' },
-                'VARIABLE#argTwo': { key: 'VARIABLE#argTwo' }
-            },
-            [
-                { from: 'COMPUTED#testOne', to: 'VARIABLE#argOne', context: 'TestAsset', data: { scopedId: 'a' } },
-                { from: 'COMPUTED#testOne', to: 'VARIABLE#argTwo', context: 'TestAsset', data: { scopedId: 'b' } }
-            ],
-            true
-        ))
+        graphNodesMock.mockResolvedValue([{
+            back: {
+                edges: [
+                    { target: 'VARIABLE#argOne', context: 'TestAsset' },
+                    { target: 'VARIABLE#argTwo', context: 'TestAsset' }
+                ]
+            }
+        }])
+        graphEdgesMock.mockResolvedValue([
+            { to: 'COMPUTED#testOne', from: 'VARIABLE#argOne', context: 'TestAsset', data: { scopedId: 'a' } },
+            { to: 'COMPUTED#testOne', from: 'VARIABLE#argTwo', context: 'TestAsset', data: { scopedId: 'b' } }
+        ])
         const output = await internalCache.AssetMap.get('COMPUTED#testOne')
-        expect(graphGetMock).toHaveBeenCalledTimes(1)
         expect(output).toEqual({
             a: 'VARIABLE#argOne',
             b: 'VARIABLE#argTwo'
@@ -261,10 +246,10 @@ describe('AssetMap', () => {
         graphNodesMock.mockResolvedValue([{
             forward: {
                 edges: [
-                    { from: 'ASSET#Base', to: 'COMPUTED#testOne', context: 'Base' },
-                    { from: 'ASSET#Base', to: 'COMPUTED#testTwo', context: 'Base' },
-                    { from: 'ASSET#Base', to: 'VARIABLE#testThree', context: 'Base' },
-                    { from: 'ASSET#Base', to: 'ROOM#testFour', context: 'Base' }
+                    { target: 'COMPUTED#testOne', context: 'Base' },
+                    { target: 'COMPUTED#testTwo', context: 'Base' },
+                    { target: 'VARIABLE#testThree', context: 'Base' },
+                    { target: 'ROOM#testFour', context: 'Base' }
                 ]
             }
         }])

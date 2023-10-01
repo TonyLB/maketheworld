@@ -4,8 +4,6 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import internalCache from "."
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
-const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
-
 describe('CharacterPossibleMaps', () => {
     let graphGetMock = jest.fn()
 
@@ -13,7 +11,7 @@ describe('CharacterPossibleMaps', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         internalCache.clear()
-        jest.spyOn(internalCache.AssetMap._Graph, "get").mockImplementation(graphGetMock)
+        jest.spyOn(internalCache.CharacterPossibleMaps._Graph, "get").mockImplementation(graphGetMock)
     })
 
     it('should report all maps containing the room the character is in', async () => {
