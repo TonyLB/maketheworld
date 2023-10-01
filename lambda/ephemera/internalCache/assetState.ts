@@ -15,6 +15,7 @@ import ComponentMeta, { ComponentMetaData } from './componentMeta';
 import { objectMap } from '../lib/objects';
 
 export type StateItemId = EphemeraVariableId | EphemeraComputedId
+export const isStateItemId = (item: string): item is StateItemId => (isEphemeraVariableId(item) || isEphemeraComputedId(item))
 export type StateItemReturn = {
     value: any;
     src?: string;

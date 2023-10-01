@@ -8,13 +8,47 @@ jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
 import dependencyCascade from './dependencyCascade'
-import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
+import { Graph, GraphNode } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { objectFilterEntries } from '@tonylb/mtw-utilities/dist/objects'
 import { EphemeraComputedId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isLegalDependencyTag } from '../internalCache/baseClasses'
+import { extractConstrainedTag } from '@tonylb/mtw-utilities/dist/types'
+import { isStateItemId } from '../internalCache/assetState'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const internalCacheMock = jest.mocked(internalCache, true)
+
+const cascadeTest = (ephemeraId: EphemeraComputedId, value: number, conditions: { key: string; value: any }[]) => ([
+    ...conditions.map(({ key, value }) => ({
+        ConditionCheck: {
+            Key: { EphemeraId: key, DataCategory: `Meta::${extractConstrainedTag(isLegalDependencyTag)(key)}` },
+            ConditionExpression: 'value = :value',
+            ProjectionFields: ['value'],
+            ExpressionAttributeValues: { ':value': value }
+        }
+    })),
+    {
+        PrimitiveUpdate: {
+            Key: { EphemeraId: ephemeraId, DataCategory: 'Meta::Computed' },
+            ProjectionFields: ['value'],
+            UpdateExpression: 'SET value = :value',
+            ExpressionAttributeValues: { ':value': value }
+        }
+    }
+])
+
+const graphNodeImplementation = (testGraph) => async (nodes) => (nodes.map((nodeKey) => {
+    const node = testGraph.getNode(nodeKey)
+    if (typeof node === 'undefined') {
+        throw new Error('Lookup on absent node')
+    }
+    return {
+        PrimaryKey: nodeKey,
+        forward: { edges: node.edges.map(({ to, context = '' }) => ({ target: to, context})) },
+        back: { edges: node.backEdges.map(({ from, context = '' }) => ({ target: from, context})) }
+    }
+}))
 
 describe('DependencyCascade', () => {
     let stateCacheMock
@@ -59,14 +93,10 @@ describe('DependencyCascade', () => {
             ([key]) => (keys.includes(key))
         )))
         ephemeraDBMock.transactWrite.mockResolvedValue()
-        internalCacheMock.AssetMap.get.mockResolvedValue({
-            a: 'VARIABLE#VariableOne',
-            b: 'VARIABLE#VariableTwo',
-            c: 'COMPUTED#TestOne',
-            d: 'COMPUTED#TestTwo'
-        })
-        const testGraph = new Graph<string, { key: string }, { context?: string }>(
+        const testGraph = new Graph<string, { key: string }, { context?: string; scopedId?: string }>(
             {
+                'VARIABLE#VariableOne': { key: 'VARIABLE#VariableOne' },
+                'VARIABLE#VariableTwo': { key: 'VARIABLE#VariableTwo' },
                 'COMPUTED#TestOne': { key: 'COMPUTED#TestOne' },
                 'COMPUTED#TestTwo': { key: 'COMPUTED#TestTwo' },
                 'COMPUTED#CascadeOne': { key: 'COMPUTED#CascadeOne' },
@@ -74,16 +104,21 @@ describe('DependencyCascade', () => {
                 'COMPUTED#CascadeThree': { key: 'COMPUTED#CascadeThree' }
             },
             [
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base' },
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeTwo', context: 'base' },
-                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeThree', context: 'base' }
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'a' },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'b' },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'b' },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', scopedId: 'c' },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeTwo', context: 'base', scopedId: 'c' },
+                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeThree', context: 'base', scopedId: 'd' }
             ],
             {},
             true
         )
 
         internalCacheMock.Graph.get.mockResolvedValue(testGraph)
-        internalCacheMock.GraphNodes.get.mockResolvedValue([])
+
+        internalCacheMock.GraphNodes.get.mockImplementation(graphNodeImplementation(testGraph))
         await dependencyCascade({
             payloads: [
                 { targetId: 'COMPUTED#TestOne' },
@@ -92,37 +127,11 @@ describe('DependencyCascade', () => {
             messageBus: messageBusMock
         })
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(5)
-        const cascadeTest = (ephemeraId: EphemeraComputedId, value: number) => ([
-            {
-                ConditionCheck: {
-                    Key: { EphemeraId: 'VARIABLE#VariableOne', DataCategory: 'Meta::Variable' },
-                    ConditionExpression: 'value = :value',
-                    ProjectionFields: ['value'],
-                    ExpressionAttributeValues: { ':value': 1 }
-                }
-            },
-            {
-                ConditionCheck: {
-                    Key: { EphemeraId: 'VARIABLE#VariableTwo', DataCategory: 'Meta::Variable' },
-                    ConditionExpression: 'value = :value',
-                    ProjectionFields: ['value'],
-                    ExpressionAttributeValues: { ':value': 2 }
-                }
-            },
-            {
-                PrimitiveUpdate: {
-                    Key: { EphemeraId: ephemeraId, DataCategory: 'Meta::Computed' },
-                    ProjectionFields: ['value'],
-                    UpdateExpression: 'SET value = :value',
-                    ExpressionAttributeValues: { ':value': value }
-                }
-            }
-        ])
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestOne', 3))
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestTwo', 2))
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeOne', 6))
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeTwo', 9))
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeThree', 7))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestOne', 3, [{ key: 'VARIABLE#VariableOne', value: 1 }, { key: 'VARIABLE#VariableTwo', value: 2 }]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestTwo', 2, [{ key: 'VARIABLE#VariableOne', value: 1 }, { key: 'VARIABLE#VariableTwo', value: 2 }]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeOne', 6, [{ key: 'COMPUTED#TestOne', value: 3 }]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeTwo', 9, [{ key: 'COMPUTED#TestOne', value: 3 }]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeThree', 7, [{ key: 'COMPUTED#TestTwo', value: 2 }]))
 
     })
 
@@ -160,34 +169,31 @@ describe('DependencyCascade', () => {
             ([key]) => (keys.includes(key))
         )))
         ephemeraDBMock.transactWrite.mockResolvedValue()
-        internalCacheMock.AssetMap.get.mockResolvedValue({
-            a: 'VARIABLE#VariableOne',
-            b: 'VARIABLE#VariableTwo',
-            c: 'COMPUTED#TestOne',
-            d: 'COMPUTED#TestTwo'
-        })
-        const testGraph = new Graph<string, { key: string }, { context?: string }>(
+        const testGraph = new Graph<string, { key: string }, { context?: string; scopedId?: string }>(
             {
                 'COMPUTED#TestOne': { key: 'COMPUTED#TestOne' },
                 'COMPUTED#TestTwo': { key: 'COMPUTED#TestTwo' },
                 'COMPUTED#CascadeOne': { key: 'COMPUTED#CascadeOne' },
                 'COMPUTED#CascadeTwo': { key: 'COMPUTED#CascadeTwo' },
                 'COMPUTED#CascadeThree': { key: 'COMPUTED#CascadeThree' },
-                'VARIABLE#VariableOne': { key: 'VARIABLE#VariableOne' }
+                'VARIABLE#VariableOne': { key: 'VARIABLE#VariableOne' },
+                'VARIABLE#VariableTwo': { key: 'VARIABLE#VariableTwo' }
             },
             [
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base' },
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestTwo', context: 'base' },
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base' },
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeTwo', context: 'base' },
-                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeThree', context: 'base' }
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'b' },
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'a' },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'b' },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', scopedId: 'c' },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeTwo', context: 'base', scopedId: 'c' },
+                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeThree', context: 'base', scopedId: 'd' }
             ],
             {},
             true
         )
 
         internalCacheMock.Graph.get.mockResolvedValue(testGraph)
-        internalCacheMock.GraphNodes.get.mockResolvedValue([])
+        internalCacheMock.GraphNodes.get.mockImplementation(graphNodeImplementation(testGraph))
         await dependencyCascade({
             payloads: [
                 { targetId: 'VARIABLE#VariableOne', value: 3 },
@@ -195,24 +201,6 @@ describe('DependencyCascade', () => {
             messageBus: messageBusMock
         })
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(6)
-        const cascadeTest = (ephemeraId: EphemeraComputedId, value: number) => ([
-            {
-                ConditionCheck: {
-                    Key: { EphemeraId: 'VARIABLE#VariableTwo', DataCategory: 'Meta::Variable' },
-                    ConditionExpression: 'value = :value',
-                    ProjectionFields: ['value'],
-                    ExpressionAttributeValues: { ':value': 2 }
-                }
-            },
-            {
-                PrimitiveUpdate: {
-                    Key: { EphemeraId: ephemeraId, DataCategory: 'Meta::Computed' },
-                    ProjectionFields: ['value'],
-                    UpdateExpression: 'SET value = :value',
-                    ExpressionAttributeValues: { ':value': value }
-                }
-            }
-        ])
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([
             {
                 PrimitiveUpdate: {
@@ -224,11 +212,11 @@ describe('DependencyCascade', () => {
                 }
             }
         ])
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestOne', 5))
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestTwo', 6))
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeOne', 10))
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeTwo', 15))
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeThree', 11))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestOne', 5, [{ key: 'VARIABLE#VariableOne', value: 3 }, { key: 'VARIABLE#VariableTwo', value: 2 }]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestTwo', 6, [{ key: 'VARIABLE#VariableOne', value: 3 }, { key: 'VARIABLE#VariableTwo', value: 2 }]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeOne', 10, [{ key: 'COMPUTED#TestOne', value: 5 }]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeTwo', 15, [{ key: 'COMPUTED#TestOne', value: 5 }]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeThree', 11, [{ key: 'COMPUTED#TestTwo', value: 6 }]))
 
     })
 
@@ -256,28 +244,26 @@ describe('DependencyCascade', () => {
             ([key]) => (keys.includes(key))
         )))
         ephemeraDBMock.transactWrite.mockResolvedValue()
-        internalCacheMock.AssetMap.get.mockResolvedValue({
-            a: 'VARIABLE#VariableOne',
-            b: 'VARIABLE#VariableTwo',
-            c: 'COMPUTED#TestOne',
-            d: 'COMPUTED#TestTwo'
-        })
-        const testGraph = new Graph<string, { key: string }, { context?: string }>(
+        const testGraph = new Graph<string, { key: string }, { context?: string; scopedId?: string }>(
             {
                 'COMPUTED#TestOne': { key: 'COMPUTED#TestOne' },
                 'COMPUTED#TestTwo': { key: 'COMPUTED#TestTwo' },
-                'COMPUTED#CascadeOne': { key: 'COMPUTED#CascadeOne' }
+                'COMPUTED#CascadeOne': { key: 'COMPUTED#CascadeOne' },
+                'VARIABLE#VariableOne': { key: 'VARIABLE#VariableOne' },
+                'VARIABLE#VariableTwo': { key: 'VARIABLE#VariableTwo' }
             },
             [
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base' },
-                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeOne', context: 'base' }
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'b' },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', scopedId: 'c' },
+                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeOne', context: 'base', scopedId: 'd' }
             ],
             {},
             true
         )
 
         internalCacheMock.Graph.get.mockResolvedValue(testGraph)
-        internalCacheMock.GraphNodes.get.mockResolvedValue([])
+        internalCacheMock.GraphNodes.get.mockImplementation(graphNodeImplementation(testGraph))
         await dependencyCascade({
             payloads: [
                 { targetId: 'COMPUTED#TestOne' },
@@ -286,33 +272,9 @@ describe('DependencyCascade', () => {
             messageBus: messageBusMock
         })
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(3)
-        const conditionCheckOne = {
-            ConditionCheck: {
-                Key: { EphemeraId: 'VARIABLE#VariableOne', DataCategory: 'Meta::Variable' },
-                ConditionExpression: 'value = :value',
-                ProjectionFields: ['value'],
-                ExpressionAttributeValues: { ':value': 1 }
-            }
-        }
-        const conditionCheckTwo = {
-            ConditionCheck: {
-                Key: { EphemeraId: 'VARIABLE#VariableTwo', DataCategory: 'Meta::Variable' },
-                ConditionExpression: 'value = :value',
-                ProjectionFields: ['value'],
-                ExpressionAttributeValues: { ':value': 2 }
-            }
-        }
-        const cascadeTest = (ephemeraId: EphemeraComputedId, value: number) => ({
-            PrimitiveUpdate: {
-                Key: { EphemeraId: ephemeraId, DataCategory: 'Meta::Computed' },
-                ProjectionFields: ['value'],
-                UpdateExpression: 'SET value = :value',
-                ExpressionAttributeValues: { ':value': value }
-            }
-        })
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([conditionCheckOne, cascadeTest('COMPUTED#TestOne', 2)])
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([conditionCheckTwo, cascadeTest('COMPUTED#TestTwo', 6)])
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([conditionCheckOne, conditionCheckTwo, cascadeTest('COMPUTED#CascadeOne', 8)])
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestOne', 2, [{ key: 'VARIABLE#VariableOne', value: 1}]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestTwo', 6, [{ key: 'VARIABLE#VariableTwo', value: 2}]))
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#CascadeOne', 8, [{ key: 'COMPUTED#TestOne', value: 2 }, { key: 'COMPUTED#TestTwo', value: 6 }]))
 
     })
 
@@ -329,18 +291,14 @@ describe('DependencyCascade', () => {
             ([key]) => (keys.includes(key))
         )))
         ephemeraDBMock.transactWrite.mockResolvedValue()
-        internalCacheMock.AssetMap.get.mockResolvedValue({
-            a: 'VARIABLE#VariableOne',
-            c: 'COMPUTED#TestOne',
-        })
-        const testGraph = new Graph<string, { key: string }, { context?: string }>(
+        const testGraph = new Graph<string, { key: string }, { context?: string; scopedId?: string }>(
             {
                 'COMPUTED#TestOne': { key: 'COMPUTED#TestOne' },
                 'VARIABLE#VariableOne': { key: 'VARIABLE#VariableOne' },
                 'ROOM#TestRoom': { key: 'ROOM#TestRoom' }
             },
             [
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base' },
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
                 { from: 'COMPUTED#TestOne', to: 'ROOM#TestRoom', context: 'base' }
             ],
             {},
@@ -348,7 +306,7 @@ describe('DependencyCascade', () => {
         )
 
         internalCacheMock.Graph.get.mockResolvedValue(testGraph)
-        internalCacheMock.GraphNodes.get.mockResolvedValue([])
+        internalCacheMock.GraphNodes.get.mockImplementation(graphNodeImplementation(testGraph))
         await dependencyCascade({
             payloads: [
                 { targetId: 'VARIABLE#VariableOne', value: 2 }
@@ -356,14 +314,6 @@ describe('DependencyCascade', () => {
             messageBus: messageBusMock
         })
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
-        const cascadeTest = (ephemeraId: EphemeraComputedId, value: number) => ({
-            PrimitiveUpdate: {
-                Key: { EphemeraId: ephemeraId, DataCategory: 'Meta::Computed' },
-                ProjectionFields: ['value'],
-                UpdateExpression: 'SET value = :value',
-                ExpressionAttributeValues: { ':value': value }
-            }
-        })
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([{
             PrimitiveUpdate: {
                 Key: { EphemeraId: 'VARIABLE#VariableOne', DataCategory: 'Meta::Variable' },
@@ -373,7 +323,7 @@ describe('DependencyCascade', () => {
                 ExpressionAttributeValues: { ':newValue': 2, ':oldValue': 1 }
             }
         }])
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([cascadeTest('COMPUTED#TestOne', 4)])
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestOne', 4, [{ key: 'VARIABLE#VariableOne', value: 2 }]))
 
         expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         expect(messageBus.send).toHaveBeenCalledWith({
@@ -397,11 +347,7 @@ describe('DependencyCascade', () => {
             ([key]) => (keys.includes(key))
         )))
         ephemeraDBMock.transactWrite.mockResolvedValue()
-        internalCacheMock.AssetMap.get.mockResolvedValue({
-            a: 'VARIABLE#VariableOne',
-            c: 'COMPUTED#TestOne',
-        })
-        const testGraph = new Graph<string, { key: string }, { context?: string }>(
+        const testGraph = new Graph<string, { key: string }, { context?: string; scopedId?: string }>(
             {
                 'COMPUTED#TestOne': { key: 'COMPUTED#TestOne' },
                 'VARIABLE#VariableOne': { key: 'VARIABLE#VariableOne' },
@@ -409,8 +355,8 @@ describe('DependencyCascade', () => {
                 'MAP#TestMap': { key: 'MAP#TestMap' }
             },
             [
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base' },
-                { from: 'COMPUTED#TestOne', to: 'ROOM#TestRoom', context: 'base' },
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
+                { from: 'COMPUTED#TestOne', to: 'ROOM#TestRoom', context: 'base', scopedId: 'c' },
                 { from: 'ROOM#TestRoom', to: 'MAP#TestMap', context: 'base' }
             ],
             {},
@@ -418,7 +364,7 @@ describe('DependencyCascade', () => {
         )
 
         internalCacheMock.Graph.get.mockResolvedValue(testGraph)
-        internalCacheMock.GraphNodes.get.mockResolvedValue([])
+        internalCacheMock.GraphNodes.get.mockImplementation(graphNodeImplementation(testGraph))
         await dependencyCascade({
             payloads: [
                 { targetId: 'VARIABLE#VariableOne', value: 2 }
@@ -426,14 +372,6 @@ describe('DependencyCascade', () => {
             messageBus: messageBusMock
         })
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
-        const cascadeTest = (ephemeraId: EphemeraComputedId, value: number) => ({
-            PrimitiveUpdate: {
-                Key: { EphemeraId: ephemeraId, DataCategory: 'Meta::Computed' },
-                ProjectionFields: ['value'],
-                UpdateExpression: 'SET value = :value',
-                ExpressionAttributeValues: { ':value': value }
-            }
-        })
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([{
             PrimitiveUpdate: {
                 Key: { EphemeraId: 'VARIABLE#VariableOne', DataCategory: 'Meta::Variable' },
@@ -443,7 +381,7 @@ describe('DependencyCascade', () => {
                 ExpressionAttributeValues: { ':newValue': 2, ':oldValue': 1 }
             }
         }])
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([cascadeTest('COMPUTED#TestOne', 4)])
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith(cascadeTest('COMPUTED#TestOne', 4, [{ key: 'VARIABLE#VariableOne', value: 2 }]))
 
         expect(messageBusMock.send).toHaveBeenCalledTimes(2)
         expect(messageBus.send).toHaveBeenCalledWith({
