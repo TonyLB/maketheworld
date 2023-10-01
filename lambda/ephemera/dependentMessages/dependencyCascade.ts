@@ -21,12 +21,6 @@ type DependencyCascadeMessage = {
     value: any;
 }
 
-type RollingResultsMap = Record<StateItemId, any>
-type DependencyCascadeRollingResults = {
-    dependencies: RollingResultsMap;
-    values: RollingResultsMap;
-}
-
 export const dependencyCascade = async ({ payloads, messageBus }: { payloads: DependencyCascadeMessage[]; messageBus: MessageBus }): Promise<void> => {
 
     const descentGraph = await internalCache.Graph.get(payloads.map(({ targetId }) => (targetId)), 'forward')

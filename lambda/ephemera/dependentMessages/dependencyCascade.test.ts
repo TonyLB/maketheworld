@@ -104,13 +104,13 @@ describe('DependencyCascade', () => {
                 'COMPUTED#CascadeThree': { key: 'COMPUTED#CascadeThree' }
             },
             [
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'a' },
-                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'b' },
-                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'b' },
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', scopedId: 'c' },
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeTwo', context: 'base', scopedId: 'c' },
-                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeThree', context: 'base', scopedId: 'd' }
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', data: { scopedId: 'a' } },
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestTwo', context: 'base', data: { scopedId: 'a' } },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestOne', context: 'base', data: { scopedId: 'b' } },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', data: { scopedId: 'b' } },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', data: { scopedId: 'c' } },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeTwo', context: 'base', data: { scopedId: 'c' } },
+                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeThree', context: 'base', data: { scopedId: 'd' } }
             ],
             {},
             true
@@ -180,13 +180,13 @@ describe('DependencyCascade', () => {
                 'VARIABLE#VariableTwo': { key: 'VARIABLE#VariableTwo' }
             },
             [
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
-                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'b' },
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'a' },
-                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'b' },
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', scopedId: 'c' },
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeTwo', context: 'base', scopedId: 'c' },
-                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeThree', context: 'base', scopedId: 'd' }
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', data: { scopedId: 'a' } },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestOne', context: 'base', data: { scopedId: 'b' } },
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestTwo', context: 'base', data: { scopedId: 'a' } },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', data: { scopedId: 'b' } },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', data: { scopedId: 'c' } },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeTwo', context: 'base', data: { scopedId: 'c' } },
+                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeThree', context: 'base', data: { scopedId: 'd' } }
             ],
             {},
             true
@@ -253,10 +253,10 @@ describe('DependencyCascade', () => {
                 'VARIABLE#VariableTwo': { key: 'VARIABLE#VariableTwo' }
             },
             [
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
-                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', scopedId: 'b' },
-                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', scopedId: 'c' },
-                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeOne', context: 'base', scopedId: 'd' }
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', data: { scopedId: 'a' } },
+                { from: 'VARIABLE#VariableTwo', to: 'COMPUTED#TestTwo', context: 'base', data: { scopedId: 'b' } },
+                { from: 'COMPUTED#TestOne', to: 'COMPUTED#CascadeOne', context: 'base', data: { scopedId: 'c' } },
+                { from: 'COMPUTED#TestTwo', to: 'COMPUTED#CascadeOne', context: 'base', data: { scopedId: 'd' } }
             ],
             {},
             true
@@ -298,7 +298,7 @@ describe('DependencyCascade', () => {
                 'ROOM#TestRoom': { key: 'ROOM#TestRoom' }
             },
             [
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', data: { scopedId: 'a' } },
                 { from: 'COMPUTED#TestOne', to: 'ROOM#TestRoom', context: 'base' }
             ],
             {},
@@ -355,8 +355,8 @@ describe('DependencyCascade', () => {
                 'MAP#TestMap': { key: 'MAP#TestMap' }
             },
             [
-                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', scopedId: 'a' },
-                { from: 'COMPUTED#TestOne', to: 'ROOM#TestRoom', context: 'base', scopedId: 'c' },
+                { from: 'VARIABLE#VariableOne', to: 'COMPUTED#TestOne', context: 'base', data: { scopedId: 'a' } },
+                { from: 'COMPUTED#TestOne', to: 'ROOM#TestRoom', context: 'base', data: { scopedId: 'c' } },
                 { from: 'ROOM#TestRoom', to: 'MAP#TestMap', context: 'base' }
             ],
             {},
