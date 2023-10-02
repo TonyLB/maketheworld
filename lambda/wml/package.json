@@ -1,7 +1,7 @@
 {
-  "name": "worldMarkupLanguage",
+  "name": "addresslookup",
   "version": "1.0.0",
-  "description": "Lambda for handling WML files and processes",
+  "description": "Lambda for looking up asset addresses and inheritance from ID",
   "main": "app.ts",
   "scripts": {
     "test": "jest",

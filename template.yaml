@@ -990,14 +990,6 @@ Resources:
               Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   AddressLookupFunction:
       Type: AWS::Serverless::Function
-      # Metadata:
-      #   BuildMethod: esbuild
-      #   BuildProperties:
-      #     Minify: true
-      #     Target: "es2020"
-      #     Sourcemap: true
-      #     EntryPoints: 
-      #       - app.ts
       Properties:
         Tracing: Active
         CodeUri: lambda/addressLookup/build/
@@ -1012,6 +1004,37 @@ Resources:
         Policies:
           - DynamoDBReadPolicy:
               TableName: !Sub '${TablePrefix}_assets'
+  WMLFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Tracing: Active
+        CodeUri: lambda/wml/build/
+        Handler: lambda.handler
+        MemorySize: 512
+        Runtime: nodejs18.x
+        Timeout: 5
+        Environment:
+          Variables:
+            S3_BUCKET: !Sub '${TablePrefix}-assets'
+        Policies:
+          - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+                - s3:DeleteObject
+              Resource:
+                Fn::Sub:
+                    - "arn:aws:s3:::${AssetBucket}/*"
+                    - AssetBucket: !Sub '${TablePrefix}-assets'
+          - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource:
+                Fn::Sub:
+                    - "arn:aws:s3:::${ImageBucket}/*"
+                    - AssetBucket: !Sub '${TablePrefix}-images'
   MessageSyncStateMachineLogs:
     Type: AWS::Logs::LogGroup
   MessageSyncStateMachine:
