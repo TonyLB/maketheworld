@@ -4,4 +4,5 @@ export const handler = async (event: { address?: AssetWorkspaceAddress }) => {
 
     const { address } = event
 
+    console.log(`Address to Parse: ${JSON.stringify(address, null, 4)}`)
 }

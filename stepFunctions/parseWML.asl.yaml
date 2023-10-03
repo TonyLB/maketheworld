@@ -1,0 +1,65 @@
+---
+Comment: Command step-function to parse a WML file into JSON
+StartAt: Check Options
+States:
+    "Check Options":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.options"
+                IsPresent: True
+                Next: Check for Address
+        Default: Default options
+    "Default options":
+        Type: Pass
+        Parameters:
+            check: false
+        ResultPath: "$.options"
+        Next: Check for Address
+    "Check for Address":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.address"
+                IsPresent: True
+                Next: Parse WML
+        Default: Assign Addresses
+    "Assign Addresses":
+        Type: Task
+        Next: Extract First Address
+        Resource: "${AddressLookupFunctionArn}"
+        Parameters:
+            "assetIds.$": "States.Array($.assetId)"
+        ResultPath: "$.addressList"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+    "Extract First Address":
+        Type: Pass
+        Parameters:
+            "address.$": "$.addressList[0]"
+            "options.$": "$.options"
+        ResultPath: "$"
+        Next: Parse WML
+    "Parse WML":
+        Type: Task
+        Next: Done
+        Resource: "${ParseWMLFunctionArn}"
+        Parameters:
+            "message": "parseWML"
+            "address.$": "$.address"
+            "options.$": "$.options"
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Failure
+        ResultPath: null
+    Failure:
+        Type: Fail
+    Done:
+        Type: Succeed
