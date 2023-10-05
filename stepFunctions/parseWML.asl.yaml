@@ -1,39 +1,45 @@
 ---
 Comment: Command step-function to parse a WML file into JSON
-StartAt: Check Arguments
+StartAt: Define Defaults
 States:
+    "Define Defaults":
+        Type: Pass
+        Next: Apply Defaults
+        ResultPath: "$.inputDefaults"
+        Parameters:
+            options:
+                check: false
+            images.$: "States.Array()"
+            uploadName: ""
+            message: "parseWML"
+    "Apply Defaults":
+        Type: Pass
+        Next: Check Arguments
+        ResultPath: "$"
+        Parameters:
+            "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
     "Check Arguments":
         Type: Choice
         Choices:
             -
-                Variable: "$.player"
+                Variable: "$$.Execution.Input.player"
                 IsPresent: false
                 Next: Failure
             -
-                Variable: "$.requestId"
+                Variable: "$$.Execution.Input.requestId"
                 IsPresent: false
                 Next: Failure
             -
-                Variable: "$.options"
-                IsPresent: false
-                Next: Default options
-            -
-                Variable: "$.address"
+                Variable: "$.args.address"
                 IsPresent: false
                 Next: Assign Address
         Default: Parse WML
-    "Default options":
-        Type: Pass
-        Parameters:
-            check: false
-        ResultPath: "$.options"
-        Next: Check Arguments
     "Assign Address":
         Type: Task
         Next: Extract First Address
         Resource: "${AddressLookupFunctionArn}"
         Parameters:
-            "assetIds.$": "States.Array($.assetId)"
+            "assetIds.$": "States.Array($.args.assetId)"
         ResultPath: "$.addressList"
         Retry:
             -
@@ -46,19 +52,19 @@ States:
         Type: Pass
         Parameters:
             "address.$": "$.addressList[0].address"
-            "options.$": "$.options"
-            "player.$": "$.player"
-            "requestId.$": "$.requestId"
+        ResultPath: "$.toMerge"
+        Next: Merge Address
+    "Merge Address":
+        Type: Pass
+        Parameters:
+            "args.$": "States.JsonMerge($.args, $.toMerge, false)"
         ResultPath: "$"
-        Next: Check Arguments
+        Next: Parse WML
     "Parse WML":
         Type: Task
         Next: Done
         Resource: "${ParseWMLFunctionArn}"
-        Parameters:
-            "message": "parseWML"
-            "address.$": "$.address"
-            "options.$": "$.options"
+        InputPath: "$.args"
         Catch:
             -
                 ErrorEquals:
