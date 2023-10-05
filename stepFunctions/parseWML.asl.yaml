@@ -45,7 +45,7 @@ States:
     "Extract First Address":
         Type: Pass
         Parameters:
-            "address.$": "$.addressList[0]"
+            "address.$": "$.addressList[0].address"
             "options.$": "$.options"
             "player.$": "$.player"
             "requestId.$": "$.requestId"

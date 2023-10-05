@@ -1016,6 +1016,8 @@ Resources:
         Environment:
           Variables:
             S3_BUCKET: !Sub '${TablePrefix}-assets'
+            UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
+            IMAGES_BUCKET: !Sub '${TablePrefix}-images'
         Policies:
           - Statement:
             - Effect: Allow
@@ -1027,6 +1029,15 @@ Resources:
                 Fn::Sub:
                     - "arn:aws:s3:::${AssetBucket}/*"
                     - AssetBucket: !Sub '${TablePrefix}-assets'
+          - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:DeleteObject
+              Resource:
+                Fn::Sub:
+                    - "arn:aws:s3:::${AssetBucket}/*"
+                    - AssetBucket: !Sub '${TablePrefix}-uploads'
           - Statement:
             - Effect: Allow
               Action:
