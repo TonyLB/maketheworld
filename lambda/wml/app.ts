@@ -13,9 +13,9 @@ const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
 export const sfnClient = new SFNClient({ region: process.env.AWS_REGION })
 const { UPLOAD_BUCKET } = process.env
 
-export const handler = async (event: { address: AssetWorkspaceAddress; player: string; requestId: string; uploadName?: string }) => {
+export const handler = async (event: { address: AssetWorkspaceAddress; player: string; requestId: string; connectionId: string; uploadName?: string }) => {
 
-    const { address, player, requestId, uploadName } = event
+    const { address, player, requestId, connectionId, uploadName } = event
     const images = []
 
     const assetWorkspace = new AssetWorkspace(address)

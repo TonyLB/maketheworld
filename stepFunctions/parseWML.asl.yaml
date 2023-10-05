@@ -12,6 +12,9 @@ States:
             images.$: "States.Array()"
             uploadName: ""
             message: "parseWML"
+            connectionId: ""
+            requestId: ""
+            player: ""
     "Apply Defaults":
         Type: Pass
         Next: Check Arguments
@@ -21,14 +24,6 @@ States:
     "Check Arguments":
         Type: Choice
         Choices:
-            -
-                Variable: "$$.Execution.Input.player"
-                IsPresent: false
-                Next: Failure
-            -
-                Variable: "$$.Execution.Input.requestId"
-                IsPresent: false
-                Next: Failure
             -
                 Variable: "$.args.address"
                 IsPresent: false
