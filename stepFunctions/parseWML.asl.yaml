@@ -1,0 +1,71 @@
+---
+Comment: Command step-function to parse a WML file into JSON
+StartAt: Check Arguments
+States:
+    "Check Arguments":
+        Type: Choice
+        Choices:
+            -
+                Variable: "$.player"
+                IsPresent: false
+                Next: Failure
+            -
+                Variable: "$.requestId"
+                IsPresent: false
+                Next: Failure
+            -
+                Variable: "$.options"
+                IsPresent: false
+                Next: Default options
+            -
+                Variable: "$.address"
+                IsPresent: false
+                Next: Assign Address
+        Default: Parse WML
+    "Default options":
+        Type: Pass
+        Parameters:
+            check: false
+        ResultPath: "$.options"
+        Next: Check Arguments
+    "Assign Address":
+        Type: Task
+        Next: Extract First Address
+        Resource: "${AddressLookupFunctionArn}"
+        Parameters:
+            "assetIds.$": "States.Array($.assetId)"
+        ResultPath: "$.addressList"
+        Retry:
+            -
+                ErrorEquals:
+                    - States.TaskFailed
+                IntervalSeconds: 2
+                MaxAttempts: 3
+                BackoffRate: 1
+    "Extract First Address":
+        Type: Pass
+        Parameters:
+            "address.$": "$.addressList[0].address"
+            "options.$": "$.options"
+            "player.$": "$.player"
+            "requestId.$": "$.requestId"
+        ResultPath: "$"
+        Next: Check Arguments
+    "Parse WML":
+        Type: Task
+        Next: Done
+        Resource: "${ParseWMLFunctionArn}"
+        Parameters:
+            "message": "parseWML"
+            "address.$": "$.address"
+            "options.$": "$.options"
+        Catch:
+            -
+                ErrorEquals:
+                    - States.ALL
+                Next: Failure
+        ResultPath: null
+    Failure:
+        Type: Fail
+    Done:
+        Type: Succeed

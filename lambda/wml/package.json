@@ -1,7 +1,7 @@
 {
-  "name": "worldMarkupLanguage",
+  "name": "addresslookup",
   "version": "1.0.0",
-  "description": "Lambda for handling WML files and processes",
+  "description": "Lambda for looking up asset addresses and inheritance from ID",
   "main": "app.ts",
   "scripts": {
     "test": "jest",
@@ -11,9 +11,13 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.425.0",
+    "@aws-sdk/client-sfn": "^3.425.0",
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
+    "@tonylb/mtw-normal": "file:../../packages/mtw-normal",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
-    "aws-xray-sdk": "^3.5.1"
+    "aws-xray-sdk": "^3.5.1",
+    "jimp": "^0.22.10"
   },
   "devDependencies": {
     "@types/jest": "^29.5.4",
