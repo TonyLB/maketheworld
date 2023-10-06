@@ -7,6 +7,7 @@ import { formatImage } from './formatImage';
 import { StartExecutionCommand, SFNClient } from '@aws-sdk/client-sfn'
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import AWSXRay from 'aws-xray-sdk'
+import { apiClient } from './clients';
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
@@ -73,11 +74,15 @@ export const handler = async (event: { address: AssetWorkspaceAddress; player: s
         catch {}
     }
 
-    // messageBus.send({
-    //     type: 'ReturnValue',
-    //     body: {
-    //         messageType: 'ParseWML',
-    //         images: imageFiles
-    //     }
-    // })
+    if (connectionId && requestId) {
+        await apiClient.send({
+            ConnectionId: connectionId,
+            Data: JSON.stringify({
+                messageType: 'ParseWML',
+                images: imageFiles,
+                RequestId: requestId
+            })
+        })
+    }
+
 }
