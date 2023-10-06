@@ -11,6 +11,7 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-eventbridge": "^3.425.0",
     "@aws-sdk/client-s3": "^3.425.0",
     "@aws-sdk/client-sfn": "^3.425.0",
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
