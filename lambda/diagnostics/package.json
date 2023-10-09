@@ -1,0 +1,24 @@
+{
+  "name": "diagnostics",
+  "version": "1.0.0",
+  "description": "Lambda for diagnostics and self-repair functions",
+  "main": "app.ts",
+  "scripts": {
+    "test": "jest",
+    "build:dev": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js --sourcemap",
+    "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "@tonylb/mtw-normal": "file:../../packages/mtw-normal",
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
+    "aws-xray-sdk": "^3.5.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.4",
+    "jest": "^29.6.4",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  }
+}
