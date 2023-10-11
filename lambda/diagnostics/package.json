@@ -11,9 +11,11 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
+    "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-normal": "file:../../packages/mtw-normal",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
-    "aws-xray-sdk": "^3.5.1"
+    "aws-xray-sdk": "^3.5.1",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.4",
