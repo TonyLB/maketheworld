@@ -57,7 +57,7 @@ States:
         Next: Parse WML
     "Parse WML":
         Type: Task
-        Next: Done
+        Next: Maybe Heal Player
         Resource: "${ParseWMLFunctionArn}"
         InputPath: "$.args"
         Catch:
@@ -65,7 +65,27 @@ States:
                 ErrorEquals:
                     - States.ALL
                 Next: Failure
-        ResultPath: null
+        ResultPath: "$.parseResults"
+    "Maybe Heal Player":
+        Type: Choice
+        Choices:
+            -
+                And:
+                    -
+                        Variable: "$.args.address.zone"
+                        IsPresent: true
+                    -
+                        Variable: "$.args.address.zone"
+                        StringEquals: "Personal"
+                Next: Heal Player
+        Default: Done
+    "Heal Player":
+        Type: Task
+        Next: Done
+        Resource: "${DiagnosticsFunctionArn}"
+        Parameters:
+            type: "HealPlayer"
+            player.$: "$.args.player"
     Failure:
         Type: Fail
     Done:

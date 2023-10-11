@@ -1169,6 +1169,7 @@ Resources:
       DefinitionSubstitutions:
         AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         ParseWMLFunctionArn: !GetAtt WMLFunction.Arn
+        DiagnosticsFunctionArn: !GetAtt DiagnosticsFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref AddressLookupFunction
