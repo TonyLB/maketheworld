@@ -43,15 +43,16 @@ export const handler = async (event: { address: AssetWorkspaceAddress; player: s
         await Promise.all([
             assetWorkspace.pushJSON(),
             assetWorkspace.pushWML(),
+            //
+            // TODO: Refactor dbRegister to only register the asset and its graph connections, not every single component in the asset.
+            //
             // dbRegister(assetWorkspace)
         ])
-        //
-        // TODO: Refactor below so as to not make duplicate healPlayer calls when parsing multiple WMLs
-        //
-        if (assetWorkspace.address.zone === 'Personal') {
-            // await healPlayer(player)
-        }
 
+        //
+        // TODO: Separate cacheAssets out into parseWML step function rather than calling
+        // another step function from inside the WML lambda
+        //
         await sfnClient.send(new StartExecutionCommand({
             stateMachineArn: process.env.CACHE_ASSETS_SFN,
             input: JSON.stringify({

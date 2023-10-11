@@ -1062,7 +1062,22 @@ Resources:
             - Effect: Allow
               Resource: '*'
               Action:
-                - events:PutEvents  
+                - events:PutEvents
+  DiagnosticsFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Tracing: Active
+        CodeUri: lambda/diagnostics/build/
+        Handler: lambda.handler
+        MemorySize: 512
+        Runtime: nodejs18.x
+        Timeout: 5
+        Environment:
+          Variables:
+            TABLE_PREFIX: !Ref TablePrefix
+        Policies:
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_assets'
   MessageSyncStateMachineLogs:
     Type: AWS::Logs::LogGroup
   MessageSyncStateMachine:
@@ -1154,6 +1169,7 @@ Resources:
       DefinitionSubstitutions:
         AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         ParseWMLFunctionArn: !GetAtt WMLFunction.Arn
+        DiagnosticsFunctionArn: !GetAtt DiagnosticsFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref AddressLookupFunction
