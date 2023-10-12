@@ -47,7 +47,14 @@ export const generatePersonalAssetLibrary = async (player) => {
     return {}
 }
 
-export const healPlayer = async (player: string) => {
+type HealPlayerReturnValue = {
+    Characters: any;
+    Assets: any;
+    guestName: string;
+    guestId: string;
+}
+
+export const healPlayer = async (player: string): Promise<HealPlayerReturnValue> => {
     const fetch = await assetDB.getItem<{
         Settings?: AssetClientPlayerSettings;
         guestName?: string;
@@ -92,6 +99,13 @@ export const healPlayer = async (player: string) => {
             })
         }]
     }))
+
+    return {
+        Characters,
+        Assets,
+        guestName: confirmedGuestName,
+        guestId: confirmedGuestId
+    }
 }
 
 export const healAllPlayers = async () => {
