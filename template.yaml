@@ -889,11 +889,11 @@ Resources:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
             - DynamoDBCrudPolicy:
-                TableName: !Sub '${TablePrefix}_ephemera'
-            - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_connections'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_cache_assets_step_function'
+            - StepFunctionsExecutionPolicy:
+                StateMachineName: !Sub '${TablePrefix}_parse_wml_step_function'
             - Statement:
               - Effect: Allow
                 Resource: '*'

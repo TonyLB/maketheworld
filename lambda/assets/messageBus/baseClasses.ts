@@ -40,21 +40,6 @@ export type UploadURLMessage = {
     images: UploadURLMessageImage[];
 }
 
-//
-// TODO: Refactor ParseWMLMessage so that it pulls the AssetId field from the
-// upload, rather than requiring a specific AssetWorkspaceAddress.  Add a "create"
-// flag to explicitly authorize creation of a new asset file (rather than update),
-// and otherwise fail if the Asset doesn't exist.  Fail with access rejection if
-// the asset exists but the player is not authorized to update.
-//
-export type ParseWMLMessage = {
-    type: 'ParseWML';
-    AssetId: EphemeraCharacterId | EphemeraAssetId;
-    uploadName: string;
-    images?: ParseWMLAPIImage[];
-    create?: boolean;
-}
-
 export type FormatImageMessage = {
     type: 'FormatImage';
     fileName: string;
@@ -112,7 +97,6 @@ export type MessageType = ReturnValueMessage |
     FetchAssetMessage |
     UploadURLMessage |
     FormatImageMessage |
-    ParseWMLMessage |
     MoveAssetMessage |
     MoveByAssetIdMessage |
     LibrarySubscribeMessage |
@@ -128,7 +112,6 @@ export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMes
 export const isFetchImportsAPIMessage = (prop: MessageType): prop is FetchImportsMessage => (prop.type === 'FetchImports')
 export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
 export const isFormatImageMessage = (prop: MessageType): prop is FormatImageMessage => (prop.type === 'FormatImage')
-export const isParseWMLMessage = (prop: MessageType): prop is ParseWMLMessage => (prop.type === 'ParseWML')
 export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
 export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
