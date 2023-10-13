@@ -85,16 +85,6 @@ export const handler = async (event: any, context: any) => {
     // Handle EventBridge messages
     if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
-            case 'Update Player':
-                messageBus.send({
-                    type: 'PlayerUpdate',
-                    player: event.detail.PlayerName || '',
-                    Characters: event.detail.Characters || [],
-                    Assets: event.detail.Assets || [],
-                    guestName: event.detail.guestName,
-                    guestId: event.detail.guestId
-                })
-                break
             case 'Force Disconnect':
                 console.log(`Force Disconnect: ${JSON.stringify(event.detail, null, 4)}`)
                 if (event.detail.connectionId) {
