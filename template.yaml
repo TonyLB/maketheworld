@@ -1195,6 +1195,31 @@ Resources:
         - LambdaInvokePolicy:
             FunctionName: !Ref UpdateEphemeraFunction
         - CloudWatchLogsFullAccess
+  HealStateMachineLogs:
+    Type: AWS::Logs::LogGroup
+  HealStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub '${TablePrefix}_heal_step_function'
+      Type: EXPRESS
+      DefinitionUri: ./stepFunctions/heal.asl.yaml
+      Tracing:
+        Enabled: true
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup: 
+              LogGroupArn: !GetAtt HealStateMachineLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL
+      DefinitionSubstitutions:
+        DiagnosticsFunctionArn: !GetAtt DiagnosticsFunction.Arn
+        UpdateEphemeraFunctionArn: !GetAtt UpdateEphemeraFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DiagnosticsFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref UpdateEphemeraFunction
+        - CloudWatchLogsFullAccess
 
 Outputs:
   UserPoolClient:
