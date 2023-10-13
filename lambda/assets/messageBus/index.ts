@@ -6,7 +6,6 @@ import {
     isMoveAssetMessage,
     isMoveByAssetIdMessage,
     isLibrarySubscribeMessage,
-    isParseWMLMessage,
     isPlayerInfoMessage,
     isLibraryUpdateMessage,
     isFormatImageMessage,
@@ -17,7 +16,7 @@ import {
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
-import { uploadURLMessage, parseWMLMessage } from "../upload"
+import { uploadURLMessage } from "../upload"
 import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
 import { librarySubscribeMessage, libraryUnsubscribeMessage } from "../subscribe"
 import playerInfoMessage from "../player/info"
@@ -64,12 +63,6 @@ messageBus.subscribe({
     priority: 10,
     filter: isFormatImageMessage,
     callback: formatImageMessage
-})
-messageBus.subscribe({
-    tag: 'ParseWML',
-    priority: 5,
-    filter: isParseWMLMessage,
-    callback: parseWMLMessage
 })
 messageBus.subscribe({
     tag: 'MoveAsset',

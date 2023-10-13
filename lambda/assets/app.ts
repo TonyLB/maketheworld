@@ -26,12 +26,11 @@ import {
 
 import messageBus from "./messageBus/index.js"
 import { extractReturnValue } from './returnValue'
-import { apiClient, ebClient } from "./clients"
+import { apiClient, sfnClient } from "./clients"
 import { assetWorkspaceFromAssetId } from "./utilities/assets"
-import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
-import { newGuestName } from "./player/guestNames"
 import { healGlobalValues } from "./selfHealing/globalValues"
+import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
@@ -72,13 +71,8 @@ export const handler = async (event, context) => {
     // Handle Cognito PostConfirm messages
     if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
         //
-        // TODO: Check whether player record already exists, and if so then update
-        // custom:guestName and return
-        //
-
-        //
-        // TODO: If player does not yet exist, call healPlayer to create the
-        // player and send an UpdatePlayer message to Ephemera lambda
+        // TODO: Refactor PostConfirm message to dispatch stepFunction that wraps diagnostics lambda
+        // to call healPlayer
         //
         internalCache.Connection.set({ key: 'player', value: event?.userName})
         await healPlayer(event?.userName)
@@ -93,13 +87,6 @@ export const handler = async (event, context) => {
                 return JSON.stringify(returnVal, null, 4)
             }
             return JSON.stringify(`No fileName specified for Heal Asset event`)
-        }
-        if (event["detail-type"] === 'Heal Player') {
-            if (event.detail?.player) {
-                const returnVal = await healPlayer(event.detail.player)
-                return JSON.stringify(returnVal, null, 4)
-            }
-            return JSON.stringify(`No player specified for Heal Player event`)
         }
         if (event["detail-type"] === 'Heal Global Values') {
             const returnVal = await healGlobalValues({
@@ -218,13 +205,19 @@ export const handler = async (event, context) => {
             })
         }
         if (isParseWMLAPIMessage(request)) {
-            messageBus.send({
-                type: 'ParseWML',
-                AssetId: request.AssetId,
-                uploadName: request.uploadName,
-                images: request.images,
-                create: request.create
-            })
+            const player = await internalCache.Connection.get('player')
+            await sfnClient.send(new StartExecutionCommand({
+                stateMachineArn: process.env.CACHE_ASSETS_SFN,
+                input: JSON.stringify({
+                    player,
+                    requestId: request.RequestId,
+                    connectionId,
+                    assetId: request.AssetId,
+                    images: request.images,
+                    uploadName: request.uploadName
+                })
+            }))
+            return
         }
         if (isAssetCheckinAPIMessage(request)) {
             messageBus.send({
