@@ -1078,6 +1078,21 @@ Resources:
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_assets'
+  UpdateEphemeraFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Tracing: Active
+        CodeUri: lambda/updateEphemera/build/
+        Handler: lambda.handler
+        MemorySize: 256
+        Runtime: nodejs18.x
+        Timeout: 5
+        Environment:
+          Variables:
+            TABLE_PREFIX: !Ref TablePrefix
+        Policies:
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_ephemera'
   MessageSyncStateMachineLogs:
     Type: AWS::Logs::LogGroup
   MessageSyncStateMachine:
