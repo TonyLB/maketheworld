@@ -1,9 +1,7 @@
-import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { v4 as uuidv4 } from 'uuid'
 
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
-import { ebClient } from '../clients'
 import { newGuestName } from "./guestNames"
 
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
@@ -85,20 +83,6 @@ export const healPlayer = async (player: string): Promise<HealPlayerReturnValue>
     }
     
     const { Characters, Assets } = await generatePersonalAssetLibrary(player)
-    await ebClient.send(new PutEventsCommand({
-        Entries: [{
-            EventBusName: process.env.EVENT_BUS_NAME,
-            Source: 'mtw.coordination',
-            DetailType: 'Update Player',
-            Detail: JSON.stringify({
-                PlayerName: player,
-                Characters,
-                Assets,
-                guestName: confirmedGuestName,
-                guestId: confirmedGuestId
-            })
-        }]
-    }))
 
     return {
         Characters,

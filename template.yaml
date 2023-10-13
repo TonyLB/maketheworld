@@ -1185,11 +1185,16 @@ Resources:
         AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         ParseWMLFunctionArn: !GetAtt WMLFunction.Arn
         DiagnosticsFunctionArn: !GetAtt DiagnosticsFunction.Arn
+        UpdateEphemeraFunctionArn: !GetAtt UpdateEphemeraFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref AddressLookupFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref WMLFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DiagnosticsFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref UpdateEphemeraFunction
         - CloudWatchLogsFullAccess
 
 Outputs:
