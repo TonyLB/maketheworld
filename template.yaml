@@ -214,7 +214,6 @@ Resources:
               source:
                 - mtw.coordination
               detail-type:
-                - Update Player
                 - Canonize Asset
                 - Decanonize Asset
                 - Set Canon Assets

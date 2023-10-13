@@ -30,21 +30,6 @@ first place (the carrying costs during times of no activity would be prohibitive
 
 ---
 
-### Update Player
-
-Notification that the characters or permissions associated with a player have been updated:
-- player
-- characters: Array of characters associated with this player
-
-```ts
-type UpdatePlayerCharacter = {
-    address: AssetWorkspaceAddress;
-    CharacterId: string;
-}
-```
-
----
-
 ### Update Asset
 - assetId
 - zone
