@@ -1,6 +1,4 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
-import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/ts/eventBridge'
 import { FeatureDescription, RoomDescription, CharacterDescription, TaggedMessageContentFlat, TaggedNotificationContent } from "@tonylb/mtw-interfaces/ts/messages"
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
@@ -256,15 +254,6 @@ export type CheckLocationAssetMessage = CheckLocationMessageInvariantPayload & {
 
 export type CheckLocationMessage = CheckLocationPlayerMessage | CheckLocationRoomMessage | CheckLocationAssetMessage
 
-export type PlayerUpdateMessage = {
-    type: 'PlayerUpdate';
-    player: string;
-    Characters: EventBridgeUpdatePlayerCharacter[];
-    Assets: EventBridgeUpdatePlayerAsset[];
-    guestName?: string;
-    guestId?: string;
-}
-
 export type RoomUpdateMessage = {
     type: 'RoomUpdate';
     roomId: EphemeraRoomId;
@@ -316,7 +305,6 @@ export type MessageType = PublishMessage |
     PerceptionMessage |
     MoveCharacterMessage |
     CheckLocationMessage |
-    PlayerUpdateMessage |
     RoomUpdateMessage |
     ExecuteActionMessage |
     MapUpdateMessage |
@@ -354,7 +342,6 @@ export const isCheckLocationPlayer = (prop: MessageType): prop is CheckLocationP
 export const isCheckLocationRoom = (prop: MessageType): prop is CheckLocationRoomMessage => (isCheckLocation(prop) && 'roomId' in prop)
 export const isCheckLocationAsset = (prop: MessageType): prop is CheckLocationAssetMessage => (isCheckLocation(prop) && 'assetId' in prop)
 
-export const isPlayerUpdateMessage = (prop: MessageType): prop is PlayerUpdateMessage => (prop.type === 'PlayerUpdate')
 export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')
 export const isMapUpdateMessage = (prop: MessageType): prop is MapUpdateMessage => (prop.type === 'MapUpdate')
 export const isCanonUpdateMessage = (prop: MessageType): prop is CanonUpdateMessage => (['CanonAdd', 'CanonRemove', 'CanonSet'].includes(prop.type))
