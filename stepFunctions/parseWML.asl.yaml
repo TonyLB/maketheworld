@@ -81,11 +81,23 @@ States:
         Default: Done
     "Heal Player":
         Type: Task
-        Next: Done
+        Next: Supplement Update Arguments
         Resource: "${DiagnosticsFunctionArn}"
         Parameters:
             type: "HealPlayer"
             player.$: "$.args.player"
+        ResultPath: "$.healResults"
+    "Supplement Update Arguments":
+        Type: Pass
+        Next: Update Ephemera
+        Parameters:
+            type: "Player"
+        ResultPath: "$.healResults"
+    "Update Ephemera":
+        Type: Task
+        Next: Done
+        InputPath: "$.healResults"
+        Resource: "${UpdateEphemeraFunctionArn}"
     Failure:
         Type: Fail
     Done:
