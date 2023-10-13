@@ -7,7 +7,6 @@ import {
     isFetchPlayerEphemera,
     isPerception,
     isMoveCharacter,
-    isPlayerUpdateMessage,
     isRoomUpdateMessage,
     isExecuteActionMessage,
     isMapSubscription,
@@ -26,7 +25,6 @@ import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
-import playerUpdateMessage from '../playerUpdate'
 import roomUpdateMessage from '../roomUpdate'
 import executeActionMessage from '../executeAction'
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
@@ -107,12 +105,6 @@ messageBus.subscribe({
     priority: 3,
     filter: isCheckLocation,
     callback: checkLocation
-})
-messageBus.subscribe({
-    tag: 'UpdatePlayer',
-    priority: 5,
-    filter: isPlayerUpdateMessage,
-    callback: playerUpdateMessage
 })
 messageBus.subscribe({
     tag: 'RoomUpdate',
