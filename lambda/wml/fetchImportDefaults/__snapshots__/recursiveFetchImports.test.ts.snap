@@ -1,0 +1,248 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`recursiveFetchImports should follow dynamic renames in imports 1`] = `
+[
+  {
+    "contents": [],
+    "key": "testImportTwo",
+    "name": [
+      {
+        "tag": "String",
+        "value": "StubFoo",
+      },
+    ],
+    "render": [],
+    "tag": "Room",
+  },
+  {
+    "contents": [
+      {
+        "contents": [],
+        "from": "testNonImportTwo",
+        "key": "testNonImportTwo#testImportTwo",
+        "name": "test exit",
+        "tag": "Exit",
+        "to": "testImportTwo",
+      },
+    ],
+    "key": "testNonImportTwo",
+    "name": [],
+    "render": [],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testImportTwo",
+    "name": [],
+    "render": [],
+    "tag": "Room",
+  },
+]
+`;
+
+exports[`recursiveFetchImports should import multilevel and avoid colliding stub names 1`] = `
+[
+  {
+    "contents": [
+      {
+        "contents": [],
+        "from": "testImportThree",
+        "key": "testImportThree#testImportAssetThree.stub",
+        "name": "test exit",
+        "tag": "Exit",
+        "to": "testImportAssetThree.stub",
+      },
+    ],
+    "key": "testImportThree",
+    "name": [],
+    "render": [],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testImportAssetTwo.stub",
+    "name": [
+      {
+        "tag": "String",
+        "value": "Asset Three",
+      },
+    ],
+    "render": [],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testImportAssetThree.stub",
+    "name": [
+      {
+        "tag": "String",
+        "value": "AssetThreeStub",
+      },
+    ],
+    "render": [],
+    "tag": "Room",
+  },
+  {
+    "contents": [
+      {
+        "contents": [],
+        "from": "testImportThree",
+        "key": "testImportThree#testImportAssetTwo.stub",
+        "name": "test exit",
+        "tag": "Exit",
+        "to": "testImportAssetTwo.stub",
+      },
+    ],
+    "key": "testImportThree",
+    "name": [],
+    "render": [
+      {
+        "tag": "String",
+        "value": "Asset Two",
+      },
+    ],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testImportAssetTwo.stub",
+    "name": [],
+    "render": [],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testImportThree",
+    "name": [],
+    "render": [],
+    "tag": "Room",
+  },
+]
+`;
+
+exports[`recursiveFetchImports should properly stub out features in room description 1`] = `
+[
+  {
+    "contents": [],
+    "key": "testRoomWithFeatures",
+    "name": [],
+    "render": [
+      {
+        "tag": "Link",
+        "text": "Test",
+        "to": "testFeature",
+      },
+    ],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testFeature",
+    "name": [],
+    "render": [],
+    "tag": "Feature",
+  },
+  {
+    "contents": [],
+    "key": "testRoomWithFeatures",
+    "name": [],
+    "render": [],
+    "tag": "Room",
+  },
+]
+`;
+
+exports[`recursiveFetchImports should recursive fetch one level of element and stubs when passed import key 1`] = `
+[
+  {
+    "contents": [],
+    "key": "testImportOne",
+    "name": [],
+    "render": [
+      {
+        "tag": "String",
+        "value": "One",
+      },
+    ],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testImportStubOne",
+    "name": [
+      {
+        "tag": "String",
+        "value": "StubTwo",
+      },
+    ],
+    "render": [],
+    "tag": "Room",
+  },
+  {
+    "contents": [
+      {
+        "contents": [],
+        "from": "testImportOne",
+        "key": "testImportOne#testImportStubOne",
+        "name": "test exit one",
+        "tag": "Exit",
+        "to": "testImportStubOne",
+      },
+    ],
+    "key": "testImportOne",
+    "name": [],
+    "render": [
+      {
+        "tag": "String",
+        "value": "Two",
+      },
+    ],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testImportStubOne",
+    "name": [],
+    "render": [],
+    "tag": "Room",
+  },
+]
+`;
+
+exports[`recursiveFetchImports should return element and stubs when passed non-import key 1`] = `
+[
+  {
+    "contents": [
+      {
+        "contents": [],
+        "from": "testNonImport",
+        "key": "testNonImport#testNonImportStub",
+        "name": "test exit",
+        "tag": "Exit",
+        "to": "testNonImportStub",
+      },
+    ],
+    "key": "testNonImport",
+    "name": [],
+    "render": [
+      {
+        "tag": "String",
+        "value": "DescriptionOne",
+      },
+    ],
+    "tag": "Room",
+  },
+  {
+    "contents": [],
+    "key": "testNonImportStub",
+    "name": [
+      {
+        "tag": "String",
+        "value": "StubOne",
+      },
+    ],
+    "render": [],
+    "tag": "Room",
+  },
+]
+`;

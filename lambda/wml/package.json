@@ -1,5 +1,6 @@
 {
-  "name": "addresslookup",
+  "name": "wml",
+  "type": "module",
   "version": "1.0.0",
   "description": "Lambda for looking up asset addresses and inheritance from ID",
   "main": "app.ts",
