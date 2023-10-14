@@ -4,7 +4,7 @@ import { dbRegister } from '../serialize/dbRegister'
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/dist/readOnly"
 import { assetWorkspaceFromAssetId } from "../utilities/assets"
 import { isNormalAsset, isNormalCharacter } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 
@@ -17,9 +17,9 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
             payloads.map(async (payload) => {
                 const { from, to } = payload
                 await asyncSuppressExceptions(async () => {
-                    const fromAssetWorkspace = new AssetWorkspace(from)
+                    const fromAssetWorkspace = new ReadOnlyAssetWorkspace(from)
                     const fileNameBase = fromAssetWorkspace.fileNameBase
-                    const toAssetWorkspace = new AssetWorkspace(to)
+                    const toAssetWorkspace = new ReadOnlyAssetWorkspace(to)
                     await fromAssetWorkspace.loadJSON()
                     if (fromAssetWorkspace.status.json !== 'Clean') {
                         return
@@ -56,7 +56,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         // that are being moved
                         //
                         if (from.zone === 'Library') {
-                            const rootNodes = toAssetWorkspace.rootNodes
+                            const rootNodes = fromAssetWorkspace.rootNodes
                             internalCache.Library.set({
                                 Assets: rootNodes.filter(isNormalAsset).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
                                 Characters: rootNodes.filter(isNormalCharacter).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
@@ -66,7 +66,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                     }
                     if (!(to.zone === 'Personal' && from.zone === 'Personal' && to.player === from.player)) {
                         if (from.zone === 'Personal') {
-                            const rootNodes = toAssetWorkspace.rootNodes
+                            const rootNodes = fromAssetWorkspace.rootNodes
                             internalCache.PlayerLibrary.set(from.player, {
                                 Assets: rootNodes.filter(isNormalAsset).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
                                 Characters: rootNodes.filter(isNormalCharacter).reduce<Record<string, undefined>>((previous, { key }) => ({ ...previous, [key]: undefined }), {}),
@@ -105,7 +105,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
 export const moveAssetByIdMessage = async ({ payloads, messageBus }: { payloads: MoveByAssetIdMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(
         payloads.map(async ({ toZone, player, AssetId }) => {
-            const assetWorkspace: AssetWorkspace | undefined = await assetWorkspaceFromAssetId(AssetId)
+            const assetWorkspace: ReadOnlyAssetWorkspace | undefined = await assetWorkspaceFromAssetId(AssetId)
             if (assetWorkspace) {
                 const fileName = assetWorkspace.fileName
                 if (fileName) {

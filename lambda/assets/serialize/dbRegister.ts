@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
-import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
+import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { EphemeraCharacterId, EphemeraError } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
@@ -84,7 +84,7 @@ const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
     }
 }
 
-export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> => {
+export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
     // if (assetWorkspace.status.json !== 'Clean') {
     //     await assetWorkspace.loadJSON()

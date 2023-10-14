@@ -8,7 +8,7 @@ jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
-jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
+jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
             status: {
@@ -42,7 +42,7 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
         }
     })
 })
-import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
+import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/readOnly'
 
 import { moveAssetMessage } from '.'
 
