@@ -7,6 +7,8 @@ jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
+jest.mock('./baseClasses')
+import { FetchImportsJSONHelper } from './baseClasses'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
@@ -110,7 +112,10 @@ describe('fetchImportsMessage', () => {
         jest.resetAllMocks()
         internalCacheMock.Graph.get.mockResolvedValue(new Graph<string, { key: string }, {}>({}, [], {}))
         internalCacheMock.Meta.get.mockResolvedValue([])
-        internalCacheMock.JSONFile.get.mockImplementation(async (assetId: string) => {
+        //
+        // TODO: Mock FetchImportsJSONHelper class to create implementation as per below
+        //
+        jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: string) => {
             let normal: NormalForm = {}
             switch(assetId) {
                 case 'ASSET#testFinal':

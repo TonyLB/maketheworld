@@ -30,11 +30,6 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
             const jsonHelper = new FetchImportsJSONHelper(inheritanceGraph)
 
             //
-            // TODO: Deprecate direct dependency of the helper class on internalCache (i.e. embed
-            // the same lookups into the helper class for portability)
-            //
-
-            //
             // TODO: Decouple creation of the data to populate the helper class (to be done on the assets lambda)
             // from creation of the helper class and the rest of the fetchImports process (to be done on the
             // wml lambda, by way of step function call)

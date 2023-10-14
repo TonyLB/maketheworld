@@ -1,15 +1,8 @@
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import recursiveFetchImports, { NestedTranslateImportToFinal } from './recursiveFetchImports'
 
-jest.mock('../internalCache')
-import internalCache from '../internalCache'
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { FetchImportsJSONHelper } from './baseClasses'
-import { EphemeraAssetId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
-
-const internalCacheMock = jest.mocked(internalCache, true)
+import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 const testNormalFromWML = (wml: string): NormalForm => {
     const normalizer = new Normalizer()
@@ -103,11 +96,13 @@ describe('recursiveFetchImports', () => {
             <Description><Link to=(testFeature)>Test</Link></Description>
         </Room>
     </Asset>`)
-    const jsonHelper = new FetchImportsJSONHelper(new Graph<EphemeraAssetId, { key: EphemeraAssetId; address: AssetWorkspaceAddress }, {}>({}, [], { address: {} as any }))
+    const jsonHelper: jest.Mocked<InstanceType<typeof FetchImportsJSONHelper>> = {
+        get: jest.fn()
+    } as unknown as jest.Mocked<InstanceType<typeof FetchImportsJSONHelper>>
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCacheMock.JSONFile.get.mockImplementation(async (assetId: string) => {
+        jsonHelper.get.mockImplementation(async (assetId: string) => {
             let normal: NormalForm = {}
             switch(assetId) {
                 case 'ASSET#testFinal':
