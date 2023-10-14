@@ -68,7 +68,7 @@ export const handler = async (event, context) => {
     // Handle Cognito PostConfirm messages
     if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
         await sfnClient.send(new StartExecutionCommand({
-            stateMachineArn: process.env.CACHE_ASSETS_SFN,
+            stateMachineArn: process.env.HEAL_SFN,
             input: JSON.stringify({
                 type: 'Player',
                 player: event.userName,

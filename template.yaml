@@ -885,6 +885,7 @@ Resources:
                   COGNITO_POOL_ID: !Ref UserPool
                   EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
                   CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
+                  HEAL_SFN: !Ref HealStateMachine
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -894,6 +895,8 @@ Resources:
                 StateMachineName: !Sub '${TablePrefix}_cache_assets_step_function'
             - StepFunctionsExecutionPolicy:
                 StateMachineName: !Sub '${TablePrefix}_parse_wml_step_function'
+            - StepFunctionsExecutionPolicy:
+                StateMachineName: !Sub '${TablePrefix}_heal_step_function'
             - Statement:
               - Effect: Allow
                 Resource: '*'
