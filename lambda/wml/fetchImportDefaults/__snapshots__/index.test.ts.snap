@@ -1,9 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`fetchImportsMessage should follow dynamic renames in imports 1`] = `
-Object {
-  "importsByAsset": Array [
-    Object {
+exports[`fetchImports should follow dynamic renames in imports 1`] = `
+{
+  "RequestId": "456",
+  "importsByAsset": [
+    {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
     <Room key=(testImportTwo)><Name>StubFoo</Name></Room>
@@ -17,10 +18,11 @@ Object {
 }
 `;
 
-exports[`fetchImportsMessage should import multilevel and avoid colliding stub names 1`] = `
-Object {
-  "importsByAsset": Array [
-    Object {
+exports[`fetchImports should import multilevel and avoid colliding stub names 1`] = `
+{
+  "RequestId": "456",
+  "importsByAsset": [
+    {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
     <Room key=(testImportAssetThree.stub)><Name>AssetThreeStub</Name></Room>
@@ -37,10 +39,11 @@ Object {
 }
 `;
 
-exports[`fetchImportsMessage should properly stub out features in room description 1`] = `
-Object {
-  "importsByAsset": Array [
-    Object {
+exports[`fetchImports should properly stub out features in room description 1`] = `
+{
+  "RequestId": "456",
+  "importsByAsset": [
+    {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
     <Room key=(testRoomWithFeatures)>
@@ -54,10 +57,11 @@ Object {
 }
 `;
 
-exports[`fetchImportsMessage should recursive fetch one level of element and stubs when passed import key 1`] = `
-Object {
-  "importsByAsset": Array [
-    Object {
+exports[`fetchImports should recursive fetch one level of element and stubs when passed import key 1`] = `
+{
+  "RequestId": "456",
+  "importsByAsset": [
+    {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
     <Room key=(testImportOne)>
@@ -72,10 +76,11 @@ Object {
 }
 `;
 
-exports[`fetchImportsMessage should return element and stubs when passed non-import key 1`] = `
-Object {
-  "importsByAsset": Array [
-    Object {
+exports[`fetchImports should return element and stubs when passed non-import key 1`] = `
+{
+  "RequestId": "456",
+  "importsByAsset": [
+    {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
     <Room key=(testNonImport)>
@@ -90,10 +95,11 @@ Object {
 }
 `;
 
-exports[`fetchImportsMessage should return empty when passed no keys 1`] = `
-Object {
-  "importsByAsset": Array [
-    Object {
+exports[`fetchImports should return empty when passed no keys 1`] = `
+{
+  "RequestId": "456",
+  "importsByAsset": [
+    {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal) />",
     },

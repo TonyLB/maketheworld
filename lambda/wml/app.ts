@@ -8,13 +8,24 @@ import { StartExecutionCommand, SFNClient } from '@aws-sdk/client-sfn'
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import AWSXRay from 'aws-xray-sdk'
 import { apiClient } from './clients';
+import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph';
+import { fetchImports } from './fetchImportDefaults';
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
 export const sfnClient = new SFNClient({ region: process.env.AWS_REGION })
 const { UPLOAD_BUCKET } = process.env
 
-export const handler = async (event: { address: AssetWorkspaceAddress; player: string; requestId: string; connectionId: string; uploadName?: string }) => {
+type ParseWMLHandlerArguments = {
+    address: AssetWorkspaceAddress;
+    player: string;
+    requestId: string;
+    connectionId: string;
+    uploadName?: string;
+}
+
+const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
 
     const { address, player, requestId, connectionId, uploadName } = event
     const images = []
@@ -86,4 +97,32 @@ export const handler = async (event: { address: AssetWorkspaceAddress; player: s
         })
     }
 
+}
+
+type FetchImportsHandlerArguments = {
+    ConnectionId: string;
+    RequestId: string;
+    inheritanceNodes: { key: EphemeraAssetId; address: AssetWorkspaceAddress }[];
+    inheritanceEdges: { from: EphemeraAssetId; to: EphemeraAssetId }[];
+    payloads: { assetId: EphemeraAssetId; keys: string[] }[];
+}
+
+const fetchImportsHandler = async (event: FetchImportsHandlerArguments) => {
+    const inheritanceGraph = new Graph<EphemeraAssetId, { key: EphemeraAssetId; address: AssetWorkspaceAddress }, {}>(Object.assign({}, ...event.inheritanceNodes.map(({ key, address }) => ({ [key]: { key, address } }))), event.inheritanceEdges, { address: {} as any })
+    return await fetchImports({
+        ConnectionId: event.ConnectionId,
+        RequestId: event.RequestId,
+        inheritanceGraph,
+        payloads: event.payloads
+    })
+}
+
+export const handler = async (event: any) => {
+
+    switch(event.message) {
+        case 'parseWML':
+            return await parseWMLHandler(event)
+        case 'fetchImports':
+            return await fetchImportsHandler(event)
+    }
 }

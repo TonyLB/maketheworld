@@ -1,23 +1,23 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`recursiveFetchImports should follow dynamic renames in imports 1`] = `
-Array [
-  Object {
-    "contents": Array [],
+[
+  {
+    "contents": [],
     "key": "testImportTwo",
-    "name": Array [
-      Object {
+    "name": [
+      {
         "tag": "String",
         "value": "StubFoo",
       },
     ],
-    "render": Array [],
+    "render": [],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [
-      Object {
-        "contents": Array [],
+  {
+    "contents": [
+      {
+        "contents": [],
         "from": "testNonImportTwo",
         "key": "testNonImportTwo#testImportTwo",
         "name": "test exit",
@@ -26,26 +26,26 @@ Array [
       },
     ],
     "key": "testNonImportTwo",
-    "name": Array [],
-    "render": Array [],
+    "name": [],
+    "render": [],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testImportTwo",
-    "name": Array [],
-    "render": Array [],
+    "name": [],
+    "render": [],
     "tag": "Room",
   },
 ]
 `;
 
 exports[`recursiveFetchImports should import multilevel and avoid colliding stub names 1`] = `
-Array [
-  Object {
-    "contents": Array [
-      Object {
-        "contents": Array [],
+[
+  {
+    "contents": [
+      {
+        "contents": [],
         "from": "testImportThree",
         "key": "testImportThree#testImportAssetThree.stub",
         "name": "test exit",
@@ -54,38 +54,38 @@ Array [
       },
     ],
     "key": "testImportThree",
-    "name": Array [],
-    "render": Array [],
+    "name": [],
+    "render": [],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testImportAssetTwo.stub",
-    "name": Array [
-      Object {
+    "name": [
+      {
         "tag": "String",
         "value": "Asset Three",
       },
     ],
-    "render": Array [],
+    "render": [],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testImportAssetThree.stub",
-    "name": Array [
-      Object {
+    "name": [
+      {
         "tag": "String",
         "value": "AssetThreeStub",
       },
     ],
-    "render": Array [],
+    "render": [],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [
-      Object {
-        "contents": Array [],
+  {
+    "contents": [
+      {
+        "contents": [],
         "from": "testImportThree",
         "key": "testImportThree#testImportAssetTwo.stub",
         "name": "test exit",
@@ -94,40 +94,40 @@ Array [
       },
     ],
     "key": "testImportThree",
-    "name": Array [],
-    "render": Array [
-      Object {
+    "name": [],
+    "render": [
+      {
         "tag": "String",
         "value": "Asset Two",
       },
     ],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testImportAssetTwo.stub",
-    "name": Array [],
-    "render": Array [],
+    "name": [],
+    "render": [],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testImportThree",
-    "name": Array [],
-    "render": Array [],
+    "name": [],
+    "render": [],
     "tag": "Room",
   },
 ]
 `;
 
 exports[`recursiveFetchImports should properly stub out features in room description 1`] = `
-Array [
-  Object {
-    "contents": Array [],
+[
+  {
+    "contents": [],
     "key": "testRoomWithFeatures",
-    "name": Array [],
-    "render": Array [
-      Object {
+    "name": [],
+    "render": [
+      {
         "tag": "Link",
         "text": "Test",
         "to": "testFeature",
@@ -135,53 +135,53 @@ Array [
     ],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testFeature",
-    "name": Array [],
-    "render": Array [],
+    "name": [],
+    "render": [],
     "tag": "Feature",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testRoomWithFeatures",
-    "name": Array [],
-    "render": Array [],
+    "name": [],
+    "render": [],
     "tag": "Room",
   },
 ]
 `;
 
 exports[`recursiveFetchImports should recursive fetch one level of element and stubs when passed import key 1`] = `
-Array [
-  Object {
-    "contents": Array [],
+[
+  {
+    "contents": [],
     "key": "testImportOne",
-    "name": Array [],
-    "render": Array [
-      Object {
+    "name": [],
+    "render": [
+      {
         "tag": "String",
         "value": "One",
       },
     ],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testImportStubOne",
-    "name": Array [
-      Object {
+    "name": [
+      {
         "tag": "String",
         "value": "StubTwo",
       },
     ],
-    "render": Array [],
+    "render": [],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [
-      Object {
-        "contents": Array [],
+  {
+    "contents": [
+      {
+        "contents": [],
         "from": "testImportOne",
         "key": "testImportOne#testImportStubOne",
         "name": "test exit one",
@@ -190,31 +190,31 @@ Array [
       },
     ],
     "key": "testImportOne",
-    "name": Array [],
-    "render": Array [
-      Object {
+    "name": [],
+    "render": [
+      {
         "tag": "String",
         "value": "Two",
       },
     ],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testImportStubOne",
-    "name": Array [],
-    "render": Array [],
+    "name": [],
+    "render": [],
     "tag": "Room",
   },
 ]
 `;
 
 exports[`recursiveFetchImports should return element and stubs when passed non-import key 1`] = `
-Array [
-  Object {
-    "contents": Array [
-      Object {
-        "contents": Array [],
+[
+  {
+    "contents": [
+      {
+        "contents": [],
         "from": "testNonImport",
         "key": "testNonImport#testNonImportStub",
         "name": "test exit",
@@ -223,25 +223,25 @@ Array [
       },
     ],
     "key": "testNonImport",
-    "name": Array [],
-    "render": Array [
-      Object {
+    "name": [],
+    "render": [
+      {
         "tag": "String",
         "value": "DescriptionOne",
       },
     ],
     "tag": "Room",
   },
-  Object {
-    "contents": Array [],
+  {
+    "contents": [],
     "key": "testNonImportStub",
-    "name": Array [
-      Object {
+    "name": [
+      {
         "tag": "String",
         "value": "StubOne",
       },
     ],
-    "render": Array [],
+    "render": [],
     "tag": "Room",
   },
 ]

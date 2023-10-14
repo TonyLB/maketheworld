@@ -1,0 +1,18 @@
+---
+Comment: Command step-function to deliver fetchImports to a player
+StartAt: Fetch Imports
+States:
+    "Fetch Imports":
+        Type: Task
+        Next: Done
+        Resource: "${WMLFunctionArn}"
+        Parameters:
+            message: "fetchImports"
+            ConnectionId.$: "$$.Execution.Input.ConnectionId"
+            RequestId.$: "$$.Execution.Input.RequestId"
+            inheritanceNodes.$: "$$.Execution.Input.inheritanceNodes"
+            inheritanceEdges.$: "$$.Execution.Input.inheritanceEdges"
+            payloads.$: "$$.Execution.Input.payloads"
+        ResultPath: null
+    Done:
+        Type: Succeed

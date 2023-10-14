@@ -1,16 +1,13 @@
 import { FetchImportsMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
-import { apiClient } from "../clients"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
-import Normalizer from "@tonylb/mtw-wml/dist/normalize"
+import { InheritanceGraph } from "./baseClasses"
+import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { sfnClient } from "../clients"
+import { StartExecutionCommand } from "@aws-sdk/client-sfn"
+import { Graph } from "@tonylb/mtw-utilities/dist/graphStorage/utils/graph"
 
-import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { isSchemaAssetContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
-import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
-
-export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
+export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
     const [ConnectionId, RequestId] = await Promise.all([
         internalCache.Connection.get("connectionId"),
         internalCache.Connection.get("RequestId")
@@ -18,32 +15,23 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
 
     await Promise.all(
         payloads.map(async ({ importsFromAsset }) => {
-            const importsByAsset = await Promise.all(
-                importsFromAsset.map(async ({ assetId, keys }) => {
-                    const schemaTags = await recursiveFetchImports({ assetId, translate: new NestedTranslateImportToFinal(keys, []) })
-                    const assetSchema: SchemaAssetTag = {
-                        tag: 'Asset',
-                        Story: undefined,
-                        key: splitType(assetId)[1],
-                        contents: schemaTags.filter(isSchemaAssetContents)
-                    }
-                    const normalizer = new Normalizer()
-                    normalizer.loadSchema([assetSchema])
-                    normalizer.standardize()
-                    return {
-                        assetId,
-                        wml: schemaToWML(normalizer.schema)
-                    }
-                })
+            const ancestry = await internalCache.Graph.get(importsFromAsset.map(({ assetId }) => (assetId)), 'back', { fetchEdges: true })
+            const addresses = await internalCache.Meta.get(Object.keys(ancestry.nodes) as EphemeraAssetId[])
+            const inheritanceGraph: InheritanceGraph = new Graph(
+                Object.assign({}, ...addresses.map(({ address, AssetId }) => ({ [AssetId]: { key: AssetId, address } }))),
+                ancestry.edges as any,
+                { address: {} as any }
             )
-            await apiClient.send({
-                ConnectionId,
-                Data: JSON.stringify({
+            await sfnClient.send(new StartExecutionCommand({
+                stateMachineArn: process.env.FETCH_IMPORTS_SFN,
+                input: JSON.stringify({
+                    ConnectionId,
                     RequestId,
-                    messageType: 'FetchImports',
-                    importsByAsset
+                    inheritanceNodes: Object.values(inheritanceGraph.nodes),
+                    inheritanceEdges: inheritanceGraph.edges,
+                    payloads: importsFromAsset
                 })
-            })
+            }))
         })
     )
 }

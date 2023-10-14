@@ -1,20 +1,24 @@
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import recursiveFetchImports, { NestedTranslateImportToFinal } from './recursiveFetchImports'
+import { fetchImports } from '.'
 
-jest.mock('../internalCache')
-import internalCache from '../internalCache'
+jest.mock('../clients')
+import { apiClient } from '../clients'
+jest.mock('./baseClasses')
+import { FetchImportsJSONHelper } from './baseClasses'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
+import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
 
-const internalCacheMock = jest.mocked(internalCache, true)
+const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
 
 const testNormalFromWML = (wml: string): NormalForm => {
     const normalizer = new Normalizer()
     normalizer.loadWML(wml)
     return normalizer.normal
-
 }
 
-describe('recursiveFetchImports', () => {
+describe('fetchImports', () => {
     const testFinal = testNormalFromWML(`<Asset key=(testFinal)>
         <Room key=(testNonImport)>
             <Description>
@@ -99,10 +103,26 @@ describe('recursiveFetchImports', () => {
             <Description><Link to=(testFeature)>Test</Link></Description>
         </Room>
     </Asset>`)
+    const inheritanceGraph = new Graph<EphemeraAssetId, { key: EphemeraAssetId; address: AssetWorkspaceAddress }, {}>(
+        {
+            'ASSET#testImportAssetOne': { key: 'ASSET#testImportAssetOne', address: { zone: 'Canon', fileName: 'testOne' }},
+            'ASSET#testImportAssetTwo': { key: 'ASSET#testImportAssetTwo', address: { zone: 'Canon', fileName: 'testTwo' }},
+            'ASSET#testImportAssetThree': { key: 'ASSET#testImportAssetThree', address: { zone: 'Canon', fileName: 'testThree' }},
+            'ASSET#testImportAssetFour': { key: 'ASSET#testImportAssetFour', address: { zone: 'Canon', fileName: 'testFour' }},
+            'ASSET#testFinal': { key: 'ASSET#testFinal', address: { zone: 'Canon', fileName: 'testFinal' }}
+        },
+        [
+            { from: 'ASSET#testFinal', to: 'ASSET#testImportAssetOne' },
+            { from: 'ASSET#testFinal', to: 'ASSET#testImportAssetTwo' },
+            { from: 'ASSET#testFinal', to: 'ASSET#testImportAssetFour' },
+            { from: 'ASSET#testImportAssetTwo', to: 'ASSET#testImportAssetThree' }
+        ],
+        { address: {} as any }
+    )
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCacheMock.JSONFile.get.mockImplementation(async (assetId: string) => {
+        jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: string) => {
             let normal: NormalForm = {}
             switch(assetId) {
                 case 'ASSET#testFinal':
@@ -129,27 +149,33 @@ describe('recursiveFetchImports', () => {
     })
 
     it('should return empty when passed no keys', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal([], []) })).toEqual([])
+        await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: [] }] })
+        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
     })
 
     it('should return element and stubs when passed non-import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testNonImport'], []) })).toMatchSnapshot()
+        await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testNonImport'] }] })
+        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
     })
 
     it('should recursive fetch one level of element and stubs when passed import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportOne'], []) })).toMatchSnapshot()
+        await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testImportOne'] }] })
+        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
     })
 
     it('should follow dynamic renames in imports', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testNonImportTwo'], []) })).toMatchSnapshot()
+        await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testNonImportTwo'] }] })
+        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
     })
 
     it('should import multilevel and avoid colliding stub names', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportThree'], []) })).toMatchSnapshot()
+        await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testImportThree'] }] })
+        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
     })
 
     it('should properly stub out features in room description', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testRoomWithFeatures'], []) })).toMatchSnapshot()
+        await fetchImports({ ConnectionId: '123', RequestId: '456', inheritanceGraph, payloads: [{ assetId: 'ASSET#testFinal', keys: ['testRoomWithFeatures'] }] })
+        expect(JSON.parse(apiClientMock.send.mock.calls[0][0].Data)).toMatchSnapshot()
     })
 
 })

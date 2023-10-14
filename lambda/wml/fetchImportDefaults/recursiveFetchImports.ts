@@ -1,12 +1,11 @@
-import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
-import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses";
-import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import { isSchemaRoomContents } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import internalCache from "../internalCache";
-import { objectMap } from "../lib/objects";
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaRoomContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import normalSubset from "./normalSubset"
+import { FetchImportsJSONHelper } from "./baseClasses"
 
 //
 // The translateToFinal class accepts:
@@ -100,13 +99,14 @@ export class NestedTranslateImportToFinal extends Object {
 
 type RecursiveFetchImportArgument = {
     assetId: `ASSET#${string}`;
+    jsonHelper: FetchImportsJSONHelper;
     translate: NestedTranslateImportToFinal;
     prefixStubKeys?: boolean;
 }
 
-export const recursiveFetchImports = async ({ assetId, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
+export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
     const { localKeys: keys, localStubKeys: stubKeys } = translate
-    const { normal } = await internalCache.JSONFile.get(assetId)
+    const { normal } = await jsonHelper.get(assetId)
     //
     // Coming straight from the datalake, this normal should already be in standardized form,
     // and can be fed directly to normalSubset
@@ -138,7 +138,7 @@ export const recursiveFetchImports = async ({ assetId, translate, prefixStubKeys
     //
     const importSchema = (await Promise.all(relevantImports.map(async ({ assetId, mapping }) => {
         const nestedTranslate = translate.nestMapping(keys, [...stubKeys, ...newStubKeys], mapping)
-        const tags: SchemaTag[] = await recursiveFetchImports({ assetId, translate: nestedTranslate, prefixStubKeys: true })
+        const tags: SchemaTag[] = await recursiveFetchImports({ assetId, jsonHelper, translate: nestedTranslate, prefixStubKeys: true })
         return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
     }))).flat()
 
