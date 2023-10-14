@@ -5,7 +5,7 @@ import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { FetchAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { MessageBus } from "../messageBus/baseClasses"
-import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/index"
+import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/readOnly"
 import { convertSelectDataToJson } from "../utilities/stream"
 
 const { S3_BUCKET } = process.env;
@@ -43,7 +43,7 @@ const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId
             })
             const { address } = queryOutput[0] || {}
             if (address) {
-                const assetWorkspace = new AssetWorkspace(address)
+                const assetWorkspace = new ReadOnlyAssetWorkspace(address)
                 return await assetWorkspace.presignedURL()
             }
             else {
@@ -92,7 +92,7 @@ const fetchAssetProperties = ({ s3Client }: { s3Client: S3Client }) => async ({ 
             })
             const { address } = queryOutput[0] || {}
             if (address) {
-                const assetWorkspace = new AssetWorkspace(address)
+                const assetWorkspace = new ReadOnlyAssetWorkspace(address)
                 derivedFileName = `${assetWorkspace.fileNameBase}.json`
             }
         }

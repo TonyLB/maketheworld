@@ -3,8 +3,6 @@ import { S3Client } from "@aws-sdk/client-s3"
 import AWSXRay from 'aws-xray-sdk'
 import type { Readable } from "stream"
 
-import { healAsset } from "./selfHealing/"
-
 import internalCache from "./internalCache"
 
 import {
@@ -81,13 +79,6 @@ export const handler = async (event, context) => {
 
     // Handle EventBridge messages
     if (event?.source === 'mtw.diagnostics') {
-        if (event["detail-type"] === 'Heal Asset') {
-            if (event.detail?.fileName) {
-                const returnVal = await healAsset(event.detail.fileName)
-                return JSON.stringify(returnVal, null, 4)
-            }
-            return JSON.stringify(`No fileName specified for Heal Asset event`)
-        }
         if (event["detail-type"] === 'Heal Global Values') {
             const returnVal = await healGlobalValues({
                 shouldHealConnections: Boolean(event.detail?.connections),

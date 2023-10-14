@@ -948,8 +948,6 @@ Resources:
                   source:
                     - mtw.diagnostics
                   detail-type:
-                    - Heal Asset
-                    - Heal Player
                     - Heal Global Values
             Coordination:
               Type: CloudWatchEvent
@@ -959,7 +957,6 @@ Resources:
                   source:
                     - mtw.coordination
                   detail-type:
-                    - Format Image
                     - Remove Asset
                     - Canonize Asset
                     - Decanonize Asset
