@@ -785,6 +785,10 @@ Resources:
           ContentUri: charcoal-client/build/
           CompatibleRuntimes:
               - nodejs18.x
+  MTWFeedbackTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+          TopicName: MTWFeedback
   CognitoHandlerFunction:
       Type: AWS::Serverless::Function
       Metadata:
