@@ -789,6 +789,30 @@ Resources:
       Type: AWS::SNS::Topic
       Properties:
           TopicName: MTWFeedback
+  FeedbackFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: lambda/feedback/build
+        Handler: lambda.handler
+        MemorySize: 128
+        Runtime: nodejs18.x
+        Timeout: 2
+        Environment:
+          Variables:
+            WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
+            TABLE_PREFIX: !Ref TablePrefix
+        Policies:
+          - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+          - DynamoDBReadPolicy:
+              TableName: !Sub '${TablePrefix}_connections'
+        Events:
+          MTWFeedbackSNS:
+            Type: SNS
+            Properties:
+              Topic: !Ref MTWFeedbackTopic
   CognitoHandlerFunction:
       Type: AWS::Serverless::Function
       Metadata:

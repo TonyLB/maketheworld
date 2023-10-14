@@ -1,0 +1,23 @@
+{
+  "name": "feedback",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Lambda for simple feedback to a connected player",
+  "main": "app.ts",
+  "scripts": {
+    "test": "jest",
+    "build:dev": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js --sourcemap",
+    "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.4",
+    "jest": "^29.6.4",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  }
+}
