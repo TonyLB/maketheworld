@@ -18,6 +18,26 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
 
     await Promise.all(
         payloads.map(async ({ importsFromAsset }) => {
+            //
+            // TODO: Create a helper class with asynchronous get-JSON-File functionality to
+            // replace directly using internalCache.JSONFile
+            //
+
+            //
+            // TODO: Refactor helper class to accept a graph with nodes that correlate assetIds and their
+            // address data.  Use graph lookup to populate the helper class
+            //
+
+            //
+            // TODO: Deprecate direct dependency of the helper class on internalCache (i.e. embed
+            // the same lookups into the helper class for portability)
+            //
+
+            //
+            // TODO: Decouple creation of the data to populate the helper class (to be done on the assets lambda)
+            // from creation of the helper class and the rest of the fetchImports process (to be done on the
+            // wml lambda, by way of step function call)
+            //
             const importsByAsset = await Promise.all(
                 importsFromAsset.map(async ({ assetId, keys }) => {
                     const schemaTags = await recursiveFetchImports({ assetId, translate: new NestedTranslateImportToFinal(keys, []) })

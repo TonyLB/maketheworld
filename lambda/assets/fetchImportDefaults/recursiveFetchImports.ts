@@ -1,11 +1,10 @@
-import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
-import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses";
-import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import { isSchemaRoomContents } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
-import internalCache from "../internalCache";
-import { objectMap } from "../lib/objects";
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaRoomContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import internalCache from "../internalCache"
 import normalSubset from "./normalSubset"
 
 //
@@ -106,6 +105,9 @@ type RecursiveFetchImportArgument = {
 
 export const recursiveFetchImports = async ({ assetId, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
     const { localKeys: keys, localStubKeys: stubKeys } = translate
+    //
+    // TODO: Accept helper class and use it in place of internalCache call
+    //
     const { normal } = await internalCache.JSONFile.get(assetId)
     //
     // Coming straight from the datalake, this normal should already be in standardized form,
