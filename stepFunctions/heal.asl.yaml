@@ -1,0 +1,32 @@
+---
+Comment: Command step-function to initiate a player heal
+StartAt: Heal Player
+States:
+    "Heal Player":
+        Type: Task
+        Next: Create Supplemental Argument
+        Resource: "${DiagnosticsFunctionArn}"
+        Parameters:
+            type: "HealPlayer"
+            player.$: "$$.Execution.Input.player"
+        ResultPath: "$.healResults"
+    "Create Supplemental Argument":
+        Type: Pass
+        Next: Supplement Update Arguments
+        Parameters:
+            type: "Player"
+            "player.$": "$$.Execution.Input.player"
+        ResultPath: "$.supplement"
+    "Supplement Update Arguments":
+        Type: Pass
+        Next: Update Ephemera
+        Parameters:
+            "updateArgs.$": "States.JsonMerge($.healResults, $.supplement, false)"
+        ResultPath: "$"
+    "Update Ephemera":
+        Type: Task
+        Next: Done
+        InputPath: "$.updateArgs"
+        Resource: "${UpdateEphemeraFunctionArn}"
+    Done:
+        Type: Succeed

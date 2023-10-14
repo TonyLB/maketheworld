@@ -4,7 +4,6 @@ import AWSXRay from 'aws-xray-sdk'
 import type { Readable } from "stream"
 
 import { healAsset } from "./selfHealing/"
-import { healPlayer } from "./selfHealing/player"
 
 import internalCache from "./internalCache"
 
@@ -70,12 +69,13 @@ export const handler = async (event, context) => {
 
     // Handle Cognito PostConfirm messages
     if (event?.triggerSource === 'PostConfirmation_ConfirmSignUp' && event?.userName) {
-        //
-        // TODO: Refactor PostConfirm message to dispatch stepFunction that wraps diagnostics lambda
-        // to call healPlayer
-        //
-        internalCache.Connection.set({ key: 'player', value: event?.userName})
-        await healPlayer(event?.userName)
+        await sfnClient.send(new StartExecutionCommand({
+            stateMachineArn: process.env.CACHE_ASSETS_SFN,
+            input: JSON.stringify({
+                type: 'Player',
+                player: event.userName,
+            })
+        }))
         return event
     }
 
