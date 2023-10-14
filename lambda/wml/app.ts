@@ -6,8 +6,9 @@ import { isNormalAsset } from '@tonylb/mtw-normal';
 import { formatImage } from './formatImage';
 import { StartExecutionCommand, SFNClient } from '@aws-sdk/client-sfn'
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { PublishCommand } from '@aws-sdk/client-sns'
 import AWSXRay from 'aws-xray-sdk'
-import { apiClient } from './clients';
+import { snsClient } from './clients';
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph';
 import { fetchImports } from './fetchImportDefaults';
@@ -15,7 +16,7 @@ import { fetchImports } from './fetchImportDefaults';
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
 export const sfnClient = new SFNClient({ region: process.env.AWS_REGION })
-const { UPLOAD_BUCKET } = process.env
+const { UPLOAD_BUCKET, FEEDBACK_TOPIC } = process.env
 
 type ParseWMLHandlerArguments = {
     address: AssetWorkspaceAddress;
@@ -87,14 +88,18 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
     }
 
     if (connectionId && requestId) {
-        await apiClient.send({
-            ConnectionId: connectionId,
-            Data: JSON.stringify({
+        await snsClient.send(new PublishCommand({
+            TopicArn: FEEDBACK_TOPIC,
+            Message: JSON.stringify({
                 messageType: 'ParseWML',
-                images: imageFiles,
-                RequestId: requestId
-            })
-        })
+                images: imageFiles
+            }),
+            MessageAttributes: {
+                RequestId: { DataType: 'String', StringValue: requestId },
+                ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
+                Type: { DataType: 'String', StringValue: 'Success' }
+            }
+        }))
     }
 
 }

@@ -1,8 +1,8 @@
 {
-  "name": "wml",
+  "name": "feedback",
   "type": "module",
   "version": "1.0.0",
-  "description": "Lambda for looking up asset addresses and inheritance from ID",
+  "description": "Lambda for simple feedback to a connected player",
   "main": "app.ts",
   "scripts": {
     "test": "jest",
@@ -12,15 +12,7 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-eventbridge": "^3.425.0",
-    "@aws-sdk/client-s3": "^3.425.0",
-    "@aws-sdk/client-sfn": "^3.425.0",
-    "@aws-sdk/client-sns": "^3.428.0",
-    "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
-    "@tonylb/mtw-normal": "file:../../packages/mtw-normal",
-    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
-    "aws-xray-sdk": "^3.5.1",
-    "jimp": "^0.22.10"
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities"
   },
   "devDependencies": {
     "@types/jest": "^29.5.4",
