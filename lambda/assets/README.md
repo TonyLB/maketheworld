@@ -34,6 +34,17 @@ this form:
 
 ---
 
+## Secure Passthrough
+The **assets** lambda serves as a gatekeeper for functionality services by other microservices (particularly
+the **wml** lambda).  **assets** should perform authorization checks and cleanup on any call before passing
+it on to the ecosystem of Step Functions or directly to another lambda.
+
+Passthrough should be fire-and-forget:  On a passthrough, the receiving functions are responsible for
+reporting feedback and success/failure back to the sessionID that they get passed, and the assets lambda
+can shut down once control has been forwarded.
+
+---
+
 ## Layers
 Different types of data are stored in different thematic layers within the DynamoDB assets table:
 
@@ -50,12 +61,6 @@ players to character and asset files, and characters to asset files to which the
 
 ## Outlets
 
-- ***heal***: Heals all player information from Cognito, assigning characters as they are currently
-assigned in the Asset DB.
-- ***healAsset***: Accepts an AssetID, looks it up based on current meta-data stored in the DB,
-and reprocesses its WML file
-- ***move***: Manually moves an asset file (specified by fileName argument) from the fromPath argument
-to the toPath argument (DEPRECATED)
 - ***checkout***: Moves an asset (specified by checkout) from the Library to the personal assets
 of a player (specified by PlayerName)
 - ***checkin***: Moves an asset (specified by checkin) from the Personal assets of a player into
@@ -108,78 +113,6 @@ asset contains
 
 ### *Namespace Meta-Data*
 
-- ancestryTree:  A denormalized nested map of all the Ancestry records (see below), which gives a quick way to fetch all
-import ancestors that might have an impact on renders or operations of the asset
-- descentTree:  Similary, a denormalized nested map of the Descent records, which gives a quick way to fetch all import
-descendants that might be impacted by this asset in their renders or operations
 - namespaceMap
-
----
-
-## <Component\> records
-
----
-
-*For any tag in the component types (Room, Feature), a record will be stored in an adjacency list associated with*
-*the Asset (by placing the Asset's AssetId in the DataCategory field of the component record)*
-
-### *Key Data*
-
-- AssetId
-- DataCategory
-- scopedId:  The key used internally within the asset to refer to this component
-
-### *Component Denormalization*
-
-- defaultAppearances
-
----
-
-## Meta::Map records
-
----
-
-*For any Map, a record will be stored in an adjacency list associated with the Asset (by placing the Asset's*
-*AssetId in the DataCategory field of the map record)*
-
-### *Key Data*
-
-- AssetId
-- DataCategory
-- scopedId
-
-### *Map Denormalization*
-
-- defaultAppearances
-
----
-
-## Ancestry records
-
----
-
-*If an Asset imports from other Assets, it will have one Ancestry record associated with it in adjacency list*
-*that stores the entire ancestry tree of the imported asset*
-
-### *Key Data*
-
-- AssetId
-- DataCategory: `Ancestry-${importedScopedId}`
-- tree
-
----
-
-## Descent records
-
----
-
-*If any other Asset imports from this Asset, this Asset will have one Descent record associated with it in adjacency list*
-*that stores the entire descent tree of the importing asset*
-
-### *Key Data*
-
-- AssetId
-- DataCategory: `Descent-${importedScopedId}`
-- tree
 
 ---
