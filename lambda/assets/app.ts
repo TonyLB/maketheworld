@@ -97,24 +97,6 @@ export const handler = async (event, context) => {
         }
     }
     if (event?.source === 'mtw.coordination') {
-        if (event["detail-type"] === 'Format Image') {
-            const { fileName, width, height, AssetId, imageKey } = event.detail
-            if (fileName && AssetId && imageKey && width && height) {
-                messageBus.send({
-                    type: 'FormatImage',
-                    fileName,
-                    AssetId,
-                    imageKey,
-                    width,
-                    height
-                })
-                await messageBus.flush()
-                return await extractReturnValue(messageBus)
-            }
-            else {
-                return JSON.stringify(`Invalid arguments specified for Format Image event`)
-            }
-        }
         if (event["detail-type"] === 'Remove Asset') {
             const { assetId } = event.detail
             if (assetId) {

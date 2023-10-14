@@ -24,7 +24,6 @@
     "@tonylb/mtw-wml": "file:../../packages/mtw-wml",
     "aws-xray-sdk": "^3.5.1",
     "immer": "^9.0.12",
-    "jimp": "^0.16.2",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

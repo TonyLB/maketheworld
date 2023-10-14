@@ -8,7 +8,6 @@ import {
     isLibrarySubscribeMessage,
     isPlayerInfoMessage,
     isLibraryUpdateMessage,
-    isFormatImageMessage,
     isFetchImportsAPIMessage,
     isLibraryUnsubscribeMessage,
     isPlayerSettingMessage,
@@ -21,7 +20,6 @@ import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
 import { librarySubscribeMessage, libraryUnsubscribeMessage } from "../subscribe"
 import playerInfoMessage from "../player/info"
 import libraryUpdateMessage from "../libraryUpdate"
-import formatImageMessage from "../formatImage"
 import { fetchImportsMessage } from "../fetchImportDefaults"
 import playerSettingMessage from "../player/update"
 import removeAssetMessage from "../removeAsset"
@@ -57,12 +55,6 @@ messageBus.subscribe({
     priority: 5,
     filter: isUploadURLMessage,
     callback: uploadURLMessage
-})
-messageBus.subscribe({
-    tag: 'FormatImage',
-    priority: 10,
-    filter: isFormatImageMessage,
-    callback: formatImageMessage
 })
 messageBus.subscribe({
     tag: 'MoveAsset',
