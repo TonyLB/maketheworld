@@ -9,12 +9,14 @@ import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaAssetContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
 import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
+import { FetchImportsJSONHelper } from "./baseClasses"
 
 export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
     const [ConnectionId, RequestId] = await Promise.all([
         internalCache.Connection.get("connectionId"),
         internalCache.Connection.get("RequestId")
     ])
+    const jsonHelper = new FetchImportsJSONHelper()
 
     await Promise.all(
         payloads.map(async ({ importsFromAsset }) => {
@@ -40,7 +42,7 @@ export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: 
             //
             const importsByAsset = await Promise.all(
                 importsFromAsset.map(async ({ assetId, keys }) => {
-                    const schemaTags = await recursiveFetchImports({ assetId, translate: new NestedTranslateImportToFinal(keys, []) })
+                    const schemaTags = await recursiveFetchImports({ assetId, jsonHelper, translate: new NestedTranslateImportToFinal(keys, []) })
                     const assetSchema: SchemaAssetTag = {
                         tag: 'Asset',
                         Story: undefined,

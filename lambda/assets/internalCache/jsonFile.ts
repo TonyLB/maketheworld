@@ -4,7 +4,7 @@ import ReadOnlyAssetWorkspace, { NamespaceMapping, AssetWorkspaceAddress } from 
 import Meta, { MetaData } from './meta'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-type JSONFileCache = {
+export type JSONFileCache = {
     normal: NormalForm;
     namespaceIdToDB: NamespaceMapping;
 }

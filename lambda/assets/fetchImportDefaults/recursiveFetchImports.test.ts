@@ -4,6 +4,7 @@ import recursiveFetchImports, { NestedTranslateImportToFinal } from './recursive
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { FetchImportsJSONHelper } from './baseClasses'
 
 const internalCacheMock = jest.mocked(internalCache, true)
 
@@ -99,6 +100,7 @@ describe('recursiveFetchImports', () => {
             <Description><Link to=(testFeature)>Test</Link></Description>
         </Room>
     </Asset>`)
+    const jsonHelper = new FetchImportsJSONHelper()
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -129,27 +131,27 @@ describe('recursiveFetchImports', () => {
     })
 
     it('should return empty when passed no keys', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal([], []) })).toEqual([])
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal([], []) })).toEqual([])
     })
 
     it('should return element and stubs when passed non-import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testNonImport'], []) })).toMatchSnapshot()
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal(['testNonImport'], []) })).toMatchSnapshot()
     })
 
     it('should recursive fetch one level of element and stubs when passed import key', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportOne'], []) })).toMatchSnapshot()
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal(['testImportOne'], []) })).toMatchSnapshot()
     })
 
     it('should follow dynamic renames in imports', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testNonImportTwo'], []) })).toMatchSnapshot()
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal(['testNonImportTwo'], []) })).toMatchSnapshot()
     })
 
     it('should import multilevel and avoid colliding stub names', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testImportThree'], []) })).toMatchSnapshot()
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal(['testImportThree'], []) })).toMatchSnapshot()
     })
 
     it('should properly stub out features in room description', async () => {
-        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', translate: new NestedTranslateImportToFinal(['testRoomWithFeatures'], []) })).toMatchSnapshot()
+        expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal(['testRoomWithFeatures'], []) })).toMatchSnapshot()
     })
 
 })
