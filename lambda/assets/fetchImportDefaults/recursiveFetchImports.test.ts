@@ -5,6 +5,9 @@ jest.mock('../internalCache')
 import internalCache from '../internalCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { FetchImportsJSONHelper } from './baseClasses'
+import { EphemeraAssetId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace'
 
 const internalCacheMock = jest.mocked(internalCache, true)
 
@@ -100,7 +103,7 @@ describe('recursiveFetchImports', () => {
             <Description><Link to=(testFeature)>Test</Link></Description>
         </Room>
     </Asset>`)
-    const jsonHelper = new FetchImportsJSONHelper()
+    const jsonHelper = new FetchImportsJSONHelper(new Graph<EphemeraAssetId, { key: EphemeraAssetId; address: AssetWorkspaceAddress }, {}>({}, [], { address: {} as any }))
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()

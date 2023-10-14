@@ -9,26 +9,25 @@ import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaAssetContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
 import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
-import { FetchImportsJSONHelper } from "./baseClasses"
+import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
+import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export const fetchImportsMessage = async ({ payloads, messageBus }: { payloads: FetchImportsMessage[], messageBus: MessageBus }): Promise<void> => {
     const [ConnectionId, RequestId] = await Promise.all([
         internalCache.Connection.get("connectionId"),
         internalCache.Connection.get("RequestId")
     ])
-    const jsonHelper = new FetchImportsJSONHelper()
 
     await Promise.all(
         payloads.map(async ({ importsFromAsset }) => {
-            //
-            // TODO: Create a helper class with asynchronous get-JSON-File functionality to
-            // replace directly using internalCache.JSONFile
-            //
-
-            //
-            // TODO: Refactor helper class to accept a graph with nodes that correlate assetIds and their
-            // address data.  Use graph lookup to populate the helper class
-            //
+            const ancestry = await internalCache.Graph.get(importsFromAsset.map(({ assetId }) => (assetId)), 'back', { fetchEdges: true })
+            const addresses = await internalCache.Meta.get(Object.keys(ancestry.nodes) as EphemeraAssetId[])
+            const inheritanceGraph = new InheritanceGraph(
+                Object.assign({}, ...addresses.map(({ address, AssetId }) => ({ [AssetId]: { key: AssetId, address } }))),
+                ancestry.edges as any,
+                { address: {} as any }
+            )
+            const jsonHelper = new FetchImportsJSONHelper(inheritanceGraph)
 
             //
             // TODO: Deprecate direct dependency of the helper class on internalCache (i.e. embed

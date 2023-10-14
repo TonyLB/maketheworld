@@ -8,6 +8,7 @@ import messageBus from '../messageBus'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 
 const messageBusMock = jest.mocked(messageBus, true)
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
@@ -107,6 +108,8 @@ describe('fetchImportsMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
+        internalCacheMock.Graph.get.mockResolvedValue(new Graph<string, { key: string }, {}>({}, [], {}))
+        internalCacheMock.Meta.get.mockResolvedValue([])
         internalCacheMock.JSONFile.get.mockImplementation(async (assetId: string) => {
             let normal: NormalForm = {}
             switch(assetId) {
