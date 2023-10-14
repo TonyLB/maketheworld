@@ -1217,6 +1217,28 @@ Resources:
         - StepFunctionsExecutionPolicy:
             StateMachineName: !Sub '${TablePrefix}_heal_step_function'
         - CloudWatchLogsFullAccess
+  FetchImportsStateMachineLogs:
+    Type: AWS::Logs::LogGroup
+  FetchImportsStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub '${TablePrefix}_fetch_imports_step_function'
+      Type: EXPRESS
+      DefinitionUri: ./stepFunctions/fetchImports.asl.yaml
+      Tracing:
+        Enabled: true
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup: 
+              LogGroupArn: !GetAtt FetchImportsStateMachineLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL
+      DefinitionSubstitutions:
+        WMLFunctionArn: !GetAtt WMLFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref WMLFunction
+        - CloudWatchLogsFullAccess
 
 Outputs:
   UserPoolClient:
