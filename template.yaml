@@ -1050,10 +1050,12 @@ Resources:
           Variables:
             S3_BUCKET: !Sub '${TablePrefix}-assets'
             UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
+            FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
             IMAGES_BUCKET: !Sub '${TablePrefix}-images'
-            WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
             EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
         Policies:
+          - SNSPublishMessagePolicy:
+              TopicName: !GetAtt MTWFeedbackTopic.TopicName
           - Statement:
             - Effect: Allow
               Action:
@@ -1081,10 +1083,6 @@ Resources:
                 Fn::Sub:
                     - "arn:aws:s3:::${ImageBucket}/*"
                     - AssetBucket: !Sub '${TablePrefix}-images'
-          - Statement:
-            - Effect: Allow
-              Action: execute-api:ManageConnections
-              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
           - Statement:
             - Effect: Allow
               Resource: '*'
