@@ -122,12 +122,6 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         this.status.wml = 'Clean'
     }
 
-    get rootNodes(): (NormalAsset | NormalCharacter)[] {
-        return Object.values(this.normal || {})
-            .filter((node): node is NormalAsset | NormalCharacter => (isNormalAsset(node) || isNormalCharacter(node)))
-            .filter(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
-    }
-
 }
 
 export default AssetWorkspace

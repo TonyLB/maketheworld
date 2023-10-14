@@ -1,6 +1,6 @@
 jest.mock('../clients')
 import { apiClient } from "../clients"
-jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
+jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
             status: {

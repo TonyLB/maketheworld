@@ -1,90 +1,89 @@
-import { v4 as uuidv4 } from 'uuid'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
-import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
-import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter, NormalItem, isNormalMap, isNormalRoom, isNormalFeature, NormalReference, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { EphemeraCharacterId, EphemeraError } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/dist/readOnly'
+import { isNormalAsset, NormalForm, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { graphStorageDB } from './graphCache'
 import { CharacterKey } from '@tonylb/mtw-utilities/dist/types'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
 
-const tagRenderLink = (normalForm) => (renderItem) => {
-    if (typeof renderItem === 'object') {
-        if (renderItem.tag === 'Link') {
-            return {
-                ...renderItem,
-                targetTag: normalForm[renderItem.to]?.tag
-            }
-        }
-    }
-    return renderItem
-}
+// const tagRenderLink = (normalForm) => (renderItem) => {
+//     if (typeof renderItem === 'object') {
+//         if (renderItem.tag === 'Link') {
+//             return {
+//                 ...renderItem,
+//                 targetTag: normalForm[renderItem.to]?.tag
+//             }
+//         }
+//     }
+//     return renderItem
+// }
 
-const denormalizeExits = (normalForm: NormalForm) => (contents: NormalReference[]) => {
-    const exitTags = contents.filter(({ tag }) => (tag === 'Exit'))
-    const exits = exitTags.map(({ key }) => (normalForm[key])).filter(isNormalExit)
-    return exits.map(({ name, to }) => ({ name, to }))
-}
+// const denormalizeExits = (normalForm: NormalForm) => (contents: NormalReference[]) => {
+//     const exitTags = contents.filter(({ tag }) => (tag === 'Exit'))
+//     const exits = exitTags.map(({ key }) => (normalForm[key])).filter(isNormalExit)
+//     return exits.map(({ name, to }) => ({ name, to }))
+// }
 
-const noConditionContext = ({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If')))
+// const noConditionContext = ({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If')))
 
-const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
-    if (isNormalMap(item)) {
-        const mapDefaultAppearances = item.appearances
-            .filter(noConditionContext)
-            .map(({ rooms }) => ({
-                rooms: rooms.map(({ key, ...rest }) => {
-                    const lookup = normalForm[key]
-                    if (!isNormalRoom(lookup)) {
-                        throw new EphemeraError(`Invalid item in map room lookup: ${key}`)
-                    }
-                    return {
-                        ...rest,
-                        name: (lookup.appearances || [])
-                            .filter(noConditionContext)
-                            .map<string>(({ name }) => ((name || []).map((namePart) => (namePart.tag === 'String' ? namePart.value : '')).join('')))
-                            .join('')
-                    }
-                })
-            }))
-        return {
-            tag: item.tag,
-            key: item.key,
-            defaultAppearances: mapDefaultAppearances
-        }
-    }
-    if (isNormalRoom(item)) {
-        return {
-            tag: item.tag,
-            key: item.key,
-            defaultAppearances: item.appearances
-                .filter(noConditionContext)
-                .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
-                .map(({ contents = [], render = [], name = [] }) => ({
-                    exits: denormalizeExits(normalForm)(contents),
-                    render: render.map(tagRenderLink(normalForm)),
-                    name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
-                }))
-        }
-    }
-    if (isNormalFeature(item)) {
-        return {
-            tag: item.tag,
-            key: item.key,
-            defaultAppearances: item.appearances
-                .filter(noConditionContext)
-                .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
-                .map(({ render, name = [] }) => ({
-                    render: (render || []).map(tagRenderLink(normalForm)),
-                    name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
-                }))
-        }
-    }
-}
+// const itemRegistry = (normalForm: NormalForm) => (item: NormalItem) => {
+//     if (isNormalMap(item)) {
+//         const mapDefaultAppearances = item.appearances
+//             .filter(noConditionContext)
+//             .map(({ rooms }) => ({
+//                 rooms: rooms.map(({ key, ...rest }) => {
+//                     const lookup = normalForm[key]
+//                     if (!isNormalRoom(lookup)) {
+//                         throw new EphemeraError(`Invalid item in map room lookup: ${key}`)
+//                     }
+//                     return {
+//                         ...rest,
+//                         name: (lookup.appearances || [])
+//                             .filter(noConditionContext)
+//                             .map<string>(({ name }) => ((name || []).map((namePart) => (namePart.tag === 'String' ? namePart.value : '')).join('')))
+//                             .join('')
+//                     }
+//                 })
+//             }))
+//         return {
+//             tag: item.tag,
+//             key: item.key,
+//             defaultAppearances: mapDefaultAppearances
+//         }
+//     }
+//     if (isNormalRoom(item)) {
+//         return {
+//             tag: item.tag,
+//             key: item.key,
+//             defaultAppearances: item.appearances
+//                 .filter(noConditionContext)
+//                 .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
+//                 .map(({ contents = [], render = [], name = [] }) => ({
+//                     exits: denormalizeExits(normalForm)(contents),
+//                     render: render.map(tagRenderLink(normalForm)),
+//                     name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
+//                 }))
+//         }
+//     }
+//     if (isNormalFeature(item)) {
+//         return {
+//             tag: item.tag,
+//             key: item.key,
+//             defaultAppearances: item.appearances
+//                 .filter(noConditionContext)
+//                 .filter(({ contents= [], render = [], name = [] }) => (contents.length > 0 || render.length > 0 || name.length > 0))
+//                 .map(({ render, name = [] }) => ({
+//                     render: (render || []).map(tagRenderLink(normalForm)),
+//                     name: name.map((item) => (item.tag === 'String' ? item.value : '')).join('')
+//                 }))
+//         }
+//     }
+// }
 
-export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> => {
+export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promise<void> => {
     const { address } = assetWorkspace
     // if (assetWorkspace.status.json !== 'Clean') {
     //     await assetWorkspace.loadJSON()

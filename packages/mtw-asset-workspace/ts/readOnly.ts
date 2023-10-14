@@ -1,6 +1,6 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
-import { NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-normal'
+import { NormalAsset, NormalCharacter, NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-normal'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
@@ -192,6 +192,12 @@ export class ReadOnlyAssetWorkspace {
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
         this.properties = properties as WorkspaceProperties
         this.status.json = 'Clean'
+    }
+
+    get rootNodes(): (NormalAsset | NormalCharacter)[] {
+        return Object.values(this.normal || {})
+            .filter((node): node is NormalAsset | NormalCharacter => (isNormalAsset(node) || isNormalCharacter(node)))
+            .filter(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
     }
 
 }
