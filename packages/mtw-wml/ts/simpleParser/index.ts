@@ -61,6 +61,9 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                 break
             case ParseExpectation.PropertyValue:
                 switch(token.type) {
+                    case 'Whitespace':
+                    case 'Comment':
+                        break
                     case 'KeyValue':
                     case 'ExpressionValue':
                     case 'LiteralValue':
