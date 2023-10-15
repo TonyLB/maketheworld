@@ -29,13 +29,11 @@ type ParseWMLHandlerArguments = {
 
 const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
 
-    const { address, player, requestId, connectionId, uploadName } = event
+    const { address, requestId, connectionId, uploadName } = event
     const images = []
 
     const assetWorkspace = new AssetWorkspace(address)
     await assetWorkspace.loadJSON()
-
-    console.log(`JSON loaded: ${JSON.stringify(assetWorkspace.normal, null, 4)}`)
 
     assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
     const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
