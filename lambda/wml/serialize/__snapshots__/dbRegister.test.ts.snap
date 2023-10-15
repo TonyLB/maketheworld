@@ -1,0 +1,70 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`dbRegister should put a single element for a Character file 1`] = `
+{
+  "AssetId": "CHARACTER#12345",
+  "DataCategory": "Meta::Character",
+  "FirstImpression": "Frumpy Goth",
+  "Name": "Tess",
+  "OneCoolThing": "Fuchsia eyes",
+  "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+  "Pronouns": {
+    "adjective": "hers",
+    "object": "her",
+    "possessive": "her",
+    "reflexive": "herself",
+    "subject": "she",
+  },
+  "address": {
+    "fileName": "test",
+    "zone": "Library",
+  },
+  "images": [
+    "IMAGE-123",
+  ],
+  "scopedId": "TESS",
+  "zone": "Library",
+}
+`;
+
+exports[`dbRegister should save meta for Asset type 1`] = `
+{
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": undefined,
+  "address": {
+    "fileName": "test",
+    "zone": "Library",
+  },
+  "instance": undefined,
+  "zone": "Library",
+}
+`;
+
+exports[`dbRegister should save meta for Story type 1`] = `
+{
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": true,
+  "address": {
+    "fileName": "test",
+    "zone": "Library",
+  },
+  "instance": undefined,
+  "zone": "Library",
+}
+`;
+
+exports[`dbRegister should save meta for instanced Story type 1`] = `
+{
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": true,
+  "address": {
+    "fileName": "test",
+    "zone": "Library",
+  },
+  "instance": true,
+  "zone": "Library",
+}
+`;

@@ -12,6 +12,7 @@ import { snsClient } from './clients';
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph';
 import { fetchImports } from './fetchImportDefaults';
+import { dbRegister } from './serialize/dbRegister';
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
@@ -55,10 +56,7 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         await Promise.all([
             assetWorkspace.pushJSON(),
             assetWorkspace.pushWML(),
-            //
-            // TODO: Refactor dbRegister to only register the asset and its graph connections, not every single component in the asset.
-            //
-            // dbRegister(assetWorkspace)
+            dbRegister(assetWorkspace)
         ])
 
         //
