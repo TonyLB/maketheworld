@@ -77,7 +77,6 @@ describe('wml simple parser', () => {
         //         </Moment>
         //     </Asset>
         // `))
-        console.log(`testTokens: ${JSON.stringify(testTokens, null, 4)}`)
         expect(parse(testTokens)).toEqual([
             { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'Test' }, { type: ParsePropertyTypes.Literal, key: 'fileName', value: 'test' }] },
             { type: ParseTypes.Open, tag: 'Import', properties: [{ type: ParsePropertyTypes.Key, key: 'from', value: 'BASE'}]},
@@ -97,7 +96,7 @@ describe('wml simple parser', () => {
             { type: ParseTypes.Close, tag: 'Name' },
             { type: ParseTypes.Open, tag: 'Description', properties: [] },
             { type: ParseTypes.SelfClosure, tag: 'Space', properties: [] },
-            { type: ParseTypes.Text, text: 'Vortex' },
+            { type: ParseTypes.Text, text: ' Vortex ' },
             { type: ParseTypes.Open, tag: 'Link', properties: [{ type: ParsePropertyTypes.Key, key: 'to', value: 'toggleOpen' }] },
             { type: ParseTypes.Text, text: '(toggle)' },
             { type: ParseTypes.Close, tag: 'Link' },
@@ -106,28 +105,5 @@ describe('wml simple parser', () => {
             { type: ParseTypes.Close, tag: 'Asset' }
         ])
     })
-    // it('should parse display taggedMessageContents correctly', () => {
-    //     const testTokens = tokenizer(new SourceStream(`
-    //         <Asset key=(Test) fileName="test">
-    //         <Room key=(ABC)>
-    //             <Name>Vortex</Name>
-    //             <Description>
-    //                 Vortex
-    //                 <After>
-    //                     : Open
-    //                 </After>
-    //                 <Replace>
-    //                     Closed
-    //                 </Replace>
-    //                 <Before>
-    //                     Vortex :
-    //                 </Before>
-    //             </Description>
-    //         </Room>
-    //     </Asset>
-    // `))
-    //     expect(parse(testTokens)).toMatchSnapshot()
-    // })
-
 
 })

@@ -12,6 +12,8 @@ export const parse = (tokens: Token[]): ParseItem[] => {
     let expecting: ParseExpectation = ParseExpectation.Tags
     let currentTag: ParseTagOpen | undefined
     let currentProperty: TokenProperty | undefined
+    let firstTag: boolean = true
+    let currentText: string | undefined
     for (const token of tokens) {
         switch (expecting) {
             case ParseExpectation.Properties:
@@ -20,6 +22,8 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                         accumulator.push({ ...currentTag, type: token.selfClosing ? ParseTypes.SelfClosure : ParseTypes.Open })
                         currentTag = undefined
                         expecting = ParseExpectation.Tags
+                        firstTag = !token.selfClosing
+                        currentText = undefined
                         break
                     case 'Property':
                         if (token.isBoolean) {
@@ -65,6 +69,13 @@ export const parse = (tokens: Token[]): ParseItem[] => {
             case ParseExpectation.Tags:
                 switch(token.type) {
                     case 'TagOpenBegin':
+                        if (typeof currentText !== 'undefined') {
+                            accumulator.push({
+                                type: ParseTypes.Text,
+                                text: currentText
+                            })
+                        }
+                        currentText = undefined
                         currentTag = {
                             type: ParseTypes.Open,
                             tag: token.tag,
@@ -73,19 +84,28 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                         expecting = ParseExpectation.Properties
                         break
                     case 'TagClose':
+                        if ((currentText || '').trimEnd()) {
+                            accumulator.push({
+                                type: ParseTypes.Text,
+                                text: currentText
+                            })
+                        }
+                        currentText = undefined
                         accumulator.push({
                             type: ParseTypes.Close,
                             tag: token.tag
                         })
+                        firstTag = false
                         break
                     case 'Description':
-                        accumulator.push({
-                            type: ParseTypes.Text,
-                            text: token.value
-                        })
+                        currentText = `${currentText || ''}${token.value}`
+                        firstTag = false
                         break
                     case 'Whitespace':
                     case 'Comment':
+                        if (!firstTag) {
+                            currentText = `${(currentText || '').trimEnd()} `
+                        }
                         break
                     default:
                         throw new Error('Invalid parse token')
