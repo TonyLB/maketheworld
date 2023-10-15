@@ -27,7 +27,10 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                         break
                     case 'Property':
                         if (token.isBoolean) {
-                            // currentTag.properties.push({ })
+                            currentTag.properties.push({
+                                type: ParsePropertyTypes.Boolean,
+                                value: true
+                            })
                             currentProperty = undefined
                         }
                         else {
@@ -38,14 +41,25 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                     case 'Whitespace':
                     case 'Comment':
                         break
+                    case 'KeyValue':
+                    case 'ExpressionValue':
+                    case 'LiteralValue':
+                        currentTag.properties.push({
+                            type: token.type === 'KeyValue'
+                                ? ParsePropertyTypes.Key
+                                : token.type === 'LiteralValue'
+                                    ? ParsePropertyTypes.Literal
+                                    : ParsePropertyTypes.Expression,
+                            value: token.value
+                        })
+                        currentProperty = undefined
+                        expecting = ParseExpectation.Properties
+                        break;
                     default:
                         throw new Error('Invalid parse token')
                 }
                 break
             case ParseExpectation.PropertyValue:
-                if (typeof currentProperty === 'undefined') {
-                    throw new Error('Parse failure at property value')
-                }
                 switch(token.type) {
                     case 'KeyValue':
                     case 'ExpressionValue':
@@ -87,7 +101,7 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                         if ((currentText || '').trimEnd()) {
                             accumulator.push({
                                 type: ParseTypes.Text,
-                                text: currentText
+                                text: currentText.trimEnd()
                             })
                         }
                         currentText = undefined

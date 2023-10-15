@@ -1,11 +1,12 @@
 export enum ParsePropertyTypes {
     Key,
     Literal,
-    Expression
+    Expression,
+    Boolean
 }
 
 type ParsePropertyBase = {
-    key: string;
+    key?: string;
 }
 
 export type ParsePropertyKey = {
@@ -23,7 +24,12 @@ export type ParsePropertyExpression = {
     value: string;
 } & ParsePropertyBase
 
-export type ParseProperty = ParsePropertyKey | ParsePropertyLiteral | ParsePropertyExpression
+export type ParsePropertyBoolean = {
+    type: ParsePropertyTypes.Boolean;
+    value: boolean;
+} & ParsePropertyBase
+
+export type ParseProperty = ParsePropertyKey | ParsePropertyLiteral | ParsePropertyExpression | ParsePropertyBoolean
 
 export enum ParseTypes {
     Open,
