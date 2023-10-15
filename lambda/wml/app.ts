@@ -38,7 +38,7 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
     assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
     const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
     const imageFiles = (await Promise.all([
-        assetWorkspace.loadWMLFrom(uploadName || assetWorkspace.fileName, true),
+        uploadName ? assetWorkspace.loadWMLFrom(uploadName, true) : assetWorkspace.loadWML(),
         ...((images || []).map(async ({ key, fileName }) => {
             const final = await formatImage(s3Client)({ fromFileName: fileName, width: fileType === 'Asset' ? 1200: 200, height: fileType === 'Asset' ? 800 : 200 })
             return { key, fileName: final }
