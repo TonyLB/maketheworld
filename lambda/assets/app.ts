@@ -125,17 +125,22 @@ export const handler = async (event, context) => {
             .filter(({ Sns }) => (Sns))
             .map(async ({ Sns }) => {
                 const message = JSON.parse(Sns.Message)
-                if (
-                    Sns.MessageAttributes.Type?.Type !== 'String' ||
-                    typeof message?.player !== 'string'
-                ) {
+                if (Sns.MessageAttributes.Type?.Type !== 'String') {
                     throw new Error(`Incoming message format failure (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
                 }
                 switch(Sns.MessageAttributes.Type.Value) {
                     case 'PlayerInfo':
+                        if (typeof message?.player !== 'string') {
+                            throw new Error(`Incoming message format failure (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
+                        }
                         messageBus.send({
                             type: 'PlayerInfo',
                             player: message.player
+                        })
+                        break
+                    case 'LibraryUpdate':
+                        messageBus.send({
+                            type: 'LibraryUpdate'
                         })
                         break
                 }
