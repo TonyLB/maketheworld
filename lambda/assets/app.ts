@@ -118,6 +118,32 @@ export const handler = async (event, context) => {
             }
         }
     }
+
+    // Handle SNS messages
+    if (Array.isArray(event?.Records)) {
+        await Promise.all(event.Records
+            .filter(({ Sns }) => (Sns))
+            .map(async ({ Sns }) => {
+                const message = JSON.parse(Sns.Message)
+                if (
+                    Sns.MessageAttributes.Type?.Type !== 'String' ||
+                    typeof message?.player !== 'string'
+                ) {
+                    throw new Error(`Incoming message format failure (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
+                }
+                switch(Sns.MessageAttributes.Type.Value) {
+                    case 'PlayerInfo':
+                        messageBus.send({
+                            type: 'PlayerInfo',
+                            player: message.player
+                        })
+                        break
+                }
+            })
+        )
+        await messageBus.flush()
+        return
+    }
     
     if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'parseWML', 'updatePlayerSettings'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
@@ -131,10 +157,6 @@ export const handler = async (event, context) => {
                 type: 'FetchLibrary'
             })
         }
-        //
-        // TODO: Refactor cacheAssets step function to directly make address lookups, rather than depending on
-        // asset lambda calls (to reduce circular dependencies)
-        //
         if (isMetaDataAPIMessage(request)) {
             const addresses = await internalCache.Meta.get(request.assetIds)
             if (connectionId) {
