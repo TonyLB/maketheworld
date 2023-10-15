@@ -12,6 +12,7 @@ import { snsClient } from './clients';
 import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph';
 import { fetchImports } from './fetchImportDefaults';
+import { dbRegister } from './serialize/dbRegister';
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
@@ -28,13 +29,11 @@ type ParseWMLHandlerArguments = {
 
 const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
 
-    const { address, player, requestId, connectionId, uploadName } = event
+    const { address, requestId, connectionId, uploadName } = event
     const images = []
 
     const assetWorkspace = new AssetWorkspace(address)
     await assetWorkspace.loadJSON()
-
-    console.log(`JSON loaded: ${JSON.stringify(assetWorkspace.normal, null, 4)}`)
 
     assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
     const fileType = Object.values(assetWorkspace.normal || {}).find(isNormalAsset) ? 'Asset' : 'Character'
@@ -55,10 +54,7 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         await Promise.all([
             assetWorkspace.pushJSON(),
             assetWorkspace.pushWML(),
-            //
-            // TODO: Refactor dbRegister to only register the asset and its graph connections, not every single component in the asset.
-            //
-            // dbRegister(assetWorkspace)
+            dbRegister(assetWorkspace)
         ])
 
         //

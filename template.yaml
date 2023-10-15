@@ -1061,14 +1061,20 @@ Resources:
         Timeout: 5
         Environment:
           Variables:
+            TABLE_PREFIX: !Ref TablePrefix
             S3_BUCKET: !Sub '${TablePrefix}-assets'
             UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
             FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
             IMAGES_BUCKET: !Sub '${TablePrefix}-images'
             EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+            CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
         Policies:
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_assets'
           - SNSPublishMessagePolicy:
               TopicName: !GetAtt MTWFeedbackTopic.TopicName
+          - StepFunctionsExecutionPolicy:
+              StateMachineName: !Sub '${TablePrefix}_cache_assets_step_function'
           - Statement:
             - Effect: Allow
               Action:
