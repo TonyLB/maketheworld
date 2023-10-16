@@ -272,7 +272,6 @@ describe('schemaFromParse', () => {
                     tag: "Moment",
                 },
             ],
-            fileName: "test",
             key: "Test",
             tag: "Asset"
         }])

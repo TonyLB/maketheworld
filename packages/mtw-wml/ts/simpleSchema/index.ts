@@ -39,8 +39,6 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
                 })
                 break
             case ParseTypes.Close:
-                console.log(`Closing: ${item.tag}`)
-                console.log(`Stack: ${JSON.stringify(contextStack.map(({ tag }) => (tag.tag)))}`)
                 if (contextStack.length === 0) {
                     throw new Error(`Mismatched tag closure ('${item.tag}' matches nothing)`)
                 }

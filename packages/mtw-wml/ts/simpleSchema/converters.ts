@@ -334,21 +334,31 @@ export const converterMap: Record<string, ConverterMapEntry> = {
         }
     },
     Exit: {
-        //
-        // TODO: Exit will require more complicated initialization, because of the
-        // degree to which it derives defaults for to/from out of the context in
-        // which it exists.
-        //
-        // MAYBE: Extend initialize function to receive a context list?
-        //
-        initialize: ({ parseOpen }): SchemaExitTag => ({
-            tag: 'Exit',
-            name: '',
-            contents: [],
-            key: '',
-            from: '',
-            to: '',
-            ...validateProperties(validationTemplates.Exit)(parseOpen)
+        initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
+            const roomContextList = contextStack.map(({ tag }) => (tag)).filter(isSchemaRoom)
+            const roomContext = roomContextList.length > 0 ? roomContextList.slice(-1)[0] : undefined
+            const { from, to, ...rest } = validateProperties(validationTemplates.Exit)(parseOpen)
+            if (!roomContext && (!from || !to)) {
+                throw new Error(`Exit must specify both 'from' and 'to' properties if not in a room item`)
+            }
+            if (!(from || to)) {
+                throw new Error(`Exit must specify at least one of 'from' and 'to' properties`)
+            }
+            return {
+                tag: 'Exit',
+                name: '',
+                contents: [],
+                key: `${from || roomContext.key}#${to || roomContext.key}`,
+                from: from || roomContext.key,
+                to: to || roomContext.key,
+                ...rest
+            }
+        },
+        legalContents: isSchemaString,
+        finalize: (initialTag: SchemaExitTag, contents: SchemaStringTag[]): SchemaExitTag => ({
+            ...initialTag,
+            name: contents.map(({ value }) => (value)).join(''),
+            contents
         })
     },
     Link: {
