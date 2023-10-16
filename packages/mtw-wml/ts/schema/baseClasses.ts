@@ -204,6 +204,7 @@ export type SchemaLinkTag = {
     tag: 'Link';
     to: string;
     text: string;
+    contents?: SchemaLiteralLegalContents[];
 } & SchemaBase
 
 export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaWhitespaceTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
