@@ -131,3 +131,5 @@ export const parse = (tokens: Token[]): ParseItem[] => {
     }
     return accumulator
 }
+
+export default parse
