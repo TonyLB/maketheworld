@@ -1,30 +1,17 @@
 import { SchemaActionTag, SchemaAfterTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaKnowledgeLegalContents, SchemaKnowledgeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomLegalIncomingContents, SchemaRoomTag, SchemaSpacerTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaTaggedMessageLegalContents, SchemaUseTag, SchemaVariableTag, isSchemaAssetContents, isSchemaCharacterContents, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaFirstImpression, isSchemaImage, isSchemaKnowledgeContents, isSchemaKnowledgeIncomingContents, isSchemaMapContents, isSchemaMessage, isSchemaMessageContents, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaString, isSchemaTag, isSchemaTaggedMessageLegalContents, isSchemaUse } from "../schema/baseClasses"
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../simpleParser/baseClasses"
+import { SchemaContextItem } from "./baseClasses";
 
 export type SchemaConverterArguments = {
     parseOpen: ParseTagOpen | ParseTagSelfClosure;
+    contextStack: SchemaContextItem[];
 }
 
 export type SchemaInitialConverter = {
     (args: SchemaConverterArguments): SchemaTag
 }
 
-const getParseKey = (parse: ParseTagOpen | ParseTagSelfClosure, key: string, enforceType?: ParsePropertyTypes): string | boolean | undefined => {
-    const keyItem = parse.properties.find((item) => (key === item.key))
-    if (typeof enforceType !== 'undefined') {
-        if (keyItem && keyItem.type !== enforceType) {
-            throw new Error(`Property '${key} must be of type ${enforceType === ParsePropertyTypes.Key ? 'Key' : enforceType === ParsePropertyTypes.Expression ? 'Expression' : enforceType === ParsePropertyTypes.Literal ? 'Literal' : 'Boolean'}`)
-        }
-    }
-    return keyItem?.value
-}
-
-//
-// TODO: Create *validatedProperties* parser that uses Typescript meta-programming to convert
-// a record with keys to values like { required: true, type: 'boolean' } into a record
-// with the type constrained structure for those keys.
-//
 type ValidationTemplateItem = {
     required?: boolean;
     type: ParsePropertyTypes;

@@ -1,11 +1,7 @@
 import { SchemaTag } from "../schema/baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
+import { SchemaContextItem } from "./baseClasses"
 import converterMap from "./converters"
-
-type SchemaContextItem = {
-    tag: SchemaTag;
-    contents: SchemaTag[];
-}
 
 export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
     let contextStack: SchemaContextItem[] = []
@@ -34,11 +30,11 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
                 })
                 break
             case ParseTypes.SelfClosure:
-                addSchemaTag(converterMap[item.tag].initialize({ parseOpen: item }))
+                addSchemaTag(converterMap[item.tag].initialize({ parseOpen: item, contextStack }))
                 break
             case ParseTypes.Open:
                 contextStack.push({
-                    tag: converterMap[item.tag].initialize({ parseOpen: item }),
+                    tag: converterMap[item.tag].initialize({ parseOpen: item, contextStack }),
                     contents: []
                 })
                 break
