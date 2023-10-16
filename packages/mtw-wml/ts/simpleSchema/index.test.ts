@@ -12,7 +12,7 @@ describe('schemaFromParse', () => {
 
     it('should make a schema from parse elements correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test) fileName="test">
+            <Asset key=(Test)>
                 <Import from=(BASE)>
                     <Use key=(basePower) type="Variable" as=(power) />
                     <Use key=(overview) type="Room" />

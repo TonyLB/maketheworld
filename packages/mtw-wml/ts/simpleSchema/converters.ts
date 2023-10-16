@@ -1,4 +1,5 @@
-import { SchemaActionTag, SchemaAfterTag, SchemaAssetTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaKnowledgeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaReplaceTag, SchemaRoomTag, SchemaSpacerTag, SchemaStoryTag, SchemaTag, SchemaUseTag, SchemaVariableTag, isSchemaTag } from "../schema/baseClasses"
+import { SchemaActionTag, SchemaAfterTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaKnowledgeLegalContents, SchemaKnowledgeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomLegalIncomingContents, SchemaRoomTag, SchemaSpacerTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaTaggedMessageLegalContents, SchemaUseTag, SchemaVariableTag, isSchemaAssetContents, isSchemaCharacterContents, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaFirstImpression, isSchemaImage, isSchemaKnowledgeContents, isSchemaKnowledgeIncomingContents, isSchemaMapContents, isSchemaMessage, isSchemaMessageContents, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaString, isSchemaTag, isSchemaTaggedMessageLegalContents, isSchemaUse } from "../schema/baseClasses"
+import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../simpleParser/baseClasses"
 
 export type SchemaConverterArguments = {
@@ -44,10 +45,10 @@ type ValidationTemplateOutput<V extends ValidationTemplate> =
 const validateProperties = <V extends ValidationTemplate>(template: V) => (parse: ParseTagOpen | ParseTagSelfClosure): ValidationTemplateOutput<V> => {
     const unmatchedKey = parse.properties.find(({ key }) => (!((key ?? 'DEFAULT') in template)))
     if (unmatchedKey) {
-        throw new Error(`Property '${unmatchedKey}' is not allowed in '${parse.tag}' items.`)
+        throw new Error(`Property '${unmatchedKey.key}' is not allowed in '${parse.tag}' items.`)
     }
     const remap = Object.assign({}, ...Object.entries(template).map(([key, { required, type }]) => {
-        const matchedKey = parse.properties.find(({ key: checkKey }) => (checkKey || 'DEFAULT' === key))
+        const matchedKey = parse.properties.find(({ key: checkKey }) => ((checkKey || 'DEFAULT') === key))
         if (required && !matchedKey) {
             throw new Error(`Property '${key}' is required in '${parse.tag}' items.`)
         }
@@ -112,9 +113,13 @@ const validationTemplates = {
     If: {
         DEFAULT: { required: true, type: ParsePropertyTypes.Expression },
     },
+    ElseIf: {
+        DEFAULT: { required: true, type: ParsePropertyTypes.Expression },
+    },
+    Else: {},
     Exit: {
-        from: { required: true, type: ParsePropertyTypes.Key },
-        to: { required: true, type: ParsePropertyTypes.Key }
+        from: { type: ParsePropertyTypes.Key },
+        to: { type: ParsePropertyTypes.Key }
     },
     Link: {
         to: { required: true, type: ParsePropertyTypes.Key }
@@ -153,13 +158,24 @@ const validationTemplates = {
     },
 } as const
 
-export const converterMap: Record<string, { initialize: SchemaInitialConverter; }> = {
+type ConverterMapEntry = {
+    initialize: SchemaInitialConverter;
+    legalContents?: (item: SchemaTag) => boolean;
+    finalize?: (initialTag: SchemaTag, contents: SchemaTag[]) => SchemaTag;
+}
+
+export const converterMap: Record<string, ConverterMapEntry> = {
     Asset: {
         initialize: ({ parseOpen }): SchemaAssetTag => ({
             tag: 'Asset',
             contents: [],
             Story: undefined,
             ...validateProperties(validationTemplates.Asset)(parseOpen)
+        }),
+        legalContents: isSchemaAssetContents,
+        finalize: (initialTag: SchemaAssetTag, contents: SchemaAssetLegalContents[] ): SchemaAssetTag => ({
+            ...initialTag,
+            contents
         })
     },
     Story: {
@@ -168,6 +184,11 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             contents: [],
             Story: true,
             ...validateProperties(validationTemplates.Story)(parseOpen)
+        }),
+        legalContents: isSchemaAssetContents,
+        finalize: (initialTag: SchemaAssetTag, contents: SchemaAssetLegalContents[] ): SchemaAssetTag => ({
+            ...initialTag,
+            contents
         })
     },
     Image: {
@@ -188,6 +209,11 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             contents: [],
             value: '',
             ...validateProperties(validationTemplates.FirstImpression)(parseOpen)
+        }),
+        legalContents: isSchemaString,
+        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
+            ...initialTag,
+            value: contents.map(({ value }) => (value)).join('')
         })
     },
     OneCoolThing: {
@@ -196,6 +222,11 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             contents: [],
             value: '',
             ...validateProperties(validationTemplates.OneCoolThing)(parseOpen)
+        }),
+        legalContents: isSchemaString,
+        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
+            ...initialTag,
+            value: contents.map(({ value }) => (value)).join('')
         })
     },
     Outfit: {
@@ -204,6 +235,11 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             contents: [],
             value: '',
             ...validateProperties(validationTemplates.Outfit)(parseOpen)
+        }),
+        legalContents: isSchemaString,
+        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
+            ...initialTag,
+            value: contents.map(({ value }) => (value)).join('')
         })
     },
     Character: {
@@ -219,6 +255,16 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             },
             Name: '',
             ...validateProperties(validationTemplates.Character)(parseOpen)
+        }),
+        legalContents: isSchemaCharacterContents,
+        finalize: (initialTag: SchemaCharacterTag, contents: SchemaCharacterLegalContents[]): SchemaCharacterTag => ({
+            ...initialTag,
+            Name: contents.filter(isSchemaName).map(({ contents }) => (contents)).flat(1).filter(isSchemaString).map(({ value }) => (value)).join(''),
+            Pronouns: [initialTag.Pronouns, ...contents.filter(isSchemaPronouns)].slice(-1)[0],
+            FirstImpression: (contents as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
+            OneCoolThing: (contents as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
+            Outfit: (contents as SchemaTag[]).filter(isSchemaOutfit).length ? (contents as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
+            contents
         })
     },
     Variable: {
@@ -251,6 +297,14 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             tag: 'Import',
             mapping: {},
             ...validateProperties(validationTemplates.Import)(parseOpen)
+        }),
+        legalContents: isSchemaUse,
+        finalize: (initialTag: SchemaImportTag, contents: SchemaUseTag[] ): SchemaImportTag => ({
+            ...initialTag,
+            mapping: contents.reduce((previous, { key, as, type }) => ({
+                ...previous,
+                [as || key]: { key, type }
+            }), {})
         })
     },
     If: {
@@ -270,6 +324,28 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             }
         }
     },
+    ElseIf: {
+        initialize: ({ parseOpen }): SchemaConditionTag => {
+            const validatedProperties = validateProperties(validationTemplates.ElseIf)(parseOpen)
+            return {
+                tag: 'If',
+                contextTag: 'Asset',
+                contents: [],
+                conditions: [{ if: validatedProperties.DEFAULT, dependencies: [] }]
+            }
+        }
+    },
+    Else: {
+        initialize: ({ parseOpen }): SchemaConditionTag => {
+            return {
+                tag: 'If',
+                contextTag: 'Asset',
+                contents: [],
+                conditions: [],
+                ...validateProperties(validationTemplates.Else)(parseOpen)
+            }
+        }
+    },
     Exit: {
         //
         // TODO: Exit will require more complicated initialization, because of the
@@ -283,6 +359,8 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             name: '',
             contents: [],
             key: '',
+            from: '',
+            to: '',
             ...validateProperties(validationTemplates.Exit)(parseOpen)
         })
     },
@@ -290,8 +368,12 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
         initialize: ({ parseOpen }): SchemaLinkTag => ({
             tag: 'Link',
             text: '',
-            contents: [],
             ...validateProperties(validationTemplates.Link)(parseOpen)
+        }),
+        legalContents: isSchemaString,
+        finalize: (initialTag: SchemaLinkTag, contents: SchemaStringTag[]) => ({
+            ...initialTag,
+            text: contents.map(({ value }) => (value)).join('')
         })
     },
     Description: {
@@ -299,6 +381,11 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             tag: 'Description',
             contents: [],
             ...validateProperties(validationTemplates.Description)(parseOpen)
+        }),
+        legalContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaDescriptionTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaDescriptionTag => ({
+            ...initialTag,
+            contents
         })
     },
     After: {
@@ -334,7 +421,12 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
                 display: display as 'before' | 'after' | 'replace',
                 ...rest
             }
-        }
+        },
+        legalContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaBookmarkTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaBookmarkTag => ({
+            ...initialTag,
+            contents
+        })
     },
     br: {
         initialize: ({ parseOpen }): SchemaLineBreakTag => ({
@@ -353,6 +445,11 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             tag: 'Name',
             contents: [],
             ...validateProperties(validationTemplates.Name)(parseOpen)
+        }),
+        legalContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaNameTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaNameTag => ({
+            ...initialTag,
+            contents
         })
     },
     Room: {
@@ -373,7 +470,14 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
                 y: typeof y !== 'undefined' ? parseInt(y) : undefined,
                 ...rest
             }
-        }
+        },
+        legalContents: isSchemaRoomIncomingContents,
+        finalize: (initialTag: SchemaRoomTag, contents: SchemaRoomLegalIncomingContents[] ): SchemaRoomTag => ({
+            ...initialTag,
+            contents: contents.filter(isSchemaRoomContents),
+            name: extractNameFromContents(contents),
+            render: extractDescriptionFromContents(contents)
+        })
     },
     Feature: {
         initialize: ({ parseOpen }): SchemaFeatureTag => ({
@@ -382,6 +486,13 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             render: [],
             name: [],
             ...validateProperties(validationTemplates.Feature)(parseOpen)
+        }),
+        legalContents: isSchemaFeatureIncomingContents,
+        finalize: (initialTag: SchemaFeatureTag, contents: SchemaFeatureLegalContents[] ): SchemaFeatureTag => ({
+            ...initialTag,
+            contents,
+            name: extractNameFromContents(contents),
+            render: extractDescriptionFromContents(contents)
         })
     },
     Knowledge: {
@@ -391,6 +502,13 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             render: [],
             name: [],
             ...validateProperties(validationTemplates.Knowledge)(parseOpen)
+        }),
+        legalContents: isSchemaKnowledgeIncomingContents,
+        finalize: (initialTag: SchemaKnowledgeTag, contents: SchemaKnowledgeLegalContents[] ): SchemaKnowledgeTag => ({
+            ...initialTag,
+            contents,
+            name: extractNameFromContents(contents),
+            render: extractDescriptionFromContents(contents)
         })
     },
     Map: {
@@ -401,6 +519,18 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             rooms: [],
             images: [],
             ...validateProperties(validationTemplates.Map)(parseOpen)
+        }),
+        legalContents: isSchemaMapContents,
+        finalize: (initialTag: SchemaMapTag, contents: SchemaMapLegalContents[] ): SchemaMapTag => ({
+            ...initialTag,
+            contents,
+            name: extractNameFromContents(contents),
+            rooms: extractConditionedItemFromContents({
+                contents: contents as SchemaMapLegalContents[],
+                typeGuard: isSchemaRoom,
+                transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
+            }),
+            images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
         })
     },
     Message: {
@@ -410,6 +540,20 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             render: [],
             rooms: [],
             ...validateProperties(validationTemplates.Message)(parseOpen)
+        }),
+        legalContents: isSchemaMessageContents,
+        finalize: (initialTag: SchemaMessageTag, contents: SchemaMessageLegalContents[] ): SchemaMessageTag => ({
+            ...initialTag,
+            render: contents.filter(isSchemaTaggedMessageLegalContents),
+            contents: contents.filter(isSchemaRoom),
+            rooms: contents.reduce((previous, room) => (
+                isSchemaRoom(room)
+                    ? [
+                        ...previous,
+                        { key: room.key }
+                    ]
+                    : previous
+            ), [])
         })
     },
     Moment: {
@@ -417,6 +561,11 @@ export const converterMap: Record<string, { initialize: SchemaInitialConverter; 
             tag: 'Moment',
             contents: [],
             ...validateProperties(validationTemplates.Moment)(parseOpen)
+        }),
+        legalContents: isSchemaMessage,
+        finalize: (initialTag: SchemaMomentTag, contents: SchemaMessageTag[] ): SchemaMomentTag => ({
+            ...initialTag,
+            contents
         })
     },
 }
