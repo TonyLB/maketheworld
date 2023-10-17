@@ -27,3 +27,9 @@ export type ValidationRequiredKeys<V extends ValidationTemplate> = {[K in keyof 
 export type ValidationTemplateOutput<V extends ValidationTemplate> = 
     Partial<ValidationTemplateRemap<V>> &
     Pick<ValidationTemplateRemap<V>, ValidationRequiredKeys<V>>
+
+export type ConverterMapEntry = {
+    initialize: SchemaInitialConverter;
+    legalContents?: (item: SchemaTag, contextStack: SchemaContextItem[]) => boolean;
+    finalize?: (initialTag: SchemaTag, contents: SchemaTag[], contextStack: SchemaContextItem[]) => SchemaTag;
+}

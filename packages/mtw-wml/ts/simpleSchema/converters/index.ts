@@ -7,15 +7,12 @@ import {
     SchemaAssetTag,
     SchemaBeforeTag,
     SchemaBookmarkTag,
-    SchemaCharacterLegalContents,
-    SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
     SchemaDescriptionTag,
     SchemaExitTag,
     SchemaFeatureLegalContents,
     SchemaFeatureTag,
-    SchemaFirstImpressionTag,
     SchemaImageTag,
     SchemaImportTag,
     SchemaKnowledgeLegalContents,
@@ -28,9 +25,6 @@ import {
     SchemaMessageTag,
     SchemaMomentTag,
     SchemaNameTag,
-    SchemaOneCoolThingTag,
-    SchemaOutfitTag,
-    SchemaPronounsTag,
     SchemaReplaceTag,
     SchemaRoomLegalIncomingContents,
     SchemaRoomTag,
@@ -43,19 +37,14 @@ import {
     SchemaUseTag,
     SchemaVariableTag,
     isSchemaAssetContents,
-    isSchemaCharacterContents,
     isSchemaCondition,
     isSchemaFeatureIncomingContents,
-    isSchemaFirstImpression,
     isSchemaImage,
     isSchemaKnowledgeIncomingContents,
     isSchemaMapContents,
     isSchemaMessage,
     isSchemaMessageContents,
     isSchemaName,
-    isSchemaOneCoolThing,
-    isSchemaOutfit,
-    isSchemaPronouns,
     isSchemaRoom,
     isSchemaRoomContents,
     isSchemaRoomIncomingContents,
@@ -65,33 +54,11 @@ import {
 } from "../../schema/baseClasses"
 import { translateTaggedMessageContents } from "../../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils"
-import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
+import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
-import { SchemaInitialConverter, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
-
-const validateProperties = <V extends ValidationTemplate>(template: V) => (parse: ParseTagOpen | ParseTagSelfClosure): ValidationTemplateOutput<V> => {
-    const unmatchedKey = parse.properties.find(({ key }) => (!((key ?? 'DEFAULT') in template)))
-    if (unmatchedKey) {
-        throw new Error(`Property '${unmatchedKey.key}' is not allowed in '${parse.tag}' items.`)
-    }
-    const remap = Object.assign({}, ...Object.entries(template).map(([key, { required, type }]) => {
-        const matchedKey = parse.properties.find(({ key: checkKey }) => ((checkKey || 'DEFAULT') === key))
-        if (required && !matchedKey) {
-            throw new Error(`Property '${key}' is required in '${parse.tag}' items.`)
-        }
-        if (matchedKey && matchedKey.type !== type) {
-            const typeLabel = type === ParsePropertyTypes.Boolean ? 'Boolean' : type === ParsePropertyTypes.Expression ? 'Expression' : type === ParsePropertyTypes.Literal ? 'Literal' : 'Key'
-            throw new Error(`Property '${key}' must be of ${typeLabel} type in '${parse.tag}' items.`)
-        }
-        if (matchedKey) {
-            return { [key]: matchedKey.value }
-        }
-        else {
-            return {}
-        }
-    })) as ValidationTemplateOutput<V>
-    return remap
-}
+import { ConverterMapEntry } from "./baseClasses"
+import { validateProperties } from "./utils"
+import { characterConverters } from "./character";
 
 const validationTemplates = {
     Asset: {
@@ -102,19 +69,6 @@ const validationTemplates = {
         instance: { required: true, type: ParsePropertyTypes.Boolean }
     },
     Image: {
-        key: { required: true, type: ParsePropertyTypes.Key }
-    },
-    Pronouns: {
-        subject: { required: true, type: ParsePropertyTypes.Literal },
-        object: { required: true, type: ParsePropertyTypes.Literal },
-        possessive: { required: true, type: ParsePropertyTypes.Literal },
-        adjective: { required: true, type: ParsePropertyTypes.Literal },
-        reflexive: { required: true, type: ParsePropertyTypes.Literal }
-    },
-    FirstImpression: {},
-    OneCoolThing: {},
-    Outfit: {},
-    Character: {
         key: { required: true, type: ParsePropertyTypes.Key }
     },
     Variable: {
@@ -184,12 +138,6 @@ const validationTemplates = {
         key: { required: true, type: ParsePropertyTypes.Key },
     },
 } as const
-
-type ConverterMapEntry = {
-    initialize: SchemaInitialConverter;
-    legalContents?: (item: SchemaTag, contextStack: SchemaContextItem[]) => boolean;
-    finalize?: (initialTag: SchemaTag, contents: SchemaTag[], contextStack: SchemaContextItem[]) => SchemaTag;
-}
 
 export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[]) => {
     if (contextStack.length === 0) {
@@ -271,84 +219,12 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             contents
         })
     },
+    ...characterConverters,
     Image: {
         initialize: ({ parseOpen }): SchemaImageTag => ({
             tag: 'Image',
             ...validateProperties(validationTemplates.Image)(parseOpen)
         })
-    },
-    Pronouns: {
-        initialize: ({ parseOpen }): SchemaPronounsTag => ({
-            tag: 'Pronouns',
-            ...validateProperties(validationTemplates.Pronouns)(parseOpen)
-        })
-    },
-    FirstImpression: {
-        initialize: ({ parseOpen }): SchemaFirstImpressionTag => ({
-            tag: 'FirstImpression',
-            contents: [],
-            value: '',
-            ...validateProperties(validationTemplates.FirstImpression)(parseOpen)
-        }),
-        legalContents: isSchemaString,
-        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
-            ...initialTag,
-            value: contents.map(({ value }) => (value)).join('')
-        })
-    },
-    OneCoolThing: {
-        initialize: ({ parseOpen }): SchemaOneCoolThingTag => ({
-            tag: 'OneCoolThing',
-            contents: [],
-            value: '',
-            ...validateProperties(validationTemplates.OneCoolThing)(parseOpen)
-        }),
-        legalContents: isSchemaString,
-        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
-            ...initialTag,
-            value: contents.map(({ value }) => (value)).join('')
-        })
-    },
-    Outfit: {
-        initialize: ({ parseOpen }): SchemaOutfitTag => ({
-            tag: 'Outfit',
-            contents: [],
-            value: '',
-            ...validateProperties(validationTemplates.Outfit)(parseOpen)
-        }),
-        legalContents: isSchemaString,
-        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
-            ...initialTag,
-            value: contents.map(({ value }) => (value)).join('')
-        })
-    },
-    Character: {
-        initialize: ({ parseOpen }): SchemaCharacterTag => ({
-            tag: 'Character',
-            contents: [],
-            Pronouns: {
-                subject: 'they',
-                object: 'them',
-                possessive: 'their',
-                adjective: 'theirs',
-                reflexive: 'themself'
-            },
-            Name: '',
-            ...validateProperties(validationTemplates.Character)(parseOpen)
-        }),
-        legalContents: isSchemaCharacterContents,
-        finalize: (initialTag: SchemaCharacterTag, contents: SchemaCharacterLegalContents[]): SchemaCharacterTag => {
-            const { tag, ...Pronouns } = [{ tag: '', ...initialTag.Pronouns }, ...contents.filter(isSchemaPronouns)].slice(-1)[0]
-            return {
-                ...initialTag,
-                Name: contents.filter(isSchemaName).map(({ contents }) => (contents)).flat(1).filter(isSchemaString).map(({ value }) => (value)).join(''),
-                Pronouns,
-                FirstImpression: (contents as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
-                OneCoolThing: (contents as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
-                Outfit: (contents as SchemaTag[]).filter(isSchemaOutfit).length ? (contents as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
-                contents
-            }
-        }
     },
     Variable: {
         initialize: ({ parseOpen }): SchemaVariableTag => ({
