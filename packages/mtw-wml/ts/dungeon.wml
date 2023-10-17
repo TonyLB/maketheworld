@@ -1,4 +1,4 @@
-<Asset key=(Dungeon) fileName="Dungeon" zone="Personal" player="TonyLB">
+<Asset key=(Dungeon)>
     <Room key=(VORTEX)>
         <Exit to=(cave)>cave</Exit>
         <Description>
