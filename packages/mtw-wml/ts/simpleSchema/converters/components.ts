@@ -27,6 +27,7 @@ import {
 } from "../../schema/baseClasses"
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
+import { compressWhitespace } from "../utils"
 import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
 
@@ -96,7 +97,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         legalContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaDescriptionTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaDescriptionTag => ({
             ...initialTag,
-            contents
+            contents: compressWhitespace(contents)
         })
     },
     Bookmark: {
@@ -115,7 +116,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         legalContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaBookmarkTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaBookmarkTag => ({
             ...initialTag,
-            contents
+            contents: compressWhitespace(contents)
         })
     },
     Name: {
@@ -127,7 +128,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         legalContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaNameTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaNameTag => ({
             ...initialTag,
-            contents
+            contents: compressWhitespace(contents)
         })
     },
     Room: {
@@ -153,8 +154,8 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         finalize: (initialTag: SchemaRoomTag, contents: SchemaRoomLegalIncomingContents[] ): SchemaRoomTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaRoomContents),
-            name: extractNameFromContents(contents),
-            render: extractDescriptionFromContents(contents)
+            name: compressWhitespace(extractNameFromContents(contents)),
+            render: compressWhitespace(extractDescriptionFromContents(contents))
         })
     },
     Feature: {
@@ -169,8 +170,8 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         finalize: (initialTag: SchemaFeatureTag, contents: SchemaFeatureLegalContents[] ): SchemaFeatureTag => ({
             ...initialTag,
             contents,
-            name: extractNameFromContents(contents),
-            render: extractDescriptionFromContents(contents)
+            name: compressWhitespace(extractNameFromContents(contents)),
+            render: compressWhitespace(extractDescriptionFromContents(contents))
         })
     },
     Knowledge: {
@@ -184,8 +185,8 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         legalContents: isSchemaKnowledgeIncomingContents,
         finalize: (initialTag: SchemaKnowledgeTag, contents: SchemaKnowledgeLegalContents[] ): SchemaKnowledgeTag => ({
             ...initialTag,
-            name: extractNameFromContents(contents),
-            render: extractDescriptionFromContents(contents)
+            name: compressWhitespace(extractNameFromContents(contents)),
+            render: compressWhitespace(extractDescriptionFromContents(contents))
         })
     },
     Map: {
@@ -201,7 +202,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         finalize: (initialTag: SchemaMapTag, contents: SchemaMapLegalContents[] ): SchemaMapTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaMapContents),
-            name: extractNameFromContents(contents),
+            name: compressWhitespace(extractNameFromContents(contents)),
             rooms: extractConditionedItemFromContents({
                 contents: contents as SchemaMapLegalContents[],
                 typeGuard: isSchemaRoom,
