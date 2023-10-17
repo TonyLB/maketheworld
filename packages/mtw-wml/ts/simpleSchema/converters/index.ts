@@ -9,15 +9,10 @@ import {
     SchemaExitTag,
     SchemaFeatureLegalContents,
     SchemaFeatureTag,
-    SchemaImageTag,
-    SchemaImportTag,
     SchemaKnowledgeLegalContents,
     SchemaKnowledgeTag,
     SchemaMapLegalContents,
     SchemaMapTag,
-    SchemaMessageLegalContents,
-    SchemaMessageTag,
-    SchemaMomentTag,
     SchemaNameTag,
     SchemaRoomLegalIncomingContents,
     SchemaRoomTag,
@@ -25,22 +20,18 @@ import {
     SchemaStringTag,
     SchemaTag,
     SchemaTaggedMessageLegalContents,
-    SchemaUseTag,
     SchemaVariableTag,
     isSchemaAssetContents,
     isSchemaFeatureIncomingContents,
     isSchemaImage,
     isSchemaKnowledgeIncomingContents,
     isSchemaMapContents,
-    isSchemaMessage,
-    isSchemaMessageContents,
     isSchemaName,
     isSchemaRoom,
     isSchemaRoomContents,
     isSchemaRoomIncomingContents,
     isSchemaString,
     isSchemaTaggedMessageLegalContents,
-    isSchemaUse
 } from "../../schema/baseClasses"
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
@@ -48,7 +39,8 @@ import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
 import { characterConverters } from "./character"
 import { conditionalConverters } from "./conditionals"
-import { importExportConverters } from "./importExport";
+import { importExportConverters } from "./importExport"
+import { messagingConverters } from "./messaging"
 import { taggedMessageConverters } from "./taggedMessages"
 
 const validationTemplates = {
@@ -96,12 +88,6 @@ const validationTemplates = {
     Map: {
         key: { required: true, type: ParsePropertyTypes.Key },
     },
-    Message: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-    },
-    Moment: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-    },
 } as const
 
 export const converterMap: Record<string, ConverterMapEntry> = {
@@ -134,6 +120,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     ...characterConverters,
     ...conditionalConverters,
     ...importExportConverters,
+    ...messagingConverters,
     ...taggedMessageConverters,
     Variable: {
         initialize: ({ parseOpen }): SchemaVariableTag => ({
@@ -306,41 +293,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
                 transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
             }),
             images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
-        })
-    },
-    Message: {
-        initialize: ({ parseOpen }): SchemaMessageTag => ({
-            tag: 'Message',
-            contents: [],
-            render: [],
-            rooms: [],
-            ...validateProperties(validationTemplates.Message)(parseOpen)
-        }),
-        legalContents: isSchemaMessageContents,
-        finalize: (initialTag: SchemaMessageTag, contents: SchemaMessageLegalContents[] ): SchemaMessageTag => ({
-            ...initialTag,
-            render: contents.filter(isSchemaTaggedMessageLegalContents),
-            contents: contents.filter(isSchemaRoom),
-            rooms: contents.reduce((previous, room) => (
-                isSchemaRoom(room)
-                    ? [
-                        ...previous,
-                        { key: room.key }
-                    ]
-                    : previous
-            ), [])
-        })
-    },
-    Moment: {
-        initialize: ({ parseOpen }): SchemaMomentTag => ({
-            tag: 'Moment',
-            contents: [],
-            ...validateProperties(validationTemplates.Moment)(parseOpen)
-        }),
-        legalContents: isSchemaMessage,
-        finalize: (initialTag: SchemaMomentTag, contents: SchemaMessageTag[] ): SchemaMomentTag => ({
-            ...initialTag,
-            contents
         })
     },
 }
