@@ -1,5 +1,6 @@
-import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, isSchemaString } from "../../schema/baseClasses"
+import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTaggedMessageLegalContents, isSchemaString, isSchemaTaggedMessageLegalContents } from "../../schema/baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
+import { compressWhitespace } from "../utils"
 import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
 
@@ -20,6 +21,11 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             tag: 'After',
             contents: [],
             ...validateProperties(taggedMessageTemplates.After)(parseOpen)
+        }),
+        legalContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaAfterTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaAfterTag => ({
+            ...initialTag,
+            contents: compressWhitespace(contents)
         })
     },
     Before: {
@@ -27,6 +33,11 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             tag: 'Before',
             contents: [],
             ...validateProperties(taggedMessageTemplates.Before)(parseOpen)
+        }),
+        legalContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaBeforeTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaBeforeTag => ({
+            ...initialTag,
+            contents: compressWhitespace(contents)
         })
     },
     Replace: {
@@ -34,6 +45,11 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             tag: 'Replace',
             contents: [],
             ...validateProperties(taggedMessageTemplates.Replace)(parseOpen)
+        }),
+        legalContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaReplaceTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaReplaceTag => ({
+            ...initialTag,
+            contents: compressWhitespace(contents)
         })
     },
     br: {

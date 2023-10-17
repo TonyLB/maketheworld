@@ -14,6 +14,7 @@ import {
     SchemaStringTag,
     SchemaTag,
     SchemaTaggedMessageLegalContents,
+    isSchemaFeatureContents,
     isSchemaFeatureIncomingContents,
     isSchemaImage,
     isSchemaKnowledgeIncomingContents,
@@ -169,7 +170,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         legalContents: isSchemaFeatureIncomingContents,
         finalize: (initialTag: SchemaFeatureTag, contents: SchemaFeatureLegalContents[] ): SchemaFeatureTag => ({
             ...initialTag,
-            contents,
+            contents: contents.filter(isSchemaFeatureContents),
             name: compressWhitespace(extractNameFromContents(contents)),
             render: compressWhitespace(extractDescriptionFromContents(contents))
         })

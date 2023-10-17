@@ -3,8 +3,8 @@ import {
 } from './baseClasses'
 import { clearGeneratedKeys } from './keyUtil'
 import Normalizer from '.'
-import { schemaFromParse } from '../schema'
-import parse from '../parser'
+import { schemaFromParse } from '../simpleSchema'
+import parse from '../simpleParser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { isSchemaCondition, isSchemaExit, isSchemaFeature, isSchemaImport, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
@@ -20,7 +20,7 @@ describe('WML normalize', () => {
     })
 
     it('should normalize every needed tag', () => {
-        const testSource = `<Asset key=(Test) fileName="Test" >
+        const testSource = `<Asset key=(Test)>
             <Import from=(BASE)>
                 <Use key=(basePower) as=(power) type="Variable" />
                 <Use key=(overview) type="Room" />
@@ -55,13 +55,12 @@ describe('WML normalize', () => {
             </Moment>
         </Asset>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(testSource)
         expect(normalizer.normal).toMatchSnapshot()
     })
 
     it('should normalize all types of links', () => {
-        const testSource = `<Asset key=(Test) fileName="Test" >
+        const testSource = `<Asset key=(Test)>
             <Feature key=(clockTower)>
                 <Name>Clock Tower</Name>
                 <Description>
@@ -78,13 +77,12 @@ describe('WML normalize', () => {
             <Action key=(toggleActive) src={active = !active} />
         </Asset>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(testSource)
         expect(normalizer.normal).toMatchSnapshot()
     })
 
     it('should normalize a character', () => {
-        const testSource = `<Character key=(Tess) fileName="test">
+        const testSource = `<Character key=(Tess)>
             <Name>Tess</Name>
             <FirstImpression>Frumpy goth</FirstImpression>
             <Pronouns
@@ -99,13 +97,12 @@ describe('WML normalize', () => {
             <Import from=(base) />
         </Character>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(testSource)
         expect(normalizer.normal).toMatchSnapshot()
     })
 
     it('should accumulate multiple appearances of the same key', () => {
-        const testSource = `<Asset key=(Test) fileName="Test">
+        const testSource = `<Asset key=(Test)>
             <Room key=(a123)>
                 <Name>Vortex</Name>
             </Room>
@@ -123,14 +120,13 @@ describe('WML normalize', () => {
             </If>
         </Asset>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(testSource)
         expect(normalizer.normal).toMatchSnapshot()
 
     })
 
     it('should denormalize condition dependencies into contextStack', () => {
-        const testSource = `<Asset key=(Test) fileName="Test">
+        const testSource = `<Asset key=(Test)>
             <Room key=(a123)>
                 <Name>Vortex</Name>
                 <Description>
@@ -147,14 +143,13 @@ describe('WML normalize', () => {
             <Variable key=(strong) default={false} />
         </Asset>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(testSource)
         expect(normalizer.normal).toMatchSnapshot()
 
     })
 
     it('should correctly handle multiple and nested conditionals', () => {
-        const testSource = `<Asset key=(Test) fileName="Test">
+        const testSource = `<Asset key=(Test)>
             <Room key=(a123)>
                 <Name>Vortex</Name>
                 <Description>
@@ -181,14 +176,13 @@ describe('WML normalize', () => {
             <Variable key=(trendy) default={false} />
         </Asset>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(testSource)
         expect(normalizer.normal).toMatchSnapshot()
 
     })
 
     it('should correctly handle conditionals in message text', () => {
-        const testSource = `<Asset key=(Test) fileName="Test">
+        const testSource = `<Asset key=(Test)>
             <Room key=(a123)>
                 <Name>Vortex</Name>
                 <Description>
@@ -204,14 +198,13 @@ describe('WML normalize', () => {
             <Variable key=(trendy) default={false} />
         </Asset>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(testSource)
         expect(normalizer.normal).toMatchSnapshot()
 
     })
 
     it('should correctly serialize multiple unconditioned descriptions', () => {
-        const testSource = `<Asset key=(Test) fileName="Test">
+        const testSource = `<Asset key=(Test)>
             <Room key=(test)>
                 <Description>
                     One
@@ -224,13 +217,12 @@ describe('WML normalize', () => {
             </Room>
         </Asset>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(testSource)
         expect(normalizer.normal).toMatchSnapshot()
     })
 
     it('should throw an error on mismatched key use', () => {
-        const testSource = `<Asset key=(Test) fileName="Test">
+        const testSource = `<Asset key=(Test)>
             <Room key=(ABC)>
                 <Name>Vortex</Name>
                 <Description>
@@ -240,12 +232,11 @@ describe('WML normalize', () => {
             <Variable key=(ABC) default={true} />
         </Asset>`
         const normalizer = new Normalizer()
-        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        expect(() => { normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false }) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
+        expect(() => { normalizer.loadWML(testSource) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
     })
 
     it('should correctly round-trip from schema to normalize and back', () => {
-        const testSource = `<Asset key=(Test) fileName="Test" >
+        const testSource = `<Asset key=(Test)>
             <Import from=(BASE)>
                 <Use key=(basePower) as=(power) type="Variable" />
                 <Use key=(overview) type="Room" />
@@ -286,7 +277,7 @@ describe('WML normalize', () => {
 
     describe('put method', () => {
         it('should add an item in contents', () => {
-            const testSource = `<Asset key=(TestAsset) fileName="Test">
+            const testSource = `<Asset key=(TestAsset)>
                 <Room key=(test)>
                     <Description>
                         One
@@ -299,8 +290,7 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             //
             // TODO: Refactor put arguments to allow:
             //    (a) specifying the item into the contents of which the element should be added/put
@@ -325,7 +315,7 @@ describe('WML normalize', () => {
 
     describe('delete method', () => {
         it('should remove a single appearance', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Room key=(test)>
                     <Description>
                         One
@@ -338,14 +328,13 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             normalizer.delete({ key: 'test', index: 1, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
 
         it('should remove the entire element on removing last appearance', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Room key=(test)>
                     <Description>
                         One
@@ -353,14 +342,13 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             normalizer.delete({ key: 'test', index: 0, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
 
         it('should cascade deletes when removing an appearance with contents', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Variable key=(testVar) default={false} />
                 <Room key=(testOne)>
                     <Description>
@@ -373,14 +361,13 @@ describe('WML normalize', () => {
                 <Room key=(testTwo) />
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             normalizer.delete({ key: 'testOne', index: 1, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
 
         it('should rename synthetic keys to fill in gaps for deleted conditionals', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Variable key=(testVarOne) default={false} />
                 <Variable key=(testVarTwo) default={false} />
                 <Variable key=(testVarThree) default={false} />
@@ -407,14 +394,13 @@ describe('WML normalize', () => {
                 </If>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             normalizer.delete({ key: 'If-1', index: 0, tag: 'If' })
             expect(normalizer.normal).toMatchSnapshot()
         })
 
         it('should delete empty parent conditions', () => {
-            const testSource = `<Asset key=(TestAsset) fileName="Test">
+            const testSource = `<Asset key=(TestAsset)>
                 <Variable key=(testVar) default={false} />
                 <If {testVar}>
                     <Room key=(testRoom)>
@@ -425,21 +411,19 @@ describe('WML normalize', () => {
                 </If>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             normalizer.delete({ key: 'testRoom', index: 0, tag: 'Room' })
             expect(normalizer.normal).toMatchSnapshot()
         })
 
         it('should delete an import', () => {
-            const testSource = `<Asset key=(TestAsset) fileName="Test">
+            const testSource = `<Asset key=(TestAsset)>
                 <Import from=(base)>
                     <Use type="Room" key=(testOne) />
                 </Import>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             normalizer.delete({ key: 'Import-0', index: 0, tag: 'Import' })
             expect(normalizer.normal).toMatchSnapshot()
         })
@@ -447,7 +431,7 @@ describe('WML normalize', () => {
 
     describe('positioned put method', () => {
         it('should add an item between two others', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Room key=(test)>
                     <Description>
                         One
@@ -460,8 +444,7 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toAddSource = `<Room key=(test)><Description>Two</Description></Room>`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             normalizer.put(toAddAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: false })
@@ -469,7 +452,7 @@ describe('WML normalize', () => {
         })
 
         it('should correctly reorder when added item is nested', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Room key=(test)>
                     <Description>
                         One
@@ -482,8 +465,7 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toAddSource = `<Map key=(testMap)><Room key=(test) x="0" y="0"><Description>Two</Description></Room></Map>`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             normalizer.put(toAddAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: false })
@@ -491,7 +473,7 @@ describe('WML normalize', () => {
         })
 
         it('should update an item in place', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Room key=(test)>
                     <Description>
                         Uno
@@ -509,8 +491,7 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toUpdateSource = `<Room key=(test)><Description>Dos</Description></Room>`
             const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
             normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: true })
@@ -518,7 +499,7 @@ describe('WML normalize', () => {
         })
 
         it('should replace an item with a different item', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Room key=(test)>
                     <Description>
                         One
@@ -536,8 +517,7 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toUpdateSource = `<Room key=(testTwo)><Description>Bar</Description></Room>`
             const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
             normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: true })
@@ -545,7 +525,7 @@ describe('WML normalize', () => {
         })
 
         it('should replace an item with a nest that includes the item', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Room key=(test)>
                     <Description>
                         One
@@ -563,8 +543,7 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toUpdateSource = `<Map key=(testMap)><Room key=(test) x="0" y="0"><Description>Two</Description></Room></Map>`
             const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
             normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: true })
@@ -572,7 +551,7 @@ describe('WML normalize', () => {
         })
 
         it('should replace a nest that includes an item with the item itself', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Room key=(test)>
                     <Description>
                         One
@@ -592,8 +571,7 @@ describe('WML normalize', () => {
                 </Room>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toUpdateSource = `<Room key=(test)><Description>Two</Description></Room>`
             const toUpdateAsset = schemaFromParse(parse(tokenizer(new SourceStream(toUpdateSource))))
             normalizer.put(toUpdateAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 1, replace: true })
@@ -601,7 +579,7 @@ describe('WML normalize', () => {
         })
 
         it('should replace a top level character item', () => {
-            const testSource = `<Character key=(Tess) fileName="test">
+            const testSource = `<Character key=(Tess)>
                 <Name>Tess</Name>
                 <FirstImpression>Frumpy goth</FirstImpression>
                 <Pronouns
@@ -615,9 +593,8 @@ describe('WML normalize', () => {
                 <Outfit>A battered frock-coat</Outfit>
             </Character>`
             const normalizer = new Normalizer()
-            const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
-            const toUpdateSource = `<Character key=(Tess) fileName="test">
+            normalizer.loadWML(testSource)
+            const toUpdateSource = `<Character key=(Tess)>
                 <Name>Tessa</Name>
                 <FirstImpression>Frumpy goth</FirstImpression>
                 <Pronouns
@@ -636,7 +613,7 @@ describe('WML normalize', () => {
         })
 
         it('should replace nested internal conditions', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Map key=(testMap)>
                     <Room key=(test) x="0" y="0" />
                     <If {true}>
@@ -650,8 +627,7 @@ describe('WML normalize', () => {
                 </If>
             </Asset>`
             const normalizer = new Normalizer()
-            const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toUpdateSource = `<Map key=(testMap)>
                 <Room key=(test) x="0" y="100">
                     <Description>
@@ -672,14 +648,13 @@ describe('WML normalize', () => {
         })
 
         it('should recalculate Map rooms property on contents update', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Map key=(testMap)>
                     <Room key=(test) x="0" y="0" />
                 </Map>
             </Asset>`
             const normalizer = new Normalizer()
-            const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toAddSource = `<Room key=(testTwo) x="0" y="100" />`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             normalizer.put(toAddAsset[0], { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'testMap', tag: 'Map', index: 0 }] })
@@ -687,7 +662,7 @@ describe('WML normalize', () => {
         })
 
         it('should successfully put a duplicate item', () => {
-            const testSource = `<Asset key=(TestAsset) fileName="Test">
+            const testSource = `<Asset key=(TestAsset)>
                 <Variable key=(testVar) default={false} />
                 <Room key=(testRoom)>
                     <If {testVar} />
@@ -698,8 +673,7 @@ describe('WML normalize', () => {
                 <Room key=(targetThree) />
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toAddSource = `<Room key=(testRoom)><If {testVar}><Exit to=(targetThree)>three</Exit></If></Room>`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             const toAddRoomWrapper = toAddAsset[0]
@@ -716,7 +690,7 @@ describe('WML normalize', () => {
         })
 
         it('should successfully replace a parent with duplicate contents', () => {
-            const testSource = `<Asset key=(TestAsset) fileName="Test">
+            const testSource = `<Asset key=(TestAsset)>
                 <Variable key=(testVar) default={false} />
                 <Room key=(testRoom)>
                     <If {testVar} />
@@ -727,8 +701,7 @@ describe('WML normalize', () => {
                 <Room key=(targetThree) />
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toAddSource = `<Room key=(testRoom)>
                 <If {testVar} />
                 <If {testVar}><Exit to=(targetTwo)>two</Exit></If>
@@ -744,14 +717,13 @@ describe('WML normalize', () => {
         })
 
         it('should successfully extend an import in place', () => {
-            const testSource = `<Asset key=(TestAsset) fileName="Test">
+            const testSource = `<Asset key=(TestAsset)>
                 <Import from=(base)>
                     <Use type="Room" key=(testOne) />
                 </Import>
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toReplaceSource = `<Import from=(base)>
                 <Use type="Room" key=(testOne) />
                 <Use type="Room" key=(testTwo) />
@@ -766,7 +738,7 @@ describe('WML normalize', () => {
         })
 
         it('should successfully put an import in a character', () => {
-            const testSource = `<Character key=(Tess) fileName="test">
+            const testSource = `<Character key=(Tess)>
                 <Name>Tess</Name>
                 <FirstImpression>Frumpy goth</FirstImpression>
                 <Pronouns
@@ -780,8 +752,7 @@ describe('WML normalize', () => {
                 <Outfit>A battered frock-coat</Outfit>
             </Character>`
             const normalizer = new Normalizer()
-            const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const toAddSource = `<Import from=(base) />`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             const toAddWrapper = toAddAsset[0]
@@ -793,12 +764,11 @@ describe('WML normalize', () => {
         })
 
         it('should recalculate Variable default property on update', () => {
-            const testSource = `<Asset key=(Test) fileName="Test">
+            const testSource = `<Asset key=(Test)>
                 <Variable key=(testVar) default={false} />
             </Asset>`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const variableUpdate: SchemaTag = {
                 tag: 'Variable',
                 key: 'testVar',
@@ -811,8 +781,7 @@ describe('WML normalize', () => {
         it('should add Knowledge to an asset', () => {
             const testSource = `<Asset key=(Test) />`
             const normalizer = new Normalizer()
-            const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-            normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+            normalizer.loadWML(testSource)
             const knowledgeUpdate: SchemaTag = {
                 tag: 'Knowledge',
                 key: 'testKnowledge',

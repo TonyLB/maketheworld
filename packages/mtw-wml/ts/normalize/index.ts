@@ -1,6 +1,5 @@
 import { produce } from 'immer'
 import { isLegalParseConditionContextTag, ParseException } from '../parser/baseClasses';
-import { schemaFromWML } from '../schema';
 import {
     isSchemaExit,
     isSchemaWithContents,

@@ -1,15 +1,11 @@
 import Normalizer from '.'
-import parse from '../parser'
-import tokenizer from '../parser/tokenizer'
-import SourceStream from '../parser/tokenizer/sourceStream'
-import { schemaFromParse, schemaToWML } from '../schema'
+import { schemaToWML } from '../simpleSchema'
 import { NormalForm } from './baseClasses'
 import standardizeNormal from './standardize'
 
 const normalizeTestWML = (wml: string): NormalForm => {
     const normalizer = new Normalizer()
-    const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(wml))))
-    normalizer.put(testAsset[0], { contextStack: [], index: 0, replace: false })
+    normalizer.loadWML(wml)
     return normalizer.normal
 }
 
@@ -51,7 +47,7 @@ describe('standardizeNormal', () => {
         expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
     <Room key=(test)>
         <Name>Test Room</Name>
-        <Description>One <br /><If {false}>Two</If></Description>
+        <Description>One<br /><If {false}>Two</If></Description>
     </Room>
     <Feature key=(testFeature)>
         <Description><If {false}>Three</If></Description>
@@ -81,7 +77,7 @@ describe('standardizeNormal', () => {
         normalizer.loadNormal(standardizeNormal(testNormal))
         expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
     <Room key=(test)>
-        <Description>One <br /></Description>
+        <Description>One<br /></Description>
         <If {false}><Exit to=(testTwo)>Test Exit</Exit></If>
     </Room>
     <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
@@ -114,7 +110,7 @@ describe('standardizeNormal', () => {
         normalizer.loadNormal(standardizeNormal(testNormal))
         expect(schemaToWML(normalizer.schema)).toEqual(`<Asset key=(Test)>
     <Room key=(test)>
-        <Description>One <br />Two</Description>
+        <Description>One<br />Two</Description>
         <Exit to=(testTwo)>Test Exit</Exit>
     </Room>
     <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
