@@ -28,6 +28,7 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                     case 'Property':
                         if (token.isBoolean) {
                             currentTag.properties.push({
+                                key: token.key,
                                 type: ParsePropertyTypes.Boolean,
                                 value: true
                             })
@@ -99,6 +100,7 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                             properties: []
                         }
                         expecting = ParseExpectation.Properties
+                        firstTag = true
                         break
                     case 'TagClose':
                         if ((currentText || '').trimEnd()) {
@@ -131,3 +133,5 @@ export const parse = (tokens: Token[]): ParseItem[] => {
     }
     return accumulator
 }
+
+export default parse
