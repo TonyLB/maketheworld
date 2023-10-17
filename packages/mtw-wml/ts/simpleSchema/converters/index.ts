@@ -1,10 +1,72 @@
-import { extractDependenciesFromJS } from "../convert/utils";
-import { isLegalParseConditionContextTag, isParseConditionTagDescriptionContext } from "../parser/baseClasses";
-import { SchemaActionTag, SchemaAfterTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaKnowledgeLegalContents, SchemaKnowledgeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomLegalIncomingContents, SchemaRoomTag, SchemaSpacerTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaTaggedMessageIncomingContents, SchemaTaggedMessageLegalContents, SchemaUseTag, SchemaVariableTag, isSchemaAssetContents, isSchemaCharacterContents, isSchemaCondition, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaFirstImpression, isSchemaImage, isSchemaKnowledgeContents, isSchemaKnowledgeIncomingContents, isSchemaMapContents, isSchemaMessage, isSchemaMessageContents, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaString, isSchemaTag, isSchemaTaggedMessageLegalContents, isSchemaUse } from "../schema/baseClasses"
-import { translateTaggedMessageContents } from "../schema/taggedMessage";
-import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../schema/utils";
-import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../simpleParser/baseClasses"
-import { SchemaContextItem } from "./baseClasses";
+import { extractDependenciesFromJS } from "../../convert/utils";
+import { isLegalParseConditionContextTag } from "../../parser/baseClasses";
+import {
+    SchemaActionTag,
+    SchemaAfterTag,
+    SchemaAssetLegalContents,
+    SchemaAssetTag,
+    SchemaBeforeTag,
+    SchemaBookmarkTag,
+    SchemaCharacterLegalContents,
+    SchemaCharacterTag,
+    SchemaComputedTag,
+    SchemaConditionTag,
+    SchemaDescriptionTag,
+    SchemaExitTag,
+    SchemaFeatureLegalContents,
+    SchemaFeatureTag,
+    SchemaFirstImpressionTag,
+    SchemaImageTag,
+    SchemaImportTag,
+    SchemaKnowledgeLegalContents,
+    SchemaKnowledgeTag,
+    SchemaLineBreakTag,
+    SchemaLinkTag,
+    SchemaMapLegalContents,
+    SchemaMapTag,
+    SchemaMessageLegalContents,
+    SchemaMessageTag,
+    SchemaMomentTag,
+    SchemaNameTag,
+    SchemaOneCoolThingTag,
+    SchemaOutfitTag,
+    SchemaPronounsTag,
+    SchemaReplaceTag,
+    SchemaRoomLegalIncomingContents,
+    SchemaRoomTag,
+    SchemaSpacerTag,
+    SchemaStoryTag,
+    SchemaStringTag,
+    SchemaTag,
+    SchemaTaggedMessageIncomingContents,
+    SchemaTaggedMessageLegalContents,
+    SchemaUseTag,
+    SchemaVariableTag,
+    isSchemaAssetContents,
+    isSchemaCharacterContents,
+    isSchemaCondition,
+    isSchemaFeatureIncomingContents,
+    isSchemaFirstImpression,
+    isSchemaImage,
+    isSchemaKnowledgeIncomingContents,
+    isSchemaMapContents,
+    isSchemaMessage,
+    isSchemaMessageContents,
+    isSchemaName,
+    isSchemaOneCoolThing,
+    isSchemaOutfit,
+    isSchemaPronouns,
+    isSchemaRoom,
+    isSchemaRoomContents,
+    isSchemaRoomIncomingContents,
+    isSchemaString,
+    isSchemaTaggedMessageLegalContents,
+    isSchemaUse
+} from "../../schema/baseClasses"
+import { translateTaggedMessageContents } from "../../schema/taggedMessage";
+import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils";
+import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
+import { SchemaContextItem } from "../baseClasses";
 
 export type SchemaConverterArguments = {
     parseOpen: ParseTagOpen | ParseTagSelfClosure;
@@ -163,10 +225,12 @@ export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[])
         throw new Error('ElseIf must follow an If or ElseIf tag')
     }
     const nearestSibling = siblings.slice(-1)[0]
-    if (!isSchemaCondition(nearestSibling)) {
-        throw new Error('ElseIf must follow an If or ElseIf tag')
+    if (isSchemaCondition(nearestSibling)) {
+        if (nearestSibling.conditions.slice(-1)[0].not) {
+            throw new Error('ElseIf must follow an If or ElseIf tag')
+        }
     }
-    else if (nearestSibling.conditions.slice(-1)[0].not) {
+    else {
         throw new Error('ElseIf must follow an If or ElseIf tag')
     }
     return nearestSibling.conditions
