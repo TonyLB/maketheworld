@@ -2,6 +2,7 @@ import { SchemaTag } from "../schema/baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
 import { SchemaContextItem } from "./baseClasses"
 import converterMap from "./converters"
+import { compressWhitespace } from "./utils"
 
 export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
     let contextStack: SchemaContextItem[] = []

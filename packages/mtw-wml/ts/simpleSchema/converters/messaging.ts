@@ -1,5 +1,6 @@
 import { SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, isSchemaMessage, isSchemaMessageContents, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../../schema/baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
+import { compressWhitespace } from "../utils"
 import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
 
@@ -24,7 +25,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
         legalContents: isSchemaMessageContents,
         finalize: (initialTag: SchemaMessageTag, contents: SchemaMessageLegalContents[] ): SchemaMessageTag => ({
             ...initialTag,
-            render: contents.filter(isSchemaTaggedMessageLegalContents),
+            render: compressWhitespace(contents.filter(isSchemaTaggedMessageLegalContents)),
             contents: contents.filter(isSchemaRoom),
             rooms: contents.reduce((previous, room) => (
                 isSchemaRoom(room)
