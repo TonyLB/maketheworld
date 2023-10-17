@@ -64,35 +64,10 @@ import {
     isSchemaUse
 } from "../../schema/baseClasses"
 import { translateTaggedMessageContents } from "../../schema/taggedMessage";
-import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils";
+import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
-import { SchemaContextItem } from "../baseClasses";
-
-export type SchemaConverterArguments = {
-    parseOpen: ParseTagOpen | ParseTagSelfClosure;
-    contextStack: SchemaContextItem[];
-}
-
-export type SchemaInitialConverter = {
-    (args: SchemaConverterArguments): SchemaTag
-}
-
-type ValidationTemplateItem = {
-    required?: boolean;
-    type: ParsePropertyTypes;
-}
-
-type ValidationTemplate = Record<string, ValidationTemplateItem>
-
-type ValidationTemplateRemap<V extends ValidationTemplate>  ={
-    [K in keyof V]: V[K] extends { type: ParsePropertyTypes.Boolean } ? boolean : string
-}
-
-type ValidationRequiredKeys<V extends ValidationTemplate> = {[K in keyof V]: V[K] extends { required: true } ? K : never}[keyof V]
-
-type ValidationTemplateOutput<V extends ValidationTemplate> = 
-    Partial<ValidationTemplateRemap<V>> &
-    Pick<ValidationTemplateRemap<V>, ValidationRequiredKeys<V>>
+import { SchemaContextItem } from "../baseClasses"
+import { SchemaInitialConverter, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
 
 const validateProperties = <V extends ValidationTemplate>(template: V) => (parse: ParseTagOpen | ParseTagSelfClosure): ValidationTemplateOutput<V> => {
     const unmatchedKey = parse.properties.find(({ key }) => (!((key ?? 'DEFAULT') in template)))
