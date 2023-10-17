@@ -1,3 +1,4 @@
+import { extractDependenciesFromJS } from "../convert/utils";
 import { isLegalParseConditionContextTag, isParseConditionTagDescriptionContext } from "../parser/baseClasses";
 import { SchemaActionTag, SchemaAfterTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaBeforeTag, SchemaBookmarkTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaKnowledgeLegalContents, SchemaKnowledgeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaMapLegalContents, SchemaMapTag, SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaReplaceTag, SchemaRoomLegalContents, SchemaRoomLegalIncomingContents, SchemaRoomTag, SchemaSpacerTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaTaggedMessageIncomingContents, SchemaTaggedMessageLegalContents, SchemaUseTag, SchemaVariableTag, isSchemaAssetContents, isSchemaCharacterContents, isSchemaCondition, isSchemaFeatureContents, isSchemaFeatureIncomingContents, isSchemaFirstImpression, isSchemaImage, isSchemaKnowledgeContents, isSchemaKnowledgeIncomingContents, isSchemaMapContents, isSchemaMessage, isSchemaMessageContents, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, isSchemaRoom, isSchemaRoomContents, isSchemaRoomIncomingContents, isSchemaString, isSchemaTag, isSchemaTaggedMessageLegalContents, isSchemaUse } from "../schema/baseClasses"
 import { translateTaggedMessageContents } from "../schema/taggedMessage";
@@ -314,11 +315,14 @@ export const converterMap: Record<string, ConverterMapEntry> = {
         })
     },
     Computed: {
-        initialize: ({ parseOpen }): SchemaComputedTag => ({
-            tag: 'Computed',
-            dependencies: [],
-            ...validateProperties(validationTemplates.Computed)(parseOpen)
-        })
+        initialize: ({ parseOpen }): SchemaComputedTag => {
+            const validatedProperties = validateProperties(validationTemplates.Computed)(parseOpen)
+            return {
+                tag: 'Computed',
+                dependencies: extractDependenciesFromJS(validatedProperties.src),
+                ...validatedProperties
+            }
+        }
     },
     Action: {
         initialize: ({ parseOpen }): SchemaActionTag => ({
@@ -354,7 +358,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
                 tag: 'If',
                 contextTag: 'Asset',
                 contents: [],
-                conditions: [{ if: validatedProperties.DEFAULT, dependencies: [] }]
+                conditions: [{ if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }]
             }
         },
         legalContents: conditionLegalContents,
@@ -368,7 +372,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
                 tag: 'If',
                 contextTag: 'Asset',
                 contents: [],
-                conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT, dependencies: [] }],
+                conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }],
             }
         },
         legalContents: conditionLegalContents,

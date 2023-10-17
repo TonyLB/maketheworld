@@ -264,7 +264,7 @@ describe('schemaFromParse', () => {
                             tag: "Room",
                         }],
                         key: "openDoor",
-                        render: [{ tag: "String", value: "The door opens!" }],
+                        render: [{ tag: "String", value: "The door opens! " }],
                         rooms: [{ key: "ABC" }],
                         tag: "Message",
                     }],
