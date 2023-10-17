@@ -298,15 +298,18 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             ...validateProperties(validationTemplates.Character)(parseOpen)
         }),
         legalContents: isSchemaCharacterContents,
-        finalize: (initialTag: SchemaCharacterTag, contents: SchemaCharacterLegalContents[]): SchemaCharacterTag => ({
-            ...initialTag,
-            Name: contents.filter(isSchemaName).map(({ contents }) => (contents)).flat(1).filter(isSchemaString).map(({ value }) => (value)).join(''),
-            Pronouns: [initialTag.Pronouns, ...contents.filter(isSchemaPronouns)].slice(-1)[0],
-            FirstImpression: (contents as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
-            OneCoolThing: (contents as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
-            Outfit: (contents as SchemaTag[]).filter(isSchemaOutfit).length ? (contents as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
-            contents
-        })
+        finalize: (initialTag: SchemaCharacterTag, contents: SchemaCharacterLegalContents[]): SchemaCharacterTag => {
+            const { tag, ...Pronouns } = [{ tag: '', ...initialTag.Pronouns }, ...contents.filter(isSchemaPronouns)].slice(-1)[0]
+            return {
+                ...initialTag,
+                Name: contents.filter(isSchemaName).map(({ contents }) => (contents)).flat(1).filter(isSchemaString).map(({ value }) => (value)).join(''),
+                Pronouns,
+                FirstImpression: (contents as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
+                OneCoolThing: (contents as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
+                Outfit: (contents as SchemaTag[]).filter(isSchemaOutfit).length ? (contents as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
+                contents
+            }
+        }
     },
     Variable: {
         initialize: ({ parseOpen }): SchemaVariableTag => ({
@@ -575,10 +578,10 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             images: [],
             ...validateProperties(validationTemplates.Map)(parseOpen)
         }),
-        legalContents: isSchemaMapContents,
+        legalContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
         finalize: (initialTag: SchemaMapTag, contents: SchemaMapLegalContents[] ): SchemaMapTag => ({
             ...initialTag,
-            contents,
+            contents: contents.filter(isSchemaMapContents),
             name: extractNameFromContents(contents),
             rooms: extractConditionedItemFromContents({
                 contents: contents as SchemaMapLegalContents[],

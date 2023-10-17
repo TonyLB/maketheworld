@@ -28,6 +28,7 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                     case 'Property':
                         if (token.isBoolean) {
                             currentTag.properties.push({
+                                key: token.key,
                                 type: ParsePropertyTypes.Boolean,
                                 value: true
                             })

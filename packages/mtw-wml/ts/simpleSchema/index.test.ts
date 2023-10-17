@@ -277,85 +277,322 @@ describe('schemaFromParse', () => {
         }])
     })
 
-    // it('should combine conditional elements at every level', () => {
-    //     const testParse = parse(tokenizer(new SourceStream(`
-    //     <Asset key=(Test) fileName="test">
-    //         <Room key=(ABC)>
-    //             <Description>
-    //                 Test One
-    //                 <If {open}>Test Two</If>
-    //             </Description>
-    //             <If {open}>
-    //                 <Description>
-    //                     Test Three
-    //                 </Description>
-    //             </If>
-    //         </Room>
-    //         <If {open}>
-    //             <Room key=(ABC)>
-    //                 <Description>Test Four</Description>
-    //             </Room>
-    //         </If>
-    //         <Variable key=(open) default={false} />
-    //     </Asset>
-    // `)))
-    //     expect(schemaFromParse(testParse)).toMatchSnapshot()
+    it('should combine conditional elements at every level', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset key=(Test)>
+                <Room key=(ABC)>
+                    <Description>
+                        Test One
+                        <If {open}>Test Two</If>
+                    </Description>
+                    <If {open}>
+                        <Description>
+                            Test Three
+                        </Description>
+                    </If>
+                </Room>
+                <If {open}>
+                    <Room key=(ABC)>
+                        <Description>Test Four</Description>
+                    </Room>
+                </If>
+                <Variable key=(open) default={false} />
+            </Asset>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            Story: undefined,
+            contents: [{
+                contents: [{
+                    contents: [
+                        { tag: "String", value: "Test One " },
+                        {
+                            conditions: [{
+                                dependencies: ["open"],
+                                if: "open",
+                            }],
+                            contents: [{ tag: "String", value: "Test Two" } ],
+                            contextTag: "Description",
+                            tag: "If",
+                        },
+                    ],
+                    tag: "Description",
+                },
+                {
+                    conditions: [{
+                        dependencies: ["open"],
+                        if: "open",
+                    }],
+                    contents: [{
+                        contents: [{ tag: "String", value: "Test Three" }],
+                        tag: "Description",
+                    }],
+                    contextTag: "Room",
+                    tag: "If",
+                }],
+                display: undefined,
+                key: "ABC",
+                name: [],
+                render: [
+                    { tag: "String", value: "Test One " },
+                    {
+                        conditions: [{
+                            dependencies: ["open"],
+                            if: "open",
+                        }],
+                        contents: [{ tag: "String", value: "Test Two" }],
+                        contextTag: "Description",
+                        tag: "If",
+                    },
+                    {
+                        conditions: [{
+                            dependencies: ["open"],
+                            if: "open",
+                        }],
+                        contents: [{ tag: "String", value: "Test Three" }],
+                        contextTag: "Description",
+                        tag: "If",
+                    },
+                ],
+                tag: "Room",
+                x: undefined,
+                y: undefined,
+            },
+            {
+                conditions: [{
+                    dependencies: ["open"],
+                    if: "open",
+                }],
+                contents: [{
+                    contents: [{
+                        contents: [{ tag: "String", value: "Test Four" }],
+                        tag: "Description",
+                    }],
+                    display: undefined,
+                    key: "ABC",
+                    name: [],
+                    render: [{ tag: "String", value: "Test Four" } ],
+                    tag: "Room",
+                    x: undefined,
+                    y: undefined,
+                }],
+                contextTag: "Asset",
+                tag: "If",
+            },
+            {
+                default: "false",
+                key: "open",
+                tag: "Variable",
+            }],
+            key: "Test",
+            player: undefined,
+            subFolder: undefined,
+            tag: "Asset",
+            zone: undefined,
+        }])
 
-    // })
+    })
 
-    // it('should make a schema for a character correctly', () => {
-    //     const testParse = parse(tokenizer(new SourceStream(`
-    //     <Character key=(TESS) fileName="Tess" player="TonyLB">
-    //     <Name>Tess</Name>
-    //     <FirstImpression>Frumpy Goth</FirstImpression>
-    //     <OneCoolThing>Fuchsia eyes</OneCoolThing>
-    //     <Pronouns
-    //         subject="she"
-    //         object="her"
-    //         possessive="her"
-    //         adjective="hers"
-    //         reflexive="herself"
-    //     ></Pronouns>
-    //     <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
-    //     <Image key=(testIcon) />
-    // </Character>
-    // `)))
-    //     expect(schemaFromParse(testParse)).toMatchSnapshot()
+    it('should make a schema for a character correctly', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+        <Character key=(TESS)>
+            <Name>Tess</Name>
+            <FirstImpression>Frumpy Goth</FirstImpression>
+            <OneCoolThing>Fuchsia eyes</OneCoolThing>
+            <Pronouns
+                subject="she"
+                object="her"
+                possessive="her"
+                adjective="hers"
+                reflexive="herself"
+            ></Pronouns>
+            <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
+            <Image key=(testIcon) />
+        </Character>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            FirstImpression: "Frumpy Goth",
+            Name: "Tess",
+            OneCoolThing: "Fuchsia eyes",
+            Outfit: "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+            Pronouns: {
+                adjective: "hers",
+                object: "her",
+                possessive: "her",
+                reflexive: "herself",
+                subject: "she",
+            },
+            contents: [
+                {
+                    contents: [{ tag: "String", value: "Tess" }],
+                    tag: "Name",
+                },
+                {
+                    contents: [],
+                    tag: "FirstImpression",
+                    value: "Frumpy Goth",
+                },
+                {
+                    contents: [],
+                    tag: "OneCoolThing",
+                    value: "Fuchsia eyes",
+                },
+                {
+                    adjective: "hers",
+                    object: "her",
+                    possessive: "her",
+                    reflexive: "herself",
+                    subject: "she",
+                    tag: "Pronouns",
+                },
+                {
+                    contents: [],
+                    tag: "Outfit",
+                    value: "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+                },
+                {
+                    key: "testIcon",
+                    tag: "Image",
+                },
+            ],
+            key: "TESS",
+            tag: "Character",
+        }])
 
-    // })
+    })
 
-    // it('should correctly extract map rooms', () => {
-    //     const testParse = parse(tokenizer(new SourceStream(`
-    //     <Asset key=(Test) fileName="test">
-    //         <Map key=(testMap)>
-    //             <Name>Test Map</Name>
-    //             <Room key=(ABC) x="100" y="0" />
-    //             <If {open}>
-    //                 <Room key=(DEF) x="-100" y="0" />
-    //             </If>
-    //         </Map>
-    //         <Variable key=(open) default={false} />
-    //     </Asset>
-    // `)))
-    //     expect(schemaFromParse(testParse)).toMatchSnapshot()
+    it('should correctly extract map rooms', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset key=(Test)>
+                <Map key=(testMap)>
+                    <Name>Test Map</Name>
+                    <Room key=(ABC) x="100" y="0" />
+                    <If {open}>
+                        <Room key=(DEF) x="-100" y="0" />
+                    </If>
+                </Map>
+                <Variable key=(open) default={false} />
+            </Asset>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            contents: [{
+                contents: [
+                    {
+                        contents: [],
+                        display: undefined,
+                        key: "ABC",
+                        name: [],
+                        render: [],
+                        tag: "Room",
+                        x: 100,
+                        y: 0,
+                    },
+                    {
+                        conditions: [{
+                            dependencies: ["open"],
+                            if: "open",
+                        }],
+                        contents: [{
+                            contents: [],
+                            display: undefined,
+                            key: "DEF",
+                            name: [],
+                            render: [],
+                            tag: "Room",
+                            x: -100,
+                            y: 0,
+                        }],
+                        contextTag: "Map",
+                        tag: "If",
+                    },
+                ],
+                images: [],
+                key: "testMap",
+                name: [{ tag: "String", value: "Test Map" }],
+                rooms: [
+                    {
+                        conditions: [],
+                        key: "ABC",
+                        x: 100,
+                        y: 0,
+                    },
+                    {
+                        conditions: [{
+                            dependencies: ["open"],
+                            if: "open",
+                        }],
+                        key: "DEF",
+                        x: -100,
+                        y: 0,
+                    },
+                ],
+                tag: "Map",
+            },
+            {
+                default: "false",
+                key: "open",
+                tag: "Variable",
+            }],
+            key: "Test",
+            tag: "Asset",
+        }])
 
-    // })
+    })
 
-    // it('should correctly schematize bookmarks', () => {
-    //     const testParse = parse(tokenizer(new SourceStream(`
-    //     <Story key=(Test) instance fileName="test">
-    //         <Bookmark key=(postFix)>
-    //             <Space />(awesome!)
-    //         </Bookmark>
-    //         <Room key=(ABC)>
-    //             <Name>Vortex</Name>
-    //             <Description>Vortex<Bookmark key=(postFix) /></Description>
-    //         </Room>
-    //     </Story>
-    // `)))
-    //     expect(schemaFromParse(testParse)).toMatchSnapshot()
+    it('should correctly schematize bookmarks', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Story key=(Test) instance>
+                <Bookmark key=(postFix)>
+                    <Space />(awesome!)
+                </Bookmark>
+                <Room key=(ABC)>
+                    <Name>Vortex</Name>
+                    <Description>Vortex<Bookmark key=(postFix) /></Description>
+                </Room>
+            </Story>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            Story: true,
+            contents: [
+                {
+                    contents: [
+                        { tag: "Space" },
+                        { tag: "String", value: "(awesome!)" },
+                    ],
+                    key: "postFix",
+                    tag: "Bookmark",
+                },
+                {
+                    contents: [{
+                        contents: [
+                            { tag: "String", value: "Vortex" },
+                            {
+                                contents: [],
+                                key: "postFix",
+                                tag: "Bookmark",
+                            },
+                        ],
+                        tag: "Description",
+                    }],
+                    display: undefined,
+                    key: "ABC",
+                    name: [{ tag: "String", value: "Vortex" } ],
+                    render: [
+                        { tag: "String", value: "Vortex" },
+                        {
+                            contents: [],
+                            key: "postFix",
+                            tag: "Bookmark",
+                        },
+                    ],
+                    tag: "Room",
+                }
+            ],
+            instance: true,
+            key: "Test",
+            tag: "Story",
+        }])
 
-    // })
+    })
 
 })
 
