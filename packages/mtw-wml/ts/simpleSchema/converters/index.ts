@@ -1,5 +1,4 @@
 import { extractDependenciesFromJS } from "../../convert/utils";
-import { isLegalParseConditionContextTag } from "../../parser/baseClasses";
 import {
     SchemaActionTag,
     SchemaAfterTag,
@@ -8,7 +7,6 @@ import {
     SchemaBeforeTag,
     SchemaBookmarkTag,
     SchemaComputedTag,
-    SchemaConditionTag,
     SchemaDescriptionTag,
     SchemaExitTag,
     SchemaFeatureLegalContents,
@@ -32,12 +30,10 @@ import {
     SchemaStoryTag,
     SchemaStringTag,
     SchemaTag,
-    SchemaTaggedMessageIncomingContents,
     SchemaTaggedMessageLegalContents,
     SchemaUseTag,
     SchemaVariableTag,
     isSchemaAssetContents,
-    isSchemaCondition,
     isSchemaFeatureIncomingContents,
     isSchemaImage,
     isSchemaKnowledgeIncomingContents,
@@ -52,13 +48,12 @@ import {
     isSchemaTaggedMessageLegalContents,
     isSchemaUse
 } from "../../schema/baseClasses"
-import { translateTaggedMessageContents } from "../../schema/taggedMessage";
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { SchemaContextItem } from "../baseClasses"
 import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
-import { characterConverters } from "./character";
+import { characterConverters } from "./character"
+import { conditionalConverters } from "./conditionals"
 
 const validationTemplates = {
     Asset: {
@@ -91,13 +86,6 @@ const validationTemplates = {
     Import: {
         from: { required: true, type: ParsePropertyTypes.Key },
     },
-    If: {
-        DEFAULT: { required: true, type: ParsePropertyTypes.Expression },
-    },
-    ElseIf: {
-        DEFAULT: { required: true, type: ParsePropertyTypes.Expression },
-    },
-    Else: {},
     Exit: {
         from: { type: ParsePropertyTypes.Key },
         to: { type: ParsePropertyTypes.Key }
@@ -139,59 +127,6 @@ const validationTemplates = {
     },
 } as const
 
-export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[]) => {
-    if (contextStack.length === 0) {
-        throw new Error('ElseIf cannot be a top-level component')
-    }
-    const siblings = contextStack.slice(-1)[0].contents
-    if (siblings.length === 0) {
-        throw new Error('ElseIf must follow an If or ElseIf tag')
-    }
-    const nearestSibling = siblings.slice(-1)[0]
-    if (isSchemaCondition(nearestSibling)) {
-        if (nearestSibling.conditions.slice(-1)[0].not) {
-            throw new Error('ElseIf must follow an If or ElseIf tag')
-        }
-    }
-    else {
-        throw new Error('ElseIf must follow an If or ElseIf tag')
-    }
-    return nearestSibling.conditions
-}
-
-export const conditionLegalContents = (item, contextStack) => {
-    const legalContextStack = contextStack.map(({ tag }) => (tag.tag)).filter(isLegalParseConditionContextTag)
-    if (legalContextStack.length === 0) {
-        throw new Error('Conditional items cannot be top-level')
-    }
-    const nearestLegalContext = legalContextStack.slice(-1)[0]
-    switch(nearestLegalContext) {
-        case 'Asset': return isSchemaAssetContents(item)
-        case 'Bookmark':
-        case 'Description': return isSchemaTaggedMessageLegalContents(item)
-        case 'Feature': return isSchemaFeatureIncomingContents(item)
-        case 'Knowledge': return isSchemaKnowledgeIncomingContents(item)
-        case 'Map': return isSchemaMapContents(item)
-        case 'Room': return isSchemaRoomIncomingContents(item)
-        default: return false
-    }
-}
-
-export const conditionFinalize = (initialTag: SchemaConditionTag, contents: SchemaTag[], contextStack: SchemaContextItem[]): SchemaConditionTag => {
-    const legalContextStack = contextStack.map(({ tag }) => (tag.tag)).filter(isLegalParseConditionContextTag)
-    if (legalContextStack.length === 0) {
-        throw new Error('Conditional items cannot be top-level')
-    }
-    const nearestLegalContext = legalContextStack.slice(-1)[0]
-    return {
-        ...initialTag,
-        contextTag: nearestLegalContext === 'Bookmark' ? 'Description' : nearestLegalContext,
-        contents: (['Bookmark', 'Description'].includes(nearestLegalContext))
-            ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
-            : contents as any
-    }
-}
-
 export const converterMap: Record<string, ConverterMapEntry> = {
     Asset: {
         initialize: ({ parseOpen }): SchemaAssetTag => ({
@@ -220,6 +155,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
         })
     },
     ...characterConverters,
+    ...conditionalConverters,
     Image: {
         initialize: ({ parseOpen }): SchemaImageTag => ({
             tag: 'Image',
@@ -268,47 +204,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
                 [as || key]: { key, type }
             }), {})
         })
-    },
-    If: {
-        initialize: ({ parseOpen }): SchemaConditionTag => {
-            const validatedProperties = validateProperties(validationTemplates.If)(parseOpen)
-            return {
-                tag: 'If',
-                contextTag: 'Asset',
-                contents: [],
-                conditions: [{ if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }]
-            }
-        },
-        legalContents: conditionLegalContents,
-        finalize: conditionFinalize
-    },
-    ElseIf: {
-        initialize: ({ parseOpen, contextStack }): SchemaConditionTag => {
-            const siblingConditions = conditionalSiblingsConditions(contextStack)
-            const validatedProperties = validateProperties(validationTemplates.ElseIf)(parseOpen)
-            return {
-                tag: 'If',
-                contextTag: 'Asset',
-                contents: [],
-                conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }],
-            }
-        },
-        legalContents: conditionLegalContents,
-        finalize: conditionFinalize
-    },
-    Else: {
-        initialize: ({ parseOpen, contextStack }): SchemaConditionTag => {
-            const siblingConditions = conditionalSiblingsConditions(contextStack)
-            validateProperties(validationTemplates.Else)(parseOpen)
-            return {
-                tag: 'If',
-                contextTag: 'Asset',
-                contents: [],
-                conditions: siblingConditions.map((condition) => ({ ...condition, not: true }))
-            }
-        },
-        legalContents: conditionLegalContents,
-        finalize: conditionFinalize
     },
     Exit: {
         initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
