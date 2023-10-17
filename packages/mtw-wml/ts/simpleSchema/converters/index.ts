@@ -38,6 +38,7 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
 import { characterConverters } from "./character"
+import { computationConverters } from "./computation"
 import { conditionalConverters } from "./conditionals"
 import { importExportConverters } from "./importExport"
 import { messagingConverters } from "./messaging"
@@ -50,18 +51,6 @@ const validationTemplates = {
     Story: {
         key: { required: true, type: ParsePropertyTypes.Key },
         instance: { required: true, type: ParsePropertyTypes.Boolean }
-    },
-    Variable: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        default: { type: ParsePropertyTypes.Expression }
-    },
-    Computed: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        src: { required: true, type: ParsePropertyTypes.Expression }
-    },
-    Action: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        src: { required: true, type: ParsePropertyTypes.Expression }
     },
     Exit: {
         from: { type: ParsePropertyTypes.Key },
@@ -118,32 +107,11 @@ export const converterMap: Record<string, ConverterMapEntry> = {
         })
     },
     ...characterConverters,
+    ...computationConverters,
     ...conditionalConverters,
     ...importExportConverters,
     ...messagingConverters,
     ...taggedMessageConverters,
-    Variable: {
-        initialize: ({ parseOpen }): SchemaVariableTag => ({
-            tag: 'Variable',
-            ...validateProperties(validationTemplates.Variable)(parseOpen)
-        })
-    },
-    Computed: {
-        initialize: ({ parseOpen }): SchemaComputedTag => {
-            const validatedProperties = validateProperties(validationTemplates.Computed)(parseOpen)
-            return {
-                tag: 'Computed',
-                dependencies: extractDependenciesFromJS(validatedProperties.src),
-                ...validatedProperties
-            }
-        }
-    },
-    Action: {
-        initialize: ({ parseOpen }): SchemaActionTag => ({
-            tag: 'Action',
-            ...validateProperties(validationTemplates.Action)(parseOpen)
-        })
-    },
     Exit: {
         initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
             const roomContextList = contextStack.map(({ tag }) => (tag)).filter(isSchemaRoom)
