@@ -2,20 +2,13 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
-import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema'
-import parser from "@tonylb/mtw-wml/dist/parser"
-import tokenizer from "@tonylb/mtw-wml/dist/parser/tokenizer"
-import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
-    const schema = schemaFromParse(parser(tokenizer(new SourceStream(newCurrent.payload.value))))
     const normalizer = new Normalizer()
-    schema.forEach((item) => {
-        normalizer.put(item, { contextStack: [] })
-    })
+    normalizer.loadWML(newCurrent.payload.value)
     state.normal = normalizer.normal
     state.draftWML = undefined
 }

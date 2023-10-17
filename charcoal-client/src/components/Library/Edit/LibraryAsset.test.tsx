@@ -9,7 +9,7 @@ import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 
 const mockStore = configureStore()
 const currentWML = `
-<Asset key=(Test) fileName="test">
+<Asset key=(Test)>
     <Import from=(BASE)>
         <Use key=(basePower) type="Variable" as=(power) />
         <Use key=(DEF) type="Room" />

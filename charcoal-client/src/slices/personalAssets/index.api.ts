@@ -9,11 +9,8 @@ import { NormalImport, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/bas
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
-import { schemaFromParse, schemaToWML } from '@tonylb/mtw-wml/dist/schema'
+import { schemaToWML } from '@tonylb/mtw-wml/dist/simpleSchema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
-import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer'
-import parse from '@tonylb/mtw-wml/dist/parser'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getNormalized, setImport } from '.'
 
@@ -222,12 +219,8 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draf
     }
     let tokens: Token[] = []
     try {
-        tokens = tokenizer(new SourceStream(draftWML))
-        const schema = schemaFromParse(parse(tokens))
         const normalizer = new Normalizer()
-        schema.forEach((tag, index) => {
-            normalizer.put(tag, { contextStack: [], index, replace: false })
-        })
+        normalizer.loadWML(draftWML)
         normalizer.standardize()
         return {
             publicData: {

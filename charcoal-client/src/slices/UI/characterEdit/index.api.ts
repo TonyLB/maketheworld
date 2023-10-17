@@ -3,10 +3,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { socketDispatchPromise, apiDispatchPromise } from '../../lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
 import { getMyCharacterByKey, getPlayer } from '../../player'
-import { schemaFromParse } from "@tonylb/mtw-wml/dist/schema"
-import tokenizer from "@tonylb/mtw-wml/dist/parser/tokenizer"
-import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
-import parser from "@tonylb/mtw-wml/dist/parser"
 import { NormalItem, NormalCharacter } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { getStatus } from '../../lifeLine'
@@ -87,11 +83,8 @@ export const parseCharacterWML: CharacterEditAction = ({ internalData: { id, cha
     if (!characterWML) {
         throw new Error()
     }
-    const schema = schemaFromParse(parser(tokenizer(new SourceStream(characterWML))))
     const normalizer = new Normalizer()
-    schema.forEach((item) => {
-        normalizer.put(item, { contextStack: [] })
-    })
+    normalizer.loadWML(characterWML)
 
     const evaluated = (Object.values(normalizer.normal) as NormalItem[]).find(({ tag }: { tag?: string } = {}) => (tag === 'Character')) as unknown as NormalCharacter
 

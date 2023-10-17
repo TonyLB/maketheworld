@@ -4,7 +4,7 @@ import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 
 import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { isSchemaAssetContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { schemaToWML } from "@tonylb/mtw-wml/dist/schema"
+import { schemaToWML } from "@tonylb/mtw-wml/dist/simpleSchema"
 import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"

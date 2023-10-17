@@ -10,6 +10,7 @@ import {
     isSchemaKnowledgeIncomingContents,
     isSchemaMapContents,
     isSchemaRoomIncomingContents,
+    isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../../schema/baseClasses"
 import { translateTaggedMessageContents } from "../../schema/taggedMessage"
@@ -18,22 +19,23 @@ import { SchemaContextItem } from "../baseClasses"
 import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
 
-export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[]) => {
+export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[], label: string) => {
     if (contextStack.length === 0) {
-        throw new Error('ElseIf cannot be a top-level component')
+        throw new Error(`${label} cannot be a top-level component`)
     }
-    const siblings = contextStack.slice(-1)[0].contents
+    const siblings = contextStack.slice(-1)[0].contents.filter((tag) => (!(isSchemaString(tag) && (!tag.value.trim()))))
     if (siblings.length === 0) {
-        throw new Error('ElseIf must follow an If or ElseIf tag')
+        throw new Error(`${label} must follow an If or ElseIf tag`)
     }
     const nearestSibling = siblings.slice(-1)[0]
     if (isSchemaCondition(nearestSibling)) {
         if (nearestSibling.conditions.slice(-1)[0].not) {
-            throw new Error('ElseIf must follow an If or ElseIf tag')
+            throw new Error(`${label} must follow an If or ElseIf tag`)
         }
     }
     else {
-        throw new Error('ElseIf must follow an If or ElseIf tag')
+        console.log(`siblings: ${JSON.stringify(siblings, null, 4)}`)
+        throw new Error(`${label} must follow an If or ElseIf tag`)
     }
     return nearestSibling.conditions
 }
@@ -97,7 +99,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
     },
     ElseIf: {
         initialize: ({ parseOpen, contextStack }): SchemaConditionTag => {
-            const siblingConditions = conditionalSiblingsConditions(contextStack)
+            const siblingConditions = conditionalSiblingsConditions(contextStack, 'ElseIf')
             const validatedProperties = validateProperties(conditionalTemplates.ElseIf)(parseOpen)
             return {
                 tag: 'If',
@@ -111,7 +113,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
     },
     Else: {
         initialize: ({ parseOpen, contextStack }): SchemaConditionTag => {
-            const siblingConditions = conditionalSiblingsConditions(contextStack)
+            const siblingConditions = conditionalSiblingsConditions(contextStack, 'Else')
             validateProperties(conditionalTemplates.Else)(parseOpen)
             return {
                 tag: 'If',

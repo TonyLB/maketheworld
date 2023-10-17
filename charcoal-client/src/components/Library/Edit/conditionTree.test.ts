@@ -1,17 +1,12 @@
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { isNormalExit, NormalExit, NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import parse from "@tonylb/mtw-wml/dist/parser"
-import tokenizer from "@tonylb/mtw-wml/dist/parser/tokenizer"
-import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
-import { schemaFromParse } from "@tonylb/mtw-wml/dist/schema"
 import { ConditionalTree, reduceItemsToTree } from "./conditionTree"
 
 describe('conditionTree', () => {
     const reducer = (normalForm: NormalForm) => (reduceItemsToTree({ compare: (A: { key: string; name: string; }, B: { key: string; name: string; }): boolean => (A.key === B.key), normalForm, transform: ({ key, name }: NormalExit) => ({ key, name: name || '' }) }))
     const normalFromSource = (source: string) => {
         const normalizer = new Normalizer()
-        const testCharacter = schemaFromParse(parse(tokenizer(new SourceStream(source))))
-        normalizer.put(testCharacter[0], { contextStack: [], index: 0, replace: false })
+        normalizer.loadWML(source)
         return normalizer.normal
     }
 

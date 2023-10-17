@@ -2,7 +2,7 @@ import { SchemaTag } from "../schema/baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
 import { SchemaContextItem } from "./baseClasses"
 import converterMap from "./converters"
-import { compressWhitespace } from "./utils"
+import WMLConverter from "../convert"
 
 export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
     let contextStack: SchemaContextItem[] = []
@@ -69,4 +69,22 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
         }
     })
     return returnValue
+}
+
+const schemaConvert = new WMLConverter()
+
+export const schemaToWML = (tags: SchemaTag[]): string => {
+    const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: SchemaTag[] }>((previous, tag) => {
+        return {
+            returnValue: [
+                ...previous.returnValue,
+                schemaConvert.schemaToWML(tag, { indent: 0, siblings: previous.siblings, context: [] })
+            ],
+            siblings: [
+                ...previous.siblings,
+                tag
+            ]
+        }
+    }, { returnValue: [], siblings: [] })
+    return returnValue.join('\n')
 }
