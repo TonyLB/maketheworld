@@ -1,10 +1,8 @@
 import { extractDependenciesFromJS } from "../../convert/utils";
 import {
     SchemaActionTag,
-    SchemaAfterTag,
     SchemaAssetLegalContents,
     SchemaAssetTag,
-    SchemaBeforeTag,
     SchemaBookmarkTag,
     SchemaComputedTag,
     SchemaDescriptionTag,
@@ -15,18 +13,14 @@ import {
     SchemaImportTag,
     SchemaKnowledgeLegalContents,
     SchemaKnowledgeTag,
-    SchemaLineBreakTag,
-    SchemaLinkTag,
     SchemaMapLegalContents,
     SchemaMapTag,
     SchemaMessageLegalContents,
     SchemaMessageTag,
     SchemaMomentTag,
     SchemaNameTag,
-    SchemaReplaceTag,
     SchemaRoomLegalIncomingContents,
     SchemaRoomTag,
-    SchemaSpacerTag,
     SchemaStoryTag,
     SchemaStringTag,
     SchemaTag,
@@ -54,6 +48,8 @@ import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
 import { characterConverters } from "./character"
 import { conditionalConverters } from "./conditionals"
+import { importExportConverters } from "./importExport";
+import { taggedMessageConverters } from "./taggedMessages"
 
 const validationTemplates = {
     Asset: {
@@ -62,9 +58,6 @@ const validationTemplates = {
     Story: {
         key: { required: true, type: ParsePropertyTypes.Key },
         instance: { required: true, type: ParsePropertyTypes.Boolean }
-    },
-    Image: {
-        key: { required: true, type: ParsePropertyTypes.Key }
     },
     Variable: {
         key: { required: true, type: ParsePropertyTypes.Key },
@@ -78,31 +71,15 @@ const validationTemplates = {
         key: { required: true, type: ParsePropertyTypes.Key },
         src: { required: true, type: ParsePropertyTypes.Expression }
     },
-    Use: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        as: { type: ParsePropertyTypes.Key },
-        type: { type: ParsePropertyTypes.Literal }
-    },
-    Import: {
-        from: { required: true, type: ParsePropertyTypes.Key },
-    },
     Exit: {
         from: { type: ParsePropertyTypes.Key },
         to: { type: ParsePropertyTypes.Key }
     },
-    Link: {
-        to: { required: true, type: ParsePropertyTypes.Key }
-    },
     Description: {},
-    After: {},
-    Before: {},
-    Replace: {},
     Bookmark: {
         key: { required: true, type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal }
     },
-    br: {},
-    Space: {},
     Name: {},
     Room: {
         key: { required: true, type: ParsePropertyTypes.Key },
@@ -156,12 +133,8 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     },
     ...characterConverters,
     ...conditionalConverters,
-    Image: {
-        initialize: ({ parseOpen }): SchemaImageTag => ({
-            tag: 'Image',
-            ...validateProperties(validationTemplates.Image)(parseOpen)
-        })
-    },
+    ...importExportConverters,
+    ...taggedMessageConverters,
     Variable: {
         initialize: ({ parseOpen }): SchemaVariableTag => ({
             tag: 'Variable',
@@ -182,27 +155,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen }): SchemaActionTag => ({
             tag: 'Action',
             ...validateProperties(validationTemplates.Action)(parseOpen)
-        })
-    },
-    Use: {
-        initialize: ({ parseOpen }): SchemaUseTag => ({
-            tag: 'Use',
-            ...validateProperties(validationTemplates.Use)(parseOpen)
-        })
-    },
-    Import: {
-        initialize: ({ parseOpen }): SchemaImportTag => ({
-            tag: 'Import',
-            mapping: {},
-            ...validateProperties(validationTemplates.Import)(parseOpen)
-        }),
-        legalContents: isSchemaUse,
-        finalize: (initialTag: SchemaImportTag, contents: SchemaUseTag[] ): SchemaImportTag => ({
-            ...initialTag,
-            mapping: contents.reduce((previous, { key, as, type }) => ({
-                ...previous,
-                [as || key]: { key, type }
-            }), {})
         })
     },
     Exit: {
@@ -233,18 +185,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             contents
         })
     },
-    Link: {
-        initialize: ({ parseOpen }): SchemaLinkTag => ({
-            tag: 'Link',
-            text: '',
-            ...validateProperties(validationTemplates.Link)(parseOpen)
-        }),
-        legalContents: isSchemaString,
-        finalize: (initialTag: SchemaLinkTag, contents: SchemaStringTag[]) => ({
-            ...initialTag,
-            text: contents.map(({ value }) => (value)).join('')
-        })
-    },
     Description: {
         initialize: ({ parseOpen }): SchemaDescriptionTag => ({
             tag: 'Description',
@@ -255,27 +195,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
         finalize: (initialTag: SchemaDescriptionTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaDescriptionTag => ({
             ...initialTag,
             contents
-        })
-    },
-    After: {
-        initialize: ({ parseOpen }): SchemaAfterTag => ({
-            tag: 'After',
-            contents: [],
-            ...validateProperties(validationTemplates.After)(parseOpen)
-        })
-    },
-    Before: {
-        initialize: ({ parseOpen }): SchemaBeforeTag => ({
-            tag: 'Before',
-            contents: [],
-            ...validateProperties(validationTemplates.Before)(parseOpen)
-        })
-    },
-    Replace: {
-        initialize: ({ parseOpen }): SchemaReplaceTag => ({
-            tag: 'Replace',
-            contents: [],
-            ...validateProperties(validationTemplates.Replace)(parseOpen)
         })
     },
     Bookmark: {
@@ -295,18 +214,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
         finalize: (initialTag: SchemaBookmarkTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaBookmarkTag => ({
             ...initialTag,
             contents
-        })
-    },
-    br: {
-        initialize: ({ parseOpen }): SchemaLineBreakTag => ({
-            tag: 'br',
-            ...validateProperties(validationTemplates.br)(parseOpen)
-        })
-    },
-    Space: {
-        initialize: ({ parseOpen }): SchemaSpacerTag => ({
-            tag: 'Space',
-            ...validateProperties(validationTemplates.Space)(parseOpen)
         })
     },
     Name: {
