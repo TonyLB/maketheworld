@@ -23,9 +23,7 @@ describe('large WML test', () => {
 
     it('should normalize properly', () => {
         const normalizer = new Normalizer()
-        schemaFromParse(parse(tokenize(new SourceStream(dungeonSource)))).forEach((schema, index) => {
-            normalizer.put(schema, { contextStack: [], index, replace: false })
-        })
+        normalizer.loadWML(dungeonSource)
         expect(normalizer.normal).toMatchSnapshot()
     })
 })

@@ -85,6 +85,9 @@ import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
 import { objectFilterEntries, objectMap } from '../lib/objects';
 import standardizeNormal from './standardize';
+import { schemaFromParse } from '../simpleSchema';
+import parse from '../simpleParser';
+import tokenizer from '../parser/tokenizer';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -1056,7 +1059,8 @@ export class Normalizer {
     }
 
     loadWML(wml: string): void {
-        const schema = schemaFromWML(wml)
+        // const schema = schemaFromWML(wml)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(wml))))
         this.loadSchema(schema)
     }
 
