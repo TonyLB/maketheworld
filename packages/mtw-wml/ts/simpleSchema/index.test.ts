@@ -74,7 +74,7 @@ describe('schemaFromParse', () => {
                     contents: [{
                         contents: [
                             { tag: "Space" },
-                            { tag: "String", value: "Vortex" },
+                            { tag: "String", value: " Vortex" },
                             {
                                 conditions: [{
                                     dependencies: ["open"],
@@ -134,7 +134,7 @@ describe('schemaFromParse', () => {
                     name: [{ tag: "String", value: "Vortex" }],
                     render: [
                         { tag: "Space" },
-                        { tag: "String", value: "Vortex" },
+                        { tag: "String", value: " Vortex" },
                         {
                             conditions: [{
                                 dependencies: ["open"],

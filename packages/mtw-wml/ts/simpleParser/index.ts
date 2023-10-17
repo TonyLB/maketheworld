@@ -99,6 +99,7 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                             properties: []
                         }
                         expecting = ParseExpectation.Properties
+                        firstTag = true
                         break
                     case 'TagClose':
                         if ((currentText || '').trimEnd()) {

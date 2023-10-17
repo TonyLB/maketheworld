@@ -55,13 +55,13 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
                 if (!converter) {
                     throw new Error(`No converter available for '${closingItem.tag.tag}' parse tag`)
                 }
-                const illegalTag = closingItem.contents.find((item) => (converter.legalContents && !converter.legalContents(item)))
+                const illegalTag = closingItem.contents.find((item) => (converter.legalContents && !converter.legalContents(item, contextStack)))
                 if (illegalTag) {
                     throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.tag.tag}' item contents`)
                 }
                 addSchemaTag(
                     converter.finalize
-                        ? converter.finalize(closingItem.tag, closingItem.contents)
+                        ? converter.finalize(closingItem.tag, closingItem.contents, contextStack)
                         : closingItem.tag
                     )
                 break
