@@ -2,7 +2,7 @@
 
 exports[`LibraryAsset context provider should provide currentWML 1`] = `
 "
-<Asset key=(Test) fileName=\\"test\\">
+<Asset key=(Test)>
     <Import from=(BASE)>
         <Use key=(basePower) type=\\"Variable\\" as=(power) />
         <Use key=(DEF) type=\\"Room\\" />
@@ -59,7 +59,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         \\"tag\\": \\"Asset\\",
         \\"instance\\": false,
         \\"Story\\": false,
-        \\"fileName\\": \\"test\\",
         \\"appearances\\": [
             {
                 \\"contextStack\\": [],
