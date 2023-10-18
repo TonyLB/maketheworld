@@ -33,3 +33,29 @@ export type ConverterMapEntry = {
     legalContents?: (item: SchemaTag, contextStack: SchemaContextItem[]) => boolean;
     finalize?: (initialTag: SchemaTag, contents: SchemaTag[], contextStack: SchemaContextItem[]) => SchemaTag;
 }
+
+export type SchemaToWMLOptions = {
+    indent: number;
+    forceNest?: 'closed' | 'contents' | 'properties';
+    context: SchemaTag[];
+    siblings?: SchemaTag[];
+}
+
+export enum PrintMapOptionsChange {
+    Sibling,
+    Indent
+}
+export type PrintMapOptionsFactory = {
+    (action: PrintMapOptionsChange): (previous: SchemaToWMLOptions) => SchemaToWMLOptions;
+}
+
+export type PrintMapEntryArguments = {
+    tag: SchemaTag;
+    options: SchemaToWMLOptions;
+    optionsFactory: PrintMapOptionsFactory;
+    schemaToWML: PrintMapEntry;
+}
+
+export type PrintMapEntry = {
+    (args: PrintMapEntryArguments): string;
+}

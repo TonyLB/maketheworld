@@ -75,6 +75,5 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             ...initialTag,
             text: contents.map(({ value }) => (value)).join('')
         })
-    },
-
+    }
 }

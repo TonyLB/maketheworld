@@ -5,15 +5,16 @@ import {
     isSchemaAssetContents,
 } from "../../schema/baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
 import { validateProperties } from "./utils"
 import { characterConverters } from "./character"
 import { componentConverters } from "./components"
 import { computationConverters } from "./computation"
-import { conditionalConverters } from "./conditionals"
+import { conditionalConverters, conditionalPrintMap } from "./conditionals"
 import { importExportConverters } from "./importExport"
 import { messagingConverters } from "./messaging"
 import { taggedMessageConverters } from "./taggedMessages"
+import { tagRender } from "./tagRender"
 
 const validationTemplates = {
     Asset: {
@@ -59,6 +60,21 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     ...importExportConverters,
     ...messagingConverters,
     ...taggedMessageConverters,
+}
+
+export const printMap: Record<string, PrintMapEntry> = {
+    Asset: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaAssetTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Asset',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+                { key: 'Story', type: 'boolean', value: tag.Story }
+            ],
+            contents: tag.contents,
+        })
+    ),
+    ...conditionalPrintMap
 }
 
 export default converterMap

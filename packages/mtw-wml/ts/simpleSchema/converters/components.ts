@@ -29,7 +29,8 @@ import {
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
-import { ConverterMapEntry } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 
 const componentTemplates = {
@@ -211,4 +212,24 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }),
             images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
         })
-    },}
+    }
+}
+
+export const componentsPrintMap: Record<string, PrintMapEntry> = {
+    Exit: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaExitTag }) => {
+
+        const { context } = args.options
+        const roomsContextList = context.filter(isSchemaRoom)
+        const roomContext: SchemaTag | undefined = roomsContextList.length > 0 ? roomsContextList.slice(-1)[0] : undefined
+        return tagRender({
+            ...args,
+            tag: 'Exit',
+            properties: [
+                ...((!tag.from || (roomContext && roomContext.key === tag.from)) ? [] : [{ key: 'from', type: 'key' as 'key', value: tag.from }]),
+                ...((!tag.to || (roomContext && roomContext.key === tag.to)) ? [] : [{ key: 'to', type: 'key' as 'key', value: tag.to }]),
+            ],
+            contents: tag.name ? [tag.name] : [],
+        })
+
+    }
+}
