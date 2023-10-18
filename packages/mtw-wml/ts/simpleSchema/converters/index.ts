@@ -7,7 +7,7 @@ import {
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
 import { validateProperties } from "./utils"
-import { characterConverters } from "./character"
+import { characterConverters, characterPrintMap } from "./character"
 import { componentConverters, componentPrintMap } from "./components"
 import { computationConverters } from "./computation"
 import { conditionalConverters, conditionalPrintMap } from "./conditionals"
@@ -76,7 +76,8 @@ export const printMap: Record<string, PrintMapEntry> = {
     ),
     ...conditionalPrintMap,
     ...componentPrintMap,
-    ...taggedMessagePrintMap
+    ...taggedMessagePrintMap,
+    ...characterPrintMap
 }
 
 export default converterMap
