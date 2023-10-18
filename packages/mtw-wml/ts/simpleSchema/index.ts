@@ -2,7 +2,6 @@ import { SchemaTag } from "../schema/baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
 import { SchemaContextItem } from "./baseClasses"
 import converterMap, { printMap } from "./converters"
-import WMLConverter from "../convert"
 import { PrintMapEntry } from "./converters/baseClasses"
 import { optionsFactory } from "./converters/utils"
 
@@ -73,19 +72,14 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
     return returnValue
 }
 
-const schemaConvert = new WMLConverter()
-
 export const printSchemaTag: PrintMapEntry = (args) => {
-    const { tag, options } = args
-    //
-    // TODO: Replace schemaToWML in PrintMapEntry with a printFactory, which takes arguments
-    // (like "indent by a row") and refactor tagRender and prettyPrintFreeText using
-    // printFactory
-    //
+    const { tag } = args
     if (tag.tag in printMap) {
         return printMap[tag.tag](args)
     }
-    return schemaConvert.schemaToWML(tag, options)
+    else {
+        throw new Error(`Invalid tag ('${tag.tag}') in schemaToWML`)
+    }
 }
 
 export const schemaToWML = (tags: SchemaTag[]): string => {
@@ -93,10 +87,6 @@ export const schemaToWML = (tags: SchemaTag[]): string => {
         return {
             returnValue: [
                 ...previous.returnValue,
-                //
-                // TODO: Create printMap similar to converterMap, and use it to pull the relevant printer
-                // for the given tag, at this juncture (rather than overloaded mixins)
-                //
                 printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })
             ],
             siblings: [
