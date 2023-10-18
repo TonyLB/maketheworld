@@ -156,7 +156,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         legalContents: isSchemaRoomIncomingContents,
-        finalize: (initialTag: SchemaRoomTag, contents: SchemaRoomLegalIncomingContents[] ): SchemaRoomTag => ({
+        finalize: (initialTag: SchemaRoomTag, contents: SchemaTag[] ): SchemaRoomTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaRoomContents),
             name: compressWhitespace(extractNameFromContents(contents)),
@@ -172,7 +172,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Feature)(parseOpen)
         }),
         legalContents: isSchemaFeatureIncomingContents,
-        finalize: (initialTag: SchemaFeatureTag, contents: SchemaFeatureLegalContents[] ): SchemaFeatureTag => ({
+        finalize: (initialTag: SchemaFeatureTag, contents: SchemaTag[] ): SchemaFeatureTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaFeatureContents),
             name: compressWhitespace(extractNameFromContents(contents)),
@@ -188,7 +188,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Knowledge)(parseOpen)
         }),
         legalContents: isSchemaKnowledgeIncomingContents,
-        finalize: (initialTag: SchemaKnowledgeTag, contents: SchemaKnowledgeLegalContents[] ): SchemaKnowledgeTag => ({
+        finalize: (initialTag: SchemaKnowledgeTag, contents: SchemaTag[] ): SchemaKnowledgeTag => ({
             ...initialTag,
             name: compressWhitespace(extractNameFromContents(contents)),
             render: compressWhitespace(extractDescriptionFromContents(contents))
@@ -204,12 +204,12 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Map)(parseOpen)
         }),
         legalContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
-        finalize: (initialTag: SchemaMapTag, contents: SchemaMapLegalContents[] ): SchemaMapTag => ({
+        finalize: (initialTag: SchemaMapTag, contents: SchemaTag[] ): SchemaMapTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaMapContents),
             name: compressWhitespace(extractNameFromContents(contents)),
             rooms: extractConditionedItemFromContents({
-                contents: contents as SchemaMapLegalContents[],
+                contents,
                 typeGuard: isSchemaRoom,
                 transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
             }),

@@ -9,7 +9,6 @@ import {
     SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
-    SchemaConditionTagDescriptionContext,
     SchemaTaggedMessageLegalContents,
     SchemaFeatureTag,
     isSchemaFeatureContents,
@@ -21,7 +20,6 @@ import {
     SchemaTag,
     SchemaVariableTag,
     SchemaWithKey,
-    isSchemaConditionTagDescriptionContext,
     SchemaBookmarkTag,
     SchemaMessageTag,
     isSchemaImage,
@@ -102,7 +100,7 @@ type NormalizerContext = {
 type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Knowledge" | "Bookmark" | "Character" | "Message" | "Moment" | "After" | "Before" | "Replace">
 
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
-    if (renderItem.tag === 'If' && isSchemaConditionTagDescriptionContext(renderItem)) {
+    if (renderItem.tag === 'If') {
         return {
             tag: 'Condition',
             conditions: renderItem.conditions,
@@ -171,7 +169,7 @@ export const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRender
                     .map(componentRenderToSchemaTaggedMessage)
                     .filter((value) => (value))
                     .filter(isSchemaTaggedMessageLegalContents)
-            } as SchemaConditionTagDescriptionContext
+            }
         case 'Link':
             return {
                 tag: 'Link',

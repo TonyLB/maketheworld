@@ -131,66 +131,12 @@ export type SchemaImportTag = {
     mapping: Record<string, SchemaImportMapping>;
 } & SchemaBase
 
-//
-// TODO:  Figure out how to define limits on schemaConditionTag contents
-// without causing circular reference
-//
-export type SchemaConditionTagAssetContext = {
+export type SchemaConditionTag = {
     tag: 'If';
-    contextTag: 'Asset';
+    contextTag: 'Asset' | 'Name' | 'Description' | 'Room' | 'Feature' | 'Knowledge' | 'Map';
     key?: string;
     contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin
-
-export type SchemaConditionTagNameContext = {
-    tag: 'If';
-    contextTag: 'Name';
-    key?: string;
-    contents: SchemaTag[];
-} & SchemaBase & SchemaConditionMixin
-
-export type SchemaConditionTagDescriptionContext = {
-    tag: 'If';
-    contextTag: 'Description';
-    key?: string;
-    contents: SchemaTag[];
-} & SchemaBase & SchemaConditionMixin
-
-export type SchemaConditionTagRoomContext = {
-    tag: 'If';
-    contextTag: 'Room';
-    key?: string;
-    contents: SchemaTag[];
-} & SchemaBase & SchemaConditionMixin
-
-export type SchemaConditionTagFeatureContext = {
-    tag: 'If';
-    contextTag: 'Feature';
-    key?: string;
-    contents: SchemaTag[];
-} & SchemaBase & SchemaConditionMixin
-
-export type SchemaConditionTagKnowledgeContext = {
-    tag: 'If';
-    contextTag: 'Knowledge';
-    key?: string;
-    contents: SchemaTag[];
-} & SchemaBase & SchemaConditionMixin
-
-export type SchemaConditionTagMapContext = {
-    tag: 'If';
-    contextTag: 'Map';
-    key?: string;
-    contents: SchemaTag[];
-} & SchemaBase & SchemaConditionMixin
-
-export type SchemaConditionTag = SchemaConditionTagAssetContext | SchemaConditionTagDescriptionContext | SchemaConditionTagNameContext | SchemaConditionTagRoomContext | SchemaConditionTagFeatureContext | SchemaConditionTagKnowledgeContext | SchemaConditionTagMapContext
-
-export const isSchemaConditionTagDescriptionContext = (value: SchemaConditionTag): value is SchemaConditionTagDescriptionContext => (value.contextTag === 'Description')
-export const isSchemaConditionTagRoomContext = (value: SchemaConditionTag): value is SchemaConditionTagRoomContext => (value.contextTag === 'Room')
-export const isSchemaConditionTagFeatureContext = (value: SchemaConditionTag): value is SchemaConditionTagFeatureContext => (value.contextTag === 'Feature')
-export const isSchemaConditionTagKnowledgeContext = (value: SchemaConditionTag): value is SchemaConditionTagKnowledgeContext => (value.contextTag === 'Knowledge')
-export const isSchemaConditionTagMapContext = (value: SchemaConditionTag): value is SchemaConditionTagMapContext => (value.contextTag === 'Map')
 
 export type SchemaExitTag = {
     tag: 'Exit';
@@ -254,8 +200,8 @@ export type SchemaNameTag = {
 // TODO: Refactor room schema formation to keep name and description tags not folded into name
 // and render properties
 //
-export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaConditionTagRoomContext
-export type SchemaRoomLegalIncomingContents = SchemaNameTag | SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaConditionTagRoomContext
+export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaConditionTag
+export type SchemaRoomLegalIncomingContents = SchemaNameTag | SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaConditionTag
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
@@ -267,7 +213,7 @@ export type SchemaRoomTag = {
     contents: SchemaTag[];
 } & SchemaBase
 
-export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTagFeatureContext
+export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTag
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
@@ -276,7 +222,7 @@ export type SchemaFeatureTag = {
     contents: SchemaTag[];
 } & SchemaBase
 
-export type SchemaKnowledgeLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTagKnowledgeContext
+export type SchemaKnowledgeLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTag
 export type SchemaKnowledgeTag = {
     tag: 'Knowledge';
     key: string;
@@ -285,7 +231,7 @@ export type SchemaKnowledgeTag = {
     contents: SchemaTag[];
 } & SchemaBase
 
-export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTagMapContext
+export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTag
 
 export type SchemaMapRoom = {
     key: string;

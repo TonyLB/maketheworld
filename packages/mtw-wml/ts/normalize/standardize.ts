@@ -5,7 +5,7 @@
 
 import Normalizer from ".";
 import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction, isNormalImport, NormalImport, isNormalKnowledge, NormalKnowledge } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, SchemaUseTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge, isSchemaTaggedMessageLegalContents } from "../simpleSchema/baseClasses"
+import { SchemaTaggedMessageLegalContents, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge, isSchemaTaggedMessageLegalContents, SchemaConditionTag } from "../simpleSchema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../simpleSchema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
@@ -28,7 +28,7 @@ const extractConditionedRender = (contextNormalizer: Normalizer) => (item: Norma
                 if (!(ifReference && isNormalCondition(ifReference))) {
                     return previous
                 }
-                const returnValue: SchemaConditionTagDescriptionContext = {
+                const returnValue: SchemaConditionTag = {
                     tag: 'If' as 'If',
                     contextTag: 'Description',
                     conditions: ifReference.conditions,
@@ -63,7 +63,7 @@ const extractConditionedName = (contextNormalizer: Normalizer) => (item: NormalR
                 if (!(ifReference && isNormalCondition(ifReference))) {
                     return previous
                 }
-                const returnValue: SchemaConditionTagDescriptionContext = {
+                const returnValue: SchemaConditionTag = {
                     tag: 'If' as 'If',
                     contextTag: 'Description',
                     conditions: ifReference.conditions,
@@ -82,23 +82,23 @@ const extractConditionedName = (contextNormalizer: Normalizer) => (item: NormalR
 
 const extractConditionedExits = (contextNormalizer: Normalizer) => (item: NormalRoom) => {
     const { appearances } = item
-    const returnContents = appearances.reduce<(SchemaExitTag | SchemaConditionTagRoomContext)[]>((previous, { contextStack }, index ) => {
+    const returnContents = appearances.reduce<(SchemaExitTag | SchemaConditionTag)[]>((previous, { contextStack }, index ) => {
         const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
         if (!(schemaVersion && isSchemaRoom(schemaVersion))) {
             return previous
         }
-        const contents = schemaVersion.contents.filter((tag: SchemaRoomLegalContents): tag is (SchemaExitTag | SchemaConditionTagRoomContext) => (['If', 'Exit'].includes(tag.tag)))
+        const contents = schemaVersion.contents.filter((tag: SchemaTag): tag is (SchemaExitTag | SchemaConditionTag) => (['If', 'Exit'].includes(tag.tag)))
         if (!contents.length) {
             return previous
         }
         const newContents = contextStack
             .filter(({ tag }) => (tag === 'If'))
-            .reduceRight<(SchemaExitTag | SchemaConditionTagRoomContext)[]>((previous, { key }) => {
+            .reduceRight<(SchemaExitTag | SchemaConditionTag)[]>((previous, { key }) => {
                 const ifReference = contextNormalizer.normal[key]
                 if (!(ifReference && isNormalCondition(ifReference))) {
                     return previous
                 }
-                const returnValue: SchemaConditionTagRoomContext = {
+                const returnValue: SchemaConditionTag = {
                     tag: 'If' as 'If',
                     contextTag: 'Room',
                     conditions: ifReference.conditions,
@@ -150,7 +150,7 @@ const extractConditionedMapContents = (contextNormalizer: Normalizer) => (item: 
                 if (!(ifReference && isNormalCondition(ifReference))) {
                     return previous
                 }
-                const returnValue: SchemaConditionTagMapContext = {
+                const returnValue: SchemaConditionTag = {
                     tag: 'If' as 'If',
                     contextTag: 'Map',
                     conditions: ifReference.conditions,

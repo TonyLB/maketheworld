@@ -1,19 +1,12 @@
 import {
     isSchemaCondition,
-    isSchemaConditionTagFeatureContext,
-    isSchemaConditionTagKnowledgeContext,
-    isSchemaConditionTagMapContext,
-    isSchemaConditionTagRoomContext,
     isSchemaDescription,
     isSchemaName,
     isSchemaTag,
     SchemaConditionMixin,
-    SchemaFeatureLegalContents,
-    SchemaKnowledgeLegalContents,
     SchemaMapLegalContents,
     SchemaMessageLegalContents,
     SchemaNameTag,
-    SchemaRoomLegalContents,
     SchemaLineBreakTag,
     SchemaSpacerTag,
     SchemaTag,
@@ -114,9 +107,9 @@ export const extractDescriptionFromContents = (contents: SchemaTag[]): SchemaTag
     }).flat(1)
 }
 
-export const extractConditionedItemFromContents = <C extends SchemaMapLegalContents | SchemaMessageLegalContents | SchemaNameTag, T extends C, O extends SchemaConditionMixin>(props: {
-    contents: C[];
-    typeGuard: (value: C) => value is T;
+export const extractConditionedItemFromContents = <T extends SchemaTag, O extends SchemaConditionMixin>(props: {
+    contents: SchemaTag[];
+    typeGuard: (value: SchemaTag) => value is T;
     transform: (value: T, index: number) => O;
 }): O[] => {
     const { contents, typeGuard, transform } = props
@@ -128,7 +121,7 @@ export const extractConditionedItemFromContents = <C extends SchemaMapLegalConte
             ]
         }
         if (isSchemaTag(item) && isSchemaCondition(item)) {
-            const nestedItems = extractConditionedItemFromContents({ contents: item.contents as C[], typeGuard, transform })
+            const nestedItems = extractConditionedItemFromContents({ contents: item.contents, typeGuard, transform })
                 .map(({ conditions, ...rest }) => ({
                     conditions: [
                         ...item.conditions,
