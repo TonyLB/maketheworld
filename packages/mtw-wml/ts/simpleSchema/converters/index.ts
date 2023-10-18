@@ -13,7 +13,7 @@ import { computationConverters } from "./computation"
 import { conditionalConverters, conditionalPrintMap } from "./conditionals"
 import { importExportConverters } from "./importExport"
 import { messagingConverters } from "./messaging"
-import { taggedMessageConverters } from "./taggedMessages"
+import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
 import { tagRender } from "./tagRender"
 
 const validationTemplates = {
@@ -76,6 +76,7 @@ export const printMap: Record<string, PrintMapEntry> = {
     ),
     ...conditionalPrintMap,
     ...componentPrintMap,
+    ...taggedMessagePrintMap
 }
 
 export default converterMap

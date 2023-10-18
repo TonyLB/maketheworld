@@ -1,7 +1,9 @@
-import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTaggedMessageLegalContents, isSchemaString, isSchemaTaggedMessageLegalContents } from "../../schema/baseClasses"
+import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
+import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTaggedMessageLegalContents, SchemaWhitespaceTag, isSchemaString, isSchemaTaggedMessageLegalContents } from "../../schema/baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
-import { ConverterMapEntry } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 
 const taggedMessageTemplates = {
@@ -76,4 +78,45 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             text: contents.map(({ value }) => (value)).join('')
         })
     }
+}
+
+export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
+    Before: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaBeforeTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Before',
+            properties: [],
+            contents: tag.contents,
+        })
+    ),
+    After: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaAfterTag }) => (
+        tagRender({
+            ...args,
+            tag: 'After',
+            properties: [],
+            contents: tag.contents,
+        })
+    ),
+    Replace: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaReplaceTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Replace',
+            properties: [],
+            contents: tag.contents,
+        })
+    ),
+    String: ({ tag }: PrintMapEntryArguments & { tag: SchemaStringTag }) => (
+        escapeWMLCharacters(tag.value)
+    ),
+    Link: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaLinkTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Link',
+            properties: [{ key: 'to', type: 'key', value: tag.to }],
+            contents: [tag.text],
+        })
+    ),
+    br: () => ('<br />'),
+    Space: () => ('<Space />'),
+    Whitespace: () => (' ')
 }
