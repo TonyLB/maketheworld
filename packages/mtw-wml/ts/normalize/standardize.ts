@@ -5,7 +5,7 @@
 
 import Normalizer from ".";
 import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction, isNormalImport, NormalImport, isNormalKnowledge, NormalKnowledge } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, SchemaUseTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge } from "../simpleSchema/baseClasses"
+import { SchemaTaggedMessageLegalContents, SchemaConditionTagDescriptionContext, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaConditionTagRoomContext, SchemaRoomLegalContents, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaConditionTagMapContext, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, SchemaUseTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge, isSchemaTaggedMessageLegalContents } from "../simpleSchema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../simpleSchema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
@@ -35,7 +35,7 @@ const extractConditionedRender = (contextNormalizer: Normalizer) => (item: Norma
                     contents: previous
                 }
                 return [returnValue]
-            }, render)
+            }, render.filter(isSchemaTaggedMessageLegalContents))
         return [
             ...previous,
             ...newRender
@@ -157,7 +157,7 @@ const extractConditionedMapContents = (contextNormalizer: Normalizer) => (item: 
                     contents: previous
                 }
                 return [returnValue]
-            }, contents)
+            }, contents.filter(isSchemaMapContents))
         return [
             ...previous,
             ...newContents
@@ -174,7 +174,7 @@ const extractConditionedMessageContents = (contextNormalizer: Normalizer) => (it
         if (!(schemaVersion && isSchemaMessage(schemaVersion))) {
             return previous
         }
-        const contents = schemaVersion.contents
+        const contents = schemaVersion.contents.filter(isSchemaMessageContents)
         if (!contents.length) {
             return previous
         }
@@ -213,7 +213,7 @@ const extractConditionedMomentContents = (contextNormalizer: Normalizer) => (ite
         if (!(schemaVersion && isSchemaMoment(schemaVersion))) {
             return previous
         }
-        const contents = stripComponentContents(schemaVersion.contents)
+        const contents = stripComponentContents(schemaVersion.contents.filter(isSchemaMessage))
         if (!contents.length) {
             return previous
         }
@@ -340,7 +340,7 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .reduce<Record<string, string[]>>((previous, { key, contents }) => {
             return {
                 ...previous,
-                [key]: extractBookmarkReferences(contents)
+                [key]: extractBookmarkReferences(contents.filter(isSchemaTaggedMessageLegalContents))
             }
         }, {})
     let alreadyWrittenKeys: string[] = []

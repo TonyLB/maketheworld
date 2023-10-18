@@ -20,7 +20,8 @@ import {
     SchemaTaggedMessageLegalContents,
     isSchemaLineBreak,
     isSchemaSpacer,
-    isSchemaString
+    isSchemaString,
+    isSchemaTaggedMessageLegalContents
 } from "./baseClasses"
 
 export function compressWhitespace (tags: SchemaTaggedMessageLegalContents[]): SchemaTaggedMessageLegalContents[]
@@ -73,130 +74,44 @@ export function compressWhitespace (tags: SchemaTag[]): SchemaTag[] {
     }).flat(1)
 }
 
-export const extractNameFromContents = <T extends SchemaFeatureLegalContents | SchemaKnowledgeLegalContents | SchemaRoomLegalContents | SchemaMapLegalContents>(contents: T[]): SchemaTaggedMessageLegalContents[] => {
-    return contents.reduce<SchemaTaggedMessageLegalContents[]>((previous, item) => {
+export const extractNameFromContents = (contents: SchemaTag[]): SchemaTaggedMessageLegalContents[] => {
+    return contents.map((item) => {
         if (isSchemaName(item)) {
-            return [
-                ...previous,
-                ...(item.contents)
-            ]
+            return item.contents.filter(isSchemaTaggedMessageLegalContents)
         }
         if (isSchemaCondition(item)) {
-            if (isSchemaConditionTagRoomContext(item)) {
-                const contents = extractNameFromContents(item.contents)
-                if (contents.length) {
-                    const conditionGroup = {
-                        ...item,
-                        contextTag: 'Name',
-                        contents
-                    } as SchemaTaggedMessageLegalContents
-                    return [
-                        ...previous,
-                        conditionGroup
-                    ]
-                }
-            }
-            if (isSchemaConditionTagFeatureContext(item)) {
-                const contents = extractNameFromContents(item.contents)
-                if (contents.length) {
-                    const conditionGroup = {
-                        ...item,
-                        contextTag: 'Name',
-                        contents
-                    } as SchemaTaggedMessageLegalContents
-                    return [
-                        ...previous,
-                        conditionGroup
-                    ]
-                }
-            }
-            if (isSchemaConditionTagKnowledgeContext(item)) {
-                const contents = extractNameFromContents(item.contents)
-                if (contents.length) {
-                    const conditionGroup = {
-                        ...item,
-                        contextTag: 'Name',
-                        contents
-                    } as SchemaTaggedMessageLegalContents
-                    return [
-                        ...previous,
-                        conditionGroup
-                    ]
-                }
-            }
-            if (isSchemaConditionTagMapContext(item)) {
-                const contents = extractNameFromContents(item.contents)
-                if (contents.length) {
-                    const conditionGroup = {
-                        ...item,
-                        contextTag: 'Name',
-                        contents
-                    } as SchemaTaggedMessageLegalContents
-                    return [
-                        ...previous,
-                        conditionGroup
-                    ]
-                }
+            const contents = extractNameFromContents(item.contents)
+            if (contents.length) {
+                const conditionGroup = {
+                    ...item,
+                    contextTag: 'Name',
+                    contents
+                } as SchemaTaggedMessageLegalContents
+                return [conditionGroup]
             }
         }
-        return previous
-    }, [])
+        return []
+    }).flat(1)
 }
 
-export const extractDescriptionFromContents = <T extends SchemaFeatureLegalContents | SchemaKnowledgeLegalContents | SchemaRoomLegalContents | SchemaMapLegalContents>(contents: T[]): SchemaTaggedMessageLegalContents[] => {
-    return contents.reduce<SchemaTaggedMessageLegalContents[]>((previous, item) => {
+export const extractDescriptionFromContents = (contents: SchemaTag[]): SchemaTaggedMessageLegalContents[] => {
+    return contents.map((item) => {
         if (isSchemaDescription(item)) {
-            return [
-                ...previous,
-                ...(item.contents)
-            ]
+            return item.contents.filter(isSchemaTaggedMessageLegalContents)
         }
         if (isSchemaCondition(item)) {
-            if (isSchemaConditionTagRoomContext(item)) {
-                const contents = extractDescriptionFromContents(item.contents)
-                if (contents.length) {
-                    const conditionGroup = {
-                        ...item,
-                        contextTag: 'Description',
-                        contents
-                    } as SchemaTaggedMessageLegalContents
-                    return [
-                        ...previous,
-                        conditionGroup
-                    ]
-                }
-            }
-            if (isSchemaConditionTagFeatureContext(item)) {
-                const contents = extractDescriptionFromContents(item.contents)
-                if (contents.length) {
-                    const conditionGroup = {
-                        ...item,
-                        contextTag: 'Description',
-                        contents
-                    } as SchemaTaggedMessageLegalContents
-                    return [
-                        ...previous,
-                        conditionGroup
-                    ]
-                }
-            }
-            if (isSchemaConditionTagKnowledgeContext(item)) {
-                const contents = extractDescriptionFromContents(item.contents)
-                if (contents.length) {
-                    const conditionGroup = {
-                        ...item,
-                        contextTag: 'Description',
-                        contents
-                    } as SchemaTaggedMessageLegalContents
-                    return [
-                        ...previous,
-                        conditionGroup
-                    ]
-                }
+            const contents = extractDescriptionFromContents(item.contents)
+            if (contents.length) {
+                const conditionGroup = {
+                    ...item,
+                    contextTag: 'Description',
+                    contents
+                } as SchemaTaggedMessageLegalContents
+                return [conditionGroup]
             }
         }
-        return previous
-    }, [])
+        return []
+    }).flat(1)
 }
 
 export const extractConditionedItemFromContents = <C extends SchemaMapLegalContents | SchemaMessageLegalContents | SchemaNameTag, T extends C, O extends SchemaConditionMixin>(props: {

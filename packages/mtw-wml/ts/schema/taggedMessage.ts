@@ -1,4 +1,4 @@
-import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag, isSchemaBookmark, SchemaBookmarkTag, SchemaConditionTagDescriptionContext, isSchemaAfter, isSchemaBefore, isSchemaReplace, SchemaAfterTag, SchemaBeforeTag, SchemaReplaceTag } from "../simpleSchema/baseClasses";
+import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag, isSchemaBookmark, SchemaBookmarkTag, SchemaConditionTagDescriptionContext, isSchemaAfter, isSchemaBefore, isSchemaReplace, SchemaAfterTag, SchemaBeforeTag, SchemaReplaceTag, isSchemaTaggedMessageLegalContents } from "../simpleSchema/baseClasses";
 
 //
 // Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values
@@ -55,13 +55,13 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
                 currentToken = { ...item }
             }
         }
-        if (isSchemaCondition(item) && isSchemaConditionTagDescriptionContext(item)) {
+        if (isSchemaCondition(item)) {
             if (currentToken) {
                 returnValue.push(currentToken)
             }
             currentToken = {
                 ...item,
-                contents: translateTaggedMessageContents(item.contents)
+                contents: translateTaggedMessageContents(item.contents.filter(isSchemaTaggedMessageLegalContents))
             } as SchemaConditionTagDescriptionContext
         }
         if (isSchemaAfter(item) || isSchemaBefore(item) || isSchemaReplace(item)) {
@@ -70,7 +70,7 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
             }
             currentToken = {
                 ...item,
-                contents: translateTaggedMessageContents(item.contents) as SchemaTaggedMessageLegalContents[]
+                contents: translateTaggedMessageContents(item.contents.filter(isSchemaTaggedMessageLegalContents)) as SchemaTaggedMessageLegalContents[]
             }
         }
         if (isSchemaLink(item) || isSchemaBookmark(item)) {
@@ -89,10 +89,10 @@ export const translateTaggedMessageContents = (contents: SchemaTaggedMessageInco
                 })
             }
         }
-        else if (isSchemaCondition(currentToken) && isSchemaConditionTagDescriptionContext(currentToken)) {
+        else if (isSchemaCondition(currentToken)) {
             returnValue.push({
                 ...currentToken,
-                contents: translateTaggedMessageContents(currentToken.contents)
+                contents: translateTaggedMessageContents(currentToken.contents.filter(isSchemaTaggedMessageLegalContents))
             }  as SchemaConditionTagDescriptionContext)
         }
         else {

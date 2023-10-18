@@ -993,7 +993,7 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...appearance,
-                        messages: node.contents.map(({ key }) => (key))
+                        messages: node.contents.filter(isSchemaMessage).map(({ key }) => (key))
                     }]
                 }
             case 'Map':

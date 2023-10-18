@@ -20,7 +20,7 @@ type SchemaAssetBase = {
     zone?: string;
     subFolder?: string;
     player?: string;
-    contents: SchemaAssetLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaAssetTag = {
@@ -55,19 +55,19 @@ export type SchemaLiteralLegalContents = SchemaStringTag
 export type SchemaFirstImpressionTag = {
     tag: 'FirstImpression';
     value: string;
-    contents: SchemaLiteralLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaOneCoolThingTag = {
     tag: 'OneCoolThing';
     value: string;
-    contents: SchemaLiteralLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaOutfitTag = {
     tag: 'Outfit';
     value: string;
-    contents: SchemaLiteralLegalContents[];
+    contents: SchemaTag[];
     parse?: ParseTag;
 } & SchemaBase
 
@@ -88,7 +88,7 @@ export type SchemaCharacterTag = {
     FirstImpression?: string;
     OneCoolThing?: string;
     Outfit?: string;
-    contents: SchemaCharacterLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaVariableTag = {
@@ -139,49 +139,49 @@ export type SchemaConditionTagAssetContext = {
     tag: 'If';
     contextTag: 'Asset';
     key?: string;
-    contents: SchemaAssetLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagNameContext = {
     tag: 'If';
     contextTag: 'Name';
     key?: string;
-    contents: SchemaTaggedMessageIncomingContents[];
+    contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagDescriptionContext = {
     tag: 'If';
     contextTag: 'Description';
     key?: string;
-    contents: SchemaTaggedMessageIncomingContents[];
+    contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagRoomContext = {
     tag: 'If';
     contextTag: 'Room';
     key?: string;
-    contents: SchemaRoomLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagFeatureContext = {
     tag: 'If';
     contextTag: 'Feature';
     key?: string;
-    contents: SchemaFeatureLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagKnowledgeContext = {
     tag: 'If';
     contextTag: 'Knowledge';
     key?: string;
-    contents: SchemaKnowledgeLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTagMapContext = {
     tag: 'If';
     contextTag: 'Map';
     key?: string;
-    contents: SchemaMapLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin
 
 export type SchemaConditionTag = SchemaConditionTagAssetContext | SchemaConditionTagDescriptionContext | SchemaConditionTagNameContext | SchemaConditionTagRoomContext | SchemaConditionTagFeatureContext | SchemaConditionTagKnowledgeContext | SchemaConditionTagMapContext
@@ -198,7 +198,7 @@ export type SchemaExitTag = {
     name: string;
     to: string;
     from: string;
-    contents: SchemaLiteralLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaLinkTag = {
@@ -212,29 +212,29 @@ export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag |
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
-    contents: SchemaTaggedMessageLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaAfterTag = {
     tag: 'After';
-    contents: SchemaTaggedMessageLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaBeforeTag = {
     tag: 'Before';
-    contents: SchemaTaggedMessageLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaReplaceTag = {
     tag: 'Replace';
-    contents: SchemaTaggedMessageLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaBookmarkTag = {
     tag: 'Bookmark';
     key: string;
     display?: 'before' | 'after' | 'replace';
-    contents: SchemaTaggedMessageLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaLineBreakTag = {
@@ -247,7 +247,7 @@ export type SchemaSpacerTag = {
 
 export type SchemaNameTag = {
     tag: 'Name';
-    contents: SchemaTaggedMessageLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 //
@@ -264,7 +264,7 @@ export type SchemaRoomTag = {
     display?: string;
     x?: number;
     y?: number;
-    contents: SchemaRoomLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTagFeatureContext
@@ -273,7 +273,7 @@ export type SchemaFeatureTag = {
     key: string;
     name: SchemaTaggedMessageLegalContents[];
     render: SchemaTaggedMessageLegalContents[];
-    contents: SchemaFeatureLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaKnowledgeLegalContents = SchemaDescriptionTag | SchemaNameTag | SchemaConditionTagKnowledgeContext
@@ -282,7 +282,7 @@ export type SchemaKnowledgeTag = {
     key: string;
     name: SchemaTaggedMessageLegalContents[];
     render: SchemaTaggedMessageLegalContents[];
-    contents: SchemaKnowledgeLegalContents[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTagMapContext
@@ -297,7 +297,7 @@ export type SchemaMapTag = {
     tag: 'Map';
     key: string;
     name: SchemaTaggedMessageLegalContents[];
-    contents: SchemaMapLegalContents[];
+    contents: SchemaTag[];
     rooms: SchemaMapRoom[];
     images: string[];
 } & SchemaBase
@@ -312,14 +312,14 @@ export type SchemaMessageTag = {
     tag: 'Message';
     key: string;
     render: SchemaTaggedMessageLegalContents[];
-    contents: SchemaMessageLegalContents[];
+    contents: SchemaTag[];
     rooms: SchemaMessageRoom[];
 } & SchemaBase
 
 export type SchemaMomentTag = {
     tag: 'Moment';
     key: string;
-    contents: SchemaMessageTag[];
+    contents: SchemaTag[];
 } & SchemaBase
 
 export type SchemaStringTag = {
