@@ -12,7 +12,7 @@ import { componentConverters, componentPrintMap } from "./components"
 import { computationConverters, computationPrintMap } from "./computation"
 import { conditionalConverters, conditionalPrintMap } from "./conditionals"
 import { importExportConverters, importExportPrintMap } from "./importExport"
-import { messagingConverters } from "./messaging"
+import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
 import { tagRender } from "./tagRender"
 
@@ -79,6 +79,7 @@ export const printMap: Record<string, PrintMapEntry> = {
     ...computationPrintMap,
     ...conditionalPrintMap,
     ...importExportPrintMap,
+    ...messagingPrintMap,
     ...taggedMessagePrintMap,
 }
 
