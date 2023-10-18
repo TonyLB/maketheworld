@@ -1,4 +1,4 @@
-import { mergeOrderedConditionalTrees } from "../../convert/utils/orderedConditionalTree"
+import { mergeOrderedConditionalTrees } from "../../lib/sequenceTools/orderedConditionalTree"
 import {
     SchemaBookmarkTag,
     SchemaConditionTag,
