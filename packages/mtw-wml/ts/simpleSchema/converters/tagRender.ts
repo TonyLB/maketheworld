@@ -96,7 +96,7 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
                 }
             }
             //
-            // Branch 2.2: There are more tags to consider after this one ... throw this onto the taggedMessage stack and proceed.
+            // Branch 2.2: There are more tags to consider after this one ... throw this free-text onto the taggedMessage stack and proceed.
             //
             else {
                 return {
