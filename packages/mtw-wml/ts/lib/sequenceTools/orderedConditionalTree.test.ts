@@ -1,5 +1,5 @@
 import { flattenOrderedConditionalTree, mergeOrderedConditionalTrees, navigationSequence, unflattenOrderedConditionalTree } from './orderedConditionalTree'
-import { SchemaConditionTag, SchemaTag } from '../../schema/baseClasses'
+import { SchemaConditionTag, SchemaTag } from '../../simpleSchema/baseClasses'
 
 describe('orderedConditionalTree', () => {
     describe('flattenOrderedConditionalTree', () => {

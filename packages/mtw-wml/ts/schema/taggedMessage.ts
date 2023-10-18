@@ -1,4 +1,4 @@
-import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag, isSchemaBookmark, SchemaBookmarkTag, SchemaConditionTagDescriptionContext, isSchemaAfter, isSchemaBefore, isSchemaReplace, SchemaAfterTag, SchemaBeforeTag, SchemaReplaceTag } from "./baseClasses";
+import { SchemaTaggedMessageLegalContents, SchemaLinkTag, SchemaStringTag, SchemaTaggedMessageIncomingContents, isSchemaWhitespace, isSchemaLineBreak, isSchemaLink, isSchemaString, isSchemaSpacer, isSchemaConditionTagDescriptionContext, isSchemaCondition, SchemaConditionTag, isSchemaBookmark, SchemaBookmarkTag, SchemaConditionTagDescriptionContext, isSchemaAfter, isSchemaBefore, isSchemaReplace, SchemaAfterTag, SchemaBeforeTag, SchemaReplaceTag } from "../simpleSchema/baseClasses";
 
 //
 // Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values

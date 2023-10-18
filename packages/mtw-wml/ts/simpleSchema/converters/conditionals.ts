@@ -13,7 +13,7 @@ import {
     isSchemaRoomIncomingContents,
     isSchemaString,
     isSchemaTaggedMessageLegalContents
-} from "../../schema/baseClasses"
+} from "../baseClasses"
 import { translateTaggedMessageContents } from "../../schema/taggedMessage"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"

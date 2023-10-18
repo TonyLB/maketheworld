@@ -1,4 +1,4 @@
-import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "../../schema/baseClasses"
+import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"

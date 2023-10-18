@@ -1,4 +1,4 @@
-import { SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, isSchemaMessage, isSchemaMessageContents, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../../schema/baseClasses"
+import { SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, isSchemaMessage, isSchemaMessageContents, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"

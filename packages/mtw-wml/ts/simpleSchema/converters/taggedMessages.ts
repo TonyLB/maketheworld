@@ -1,5 +1,5 @@
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTaggedMessageLegalContents, SchemaWhitespaceTag, isSchemaString, isSchemaTaggedMessageLegalContents } from "../../schema/baseClasses"
+import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTaggedMessageLegalContents, SchemaWhitespaceTag, isSchemaString, isSchemaTaggedMessageLegalContents } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"

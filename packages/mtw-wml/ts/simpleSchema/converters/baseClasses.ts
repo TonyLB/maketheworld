@@ -1,4 +1,4 @@
-import { SchemaTag } from "../../schema/baseClasses"
+import { SchemaTag } from "../baseClasses"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
 

@@ -3,7 +3,7 @@ import {
     SchemaAssetTag,
     SchemaStoryTag,
     isSchemaAssetContents,
-} from "../../schema/baseClasses"
+} from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
 import { validateProperties } from "./utils"

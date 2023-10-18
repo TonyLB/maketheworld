@@ -44,7 +44,7 @@ import {
     SchemaReplaceTag,
     SchemaKnowledgeTag,
     isSchemaKnowledgeContents
-} from '../schema/baseClasses'
+} from '../simpleSchema/baseClasses'
 import {
     BaseAppearance,
     ComponentAppearance,

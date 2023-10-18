@@ -28,8 +28,8 @@ import {
     isSchemaRoomIncomingContents,
     isSchemaString,
     isSchemaTaggedMessageLegalContents
-} from "../../schema/baseClasses"
-import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils"
+} from "../baseClasses"
+import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
