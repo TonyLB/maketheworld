@@ -1,5 +1,7 @@
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
+import { parse as acornParse} from "acorn"
+import { simple as simpleWalk } from "acorn-walk"
 
 export const validateProperties = <V extends ValidationTemplate>(template: V) => (parse: ParseTagOpen | ParseTagSelfClosure): ValidationTemplateOutput<V> => {
     const unmatchedKey = parse.properties.find(({ key }) => (!((key ?? 'DEFAULT') in template)))
@@ -23,6 +25,33 @@ export const validateProperties = <V extends ValidationTemplate>(template: V) =>
         }
     })) as ValidationTemplateOutput<V>
     return remap
+}
+
+//
+// extractDependenciesFromJS is a painfully naive dependency extractor using only the barest fraction of the recursive
+// scoping functionality of acorn-walk ... and will still probably be good enough for 99+% of cases
+//
+export const extractDependenciesFromJS = (src: string): string[] => {
+    const parsedJS = acornParse(src.trim(), { ecmaVersion: 'latest' })
+    let identifiedGlobals: string[] = []
+    let definedLocals: string[] = []
+    simpleWalk(parsedJS, {
+        Identifier(node) {
+            const identifier = (node as any).name
+            if (!(definedLocals.includes(identifier))) {
+                identifiedGlobals.push(identifier)
+            }
+        },
+        ArrowFunctionExpression(node) {
+            ((node as any).params || []).forEach(({ name }) => {
+                definedLocals.push(name)
+            })
+        },
+        VariableDeclarator(node) {
+            definedLocals.push((node as any).id.name)
+        }
+    })
+    return [...(new Set(identifiedGlobals.filter((item) => (!definedLocals.includes(item)))))]
 }
 
 export const optionsFactory: PrintMapOptionsFactory = (action) => (previous) => {

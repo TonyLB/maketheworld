@@ -1,4 +1,3 @@
-import { extractDependenciesFromJS } from "../../convert/utils"
 import { deepEqual } from "../../lib/objects"
 import { NormalConditionStatement } from "../../normalize/baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
@@ -20,7 +19,7 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties } from "./utils"
+import { validateProperties, extractDependenciesFromJS } from "./utils"
 
 export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[], label: string) => {
     if (contextStack.length === 0) {
