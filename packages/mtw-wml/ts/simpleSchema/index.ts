@@ -1,8 +1,9 @@
 import { SchemaTag } from "../schema/baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
 import { SchemaContextItem } from "./baseClasses"
-import converterMap from "./converters"
-import WMLConverter from "../convert"
+import converterMap, { printMap } from "./converters"
+import { PrintMapEntry } from "./converters/baseClasses"
+import { optionsFactory } from "./converters/utils"
 
 export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
     let contextStack: SchemaContextItem[] = []
@@ -71,14 +72,22 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
     return returnValue
 }
 
-const schemaConvert = new WMLConverter()
+export const printSchemaTag: PrintMapEntry = (args) => {
+    const { tag } = args
+    if (tag.tag in printMap) {
+        return printMap[tag.tag](args)
+    }
+    else {
+        throw new Error(`Invalid tag ('${tag.tag}') in schemaToWML`)
+    }
+}
 
 export const schemaToWML = (tags: SchemaTag[]): string => {
     const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: SchemaTag[] }>((previous, tag) => {
         return {
             returnValue: [
                 ...previous.returnValue,
-                schemaConvert.schemaToWML(tag, { indent: 0, siblings: previous.siblings, context: [] })
+                printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })
             ],
             siblings: [
                 ...previous.siblings,

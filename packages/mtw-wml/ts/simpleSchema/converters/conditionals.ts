@@ -1,4 +1,6 @@
 import { extractDependenciesFromJS } from "../../convert/utils"
+import { deepEqual } from "../../lib/objects"
+import { NormalConditionStatement } from "../../normalize/baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import {
     SchemaConditionTag,
@@ -16,7 +18,8 @@ import {
 import { translateTaggedMessageContents } from "../../schema/taggedMessage"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
-import { ConverterMapEntry } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
+import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 
 export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[], label: string) => {
@@ -125,4 +128,74 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
         legalContents: conditionLegalContents,
         finalize: conditionFinalize
     },
+}
+
+export const conditionalPrintMap: Record<string, PrintMapEntry> = {
+    If: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaConditionTag }) => {
+
+        const { siblings = [] } = args.options
+        const closestSibling: SchemaTag | undefined = siblings.length ? siblings.slice(-1)[0] : undefined
+        const conditionsToSrc = (conditions: NormalConditionStatement[]): string => {
+            if (!conditions.length) { return '' }
+            if (conditions.length > 1) {
+                return conditions.map((condition) => (condition.not ? `!(${condition.if})` : `(${condition.if})`)).join(' && ')
+            }
+            else {
+                const condition = conditions[0]
+                return condition.not ? `!(${condition.if})` : condition.if
+            }
+        }
+        //
+        // Evaluate whether closestSibling is a SchemaConditionTag, all of whose conditions
+        // are replicated (with not flags) in the value we're currently examining, and if so
+        // parse out whether it should be an ElseIf tag or an Else tag.
+        //
+        if (closestSibling &&
+            isSchemaCondition(closestSibling) &&
+            (tag.conditions.length >= closestSibling.conditions.length) &&
+            deepEqual(closestSibling.conditions.map((condition) => ({ ...condition, not: true })), tag.conditions.slice(0, closestSibling.conditions.length))
+        ) {
+            //
+            // In this sub-branch, the condition being considered is an extension of its closestSibling
+            //
+            const remainingConditions = tag.conditions.slice(closestSibling.conditions.length)
+            if (remainingConditions.length) {
+                //
+                // In this sub-branch, there are additional conditions beyond those of its closestSibling,
+                // which conditions indicate that it is an ElseIf clause
+                //
+                return tagRender({
+                    ...args,
+                    tag: 'ElseIf',
+                    properties: [
+                        { type: 'expression', value: conditionsToSrc(remainingConditions) }
+                    ],
+                    contents: tag.contents,
+                })
+            }
+            else {
+                //
+                // In this sub-branch, there are no additional conditions, so it is an Else clause
+                //
+                return tagRender({
+                    ...args,
+                    tag: 'Else',
+                    properties: [],
+                    contents: tag.contents,
+                })
+            }
+        }
+        //
+        // Since there is no match to the closestSibling, this is a new If clause (even if it follows a
+        // differently-specified If clause).
+        //
+        return tagRender({
+            ...args,
+            tag: 'If',
+            properties: [
+                { type: 'expression', value: conditionsToSrc(tag.conditions) }
+            ],
+            contents: tag.contents,
+        })
+    }
 }

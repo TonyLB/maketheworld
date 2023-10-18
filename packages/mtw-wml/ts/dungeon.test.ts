@@ -1,7 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
 
-import parse from './parser'
+import parse from './simpleParser'
 import tokenize from './parser/tokenizer'
 import SourceStream from "./parser/tokenizer/sourceStream"
 import Normalizer from './normalize/'

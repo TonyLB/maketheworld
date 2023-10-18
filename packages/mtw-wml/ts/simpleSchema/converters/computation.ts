@@ -1,7 +1,8 @@
 import { extractDependenciesFromJS } from "../../convert/utils"
 import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "../../schema/baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 
 const computationTemplates = {
@@ -42,4 +43,40 @@ export const computationConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(computationTemplates.Action)(parseOpen)
         })
     },
+}
+
+export const computationPrintMap: Record<string, PrintMapEntry> = {
+    Variable: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaVariableTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Variable',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+                { key: 'default', type: 'expression', value: tag.default }
+            ],
+            contents: [],
+        })
+    ),
+    Computed: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaComputedTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Computed',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+                { key: 'src', type: 'expression', value: tag.src }
+            ],
+            contents: [],
+        })
+    ),
+    Action: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaActionTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Action',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+                { key: 'src', type: 'expression', value: tag.src }
+            ],
+            contents: [],
+        })
+    )
 }

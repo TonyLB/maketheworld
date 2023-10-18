@@ -1,5 +1,5 @@
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
-import { ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
+import { PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
 
 export const validateProperties = <V extends ValidationTemplate>(template: V) => (parse: ParseTagOpen | ParseTagSelfClosure): ValidationTemplateOutput<V> => {
     const unmatchedKey = parse.properties.find(({ key }) => (!((key ?? 'DEFAULT') in template)))
@@ -23,4 +23,17 @@ export const validateProperties = <V extends ValidationTemplate>(template: V) =>
         }
     })) as ValidationTemplateOutput<V>
     return remap
+}
+
+export const optionsFactory: PrintMapOptionsFactory = (action) => (previous) => {
+    switch(action) {
+        case PrintMapOptionsChange.Sibling:
+            return previous
+        case PrintMapOptionsChange.Indent:
+            return {
+                ...previous,
+                indent: previous.indent + 1
+            }
+    }
+    return previous
 }

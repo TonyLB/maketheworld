@@ -1,5 +1,7 @@
+import { mergeOrderedConditionalTrees } from "../../convert/utils/orderedConditionalTree"
 import {
     SchemaBookmarkTag,
+    SchemaConditionTag,
     SchemaDescriptionTag,
     SchemaExitTag,
     SchemaFeatureLegalContents,
@@ -14,6 +16,7 @@ import {
     SchemaStringTag,
     SchemaTag,
     SchemaTaggedMessageLegalContents,
+    isSchemaDescription,
     isSchemaFeatureContents,
     isSchemaFeatureIncomingContents,
     isSchemaImage,
@@ -29,7 +32,8 @@ import {
 import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../../schema/utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
-import { ConverterMapEntry } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 
 const componentTemplates = {
@@ -211,4 +215,140 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }),
             images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
         })
-    },}
+    }
+}
+
+export const componentPrintMap: Record<string, PrintMapEntry> = {
+    Exit: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaExitTag }) => {
+
+        const { context } = args.options
+        const roomsContextList = context.filter(isSchemaRoom)
+        const roomContext: SchemaTag | undefined = roomsContextList.length > 0 ? roomsContextList.slice(-1)[0] : undefined
+        return tagRender({
+            ...args,
+            tag: 'Exit',
+            //
+            // Do not render to/from properties when they can be derived from the room context
+            //
+            properties: [
+                ...((!tag.from || (roomContext && roomContext.key === tag.from)) ? [] : [{ key: 'from', type: 'key' as 'key', value: tag.from }]),
+                ...((!tag.to || (roomContext && roomContext.key === tag.to)) ? [] : [{ key: 'to', type: 'key' as 'key', value: tag.to }]),
+            ],
+            contents: tag.name ? [tag.name] : [],
+        })
+    },
+    Description: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaDescriptionTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Description',
+            properties: [],
+            contents: tag.contents,
+        })
+    ),
+    Name: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaNameTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Name',
+            properties: [],
+            contents: tag.contents,
+        })
+    ),
+    Room: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaRoomTag }) => {
+        //
+        // Reassemble the contents out of name and description fields
+        //
+        const roomContents: SchemaTag[] = [
+            ...((tag.name ?? []).length ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
+            ...((tag.render ?? []).length ? [{ tag: 'Description' as 'Description', contents: tag.render }] : []),
+            ...tag.contents.filter((childTag) => (!(isSchemaName(childTag) || isSchemaDescription(childTag))))
+        ]
+        return tagRender({
+            ...args,
+            tag: 'Room',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+                //
+                // Render x/y properties from integers into strings
+                //
+                { key: 'x', type: 'literal', value: typeof tag.x !== 'undefined' ? `${tag.x}` : '' },
+                { key: 'y', type: 'literal', value: typeof tag.y !== 'undefined' ? `${tag.y}` : '' }
+            ],
+            contents: roomContents,
+        })
+
+    },
+    Feature: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaFeatureTag }) => {
+        //
+        // Reassemble the contents out of name and description fields
+        //
+        const featureContents: SchemaTag[] = [
+            ...((tag.name ?? []).length ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
+            ...((tag.render ?? []).length ? [{ tag: 'Description' as 'Description', contents: tag.render }] : []),
+            ...tag.contents.filter((childTag) => (!(isSchemaName(childTag) || isSchemaDescription(childTag))))
+        ]
+        return tagRender({
+            ...args,
+            tag: 'Feature',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+            ],
+            contents: featureContents,
+        })
+    },
+    Knowledge: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaKnowledgeTag }) => {
+        //
+        // Reassemble the contents out of name and description fields
+        //
+        const knowledgeContents: SchemaTag[] = [
+            ...((tag.name ?? []).length ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
+            ...((tag.render ?? []).length ? [{ tag: 'Description' as 'Description', contents: tag.render }] : []),
+            ...tag.contents.filter((childTag) => (!(isSchemaName(childTag) || isSchemaDescription(childTag))))
+        ]
+        return tagRender({
+            ...args,
+            tag: 'Knowledge',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+            ],
+            contents: knowledgeContents,
+        })
+    },
+    Bookmark: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaBookmarkTag }) => (
+        tagRender({
+            ...args,
+            tag: 'Bookmark',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+            ],
+            contents: tag.contents,
+        })
+    ),
+    Map: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaMapTag }) => {
+        const mapContents: SchemaTag[] = mergeOrderedConditionalTrees('Map')(
+            [
+                ...(tag.name ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
+                ...((tag.images || []).map((key) => ({ tag: 'Image' as 'Image', key,  contents: []}))),
+            ],
+            tag.rooms.map((room) => ({
+                tag: 'If',
+                contextTag: 'Map',
+                conditions: room.conditions,
+                contents: [{
+                    tag: 'Room',
+                    key: room.key,
+                    x: room.x,
+                    y: room.y,
+                    contents: []
+                }]
+            })) as SchemaConditionTag[]
+        )
+        return tagRender({
+            ...args,
+            tag: 'Map',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+            ],
+            contents: mapContents,
+        })
+    }
+}
