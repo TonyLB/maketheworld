@@ -9,7 +9,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOp
 import { validateProperties } from "./utils"
 import { characterConverters, characterPrintMap } from "./character"
 import { componentConverters, componentPrintMap } from "./components"
-import { computationConverters } from "./computation"
+import { computationConverters, computationPrintMap } from "./computation"
 import { conditionalConverters, conditionalPrintMap } from "./conditionals"
 import { importExportConverters } from "./importExport"
 import { messagingConverters } from "./messaging"
@@ -74,10 +74,11 @@ export const printMap: Record<string, PrintMapEntry> = {
             contents: tag.contents,
         })
     ),
-    ...conditionalPrintMap,
+    ...characterPrintMap,
     ...componentPrintMap,
+    ...computationPrintMap,
+    ...conditionalPrintMap,
     ...taggedMessagePrintMap,
-    ...characterPrintMap
 }
 
 export default converterMap
