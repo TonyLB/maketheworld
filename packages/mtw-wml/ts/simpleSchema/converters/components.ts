@@ -4,14 +4,10 @@ import {
     SchemaConditionTag,
     SchemaDescriptionTag,
     SchemaExitTag,
-    SchemaFeatureLegalContents,
     SchemaFeatureTag,
-    SchemaKnowledgeLegalContents,
     SchemaKnowledgeTag,
-    SchemaMapLegalContents,
     SchemaMapTag,
     SchemaNameTag,
-    SchemaRoomLegalIncomingContents,
     SchemaRoomTag,
     SchemaStringTag,
     SchemaTag,
@@ -45,7 +41,8 @@ const componentTemplates = {
     Bookmark: {
         key: { required: true, type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal },
-        from: { type: ParsePropertyTypes.Key }
+        from: { type: ParsePropertyTypes.Key },
+        as: { type: ParsePropertyTypes.Key }
     },
     Name: {},
     Room: {
@@ -53,19 +50,23 @@ const componentTemplates = {
         display: { type: ParsePropertyTypes.Literal },
         x: { type: ParsePropertyTypes.Literal },
         y: { type: ParsePropertyTypes.Literal },
-        from: { type: ParsePropertyTypes.Key }
+        from: { type: ParsePropertyTypes.Key },
+        as: { type: ParsePropertyTypes.Key }
     },
     Feature: {
         key: { required: true, type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Key }
+        from: { type: ParsePropertyTypes.Key },
+        as: { type: ParsePropertyTypes.Key }
     },
     Knowledge: {
         key: { required: true, type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Key }
+        from: { type: ParsePropertyTypes.Key },
+        as: { type: ParsePropertyTypes.Key }
     },
     Map: {
         key: { required: true, type: ParsePropertyTypes.Key },
-        from: { type: ParsePropertyTypes.Key }
+        from: { type: ParsePropertyTypes.Key },
+        as: { type: ParsePropertyTypes.Key }
     },
 } as const
 
@@ -287,7 +288,8 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 //
                 { key: 'x', type: 'literal', value: typeof tag.x !== 'undefined' ? `${tag.x}` : '' },
                 { key: 'y', type: 'literal', value: typeof tag.y !== 'undefined' ? `${tag.y}` : '' },
-                { key: 'from', type: 'key', value: tag.from }
+                { key: 'from', type: 'key', value: tag.from },
+                { key: 'as', type: 'key', value: tag.as }
             ],
             contents: roomContents,
         })
@@ -307,7 +309,8 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Feature',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from }
+                { key: 'from', type: 'key', value: tag.from },
+                { key: 'as', type: 'key', value: tag.as }
             ],
             contents: featureContents,
         })
@@ -326,7 +329,8 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Knowledge',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from }
+                { key: 'from', type: 'key', value: tag.from },
+                { key: 'as', type: 'key', value: tag.as }
             ],
             contents: knowledgeContents,
         })
@@ -364,7 +368,8 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Map',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from }
+                { key: 'from', type: 'key', value: tag.from },
+                { key: 'as', type: 'key', value: tag.as }
             ],
             contents: mapContents,
         })

@@ -8,9 +8,13 @@ import { validateProperties } from "./utils"
 const messagingTemplates = {
     Message: {
         key: { required: true, type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Key },
+        as: { type: ParsePropertyTypes.Key }
     },
     Moment: {
         key: { required: true, type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Key },
+        as: { type: ParsePropertyTypes.Key }
     },
 } as const
 
@@ -59,7 +63,8 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Message',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from }
+                { key: 'from', type: 'key', value: tag.from },
+                { key: 'as', type: 'key', value: tag.as }
             ],
             contents: [
                 ...tag.render,
@@ -73,7 +78,8 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Moment',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from }
+                { key: 'from', type: 'key', value: tag.from },
+                { key: 'as', type: 'key', value: tag.as }
             ],
             contents: tag.contents,
         })

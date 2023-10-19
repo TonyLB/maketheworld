@@ -128,6 +128,11 @@ export type SchemaImportTag = {
     mapping: Record<string, SchemaImportMapping>;
 } & SchemaBase
 
+export type SchemaExportTag = {
+    tag: 'Export';
+    mapping: Record<string, SchemaImportMapping>
+} & SchemaBase
+
 export type SchemaConditionTag = {
     tag: 'If';
     key?: string;
@@ -285,6 +290,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaComputedTag |
     SchemaActionTag |
     SchemaImportTag |
+    SchemaExportTag |
     SchemaConditionTag |
     SchemaExitTag |
     SchemaDescriptionTag |
@@ -349,7 +355,7 @@ export const isSchemaRoom = (value: SchemaTag): value is SchemaRoomTag => (value
 export const isSchemaMap = (value: SchemaTag): value is SchemaMapTag => (value.tag === 'Map')
 export const isSchemaMessage = (value: SchemaTag): value is SchemaMessageTag => (value.tag === 'Message')
 export const isSchemaMoment = (value: SchemaTag): value is SchemaMomentTag => (value.tag === 'Moment')
-export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaAction(value) || isSchemaBookmark(value) || isSchemaComputed(value) || isSchemaCondition(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaVariable(value) || isSchemaMessage(value) || isSchemaMoment(value))
+export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaAction(value) || isSchemaBookmark(value) || isSchemaComputed(value) || isSchemaCondition(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaExport(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaVariable(value) || isSchemaMessage(value) || isSchemaMoment(value))
 export const isSchemaFeatureContents = (value: SchemaTag): value is SchemaFeatureLegalContents => (value.tag === 'Description' || isSchemaCondition(value))
 export const isSchemaKnowledgeContents = (value: SchemaTag): value is SchemaKnowledgeLegalContents => (value.tag === 'Description' || isSchemaCondition(value))
 export const isSchemaFeatureIncomingContents = (value: SchemaTag): value is SchemaFeatureLegalContents => (value.tag === 'Description' || isSchemaCondition(value) || isSchemaName(value))
@@ -376,6 +382,7 @@ export const isSchemaVariable = (value: SchemaTag): value is SchemaVariableTag =
 export const isSchemaComputed = (value: SchemaTag): value is SchemaComputedTag => (value.tag === 'Computed')
 
 export const isSchemaImport = (value: SchemaTag): value is SchemaImportTag => (value.tag === 'Import')
+export const isSchemaExport = (value: SchemaTag): value is SchemaExportTag => (value.tag === 'Export')
 
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')
