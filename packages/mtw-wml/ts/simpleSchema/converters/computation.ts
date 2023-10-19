@@ -7,15 +7,18 @@ import { validateProperties, extractDependenciesFromJS } from "./utils"
 const computationTemplates = {
     Variable: {
         key: { required: true, type: ParsePropertyTypes.Key },
-        default: { type: ParsePropertyTypes.Expression }
+        default: { type: ParsePropertyTypes.Expression },
+        from: { type: ParsePropertyTypes.Key }
     },
     Computed: {
         key: { required: true, type: ParsePropertyTypes.Key },
-        src: { required: true, type: ParsePropertyTypes.Expression }
+        src: { required: true, type: ParsePropertyTypes.Expression },
+        from: { type: ParsePropertyTypes.Key }
     },
     Action: {
         key: { required: true, type: ParsePropertyTypes.Key },
-        src: { required: true, type: ParsePropertyTypes.Expression }
+        src: { required: true, type: ParsePropertyTypes.Expression },
+        from: { type: ParsePropertyTypes.Key }
     },
 } as const
 
@@ -51,7 +54,8 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Variable',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'default', type: 'expression', value: tag.default }
+                { key: 'default', type: 'expression', value: tag.default },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: [],
         })
@@ -62,7 +66,8 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Computed',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'src', type: 'expression', value: tag.src }
+                { key: 'src', type: 'expression', value: tag.src },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: [],
         })
@@ -73,7 +78,8 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Action',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'src', type: 'expression', value: tag.src }
+                { key: 'src', type: 'expression', value: tag.src },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: [],
         })

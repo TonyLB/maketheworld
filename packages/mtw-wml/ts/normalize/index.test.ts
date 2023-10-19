@@ -22,9 +22,9 @@ describe('WML normalize', () => {
     it('should normalize every needed tag', () => {
         const testSource = `<Asset key=(Test)>
             <Import from=(BASE)>
-                <Use key=(basePower) as=(power) type="Variable" />
-                <Use key=(overview) type="Room" />
-                <Use key=(baseInfo) type="Knowledge" />
+                <Variable key=(power) from=(basePower) />
+                <Room key=(overview) />
+                <Knowledge key=(baseInfo) />
             </Import>
             <Room key=(a123)>
                 <Exit to=(b456) />
@@ -238,9 +238,9 @@ describe('WML normalize', () => {
     it('should correctly round-trip from schema to normalize and back', () => {
         const testSource = `<Asset key=(Test)>
             <Import from=(BASE)>
-                <Use key=(basePower) as=(power) type="Variable" />
-                <Use key=(overview) type="Room" />
-                <Use key=(baseInfo) type="Knowledge" />
+                <Variable key=(power) from=(basePower) />
+                <Room key=(overview) />
+                <Knowledge key=(baseInfo) />
             </Import>
             <Room key=(a123)>
                 <Feature key=(clockTower) />
@@ -419,7 +419,7 @@ describe('WML normalize', () => {
         it('should delete an import', () => {
             const testSource = `<Asset key=(TestAsset)>
                 <Import from=(base)>
-                    <Use type="Room" key=(testOne) />
+                    <Room key=(testOne) />
                 </Import>
             </Asset>`
             const normalizer = new Normalizer()
@@ -719,14 +719,14 @@ describe('WML normalize', () => {
         it('should successfully extend an import in place', () => {
             const testSource = `<Asset key=(TestAsset)>
                 <Import from=(base)>
-                    <Use type="Room" key=(testOne) />
+                    <Room key=(testOne) />
                 </Import>
             </Asset>`
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
             const toReplaceSource = `<Import from=(base)>
-                <Use type="Room" key=(testOne) />
-                <Use type="Room" key=(testTwo) />
+                <Room key=(testOne) />
+                <Room key=(testTwo) />
             </Import>`
             const toReplaceAsset = schemaFromParse(parse(tokenizer(new SourceStream(toReplaceSource))))
             const toReplaceWrapper = toReplaceAsset[0]

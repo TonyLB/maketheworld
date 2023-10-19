@@ -44,23 +44,28 @@ const componentTemplates = {
     Description: {},
     Bookmark: {
         key: { required: true, type: ParsePropertyTypes.Key },
-        display: { type: ParsePropertyTypes.Literal }
+        display: { type: ParsePropertyTypes.Literal },
+        from: { type: ParsePropertyTypes.Key }
     },
     Name: {},
     Room: {
         key: { required: true, type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal },
         x: { type: ParsePropertyTypes.Literal },
-        y: { type: ParsePropertyTypes.Literal }
+        y: { type: ParsePropertyTypes.Literal },
+        from: { type: ParsePropertyTypes.Key }
     },
     Feature: {
         key: { required: true, type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Key }
     },
     Knowledge: {
         key: { required: true, type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Key }
     },
     Map: {
         key: { required: true, type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Key }
     },
 } as const
 
@@ -281,7 +286,8 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 // Render x/y properties from integers into strings
                 //
                 { key: 'x', type: 'literal', value: typeof tag.x !== 'undefined' ? `${tag.x}` : '' },
-                { key: 'y', type: 'literal', value: typeof tag.y !== 'undefined' ? `${tag.y}` : '' }
+                { key: 'y', type: 'literal', value: typeof tag.y !== 'undefined' ? `${tag.y}` : '' },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: roomContents,
         })
@@ -301,6 +307,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Feature',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: featureContents,
         })
@@ -319,6 +326,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Knowledge',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: knowledgeContents,
         })
@@ -356,6 +364,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Map',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: mapContents,
         })
