@@ -1,4 +1,4 @@
-import { SchemaImageTag, SchemaImportTag, SchemaUseTag, isSchemaUse } from "../baseClasses"
+import { SchemaImageTag, SchemaImportTag, SchemaTag, SchemaUseTag, isImportable, isSchemaUse } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -31,12 +31,12 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             mapping: {},
             ...validateProperties(importExportTemplates.Import)(parseOpen)
         }),
-        typeCheckContents: isSchemaUse,
-        finalize: (initialTag: SchemaImportTag, contents: SchemaUseTag[] ): SchemaImportTag => ({
+        typeCheckContents: isImportable,
+        finalize: (initialTag: SchemaImportTag, contents: SchemaTag[] ): SchemaImportTag => ({
             ...initialTag,
-            mapping: contents.reduce((previous, { key, as, type }) => ({
+            mapping: contents.filter(isImportable).reduce((previous, { key, from, tag }) => ({
                 ...previous,
-                [as || key]: { key, type }
+                [key]: { key: from || key, type: tag }
             }), {})
         })
     },
@@ -56,12 +56,47 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'from', type: 'key', value: tag.from },
             ],
-            contents: Object.entries(tag.mapping).map(([as, { key, type }]): SchemaUseTag => ({
-                tag: 'Use',
-                as: (as !== key) ? as : undefined,
-                key,
-                type
-            })),
+            contents: Object.entries(tag.mapping).map(([key, { key: from, type }]): SchemaTag => {
+                const commonProps = {
+                    from: (from !== key) ? from : undefined,
+                    key
+                }
+                switch(type) {
+                    case 'Action': return {
+                        ...commonProps,
+                        tag: 'Action',
+                        src: ''
+                    }
+                    case 'Computed': return {
+                        ...commonProps,
+                        tag: 'Computed',
+                        src: '',
+                        dependencies: []
+                    }
+                    case 'Variable': return {
+                        ...commonProps,
+                        tag: 'Variable'
+                    }
+                    case 'Feature': 
+                    case 'Knowledge':
+                    case 'Room':
+                        return {
+                            ...commonProps,
+                            tag: type,
+                            name: [],
+                            render: [],
+                            contents: []
+                        }
+                    case 'Map': return {
+                        ...commonProps,
+                        tag: 'Map',
+                        name: [],
+                        contents: [],
+                        rooms: [],
+                        images: []
+                    }
+                }
+            }),
         })
     ),
     Use: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaUseTag }) => (

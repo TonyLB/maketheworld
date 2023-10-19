@@ -58,7 +58,8 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Message',
             properties: [
-                { key: 'key', type: 'key', value: tag.key }
+                { key: 'key', type: 'key', value: tag.key },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: [
                 ...tag.render,
@@ -72,6 +73,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Moment',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
+                { key: 'from', type: 'key', value: tag.from }
             ],
             contents: tag.contents,
         })

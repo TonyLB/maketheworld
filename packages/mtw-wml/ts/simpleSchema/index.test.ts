@@ -14,9 +14,9 @@ describe('schemaFromParse', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
                 <Import from=(BASE)>
-                    <Use key=(basePower) type="Variable" as=(power) />
-                    <Use key=(overview) type="Room" />
-                    <Use key=(baseInfo) type="Knowledge" />
+                    <Variable key=(power) from=(basePower) />
+                    <Room key=(overview) />
+                    <Knowledge key=(baseInfo) />
                 </Import>
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
