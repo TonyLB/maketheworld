@@ -1,5 +1,6 @@
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
-import { PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
+import { SchemaTag } from "../baseClasses"
+import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
 import { parse as acornParse} from "acorn"
 import { simple as simpleWalk } from "acorn-walk"
 
@@ -25,6 +26,26 @@ export const validateProperties = <V extends ValidationTemplate>(template: V) =>
         }
     })) as ValidationTemplateOutput<V>
     return remap
+}
+
+export const validateContents = ({ isValid, branchTags, leafTags }: ConverterMapValidateProperties) => (contents: SchemaTag[]): boolean => {
+    return contents.reduce<boolean>((previous, childTag) => {
+        if (!previous) {
+            return previous
+        }
+        if (leafTags.includes(childTag.tag)) {
+            return isValid(childTag)
+        }
+        else if (branchTags.includes(childTag.tag)) {
+            if (!isValid(childTag)) {
+                return false
+            }
+            else if ('contents' in childTag) {
+                return validateContents({ isValid, branchTags, leafTags })(childTag.contents)
+            }
+        }
+        return true
+    }, true)
 }
 
 //
