@@ -86,7 +86,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         },
-        legalContents: isSchemaString,
+        typeCheckContents: isSchemaString,
         finalize: (initialTag: SchemaExitTag, contents: SchemaStringTag[]): SchemaExitTag => ({
             ...initialTag,
             name: contents.map(({ value }) => (value)).join(''),
@@ -99,7 +99,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             contents: [],
             ...validateProperties(componentTemplates.Description)(parseOpen)
         }),
-        legalContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaDescriptionTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaDescriptionTag => ({
             ...initialTag,
             contents: compressWhitespace(contents)
@@ -118,7 +118,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         },
-        legalContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaBookmarkTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaBookmarkTag => ({
             ...initialTag,
             contents: compressWhitespace(contents)
@@ -130,7 +130,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             contents: [],
             ...validateProperties(componentTemplates.Name)(parseOpen)
         }),
-        legalContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaNameTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaNameTag => ({
             ...initialTag,
             contents: compressWhitespace(contents)
@@ -155,7 +155,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         },
-        legalContents: isSchemaRoomIncomingContents,
+        typeCheckContents: isSchemaRoomIncomingContents,
         finalize: (initialTag: SchemaRoomTag, contents: SchemaTag[] ): SchemaRoomTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaRoomContents),
@@ -171,7 +171,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             name: [],
             ...validateProperties(componentTemplates.Feature)(parseOpen)
         }),
-        legalContents: isSchemaFeatureIncomingContents,
+        typeCheckContents: isSchemaFeatureIncomingContents,
         finalize: (initialTag: SchemaFeatureTag, contents: SchemaTag[] ): SchemaFeatureTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaFeatureContents),
@@ -187,7 +187,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             name: [],
             ...validateProperties(componentTemplates.Knowledge)(parseOpen)
         }),
-        legalContents: isSchemaKnowledgeIncomingContents,
+        typeCheckContents: isSchemaKnowledgeIncomingContents,
         finalize: (initialTag: SchemaKnowledgeTag, contents: SchemaTag[] ): SchemaKnowledgeTag => ({
             ...initialTag,
             name: compressWhitespace(extractNameFromContents(contents)),
@@ -203,7 +203,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             images: [],
             ...validateProperties(componentTemplates.Map)(parseOpen)
         }),
-        legalContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
+        typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
         finalize: (initialTag: SchemaMapTag, contents: SchemaTag[] ): SchemaMapTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaMapContents),

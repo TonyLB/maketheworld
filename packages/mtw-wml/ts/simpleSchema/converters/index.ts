@@ -34,7 +34,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             Story: undefined,
             ...validateProperties(validationTemplates.Asset)(parseOpen)
         }),
-        legalContents: isSchemaAssetContents,
+        typeCheckContents: isSchemaAssetContents,
         finalize: (initialTag: SchemaAssetTag, contents: SchemaAssetLegalContents[] ): SchemaAssetTag => ({
             ...initialTag,
             contents
@@ -47,7 +47,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             Story: true,
             ...validateProperties(validationTemplates.Story)(parseOpen)
         }),
-        legalContents: isSchemaAssetContents,
+        typeCheckContents: isSchemaAssetContents,
         finalize: (initialTag: SchemaAssetTag, contents: SchemaAssetLegalContents[] ): SchemaAssetTag => ({
             ...initialTag,
             contents

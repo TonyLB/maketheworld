@@ -30,7 +30,7 @@ export type ValidationTemplateOutput<V extends ValidationTemplate> =
 
 export type ConverterMapEntry = {
     initialize: SchemaInitialConverter;
-    legalContents?: (item: SchemaTag, contextStack: SchemaContextItem[]) => boolean;
+    typeCheckContents?: (item: SchemaTag, contextStack: SchemaContextItem[]) => boolean;
     finalize?: (initialTag: SchemaTag, contents: SchemaTag[], contextStack: SchemaContextItem[]) => SchemaTag;
 }
 

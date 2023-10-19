@@ -24,7 +24,7 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             contents: [],
             ...validateProperties(taggedMessageTemplates.After)(parseOpen)
         }),
-        legalContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaAfterTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaAfterTag => ({
             ...initialTag,
             contents: compressWhitespace(contents)
@@ -36,7 +36,7 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             contents: [],
             ...validateProperties(taggedMessageTemplates.Before)(parseOpen)
         }),
-        legalContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaBeforeTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaBeforeTag => ({
             ...initialTag,
             contents: compressWhitespace(contents)
@@ -48,7 +48,7 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             contents: [],
             ...validateProperties(taggedMessageTemplates.Replace)(parseOpen)
         }),
-        legalContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaReplaceTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaReplaceTag => ({
             ...initialTag,
             contents: compressWhitespace(contents)
@@ -72,7 +72,7 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             text: '',
             ...validateProperties(taggedMessageTemplates.Link)(parseOpen)
         }),
-        legalContents: isSchemaString,
+        typeCheckContents: isSchemaString,
         finalize: (initialTag: SchemaLinkTag, contents: SchemaStringTag[]) => ({
             ...initialTag,
             text: contents.map(({ value }) => (value)).join('')

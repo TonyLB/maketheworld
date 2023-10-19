@@ -31,7 +31,7 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             mapping: {},
             ...validateProperties(importExportTemplates.Import)(parseOpen)
         }),
-        legalContents: isSchemaUse,
+        typeCheckContents: isSchemaUse,
         finalize: (initialTag: SchemaImportTag, contents: SchemaUseTag[] ): SchemaImportTag => ({
             ...initialTag,
             mapping: contents.reduce((previous, { key, as, type }) => ({

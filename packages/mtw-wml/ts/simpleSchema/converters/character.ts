@@ -34,7 +34,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             value: '',
             ...validateProperties(characterTemplates.FirstImpression)(parseOpen)
         }),
-        legalContents: isSchemaString,
+        typeCheckContents: isSchemaString,
         finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
             ...initialTag,
             value: contents.map(({ value }) => (value)).join('')
@@ -47,7 +47,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             value: '',
             ...validateProperties(characterTemplates.OneCoolThing)(parseOpen)
         }),
-        legalContents: isSchemaString,
+        typeCheckContents: isSchemaString,
         finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
             ...initialTag,
             value: contents.map(({ value }) => (value)).join('')
@@ -60,7 +60,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             value: '',
             ...validateProperties(characterTemplates.Outfit)(parseOpen)
         }),
-        legalContents: isSchemaString,
+        typeCheckContents: isSchemaString,
         finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
             ...initialTag,
             value: contents.map(({ value }) => (value)).join('')
@@ -80,7 +80,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             Name: '',
             ...validateProperties(characterTemplates.Character)(parseOpen)
         }),
-        legalContents: isSchemaCharacterContents,
+        typeCheckContents: isSchemaCharacterContents,
         finalize: (initialTag: SchemaCharacterTag, contents: SchemaCharacterLegalContents[]): SchemaCharacterTag => {
             const { tag, ...Pronouns } = [{ tag: '', ...initialTag.Pronouns }, ...contents.filter(isSchemaPronouns)].slice(-1)[0]
             return {
