@@ -1,15 +1,10 @@
-import { SchemaImageTag, SchemaImportTag, SchemaTag, SchemaUseTag, isImportable, isSchemaUse } from "../baseClasses"
+import { SchemaImageTag, SchemaImportTag, SchemaTag, isImportable } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 
 const importExportTemplates = {
-    Use: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        as: { type: ParsePropertyTypes.Key },
-        type: { type: ParsePropertyTypes.Literal }
-    },
     Import: {
         from: { required: true, type: ParsePropertyTypes.Key },
     },
@@ -19,12 +14,6 @@ const importExportTemplates = {
 } as const
 
 export const importExportConverters: Record<string, ConverterMapEntry> = {
-    Use: {
-        initialize: ({ parseOpen }): SchemaUseTag => ({
-            tag: 'Use',
-            ...validateProperties(importExportTemplates.Use)(parseOpen)
-        })
-    },
     Import: {
         initialize: ({ parseOpen }): SchemaImportTag => ({
             tag: 'Import',
@@ -97,18 +86,6 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                     }
                 }
             }),
-        })
-    ),
-    Use: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaUseTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Use',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-                { key: 'as', type: 'key', value: tag.as },
-                { key: 'type', type: 'literal', value: tag.type }
-            ],
-            contents: [],
         })
     ),
     Image: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaImageTag }) => (

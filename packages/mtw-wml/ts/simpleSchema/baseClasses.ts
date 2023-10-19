@@ -114,13 +114,6 @@ export type SchemaActionTag = {
     src: string;
 } & SchemaImportableBase
 
-export type SchemaUseTag = {
-    tag: 'Use';
-    key: string;
-    as?: string;
-    type?: string;
-} & SchemaBase
-
 export type SchemaImportMapping = {
     key: string;
     type: 'Room' | 'Feature' | 'Knowledge' | 'Variable' | 'Computed' | 'Action' | 'Map'
@@ -291,7 +284,6 @@ export type SchemaTag = SchemaAssetTag |
     SchemaVariableTag |
     SchemaComputedTag |
     SchemaActionTag |
-    SchemaUseTag |
     SchemaImportTag |
     SchemaConditionTag |
     SchemaExitTag |
@@ -384,7 +376,6 @@ export const isSchemaVariable = (value: SchemaTag): value is SchemaVariableTag =
 export const isSchemaComputed = (value: SchemaTag): value is SchemaComputedTag => (value.tag === 'Computed')
 
 export const isSchemaImport = (value: SchemaTag): value is SchemaImportTag => (value.tag === 'Import')
-export const isSchemaUse = (value: SchemaTag): value is SchemaUseTag => (value.tag === 'Use')
 
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')
