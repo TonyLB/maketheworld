@@ -387,6 +387,22 @@ export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (val
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
     ['Asset', 'Story', 'If', 'Room', 'Feature', 'Bookmark', 'Description', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
+export const isEmptyPlaceholder = (value: SchemaTag): boolean => (
+    (
+        (
+            isSchemaRoom(value) ||
+            isSchemaFeature(value) ||
+            isSchemaBookmark(value) ||
+            isSchemaMap(value) ||
+            isSchemaMessage(value) ||
+            isSchemaMoment(value)
+        ) &&
+        value.contents.length === 0
+    ) ||
+    (isSchemaAction(value) && !value.src) ||
+    (isSchemaVariable(value) && !value.default) ||
+    (isSchemaComputed(value) && !value.src)
+)
 
 export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaBookmarkTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag | SchemaMessageTag | SchemaMomentTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
