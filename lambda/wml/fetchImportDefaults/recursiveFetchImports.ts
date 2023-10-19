@@ -1,9 +1,11 @@
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { isSchemaRoomContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import {
+    isSchemaExit,
+    isSchemaRoomContents,
+    isSchemaRoom,
+    SchemaTag
+} from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import normalSubset from "./normalSubset"
 import { FetchImportsJSONHelper } from "./baseClasses"
 

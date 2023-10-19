@@ -1,4 +1,4 @@
-import { SchemaTaggedMessageLegalContents } from '../../../schema/baseClasses'
+import { SchemaTaggedMessageLegalContents } from '../../baseClasses'
 import { schemaDescriptionToWML } from './freeText'
 import { printSchemaTag as schemaToWML } from '../..'
 

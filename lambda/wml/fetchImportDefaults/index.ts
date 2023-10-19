@@ -2,8 +2,10 @@ import { apiClient } from "../clients"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 
-import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { isSchemaAssetContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import {
+    SchemaAssetTag,
+    isSchemaAssetContents
+} from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/dist/simpleSchema"
 import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"

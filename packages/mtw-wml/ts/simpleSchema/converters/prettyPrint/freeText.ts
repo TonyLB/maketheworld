@@ -1,4 +1,4 @@
-import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag, SchemaTaggedMessageLegalContents } from "../../../schema/baseClasses"
+import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag, SchemaTaggedMessageLegalContents } from "../../baseClasses"
 import { PrintMapEntry, SchemaToWMLOptions } from "../baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "../printUtils"
 import { optionsFactory } from "../utils"

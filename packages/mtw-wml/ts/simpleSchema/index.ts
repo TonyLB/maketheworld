@@ -1,4 +1,4 @@
-import { SchemaTag } from "../schema/baseClasses"
+import { SchemaTag } from "./baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
 import { SchemaContextItem } from "./baseClasses"
 import converterMap, { printMap } from "./converters"

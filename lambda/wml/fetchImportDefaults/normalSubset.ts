@@ -7,47 +7,49 @@
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { isNormalAction, isNormalExit, isNormalFeature, NormalForm, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { isSchemaAfter, isSchemaBefore, isSchemaCondition, isSchemaDescription, isSchemaLink, isSchemaReplace, SchemaTaggedMessageLegalContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { SchemaFeatureTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { isSchemaFeature } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { SchemaRoomTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { SchemaConditionTagRoomContext } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { isSchemaConditionTagRoomContext } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { SchemaRoomLegalContents } from "@tonylb/mtw-wml/dist/schema/baseClasses"
-import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import {
+    isSchemaAfter,
+    isSchemaBefore,
+    isSchemaCondition,
+    isSchemaLink,
+    isSchemaReplace,
+    SchemaConditionTag,
+    SchemaExitTag,
+    SchemaTaggedMessageLegalContents,
+    SchemaFeatureTag,
+    isSchemaFeature,
+    isSchemaRoom,
+    SchemaRoomTag,
+    isSchemaExit,
+    SchemaTag
+} from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 
 //
 // RecursiveRoomContentsFilter filters all contents of a room to include only the exits that are relevant to the
 // slice of the asset being examined. It dives into conditions to do this, and excludes conditions that have
 // no contents
 //
-const recursiveRoomContentsFilter = ({ contents, keys }: { contents: SchemaRoomLegalContents[], keys: string[] }): SchemaRoomLegalContents[] => {
-    return contents.reduce<SchemaRoomLegalContents[]>((previous, item) => {
-        if (isSchemaExit(item) && (keys.includes(item.from) || keys.includes(item.to))) {
-            return [
-                ...previous,
-                item
-            ]
+const recursiveRoomContentsFilter = ({ contents, keys }: { contents: SchemaTag[], keys: string[] }): SchemaTag[] => {
+    return contents.map((item) => {
+        if (isSchemaExit(item)) {
+            if (keys.includes(item.from) || keys.includes(item.to)) {
+                return [item as SchemaExitTag]
+            }
         }
-        if (isSchemaCondition(item) && isSchemaConditionTagRoomContext(item)) {
+        if (isSchemaCondition(item)) {
             const conditionContents = recursiveRoomContentsFilter({ contents: item.contents, keys })
             if (conditionContents.length) {
-                const conditionRecurse: SchemaConditionTagRoomContext = {
+                const conditionRecurse: SchemaConditionTag = {
                     tag: 'If',
                     contextTag: 'Room',
                     conditions: item.conditions,
                     contents: conditionContents
                 }
-                return [
-                    ...previous,
-                    conditionRecurse
-                ]
+                return [conditionRecurse]
             }
         }
-        return previous
-    }, [])
+        return []
+    }).flat(1)
 }
 
 //

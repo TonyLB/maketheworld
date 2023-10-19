@@ -1,4 +1,21 @@
-import { SchemaLineBreakTag, SchemaSpacerTag, SchemaTag, SchemaTaggedMessageLegalContents, isSchemaLineBreak, isSchemaSpacer, isSchemaString } from "../schema/baseClasses"
+import {
+    isSchemaCondition,
+    isSchemaDescription,
+    isSchemaName,
+    isSchemaTag,
+    SchemaConditionMixin,
+    SchemaMapLegalContents,
+    SchemaMessageLegalContents,
+    SchemaNameTag,
+    SchemaLineBreakTag,
+    SchemaSpacerTag,
+    SchemaTag,
+    SchemaTaggedMessageLegalContents,
+    isSchemaLineBreak,
+    isSchemaSpacer,
+    isSchemaString,
+    isSchemaTaggedMessageLegalContents
+} from "./baseClasses"
 
 export function compressWhitespace (tags: SchemaTaggedMessageLegalContents[]): SchemaTaggedMessageLegalContents[]
 export function compressWhitespace (tags: SchemaTag[]): SchemaTag[] {
@@ -48,4 +65,75 @@ export function compressWhitespace (tags: SchemaTag[]): SchemaTag[] {
         }
         return [tag]
     }).flat(1)
+}
+
+export const extractNameFromContents = (contents: SchemaTag[]): SchemaTaggedMessageLegalContents[] => {
+    return contents.map((item) => {
+        if (isSchemaName(item)) {
+            return item.contents.filter(isSchemaTaggedMessageLegalContents)
+        }
+        if (isSchemaCondition(item)) {
+            const contents = extractNameFromContents(item.contents)
+            if (contents.length) {
+                const conditionGroup = {
+                    ...item,
+                    contextTag: 'Name',
+                    contents
+                } as SchemaTaggedMessageLegalContents
+                return [conditionGroup]
+            }
+        }
+        return []
+    }).flat(1)
+}
+
+export const extractDescriptionFromContents = (contents: SchemaTag[]): SchemaTaggedMessageLegalContents[] => {
+    return contents.map((item) => {
+        if (isSchemaDescription(item)) {
+            return item.contents.filter(isSchemaTaggedMessageLegalContents)
+        }
+        if (isSchemaCondition(item)) {
+            const contents = extractDescriptionFromContents(item.contents)
+            if (contents.length) {
+                const conditionGroup = {
+                    ...item,
+                    contextTag: 'Description',
+                    contents
+                } as SchemaTaggedMessageLegalContents
+                return [conditionGroup]
+            }
+        }
+        return []
+    }).flat(1)
+}
+
+export const extractConditionedItemFromContents = <T extends SchemaTag, O extends SchemaConditionMixin>(props: {
+    contents: SchemaTag[];
+    typeGuard: (value: SchemaTag) => value is T;
+    transform: (value: T, index: number) => O;
+}): O[] => {
+    const { contents, typeGuard, transform } = props
+    return contents.reduce<O[]>((previous, item, index) => {
+        if (typeGuard(item)) {
+            return [
+                ...previous,
+                transform(item, index)
+            ]
+        }
+        if (isSchemaTag(item) && isSchemaCondition(item)) {
+            const nestedItems = extractConditionedItemFromContents({ contents: item.contents, typeGuard, transform })
+                .map(({ conditions, ...rest }) => ({
+                    conditions: [
+                        ...item.conditions,
+                        ...conditions
+                    ],
+                    ...rest
+                })) as O[]
+            return [
+                ...previous,
+                ...nestedItems
+            ]
+        }
+        return previous
+    }, [])
 }

@@ -7,7 +7,7 @@ import { schemaFromParse } from '../simpleSchema'
 import parse from '../simpleParser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
-import { isSchemaCondition, isSchemaExit, isSchemaFeature, isSchemaImport, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../schema/baseClasses'
+import { isSchemaCondition, isSchemaExit, isSchemaFeature, isSchemaImport, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../simpleSchema/baseClasses'
 
 describe('WML normalize', () => {
 
