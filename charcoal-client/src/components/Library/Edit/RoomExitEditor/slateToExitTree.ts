@@ -1,6 +1,6 @@
 import { extractDependenciesFromJS } from "@tonylb/mtw-wml/dist/convert/utils"
 import { NormalConditionStatement } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { isSchemaCondition, isSchemaExit, SchemaConditionMixin, SchemaConditionTagRoomContext, SchemaExitTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { isSchemaCondition, isSchemaExit, SchemaConditionMixin, SchemaConditionTag, SchemaExitTag, SchemaTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { Node } from "slate"
 import { unique } from "../../../../lib/lists"
 import { CustomBlock, isCustomElseBlock, isCustomElseIfBlock, isCustomExitBlock, isCustomIfBlock } from "../baseClasses"
@@ -28,13 +28,12 @@ const slateToExitReducer = (roomId: string, currentElseConditions: NormalConditi
         }
         currentElseConditions = [...currentElseConditions, { ...conditionStatement, not: true }]
         const childrenSchema = slateToExitSchema(node.children, { roomId })
-        const contents = (childrenSchema?.[roomId] || []).filter((child: SchemaTag): child is SchemaExitTag | SchemaConditionTagRoomContext => (isSchemaExit(child) || isSchemaCondition(child)))
+        const contents = (childrenSchema?.[roomId] || []).filter((child: SchemaTag): child is SchemaExitTag | SchemaConditionTag => (isSchemaExit(child) || isSchemaCondition(child)))
         if (contents.length) {
             return [
                 ...accumulator,
                 {
                     tag: 'If' as 'If',
-                    contextTag: 'Room',
                     conditions: [...currentElseConditions.slice(0, -1), conditionStatement],
                     contents
                 }
@@ -42,11 +41,10 @@ const slateToExitReducer = (roomId: string, currentElseConditions: NormalConditi
         }
     }
     if (isCustomElseBlock(node)) {
-        const contents = slateToExitSchema(node.children, { roomId })[roomId].filter((child: SchemaTag): child is SchemaExitTag | SchemaConditionTagRoomContext => (isSchemaExit(child) || isSchemaCondition(child)))
+        const contents = slateToExitSchema(node.children, { roomId })[roomId].filter((child: SchemaTag): child is SchemaExitTag | SchemaConditionTag => (isSchemaExit(child) || isSchemaCondition(child)))
         if (contents.length) {
-            const returnElse: SchemaConditionTagRoomContext = {
+            const returnElse: SchemaConditionTag = {
                 tag: 'If' as 'If',
-                contextTag: 'Room',
                 conditions: currentElseConditions,
                 contents
             }

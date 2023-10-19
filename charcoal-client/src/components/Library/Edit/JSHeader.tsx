@@ -6,7 +6,7 @@ import { Box, ListItem, ListItemIcon, SxProps, Typography } from '@mui/material'
 import { useLibraryAsset } from './LibraryAsset';
 import { NormalAction, NormalComputed, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { JSEdit } from './JSEdit'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
+import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses';
 
 type JSTags = NormalAction | NormalComputed | NormalVariable
 

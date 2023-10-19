@@ -18,8 +18,8 @@ import normalToTree from './normalToTree'
 import { deepEqual } from '../../../lib/objects'
 import { MapAppearance, isNormalImage, isNormalMap, NormalReference, isNormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
-import { extractConditionedItemFromContents } from '@tonylb/mtw-wml/dist/schema/utils'
+import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaRoomTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { extractConditionedItemFromContents } from '@tonylb/mtw-wml/dist/simpleSchema/utils'
 
 type MapEditProps = {
 }

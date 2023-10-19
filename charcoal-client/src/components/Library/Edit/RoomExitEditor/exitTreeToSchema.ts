@@ -1,4 +1,4 @@
-import { SchemaConditionMixin, SchemaConditionTagRoomContext, SchemaExitTag, isSchemaCondition, isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses";
+import { SchemaConditionMixin, SchemaConditionTag, SchemaExitTag, isSchemaCondition, isSchemaExit } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses";
 import { ConditionalTree } from "../conditionTree";
 import { RoomExit } from "./baseClasses";
 import { unique } from "../../../../lib/lists";
@@ -31,7 +31,7 @@ const sortSchemaConditions = (conditionsA: SchemaConditionDefinition[], conditio
     return sortSchemaConditions(conditionsA.slice(1), conditionsB.slice(1))
 }
 
-type ExitTreeSchemaReduceOutput = Record<string, (SchemaExitTag | SchemaConditionTagRoomContext)[]>
+type ExitTreeSchemaReduceOutput = Record<string, (SchemaExitTag | SchemaConditionTag)[]>
 
 const treeToExitMergeSubCondition = (accumulator: ExitTreeSchemaReduceOutput, conditionContext: SchemaConditionDefinition[], merge: ExitTreeSchemaReduceOutput): ExitTreeSchemaReduceOutput => {
     return Object.entries(merge)
@@ -41,7 +41,6 @@ const treeToExitMergeSubCondition = (accumulator: ExitTreeSchemaReduceOutput, co
                 ...(previous[roomId] || []),
                 {
                     tag: 'If',
-                    contextTag: 'Room',
                     conditions: conditionContext,
                     contents: mergeItem
                 }
@@ -116,12 +115,12 @@ const treeToExitByRoomId = (node: ExitTree): ExitTreeSchemaReduceOutput => {
 //
 // Reduce a set of exitEditor nodes to a list of SchemaTags (sorted in standard order)
 //
-export const exitTreeToSchema = (tree: ExitTree): Record<string, (SchemaExitTag | SchemaConditionTagRoomContext)[]> => {
+export const exitTreeToSchema = (tree: ExitTree): Record<string, (SchemaExitTag | SchemaConditionTag)[]> => {
     const exitsByRoomId = treeToExitByRoomId(tree)
 
     return objectMap(exitsByRoomId, (unsortedSchema) => {
         const unconditionedItems = [...unsortedSchema].filter(isSchemaExit).sort(({ to: toA  }, { to: toB }) => (toA.localeCompare(toB)))
-        const conditionedItems = ([...unsortedSchema].filter(isSchemaCondition) as SchemaConditionTagRoomContext[]).sort(({ conditions: conditionsA }, { conditions: conditionsB }) => (sortSchemaConditions(conditionsA, conditionsB)))
+        const conditionedItems = ([...unsortedSchema].filter(isSchemaCondition) as SchemaConditionTag[]).sort(({ conditions: conditionsA }, { conditions: conditionsB }) => (sortSchemaConditions(conditionsA, conditionsB)))
         return [...unconditionedItems, ...conditionedItems]
     })
 }
