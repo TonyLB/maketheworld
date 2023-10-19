@@ -50,14 +50,14 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
                 }
                 contextStack = priorStack
                 //
-                // TODO: When all legalContents items are implemented, refactor the below to throw an error whenever there is
-                // not a legalContents function (and there are contents)
+                // TODO: When all typeCheckContents items are implemented, refactor the below to throw an error whenever there is
+                // not a typeCheckContents function (and there are contents)
                 //
                 const converter = converterMap[closingItem.tag.tag]
                 if (!converter) {
                     throw new Error(`No converter available for '${closingItem.tag.tag}' parse tag`)
                 }
-                const illegalTag = closingItem.contents.find((item) => (converter.legalContents && !converter.legalContents(item, contextStack)))
+                const illegalTag = closingItem.contents.find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, contextStack)))
                 if (illegalTag) {
                     throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.tag.tag}' item contents`)
                 }

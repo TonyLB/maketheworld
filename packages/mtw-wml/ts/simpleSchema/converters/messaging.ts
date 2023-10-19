@@ -23,7 +23,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
             rooms: [],
             ...validateProperties(messagingTemplates.Message)(parseOpen)
         }),
-        legalContents: isSchemaMessageContents,
+        typeCheckContents: isSchemaMessageContents,
         finalize: (initialTag: SchemaMessageTag, contents: SchemaMessageLegalContents[] ): SchemaMessageTag => ({
             ...initialTag,
             render: compressWhitespace(contents.filter(isSchemaTaggedMessageLegalContents)),
@@ -44,7 +44,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
             contents: [],
             ...validateProperties(messagingTemplates.Moment)(parseOpen)
         }),
-        legalContents: isSchemaMessage,
+        typeCheckContents: isSchemaMessage,
         finalize: (initialTag: SchemaMomentTag, contents: SchemaMessageTag[] ): SchemaMomentTag => ({
             ...initialTag,
             contents

@@ -94,7 +94,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
                 conditions: [{ if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }]
             }
         },
-        legalContents: conditionLegalContents,
+        typeCheckContents: conditionLegalContents,
         finalize: conditionFinalize
     },
     ElseIf: {
@@ -107,7 +107,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
                 conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }],
             }
         },
-        legalContents: conditionLegalContents,
+        typeCheckContents: conditionLegalContents,
         finalize: conditionFinalize
     },
     Else: {
@@ -120,7 +120,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
                 conditions: siblingConditions.map((condition) => ({ ...condition, not: true }))
             }
         },
-        legalContents: conditionLegalContents,
+        typeCheckContents: conditionLegalContents,
         finalize: conditionFinalize
     },
 }
