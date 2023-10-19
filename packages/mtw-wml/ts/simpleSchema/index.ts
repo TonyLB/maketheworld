@@ -3,7 +3,7 @@ import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
 import { SchemaContextItem } from "./baseClasses"
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
-import { optionsFactory } from "./converters/utils"
+import { optionsFactory, validateContents } from "./converters/utils"
 
 export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
     let contextStack: SchemaContextItem[] = []
@@ -60,6 +60,11 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
                 const illegalTag = closingItem.contents.find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, contextStack)))
                 if (illegalTag) {
                     throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.tag.tag}' item contents`)
+                }
+                if (converter.validateContents) {
+                    if (!validateContents(converter.validateContents)(closingItem.contents)) {
+                        throw new Error(`Illegal contents in '${closingItem.tag.tag}' item`)
+                    }
                 }
                 addSchemaTag(
                     converter.finalize

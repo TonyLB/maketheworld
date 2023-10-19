@@ -204,6 +204,16 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Map)(parseOpen)
         }),
         typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
+        validateContents: {
+            isValid: (tag) => {
+                if (isSchemaRoom(tag) && !(typeof tag.x !== 'undefined' && typeof tag.y !== 'undefined')) {
+                    throw new Error('Room in Map context must specify x and y values')
+                }
+                return true
+            },
+            branchTags: ['If'],
+            leafTags: ['Room']
+        },
         finalize: (initialTag: SchemaMapTag, contents: SchemaTag[] ): SchemaMapTag => ({
             ...initialTag,
             contents: contents.filter(isSchemaMapContents),

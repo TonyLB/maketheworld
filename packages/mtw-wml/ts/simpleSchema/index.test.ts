@@ -448,6 +448,22 @@ describe('schemaFromParse', () => {
 
     })
 
+    it('should error on map rooms without positional properties', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset key=(Test)>
+                <Map key=(testMap)>
+                    <Name>Test Map</Name>
+                    <Room key=(ABC) x="100" y="0" />
+                    <If {open}>
+                        <Room key=(DEF) y="0" />
+                    </If>
+                </Map>
+                <Variable key=(open) default={false} />
+            </Asset>
+        `)))
+        expect(() => (schemaFromParse(testParse))).toThrowError('Room in Map context must specify x and y values')
+    })
+
     it('should correctly extract map rooms', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
