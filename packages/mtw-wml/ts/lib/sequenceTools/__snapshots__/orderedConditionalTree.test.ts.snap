@@ -30,7 +30,6 @@ Array [
         "value": "NestedWithThreeConditions",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {
@@ -48,7 +47,6 @@ Array [
         "value": "NestedWithOneCondition",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {
@@ -59,7 +57,6 @@ Array [
         "value": "NotNested",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {
@@ -77,7 +74,6 @@ Array [
         "value": "SecondNestedWithOneCondition",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
 ]
@@ -114,7 +110,6 @@ Array [
         "value": "TestThree",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
 ]
@@ -145,7 +140,6 @@ Array [
         "value": "TestOne",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {
@@ -173,7 +167,6 @@ Array [
             "value": "TestFive",
           },
         ],
-        "contextTag": "Description",
         "tag": "If",
       },
       Object {
@@ -199,11 +192,9 @@ Array [
             "value": "TestSix",
           },
         ],
-        "contextTag": "Description",
         "tag": "If",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {
@@ -221,7 +212,6 @@ Array [
         "value": "TestSeven",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
 ]
@@ -252,7 +242,6 @@ Array [
         "value": "TestOne",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {
@@ -280,7 +269,6 @@ Array [
             "value": "TestFive",
           },
         ],
-        "contextTag": "Description",
         "tag": "If",
       },
       Object {
@@ -306,11 +294,9 @@ Array [
             "value": "TestThree",
           },
         ],
-        "contextTag": "Description",
         "tag": "If",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {
@@ -328,7 +314,6 @@ Array [
         "value": "TestSeven",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
 ]
@@ -371,7 +356,6 @@ Array [
             "value": "TestB",
           },
         ],
-        "contextTag": "Description",
         "tag": "If",
       },
       Object {
@@ -393,11 +377,9 @@ Array [
             "value": "TestD",
           },
         ],
-        "contextTag": "Description",
         "tag": "If",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {
@@ -456,11 +438,9 @@ Array [
                 "value": "TestD",
               },
             ],
-            "contextTag": "Description",
             "tag": "If",
           },
         ],
-        "contextTag": "Description",
         "tag": "If",
       },
       Object {
@@ -478,11 +458,9 @@ Array [
             "value": "TestE",
           },
         ],
-        "contextTag": "Description",
         "tag": "If",
       },
     ],
-    "contextTag": "Description",
     "tag": "If",
   },
   Object {

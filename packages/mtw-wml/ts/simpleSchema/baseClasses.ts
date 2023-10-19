@@ -132,7 +132,6 @@ export type SchemaImportTag = {
 
 export type SchemaConditionTag = {
     tag: 'If';
-    contextTag: 'Asset' | 'Name' | 'Description' | 'Room' | 'Feature' | 'Knowledge' | 'Map';
     key?: string;
     contents: SchemaTag[];
 } & SchemaBase & SchemaConditionMixin

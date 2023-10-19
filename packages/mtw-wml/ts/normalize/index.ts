@@ -164,7 +164,6 @@ export const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRender
             return {
                 tag: 'If',
                 conditions: renderItem.conditions,
-                contextTag: 'Description' as 'Description',
                 contents: renderItem.contents
                     .map(componentRenderToSchemaTaggedMessage)
                     .filter((value) => (value))
@@ -1144,7 +1143,6 @@ export class Normalizer {
                 const conditionContextTag = conditionContextTagList.length ? conditionContextTagList.slice(-1)[0] : 'Asset'
                 return {
                     tag: 'If',
-                    contextTag: conditionContextTag,
                     conditions: node.conditions,
                     contents: baseAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))

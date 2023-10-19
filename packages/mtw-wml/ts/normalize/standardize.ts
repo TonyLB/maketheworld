@@ -30,7 +30,6 @@ const extractConditionedRender = (contextNormalizer: Normalizer) => (item: Norma
                 }
                 const returnValue: SchemaConditionTag = {
                     tag: 'If' as 'If',
-                    contextTag: 'Description',
                     conditions: ifReference.conditions,
                     contents: previous
                 }
@@ -65,7 +64,6 @@ const extractConditionedName = (contextNormalizer: Normalizer) => (item: NormalR
                 }
                 const returnValue: SchemaConditionTag = {
                     tag: 'If' as 'If',
-                    contextTag: 'Description',
                     conditions: ifReference.conditions,
                     contents: previous
                 }
@@ -100,7 +98,6 @@ const extractConditionedExits = (contextNormalizer: Normalizer) => (item: Normal
                 }
                 const returnValue: SchemaConditionTag = {
                     tag: 'If' as 'If',
-                    contextTag: 'Room',
                     conditions: ifReference.conditions,
                     contents: previous
                 }
@@ -152,7 +149,6 @@ const extractConditionedMapContents = (contextNormalizer: Normalizer) => (item: 
                 }
                 const returnValue: SchemaConditionTag = {
                     tag: 'If' as 'If',
-                    contextTag: 'Map',
                     conditions: ifReference.conditions,
                     contents: previous
                 }
@@ -191,7 +187,6 @@ const extractConditionedMessageContents = (contextNormalizer: Normalizer) => (it
         //         }
         //         const returnValue: SchemaConditionTagMapContext = {
         //             tag: 'If' as 'If',
-        //             contextTag: 'Message',
         //             conditions: ifReference.conditions,
         //             contents: previous
         //         }
@@ -230,7 +225,6 @@ const extractConditionedMomentContents = (contextNormalizer: Normalizer) => (ite
         //         }
         //         const returnValue: SchemaConditionTagMapContext = {
         //             tag: 'If' as 'If',
-        //             contextTag: 'Message',
         //             conditions: ifReference.conditions,
         //             contents: previous
         //         }
