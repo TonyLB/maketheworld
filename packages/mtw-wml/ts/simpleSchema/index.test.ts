@@ -56,6 +56,11 @@ describe('schemaFromParse', () => {
                         <Room key=(ABC) />
                     </Message>
                 </Moment>
+                <Export>
+                    <Room key=(ABC) as=(QRS) />
+                    <Room key=(DEF) />
+                    <Knowledge key=(GHI) />
+                </Export>
             </Asset>
         `)))
         expect(schemaFromParse(testParse)).toEqual([{
@@ -264,6 +269,14 @@ describe('schemaFromParse', () => {
                     key: "openDoorMoment",
                     tag: "Moment",
                 },
+                {
+                    mapping: {
+                        QRS: { key: 'ABC', type: 'Room' },
+                        DEF: { key: 'DEF', type: 'Room' },
+                        GHI: { key: 'GHI', type: 'Knowledge' }
+                    },
+                    tag: "Export"
+                }
             ],
             key: "Test",
             tag: "Asset"
@@ -781,6 +794,20 @@ describe('schemaToWML', () => {
 </Asset>`
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
         expect(schemaToWML(schema)).toEqual('<Asset key=(Test)>\n    <Room key=(test)><Description>Test \\\\ \\< \\></Description></Room>\n</Asset>')
+    })
+
+    it('should correctly round-trip import and export', () => {
+        const testWML = `<Asset key=(Test)>
+    <Import from=(BASE)>
+        <Room key=(test) from=(Room1) />
+        <Room key=(testTwo) />
+    </Import>
+    <Variable key=(testVar) default={false} />
+    <Room key=(test)><Description>Test</Description></Room>
+    <Export><Room key=(test) as=(Room2) /></Export>
+</Asset>`
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        expect(schemaToWML(schema)).toEqual(testWML)
     })
 
 })
