@@ -28,9 +28,16 @@ export type ValidationTemplateOutput<V extends ValidationTemplate> =
     Partial<ValidationTemplateRemap<V>> &
     Pick<ValidationTemplateRemap<V>, ValidationRequiredKeys<V>>
 
+export type ConverterMapValidateProperties = {
+    isValid: (item: SchemaTag) => boolean;
+    branchTags: SchemaTag['tag'][];
+    leafTags: SchemaTag['tag'][];
+}
+
 export type ConverterMapEntry = {
     initialize: SchemaInitialConverter;
     typeCheckContents?: (item: SchemaTag, contextStack: SchemaContextItem[]) => boolean;
+    validateContents?: ConverterMapValidateProperties;
     finalize?: (initialTag: SchemaTag, contents: SchemaTag[], contextStack: SchemaContextItem[]) => SchemaTag;
 }
 
