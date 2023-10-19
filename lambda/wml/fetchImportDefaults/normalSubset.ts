@@ -41,7 +41,6 @@ const recursiveRoomContentsFilter = ({ contents, keys }: { contents: SchemaTag[]
             if (conditionContents.length) {
                 const conditionRecurse: SchemaConditionTag = {
                     tag: 'If',
-                    contextTag: 'Room',
                     conditions: item.conditions,
                     contents: conditionContents
                 }

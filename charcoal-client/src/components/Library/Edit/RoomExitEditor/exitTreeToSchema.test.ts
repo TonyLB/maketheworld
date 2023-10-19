@@ -35,7 +35,6 @@ describe('exitTreeToSchema', () => {
                 { tag: 'Exit', contents: [],  key: 'test3#test2', name: 'left', from: 'test3', to: 'test2' },
                 {
                     tag: 'If',
-                    contextTag: 'Room',
                     conditions: [{ dependencies: ['abc'], if: 'abc' }],
                     contents: [{ tag: 'Exit', contents: [],  key: 'test3#test1', name: 'in', from: 'test3', to: 'test1' }]
                 }
@@ -102,7 +101,6 @@ describe('exitTreeToSchema', () => {
             test1: [
                 {
                     tag: 'If',
-                    contextTag: 'Room',
                     conditions: [{ dependencies: ['adf'], if: 'adf' }],
                     contents: [
                         { tag: 'Exit', contents: [], key: 'test1#test6', from: 'test1', to: 'test6', name: 'test1-test6' }
@@ -110,13 +108,11 @@ describe('exitTreeToSchema', () => {
                 },
                 {
                     tag: 'If',
-                    contextTag: 'Room',
                     conditions: [{ dependencies: ['def'], if: 'def' }],
                     contents: [
                         { tag: 'Exit', contents: [], key: 'test1#test2', from: 'test1', to: 'test2', name: 'test1-test2' },
                         {
                             tag: 'If',
-                            contextTag: 'Room',
                             conditions: [{ dependencies: ['abc'], if: 'abc' }],
                             contents: [
                                 { tag: 'Exit', contents: [], key: 'test1#test3', from: 'test1', to: 'test3', name: 'test1-test3' }
@@ -124,7 +120,6 @@ describe('exitTreeToSchema', () => {
                         },
                         {
                             tag: 'If',
-                            contextTag: 'Room',
                             conditions: [{ dependencies: ['abc'], if: 'abc', not: true }],
                             contents: [
                                 { tag: 'Exit', contents: [], key: 'test1#test4', from: 'test1', to: 'test4', name: 'test1-test4' }
@@ -134,7 +129,6 @@ describe('exitTreeToSchema', () => {
                 },
                 {
                     tag: 'If',
-                    contextTag: 'Room',
                     conditions: [{ dependencies: ['def'], if: 'def', not: true }, { dependencies: ['ghi'], if: 'ghi' }],
                     contents: [
                         { tag: 'Exit', contents: [], key: 'test1#test5', from: 'test1', to: 'test5', name: 'test1-test5' }

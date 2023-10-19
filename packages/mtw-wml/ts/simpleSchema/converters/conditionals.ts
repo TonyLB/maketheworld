@@ -68,7 +68,6 @@ export const conditionFinalize = (initialTag: SchemaConditionTag, contents: Sche
     const nearestLegalContext = legalContextStack.slice(-1)[0]
     return {
         ...initialTag,
-        contextTag: nearestLegalContext === 'Bookmark' ? 'Description' : nearestLegalContext,
         contents: (['Bookmark', 'Description'].includes(nearestLegalContext))
             ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
             : contents as any
@@ -91,7 +90,6 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             const validatedProperties = validateProperties(conditionalTemplates.If)(parseOpen)
             return {
                 tag: 'If',
-                contextTag: 'Asset',
                 contents: [],
                 conditions: [{ if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }]
             }
@@ -105,7 +103,6 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             const validatedProperties = validateProperties(conditionalTemplates.ElseIf)(parseOpen)
             return {
                 tag: 'If',
-                contextTag: 'Asset',
                 contents: [],
                 conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }],
             }
@@ -119,7 +116,6 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             validateProperties(conditionalTemplates.Else)(parseOpen)
             return {
                 tag: 'If',
-                contextTag: 'Asset',
                 contents: [],
                 conditions: siblingConditions.map((condition) => ({ ...condition, not: true }))
             }

@@ -77,7 +77,6 @@ export const extractNameFromContents = (contents: SchemaTag[]): SchemaTaggedMess
             if (contents.length) {
                 const conditionGroup = {
                     ...item,
-                    contextTag: 'Name',
                     contents
                 } as SchemaTaggedMessageLegalContents
                 return [conditionGroup]
@@ -97,7 +96,6 @@ export const extractDescriptionFromContents = (contents: SchemaTag[]): SchemaTag
             if (contents.length) {
                 const conditionGroup = {
                     ...item,
-                    contextTag: 'Description',
                     contents
                 } as SchemaTaggedMessageLegalContents
                 return [conditionGroup]

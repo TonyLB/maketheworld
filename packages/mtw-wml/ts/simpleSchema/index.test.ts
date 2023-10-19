@@ -81,7 +81,6 @@ describe('schemaFromParse', () => {
                                     if: "open",
                                 }],
                                 contents: [{ tag: "String", value: ": Open" }],
-                                contextTag: "Description",
                                 tag: "If",
                             },
                             {
@@ -97,7 +96,6 @@ describe('schemaFromParse', () => {
                                     },
                                 ],
                                 contents: [{ tag: "String", value: ": Indeterminate" }],
-                                contextTag: "Description",
                                 tag: "If",
                             },
                             {
@@ -114,7 +112,6 @@ describe('schemaFromParse', () => {
                                     },
                                 ],
                                 contents: [{ tag: "String", value: ": Closed" }],
-                                contextTag: "Description",
                                 tag: "If",
                             },
                             {
@@ -141,7 +138,6 @@ describe('schemaFromParse', () => {
                                 if: "open"
                             }],
                             contents: [{ tag: "String", value: ": Open" }],
-                            contextTag: "Description",
                             tag: "If"
                         },
                         {
@@ -160,7 +156,6 @@ describe('schemaFromParse', () => {
                                 tag: "String",
                                 value: ": Indeterminate",
                             }],
-                            contextTag: "Description",
                             tag: "If",
                         },
                         {
@@ -177,7 +172,6 @@ describe('schemaFromParse', () => {
                                 },
                             ],
                             contents: [{ tag: "String", value: ": Closed" }],
-                            contextTag: "Description",
                             tag: "If",
                         },
                         {
@@ -212,7 +206,6 @@ describe('schemaFromParse', () => {
                         render: [],
                         tag: "Room"
                     }],
-                    contextTag: "Asset",
                     tag: "If",
                 },
                 {
@@ -311,7 +304,6 @@ describe('schemaFromParse', () => {
                                 if: "open",
                             }],
                             contents: [{ tag: "String", value: "Test Two" } ],
-                            contextTag: "Description",
                             tag: "If",
                         },
                     ],
@@ -326,7 +318,6 @@ describe('schemaFromParse', () => {
                         contents: [{ tag: "String", value: "Test Three" }],
                         tag: "Description",
                     }],
-                    contextTag: "Room",
                     tag: "If",
                 }],
                 display: undefined,
@@ -340,7 +331,6 @@ describe('schemaFromParse', () => {
                             if: "open",
                         }],
                         contents: [{ tag: "String", value: "Test Two" }],
-                        contextTag: "Description",
                         tag: "If",
                     },
                     {
@@ -349,7 +339,6 @@ describe('schemaFromParse', () => {
                             if: "open",
                         }],
                         contents: [{ tag: "String", value: "Test Three" }],
-                        contextTag: "Description",
                         tag: "If",
                     },
                 ],
@@ -375,7 +364,6 @@ describe('schemaFromParse', () => {
                     x: undefined,
                     y: undefined,
                 }],
-                contextTag: "Asset",
                 tag: "If",
             },
             {
@@ -501,7 +489,6 @@ describe('schemaFromParse', () => {
                             x: -100,
                             y: 0,
                         }],
-                        contextTag: "Map",
                         tag: "If",
                     },
                 ],

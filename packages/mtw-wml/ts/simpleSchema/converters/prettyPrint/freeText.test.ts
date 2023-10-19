@@ -67,7 +67,6 @@ describe('description schemaToWML', () => {
         },
         {
             tag: 'If',
-            contextTag: 'Description',
             conditions: [{ if: 'testVar', dependencies: ['testVar'] }],
             contents: [
                 { tag: 'Space' },
@@ -76,7 +75,6 @@ describe('description schemaToWML', () => {
         },
         {
             tag: 'If',
-            contextTag: 'Description',
             conditions: [{ if: '!testVar', dependencies: ['testVar'] }],
             contents: [
                 { tag: 'Space' },

@@ -2,7 +2,7 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {

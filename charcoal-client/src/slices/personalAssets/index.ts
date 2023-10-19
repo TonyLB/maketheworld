@@ -20,7 +20,7 @@ import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReduce
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
 import { isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
+import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
