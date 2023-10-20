@@ -268,6 +268,7 @@ describe('WML normalize', () => {
                     It activates!
                 </Message>
             </Moment>
+            <Export><Room key=(a123) as=(Room2) /></Export>
         </Asset>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
