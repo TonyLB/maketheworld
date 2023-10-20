@@ -16,7 +16,7 @@ export const conditionsFromContext = (assetWorkspace: ReadOnlyAssetWorkspace) =>
                 dependencies: statement.dependencies
                     .map((key) => ({
                         key,
-                        EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
+                        EphemeraId: (assetWorkspace.universalKey(key) || '')
                     })),
                 if: statement.if,
                 not: statement.not

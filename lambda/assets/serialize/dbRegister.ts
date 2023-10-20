@@ -142,12 +142,16 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
     }
     const character = Object.values(assets).find(isNormalCharacter)
     if (character && character.key) {
+        const universalKey = assetWorkspace.universalKey(character.key) as EphemeraCharacterId
+        if (!universalKey) {
+            return
+        }
         const images = (character.images || [])
             .map((image) => (assetWorkspace.properties[image]?.fileName))
             .filter((image) => (image))
         const updatedCharacters = {
-            [assetWorkspace.namespaceIdToDB[character.key]]: {
-                CharacterId: assetWorkspace.namespaceIdToDB[character.key] as EphemeraCharacterId,
+            [universalKey]: {
+                CharacterId: universalKey,
                 Name: character.Name,
                 FirstImpression: character.FirstImpression,
                 OneCoolThing: character.OneCoolThing,
@@ -180,7 +184,7 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
         await Promise.all([
             graphUpdate.flush(),
             assetDB.putItem({
-                AssetId: assetWorkspace.namespaceIdToDB[character.key],
+                AssetId: universalKey,
                 DataCategory: `Meta::Character`,
                 address,
                 zone: address.zone,

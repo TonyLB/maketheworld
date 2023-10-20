@@ -143,7 +143,7 @@ describe('fetchImports', () => {
             }
             return {
                 normal,
-                namespaceIdToDB: {}
+                namespaceIdToDB: []
             }
         })
     })

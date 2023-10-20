@@ -32,9 +32,9 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
                     tag: 'Asset'
                 }
             },
-            namespaceIdToDB: {
-                VORTEX: 'VORTEX'
-            },
+            namespaceIdToDB: [
+                { internalKey: 'VORTEX', universalKey: 'ROOM#VORTEX' }
+            ],
             rootNodes: [{
                 tag: 'Asset',
                 key: 'Test'
@@ -102,9 +102,9 @@ describe('moveAsset', () => {
             },
             fileNameBase: 'Personal/Test/Test',
             loadJSON: expect.any(Function),
-            namespaceIdToDB: {
-                VORTEX: 'VORTEX'
-            },
+            namespaceIdToDB: [
+                { internalKey: 'VORTEX', universalKey: 'ROOM#VORTEX' }
+            ],
             rootNodes: [{
                 tag: 'Asset',
                 key: 'Test'

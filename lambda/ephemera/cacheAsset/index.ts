@@ -59,8 +59,8 @@ import { StartExecutionCommand } from '@aws-sdk/client-sfn'
 //
 const ephemeraTranslateRender = (assetWorkspace: ReadOnlyAssetWorkspace) => (renderItem: ComponentRenderItem): TaggedMessageContent => {
     if (renderItem.tag === 'Link') {
-        const to = assetWorkspace.namespaceIdToDB[renderItem.to]
-        if (!(to && isEphemeraActionId(to) || isEphemeraCharacterId(to) || isEphemeraFeatureId(to) || isEphemeraKnowledgeId(to))) {
+        const to = assetWorkspace.universalKey(renderItem.to)
+        if (!(to && (isEphemeraActionId(to) || isEphemeraCharacterId(to) || isEphemeraFeatureId(to) || isEphemeraKnowledgeId(to)))) {
             throw new EphemeraError(`Illegal target in link: ${to}`)
         }
         return {
@@ -69,8 +69,8 @@ const ephemeraTranslateRender = (assetWorkspace: ReadOnlyAssetWorkspace) => (ren
         }
     }
     else if (renderItem.tag === 'Bookmark') {
-        const to = assetWorkspace.namespaceIdToDB[renderItem.to]
-        if (!isEphemeraBookmarkId(to)) {
+        const to = assetWorkspace.universalKey(renderItem.to)
+        if (!(to && isEphemeraBookmarkId(to))) {
             throw new EphemeraError(`Illegal key in bookmark: ${to}`)
         }
         return {
@@ -81,7 +81,7 @@ const ephemeraTranslateRender = (assetWorkspace: ReadOnlyAssetWorkspace) => (ren
     else if (renderItem.tag === 'Condition') {
         const mappedConditions = renderItem.conditions.map<EphemeraCondition>((condition) => {
             const dependencies = condition.dependencies.map<TaggedConditionalItemDependency>((depend) => {
-                const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
+                const dependTranslated = assetWorkspace.universalKey(depend)
                 if (!(dependTranslated && (isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated)))) {
                     throw new EphemeraError(`Illegal dependency in If: ${depend}`)
                 }
@@ -115,8 +115,8 @@ const ephemeraExtractExits = (assetWorkspace: ReadOnlyAssetWorkspace) => (conten
         const itemLookup = assetWorkspace.normal?.[item.key]
         if (itemLookup) {
             if (isNormalExit(itemLookup)) {
-                const to = assetWorkspace.namespaceIdToDB[itemLookup.to]
-                if (!isEphemeraRoomId(to)) {
+                const to = assetWorkspace.universalKey(itemLookup.to)
+                if (!(to && isEphemeraRoomId(to))) {
                     throw new EphemeraError(`Illegal target in exit: ${to}`)
                 }
                 return [
@@ -133,7 +133,7 @@ const ephemeraExtractExits = (assetWorkspace: ReadOnlyAssetWorkspace) => (conten
                 if (nestedExits.length) {
                     const mappedConditions = itemLookup.conditions.map<EphemeraCondition>((condition) => {
                         const dependencies = condition.dependencies.map<EphemeraItemDependency>((depend) => {
-                            const dependTranslated = assetWorkspace.namespaceIdToDB[depend]
+                            const dependTranslated = assetWorkspace.universalKey(depend)
                             if (!dependTranslated) {
                                 throw new EphemeraError(`Illegal dependency in If: ${depend}`)
                             }
@@ -169,13 +169,13 @@ const ephemeraExtractExits = (assetWorkspace: ReadOnlyAssetWorkspace) => (conten
 }
 
 const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
-    const { namespaceIdToDB: namespaceMap, normal = {}, properties = {} } = assetWorkspace
+    const { normal = {}, properties = {} } = assetWorkspace
     const conditionsTransform = conditionsFromContext(assetWorkspace)
     const conditionsRemap = (conditions: { if: string; not?: boolean; dependencies: string[] }[]): EphemeraCondition[] => {
         return conditions.map((condition) => {
             const dependencies = condition.dependencies.reduce<EphemeraCondition["dependencies"]>((previous, key) => {
-                const dependencyLookup = assetWorkspace.namespaceIdToDB[key]
-                if (!(isEphemeraComputedId(dependencyLookup) || isEphemeraVariableId(dependencyLookup))) {
+                const dependencyLookup = assetWorkspace.universalKey(key)
+                if (!(dependencyLookup && (isEphemeraComputedId(dependencyLookup) || isEphemeraVariableId(dependencyLookup)))) {
                     throw new EphemeraError(`Illegal dependency: ${key}`)
                 }
                 return [
@@ -193,7 +193,7 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             }
         })
     }
-    const EphemeraId = namespaceMap[item.key]
+    const EphemeraId = assetWorkspace.universalKey(item.key)
     if (!EphemeraId) {
         return undefined
     }
@@ -255,7 +255,7 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
                 .map((appearance) => ({
                     conditions: conditionsTransform(appearance.contextStack),
                     render: (appearance.render || []).map(renderTranslate),
-                    rooms: (appearance.rooms || []).map(({ key }) => (namespaceMap[key])).filter((value) => (value)).filter(isEphemeraRoomId)
+                    rooms: (appearance.rooms || []).map(({ key }) => (assetWorkspace.universalKey(key))).filter((value): value is string => (Boolean(value))).filter(isEphemeraRoomId)
                 }))
         }
     }
@@ -266,7 +266,7 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             appearances: item.appearances
                 .map((appearance) => ({
                     conditions: conditionsTransform(appearance.contextStack),
-                    messages: (appearance.messages || []).map((key) => (namespaceMap[key])).filter((value) => (value)).filter(isEphemeraMessageId)
+                    messages: (appearance.messages || []).map((key) => (assetWorkspace.universalKey(key))).filter((value): value is string => (Boolean(value))).filter(isEphemeraMessageId)
                 }))
         }
     }
@@ -284,7 +284,7 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
                         fileURL,
                         rooms: appearance.rooms.map(({ conditions, key,  x, y }) => ({
                             conditions: conditionsRemap(conditions),
-                            EphemeraId: namespaceMap[key] || '',
+                            EphemeraId: assetWorkspace.universalKey(key) ?? '',
                             x,
                             y
                         }))
@@ -335,7 +335,7 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             dependencies: item.dependencies
                 .map((key) => ({
                     key,
-                    EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
+                    EphemeraId: (assetWorkspace.universalKey(key) ?? '')
                 }))
         }
     }
@@ -417,7 +417,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
     const assetItem = Object.values(assetWorkspace.normal || {}).find(isNormalAsset)
     if (assetItem) {
         if (check || updateOnly) {
-            const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || `ASSET#${assetItem.key}`
+            const assetEphemeraId = assetWorkspace.universalKey(assetItem.key) ?? `ASSET#${assetItem.key}`
             if (!(assetEphemeraId && isEphemeraAssetId(assetEphemeraId))) {
                 return
             }
@@ -457,7 +457,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
             graphUpdate.flush(),
             pushEphemera({
                 EphemeraId: AssetKey(assetItem.key),
-                scopeMap: assetWorkspace.namespaceIdToDB
+                scopeMap: Object.assign({}, ...assetWorkspace.namespaceIdToDB.map(({ internalKey, universalKey }) => ({ [internalKey]: universalKey })))
             })
         ])
 
@@ -470,8 +470,8 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
         //
         Object.values(assetWorkspace.normal || {})
             .filter(isNormalRoom)
-            .map(({ key }) => (assetWorkspace.namespaceIdToDB[key]))
-            .filter((value) => (value))
+            .map(({ key }) => (assetWorkspace.universalKey(key)))
+            .filter((value): value is string => (Boolean(value)))
             .filter(isEphemeraRoomId)
             .forEach((roomId) => {
                 messageBus.send({
@@ -489,7 +489,7 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
     if (characterItem) {
         const ephemeraItem = ephemeraItemFromNormal(assetWorkspace)(characterItem)
         if (ephemeraItem) {
-            const characterEphemeraId = assetWorkspace.namespaceIdToDB[ephemeraItem.key] || ''
+            const characterEphemeraId = assetWorkspace.universalKey(ephemeraItem.key) || ''
             if (!(characterEphemeraId && isEphemeraCharacterId(characterEphemeraId))) {
                 return
             }

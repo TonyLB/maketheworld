@@ -37,11 +37,14 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                     const importWorkspace = await this._workspaceFromKey?.(`ASSET#${from}`)
                     if (importWorkspace) {
                         await importWorkspace.loadJSON()
-                        const importNamespaceIdToDB = importWorkspace.namespaceIdToDB || {}
+                        const importNamespaceIdToDB = Object.assign({}, ...(importWorkspace.namespaceIdToDB || []).map(({ internalKey, universalKey }) => ({ [internalKey]: universalKey })))
                         Object.entries(mapping)
                             .forEach(([localKey, { key: sourceKey }]) => {
                                 if (importNamespaceIdToDB[sourceKey]) {
-                                    this.namespaceIdToDB[localKey] = importNamespaceIdToDB[sourceKey]
+                                    this.namespaceIdToDB = [
+                                        ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== localKey)),
+                                        { internalKey: localKey, universalKey: importNamespaceIdToDB[sourceKey] }
+                                    ]
                                 }
                             })
                     }
@@ -50,10 +53,13 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         }
         Object.values(this.normal)
             .filter(isMappableNormalItem)
-            .filter(({ key }) => (!(key in this.namespaceIdToDB)))
+            .filter(({ key }) => (!(this.universalKey(key))))
             .forEach(({ tag, key }) => {
                 this.status.json = 'Dirty'
-                this.namespaceIdToDB[key] = `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`
+                this.namespaceIdToDB = [
+                    ...this.namespaceIdToDB,
+                    { internalKey: key, universalKey: `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`}
+                ]
             })
         //
         // TODO: Extend setWML to check for entries in namespaceIdToDB that no longer have a

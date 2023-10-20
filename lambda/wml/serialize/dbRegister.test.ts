@@ -34,7 +34,7 @@ describe('dbRegister', () => {
                 fileName: 'test',
                 zone: 'Library',
             },
-            namespaceIdToDB: { TESS: 'CHARACTER#12345' },
+            namespaceIdToDB: [{ internalKey: 'TESS', universalKey: 'CHARACTER#12345' }],
             status: {
                 json: 'Clean'
             },
@@ -92,9 +92,9 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
-            namespaceIdToDB: {
-                Welcome: 'ROOM#12345'
-            },
+            namespaceIdToDB: [
+                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
+            ],
             normal: {
                 TEST: {
                     tag: 'Asset',
@@ -188,9 +188,9 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
-            namespaceIdToDB: {
-                Welcome: 'ROOM#12345'
-            },
+            namespaceIdToDB: [
+                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
+            ],
             normal: {
                 TEST: {
                     tag: 'Asset',
@@ -257,9 +257,9 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
-            namespaceIdToDB: {
-                Welcome: 'ROOM#12345'
-            },
+            namespaceIdToDB: [
+                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
+            ],
             normal: {
                 TEST: {
                     tag: 'Asset',
@@ -327,7 +327,7 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
-            namespaceIdToDB: {},
+            namespaceIdToDB: [],
             normal: {
                 test: {
                     tag: 'Asset',

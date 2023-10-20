@@ -123,7 +123,7 @@ describe('recursiveFetchImports', () => {
             }
             return {
                 normal,
-                namespaceIdToDB: {}
+                namespaceIdToDB: []
             }
         })
     })
