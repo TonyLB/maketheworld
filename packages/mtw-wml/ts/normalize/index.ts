@@ -41,7 +41,10 @@ import {
     SchemaBeforeTag,
     SchemaReplaceTag,
     SchemaKnowledgeTag,
-    isSchemaKnowledgeContents
+    isSchemaKnowledgeContents,
+    SchemaExportTag,
+    isImportableTag,
+    isSchemaExport
 } from '../simpleSchema/baseClasses'
 import {
     BaseAppearance,
@@ -85,6 +88,7 @@ import standardizeNormal from './standardize';
 import { schemaFromParse } from '../simpleSchema';
 import parse from '../simpleParser';
 import tokenizer from '../parser/tokenizer';
+import { buildNormalPlaceholdersFromExport, rebuildContentsFromImport } from './importExportUtil';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -347,14 +351,14 @@ export class Normalizer {
         }
     }
 
-    //
-    // TODO: When position is provided, compare against existing appearances (if any) in order
-    // to find the right place to splice the new entry into the list, and then reindex all of
-    // the later appearances
-    //
     _mergeAppearance(key: string, item: NormalItem, position: NormalizerInsertPosition): number {
         if (key in this._normalForm) {
             const tag = this._normalForm[key].tag
+            //
+            // When position is provided, compare against existing appearances (if any) in order
+            // to find the right place to splice the new entry into the list, and then reindex all of
+            // the later appearances
+            //
             const insertBefore = this._normalForm[key].appearances.findIndex((_, index) => (
                 this._insertPositionSortOrder(position, { key, index, tag }) <= 0
             ))
@@ -636,6 +640,27 @@ export class Normalizer {
     //
     put(node: SchemaTag, position: NormalizerInsertPosition): NormalReference | undefined {
         let returnValue: NormalReference = undefined
+        //
+        // SchemaExportTag encodes its changes throughout the normalForm, rather than creating any normal Item
+        // of its own.
+        //
+        if (isSchemaExport(node)) {
+            const exportPlaceholder = buildNormalPlaceholdersFromExport(node)
+            this._normalForm = produce(this._normalForm, (draft) => {
+                exportPlaceholder.forEach((item) => {
+                    if (item.key in draft) {
+                        draft[item.key].exportAs = item.exportAs
+                    }
+                    else {
+                        draft[item.key] = item
+                    }
+                })
+            })
+            //
+            // TODO: Assign exportAs keys on all normal items (creating where necessary)
+            //
+            return returnValue
+        }
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return returnValue
         }
@@ -659,9 +684,6 @@ export class Normalizer {
                 }
                 break
             case 'Import':
-                //
-                // TODO: Refactor Import to deprecate Use tags and have direct appearances with optional 'as' property
-                //
                 const translatedImport = this._translate({ ...translateContext, contents: [] }, node)
                 const importIndex = this._mergeAppearance(translatedImport.key, translatedImport, position)
                 const importParentReference = this._getParentReference(translateContext.contextStack)
@@ -680,87 +702,20 @@ export class Normalizer {
                         ]
                     )
                 }
-                const importContents = Object.entries(node.mapping).map<NormalReference>(([key, { type, key: from }], index) => {
-                    const updatedContext: NormalizerInsertPosition = {
-                        ...position,
-                        replace: false,
-                        contextStack: [
-                            ...translateContext.contextStack,
-                            {
-                                key: translatedImport.key,
-                                tag: node.tag,
-                                index: importIndex
-                            }
-                        ],
-                    }    
-                    switch(type) {
-                        case 'Room':
-                            return this.put(
-                                    {
-                                        key,
-                                        tag: 'Room',
-                                        name: [],
-                                        contents: [],
-                                        render: []
-                                    },
-                                    updatedContext
-                                )
-                        case 'Feature':
-                            return this.put(
-                                    {
-                                        key,
-                                        tag: 'Feature',
-                                        name: [],
-                                        contents: [],
-                                        render: []
-                                    },
-                                    updatedContext
-                                )
-                        case 'Knowledge':
-                            return this.put(
-                                    {
-                                        key,
-                                        tag: 'Knowledge',
-                                        name: [],
-                                        contents: [],
-                                        render: []
-                                    },
-                                    updatedContext
-                                )
-                        case 'Variable':
-                            return this.put(
-                                    {
-                                        key,
-                                        tag: 'Variable'
-                                    },
-                                    updatedContext
-                                )
-                        case 'Computed':
-                            return this.put(
-                                    {
-                                        key,
-                                        tag: 'Computed',
-                                        src: '',
-                                        dependencies: []
-                                    },
-                                    updatedContext
-                                )
-                        case 'Action':
-                            return this.put(
-                                    {
-                                        key,
-                                        tag: 'Action',
-                                        src: ''
-                                    },
-                                    updatedContext
-                                )
-                        //
-                        // TODO: Add import for Bookmarks
-                        //
-                        default:
-                            throw new NormalizeTagMismatchError(`"${type}" tag not allowed in import`)
-                    }
-                })
+                const importSchemaTags = rebuildContentsFromImport(node)
+                const updatedContext: NormalizerInsertPosition = {
+                    ...position,
+                    replace: false,
+                    contextStack: [
+                        ...translateContext.contextStack,
+                        {
+                            key: translatedImport.key,
+                            tag: node.tag,
+                            index: importIndex
+                        }
+                    ],
+                }
+                const importContents = importSchemaTags.map((tag) => (this.put(tag, updatedContext)))
                 this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
                 return {
                     key: translatedImport.key,
@@ -1089,30 +1044,38 @@ export class Normalizer {
         }
         switch(node.tag) {
             case 'Asset':
-                if (node.Story) {
-                    return {
-                        key,
-                        tag: 'Story',
-                        Story: true,
-                        instance: false,
-                        fileName: node.fileName,
-                        contents: baseAppearance.contents
+                //
+                // TODO: Create a SchemaExportTag manually out of `exportAs` data on every item in the
+                // entire normalForm that has this node somewhere in the context of one of its appearances,
+                // and which has an exportAs specified different from its key, to be the last element of the
+                // Asset contents.
+                //
+                const allAssetDescendantNormals = (Object.values(this._normalForm) as NormalItem[])
+                    .filter(({ tag }) => (isImportableTag(tag)))
+                    .filter(({ appearances }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find(({ key }) => (key === node.key)))))))
+                    .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
+                const exportSchemaTag: SchemaExportTag[] = allAssetDescendantNormals.length
+                    ? [{
+                        tag: 'Export',
+                        mapping: Object.assign(
+                            {},
+                            ...allAssetDescendantNormals.map(({ key, tag, exportAs }) => ({ [exportAs || key]: { key, type: tag }}))
+                        )
+                    }]
+                    : []
+                return {
+                    ...(node.Story
+                        ? { tag: 'Story', Story: true, instance: false }
+                        : { tag: 'Asset', Story: undefined }
+                    ),
+                    key,
+                    contents: [
+                        ...baseAppearance.contents
                             .map(({ key, index }) => (this._normalToSchema(key, index)))
                             .filter((value) => (value))
-                            .filter(isSchemaAssetContents)
-                    }
-                }
-                else {
-                    return {
-                        key,
-                        tag: 'Asset',
-                        Story: undefined,
-                        fileName: node.fileName,
-                        contents: baseAppearance.contents
-                            .map(({ key, index }) => (this._normalToSchema(key, index)))
-                            .filter((value) => (value))
-                            .filter(isSchemaAssetContents)
-                    }
+                            .filter(isSchemaAssetContents),
+                        ...exportSchemaTag
+                    ]
                 }
             case 'Image':
                 return {
