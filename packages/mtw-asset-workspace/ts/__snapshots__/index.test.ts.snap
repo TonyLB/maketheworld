@@ -168,5 +168,23 @@ Array [
     "internalKey": "a123",
     "universalKey": "testImport",
   },
+  Object {
+    "internalKey": "c789",
+    "universalKey": "testFeature",
+  },
+]
+`;
+
+exports[`AssetWorkspace setWML should populate export namespace mappings 1`] = `
+Array [
+  Object {
+    "internalKey": "a123",
+    "universalKey": "ROOM#UUID-0",
+    "exportAs": "Room2",
+  },
+  Object {
+    "internalKey": "b456",
+    "universalKey": "ROOM#UUID-1",
+  },
 ]
 `;

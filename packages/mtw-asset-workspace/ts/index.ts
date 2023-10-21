@@ -31,19 +31,21 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         // the namespaceIdToDB 
         //
         if (this._workspaceFromKey) {
-            await Promise.all(Object.values(this.normal)
+            const normal = this.normal
+            await Promise.all(Object.values(normal)
                 .filter(isNormalImport)
                 .map(async ({ from, mapping }) => {
                     const importWorkspace = await this._workspaceFromKey?.(`ASSET#${from}`)
                     if (importWorkspace) {
                         await importWorkspace.loadJSON()
-                        const importNamespaceIdToDB = Object.assign({}, ...(importWorkspace.namespaceIdToDB || []).map(({ internalKey, universalKey }) => ({ [internalKey]: universalKey })))
+                        const importNamespaceIdToDB = Object.assign({}, ...(importWorkspace.namespaceIdToDB || []).map(({ internalKey, universalKey, exportAs }) => ({ [exportAs ?? internalKey]: universalKey })))
                         Object.entries(mapping)
                             .forEach(([localKey, { key: sourceKey }]) => {
+                                const exportAs = normal[localKey]?.exportAs
                                 if (importNamespaceIdToDB[sourceKey]) {
                                     this.namespaceIdToDB = [
                                         ...this.namespaceIdToDB.filter(({ internalKey }) => (internalKey !== localKey)),
-                                        { internalKey: localKey, universalKey: importNamespaceIdToDB[sourceKey] }
+                                        { internalKey: localKey, universalKey: importNamespaceIdToDB[sourceKey], ...(exportAs ? { exportAs } : {} ) }
                                     ]
                                 }
                             })
@@ -54,11 +56,12 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         Object.values(this.normal)
             .filter(isMappableNormalItem)
             .filter(({ key }) => (!(this.universalKey(key))))
-            .forEach(({ tag, key }) => {
+            .forEach(({ tag, key, exportAs }) => {
+                console.log(`incoming: ${JSON.stringify({ tag, key, exportAs }, null, 4)}`)
                 this.status.json = 'Dirty'
                 this.namespaceIdToDB = [
                     ...this.namespaceIdToDB,
-                    { internalKey: key, universalKey: `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`}
+                    { internalKey: key, universalKey: `${tag.toUpperCase()}#${this._isGlobal ? key : uuidv4()}`, ...(exportAs ? { exportAs } : {} ) }
                 ]
             })
         //

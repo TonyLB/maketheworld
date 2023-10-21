@@ -319,9 +319,12 @@ describe('AssetWorkspace', () => {
             testWorkspace.setWorkspaceLookup(async () => ({
                 loadJSON: jest.fn(),
                 namespaceIdToDB: [
-                    { internalKey: 'base', universalKey: 'testImport' }
+                    { internalKey: 'base', universalKey: 'testImport' },
+                    { internalKey: 'testFeature', universalKey: 'testFeature', exportAs: 'Feature2' }
                 ],
-                universalKey: jest.fn().mockImplementation((key) => (key === 'base' ? 'testImport' : undefined))
+                universalKey: jest.fn().mockImplementation((key) => (key === 'base'
+                    ? 'testImport'
+                    : key === 'testFeature' ? 'testFeature' : undefined))
             } as any))
             testWorkspace.namespaceIdToDB = [
                 { internalKey: 'b456', universalKey: 'TestB' }
@@ -331,6 +334,7 @@ describe('AssetWorkspace', () => {
                 <Asset key=(Test)>
                     <Import from=(testAsset)>
                         <Room key=(a123) from=(base) />
+                        <Feature key=(c789) from=(Feature2) />
                     </Import>
                     <Room key=(a123)>
                         <Exit to=(b456)>welcome</Exit>
@@ -343,7 +347,31 @@ describe('AssetWorkspace', () => {
             await testWorkspace.setWML(testSource)
 
             expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
+        })
 
+        it('should populate export namespace mappings', async () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Library'
+            })
+            uuidv4Mock.mockImplementation(uuidMockFactory())
+            const testSource = `
+                <Asset key=(Test)>
+                    <Room key=(a123)>
+                        <Exit to=(b456)>welcome</Exit>
+                    </Room>
+                    <Room key=(b456)>
+                        <Exit to=(a123)>vortex</Exit>
+                    </Room>
+                    <Export>
+                        <Room key=(a123) as=(Room2) />
+                    </Export>
+                </Asset>
+            `
+            await testWorkspace.setWML(testSource)
+            console.log(`Normal: ${JSON.stringify(testWorkspace.normal, null, 4)}`)
+
+            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
         })
     })
 })

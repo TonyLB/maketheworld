@@ -31,6 +31,7 @@ export type BaseAppearance = {
 
 type NormalBase = {
     key: string;
+    exportAs?: string;
 }
 
 export type NormalAsset = {
