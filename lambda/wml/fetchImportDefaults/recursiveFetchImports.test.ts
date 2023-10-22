@@ -35,12 +35,12 @@ describe('recursiveFetchImports', () => {
         </Room>
         <Room key=(testImportThree) />
         <Import from=(testImportAssetOne)>
-            <Use type="Room" key=(testImportOne) />
-            <Use type="Room" key=(testImportStubOne) />
-            <Use type="Room" key=(testImportFoo) as=(testImportTwo) />
+            <Room key=(testImportOne) />
+            <Room key=(testImportStubOne) />
+            <Room key=(testImportTwo) from=(testImportFoo) />
         </Import>
         <Import from=(testImportAssetTwo)>
-            <Use type="Room" key=(basic) as=(testImportThree) />
+            <Room key=(testImportThree) from=(basic) />
         </Import>
         <Room key=(testFeatures)>
             <Description>
@@ -48,8 +48,8 @@ describe('recursiveFetchImports', () => {
             </Description>
         </Room>
         <Import from=(testImportAssetFour)>
-            <Use type="Feature" key=(testFeature) as=(featureImport) />
-            <Use type="Room" key=(testRoomWithFeatures) />
+            <Feature key=(featureImport) from=(testFeature) />
+            <Room key=(testRoomWithFeatures) />
         </Import>
     </Asset>`)
     const testImportOne = testNormalFromWML(`<Asset key=(testImportAssetOne)>
@@ -77,8 +77,8 @@ describe('recursiveFetchImports', () => {
         </Room>
         <Room key=(stub) />
         <Import from=(testImportAssetThree)>
-            <Use type="Room" key=(basicTwo) as=(stub) />
-            <Use type="Room" key=(basicOne) as=(basic) />
+            <Room key=(stub) from=(basicTwo) />
+            <Room key=(basic) from=(basicOne) />
         </Import>
     </Asset>`)
     const testImportThree = testNormalFromWML(`<Asset key=(testImportAssetThree)>

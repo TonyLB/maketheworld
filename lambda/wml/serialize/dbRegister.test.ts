@@ -35,6 +35,7 @@ describe('dbRegister', () => {
                 zone: 'Library',
             },
             namespaceIdToDB: [{ internalKey: 'TESS', universalKey: 'CHARACTER#12345' }],
+            universalKey: jest.fn().mockImplementation((key) => (key === 'TESS' ? 'CHARACTER#12345' : undefined )),
             status: {
                 json: 'Clean'
             },
