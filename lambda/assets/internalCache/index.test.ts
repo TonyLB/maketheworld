@@ -24,9 +24,9 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
                     tag: 'Asset'
                 }
             },
-            namespaceIdToDB: {
-                VORTEX: 'VORTEX'
-            }
+            namespaceIdToDB: [
+                { internalKey: 'VORTEX', universalKey: 'ROOM#VORTEX' }
+            ]
         }
     })
 })

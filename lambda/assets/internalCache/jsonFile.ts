@@ -19,7 +19,7 @@ export class JSONFileData {
             defaultValue: (cacheKey) => {
                 return {
                     normal: {},
-                    namespaceIdToDB: {}
+                    namespaceIdToDB: []
                 }
             }
         })
@@ -38,14 +38,14 @@ export class JSONFileData {
         if (!address) {
             return {
                 normal: {},
-                namespaceIdToDB: {}
+                namespaceIdToDB: []
             }
         }
         const assetWorkspace = new ReadOnlyAssetWorkspace(address)
         await assetWorkspace.loadJSON()
         return {
             normal: assetWorkspace.normal || {},
-            namespaceIdToDB: assetWorkspace.namespaceIdToDB || {}
+            namespaceIdToDB: assetWorkspace.namespaceIdToDB || []
         }
     }
 

@@ -5,7 +5,7 @@
 
 import Normalizer from ".";
 import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction, isNormalImport, NormalImport, isNormalKnowledge, NormalKnowledge } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge, isSchemaTaggedMessageLegalContents, SchemaConditionTag } from "../simpleSchema/baseClasses"
+import { SchemaTaggedMessageLegalContents, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge, isSchemaTaggedMessageLegalContents, SchemaConditionTag, isImportableTag } from "../simpleSchema/baseClasses"
 import { extractConditionedItemFromContents, extractNameFromContents } from "../simpleSchema/utils";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
@@ -612,6 +612,28 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                 }]
             })
         })
+
+    //
+    // Add standardized view of all Exports to the results
+    //
+    const exportItems = Object.values(normal)
+        .filter(({ tag }) => (isImportableTag(tag)))
+        .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
+        .sort(normalAlphabeticKeySort)
+        .map(({ tag, key, exportAs }) => ({ [exportAs]: { key, type: tag }}))
+
+    if (exportItems.length) {
+        resultNormalizer.put({
+            tag: 'Export',
+            mapping: Object.assign({}, ...exportItems)
+        }, { 
+            contextStack: [{
+                key: rootNode.key,
+                tag: 'Asset',
+                index: 0
+            }]
+        })
+    }
 
     return resultNormalizer.normal
 }

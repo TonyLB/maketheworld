@@ -87,9 +87,21 @@ type AssetWorkspaceStatus = {
     wml: AssetWorkspaceStatusItem;
 }
 
-export type NamespaceMapping = {
-    [name: string]: string
+//
+// TODO: Refactor NamespaceMapping from a Record<string, string> to:
+//        {
+//            internalKey: string;
+//            universalKey: string;
+//            exportAs?: string;
+//        }[]
+//
+export type NamespaceMappingItem = {
+    internalKey: string;
+    universalKey: string;
+    exportAs?: string;
 }
+
+export type NamespaceMapping = NamespaceMappingItem[]
 
 export type WorkspaceImageProperty = {
     fileName: string;
@@ -112,7 +124,7 @@ export class ReadOnlyAssetWorkspace {
         wml: 'Initial'
     };
     normal?: NormalForm;
-    namespaceIdToDB: NamespaceMapping = {};
+    namespaceIdToDB: NamespaceMapping = [];
     properties: WorkspaceProperties = {};
     _isGlobal?: boolean;
     _workspaceFromKey?: AddressLookup;
@@ -142,6 +154,11 @@ export class ReadOnlyAssetWorkspace {
         return this.address.fileName
     }
 
+    universalKey(searchKey: string): string | undefined {
+        const matchingNamespaceItem = this.namespaceIdToDB.find(({ internalKey }) => (internalKey === searchKey))
+        return matchingNamespaceItem?.universalKey
+    }
+
     get assetId(): `ASSET#${string}` | `CHARACTER#${string}` | undefined {
         const assets: NormalForm = this.normal || {}
         const asset = Object.values(assets).find(isNormalAsset)
@@ -150,7 +167,7 @@ export class ReadOnlyAssetWorkspace {
         }
         const character = Object.values(assets).find(isNormalCharacter)
         if (character && character.key) {
-            return this.namespaceIdToDB[character.key] as `CHARACTER#${string}`
+            return this.universalKey(character.key) as `CHARACTER#${string}`
         }
     }
 
@@ -178,7 +195,7 @@ export class ReadOnlyAssetWorkspace {
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.normal = {}
-                this.namespaceIdToDB = {}
+                this.namespaceIdToDB = []
                 this.properties = {}
                 this.status.json = 'Clean'
                 return
@@ -186,7 +203,7 @@ export class ReadOnlyAssetWorkspace {
             throw err
         }
         
-        const { namespaceIdToDB = {}, normal = {}, properties = {} } = JSON.parse(contents)
+        const { namespaceIdToDB = [], normal = {}, properties = {} } = JSON.parse(contents)
 
         this.normal = normal as NormalForm
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping

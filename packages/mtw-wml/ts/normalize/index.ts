@@ -649,16 +649,15 @@ export class Normalizer {
             this._normalForm = produce(this._normalForm, (draft) => {
                 exportPlaceholder.forEach((item) => {
                     if (item.key in draft) {
-                        draft[item.key].exportAs = item.exportAs
+                        if (item.exportAs) {
+                            draft[item.key].exportAs = item.exportAs
+                        }
                     }
                     else {
                         draft[item.key] = item
                     }
                 })
             })
-            //
-            // TODO: Assign exportAs keys on all normal items (creating where necessary)
-            //
             return returnValue
         }
         if (!isSchemaTagWithNormalEquivalent(node)) {
@@ -805,9 +804,7 @@ export class Normalizer {
         if (isSchemaWithContents(node)) {
             node.contents.forEach(this._validateTags.bind(this))
         }
-        //
-        // TODO: Rationalize Import to include normal tags, rather than <Use> tags
-        //
+
         if (node.tag === 'Import') {
             Object.entries(node.mapping).forEach(([key, { type }]) => {
                 if (this._tags[key] && this._tags[key] !== type) {

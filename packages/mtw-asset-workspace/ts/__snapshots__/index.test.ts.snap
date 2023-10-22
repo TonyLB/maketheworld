@@ -11,9 +11,12 @@ Object {
 `;
 
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 2`] = `
-Object {
-  "a123": "Test",
-}
+Array [
+  Object {
+    "internalKey": "a123",
+    "universalKey": "Test",
+  },
+]
 `;
 
 exports[`AssetWorkspace setWML should correctly parse WML input 1`] = `
@@ -143,15 +146,45 @@ Object {
 `;
 
 exports[`AssetWorkspace setWML should correctly parse WML input 2`] = `
-Object {
-  "a123": "TestA",
-  "b456": "ROOM#UUID-0",
-}
+Array [
+  Object {
+    "internalKey": "a123",
+    "universalKey": "TestA",
+  },
+  Object {
+    "internalKey": "b456",
+    "universalKey": "ROOM#UUID-0",
+  },
+]
 `;
 
 exports[`AssetWorkspace setWML should look up import namespace mappings 1`] = `
-Object {
-  "a123": "testImport",
-  "b456": "TestB",
-}
+Array [
+  Object {
+    "internalKey": "b456",
+    "universalKey": "TestB",
+  },
+  Object {
+    "internalKey": "a123",
+    "universalKey": "testImport",
+  },
+  Object {
+    "internalKey": "c789",
+    "universalKey": "testFeature",
+  },
+]
+`;
+
+exports[`AssetWorkspace setWML should populate export namespace mappings 1`] = `
+Array [
+  Object {
+    "internalKey": "a123",
+    "universalKey": "ROOM#UUID-0",
+    "exportAs": "Room2",
+  },
+  Object {
+    "internalKey": "b456",
+    "universalKey": "ROOM#UUID-1",
+  },
+]
 `;

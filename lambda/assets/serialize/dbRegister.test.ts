@@ -32,7 +32,10 @@ describe('dbRegister', () => {
                 fileName: 'test',
                 zone: 'Library',
             },
-            namespaceIdToDB: { TESS: 'CHARACTER#12345' },
+            namespaceIdToDB: [
+                { internalKey: 'TESS', universalKey: 'CHARACTER#12345' }
+            ],
+            universalKey: jest.fn().mockImplementation((key) => (key === 'TESS' ? 'CHARACTER#12345' : undefined )),
             status: {
                 json: 'Clean'
             },
@@ -90,9 +93,10 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
-            namespaceIdToDB: {
-                Welcome: 'ROOM#12345'
-            },
+            namespaceIdToDB: [
+                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
+            ],
+            universalKey: jest.fn().mockImplementation((key) => (key === 'Welcome' ? 'ROOM#12345' : undefined )),
             normal: {
                 TEST: {
                     tag: 'Asset',
@@ -186,9 +190,10 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
-            namespaceIdToDB: {
-                Welcome: 'ROOM#12345'
-            },
+            namespaceIdToDB: [
+                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
+            ],
+            universalKey: jest.fn().mockImplementation((key) => (key === 'Welcome' ? 'ROOM#12345' : undefined )),
             normal: {
                 TEST: {
                     tag: 'Asset',
@@ -255,9 +260,10 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
-            namespaceIdToDB: {
-                Welcome: 'ROOM#12345'
-            },
+            namespaceIdToDB: [
+                { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
+            ],
+            universalKey: jest.fn().mockImplementation((key) => (key === 'Welcome' ? 'ROOM#12345' : undefined )),
             normal: {
                 TEST: {
                     tag: 'Asset',
@@ -325,7 +331,8 @@ describe('dbRegister', () => {
             status: {
                 json: 'Clean'
             },
-            namespaceIdToDB: {},
+            namespaceIdToDB: [],
+            universalKey: jest.fn().mockReturnValue(undefined),
             normal: {
                 test: {
                     tag: 'Asset',

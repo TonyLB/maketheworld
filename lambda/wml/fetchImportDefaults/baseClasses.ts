@@ -25,13 +25,13 @@ export class FetchImportsJSONHelper {
             await assetWorkspace.loadJSON()
             return {
                 normal: assetWorkspace.normal || {},
-                namespaceIdToDB: assetWorkspace.namespaceIdToDB || {}
+                namespaceIdToDB: assetWorkspace.namespaceIdToDB || []
             }    
         }
         else {
             return {
                 normal: {},
-                namespaceIdToDB: {}
+                namespaceIdToDB: []
             }
         }
     }

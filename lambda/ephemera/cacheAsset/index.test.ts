@@ -21,6 +21,7 @@ import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-normal'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
+import { NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 
 //
 // TS nesting is deep enough that if we don't flag then it will complain
@@ -53,10 +54,10 @@ let mockTestAsset: NormalForm = {
         }]
     }
 }
-let mockNamespaceMap: Record<string, string> = {
-    Test: 'ASSET#Test',
-    Tess: 'CHARACTER#Tess'
-}
+let mockNamespaceMap: NamespaceMapping = [
+    { internalKey: 'Test', universalKey: 'ASSET#Test' },
+    { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' }
+]
 
 jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
@@ -75,7 +76,11 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
             },
             loadJSON: jest.fn(),
             normal: mockTestAsset,
-            namespaceIdToDB: mockNamespaceMap
+            namespaceIdToDB: mockNamespaceMap,
+            universalKey: jest.fn().mockImplementation((key) => {
+                const matchRecord = mockNamespaceMap.find(({ internalKey }) => (internalKey === key))
+                return matchRecord?.universalKey
+            }),
         }
     })
 })
@@ -111,9 +116,9 @@ describe('cacheAsset', () => {
                 }]
             }
         }
-        mockNamespaceMap = {
-            Test: 'ASSET#Test'
-        }
+        mockNamespaceMap = [
+            { internalKey: 'Test', universalKey: 'ASSET#Test' }
+        ]
         internalCacheMock.CharacterConnections.get.mockResolvedValue([])
         internalCacheMock.Graph.get.mockResolvedValue(new Graph(
             { 'ASSET#BASE': { key: 'ASSET#BASE'}, 'ASSET#Test': { key: 'ASSET#Test' } },
@@ -184,14 +189,14 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        mockNamespaceMap = {
-            test: 'ASSET#test',
-            ABC: 'ROOM#DEF',
-            active: 'COMPUTED#XYZ',
-            powered: 'VARIABLE#QRS',
-            switchedOn: 'VARIABLE#TUV',
-            testKnowledge: 'KNOWLEDGE#GHI'
-        }
+        mockNamespaceMap = [
+            { internalKey: 'test', universalKey: 'ASSET#test' },
+            { internalKey: 'ABC', universalKey: 'ROOM#DEF' },
+            { internalKey: 'active', universalKey: 'COMPUTED#XYZ' },
+            { internalKey: 'powered', universalKey: 'VARIABLE#QRS' },
+            { internalKey: 'switchedOn', universalKey: 'VARIABLE#TUV' },
+            { internalKey: 'testKnowledge', universalKey: 'KNOWLEDGE#GHI' }
+        ]
         mockTestAsset = {
             test: {
                 key: 'test',
@@ -391,12 +396,12 @@ describe('cacheAsset', () => {
 
         // ephemeraDBMock.getItem
         //     .mockResolvedValueOnce({ State: {} })
-        mockNamespaceMap = {
-            test: 'ASSET#test',
-            ABC: 'ROOM#ABC',
-            DEF: 'ROOM#DEF',
-            open: 'VARIABLE#QRS'
-        }
+        mockNamespaceMap = [
+            { internalKey: 'test', universalKey: 'ASSET#test' },
+            { internalKey: 'ABC', universalKey: 'ROOM#ABC' },
+            { internalKey: 'DEF', universalKey: 'ROOM#DEF' },
+            { internalKey: 'open', universalKey: 'VARIABLE#QRS' }
+        ]
         mockTestAsset = {
             test: {
                 key: 'test',
@@ -537,10 +542,10 @@ describe('cacheAsset', () => {
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        mockNamespaceMap = {
-            test: 'ASSET#test',
-            ABC: 'ROOM#DEF',
-        }
+        mockNamespaceMap = [
+            { internalKey: 'test', universalKey: 'ASSET#test' },
+            { internalKey: 'ABC', universalKey: 'ROOM#DEF' },
+        ]
         mockTestAsset = {
             test: {
                 key: 'test',
@@ -623,9 +628,9 @@ describe('cacheAsset', () => {
         })
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'CHARACTER#Tess', address: { fileName: 'Tess', zone: 'Personal', player: 'Test' } })
 
-        mockNamespaceMap = {
-            Tess: 'CHARACTER#Tess',
-        }
+        mockNamespaceMap = [
+            { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' },
+        ]
         mockTestAsset = {
             Tess: {
                 key: 'Tess',
