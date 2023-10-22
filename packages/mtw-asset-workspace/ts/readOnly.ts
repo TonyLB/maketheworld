@@ -126,7 +126,6 @@ export class ReadOnlyAssetWorkspace {
     normal?: NormalForm;
     namespaceIdToDB: NamespaceMapping = [];
     properties: WorkspaceProperties = {};
-    _isGlobal?: boolean;
     _workspaceFromKey?: AddressLookup;
     
     constructor(args: AssetWorkspaceAddress) {
@@ -134,6 +133,10 @@ export class ReadOnlyAssetWorkspace {
             throw new AssetWorkspaceException('Invalid arguments to AssetWorkspace constructor')
         }
         this.address = args
+    }
+
+    get _isGlobal(): boolean {
+        return (this.address.zone === 'Canon' && this.address.fileName === 'primitives')
     }
 
     get filePath(): string {
