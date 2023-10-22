@@ -57,7 +57,6 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             .filter(isMappableNormalItem)
             .filter(({ key }) => (!(this.universalKey(key))))
             .forEach(({ tag, key, exportAs }) => {
-                console.log(`incoming: ${JSON.stringify({ tag, key, exportAs }, null, 4)}`)
                 this.status.json = 'Dirty'
                 this.namespaceIdToDB = [
                     ...this.namespaceIdToDB,
