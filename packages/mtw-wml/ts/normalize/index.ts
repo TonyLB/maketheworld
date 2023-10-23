@@ -608,6 +608,26 @@ export class Normalizer {
             //
             this._reindexReference({ key: toKey, index, tag }, { contextStack })
         })
+        //
+        // A list of all key type properties that refer from one item to
+        // another (e.g. to/from for EXIT, to for LINK):
+        //    - Link:To
+        //    - Bookmark:To
+        //    - Map:Appearance:Rooms
+        //    - Exit:To
+        //    - Exit:From
+        //    - Computed:Dependencies
+        //    - Condition:Dependencies
+        //    - Message:Appearance:Rooms
+        //    - Moment:Appearance:Messages
+        //
+        // TODO: Search all normal items for such references to the key being
+        // remapped, and update them accordingly (should be a data-only change,
+        // and not need sophisticated structure changes like above).
+        //
+        // TODO: Add an exportAs property to the original key (if it does not already
+        // have one) to point to fromKey.
+        //
         this._normalForm = objectFilterEntries(this._normalForm, ([key]) => (key !== fromKey))
     }
 
