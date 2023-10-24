@@ -51,9 +51,14 @@ import {
     ComponentAppearance,
     ComponentRenderItem,
     isNormalAsset,
+    isNormalBookmark,
     isNormalCharacter,
+    isNormalComputed,
     isNormalCondition,
+    isNormalExit,
+    isNormalFeature,
     isNormalImport,
+    isNormalKnowledge,
     isNormalMap,
     isNormalRoom,
     MapAppearance,
@@ -620,6 +625,43 @@ export class Normalizer {
         //    - Condition:Dependencies
         //    - Message:Appearance:Rooms
         //    - Moment:Appearance:Messages
+        this._normalForm = produce(this._normalForm, (draft) => {
+            Object.values(draft).forEach((item) => {
+                if (isNormalExit(item)) {
+                    if (item.to === fromKey) { item.to === toKey }
+                    if (item.from === fromKey) { item.from === toKey }
+                }
+                if (isNormalExit(item)) {
+                    if (item.to === fromKey) { item.to === toKey }
+                    if (item.from === fromKey) { item.from === toKey }
+                }
+                if (isNormalCondition(item)) {
+                    item.conditions.forEach((condition, index) => {
+                        if (condition.dependencies.includes(fromKey)) {
+                            condition.dependencies = condition.dependencies.map((dependency) => (dependency === fromKey ? toKey : dependency))
+                        }
+                    })
+                }
+                if (isNormalComputed(item)) {
+                    if (item.dependencies.includes(fromKey)) {
+                        item.dependencies = item.dependencies.map((dependency) => (dependency === fromKey ? toKey : dependency))
+                    }
+                }
+                if (isNormalRoom(item) || isNormalFeature(item) || isNormalKnowledge(item) || isNormalBookmark(item)) {
+                    item.appearances.forEach((appearance) => {
+                        if ((appearance.render || []).find((item) => (
+                            (item.tag === 'Link' || item.tag === 'Bookmark') && item.to === fromKey
+                        ))) {
+                            appearance.render = appearance.render.map((item) => (
+                                ((item.tag === 'Link' || item.tag === 'Bookmark') && item.to === fromKey)
+                                    ? { ...item, to: toKey }
+                                    : item
+                            ))
+                        }
+                    })
+                }
+            })
+        })
         //
         // TODO: Search all normal items for such references to the key being
         // remapped, and update them accordingly (should be a data-only change,
