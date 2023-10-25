@@ -627,10 +627,10 @@ export class Normalizer {
         //    - Moment:Appearance:Messages
         this._normalForm = produce(this._normalForm, (draft) => {
             Object.values(draft).forEach((item) => {
-                if (isNormalExit(item)) {
-                    if (item.to === fromKey) { item.to === toKey }
-                    if (item.from === fromKey) { item.from === toKey }
-                }
+                //
+                // Refactor NormalExit transform to eliminate item and recreate (since key
+                // will change as a consequence of property changes)
+                //
                 if (isNormalExit(item)) {
                     if (item.to === fromKey) { item.to === toKey }
                     if (item.from === fromKey) { item.from === toKey }
@@ -638,13 +638,13 @@ export class Normalizer {
                 if (isNormalCondition(item)) {
                     item.conditions.forEach((condition, index) => {
                         if (condition.dependencies.includes(fromKey)) {
-                            condition.dependencies = condition.dependencies.map((dependency) => (dependency === fromKey ? toKey : dependency))
+                            condition.dependencies = condition.dependencies.filter((dependency) => (dependency !== fromKey))
                         }
                     })
                 }
                 if (isNormalComputed(item)) {
                     if (item.dependencies.includes(fromKey)) {
-                        item.dependencies = item.dependencies.map((dependency) => (dependency === fromKey ? toKey : dependency))
+                        item.dependencies = item.dependencies.filter((dependency) => (dependency !== fromKey))
                     }
                 }
                 if (isNormalRoom(item) || isNormalFeature(item) || isNormalKnowledge(item) || isNormalBookmark(item)) {
