@@ -349,6 +349,25 @@ describe('WML normalize', () => {
                 </Asset>
             `))
         })
+
+        it('should correctly reformat a map with a renamed room', () => {
+            const testSource = deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(test)><Description>One</Description></Room>
+                    <Map key=(testMap)><Room key=(test) x="0" y="100" /></Map>
+                </Asset>
+            `)
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            normalizer._renameItem('test', 'renamed')
+            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(renamed)><Description>One</Description></Room>
+                    <Map key=(testMap)><Room key=(renamed) x="0" y="100" /></Map>
+                </Asset>
+            `))
+        })
+
     })
 
     describe('put method', () => {

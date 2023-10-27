@@ -248,7 +248,7 @@ describe('standardizeNormal', () => {
                     <If {false}><Exit to=(testRoomOne)>one</Exit></If>
                 </Room>
                 <Map key=(testMap)>
-                    <Name />
+                    <Name>Test map</Name>
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne) x="0" y="0" />
                     <If {false}><Room key=(testRoomTwo) x="-100" y="0" /></If>

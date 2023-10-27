@@ -131,7 +131,11 @@ const extractBookmarkReferences = (items: SchemaTaggedMessageIncomingContents[])
 
 const extractConditionedMapContents = (contextNormalizer: Normalizer) => (item: NormalMap) => {
     const { appearances } = item
-    const returnContents = appearances.reduce<SchemaMapLegalContents[]>((previous, { contextStack }, index ) => {
+    //
+    // Separately aggregate appearances into a single appearance, wrapping conditions around
+    // both contents and Name information
+    //
+    const returnContents = appearances.reduce<{ contents: SchemaMapLegalContents[]; name: SchemaTaggedMessageLegalContents[] }>((previous, { contextStack }, index ) => {
         const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
         if (!(schemaVersion && isSchemaMap(schemaVersion))) {
             return previous
@@ -154,11 +158,17 @@ const extractConditionedMapContents = (contextNormalizer: Normalizer) => (item: 
                 }
                 return [returnValue]
             }, contents.filter(isSchemaMapContents))
-        return [
-            ...previous,
-            ...newContents
-        ]
-    }, [])
+        return {
+            contents: [
+                ...previous.contents,
+                ...newContents
+            ],
+            name: [
+                ...previous.name,
+                ...(schemaVersion.name ?? [])
+            ]
+        }
+    }, { contents: [], name: [] })
 
     return returnContents
 }
@@ -435,12 +445,12 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .filter(isNormalMap)
         .sort(normalAlphabeticKeySort)
         .forEach((map) => {
-            const contents = extractConditionedMapContents(argumentNormalizer)(map)
+            const { contents, name } = extractConditionedMapContents(argumentNormalizer)(map)
             const componentContents = (stripComponentContents(contents) as SchemaTag[]).filter(isSchemaMapContents)
             resultNormalizer.put({
                 tag: 'Map',
                 key: map.key,
-                name: extractNameFromContents(contents),
+                name,
                 contents: componentContents,
                 rooms: extractConditionedItemFromContents({
                     contents: contents as SchemaMapLegalContents[],
