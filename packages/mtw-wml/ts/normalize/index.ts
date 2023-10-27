@@ -625,16 +625,34 @@ export class Normalizer {
         //    - Condition:Dependencies
         //    - Message:Appearance:Rooms
         //    - Moment:Appearance:Messages
+
+        //
+        // First, outside of Immer, rename all exits that have the fromKey as either
+        // their from or to property
+        //
+        Object.values(this._normalForm)
+            .filter(isNormalExit)
+            .filter(({ to, from }) => ([to, from].includes(fromKey)))
+            .forEach((item) => {
+                const [newTo, newFrom] = [
+                    item.to === fromKey ? toKey : item.to,
+                    item.from === fromKey ? toKey: item.from
+                ]
+                this._normalForm[item.key] = {
+                    ...item,
+                    to: newTo,
+                    from: newFrom
+                }
+                this._renameItem(item.key, `${newFrom}#${newTo}`)
+        })
+
+        //
+        // Next use immer to create an immutable derivative of the original normalForm,
+        // with differences of every non-exit property value (i.e., properties that can
+        // be changed in place within a record)
+        //
         this._normalForm = produce(this._normalForm, (draft) => {
             Object.values(draft).forEach((item) => {
-                //
-                // Refactor NormalExit transform to eliminate item and recreate (since key
-                // will change as a consequence of property changes)
-                //
-                if (isNormalExit(item)) {
-                    if (item.to === fromKey) { item.to === toKey }
-                    if (item.from === fromKey) { item.from === toKey }
-                }
                 if (isNormalCondition(item)) {
                     item.conditions.forEach((condition, index) => {
                         if (condition.dependencies.includes(fromKey)) {
