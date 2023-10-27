@@ -348,7 +348,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     Map: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaMapTag }) => {
         const mapContents: SchemaTag[] = mergeOrderedConditionalTrees(
             [
-                ...(tag.name ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
+                ...(tag.name.length ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
                 ...((tag.images || []).map((key) => ({ tag: 'Image' as 'Image', key,  contents: []}))),
             ],
             tag.rooms.map((room) => ({

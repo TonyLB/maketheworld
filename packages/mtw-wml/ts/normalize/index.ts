@@ -51,10 +51,16 @@ import {
     ComponentAppearance,
     ComponentRenderItem,
     isNormalAsset,
+    isNormalBookmark,
     isNormalCharacter,
+    isNormalComputed,
     isNormalCondition,
+    isNormalExit,
+    isNormalFeature,
     isNormalImport,
+    isNormalKnowledge,
     isNormalMap,
+    isNormalMessage,
     isNormalRoom,
     MapAppearance,
     MessageAppearance,
@@ -608,6 +614,89 @@ export class Normalizer {
             //
             this._reindexReference({ key: toKey, index, tag }, { contextStack })
         })
+        //
+        // A list of all key type properties that refer from one item to
+        // another (e.g. to/from for EXIT, to for LINK):
+        //    - Link:To
+        //    - Bookmark:To
+        //    - Map:Appearance:Rooms
+        //    - Exit:To
+        //    - Exit:From
+        //    - Computed:Dependencies
+        //    - Condition:Dependencies
+        //    - Message:Appearance:Rooms
+        //    - Moment:Appearance:Messages
+
+        //
+        // First, outside of Immer, rename all exits that have the fromKey as either
+        // their from or to property
+        //
+        Object.values(this._normalForm)
+            .filter(isNormalExit)
+            .filter(({ to, from }) => ([to, from].includes(fromKey)))
+            .forEach((item) => {
+                const [newTo, newFrom] = [
+                    item.to === fromKey ? toKey : item.to,
+                    item.from === fromKey ? toKey: item.from
+                ]
+                this._normalForm[item.key] = {
+                    ...item,
+                    to: newTo,
+                    from: newFrom
+                }
+                this._renameItem(item.key, `${newFrom}#${newTo}`)
+        })
+
+        //
+        // Next use immer to create an immutable derivative of the original normalForm,
+        // with differences of every non-exit property value (i.e., properties that can
+        // be changed in place within a record)
+        //
+        this._normalForm = produce(this._normalForm, (draft) => {
+            Object.values(draft).forEach((item) => {
+                if (isNormalCondition(item)) {
+                    item.conditions.forEach((condition, index) => {
+                        if (condition.dependencies.includes(fromKey)) {
+                            condition.dependencies = condition.dependencies.filter((dependency) => (dependency !== fromKey))
+                        }
+                    })
+                }
+                if (isNormalComputed(item)) {
+                    if (item.dependencies.includes(fromKey)) {
+                        item.dependencies = item.dependencies.filter((dependency) => (dependency !== fromKey))
+                    }
+                }
+                if (isNormalRoom(item) || isNormalFeature(item) || isNormalKnowledge(item) || isNormalBookmark(item)) {
+                    item.appearances.forEach((appearance) => {
+                        if ((appearance.render || []).find((item) => (
+                            (item.tag === 'Link' || item.tag === 'Bookmark') && item.to === fromKey
+                        ))) {
+                            appearance.render = appearance.render.map((item) => (
+                                ((item.tag === 'Link' || item.tag === 'Bookmark') && item.to === fromKey)
+                                    ? { ...item, to: toKey }
+                                    : item
+                            ))
+                        }
+                    })
+                }
+                if (isNormalMap(item) || isNormalMessage(item)) {
+                    item.appearances.forEach((appearance) => {
+                        const roomToRename = appearance.rooms.findIndex(({ key }) => (key === fromKey))
+                        if (roomToRename !== -1) {
+                            appearance.rooms[roomToRename].key = toKey
+                        }
+                    })
+                }
+            })
+        })
+        //
+        // TODO: Search all normal items for such references to the key being
+        // remapped, and update them accordingly (should be a data-only change,
+        // and not need sophisticated structure changes like above).
+        //
+        // TODO: Add an exportAs property to the original key (if it does not already
+        // have one) to point to fromKey.
+        //
         this._normalForm = objectFilterEntries(this._normalForm, ([key]) => (key !== fromKey))
     }
 
