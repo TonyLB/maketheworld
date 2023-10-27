@@ -386,6 +386,26 @@ describe('WML normalize', () => {
             `))
         })
 
+        it('should correctly reformat a moment with a renamed message', () => {
+            const testSource = deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(test)><Description>One</Description></Room>
+                    <Message key=(testMessage)>Test!<Room key=(test) /></Message>
+                    <Moment key=(testMoment)><Message key=(testMessage) /></Moment>
+                </Asset>
+            `)
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            normalizer._renameItem('testMessage', 'renamed')
+            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(test)><Description>One</Description></Room>
+                    <Message key=(renamed)>Test!<Room key=(test) /></Message>
+                    <Moment key=(testMoment)><Message key=(renamed) /></Moment>
+                </Asset>
+            `))
+        })
+
     })
 
     describe('put method', () => {
