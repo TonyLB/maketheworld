@@ -678,6 +678,14 @@ export class Normalizer {
                         }
                     })
                 }
+                if (isNormalMap(item)) {
+                    item.appearances.forEach((appearance) => {
+                        const roomToRename = appearance.rooms.findIndex(({ key }) => (key === fromKey))
+                        if (roomToRename !== -1) {
+                            appearance.rooms[roomToRename].key = toKey
+                        }
+                    })
+                }
             })
         })
         //
