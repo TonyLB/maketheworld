@@ -60,6 +60,7 @@ import {
     isNormalImport,
     isNormalKnowledge,
     isNormalMap,
+    isNormalMessage,
     isNormalRoom,
     MapAppearance,
     MessageAppearance,
@@ -678,7 +679,7 @@ export class Normalizer {
                         }
                     })
                 }
-                if (isNormalMap(item)) {
+                if (isNormalMap(item) || isNormalMessage(item)) {
                     item.appearances.forEach((appearance) => {
                         const roomToRename = appearance.rooms.findIndex(({ key }) => (key === fromKey))
                         if (roomToRename !== -1) {
