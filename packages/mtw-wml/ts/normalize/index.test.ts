@@ -295,7 +295,7 @@ describe('WML normalize', () => {
             `)
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            normalizer._renameItem('test', 'renamed')
+            normalizer.renameItem('test', 'renamed')
             expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
                 <Asset key=(TestAsset)>
                     <Room key=(renamed)><Description>One</Description></Room>
@@ -303,6 +303,65 @@ describe('WML normalize', () => {
                     <If {testVar}>
                         <Room key=(renamed)><Description>: Suffix</Description></Room>
                     </If>
+                </Asset>
+            `))
+        })
+
+        it('should correctly update export when option specified', () => {
+            const testSource = deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(test)>
+                        <Description>One</Description>
+                    </Room>
+                    <Variable key=(testVar) default={false} />
+                    <If {testVar}>
+                        <Room key=(test)>
+                            <Description>: Suffix</Description>
+                        </Room>
+                    </If>
+                </Asset>
+            `)
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            normalizer.renameItem('test', 'renamed', { updateExports: true })
+            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(renamed)><Description>One</Description></Room>
+                    <Variable key=(testVar) default={false} />
+                    <If {testVar}>
+                        <Room key=(renamed)><Description>: Suffix</Description></Room>
+                    </If>
+                    <Export><Room key=(renamed) as=(test) /></Export>
+                </Asset>
+            `))
+        })
+
+        it('should correctly preserve previous export when option specified', () => {
+            const testSource = deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(test)>
+                        <Description>One</Description>
+                    </Room>
+                    <Variable key=(testVar) default={false} />
+                    <If {testVar}>
+                        <Room key=(test)>
+                            <Description>: Suffix</Description>
+                        </Room>
+                    </If>
+                    <Export><Room key=(test) as=(Room1) /></Export>
+                </Asset>
+            `)
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            normalizer.renameItem('test', 'renamed', { updateExports: true })
+            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(renamed)><Description>One</Description></Room>
+                    <Variable key=(testVar) default={false} />
+                    <If {testVar}>
+                        <Room key=(renamed)><Description>: Suffix</Description></Room>
+                    </If>
+                    <Export><Room key=(renamed) as=(Room1) /></Export>
                 </Asset>
             `))
         })
@@ -316,7 +375,7 @@ describe('WML normalize', () => {
             `)
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            normalizer._renameItem('test', 'renamed')
+            normalizer.renameItem('test', 'renamed')
             expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
                 <Asset key=(TestAsset)>
                     <Room key=(renamed)><Description>One</Description></Room>
@@ -339,7 +398,7 @@ describe('WML normalize', () => {
             `)
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            normalizer._renameItem('testFeature', 'renamed')
+            normalizer.renameItem('testFeature', 'renamed')
             expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
                 <Asset key=(TestAsset)>
                     <Feature key=(renamed)><Description>Test</Description></Feature>
@@ -359,7 +418,7 @@ describe('WML normalize', () => {
             `)
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            normalizer._renameItem('test', 'renamed')
+            normalizer.renameItem('test', 'renamed')
             expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
                 <Asset key=(TestAsset)>
                     <Room key=(renamed)><Description>One</Description></Room>
@@ -377,7 +436,7 @@ describe('WML normalize', () => {
             `)
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            normalizer._renameItem('test', 'renamed')
+            normalizer.renameItem('test', 'renamed')
             expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
                 <Asset key=(TestAsset)>
                     <Room key=(renamed)><Description>One</Description></Room>
@@ -396,7 +455,7 @@ describe('WML normalize', () => {
             `)
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            normalizer._renameItem('testMessage', 'renamed')
+            normalizer.renameItem('testMessage', 'renamed')
             expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
                 <Asset key=(TestAsset)>
                     <Room key=(test)><Description>One</Description></Room>
