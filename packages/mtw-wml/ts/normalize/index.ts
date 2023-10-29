@@ -109,6 +109,10 @@ type NormalizerContext = {
 
 type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Knowledge" | "Bookmark" | "Character" | "Message" | "Moment" | "After" | "Before" | "Replace">
 
+type RenameItemOptions = {
+    updateExports?: boolean;
+}
+
 const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
     if (renderItem.tag === 'If') {
         return {
@@ -590,9 +594,14 @@ export class Normalizer {
         }
     }
 
-    _renameItem(fromKey: string, toKey: string): void {
+    renameItem(fromKey: string, toKey: string, options?: RenameItemOptions): void {
+        const { updateExports = false } = options || {}
         const appearances = this._normalForm[fromKey]?.appearances || []
-        this._normalForm = { ...this._normalForm, [toKey]: { ...this._normalForm[fromKey], key: toKey } }
+        this._normalForm = { ...this._normalForm, [toKey]: {
+            ...this._normalForm[fromKey],
+            key: toKey,
+            ...(updateExports ? { exportAs: this._normalForm[fromKey]?.exportAs ?? fromKey } : {})
+        } }
         const tag = this._normalForm[toKey].tag
         appearances.forEach(({ contextStack }, index) => {
             //
@@ -644,7 +653,7 @@ export class Normalizer {
                     to: newTo,
                     from: newFrom
                 }
-                this._renameItem(item.key, `${newFrom}#${newTo}`)
+                this.renameItem(item.key, `${newFrom}#${newTo}`)
         })
 
         //
@@ -717,7 +726,7 @@ export class Normalizer {
         conditionItems.forEach(({ key, conditions }) => {
             const newKey = keyForIfValue(conditions)
             if (key !== newKey) {
-                this._renameItem(key, newKey)
+                this.renameItem(key, newKey)
             }
         })
     }
