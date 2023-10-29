@@ -65,6 +65,10 @@ type ComponentDescriptionCache = {
     description: ComponentDescriptionItem;
 }
 
+type ComponentRenderGetOptions = {
+    priorRenderChain?: string[];
+}
+
 const generateCacheKey = (CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraBookmarkId | EphemeraMessageId) => (`${CharacterId}::${EphemeraId}`)
 
 export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) => Promise<any>) => async <T extends { conditions: EphemeraCondition[] }>(possibleAppearances: T[]): Promise<T[]> => {
@@ -341,13 +345,17 @@ export class ComponentRenderData {
         this._Dependencies[key] = value
     }
 
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId): Promise<{ dependencies: StateItemId[]; description: FeatureDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraKnowledgeId): Promise<{ dependencies: StateItemId[]; description: KnowledgeDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraBookmarkId): Promise<{ dependencies: StateItemId[]; description: BookmarkDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMessageId): Promise<{ dependencies: StateItemId[]; description: MessageDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: MapDescribeData }>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMessageId | EphemeraMapId): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | KnowledgeDescribeData | BookmarkDescribeData | MessageDescribeData | MapDescribeData }> {
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData }>
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: FeatureDescribeData }>
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraKnowledgeId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: KnowledgeDescribeData }>
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraBookmarkId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: BookmarkDescribeData }>
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: MessageDescribeData }>
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMapId, options?: ComponentRenderGetOptions): Promise<{ dependencies: StateItemId[]; description: MapDescribeData }>
+    async _getPromiseFactory(
+            CharacterId: EphemeraCharacterId | 'ANONYMOUS',
+            EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraMessageId | EphemeraMapId,
+            getOptions?: ComponentRenderGetOptions
+        ): Promise<{ dependencies: StateItemId[]; description: RoomDescribeData | FeatureDescribeData | KnowledgeDescribeData | BookmarkDescribeData | MessageDescribeData | MapDescribeData }> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
             this._getAssets(),
             isEphemeraCharacterId(CharacterId) ? this._characterMeta(CharacterId) : Promise.resolve({ assets: [] })
@@ -364,7 +372,14 @@ export class ComponentRenderData {
                         : previous ), {})
                 })
             ),
-            renderBookmark: (bookmarkId) => (this.get(CharacterId, bookmarkId).then(({ Description }) => (Description)))
+            renderBookmark: async (bookmarkId) => {
+                const renderChain = getOptions?.priorRenderChain ?? []
+                if (renderChain.includes(bookmarkId)) {
+                    return [{ tag: 'String', value: '#CIRCULAR' }]
+                }
+                const { Description } = await this.get(CharacterId, bookmarkId, { priorRenderChain: [...renderChain, bookmarkId] })
+                return Description
+            }
         }
 
         const allAssets = unique(globalAssets || [], characterAssets) as string[]
@@ -539,14 +554,18 @@ export class ComponentRenderData {
         throw new Error('Illegal tag in ComponentDescription internalCache')
     }
 
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId): Promise<RoomDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId): Promise<FeatureDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraKnowledgeId): Promise<KnowledgeDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraBookmarkId): Promise<BookmarkDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMapId): Promise<MapDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMessageId): Promise<MessageDescribeData>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId): Promise<ComponentDescriptionItem>
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId): Promise<ComponentDescriptionItem> {
+    //
+    // TODO: Add options argument to get, to allow the aggregation of render-chain when get is called recursively
+    // (i.e. Bookmarks) in order to prevent runaway render on circular dependency
+    //
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId, options?: ComponentRenderGetOptions): Promise<RoomDescribeData>
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId, options?: ComponentRenderGetOptions): Promise<FeatureDescribeData>
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraKnowledgeId, options?: ComponentRenderGetOptions): Promise<KnowledgeDescribeData>
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraBookmarkId, options?: ComponentRenderGetOptions): Promise<BookmarkDescribeData>
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMapId, options?: ComponentRenderGetOptions): Promise<MapDescribeData>
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<MessageDescribeData>
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<ComponentDescriptionItem>
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraBookmarkId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<ComponentDescriptionItem> {
         const cacheKey = generateCacheKey(CharacterId, EphemeraId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -555,7 +574,7 @@ export class ComponentRenderData {
             //
             if (isEphemeraRoomId(EphemeraId)) {
                 this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
                         if (typeof fetch === 'undefined') {
@@ -571,7 +590,7 @@ export class ComponentRenderData {
             }
             if (isEphemeraFeatureId(EphemeraId)) {
                 this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
                         if (typeof fetch === 'undefined') {
@@ -587,7 +606,7 @@ export class ComponentRenderData {
             }
             if (isEphemeraKnowledgeId(EphemeraId)) {
                 this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
                         if (typeof fetch === 'undefined') {
@@ -603,7 +622,7 @@ export class ComponentRenderData {
             }
             if (isEphemeraBookmarkId(EphemeraId)) {
                 this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
                         if (typeof fetch === 'undefined') {
@@ -619,7 +638,7 @@ export class ComponentRenderData {
             }
             if (isEphemeraMessageId(EphemeraId)) {
                 this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
                         if (typeof fetch === 'undefined') {
@@ -635,7 +654,7 @@ export class ComponentRenderData {
             }
             if (isEphemeraMapId(EphemeraId)) {
                 this._Cache.add({
-                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],
                     transform: (fetch) => {
                         if (typeof fetch === 'undefined') {
