@@ -48,6 +48,10 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends Casca
             fetch?: NodeFetchData;
             priors: CascadeGraphPriorResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>[];
         }) => Promise<NodeWorkingData>;
+    _circular?: (props: {
+            template: { key: KeyType } & NodeTemplateData;
+            fetch?: NodeFetchData;
+        }) => Promise<NodeWorkingData>;
     _aggregate?: (graph: CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>) => Promise<CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>>;
 
     constructor(props: {
@@ -63,12 +67,17 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends Casca
                 fetch?: NodeFetchData;
                 priors: CascadeGraphPriorResult<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>[];
             }) => Promise<NodeWorkingData>;
+        circular?: (props: {
+                template: { key: KeyType } & NodeTemplateData;
+                fetch?: NodeFetchData;
+            }) => Promise<NodeWorkingData>;
         aggregate?: (graph: CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>) => Promise<CascadeGraphWorkspace<KeyType, NodeTemplateData, NodeFetchData, EdgeTemplateData, NodeWorkingData>>;
     }) {
         this._template = props.template
         this._fetch = props.fetch
         this._unprocessed = props.unprocessed
         this._process = props.process
+        this._circular = props.circular
         this._aggregate = props.aggregate
     }
 
@@ -95,70 +104,89 @@ export class CascadeGraph<KeyType extends string, NodeTemplateData extends Casca
                 // in the resultPromises records defined above.  Collect all unique SCC representatives that this new set of
                 // keys depends from, and deliver the saved Previous outputs to the callback.
                 //
-                resultPromises[stronglyConnectedComponent[0]] = (async (): Promise<NodeWorkingData> => {
-                    if (stronglyConnectedComponent.length === 0) {
-                        throw new Error('CascadeGraph error, empty strongly-connected-component encountered')
-                    }
-                    //
-                    // TODO: Refactor for more generalized case, where processing occurs on stronglyConnectedComponents
-                    // simultaneously
-                    //
-                    if (stronglyConnectedComponent.length > 1) {
-                        throw new Error('CascadeGraph error, circular dependency encountered')
-                    }
-                    const key = stronglyConnectedComponent[0]
-
-                    //
-                    // Wait for all needed prior results to have their promises evaluated (which will
-                    // result in their data being assigned into the workspace graph) so that their data
-                    // is available for next stage processing.
-                    //
-                    const dependencyEdges = this._template.edges
-                        .filter(({ to }) => (stronglyConnectedComponent.includes(to)))
-                        .filter(({ from }) => (!stronglyConnectedComponent.includes(from)))
-                    const dependencyResultPromises = unique(dependencyEdges.map(({ from }) => (from)))
-                        .map((dependency) => (stronglyConnectedComponentByContents[dependency]))
-                        .map((stronglyConnectedComponentRepresentative) => (
-                            stronglyConnectedComponentRepresentative &&
-                            resultPromises[stronglyConnectedComponentRepresentative]
-                        ))
-                        .filter((results) => (typeof results !== 'undefined'))
-                    await Promise.all(dependencyResultPromises)
-
-                    const nodeTemplateData = this._template.nodes[key]
-                    const nodeFetchData = workspace._working.nodes[key]?.fetch
-                    if (typeof nodeTemplateData === 'undefined') {
-                        throw new Error('CascadeGraph error, internal key call out of bounds')
-                    }
-                    const processArguments = {
-                        template: nodeTemplateData as { key: KeyType } & NodeTemplateData,
-                        fetch: nodeFetchData,
-                        priors: dependencyEdges.map(({ from, to, ...edge }) => {
-                            const workingItem = workspace._working.nodes[from]
-                            if (!workingItem) {
-                                throw new Error('CascadeGraph error, dependent item has not been worked')
-                            }
-                            return {
-                                key: from,
-                                fetch: workingItem.fetch,
-                                edge: edge.data || {} as unknown as EdgeTemplateData,
-                                result: workingItem.result
-                            }
+                if (stronglyConnectedComponent.length === 0) {
+                    throw new Error('CascadeGraph error, empty strongly-connected-component encountered')
+                }
+                //
+                // TODO: Refactor for more generalized case, where processing of circular-dependent items
+                // can take into account all of the other items (at least their fetch values)
+                //
+                if (stronglyConnectedComponent.length > 1) {
+                    stronglyConnectedComponent.forEach((key) => {
+                        if (!this._circular) {
+                            throw new Error('CascadeGraph error, unhandled circular dependency encountered')
+                        }
+                        const nodeTemplateData = this._template.nodes[key]
+                        const nodeFetchData = workspace._working.nodes[key]?.fetch
+                        const circularArguments = {
+                            template: nodeTemplateData as { key: KeyType } & NodeTemplateData,
+                            fetch: nodeFetchData
+                        }
+                        resultPromises[key] = this._circular(circularArguments).then((results: NodeWorkingData) => {
+                            workspace._working.setNode(key, { key, result: results })
+                            return results
                         })
-                    }
+                    })
+                }
+                else {
+                    //
+                    // Typical case: A strongly-connect-component of one, indicating no circular dependencies
+                    //
+                    resultPromises[stronglyConnectedComponent[0]] = (async (): Promise<NodeWorkingData> => {
+                        const key = stronglyConnectedComponent[0]
 
-                    if (nodeTemplateData.needsProcessing ?? true) {
-                        return await this._process(processArguments).then((results: NodeWorkingData) => {
-                                workspace._working.setNode(key, { key, result: results })
-                                return results
+                        //
+                        // Wait for all needed prior results to have their promises evaluated (which will
+                        // result in their data being assigned into the workspace graph) so that their data
+                        // is available for next stage processing.
+                        //
+                        const dependencyEdges = this._template.edges
+                            .filter(({ to }) => (stronglyConnectedComponent.includes(to)))
+                            .filter(({ from }) => (!stronglyConnectedComponent.includes(from)))
+                        const dependencyResultPromises = unique(dependencyEdges.map(({ from }) => (from)))
+                            .map((dependency) => (stronglyConnectedComponentByContents[dependency]))
+                            .map((stronglyConnectedComponentRepresentative) => (
+                                stronglyConnectedComponentRepresentative &&
+                                resultPromises[stronglyConnectedComponentRepresentative]
+                            ))
+                            .filter((results) => (typeof results !== 'undefined'))
+                        await Promise.all(dependencyResultPromises)
+
+                        const nodeTemplateData = this._template.nodes[key]
+                        const nodeFetchData = workspace._working.nodes[key]?.fetch
+                        if (typeof nodeTemplateData === 'undefined') {
+                            throw new Error('CascadeGraph error, internal key call out of bounds')
+                        }
+                        const processArguments = {
+                            template: nodeTemplateData as { key: KeyType } & NodeTemplateData,
+                            fetch: nodeFetchData,
+                            priors: dependencyEdges.map(({ from, to, ...edge }) => {
+                                const workingItem = workspace._working.nodes[from]
+                                if (!workingItem) {
+                                    throw new Error('CascadeGraph error, dependent item has not been worked')
+                                }
+                                return {
+                                    key: from,
+                                    fetch: workingItem.fetch,
+                                    edge: edge.data || {} as unknown as EdgeTemplateData,
+                                    result: workingItem.result
+                                }
                             })
-                    }
-                    else {
-                        const returnValue = this._unprocessed(processArguments)
-                        workspace._working.setNode(key, { key, result: returnValue })
-                        return returnValue
-                    }
-                })()
+                        }
+
+                        if (nodeTemplateData.needsProcessing ?? true) {
+                            return await this._process(processArguments).then((results: NodeWorkingData) => {
+                                    workspace._working.setNode(key, { key, result: results })
+                                    return results
+                                })
+                        }
+                        else {
+                            const returnValue = this._unprocessed(processArguments)
+                            workspace._working.setNode(key, { key, result: returnValue })
+                            return returnValue
+                        }
+                    })()
+                }
             }
         }
         await Promise.all(Object.values(resultPromises))
