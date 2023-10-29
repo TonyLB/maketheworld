@@ -88,29 +88,44 @@ describe('CascadeGraph', () => {
         expect(process).toHaveBeenCalledWith(testCall('F', [{ key: 'D', value: 'D::D' }]))
     })
 
-    // it('should correctly walk a cyclic tree', async () => {
-    //     const testEdges = [
-    //         { from: 'A', to: 'C' },
-    //         { from: 'B', to: 'C' },
-    //         { from: 'C', to: 'D' },
-    //         { from: 'D', to: 'E' },
-    //         { from: 'E', to: 'C' },
-    //         { from: 'D', to: 'F' }
-    //     ]
-    //     const fetch = jest.fn().mockImplementation(async (keys) => (keys.map((key) => ({ key }))))
-    //     const process = jest.fn().mockImplementation(async ({ keys }) => (keys.join('::')))
-    //     const template = new Graph(testNodes, testEdges, {},  true)
-    //     const cascadeGraph = new CascadeGraph({
-    //         template,
-    //         fetch,
-    //         process
-    //     })
-    //     await cascadeGraph.execute()
-    //     expect(process).toHaveBeenCalledTimes(4)
-    //     expect(process).toHaveBeenCalledWith({ keys: ['B'], previous: [] })
-    //     expect(process).toHaveBeenCalledWith({ keys: ['A'], previous: [] })
-    //     expect(process).toHaveBeenCalledWith({ keys: ['C', 'D', 'E'], previous: ['A', 'B'] })
-    //     expect(process).toHaveBeenCalledWith({ keys: ['F'], previous: ['C::D::E'] })
-    // })
+    it('should correctly walk a cyclic tree', async () => {
+        const testEdges = [
+            { from: 'A', to: 'C' },
+            { from: 'B', to: 'C' },
+            { from: 'C', to: 'D' },
+            { from: 'D', to: 'E' },
+            { from: 'E', to: 'C' },
+            { from: 'D', to: 'F' }
+        ]
+        const fetch = jest.fn().mockImplementation(async (keys) => (keys.map((key) => ({ key, value: `Value-${key}` }))))
+        const process = jest.fn().mockImplementation(async ({ template }) => ({ value: `${template.key}::${template.key}` }))
+        const circular = jest.fn().mockImplementation(async ({ template }) => ({ value: `Circular::${template.key}` }))
+        const template = new Graph(testNodes, testEdges, {},  true)
+        const cascadeGraph = new CascadeGraph({
+            template,
+            fetch,
+            process,
+            unprocessed: ({ fetch }) => (fetch || {}),
+            circular
+        })
+        const testCircular = (key: string, fetch: boolean = true ) => ({
+            template: Object.assign({ key }, fetch ? {} : { needsFetch: false }),
+            fetch: fetch ? { value: `Value-${key}`} : undefined
+        })
+        const testProcess = (key: string, priors: { key: string; value: string; fetch?: boolean }[] = [], fetch: boolean = true ) => ({
+            template: Object.assign({ key }, fetch ? {} : { needsFetch: false }),
+            fetch: fetch ? { value: `Value-${key}`} : undefined,
+            priors: priors.map(({ key, value, fetch = true }) => ({ key, edge: {}, fetch: fetch ? { value: `Value-${key}` } : undefined, result: { value } }))
+        })
+        await cascadeGraph.execute()
+        expect(circular).toHaveBeenCalledTimes(3)
+        expect(circular).toHaveBeenCalledWith(testCircular('C'))
+        expect(circular).toHaveBeenCalledWith(testCircular('D'))
+        expect(circular).toHaveBeenCalledWith(testCircular('E'))
+        expect(process).toHaveBeenCalledTimes(3)
+        expect(process).toHaveBeenCalledWith(testProcess('A', []))
+        expect(process).toHaveBeenCalledWith(testProcess('B', []))
+        expect(process).toHaveBeenCalledWith(testProcess('F', [{ key: 'D', value: 'Circular::D' }]))
+    })
 
 })

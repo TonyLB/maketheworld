@@ -68,6 +68,7 @@ export const dependencyCascade = async ({ payloads, messageBus }: { payloads: De
         template: updateGraphTemplate,
         fetch: async (nodes) => (Object.entries(await internalCache.StateCache.get(nodes.filter(isStateItemId))).map(([key, { value, src }]) => ({ key, value, src }))),
         unprocessed: ({ fetch }) => (fetch ?? { value: undefined }),
+        circular: async () => ({ value: '#CIRCULAR'}),
         process: async ({
             template: { key, needsProcessing },
             fetch,
@@ -109,9 +110,6 @@ export const dependencyCascade = async ({ payloads, messageBus }: { payloads: De
                 const computedId = key
                 const { src, value } = fetch
         
-                //
-                // TODO: Figure out how to calculate sandbox out of priors
-                //
                 const sandbox = Object.assign({},
                         ...priors.map(({ result, edge: { scopedId } }) => (result && scopedId ? { [scopedId]: result.value } : {}))
                     )
