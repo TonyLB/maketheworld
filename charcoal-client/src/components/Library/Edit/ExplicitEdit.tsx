@@ -13,7 +13,6 @@ export const ExplicitEdit: FunctionComponent<{ value: string; onChange: (value: 
     return editing
         ? <React.Fragment>
                 <TextField
-                    label="Key"
                     size="small"
                     variant="standard"
                     value={currentValue}
