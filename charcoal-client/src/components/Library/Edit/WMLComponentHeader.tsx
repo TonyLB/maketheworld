@@ -28,6 +28,9 @@ export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({
         return ''
     }
     const primary = useCallback(primaryBase, [])
+    //
+    // TODO: Replace simple passthrough function with ExplicitEdit when it has been created
+    //
     const secondaryBase: AssetDataHeaderRenderFunction = ({ item }) => (item.key)
     const secondary = useCallback(secondaryBase, [])
     return <AssetDataHeader

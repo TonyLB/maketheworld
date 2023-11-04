@@ -5,15 +5,13 @@ import {
 
 import {
     Box,
-    List,
-    ListItem,
-    ListItemIcon,
-    ListItemText,
     Breadcrumbs,
     Link,
-    Typography
+    Typography,
+    Stack
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
+import ExplicitEdit from './ExplicitEdit';
 
 interface BreadCrumbProps {
     href?: string;
@@ -49,14 +47,23 @@ export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, 
                     ))
                 }
             </Breadcrumbs>
-            <List>
-                <ListItem>
-                    <ListItemIcon>
-                        {icon}
-                    </ListItemIcon>
-                    <ListItemText primary={primary} secondary={secondary} />
-                </ListItem>
-            </List>
+            <Box sx={{ display: 'flex', width: '100%', marginTop: '1em', marginBottom: '1em' }}>
+                <Box sx={{ flexGrow:0, flexShrink: 0, minWidth: '3em', color: 'rgba(0, 0, 0, 0.5)' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', marginLeft: '1em', marginRight: '2em' }}>
+                        <Box sx={{ flexGrow: 1 }} />
+                        <Box sx={{ flexGrow: 0 }}>{icon}</Box>
+                        <Box sx={{ flexGrow: 1 }} />
+                    </Box>
+                </Box>
+                <Box sx={{ flexGrow: 1 }}>
+                    <Stack>
+                        <Typography variant='body1'>{primary}</Typography>
+                        <Typography variant='body2' sx={{ color: 'rgba(0, 0, 0, 0.65)' }}>
+                            <ExplicitEdit value={secondary} onChange={() => {}} />
+                        </Typography>
+                    </Stack>
+                </Box>
+            </Box>
         </Box>
         <Box>
             { commands }
