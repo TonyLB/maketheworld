@@ -34,7 +34,7 @@ export const ExplicitEdit: FunctionComponent<{ value: string; onChange: (value: 
                     disabled={!isValid}
                     onClick={() => {
                         if (isValid) {
-                            onChange(value)
+                            onChange(currentValue)
                             setEditing(false)
                         }
                     } }

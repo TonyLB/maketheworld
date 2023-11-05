@@ -49,8 +49,15 @@ type UpdateNormalPayloadDelete = {
     references: NormalReference[];
 }
 
+type UpdateNormalPayloadRename = {
+    type: 'rename';
+    fromKey: string;
+    toKey: string;
+}
+
 export type UpdateNormalPayload = UpdateNormalPayloadPut |
-    UpdateNormalPayloadDelete
+    UpdateNormalPayloadDelete |
+    UpdateNormalPayloadRename
 
 export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<UpdateNormalPayload>) => {
     const normalizer = new Normalizer()
@@ -70,6 +77,13 @@ export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<
             break
         case 'delete':
             action.payload.references.forEach((reference) => { normalizer.delete(reference) })
+            break
+        case 'rename':
+            console.log(`renameItem: ${action.payload.fromKey} => ${action.payload.toKey}`)
+            normalizer.renameItem(
+                action.payload.fromKey,
+                action.payload.toKey
+            )
             break
     }
     normalizer.standardize()

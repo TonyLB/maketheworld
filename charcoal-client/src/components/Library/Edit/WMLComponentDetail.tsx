@@ -1,5 +1,6 @@
 import { FunctionComponent, useCallback, useEffect, useState, useMemo, Component } from 'react'
 import {
+    useNavigate,
     useParams
 } from "react-router-dom"
 
@@ -25,6 +26,7 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
+import { closeTab, rename } from '../../../slices/UI/navigationTabs'
 
 type WMLComponentAppearanceProps = {
     ComponentId: string;
@@ -182,7 +184,9 @@ interface WMLComponentDetailProps {
 }
 
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
-    const { assetKey, normalForm, components } = useLibraryAsset()
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
+    const { assetKey, normalForm, updateNormal, components } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component = normalForm[ComponentId || '']
     const { tag = '' } = isNormalComponent(component) ? component : {}
@@ -195,13 +199,31 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         assetId: `ASSET#${assetKey}`,
         componentId: ComponentId || ''
     })
+    const onNameChange = useCallback((toKey: string) => {
+        console.log(`onNameChange: ${toKey}`)
+        updateNormal({
+            type: 'rename',
+            fromKey: ComponentId,
+            toKey
+        })
+        dispatch(rename({
+            fromHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
+            toHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`,
+            componentId: toKey
+        }))
+        navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
+    }, [updateNormal, ComponentId, navigate])
     if (!component || !ComponentId) {
         return <Box />
     }
+    //
+    // TODO: Create useCallback callback for validate, and pass to LibraryBanner
+    //
     return <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
         <LibraryBanner
             primary={componentName}
             secondary={component.key}
+            onChangeSecondary={onNameChange}
             icon={<HomeIcon />}
             breadCrumbProps={[{
                 href: '/Library',
