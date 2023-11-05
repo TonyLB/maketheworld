@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useEffect, useState, useMemo, Component } from 'react'
+import { FunctionComponent, useCallback, useState, useMemo } from 'react'
 import {
     useNavigate,
     useParams
@@ -15,7 +15,7 @@ import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import { useDebouncedOnChange } from '../../../hooks/useDebounce'
-import { ComponentRenderItem, isNormalBookmark, isNormalComponent, isNormalFeature, isNormalKnowledge, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentRenderItem, isNormalComponent, isNormalFeature, isNormalKnowledge, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaKnowledge, isSchemaRoom } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
@@ -26,7 +26,7 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
-import { closeTab, rename } from '../../../slices/UI/navigationTabs'
+import { rename } from '../../../slices/UI/navigationTabs'
 
 type WMLComponentAppearanceProps = {
     ComponentId: string;
@@ -35,6 +35,7 @@ type WMLComponentAppearanceProps = {
 
 const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = ({ ComponentId }) => {
     const { normalForm, updateNormal, components, readonly } = useLibraryAsset()
+    const dispatch = useDispatch()
     const component = normalForm[ComponentId || '']
     const { tag } = component || {}
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
@@ -92,17 +93,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
                 position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
             })
         }
-    }, [ComponentId, tag, normalForm, updateNormal])
-    const defaultName = useMemo(() => {
-        const localName = components[ComponentId]?.localName
-        if (typeof localName === 'string') {
-            return [{ tag: 'String' as 'String', value: localName }]
-        }
-        if (Array.isArray(localName)) {
-            return localName
-        }
-        return []
-    }, [components, ComponentId])
+    }, [ComponentId, tag, normalForm, updateNormal, dispatch])
     const appearance = useMemo(() => {
         const component = normalForm[ComponentId]
         if (!(component && (isNormalRoom(component) || isNormalFeature(component) || isNormalKnowledge(component)))) {
@@ -112,7 +103,6 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
     }, [normalForm, ComponentId])
     const [name, setName] = useState(appearance?.name || [])
     const nameText = useMemo<string>(() => ((name || []).map((item) => ((item.tag === 'String') ? item.value : '')).join('')), [name])
-    const dispatch = useDispatch()
 
     const dispatchNameChange = useCallback((value: ComponentRenderItem[]) => {
         const normalizer = new Normalizer()
@@ -132,7 +122,7 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
                 position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
             })
         }
-    }, [tag, ComponentId, normalForm, updateNormal])
+    }, [tag, ComponentId, normalForm, updateNormal, dispatch])
     const changeName = useCallback((event) => {
         setName([{ tag: 'String', value: event.target.value }])
     }, [setName])
@@ -200,7 +190,6 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         componentId: ComponentId || ''
     })
     const onNameChange = useCallback((toKey: string) => {
-        console.log(`onNameChange: ${toKey}`)
         updateNormal({
             type: 'rename',
             fromKey: ComponentId,
@@ -212,7 +201,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             componentId: toKey
         }))
         navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
-    }, [updateNormal, ComponentId, navigate])
+    }, [updateNormal, ComponentId, navigate, assetKey, dispatch, tag])
     const allExportKeys = Object.values(normalForm).map(({ key, exportAs }) => (exportAs ?? key))
     const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId && (allExportKeys.includes(toKey)))), [ComponentId, allExportKeys])
     if (!component || !ComponentId) {

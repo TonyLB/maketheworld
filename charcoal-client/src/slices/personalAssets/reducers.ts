@@ -79,7 +79,6 @@ export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<
             action.payload.references.forEach((reference) => { normalizer.delete(reference) })
             break
         case 'rename':
-            console.log(`renameItem: ${action.payload.fromKey} => ${action.payload.toKey}`)
             normalizer.renameItem(
                 action.payload.fromKey,
                 action.payload.toKey
