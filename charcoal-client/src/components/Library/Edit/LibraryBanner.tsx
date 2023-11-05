@@ -60,10 +60,10 @@ export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, 
                 <Box sx={{ flexGrow: 1 }}>
                     <Stack>
                         <Typography variant='body1'>{primary}</Typography>
-                        <Typography variant='body2' sx={{ color: 'rgba(0, 0, 0, 0.65)' }}>
+                        <Typography variant='body2' component="div" sx={{ color: 'rgba(0, 0, 0, 0.65)' }}>
                             { 
                                 onChangeSecondary
-                                    ? <ExplicitEdit value={secondary} onChange={onChangeSecondary} validate={validateSecondary} />
+                                    ? <ExplicitEdit value={secondary} onChange={onChangeSecondary} validate={validateSecondary} helperText='This key is already used' />
                                     : secondary
                             }
                         </Typography>

@@ -213,17 +213,17 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         }))
         navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
     }, [updateNormal, ComponentId, navigate])
+    const allExportKeys = Object.values(normalForm).map(({ key, exportAs }) => (exportAs ?? key))
+    const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId && (allExportKeys.includes(toKey)))), [ComponentId, allExportKeys])
     if (!component || !ComponentId) {
         return <Box />
     }
-    //
-    // TODO: Create useCallback callback for validate, and pass to LibraryBanner
-    //
     return <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
         <LibraryBanner
             primary={componentName}
             secondary={component.key}
             onChangeSecondary={onNameChange}
+            validateSecondary={nameValidate}
             icon={<HomeIcon />}
             breadCrumbProps={[{
                 href: '/Library',
