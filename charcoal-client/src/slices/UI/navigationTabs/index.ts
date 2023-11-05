@@ -172,6 +172,15 @@ const navigationSlice = createSlice({
             else {
                 state.push(action.payload)
             }
+        },
+        rename(state, action: PayloadAction<{ fromHRef: string; toHRef: string; componentId: string }>) {
+            const current = state.find(({ href }) => (href === action.payload.fromHRef))
+            if (current) {
+                current.href = action.payload.toHRef
+                if (current.type === 'ComponentEdit') {
+                    current.componentId = action.payload.componentId
+                }
+            }
         }
     },
     extraReducers: (builder) => {
@@ -189,7 +198,7 @@ const navigationSlice = createSlice({
     }
 })
 
-export const { add } = navigationSlice.actions
+export const { add, rename } = navigationSlice.actions
 
 export const navigationTabs: Selector<NavigationTab[]> = ({ UI: { navigationTabs = [] } }) => (navigationTabs)
 

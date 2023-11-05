@@ -21,12 +21,14 @@ interface BreadCrumbProps {
 interface LibraryBannerProps {
     primary: string;
     secondary?: string;
+    onChangeSecondary?: (value: string) => void;
+    validateSecondary?: (value: string) => boolean;
     icon?: ReactChild;
     commands?: ReactChild;
     breadCrumbProps: BreadCrumbProps[];
 }
 
-export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, secondary, icon, commands, breadCrumbProps }) => {
+export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, secondary, onChangeSecondary, validateSecondary, icon, commands, breadCrumbProps }) => {
     const navigate = useNavigate()
     return <Box sx={{ display: 'flex', width: "100%", backgroundColor: blue[100] }}>
         <Box sx={{ flexGrow: 1 }}>
@@ -58,8 +60,12 @@ export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, 
                 <Box sx={{ flexGrow: 1 }}>
                     <Stack>
                         <Typography variant='body1'>{primary}</Typography>
-                        <Typography variant='body2' sx={{ color: 'rgba(0, 0, 0, 0.65)' }}>
-                            <ExplicitEdit value={secondary} onChange={() => {}} />
+                        <Typography variant='body2' component="div" sx={{ color: 'rgba(0, 0, 0, 0.65)' }}>
+                            { 
+                                onChangeSecondary
+                                    ? <ExplicitEdit value={secondary} onChange={onChangeSecondary} validate={validateSecondary} helperText='This key is already used' />
+                                    : secondary
+                            }
                         </Typography>
                     </Stack>
                 </Box>

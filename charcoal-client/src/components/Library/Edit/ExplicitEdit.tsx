@@ -32,9 +32,9 @@ export const ExplicitEdit: FunctionComponent<{ value: string; onChange: (value: 
                 <IconButton
                     size="small"
                     disabled={!isValid}
-                    onClick={() => {
+                    onClick={() => {    
                         if (isValid) {
-                            onChange(value)
+                            onChange(currentValue)
                             setEditing(false)
                         }
                     } }
