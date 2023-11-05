@@ -2,10 +2,9 @@ import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
-import { blue, grey } from "@mui/material/colors"
+import { blue } from "@mui/material/colors"
 import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit, NormalForm, NormalReference, NormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import React, { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
-import { createEditor, Descendant, Transforms } from "slate"
+import { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
 import { ConditionalTree, reduceItemsToTree } from "../conditionTree"
 import { useLibraryAsset } from "../LibraryAsset"
 import ExitIcon from '@mui/icons-material/CallMade'
@@ -16,16 +15,14 @@ import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
-import { Button, TextField } from "@mui/material"
+import { TextField } from "@mui/material"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { objectFilterEntries, objectMap } from "../../../../lib/objects"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 import { UpdateNormalPayload } from "../../../../slices/personalAssets/reducers"
-import duplicateExitTargets from "./duplicateExitTargets"
 import { RoomExit } from "./baseClasses"
 import exitTreeToSchema from "./exitTreeToSchema"
 import IfElseTree from "../IfElseTree"
-import { toSpliced } from "../../../../lib/lists"
 
 type RoomExitEditorProps = {
     RoomId: string;
@@ -51,6 +48,13 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
             onChange(event)
         }
     }, [onChange, readonly])
+    //
+    // Sometimes targets are transitionally not legal (particularly when React is resorting its
+    // component tree after a room rename), so render something that won't throw an ephemeral error
+    //
+    if (!(target in roomNamesInScope)) {
+        return null
+    }
     return <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
         <InputLabel id="select-small">Target</InputLabel>
         <Select
@@ -231,10 +235,13 @@ const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> 
     />
 }
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { normalForm, updateNormal, readonly, components } = useLibraryAsset()
+    const { normalForm, updateNormal, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
     const relevantExits = useExitTree(normalForm, RoomId)
     const [value, setValue] = useState(relevantExits)
+    useEffect(() => {
+        setValue(relevantExits)
+    }, [setValue, relevantExits])
     const onChangeHandler = useCallback((tree: ConditionalTree<RoomExit>) => {
         const changes = generateNormalChanges({ tree, normalForm, RoomId })
         changes.forEach((change) => {
