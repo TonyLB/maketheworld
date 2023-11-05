@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useState, useMemo } from 'react'
+import { FunctionComponent, useCallback, useState, useMemo, useEffect } from 'react'
 import {
     useNavigate,
     useParams
@@ -36,7 +36,7 @@ type WMLComponentAppearanceProps = {
 const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = ({ ComponentId }) => {
     const { normalForm, updateNormal, components, readonly } = useLibraryAsset()
     const dispatch = useDispatch()
-    const component = normalForm[ComponentId || '']
+    const component = useMemo(() => (normalForm[ComponentId || '']), [ComponentId, normalForm])
     const { tag } = component || {}
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
@@ -102,6 +102,9 @@ const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = (
         return component.appearances[0]
     }, [normalForm, ComponentId])
     const [name, setName] = useState(appearance?.name || [])
+    useEffect(() => {
+        setName(appearance?.name || [])
+    }, [appearance, setName])
     const nameText = useMemo<string>(() => ((name || []).map((item) => ((item.tag === 'String') ? item.value : '')).join('')), [name])
 
     const dispatchNameChange = useCallback((value: ComponentRenderItem[]) => {
