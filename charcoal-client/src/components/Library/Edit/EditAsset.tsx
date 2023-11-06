@@ -6,6 +6,9 @@ import {
     IconButton,
     List,
     ListSubheader,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
     Button,
     Dialog,
     DialogTitle,
@@ -16,6 +19,7 @@ import {
 
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
+import AddIcon from '@mui/icons-material/Add'
 
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import SaveIcon from '@mui/icons-material/Save'
@@ -39,7 +43,6 @@ import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
 import MapHeader from './MapHeader'
 import WMLComponentDetail from './WMLComponentDetail'
-import AddWMLComponent from './AddWMLComponent'
 import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
@@ -122,6 +125,15 @@ const AssetAssignDialog: FunctionComponent<AssetAssignDialogProps> = ({ open, on
         </Dialog>
 }
 
+const AddWMLComponent: FunctionComponent<{ type: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
+    <ListItemButton onClick={onAdd}>
+        <ListItemIcon>
+            <AddIcon />
+        </ListItemIcon>
+        <ListItemText primary={`Add ${type}`} />
+    </ListItemButton>
+)
+
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
     const { normalForm, updateNormal, save, status, serialized } = useLibraryAsset()
     const navigate = useNavigate()
@@ -136,7 +148,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     const actions = useMemo<NormalAction[]>(() => (Object.values(normalForm || {}).filter(isNormalAction)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const dispatch = useDispatch()
-    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => (componentId: string) => {
+    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
         switch(tag) {
             case 'Room':
                 dispatch(addOnboardingComplete(['addRoom']))
@@ -147,7 +159,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
         if (rootItem) {
             updateNormal({
                 type: 'put',
-                item: defaultItemFromTag(tag, componentId),
+                item: defaultItemFromTag(tag, ''),
                 position: { contextStack: [{ key: rootItem.key, tag: rootItem.tag, index: 0 }]}
             })
         }
