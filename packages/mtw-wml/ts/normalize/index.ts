@@ -938,6 +938,19 @@ export class Normalizer {
     _translate(appearance: BaseAppearance, node: SchemaCharacterTag): NormalCharacter
     _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem
     _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem {
+        //
+        // Create a defaultKey item by taking the node.tag and appending successive integers to it
+        // until there is no match of key or exportAs
+        //
+        const allKeys = Object.values(this._normalForm).map(({ key, exportAs }) => ([
+            key,
+            ...(exportAs ? [exportAs] : [])
+        ])).flat(1)
+        let defaultKeyIndex = 1
+        while(allKeys.includes(`${node.tag}${defaultKeyIndex}`)) {
+            defaultKeyIndex++
+        }
+        const defaultKey = `${node.tag}${defaultKeyIndex}`
         switch(node.tag) {
             case 'Asset':
                 return {
@@ -961,20 +974,20 @@ export class Normalizer {
                 }
             case 'Image':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: 'Image',
                     appearances: [appearance]
                 }
             case 'Variable':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: 'Variable',
                     default: node.default,
                     appearances: [appearance]
                 }
             case 'Computed':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: 'Computed',
                     src: node.src,
                     dependencies: node.dependencies,
@@ -982,7 +995,7 @@ export class Normalizer {
                 }
             case 'Action':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: 'Action',
                     src: node.src,
                     appearances: [appearance]
@@ -1006,7 +1019,7 @@ export class Normalizer {
             case 'Feature':
             case 'Knowledge':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
                         ...appearance,
@@ -1017,7 +1030,7 @@ export class Normalizer {
                 }
             case 'Bookmark':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
                         ...appearance,
@@ -1026,7 +1039,7 @@ export class Normalizer {
                 }
             case 'Message':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
                         ...appearance,
@@ -1036,7 +1049,7 @@ export class Normalizer {
                 }
             case 'Moment':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
                         ...appearance,
@@ -1045,7 +1058,7 @@ export class Normalizer {
                 }
             case 'Map':
                 return {
-                    key: node.key,
+                    key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
                         ...appearance,

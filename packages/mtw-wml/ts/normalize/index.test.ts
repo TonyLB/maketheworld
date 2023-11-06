@@ -7,9 +7,8 @@ import { schemaFromParse, schemaToWML } from '../simpleSchema'
 import parse from '../simpleParser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
-import { isSchemaCondition, isSchemaExit, isSchemaFeature, isSchemaImport, isSchemaMessage, isSchemaRoom, isSchemaWithContents, SchemaBookmarkTag, SchemaFeatureTag, SchemaMessageTag, SchemaRoomTag, SchemaTag } from '../simpleSchema/baseClasses'
+import { isSchemaCondition, isSchemaImport, isSchemaRoom, SchemaTag } from '../simpleSchema/baseClasses'
 import { deIndentWML } from '../simpleSchema/utils'
-import { die } from 'immer/dist/internal'
 
 describe('WML normalize', () => {
 
@@ -501,6 +500,42 @@ describe('WML normalize', () => {
                 }
             )
             expect(normalizer.normal).toMatchSnapshot()
+        })
+
+        it('should default the key if none provided', () => {
+            const testSource = `<Asset key=(TestAsset)>
+                <Room key=(Room1)>
+                    <Description>
+                        One
+                    </Description>
+                </Room>
+                <Room key=(test)>
+                    <Description>
+                        Two
+                    </Description>
+                </Room>
+                <Export><Room key=(test) as=(Room2) /></Export>
+            </Asset>`
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            normalizer.put(
+                { tag: 'Room' as const, key: '', name: [], contents: [], render: [] },
+                {
+                    contextStack: [
+                        { tag: 'Asset', key: 'TestAsset', index: 0 }
+                    ],
+                    index: 2,
+                    replace: false
+                }
+            )
+            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Room key=(Room1)><Description>One</Description></Room>
+                    <Room key=(test)><Description>Two</Description></Room>
+                    <Room key=(Room3) />
+                    <Export><Room key=(test) as=(Room2) /></Export>
+                </Asset>
+            `))
         })
         
     })
