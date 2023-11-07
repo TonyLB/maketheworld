@@ -5,7 +5,7 @@ import { NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 const normalizer = new Normalizer()
 normalizer.loadWML(`<Asset key=(testAsset)>
     <Import from=(testImport)>
-        <Use key=(testRoom) type="Room" />
+        <Room key=(testRoom) />
     </Import>
     <Room key=(testRoom)><Name>: imported</Name></Room>
 </Asset>`)
