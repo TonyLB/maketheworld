@@ -37,7 +37,7 @@ import {
     getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, NormalItem, isNormalVariable, NormalVariable, NormalComputed, isNormalComputed, NormalAction, isNormalAction, NormalKnowledge } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature, NormalImage, isNormalImage, isNormalVariable, NormalVariable, NormalComputed, isNormalComputed, NormalAction, isNormalAction, NormalKnowledge } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
@@ -59,7 +59,7 @@ type AssetEditFormProps = {
     setAssignDialogShown: (value: boolean) => void;
 }
 
-const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
+const defaultItemFromTag = (tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action', key: string): SchemaTag => {
     switch(tag) {
         case 'Room':
         case 'Feature':
@@ -95,6 +95,15 @@ const defaultItemFromTag = (tag: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'V
                 key,
                 src: ''
             }
+        case 'Map':
+            return {
+                tag: 'Map' as const,
+                key,
+                rooms: [],
+                images: [],
+                contents: [],
+                name: []
+            }
     }
 }
 
@@ -125,7 +134,7 @@ const AssetAssignDialog: FunctionComponent<AssetAssignDialogProps> = ({ open, on
         </Dialog>
 }
 
-const AddWMLComponent: FunctionComponent<{ type: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
+const AddWMLComponent: FunctionComponent<{ type: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
     <ListItemButton onClick={onAdd}>
         <ListItemIcon>
             <AddIcon />
@@ -148,7 +157,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     const actions = useMemo<NormalAction[]>(() => (Object.values(normalForm || {}).filter(isNormalAction)), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const dispatch = useDispatch()
-    const addAsset = useCallback((tag: 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
+    const addAsset = useCallback((tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
         switch(tag) {
             case 'Room':
                 dispatch(addOnboardingComplete(['addRoom']))
@@ -163,11 +172,11 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                 position: { contextStack: [{ key: rootItem.key, tag: rootItem.tag, index: 0 }]}
             })
         }
-    }, [updateNormal, normalForm])
+    }, [updateNormal, normalForm, dispatch])
     const innerSaveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveAsset'], { requireSequence: true }))
         save()
-    }, [save])
+    }, [save, dispatch])
     const saveHandler = useCallback(() => {
         innerSaveHandler()
         if (!Boolean(serialized)) {
@@ -197,9 +206,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
             <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
                 <List>
+                    <ListSubheader>Maps</ListSubheader>
                     { maps.length
                         ? <React.Fragment>
-                            <ListSubheader>Maps</ListSubheader>
                             { maps.map((mapItem) => (<MapHeader
                                 key={mapItem.key}
                                 mapItem={mapItem}
@@ -208,6 +217,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                         </React.Fragment>
                         : null
                     }
+                    <AddWMLComponent type="Map" onAdd={addAsset('Map')} />
                     <ListSubheader>Rooms</ListSubheader>
                     { rooms.length
                         ? rooms.map((room) => (<WMLComponentHeader
@@ -341,7 +351,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
                 dispatch(assignAssetToCharacterId({ assetId: AssetId, characterId: `CHARACTER#${scopedId}` }))
             })
         }
-    }, [AssetId, Characters])
+    }, [AssetId, Characters, dispatch])
 
     return <React.Fragment>
         <AssetAssignDialog open={assignDialogShown} onClose={() => { setAssignDialogShown(false) }} assignHandler={assignHandler} />
