@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction, createSelector, Dispatch, createAsyncThunk } from '@reduxjs/toolkit'
-import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { createSlice, PayloadAction, createSelector, createAsyncThunk } from '@reduxjs/toolkit'
+import { EphemeraAssetId, EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { unique } from '../../../lib/lists';
 
 import { Selector } from '../../../store'
@@ -26,6 +26,11 @@ type NavigationTabGeneral = {
 type NavigationTabMap = {
     type: 'Map';
     characterId: EphemeraCharacterId;
+} & NavigationTabBase
+
+type NavigationTabMapEdit = {
+    type: 'MapEdit';
+    mapId: EphemeraMapId;
 } & NavigationTabBase
 
 type NavigationTabMessagePanel = {
@@ -55,6 +60,7 @@ type NavigationTabKnowledge = {
 
 export type NavigationTab = NavigationTabGeneral |
     NavigationTabMap |
+    NavigationTabMapEdit |
     NavigationTabMessagePanel |
     NavigationTabLibrary |
     NavigationTabLibraryEdit |
@@ -62,6 +68,7 @@ export type NavigationTab = NavigationTabGeneral |
     NavigationTabKnowledge
 
 export const isNavigationTabMap = (value: NavigationTab): value is NavigationTabMap => (value.type === 'Map')
+export const isNavigationTabMapEdit = (value: NavigationTab): value is NavigationTabMapEdit => (value.type === 'MapEdit')
 export const isNavigationTabLibrary = (value: NavigationTab): value is NavigationTabLibrary => (value.type === 'Library')
 export const isNavigationTabLibraryEdit = (value: NavigationTab): value is NavigationTabLibraryEdit => (value.type === 'LibraryEdit')
 export const isNavigationTabComponentEdit = (value: NavigationTab): value is NavigationTabLibraryEdit => (value.type === 'ComponentEdit')
