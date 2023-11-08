@@ -20,6 +20,7 @@ import { MapAppearance, isNormalImage, isNormalMap, NormalReference, isNormalRoo
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaRoomTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { extractConditionedItemFromContents } from '@tonylb/mtw-wml/dist/simpleSchema/utils'
+import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 
 type MapEditProps = {
 }
@@ -27,7 +28,16 @@ type MapEditProps = {
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
     const { normalForm, rooms, updateNormal } = useLibraryAsset()
-    const { MapId: mapId } = useParams<{ MapId: string }>()
+    const { AssetId: assetKey, MapId: mapId } = useParams<{ AssetId: string; MapId: string }>()
+    const AssetId = `ASSET#${assetKey}` as const
+    useAutoPin({
+        href: `/Library/Edit/Asset/${assetKey}/Map/${mapId}`,
+        label: `${mapId}`,
+        type: 'MapEdit',
+        iconName: 'MapEdit',
+        mapId: `MAP#${mapId}`,
+        cascadingClose: true
+    })
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     //

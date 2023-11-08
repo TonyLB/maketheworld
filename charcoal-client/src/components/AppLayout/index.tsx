@@ -12,9 +12,7 @@ import {
     Route,
     Link,
     useParams,
-    useLocation,
-    NavigateFunction,
-    useNavigate
+    useLocation
 } from "react-router-dom"
 
 import './index.css'
@@ -71,6 +69,11 @@ const IconDispatcher = ({ iconName = 'Forum', assetId }: { iconName: string; ass
     switch(iconName) {
         case 'Map':
             return <MapIcon />
+        case 'MapEdit':
+            return <React.Fragment>
+                <EditIcon />
+                <MapIcon />
+            </React.Fragment>
         case 'Notifications':
             return <NotificationsActiveIcon />
         case 'Library':
