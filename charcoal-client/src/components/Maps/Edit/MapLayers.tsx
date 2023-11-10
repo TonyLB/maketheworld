@@ -13,6 +13,9 @@ import { NestedTree, NestedTreeEntry } from '../../DraggableTree/interfaces'
 import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from './maps'
 import useMapStyles from './useMapStyles'
 import { MapDispatch } from './reducer.d'
+import { Box, Stack } from '@mui/material'
+import HomeIcon from '@mui/icons-material/Home'
+import { grey } from '@mui/material/colors'
 
 type MapLayersProps = {
     tree: MapTree;
@@ -109,6 +112,17 @@ const processTreeVisibility = ({ children, item, ...rest }: NestedTreeEntry<MapI
     }
 }
 
+const RoomLayer: FunctionComponent<{ name: string }> = ({ name }) => {
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: grey[500], overflow: 'hidden' }}>
+        <Stack direction="row">
+            <Box sx={{ background: grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
+                <HomeIcon />
+            </Box>
+            { name }
+        </Stack>
+    </Box>
+}
+
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch }) => {
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
@@ -119,15 +133,19 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
             tree
         })
     }
-    return <DraggableTree
-        tree={processedTree}
-        renderComponent={renderComponent((key, visibility) => { setTree(setTreeVisibility(tree, { key, visibility })) })}
-        renderHandle={handleRender}
-        onOpen={(key) => { setTree(treeStateReducer(tree, { type: 'OPEN', key })) } }
-        onClose={(key) => { setTree(treeStateReducer(tree, { type: 'CLOSE', key })) } }
-        onMove={({ fromKey, toKey, position }) => { setTree(treeStateReducer(tree, { type: 'MOVE', fromKey, toKey, position })) }}
-        canDrop={canDrop}
-    />
+    return <Box sx={{position: "relative", zIndex: 0 }}>
+        <RoomLayer name="Lobby" />
+        <RoomLayer name="Stairs" />
+    </Box>
+    // return <DraggableTree
+    //     tree={processedTree}
+    //     renderComponent={renderComponent((key, visibility) => { setTree(setTreeVisibility(tree, { key, visibility })) })}
+    //     renderHandle={handleRender}
+    //     onOpen={(key) => { setTree(treeStateReducer(tree, { type: 'OPEN', key })) } }
+    //     onClose={(key) => { setTree(treeStateReducer(tree, { type: 'CLOSE', key })) } }
+    //     onMove={({ fromKey, toKey, position }) => { setTree(treeStateReducer(tree, { type: 'MOVE', fromKey, toKey, position })) }}
+    //     canDrop={canDrop}
+    // />
 }
 
 export default MapLayers
