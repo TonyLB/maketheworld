@@ -137,6 +137,27 @@ const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
     </Box>
 }
 
+const ConditionLayer: FunctionComponent<{ src: string }> = ({ src, children }) => {
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: grey[300] }}>
+        <Box sx={{
+            top: '-0.75em',
+            left: '0.5em',
+            position: 'relative',
+            background: 'white',
+            border: '1px solid',
+            borderRadius: '0.5em',
+            borderColor: grey[300],
+            paddingLeft: '0.25em',
+            maxWidth: '60%'
+        }}>
+            { src }
+        </Box>
+        <Box sx={{ top: '-0.5em', marginLeft: '1em', position: 'relative' }}>
+            { children }
+        </Box>
+    </Box>
+}
+
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch }) => {
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
@@ -152,6 +173,13 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
         <ExitLayer name="Stairs" />
         <RoomLayer name="Stairs" />
         <ExitLayer name="Lobby" />
+        <ConditionLayer src="defValue === true">
+            <RoomLayer name="Closet" />
+            <ConditionLayer src="exitVisible">
+                <RoomLayer name="Stairs" />
+                <ExitLayer name="Closet" />
+            </ConditionLayer>
+        </ConditionLayer>
     </Box>
     // return <DraggableTree
     //     tree={processedTree}
