@@ -13,8 +13,9 @@ import { NestedTree, NestedTreeEntry } from '../../DraggableTree/interfaces'
 import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from './maps'
 import useMapStyles from './useMapStyles'
 import { MapDispatch } from './reducer.d'
-import { Box, Stack } from '@mui/material'
+import { Box, Stack, Typography } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
+import ArrowIcon from '@mui/icons-material/CallMade'
 import { grey } from '@mui/material/colors'
 
 type MapLayersProps = {
@@ -123,6 +124,19 @@ const RoomLayer: FunctionComponent<{ name: string }> = ({ name }) => {
     </Box>
 }
 
+const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginLeft: '0.75em', border: '1px solid', borderColor: grey[300], overflow: 'hidden' }}>
+        <Stack direction="row">
+            <Box sx={{ background: grey[200], paddingLeft: '0.35em', paddingRight: '0.25em', marginTop: '-0.2em', marginRight: '0.25em' }}>
+                <ArrowIcon fontSize="small" sx={{ fontSize: '12px' }} />
+            </Box>
+            <Typography variant='overline' fontSize="8px">
+                to: { name }
+            </Typography>
+        </Stack>
+    </Box>
+}
+
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch }) => {
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
@@ -135,7 +149,9 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
     }
     return <Box sx={{position: "relative", zIndex: 0 }}>
         <RoomLayer name="Lobby" />
+        <ExitLayer name="Stairs" />
         <RoomLayer name="Stairs" />
+        <ExitLayer name="Lobby" />
     </Box>
     // return <DraggableTree
     //     tree={processedTree}
