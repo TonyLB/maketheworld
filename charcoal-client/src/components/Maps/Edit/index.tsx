@@ -41,9 +41,15 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     //
-    // TODO: Extend importDefaults to properly fetch inherited exits from ancestor assets, and then
-    // put back the inheritedExits and inheritedAppearances functionality in normalToTree that shows
-    // locked prior layers of map functionality.
+    // TODO: Extract conditions and rooms from importDefaults
+    //
+
+    //
+    // TODO: Extract conditions and rooms from normalForm
+    //
+
+    //
+    // TODO: Display unconditioned rooms and exits
     //
     const defaultTree = useMemo(() => {
         return normalToTree({ MapId: mapId || '', normalForm, rooms, inheritedExits: [], inheritedAppearances: [] })
