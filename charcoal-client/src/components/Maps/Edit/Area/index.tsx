@@ -9,7 +9,7 @@ import MapDThree from '../MapDThree'
 import { SimNode, SimCallback } from '../MapDThree/baseClasses'
 import MapDisplay from './MapDisplay'
 import mapAreaReducer, { treeToVisible, treeToMapLayers } from './reducer'
-import { MapDispatch } from '../reducer.d'
+import { MapDispatch } from '../reducer'
 import { AddRoomDialog } from './AddRoomDialog'
 
 type MapAreaProps = {

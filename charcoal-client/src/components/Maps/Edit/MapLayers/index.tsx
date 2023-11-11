@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo } from 'react'
+import React, { FunctionComponent, useContext, useMemo } from 'react'
 
 import RoomIcon from '@mui/icons-material/Home'
 import ExitIcon from '@mui/icons-material/CallMade'
@@ -7,12 +7,12 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import produce from 'immer'
 
-import DraggableTree, { treeStateReducer, recursiveUpdate } from '../../DraggableTree'
-import { NestedTree, NestedTreeEntry } from '../../DraggableTree/interfaces'
+import DraggableTree, { treeStateReducer, recursiveUpdate } from '../../../DraggableTree'
+import { NestedTree, NestedTreeEntry } from '../../../DraggableTree/interfaces'
 
-import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from './maps'
-import useMapStyles from './useMapStyles'
-import { MapDispatch } from './reducer.d'
+import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from '../maps'
+import useMapStyles from '../useMapStyles'
+import { MapDispatch } from '../reducer'
 import { Box, Stack, Typography } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import ArrowIcon from '@mui/icons-material/CallMade'
@@ -113,6 +113,13 @@ const processTreeVisibility = ({ children, item, ...rest }: NestedTreeEntry<MapI
     }
 }
 
+type MapLayersContextType = {
+    inheritedInvisible?: boolean;
+}
+
+const MapLayersContext = React.createContext<MapLayersContextType>({})
+export const useMapLayersContext = () => (useContext(MapLayersContext))
+
 const RoomLayer: FunctionComponent<{ name: string }> = ({ name }) => {
     return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: grey[500], overflow: 'hidden' }}>
         <Stack direction="row">
@@ -168,19 +175,22 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
             tree
         })
     }
-    return <Box sx={{position: "relative", zIndex: 0 }}>
-        <RoomLayer name="Lobby" />
-        <ExitLayer name="Stairs" />
-        <RoomLayer name="Stairs" />
-        <ExitLayer name="Lobby" />
-        <ConditionLayer src="defValue === true">
-            <RoomLayer name="Closet" />
-            <ConditionLayer src="exitVisible">
-                <RoomLayer name="Stairs" />
-                <ExitLayer name="Closet" />
+    return <MapLayersContext.Provider value={{}}>
+        <Box sx={{position: "relative", zIndex: 0 }}>
+            <RoomLayer name="Lobby" />
+            <ExitLayer name="Stairs" />
+            <RoomLayer name="Stairs" />
+            <ExitLayer name="Lobby" />
+            <ConditionLayer src="defValue === true">
+                <RoomLayer name="Closet" />
+                <ConditionLayer src="exitVisible">
+                    <RoomLayer name="Stairs" />
+                    <ExitLayer name="Closet" />
+                </ConditionLayer>
             </ConditionLayer>
-        </ConditionLayer>
-    </Box>
+        </Box>
+    </MapLayersContext.Provider>
+
     // return <DraggableTree
     //     tree={processedTree}
     //     renderComponent={renderComponent((key, visibility) => { setTree(setTreeVisibility(tree, { key, visibility })) })}
