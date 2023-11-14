@@ -144,7 +144,7 @@ const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
     </Box>
 }
 
-const ConditionLayer: FunctionComponent<{ src: string }> = ({ src, children }) => {
+const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, visible?: boolean }> = ({ src, onToggle = () => {}, visible = true, children }) => {
     return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: grey[300] }}>
         <Box sx={{
             top: '-0.75em',
@@ -154,10 +154,19 @@ const ConditionLayer: FunctionComponent<{ src: string }> = ({ src, children }) =
             border: '1px solid',
             borderRadius: '0.5em',
             borderColor: grey[300],
-            paddingLeft: '0.25em',
-            maxWidth: '60%'
+            maxWidth: '60%',
+            overflow: 'hidden'
         }}>
-            { src }
+            <Stack direction="row">
+                <Box sx={{ background: grey[200], paddingLeft: '0.25em', paddingTop: '0.2em', paddingBottom: '-0.2em', paddingRight: '0.25em', marginRight: '0.25em' }}>
+                    {
+                        visible
+                            ? <VisibilityIcon fontSize="small" />
+                            : <VisibilityOffIcon fontSize="small" />
+                    }
+                </Box>
+                { src }
+            </Stack>
         </Box>
         <Box sx={{ top: '-0.5em', marginLeft: '1em', position: 'relative' }}>
             { children }
