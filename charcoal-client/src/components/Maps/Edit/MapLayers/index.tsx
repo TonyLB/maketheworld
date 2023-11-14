@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext, useMemo } from 'react'
+import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from 'react'
 
 import RoomIcon from '@mui/icons-material/Home'
 import ExitIcon from '@mui/icons-material/CallMade'
@@ -158,7 +158,18 @@ const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, vi
             overflow: 'hidden'
         }}>
             <Stack direction="row">
-                <Box sx={{ background: grey[200], paddingLeft: '0.25em', paddingTop: '0.2em', paddingBottom: '-0.2em', paddingRight: '0.25em', marginRight: '0.25em' }}>
+                <Box
+                    sx={{
+                        background: grey[200],
+                        paddingLeft: '0.25em',
+                        paddingTop: '0.2em',
+                        paddingBottom: '-0.2em',
+                        paddingRight: '0.25em',
+                        marginRight: '0.25em',
+                        cursor: 'pointer'
+                    }}
+                    onClick={() => { onToggle() }}
+                >
                     {
                         visible
                             ? <VisibilityIcon fontSize="small" />
@@ -178,6 +189,15 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
     ), [tree])
+    const [visibleConditions, setVisibleConditions] = useState<string[]>(['If-0', 'If-1'])
+    const visibleToggle = useCallback((key: string) => () => {
+        if (visibleConditions.includes(key)) {
+            setVisibleConditions(visibleConditions.filter((condition) => (condition !== key)))
+        }
+        else {
+            setVisibleConditions([...visibleConditions, key])
+        }
+    }, [visibleConditions, setVisibleConditions])
     const setTree = (tree: MapTree): void => {
         dispatch({
             type: 'updateTree',
@@ -190,9 +210,17 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
             <ExitLayer name="Stairs" />
             <RoomLayer name="Stairs" />
             <ExitLayer name="Lobby" />
-            <ConditionLayer src="defValue === true">
+            <ConditionLayer
+                src="defValue === true"
+                visible={visibleConditions.includes('If-0')}
+                onToggle={visibleToggle('If-0')}
+            >
                 <RoomLayer name="Closet" />
-                <ConditionLayer src="exitVisible">
+                <ConditionLayer
+                    src="exitVisible"
+                    visible={visibleConditions.includes('If-1')}
+                    onToggle={visibleToggle('If-1')}
+                >
                     <RoomLayer name="Stairs" />
                     <ExitLayer name="Closet" />
                 </ConditionLayer>
