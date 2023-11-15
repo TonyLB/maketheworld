@@ -17,8 +17,11 @@ import { Box, Stack, Typography } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import ArrowIcon from '@mui/icons-material/CallMade'
 import { grey } from '@mui/material/colors'
+import { useDispatch, useSelector } from 'react-redux'
+import { mapEditAllConditions, mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
 
 type MapLayersProps = {
+    mapId: string;
     tree: MapTree;
     dispatch: MapDispatch;
 }
@@ -114,10 +117,11 @@ const processTreeVisibility = ({ children, item, ...rest }: NestedTreeEntry<MapI
 }
 
 type MapLayersContextType = {
+    mapId: string;
     inheritedInvisible?: boolean;
 }
 
-const MapLayersContext = React.createContext<MapLayersContextType>({})
+const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
 const RoomLayer: FunctionComponent<{ name: string }> = ({ name }) => {
@@ -148,8 +152,10 @@ const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
     </Box>
 }
 
-const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, visible?: boolean }> = ({ src, onToggle = () => {}, visible = true, children }) => {
-    const { inheritedInvisible } = useMapLayersContext()
+const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = ({ src, conditionId, children }) => {
+    const { inheritedInvisible, mapId } = useMapLayersContext()
+    const dispatch = useDispatch()
+    const visible = !useSelector(mapEditConditionState(mapId, conditionId))
     return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: inheritedInvisible ? grey[100] : grey[300] }}>
         <Box sx={{
             top: '-0.75em',
@@ -173,7 +179,7 @@ const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, vi
                         marginRight: '0.25em',
                         cursor: 'pointer'
                     }}
-                    onClick={inheritedInvisible ? () => {} : () => { onToggle() }}
+                    onClick={inheritedInvisible ? () => {} : () => { dispatch(toggle({ mapId, key: conditionId })) }}
                 >
                     {
                         (visible && !inheritedInvisible)
@@ -189,33 +195,29 @@ const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, vi
         <Box sx={{ top: '-0.5em', marginLeft: '1em', position: 'relative' }}>
             {
                 !visible
-                    ? <MapLayersContext.Provider value={{ inheritedInvisible: true }}>{ children }</MapLayersContext.Provider>
+                    ? <MapLayersContext.Provider value={{ mapId, inheritedInvisible: true }}>{ children }</MapLayersContext.Provider>
                     : children
             }
         </Box>
     </Box>
 }
 
-export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch }) => {
+export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, dispatch }) => {
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
     ), [tree])
-    const [visibleConditions, setVisibleConditions] = useState<string[]>(['If-0', 'If-1'])
+    const visibleConditions = useSelector(mapEditAllConditions)?.[mapId] || []
+    const reduxDispatch = useDispatch()
     const visibleToggle = useCallback((key: string) => () => {
-        if (visibleConditions.includes(key)) {
-            setVisibleConditions(visibleConditions.filter((condition) => (condition !== key)))
-        }
-        else {
-            setVisibleConditions([...visibleConditions, key])
-        }
-    }, [visibleConditions, setVisibleConditions])
+        reduxDispatch(toggle({ mapId, key }))
+    }, [visibleConditions, reduxDispatch])
     const setTree = (tree: MapTree): void => {
         dispatch({
             type: 'updateTree',
             tree
         })
     }
-    return <MapLayersContext.Provider value={{}}>
+    return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{position: "relative", zIndex: 0 }}>
             <RoomLayer name="Lobby" />
             <ExitLayer name="Stairs" />
@@ -223,14 +225,12 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
             <ExitLayer name="Lobby" />
             <ConditionLayer
                 src="defValue === true"
-                visible={visibleConditions.includes('If-0')}
-                onToggle={visibleToggle('If-0')}
+                conditionId="If-0"
             >
                 <RoomLayer name="Closet" />
                 <ConditionLayer
                     src="exitVisible"
-                    visible={visibleConditions.includes('If-1')}
-                    onToggle={visibleToggle('If-1')}
+                    conditionId="If-1"
                 >
                     <RoomLayer name="Stairs" />
                     <ExitLayer name="Closet" />

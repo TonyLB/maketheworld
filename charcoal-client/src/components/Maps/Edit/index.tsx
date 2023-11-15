@@ -202,7 +202,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 />
             </div>
             <div className={localClasses.sidebar} >
-                <MapLayers tree={tree} dispatch={dispatch} />
+                <MapLayers mapId={mapId} tree={tree} dispatch={dispatch} />
             </div>
         </div>
     </ToolSelectContext.Provider>
