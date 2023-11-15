@@ -145,6 +145,7 @@ const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
 }
 
 const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, visible?: boolean }> = ({ src, onToggle = () => {}, visible = true, children }) => {
+    const { inheritedInvisible } = useMapLayersContext()
     return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: grey[300] }}>
         <Box sx={{
             top: '-0.75em',
@@ -168,10 +169,10 @@ const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, vi
                         marginRight: '0.25em',
                         cursor: 'pointer'
                     }}
-                    onClick={() => { onToggle() }}
+                    onClick={inheritedInvisible ? () => {} : () => { onToggle() }}
                 >
                     {
-                        visible
+                        (visible && !inheritedInvisible)
                             ? <VisibilityIcon fontSize="small" />
                             : <VisibilityOffIcon fontSize="small" />
                     }
@@ -180,7 +181,11 @@ const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, vi
             </Stack>
         </Box>
         <Box sx={{ top: '-0.5em', marginLeft: '1em', position: 'relative' }}>
-            { children }
+            {
+                !visible
+                    ? <MapLayersContext.Provider value={{ inheritedInvisible: true }}>{ children }</MapLayersContext.Provider>
+                    : children
+            }
         </Box>
     </Box>
 }
