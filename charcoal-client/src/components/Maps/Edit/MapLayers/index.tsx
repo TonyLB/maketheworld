@@ -18,7 +18,7 @@ import HomeIcon from '@mui/icons-material/Home'
 import ArrowIcon from '@mui/icons-material/CallMade'
 import { grey } from '@mui/material/colors'
 import { useDispatch, useSelector } from 'react-redux'
-import { mapEditAllConditions, toggle } from '../../../../slices/UI/mapEdit'
+import { mapEditAllConditions, mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
 
 type MapLayersProps = {
     mapId: string;
@@ -152,8 +152,10 @@ const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
     </Box>
 }
 
-const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, visible?: boolean }> = ({ src, onToggle = () => {}, visible = true, children }) => {
+const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = ({ src, conditionId, children }) => {
     const { inheritedInvisible, mapId } = useMapLayersContext()
+    const dispatch = useDispatch()
+    const visible = !useSelector(mapEditConditionState(mapId, conditionId))
     return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: inheritedInvisible ? grey[100] : grey[300] }}>
         <Box sx={{
             top: '-0.75em',
@@ -177,7 +179,7 @@ const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, vi
                         marginRight: '0.25em',
                         cursor: 'pointer'
                     }}
-                    onClick={inheritedInvisible ? () => {} : () => { onToggle() }}
+                    onClick={inheritedInvisible ? () => {} : () => { dispatch(toggle({ mapId, key: conditionId })) }}
                 >
                     {
                         (visible && !inheritedInvisible)
@@ -223,14 +225,12 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, disp
             <ExitLayer name="Lobby" />
             <ConditionLayer
                 src="defValue === true"
-                visible={visibleConditions.includes('If-0')}
-                onToggle={visibleToggle('If-0')}
+                conditionId="If-0"
             >
                 <RoomLayer name="Closet" />
                 <ConditionLayer
                     src="exitVisible"
-                    visible={visibleConditions.includes('If-1')}
-                    onToggle={visibleToggle('If-1')}
+                    conditionId="If-1"
                 >
                     <RoomLayer name="Stairs" />
                     <ExitLayer name="Closet" />

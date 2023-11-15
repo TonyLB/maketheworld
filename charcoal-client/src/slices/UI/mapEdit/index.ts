@@ -15,7 +15,7 @@ const mapEditSlice = createSlice({
         toggle(state, action: PayloadAction<{ mapId: string, key: string }>) {
             const { mapId, key } = action.payload
             if (mapId in state) {
-                const mapState = state[mapId]
+                const mapState = state[mapId] || []
                 if (mapState.includes(key)) {
                     state[mapId] = mapState.filter((conditional) => (conditional !== key))
                 }
@@ -36,7 +36,7 @@ export const mapEditAllConditions: Selector<Record<string, string[]>> = ({ UI: {
 
 export const mapEditConditionState = (mapId: string, key: string): Selector<boolean> => createSelector(
     mapEditAllConditions,
-    (mapEditAllConditions) => (mapEditAllConditions[mapId].includes(key))
+    (mapEditAllConditions) => ((mapEditAllConditions[mapId] || []).includes(key))
 )
 
 export default mapEditSlice.reducer
