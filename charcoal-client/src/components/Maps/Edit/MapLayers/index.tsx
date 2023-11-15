@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext, useMemo } from 'react'
+import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from 'react'
 
 import RoomIcon from '@mui/icons-material/Home'
 import ExitIcon from '@mui/icons-material/CallMade'
@@ -121,31 +121,36 @@ const MapLayersContext = React.createContext<MapLayersContextType>({})
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
 const RoomLayer: FunctionComponent<{ name: string }> = ({ name }) => {
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: grey[500], overflow: 'hidden' }}>
+    const { inheritedInvisible } = useMapLayersContext()
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: inheritedInvisible ? grey[200] : grey[500], overflow: 'hidden' }}>
         <Stack direction="row">
-            <Box sx={{ background: grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
-                <HomeIcon />
+            <Box sx={{ background: inheritedInvisible ? grey[100] : grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
+                <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
             </Box>
-            { name }
+            <Typography color={inheritedInvisible ? grey[500] : 'black' }>
+                { name }
+            </Typography>
         </Stack>
     </Box>
 }
 
 const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginLeft: '0.75em', border: '1px solid', borderColor: grey[300], overflow: 'hidden' }}>
+    const { inheritedInvisible } = useMapLayersContext()
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginLeft: '0.75em', border: '1px solid', borderColor: inheritedInvisible ? grey[100] : grey[300], overflow: 'hidden' }}>
         <Stack direction="row">
-            <Box sx={{ background: grey[200], paddingLeft: '0.35em', paddingRight: '0.25em', marginTop: '-0.2em', marginRight: '0.25em' }}>
-                <ArrowIcon fontSize="small" sx={{ fontSize: '12px' }} />
+            <Box sx={{ background: inheritedInvisible ? grey[50] : grey[200], paddingLeft: '0.35em', paddingRight: '0.25em', marginTop: '-0.2em', marginRight: '0.25em' }}>
+                <ArrowIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
             </Box>
-            <Typography variant='overline' fontSize="8px">
+            <Typography variant='overline' fontSize="8px" color={inheritedInvisible ? grey[500] : 'black' }>
                 to: { name }
             </Typography>
         </Stack>
     </Box>
 }
 
-const ConditionLayer: FunctionComponent<{ src: string }> = ({ src, children }) => {
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: grey[300] }}>
+const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, visible?: boolean }> = ({ src, onToggle = () => {}, visible = true, children }) => {
+    const { inheritedInvisible } = useMapLayersContext()
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: inheritedInvisible ? grey[100] : grey[300] }}>
         <Box sx={{
             top: '-0.75em',
             left: '0.5em',
@@ -154,13 +159,39 @@ const ConditionLayer: FunctionComponent<{ src: string }> = ({ src, children }) =
             border: '1px solid',
             borderRadius: '0.5em',
             borderColor: grey[300],
-            paddingLeft: '0.25em',
-            maxWidth: '60%'
+            maxWidth: '60%',
+            overflow: 'hidden'
         }}>
-            { src }
+            <Stack direction="row">
+                <Box
+                    sx={{
+                        background: inheritedInvisible ? grey[50] : grey[200],
+                        paddingLeft: '0.25em',
+                        paddingTop: '0.2em',
+                        paddingBottom: '-0.2em',
+                        paddingRight: '0.25em',
+                        marginRight: '0.25em',
+                        cursor: 'pointer'
+                    }}
+                    onClick={inheritedInvisible ? () => {} : () => { onToggle() }}
+                >
+                    {
+                        (visible && !inheritedInvisible)
+                            ? <VisibilityIcon fontSize="small" />
+                            : <VisibilityOffIcon fontSize="small" sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                    }
+                </Box>
+                <Typography color={inheritedInvisible ? grey[500] : 'black' }>
+                    { src }
+                </Typography>
+            </Stack>
         </Box>
         <Box sx={{ top: '-0.5em', marginLeft: '1em', position: 'relative' }}>
-            { children }
+            {
+                !visible
+                    ? <MapLayersContext.Provider value={{ inheritedInvisible: true }}>{ children }</MapLayersContext.Provider>
+                    : children
+            }
         </Box>
     </Box>
 }
@@ -169,6 +200,15 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
     ), [tree])
+    const [visibleConditions, setVisibleConditions] = useState<string[]>(['If-0', 'If-1'])
+    const visibleToggle = useCallback((key: string) => () => {
+        if (visibleConditions.includes(key)) {
+            setVisibleConditions(visibleConditions.filter((condition) => (condition !== key)))
+        }
+        else {
+            setVisibleConditions([...visibleConditions, key])
+        }
+    }, [visibleConditions, setVisibleConditions])
     const setTree = (tree: MapTree): void => {
         dispatch({
             type: 'updateTree',
@@ -181,9 +221,17 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
             <ExitLayer name="Stairs" />
             <RoomLayer name="Stairs" />
             <ExitLayer name="Lobby" />
-            <ConditionLayer src="defValue === true">
+            <ConditionLayer
+                src="defValue === true"
+                visible={visibleConditions.includes('If-0')}
+                onToggle={visibleToggle('If-0')}
+            >
                 <RoomLayer name="Closet" />
-                <ConditionLayer src="exitVisible">
+                <ConditionLayer
+                    src="exitVisible"
+                    visible={visibleConditions.includes('If-1')}
+                    onToggle={visibleToggle('If-1')}
+                >
                     <RoomLayer name="Stairs" />
                     <ExitLayer name="Closet" />
                 </ConditionLayer>
