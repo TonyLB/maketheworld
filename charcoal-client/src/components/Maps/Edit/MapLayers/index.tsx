@@ -121,23 +121,27 @@ const MapLayersContext = React.createContext<MapLayersContextType>({})
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
 const RoomLayer: FunctionComponent<{ name: string }> = ({ name }) => {
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: grey[500], overflow: 'hidden' }}>
+    const { inheritedInvisible } = useMapLayersContext()
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: inheritedInvisible ? grey[200] : grey[500], overflow: 'hidden' }}>
         <Stack direction="row">
-            <Box sx={{ background: grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
-                <HomeIcon />
+            <Box sx={{ background: inheritedInvisible ? grey[100] : grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
+                <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
             </Box>
-            { name }
+            <Typography color={inheritedInvisible ? grey[500] : 'black' }>
+                { name }
+            </Typography>
         </Stack>
     </Box>
 }
 
 const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginLeft: '0.75em', border: '1px solid', borderColor: grey[300], overflow: 'hidden' }}>
+    const { inheritedInvisible } = useMapLayersContext()
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginLeft: '0.75em', border: '1px solid', borderColor: inheritedInvisible ? grey[100] : grey[300], overflow: 'hidden' }}>
         <Stack direction="row">
-            <Box sx={{ background: grey[200], paddingLeft: '0.35em', paddingRight: '0.25em', marginTop: '-0.2em', marginRight: '0.25em' }}>
-                <ArrowIcon fontSize="small" sx={{ fontSize: '12px' }} />
+            <Box sx={{ background: inheritedInvisible ? grey[50] : grey[200], paddingLeft: '0.35em', paddingRight: '0.25em', marginTop: '-0.2em', marginRight: '0.25em' }}>
+                <ArrowIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
             </Box>
-            <Typography variant='overline' fontSize="8px">
+            <Typography variant='overline' fontSize="8px" color={inheritedInvisible ? grey[500] : 'black' }>
                 to: { name }
             </Typography>
         </Stack>
@@ -146,7 +150,7 @@ const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
 
 const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, visible?: boolean }> = ({ src, onToggle = () => {}, visible = true, children }) => {
     const { inheritedInvisible } = useMapLayersContext()
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: grey[300] }}>
+    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: inheritedInvisible ? grey[100] : grey[300] }}>
         <Box sx={{
             top: '-0.75em',
             left: '0.5em',
@@ -161,7 +165,7 @@ const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, vi
             <Stack direction="row">
                 <Box
                     sx={{
-                        background: grey[200],
+                        background: inheritedInvisible ? grey[50] : grey[200],
                         paddingLeft: '0.25em',
                         paddingTop: '0.2em',
                         paddingBottom: '-0.2em',
@@ -174,10 +178,12 @@ const ConditionLayer: FunctionComponent<{ src: string, onToggle?: () => void, vi
                     {
                         (visible && !inheritedInvisible)
                             ? <VisibilityIcon fontSize="small" />
-                            : <VisibilityOffIcon fontSize="small" />
+                            : <VisibilityOffIcon fontSize="small" sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
                     }
                 </Box>
-                { src }
+                <Typography color={inheritedInvisible ? grey[500] : 'black' }>
+                    { src }
+                </Typography>
             </Stack>
         </Box>
         <Box sx={{ top: '-0.5em', marginLeft: '1em', position: 'relative' }}>
