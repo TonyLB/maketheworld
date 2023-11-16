@@ -15,6 +15,7 @@ import useMapStyles from '../useMapStyles'
 import { MapDispatch } from '../reducer'
 import { Box, Stack, Typography } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
+import CopyAllIcon from '@mui/icons-material/CopyAll'
 import ArrowIcon from '@mui/icons-material/CallMade'
 import { grey } from '@mui/material/colors'
 import { useDispatch, useSelector } from 'react-redux'
@@ -124,12 +125,16 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ name: string }> = ({ name }) => {
+const RoomLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited }) => {
     const { inheritedInvisible } = useMapLayersContext()
     return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: inheritedInvisible ? grey[200] : grey[500], overflow: 'hidden' }}>
         <Stack direction="row">
             <Box sx={{ background: inheritedInvisible ? grey[100] : grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
-                <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                {
+                    inherited
+                        ? <CopyAllIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                        : <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                }
             </Box>
             <Typography color={inheritedInvisible ? grey[500] : 'black' }>
                 { name }
@@ -221,7 +226,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, disp
         <Box sx={{position: "relative", zIndex: 0 }}>
             <RoomLayer name="Lobby" />
             <ExitLayer name="Stairs" />
-            <RoomLayer name="Stairs" />
+            <RoomLayer name="Stairs" inherited />
             <ExitLayer name="Lobby" />
             <ConditionLayer
                 src="defValue === true"
@@ -232,7 +237,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, disp
                     src="exitVisible"
                     conditionId="If-1"
                 >
-                    <RoomLayer name="Stairs" />
+                    <RoomLayer name="Stairs" inherited />
                     <ExitLayer name="Closet" />
                 </ConditionLayer>
             </ConditionLayer>
