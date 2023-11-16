@@ -143,12 +143,16 @@ const RoomLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ n
     </Box>
 }
 
-const ExitLayer: FunctionComponent<{ name: string }> = ({ name }) => {
+const ExitLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited }) => {
     const { inheritedInvisible } = useMapLayersContext()
     return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginLeft: '0.75em', border: '1px solid', borderColor: inheritedInvisible ? grey[100] : grey[300], overflow: 'hidden' }}>
         <Stack direction="row">
             <Box sx={{ background: inheritedInvisible ? grey[50] : grey[200], paddingLeft: '0.35em', paddingRight: '0.25em', marginTop: '-0.2em', marginRight: '0.25em' }}>
-                <ArrowIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
+                {
+                    inherited
+                        ? <CopyAllIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
+                        : <ArrowIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
+                }
             </Box>
             <Typography variant='overline' fontSize="8px" color={inheritedInvisible ? grey[500] : 'black' }>
                 to: { name }
@@ -238,7 +242,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, disp
                     conditionId="If-1"
                 >
                     <RoomLayer name="Stairs" inherited />
-                    <ExitLayer name="Closet" />
+                    <ExitLayer name="Closet" inherited />
                 </ConditionLayer>
             </ConditionLayer>
         </Box>
