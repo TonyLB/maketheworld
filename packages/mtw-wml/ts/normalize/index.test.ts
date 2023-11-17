@@ -1021,4 +1021,112 @@ describe('WML normalize', () => {
         })
     })
 
+    describe('merge function', () => {
+        it('should merge two schemata', () => {
+            const testOne = new Normalizer()
+            testOne.loadSchema([
+                {
+                    tag: 'Asset',
+                    key: 'TestOne',
+                    Story: undefined,
+                    contents: [{
+                        tag: 'Room',
+                        key: 'TestRoom',
+                        name: [],
+                        render: [],
+                        contents: [{
+                            tag: 'Description',
+                            contents: [
+                                { tag: 'String', value: 'TestZero'},
+                                {
+                                    tag: 'If',
+                                    conditions: [{
+                                        if: 'test',
+                                        dependencies: ['test'],
+                                    }],
+                                    contents: [{
+                                        tag: 'String',
+                                        value: 'TestOne'
+                                    }]
+                                },
+                                {
+                                    tag: 'If',
+                                    conditions: [{
+                                        if: 'test2',
+                                        dependencies: ['test2']
+                                    },
+                                    {
+                                        if: 'test',
+                                        dependencies: ['test']
+                                    }],
+                                    contents: [
+                                        { tag: 'String', value: 'TestTwo'},
+                                        { tag: 'String', value: 'TestThree'}
+                                    ]
+                                }
+                            ]
+                        }]
+                    }]
+                }
+            ])
+            const testTwo = new Normalizer()
+            testTwo.loadSchema([
+                {
+                    tag: 'Asset',
+                    key: 'TestOne',
+                    Story: undefined,
+                    contents: [{
+                        tag: 'Room',
+                        key: 'TestRoom',
+                        name: [],
+                        render: [],
+                        contents: [{
+                            tag: 'Description',
+                            contents: [
+                                { tag: 'String', value: 'TestFour'},
+                                {
+                                    tag: 'If',
+                                    conditions: [{
+                                        if: 'test2',
+                                        dependencies: ['test2']
+                                    }],
+                                    contents: [{
+                                        tag: 'If',
+                                        conditions: [{
+                                            if: 'test3',
+                                            dependencies: ['test3']
+                                        }],
+                                        contents: [{ tag: 'String', value: 'TestFive'}]
+                                    },
+                                    {
+                                        tag: 'If',
+                                        conditions: [{
+                                            if: 'test',
+                                            dependencies: ['test']
+                                        }],
+                                        contents: [{ tag: 'String', value: 'TestSix'}]
+
+                                    }]
+                                },
+                                {
+                                    tag: 'If',
+                                    conditions: [{
+                                        if: 'test',
+                                        dependencies: ['test'],
+                                    }],
+                                    contents: [{
+                                        tag: 'String',
+                                        value: 'TestSeven'
+                                    }]
+                                }
+                            ]
+                        }]
+                    }]
+                }
+            ])
+            testOne.merge(testTwo)
+            expect(testOne.schema).toEqual([])
+        })
+    })
+
 })

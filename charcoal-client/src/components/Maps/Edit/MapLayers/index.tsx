@@ -212,14 +212,14 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, dispatch }) => {
+    //
+    // TODO: Use orderedConditionalTree method on Normalizer, with Map and Exit filter, to
+    // derive an ordered conditional tree from the current normalForm, and derive from
+    // that the items to display
+    //
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
     ), [tree])
-    const visibleConditions = useSelector(mapEditAllConditions)?.[mapId] || []
-    const reduxDispatch = useDispatch()
-    const visibleToggle = useCallback((key: string) => () => {
-        reduxDispatch(toggle({ mapId, key }))
-    }, [visibleConditions, reduxDispatch])
     const setTree = (tree: MapTree): void => {
         dispatch({
             type: 'updateTree',
