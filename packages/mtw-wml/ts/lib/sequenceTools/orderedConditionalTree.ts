@@ -1,8 +1,8 @@
 import { deepEqual } from "../../lib/objects"
 import { NormalConditionStatement } from "../../normalize/baseClasses"
 import { isSchemaCondition, SchemaConditionTag, SchemaTag } from "../../simpleSchema/baseClasses"
-import IndexSubstitution from "./indexSubstitution"
-import shortestCommonSupersequence from "./shortestCommonSupersequence"
+import IndexSubstitution from "@tonylb/mtw-sequence/ts/indexSubstitution"
+import shortestCommonSupersequence from "@tonylb/mtw-sequence/ts/shortestCommonSupersequence"
 
 export type FlattenedIndexedConditionalNode = {
     conditionIndices: number[];
