@@ -1391,12 +1391,20 @@ export class Normalizer {
     // of the normalForm that are either parents of or children of items that pass
     // the itemFilter. ALL descendant items of passing children are included.
     //
+
+    //
+    // ?TODO?: Refactor filter as a method of schema, not normalize
+    //
     filter(args: { itemFilter?: (item: SchemaTag) => boolean }): void {
         const schema = this.schema
     }
 
     //
     // merge function takes a second normalizer, and merges the contents in place
+    //
+
+    //
+    // TODO: Refactor merge as a method of schema, not normalize
     //
     merge(incomingNormalizer: Normalizer): void {
         const firstSchema = this.schema
