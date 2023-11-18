@@ -95,6 +95,7 @@ import { schemaFromParse } from '../simpleSchema';
 import parse from '../simpleParser';
 import tokenizer from '../parser/tokenizer';
 import { buildNormalPlaceholdersFromExport, rebuildContentsFromImport } from './importExportUtil';
+import { mergeOrderedConditionalTrees } from '../lib/sequenceTools/orderedConditionalTree';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -1378,6 +1379,39 @@ export class Normalizer {
             const standardized = standardizeNormal(this._normalForm)
             this.loadNormal(standardized)
         }
+    }
+
+    clone(): Normalizer {
+        const outputNormalizer = new Normalizer()
+        outputNormalizer.loadNormal(this.normal)
+        return outputNormalizer
+    }
+    //
+    // TODO: Create filter function, to be able to extract in place just the parts
+    // of the normalForm that are either parents of or children of items that pass
+    // the itemFilter. ALL descendant items of passing children are included.
+    //
+
+    //
+    // ?TODO?: Refactor filter as a method of schema, not normalize
+    //
+    filter(args: { itemFilter?: (item: SchemaTag) => boolean }): void {
+        const schema = this.schema
+    }
+
+    //
+    // merge function takes a second normalizer, and merges the contents in place
+    //
+
+    //
+    // TODO: Refactor merge as a method of schema, not normalize
+    //
+    merge(incomingNormalizer: Normalizer): void {
+        const firstSchema = this.schema
+        const secondSchema = incomingNormalizer.schema
+        const outputSchema = mergeOrderedConditionalTrees(firstSchema, secondSchema)
+        console.log(`outputSchema: ${JSON.stringify(outputSchema, null, 4)}`)
+        this.loadSchema(outputSchema)
     }
 
 }

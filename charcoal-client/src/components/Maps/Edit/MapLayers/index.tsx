@@ -20,6 +20,8 @@ import ArrowIcon from '@mui/icons-material/CallMade'
 import { grey } from '@mui/material/colors'
 import { useDispatch, useSelector } from 'react-redux'
 import { mapEditAllConditions, mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
+import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
+import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 type MapLayersProps = {
     mapId: string;
@@ -212,14 +214,33 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, dispatch }) => {
+    //
+    // TODO: Use orderedConditionalTree method on Normalizer, with Map and Exit filter, to
+    // derive an ordered conditional tree from the current normalForm, and derive from
+    // that the items to display
+    //
+    const { normalForm } = useLibraryAsset()
+    const topLevelRooms = useMemo<{ key: string; name: string }[]>(() => {
+        const mapItem = normalForm[mapId]
+        if (mapItem && isNormalMap(mapItem)) {
+            return mapItem.appearances.map<{ key: string; name: string }[]>(
+                ({ rooms }) => (
+                    rooms
+                        .filter(({ conditions }) => (conditions.length === 0))
+                        .map(({ key }) => ({
+                            key,
+                            name: ''
+                        }))
+                )
+            ).flat(1)
+        }
+        else {
+            return []
+        }
+    }, [normalForm])
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
     ), [tree])
-    const visibleConditions = useSelector(mapEditAllConditions)?.[mapId] || []
-    const reduxDispatch = useDispatch()
-    const visibleToggle = useCallback((key: string) => () => {
-        reduxDispatch(toggle({ mapId, key }))
-    }, [visibleConditions, reduxDispatch])
     const setTree = (tree: MapTree): void => {
         dispatch({
             type: 'updateTree',
@@ -228,7 +249,8 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, disp
     }
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{position: "relative", zIndex: 0 }}>
-            <RoomLayer name="Lobby" />
+            { topLevelRooms.map(({ key, name }) => (<RoomLayer name={name || key} key={key} />))}
+            {/* <RoomLayer name="Lobby" />
             <ExitLayer name="Stairs" />
             <RoomLayer name="Stairs" inherited />
             <ExitLayer name="Lobby" />
@@ -244,7 +266,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, disp
                     <RoomLayer name="Stairs" inherited />
                     <ExitLayer name="Closet" inherited />
                 </ConditionLayer>
-            </ConditionLayer>
+            </ConditionLayer> */}
         </Box>
     </MapLayersContext.Provider>
 
