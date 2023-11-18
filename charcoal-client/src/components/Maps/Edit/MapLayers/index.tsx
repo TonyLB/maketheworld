@@ -22,6 +22,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { mapEditAllConditions, mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
 import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { useMapEditContext } from '../Controller'
 
 type MapLayersProps = {
     mapId: string;
@@ -214,30 +215,7 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, dispatch }) => {
-    //
-    // TODO: Use orderedConditionalTree method on Normalizer, with Map and Exit filter, to
-    // derive an ordered conditional tree from the current normalForm, and derive from
-    // that the items to display
-    //
-    const { normalForm } = useLibraryAsset()
-    const topLevelRooms = useMemo<{ key: string; name: string }[]>(() => {
-        const mapItem = normalForm[mapId]
-        if (mapItem && isNormalMap(mapItem)) {
-            return mapItem.appearances.map<{ key: string; name: string }[]>(
-                ({ rooms }) => (
-                    rooms
-                        .filter(({ conditions }) => (conditions.length === 0))
-                        .map(({ key }) => ({
-                            key,
-                            name: ''
-                        }))
-                )
-            ).flat(1)
-        }
-        else {
-            return []
-        }
-    }, [normalForm])
+    const { topLevelRooms } = useMapEditContext()
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
     ), [tree])

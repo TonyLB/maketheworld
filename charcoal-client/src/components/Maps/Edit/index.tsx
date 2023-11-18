@@ -20,6 +20,7 @@ import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaRoomTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { extractConditionedItemFromContents } from '@tonylb/mtw-wml/dist/simpleSchema/utils'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
+import MapEditController from './Controller'
 
 type MapEditProps = {
 }
@@ -186,26 +187,28 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         }
     }, [normalForm, mapId, updateNormal])
 
-    return <ToolSelectContext.Provider value={toolSelected}>
-        <div className={localClasses.grid}>
-            <div className={localClasses.content} >
-                <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
-                    <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
+    return <MapEditController mapId={mapId}>
+        <ToolSelectContext.Provider value={toolSelected}>
+            <div className={localClasses.grid}>
+                <div className={localClasses.content} >
+                    <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
+                        <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
+                    </div>
+                    <MapArea
+                        fileURL={mapImages.length ? mapImages[0] : undefined}
+                        tree={tree}
+                        dispatch={dispatch}
+                        onStabilize={onStabilize}
+                        onAddExit={onAddExit}
+                        onAddRoom={onAddRoom}
+                    />
                 </div>
-                <MapArea
-                    fileURL={mapImages.length ? mapImages[0] : undefined}
-                    tree={tree}
-                    dispatch={dispatch}
-                    onStabilize={onStabilize}
-                    onAddExit={onAddExit}
-                    onAddRoom={onAddRoom}
-                />
+                <div className={localClasses.sidebar} >
+                    <MapLayers mapId={mapId} tree={tree} dispatch={dispatch} />
+                </div>
             </div>
-            <div className={localClasses.sidebar} >
-                <MapLayers mapId={mapId} tree={tree} dispatch={dispatch} />
-            </div>
-        </div>
-    </ToolSelectContext.Provider>
+        </ToolSelectContext.Provider>
+    </MapEditController>
 }
 
 export default MapEdit
