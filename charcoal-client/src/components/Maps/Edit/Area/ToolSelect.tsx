@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react'
+import React, { FunctionComponent, ReactElement } from 'react'
 import IconButton from '@mui/material/IconButton'
 import ButtonGroup from '@mui/material/ButtonGroup'
 import makeStyles from '@mui/styles/makeStyles'
@@ -10,6 +10,7 @@ import TwoWayExitIcon from '@mui/icons-material/SyncAlt'
 import RoomIcon from '@mui/icons-material/Home'
 import MoveIcon from '@mui/icons-material/OpenWith'
 import { ToolSelected } from './area'
+import { useMapEditContext } from '../Controller'
 
 export const localStyles = makeStyles((theme: Theme) => ({
     normal: {
@@ -28,21 +29,13 @@ export const localStyles = makeStyles((theme: Theme) => ({
     }
 }))
 
-export interface ToolSelectProps {
-    toolSelected: ToolSelected,
-    onChange?: (toolSelected: ToolSelected) => void
-}
-
 interface ToolSelectGroups {
     key: ToolSelected,
     icon: ReactElement<any, any>
 }
 
-export const ToolSelect = (props: ToolSelectProps) => {
-    const {
-        toolSelected,
-        onChange = () => {}
-    } = props
+export const ToolSelect: FunctionComponent<{}> = () => {
+    const { toolSelected, setToolSelected } = useMapEditContext()
     const classes = localStyles()
     const tools: ToolSelectGroups[] = [
         {
@@ -78,7 +71,7 @@ export const ToolSelect = (props: ToolSelectProps) => {
                             colorPrimary: classes['normal.selected']
                         }}
                         onClick={() => {
-                            onChange(key)
+                            setToolSelected(key)
                         }}
                         size="large">
                         {icon}

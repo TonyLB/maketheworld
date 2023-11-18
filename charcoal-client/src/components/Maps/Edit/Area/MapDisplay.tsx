@@ -9,17 +9,16 @@ import {
     VisibleMapItems
 } from '../maps'
 import {
-    MapAreaDispatch,
-    ToolSelected
+    MapAreaDispatch
 } from './area'
 import MapRoomComponent from './MapRoom'
 import MapEdgeComponent from './MapEdge'
 import { RoomGestures } from './MapGestures'
-import ToolSelectContext from './ToolSelectContext'
 import { produce } from 'immer'
 import HighlightCircle from './HighlightCircle'
 import { getConfiguration } from '../../../../slices/configuration'
 import { useSelector } from 'react-redux'
+import { useMapEditContext } from '../Controller'
 
 interface MapDisplayProps extends VisibleMapItems {
     mapDispatch: MapAreaDispatch;
@@ -104,7 +103,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             }
         }
     })
-    const toolSelected = useContext<ToolSelected>(ToolSelectContext)
+    const { toolSelected } = useMapEditContext()
     const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
