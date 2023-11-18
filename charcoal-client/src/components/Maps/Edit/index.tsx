@@ -10,7 +10,6 @@ import MapLayers from './MapLayers'
 import { MapTree } from './maps'
 import { ToolSelected } from './Area/area'
 import ToolSelect from './Area/ToolSelect'
-import ToolSelectContext from './Area/ToolSelectContext'
 import mapReducer, { MapReducer } from './reducer'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import normalToTree from './normalToTree'
@@ -188,26 +187,24 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     }, [normalForm, mapId, updateNormal])
 
     return <MapEditController mapId={mapId}>
-        <ToolSelectContext.Provider value={toolSelected}>
-            <div className={localClasses.grid}>
-                <div className={localClasses.content} >
-                    <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
-                        <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
-                    </div>
-                    <MapArea
-                        fileURL={mapImages.length ? mapImages[0] : undefined}
-                        tree={tree}
-                        dispatch={dispatch}
-                        onStabilize={onStabilize}
-                        onAddExit={onAddExit}
-                        onAddRoom={onAddRoom}
-                    />
+        <div className={localClasses.grid}>
+            <div className={localClasses.content} >
+                <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
+                    <ToolSelect />
                 </div>
-                <div className={localClasses.sidebar} >
-                    <MapLayers mapId={mapId} tree={tree} dispatch={dispatch} />
-                </div>
+                <MapArea
+                    fileURL={mapImages.length ? mapImages[0] : undefined}
+                    tree={tree}
+                    dispatch={dispatch}
+                    onStabilize={onStabilize}
+                    onAddExit={onAddExit}
+                    onAddRoom={onAddRoom}
+                />
             </div>
-        </ToolSelectContext.Provider>
+            <div className={localClasses.sidebar} >
+                <MapLayers mapId={mapId} tree={tree} dispatch={dispatch} />
+            </div>
+        </div>
     </MapEditController>
 }
 
