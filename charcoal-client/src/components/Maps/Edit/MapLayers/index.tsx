@@ -23,6 +23,7 @@ import { mapEditAllConditions, mapEditConditionState, toggle } from '../../../..
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
 import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { useMapEditContext } from '../Controller'
+import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 
 type MapLayersProps = {
     mapId: string;
@@ -227,7 +228,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, disp
     }
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{position: "relative", zIndex: 0 }}>
-            { topLevelRooms.map(({ key, name }) => (<RoomLayer name={name || key} key={key} />))}
+            { topLevelRooms.map(({ key, name }) => (<RoomLayer name={taggedMessageToString(name as any) || key} key={key} />))}
             {/* <RoomLayer name="Lobby" />
             <ExitLayer name="Stairs" />
             <RoomLayer name="Stairs" inherited />
