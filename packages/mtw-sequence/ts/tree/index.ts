@@ -17,3 +17,16 @@ const convertToTreeHelper = <I extends {}, O extends {}>(options: ConvertToTreeO
 export const convertToTree = <I extends {}, O extends {}>(options: ConvertToTreeOptions<I, O>) => (tree: I[]): GenericTree<O> => {
     return tree.map(convertToTreeHelper(options))
 }
+
+type DeconvertTreeOptions<O extends {}, I extends {}> = {
+    constructNode: (internal: O, children: I[]) => I;
+}
+
+const deconvertTreeHelper = <O extends {}, I extends {}>(options: DeconvertTreeOptions<O, I>) => (node: GenericTreeNode<O>): I => {
+    const childOutputs = node.children.map(deconvertTreeHelper(options))
+    return options.constructNode(node.data, childOutputs)
+}
+
+export const deconvertTree = <O extends {}, I extends {}>(options: DeconvertTreeOptions<O, I>) => (tree: GenericTree<O>): I[] => {
+    return tree.map(deconvertTreeHelper(options))
+}
