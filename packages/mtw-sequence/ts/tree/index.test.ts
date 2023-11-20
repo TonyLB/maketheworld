@@ -1,4 +1,4 @@
-import { convertToTree } from '.'
+import { convertToTree, deconvertTree } from '.'
 
 type IncomingTreeTest = {
     value: number;
@@ -17,6 +17,20 @@ describe('tree processing', () => {
             ])).toEqual([
                 { data: '1', children: [{ data: '2', children: [] }, { data: '3', children: [] }] },
                 { data: '4', children: [] }
+            ])
+        })
+    })
+
+    describe('deconvertTree', () => {
+        it('should correctly deconvert a simple tree', () => {
+            expect(deconvertTree<string, IncomingTreeTest>({
+                constructNode: (internal, children) => ({ value: parseInt(internal), contents: children })
+            })([
+                { data: '1', children: [{ data: '2', children: [] }, { data: '3', children: [] }] },
+                { data: '4', children: [] }
+            ])).toEqual([
+                { value: 1, contents: [{ value: 2, contents: [] }, { value: 3, contents: [] }] },
+                { value: 4, contents: [] }
             ])
         })
     })
