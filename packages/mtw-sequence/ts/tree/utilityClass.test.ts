@@ -6,15 +6,16 @@ type TestType = {
 }
 
 describe('utilityClass', () => {
-    describe('treeToSequence', () => {
-        let treeUtility: TreeUtility<TestType, string>
-        beforeEach(() => {
-            treeUtility = new TreeUtility({
-                compare: ({ key: keyA }, { key: keyB }) => (keyA === keyB),
-                extractProperties: ({ value }) => (value)
-            })
+    let treeUtility: TreeUtility<TestType, string>
+    beforeEach(() => {
+        treeUtility = new TreeUtility({
+            compare: ({ key: keyA }, { key: keyB }) => (keyA === keyB),
+            extractProperties: ({ value }) => (value),
+            rehydrateProperties: ({ key }, value) => ({ key, value: value.join(':') })
         })
+    })
 
+    describe('treeToSequence', () => {
         it('should convert to sequence correctly', () => {
             const testSequence = treeUtility.treeToSequence([
                 { data: { key: 'A', value: 'A' }, children: [] },
@@ -71,6 +72,30 @@ describe('utilityClass', () => {
             expect(treeUtility._propertyIndexes._mappingTable).toEqual([
                 'A', 'Z', 'B'
             ])
+        })
+    })
+
+    describe('sequenceToTree', () => {
+        it('should round-trip a simple tree', () => {
+            const testTree = [
+                { data: { key: 'A', value: 'A' }, children: [] },
+                { data: { key: 'B', value: 'B' }, children: [
+                    { data: { key: 'C', value: 'C' }, children: [] },
+                    { data: { key: 'D', value: 'D' }, children: [] }
+                ]}
+            ]
+            expect(treeUtility.sequenceToTree(treeUtility.treeToSequence(testTree))).toEqual(testTree)
+        })
+
+        it('should round-trip a tree with duplicate nodes', () => {
+            const testTree = [
+                { data: { key: 'A', value: 'A' }, children: [] },
+                { data: { key: 'A', value: 'Z' }, children: [
+                    { data: { key: 'B', value: 'B' }, children: [] },
+                    { data: { key: 'B', value: 'B' }, children: [] }
+                ]}
+            ]
+            expect(treeUtility.sequenceToTree(treeUtility.treeToSequence(testTree))).toEqual(testTree)
         })
     })
 })
