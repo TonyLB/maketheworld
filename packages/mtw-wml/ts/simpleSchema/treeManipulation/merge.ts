@@ -26,9 +26,7 @@ export const mergeSchemaTrees = (...args: SchemaTag[][]): SchemaTag[] => {
         rehydrateProperties: (base, properties) => (Object.assign(base, ...properties) as SchemaTag)
     }
     const translatedTrees = args.map(convertToTree)
-    console.log(`translatedTrees: ${JSON.stringify(translatedTrees, null, 4)}`)
     const mergedTree = mergeTrees(options)(...translatedTrees)
-    console.log(`mergedTree: ${JSON.stringify(mergedTree, null, 4)}`)
     return deconvertFromTree(mergedTree)
 }
 
