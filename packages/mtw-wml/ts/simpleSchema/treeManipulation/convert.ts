@@ -23,8 +23,13 @@ export const convertToTree = (tags: SchemaTag[]): GenericTree<SchemaTag> => {
 
 export const deconvertFromTree = (tree: GenericTree<SchemaTag>): SchemaTag[] => {
     //
-    // TODO: Invent an elegant way to deal with denormalization of schema children
-    // data into the properties of a schema tag
+    // TODO: Figure out how to assemble an ongoing SchemaContextItem contextStack as
+    // the Schema is re-assembled (in order to support finalize)
+    //
+    
+    //
+    // TODO: Re-execute the schema-converter finalize when reassembling a schema
+    // with contents
     //
     return tree.map(({ data, children }) => {
         if (isSchemaWithContents(data)) {

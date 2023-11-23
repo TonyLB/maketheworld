@@ -12,9 +12,7 @@ describe('mergeSchemaTrees', () => {
         const testOne = schemaTest(`
             <Asset key=(test)>
                 <Room key=(testRoomOne)>
-                    <Description>
-                        Test description
-                    </Description>
+                    <Description>Test description</Description>
                     <Exit to=(testRoomTwo)>out</Exit>
                 </Room>
                 <Room key=(testRoomTwo) />
@@ -24,24 +22,18 @@ describe('mergeSchemaTrees', () => {
             <Asset key=(test)>
                 <Room key=(testRoomOne) />
                 <Room key=(testRoomTwo)>
-                    <Description>
-                        The other test description
-                    </Description>
+                    <Description>The other test description</Description>
                 </Room>
             </Asset>
         `)
         expect(schemaToWML(mergeSchemaTrees(testOne, testTwo))).toEqual(deIndentWML(`
             <Asset key=(test)>
                 <Room key=(testRoomOne)>
-                    <Description>
-                        Test description
-                    </Description>
+                    <Description>Test description</Description>
                     <Exit to=(testRoomTwo)>out</Exit>
                 </Room>
                 <Room key=(testRoomTwo)>
-                    <Description>
-                        The other test description
-                    </Description>
+                    <Description>The other test description</Description>
                 </Room>
             </Asset>
         `))
