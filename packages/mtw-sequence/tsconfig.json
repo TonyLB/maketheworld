@@ -3,10 +3,9 @@
       "rootDir": "ts",
       "outDir": "dist",
       "target": "es2020",
-      "strict": true,
       "preserveConstEnums": true,
       "noImplicitOverride": true,
-      "module":"es2015",
+      "module":"ES2015",
       "moduleResolution":"node",
       "esModuleInterop": true, 
       "skipLibCheck": true,
@@ -16,7 +15,8 @@
       "noImplicitAny": false,
       "sourceMap": true,
       "declaration": true,
-      "declarationMap": true
+      "declarationMap": true,
+      "strict": false,
     },
-    "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__snapshots__/*", "dist"]
+    "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__snapshots__/*", "dist/**/*", "jest.config.js"]
 }

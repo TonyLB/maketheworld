@@ -16,5 +16,8 @@
       {
         "path": "./packages/mtw-asset-workspace/tsconfig.ref.json"
       },
+      {
+        "path": "./packages/mtw-sequence/tsconfig.ref.json"
+      },
     ],
 }

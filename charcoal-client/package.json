@@ -16,6 +16,7 @@
     "@testing-library/user-event": "^7.2.1",
     "@tonylb/mtw-interfaces": "file:./mtw-interfaces/",
     "@tonylb/mtw-wml": "file:./mtw-wml/",
+    "@tonylb/mtw-sequence": "file:./mtw-sequence/",
     "@types/d3-collection": "^1.0.10",
     "@types/d3-force": "^3.0.3",
     "@types/react-redux": "^7.1.21",
@@ -70,7 +71,8 @@
   },
   "files": [
     "mtw-wml",
-    "mtw-interfaces"
+    "mtw-interfaces",
+    "mtw-sequence"
   ],
   "devDependencies": {
     "@ohm-js/cli": "^1.1.0",
