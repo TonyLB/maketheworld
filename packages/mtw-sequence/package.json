@@ -3,19 +3,12 @@
   "type": "module",
   "version": "1.0.0",
   "description": "Sequence manipuation tools",
-  "main": "ts/index.ts",
   "scripts": {
     "test": "jest",
     "clearJest": "jest --clearCache"
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.229.0",
-    "@aws-sdk/s3-request-presigner": "^3.229.0",
-    "@tonylb/mtw-wml": "^1.0.0",
-    "aws-xray-sdk": "^3.5.1"
-  },
   "devDependencies": {
     "@types/jest": "^28.1.7",
     "jest": "^28.1.3",

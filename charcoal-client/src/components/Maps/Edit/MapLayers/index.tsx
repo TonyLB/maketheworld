@@ -24,6 +24,8 @@ import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
 import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { useMapEditContext } from '../Controller'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
+import { isSchemaRoom } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { MapTreeRoom } from '../Controller/baseClasses'
 
 type MapLayersProps = {
     mapId: string;
@@ -215,20 +217,20 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
     </Box>
 }
 
-export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, tree, dispatch }) => {
-    const { topLevelRooms } = useMapEditContext()
-    const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
-        tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
-    ), [tree])
-    const setTree = (tree: MapTree): void => {
-        dispatch({
-            type: 'updateTree',
-            tree
-        })
-    }
+export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, dispatch }) => {
+    const { tree } = useMapEditContext()
+    // const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
+    //     tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
+    // ), [tree])
+    // const setTree = (tree: MapTree): void => {
+    //     dispatch({
+    //         type: 'updateTree',
+    //         tree
+    //     })
+    // }
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{position: "relative", zIndex: 0 }}>
-            { topLevelRooms.map(({ key, name }) => (<RoomLayer name={taggedMessageToString(name as any) || key} key={key} />))}
+            { tree.map(({ data }) => (data)).filter((data): data is MapTreeRoom => (isSchemaRoom(data))).map(({ key, name }) => (<RoomLayer name={taggedMessageToString(name as any) || key} key={key} />))}
             {/* <RoomLayer name="Lobby" />
             <ExitLayer name="Stairs" />
             <RoomLayer name="Stairs" inherited />

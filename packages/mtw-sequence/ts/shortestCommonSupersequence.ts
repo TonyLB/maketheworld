@@ -41,11 +41,11 @@ export const shortestCommonSupersequence = (listA: number[], listB: number[]): n
     const valueRelative = (i: number, j: number, direction: ShortestCommonSupersetDirection): number => {
         switch(direction) {
             case ShortestCommonSupersetDirection.up:
-                return memoArray[i-1][j].length
+                return (memoArray[i-1][j] || []).length
             case ShortestCommonSupersetDirection.left:
-                return memoArray[i][j-1].length
+                return (memoArray[i][j-1] || []).length
             case ShortestCommonSupersetDirection.both:
-                return memoArray[i-1][j-1].length
+                return (memoArray[i-1][j-1] || []).length
         }
     }
     for(let i=1; i<=listA.length; i++) {
@@ -67,7 +67,7 @@ export const shortestCommonSupersequence = (listA: number[], listB: number[]): n
     let j = listB.length
     let backtrack: number[] = []
     while (i > 0 || j > 0) {
-        switch(memoArray[i][j].direction) {
+        switch(memoArray[i][j]?.direction) {
             case ShortestCommonSupersetDirection.both:
                 j--
             case ShortestCommonSupersetDirection.up:
