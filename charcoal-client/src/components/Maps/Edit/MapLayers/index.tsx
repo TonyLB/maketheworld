@@ -25,7 +25,8 @@ import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { useMapEditContext } from '../Controller'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import { isSchemaRoom } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
-import { MapTreeRoom } from '../Controller/baseClasses'
+import { MapTreeItem, MapTreeRoom } from '../Controller/baseClasses'
+import { GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 
 type MapLayersProps = {
     mapId: string;
@@ -131,22 +132,25 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited }) => {
+const RoomLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited, children }) => {
     const { inheritedInvisible } = useMapLayersContext()
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: inheritedInvisible ? grey[200] : grey[500], overflow: 'hidden' }}>
-        <Stack direction="row">
-            <Box sx={{ background: inheritedInvisible ? grey[100] : grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
-                {
-                    inherited
-                        ? <CopyAllIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
-                        : <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
-                }
-            </Box>
-            <Typography color={inheritedInvisible ? grey[500] : 'black' }>
-                { name }
-            </Typography>
-        </Stack>
-    </Box>
+    return <React.Fragment>
+        <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: inheritedInvisible ? grey[200] : grey[500], overflow: 'hidden' }}>
+            <Stack direction="row">
+                <Box sx={{ background: inheritedInvisible ? grey[100] : grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
+                    {
+                        inherited
+                            ? <CopyAllIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                            : <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                    }
+                </Box>
+                <Typography color={inheritedInvisible ? grey[500] : 'black' }>
+                    { name }
+                </Typography>
+            </Stack>
+        </Box>
+        { children }
+    </React.Fragment>
 }
 
 const ExitLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited }) => {
@@ -217,6 +221,26 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
     </Box>
 }
 
+//
+// TODO: Create MapItemLayer component that accepts any of GenericTreeNode<MapItem>, and farms out the top-level
+// data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
+// children values
+//
+const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<MapTreeItem> }> = ({ item }) => {
+    switch(item.data.tag) {
+        case 'Room':
+            return <RoomLayer name={taggedMessageToString(item.data.name as any) || item.data.key}>
+                { item.children.map((child, index) => (<MapItemLayer key={`${item.data.key}-Child-${index}`} item={child} />)) }
+            </RoomLayer>
+        case 'Exit':
+            return <ExitLayer name={item.data.to} />
+        case 'If':
+            return <ConditionLayer src={item.data.conditions[0].if} conditionId={item.data.key}>
+                { item.children.map((child, index) => (<MapItemLayer key={`${item.data.key}-Child-${index}`} item={child} />)) }
+            </ConditionLayer>
+    }
+}
+
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, dispatch }) => {
     const { tree } = useMapEditContext()
     // const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
@@ -230,24 +254,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, dispatch }
     // }
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{position: "relative", zIndex: 0 }}>
-            { tree.map(({ data }) => (data)).filter((data): data is MapTreeRoom => (isSchemaRoom(data))).map(({ key, name }) => (<RoomLayer name={taggedMessageToString(name as any) || key} key={key} />))}
-            {/* <RoomLayer name="Lobby" />
-            <ExitLayer name="Stairs" />
-            <RoomLayer name="Stairs" inherited />
-            <ExitLayer name="Lobby" />
-            <ConditionLayer
-                src="defValue === true"
-                conditionId="If-0"
-            >
-                <RoomLayer name="Closet" />
-                <ConditionLayer
-                    src="exitVisible"
-                    conditionId="If-1"
-                >
-                    <RoomLayer name="Stairs" inherited />
-                    <ExitLayer name="Closet" inherited />
-                </ConditionLayer>
-            </ConditionLayer> */}
+            { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} />))}
         </Box>
     </MapLayersContext.Provider>
 
