@@ -1,9 +1,9 @@
-import React, { FunctionComponent, useContext, useMemo, useState } from "react"
+import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
-import { MapTreeItem, ToolSelected } from "./baseClasses"
+import { MapContextType, MapDispatchAction, MapTreeItem, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
@@ -91,7 +91,6 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
         },
         rehydrateProperties: (baseItem: MapTreeItem, properties: MapTreeItem[]) => (baseItem)
     }
-    console.log(`allRooms: ${JSON.stringify(allRooms, null,)}`)
     return mergeTrees(mergeTreeOptions)(
         allRooms.filter(({ data }) => (data.tag === 'Room')),
         allRooms.filter(({ data }) => (data.tag === 'If')),
@@ -100,36 +99,22 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
 
 }
 
-type MapContextExitDrag = {
-    sourceRoomId: string;
-    x: number;
-    y: number;
-}
-
-type MapContextType = {
-    mapId: string;
-    tree: GenericTree<MapTreeItem>;
-    UI: {
-        toolSelected: ToolSelected;
-        setToolSelected: (value: ToolSelected) => void;
-        exitDrag: MapContextExitDrag;
-        setExitDrag: (value: MapContextExitDrag) => void;
-    },
-    // mapD3: MapDThree
-}
-
 const MapContext = React.createContext<MapContextType>({
     mapId: '',
     tree:[],
     UI: {
         toolSelected: 'Select',
-        setToolSelected: () => {},
         exitDrag: { sourceRoomId: '', x: 0, y: 0 },
         setExitDrag: () => {}
     },
-    // mapD3: new MapDThree({ roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} })
+    // mapD3: new MapDThree({ roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapDispatch: () => {}
 })
 export const useMapContext = () => (useContext(MapContext))
+
+//
+// TODO: ISS3228: Create mapDispatch dispatch function for MapContext
+//
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
     const { normalForm } = useLibraryAsset()
@@ -162,16 +147,23 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     // sophisticated tree structure and more nuanced grouping of D3 Stack layers.
     //
 
+    const mapDispatch = useCallback((action: MapDispatchAction) => {
+        switch(action.type) {
+            case 'SetToolSelected':
+                setToolSelected(action.value)
+                return
+        }
+    }, [setToolSelected])
     return <MapContext.Provider
             value={{
                 mapId,
                 tree,
                 UI: {
                     toolSelected,
-                    setToolSelected,
                     exitDrag,
                     setExitDrag
                 },
+                mapDispatch
             }}
         >{ children }
     </MapContext.Provider>

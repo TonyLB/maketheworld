@@ -35,7 +35,7 @@ interface ToolSelectGroups {
 }
 
 export const ToolSelect: FunctionComponent<{}> = () => {
-    const { UI: { toolSelected, setToolSelected } } = useMapContext()
+    const { UI: { toolSelected }, mapDispatch } = useMapContext()
     const classes = localStyles()
     const tools: ToolSelectGroups[] = [
         {
@@ -71,7 +71,7 @@ export const ToolSelect: FunctionComponent<{}> = () => {
                             colorPrimary: classes['normal.selected']
                         }}
                         onClick={() => {
-                            setToolSelected(key)
+                            mapDispatch({ type: 'SetToolSelected', value: key })
                         }}
                         size="large">
                         {icon}
