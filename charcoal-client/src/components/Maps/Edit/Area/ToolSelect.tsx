@@ -10,7 +10,7 @@ import TwoWayExitIcon from '@mui/icons-material/SyncAlt'
 import RoomIcon from '@mui/icons-material/Home'
 import MoveIcon from '@mui/icons-material/OpenWith'
 import { ToolSelected } from './area'
-import { useMapEditContext } from '../Controller'
+import { useMapEditContext } from '../../Controller'
 
 export const localStyles = makeStyles((theme: Theme) => ({
     normal: {

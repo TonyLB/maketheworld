@@ -19,7 +19,7 @@ import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaRoomTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { extractConditionedItemFromContents } from '@tonylb/mtw-wml/dist/simpleSchema/utils'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
-import MapEditController from './Controller'
+import MapEditController from '../Controller'
 
 type MapEditProps = {
 }

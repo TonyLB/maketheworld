@@ -26,6 +26,9 @@ const backgroundOnClick = ({ setDialogOpen, setClickPosition }: { setDialogOpen:
     setClickPosition({ clientX, clientY })
 }
 
+//
+// TODO: ISS3228: Refactor MapArea to use MapContext data rather than be passed a tree
+//
 export const MapArea: FunctionComponent<MapAreaProps>= ({
     fileURL,
     tree,

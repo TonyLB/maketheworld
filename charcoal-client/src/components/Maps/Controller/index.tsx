@@ -1,13 +1,13 @@
 import React, { FunctionComponent, useContext, useMemo, useState } from "react"
-import { useLibraryAsset } from "../../../Library/Edit/LibraryAsset"
+import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
 import { MapTreeItem, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
-import { deepEqual } from "../../../../lib/objects"
-import { unique } from "../../../../lib/lists"
+import { deepEqual } from "../../../lib/objects"
+import { unique } from "../../../lib/lists"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems

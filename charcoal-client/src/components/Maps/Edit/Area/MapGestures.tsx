@@ -2,7 +2,7 @@ import React, { FunctionComponent, PropsWithChildren, useContext } from 'react'
 import { useGesture } from '@use-gesture/react'
 import { MAP_HEIGHT, MAP_WIDTH } from './constants'
 import { MapAreaReducerAction } from './area'
-import { useMapEditContext } from '../Controller'
+import { useMapEditContext } from '../../Controller'
 
 type RoomGestureProps = PropsWithChildren<{
     roomId: string;

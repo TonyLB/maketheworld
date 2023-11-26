@@ -22,10 +22,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { mapEditAllConditions, mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
 import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { useMapEditContext } from '../Controller'
+import { useMapEditContext } from '../../Controller'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import { isSchemaRoom } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
-import { MapTreeItem, MapTreeRoom } from '../Controller/baseClasses'
+import { MapTreeItem, MapTreeRoom } from '../../Controller/baseClasses'
 import { GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 
 type MapLayersProps = {

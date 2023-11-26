@@ -18,7 +18,7 @@ import { produce } from 'immer'
 import HighlightCircle from './HighlightCircle'
 import { getConfiguration } from '../../../../slices/configuration'
 import { useSelector } from 'react-redux'
-import { useMapEditContext } from '../Controller'
+import { useMapEditContext } from '../../Controller'
 
 interface MapDisplayProps extends VisibleMapItems {
     mapDispatch: MapAreaDispatch;
