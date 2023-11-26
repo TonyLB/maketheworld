@@ -27,6 +27,10 @@ const backgroundOnClick = ({ setDialogOpen, setClickPosition }: { setDialogOpen:
 }
 
 //
+// TODO: ISS3228: Lift mapD3 property into MapContext
+//
+
+//
 // TODO: ISS3228: Refactor MapArea to use MapContext data rather than be passed a tree
 //
 export const MapArea: FunctionComponent<MapAreaProps>= ({

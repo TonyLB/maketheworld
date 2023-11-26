@@ -8,6 +8,7 @@ import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 import { unique } from "../../../lib/lists"
+import MapDThree from "../Edit/MapDThree"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -99,17 +100,38 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
 
 }
 
-type MapEditContextType = {
-    mapId: string;
-    tree: GenericTree<MapTreeItem>;
-    toolSelected: ToolSelected;
-    setToolSelected: (value: ToolSelected) => void;
+type MapContextExitDrag = {
+    sourceRoomId: string;
+    x: number;
+    y: number;
 }
 
-const MapEditContext = React.createContext<MapEditContextType>({ mapId: '', tree:[], toolSelected: 'Select', setToolSelected: () => {} })
-export const useMapEditContext = () => (useContext(MapEditContext))
+type MapContextType = {
+    mapId: string;
+    tree: GenericTree<MapTreeItem>;
+    UI: {
+        toolSelected: ToolSelected;
+        setToolSelected: (value: ToolSelected) => void;
+        exitDrag: MapContextExitDrag;
+        setExitDrag: (value: MapContextExitDrag) => void;
+    },
+    // mapD3: MapDThree
+}
 
-export const MapEditController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
+const MapContext = React.createContext<MapContextType>({
+    mapId: '',
+    tree:[],
+    UI: {
+        toolSelected: 'Select',
+        setToolSelected: () => {},
+        exitDrag: { sourceRoomId: '', x: 0, y: 0 },
+        setExitDrag: () => {}
+    },
+    // mapD3: new MapDThree({ roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} })
+})
+export const useMapEditContext = () => (useContext(MapContext))
+
+export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
     const { normalForm } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     //
@@ -121,19 +143,36 @@ export const MapEditController: FunctionComponent<{ mapId: string }> = ({ childr
         normalizer.standardize()
         return normalizer
     }, [normalForm])
+    //
+    // Create a GenericTree representation of the items relevant to the map
+    //
     const tree = useMemo<GenericTree<MapTreeItem>>(() => (
         extractMapTree({ normalizer: standardizedNormalizer, mapId })
     ), [standardizedNormalizer, mapId])
+    //
+    // Make local data and setters for exit decorator source and
+    // drag location.
+    //
+    const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
 
-    return <MapEditContext.Provider
+    //
+    // TODO: ISS3228: Lift MapArea reducer to MapController, and refactor to use more
+    // sophisticated tree structure and more nuanced grouping of D3 Stack layers.
+    //
+
+    return <MapContext.Provider
             value={{
                 mapId,
-                toolSelected,
-                setToolSelected,
-                tree
+                tree,
+                UI: {
+                    toolSelected,
+                    setToolSelected,
+                    exitDrag,
+                    setExitDrag
+                },
             }}
         >{ children }
-    </MapEditContext.Provider>
+    </MapContext.Provider>
 }
 
-export default MapEditController
+export default MapController

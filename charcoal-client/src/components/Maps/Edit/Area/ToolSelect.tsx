@@ -35,7 +35,7 @@ interface ToolSelectGroups {
 }
 
 export const ToolSelect: FunctionComponent<{}> = () => {
-    const { toolSelected, setToolSelected } = useMapEditContext()
+    const { UI: { toolSelected, setToolSelected } } = useMapEditContext()
     const classes = localStyles()
     const tools: ToolSelectGroups[] = [
         {

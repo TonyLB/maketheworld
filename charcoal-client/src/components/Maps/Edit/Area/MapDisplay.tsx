@@ -103,7 +103,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             }
         }
     })
-    const { toolSelected } = useMapEditContext()
+    const { UI: { toolSelected } } = useMapEditContext()
     const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
