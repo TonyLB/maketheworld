@@ -18,7 +18,7 @@ import { produce } from 'immer'
 import HighlightCircle from './HighlightCircle'
 import { getConfiguration } from '../../../../slices/configuration'
 import { useSelector } from 'react-redux'
-import { useMapEditContext } from '../../Controller'
+import { useMapContext } from '../../Controller'
 
 interface MapDisplayProps extends VisibleMapItems {
     mapDispatch: MapAreaDispatch;
@@ -103,7 +103,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             }
         }
     })
-    const { UI: { toolSelected } } = useMapEditContext()
+    const { UI: { toolSelected } } = useMapContext()
     const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {

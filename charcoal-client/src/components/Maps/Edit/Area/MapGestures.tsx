@@ -2,7 +2,7 @@ import React, { FunctionComponent, PropsWithChildren, useContext } from 'react'
 import { useGesture } from '@use-gesture/react'
 import { MAP_HEIGHT, MAP_WIDTH } from './constants'
 import { MapAreaReducerAction } from './area'
-import { useMapEditContext } from '../../Controller'
+import { useMapContext } from '../../Controller'
 
 type RoomGestureProps = PropsWithChildren<{
     roomId: string;
@@ -19,7 +19,7 @@ type RoomGestureProps = PropsWithChildren<{
 // need to know about them
 //
 export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLevel, x, y, scale, localDispatch, children }) => {
-    const { UI: { toolSelected } } = useMapEditContext()
+    const { UI: { toolSelected } } = useMapContext()
     const bind = (useGesture as any)({
         onDrag: ({ offset: [ x, y ] }: { offset: [number, number] }) => {
             const destX = Math.max(-((MAP_WIDTH / 2) - 35), Math.min((MAP_WIDTH / 2) - 35, (x / scale) - (MAP_WIDTH / 2)))

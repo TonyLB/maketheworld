@@ -11,6 +11,7 @@ import MapDisplay from './MapDisplay'
 import mapAreaReducer, { treeToVisible, treeToMapLayers } from './reducer'
 import { MapDispatch } from '../reducer'
 import { AddRoomDialog } from './AddRoomDialog'
+import { useMapContext } from '../../Controller'
 
 type MapAreaProps = {
     fileURL?: string;
@@ -44,7 +45,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
 
     const { MapId: mapId } = useParams<{ MapId: string }>()
 
-    const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
+    const { UI: { exitDrag, setExitDrag } } = useMapContext()
     const [dialogOpen, setDialogOpen] = useState<boolean>(false)
     const [clickPosition, setClickPosition ] = useState<{ clientX: number, clientY: number } | null>(null)
     const [addRoomId, setAddRoomId] = useState<string>('')

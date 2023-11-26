@@ -129,11 +129,12 @@ const MapContext = React.createContext<MapContextType>({
     },
     // mapD3: new MapDThree({ roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} })
 })
-export const useMapEditContext = () => (useContext(MapContext))
+export const useMapContext = () => (useContext(MapContext))
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
     const { normalForm } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
+
     //
     // Generate a memo-fied standardizedNormalForm
     //
@@ -143,15 +144,16 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         normalizer.standardize()
         return normalizer
     }, [normalForm])
+
     //
     // Create a GenericTree representation of the items relevant to the map
     //
     const tree = useMemo<GenericTree<MapTreeItem>>(() => (
         extractMapTree({ normalizer: standardizedNormalizer, mapId })
     ), [standardizedNormalizer, mapId])
+
     //
-    // Make local data and setters for exit decorator source and
-    // drag location.
+    // Make local data and setters for exit decorator source and drag location.
     //
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
 
