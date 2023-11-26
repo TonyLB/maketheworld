@@ -104,8 +104,7 @@ const MapContext = React.createContext<MapContextType>({
     tree:[],
     UI: {
         toolSelected: 'Select',
-        exitDrag: { sourceRoomId: '', x: 0, y: 0 },
-        setExitDrag: () => {}
+        exitDrag: { sourceRoomId: '', x: 0, y: 0 }
     },
     // mapD3: new MapDThree({ roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {}
@@ -152,16 +151,22 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'SetToolSelected':
                 setToolSelected(action.value)
                 return
+            case 'SetExitDrag':
+                setExitDrag({
+                    sourceRoomId: action.sourceRoomId ?? exitDrag.sourceRoomId,
+                    x: action.x ?? exitDrag.x,
+                    y: action.y ?? exitDrag.y
+                })
+                return
         }
-    }, [setToolSelected])
+    }, [setToolSelected, exitDrag, setExitDrag])
     return <MapContext.Provider
             value={{
                 mapId,
                 tree,
                 UI: {
                     toolSelected,
-                    exitDrag,
-                    setExitDrag
+                    exitDrag
                 },
                 mapDispatch
             }}

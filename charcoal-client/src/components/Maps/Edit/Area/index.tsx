@@ -45,7 +45,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
 
     const { MapId: mapId } = useParams<{ MapId: string }>()
 
-    const { UI: { exitDrag, setExitDrag } } = useMapContext()
+    const { UI: { exitDrag }, mapDispatch: contextMapDispatch } = useMapContext()
     const [dialogOpen, setDialogOpen] = useState<boolean>(false)
     const [clickPosition, setClickPosition ] = useState<{ clientX: number, clientY: number } | null>(null)
     const [addRoomId, setAddRoomId] = useState<string>('')
@@ -59,7 +59,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
         const mapD3 = new MapDThree({
             roomLayers: treeToMapLayers(tree),
             exits: exits.map(({ name, toRoomId, fromRoomId }) => ({ key: name, to: toRoomId, from: fromRoomId, visible: true })),
-            onExitDrag: setExitDrag,
+            onExitDrag: (value) => { contextMapDispatch({ type: 'SetExitDrag', ...value })},
             onAddExit: (fromRoomId, toRoomId, double) => {
                 dispatch({ type: 'addExit', fromRoomId, toRoomId, double })
                 onAddExit({ from: fromRoomId, to: toRoomId })

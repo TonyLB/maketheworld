@@ -9,18 +9,22 @@ export type MapTreeCondition = SchemaConditionTag & { inherited?: boolean }
 
 export type MapTreeItem = MapTreeExit | MapTreeRoom | MapTreeCondition
 
-type MapDispatchSetTool = {
-    type: 'SetToolSelected';
-    value: ToolSelected;
-}
-
-export type MapDispatchAction = MapDispatchSetTool
-
 type MapContextExitDrag = {
     sourceRoomId: string;
     x: number;
     y: number;
 }
+
+type MapDispatchSetTool = {
+    type: 'SetToolSelected';
+    value: ToolSelected;
+}
+
+type MapDispatchSetExitDrag = {
+    type: 'SetExitDrag';
+} & Partial<MapContextExitDrag>
+
+export type MapDispatchAction = MapDispatchSetTool | MapDispatchSetExitDrag
 
 export type MapContextType = {
     mapId: string;
@@ -35,7 +39,6 @@ export type MapContextType = {
         //
         toolSelected: ToolSelected;
         exitDrag: MapContextExitDrag;
-        setExitDrag: (value: MapContextExitDrag) => void;
     },
     // mapD3: MapDThree,
     mapDispatch: (action: MapDispatchAction) => void;
