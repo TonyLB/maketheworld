@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from "react"
+import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
@@ -9,6 +9,7 @@ import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isS
 import { deepEqual } from "../../../lib/objects"
 import { unique } from "../../../lib/lists"
 import MapDThree from "../Edit/MapDThree"
+import { MapLayer, SimNode } from "../Edit/MapDThree/baseClasses"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -106,7 +107,7 @@ const MapContext = React.createContext<MapContextType>({
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: '', x: 0, y: 0 }
     },
-    // mapD3: new MapDThree({ roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {}
 })
 export const useMapContext = () => (useContext(MapContext))
@@ -136,15 +137,43 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         extractMapTree({ normalizer: standardizedNormalizer, mapId })
     ), [standardizedNormalizer, mapId])
 
+    const temporaryTreeToLayersMapping = (tree: GenericTree<MapTreeItem>): { roomLayers: MapLayer[]; exits: { to: string; from: string; visible: boolean; }[] } => {
+        return {
+            roomLayers: [
+                {
+                    key: 'Default',
+                    rooms: Object.assign(
+                        {},
+                        ...tree
+                            .map(({ data }) => (data))
+                            .filter(isSchemaRoom)
+                            .map(({ key, x, y }) => ({ id: key, roomId: key, x: x ?? 0, y: y ?? 0 }))
+                    ),
+                    roomVisibility: {}
+                },
+                { key: 'Inherited', rooms: {}, roomVisibility: {} }
+            ],
+            exits: [],
+        }
+    }
+    //
+    // TODO: ISS3228: Create MVP naive mapD3 entry for MapContext
+    //
+    const [mapD3] = useState<MapDThree>(() => {
+        return new MapDThree({
+            ...temporaryTreeToLayersMapping(tree),
+            onExitDrag: (value) => { mapDispatch({ type: 'SetExitDrag', ...value })},
+        })
+    })
+    useEffect(() => () => {
+        mapD3.unmount()
+    }, [mapD3])
+
+
     //
     // Make local data and setters for exit decorator source and drag location.
     //
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
-
-    //
-    // TODO: ISS3228: Lift MapArea reducer to MapController, and refactor to use more
-    // sophisticated tree structure and more nuanced grouping of D3 Stack layers.
-    //
 
     const mapDispatch = useCallback((action: MapDispatchAction) => {
         switch(action.type) {
@@ -158,19 +187,68 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                     y: action.y ?? exitDrag.y
                 })
                 return
+            case 'UpdateTree':
+                //
+                // TODO: ISS3228: Refactor mapD3 update to accept GenericTree<MapTreeItem>
+                //
+                mapD3.update(temporaryTreeToLayersMapping(action.tree))
+                return
+                // return returnVal({ ...state, ...treeToVisible(action.tree), tree: action.tree }, state.mapD3.nodes)
+            case 'Tick':
+                //
+                // TODO: ISS3228: Figure out what information needs to be derived from mapD3 at updates
+                // and ticks, to denormalize into MapContext
+                //
+                return
+                // return returnVal(state, action.nodes)
+            case 'SetCallbacks':
+                mapD3.setCallbacks({ onTick: action.onTick, onStability: action.onStability })
+                return
+            // case 'SETNODE':
+            //     state.mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
+            //     return state
+            // case 'ENDDRAG':
+            //     state.mapD3.endDrag()
+            //     return state
+            // case 'DRAGEXIT':
+            //     mapD3.dragExit({ roomId: action.roomId, x: action.x, y: action.y, double: action.double })
+            //     return
         }
-    }, [setToolSelected, exitDrag, setExitDrag])
+    }, [setToolSelected, exitDrag, setExitDrag, mapD3, temporaryTreeToLayersMapping])
+    useEffect(() => {
+        mapDispatch({
+            type: 'SetCallbacks',
+            onTick: (nodes: SimNode[]) => { mapDispatch({ type: 'Tick', nodes }) },
+            onStability: (value: SimNode[]) => {
+                // mapDispatch({ type: 'STABILIZE' })
+                // onStabilize(value)
+            }
+        })
+    }, [mapDispatch])
+
+    //
+    // TODO: ISS3228: Refactor MapArea items that depend upon mapD3 to pull from
+    // MapContext
+    //
+
+    //
+    // TODO: ISS3228: Lift MapArea reducer to MapController, and refactor to use more
+    // sophisticated tree structure and more nuanced grouping of D3 Stack layers.
+    //
+
     return <MapContext.Provider
-            value={{
-                mapId,
-                tree,
-                UI: {
-                    toolSelected,
-                    exitDrag
-                },
-                mapDispatch
-            }}
-        >{ children }
+        value={{
+            mapId,
+            tree,
+            UI: {
+                toolSelected,
+                exitDrag
+            },
+            mapDispatch,
+            mapD3
+        }}
+    >
+        { children }
     </MapContext.Provider>
 }
 

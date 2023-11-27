@@ -106,6 +106,8 @@ export class MapDThree extends Object {
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
+        console.log(`roomLayers: ${JSON.stringify(roomLayers, null, 4)}`)
+        console.log(`exits: ${JSON.stringify(exits, null, 4)}`)
         const layers = argumentParse({ roomLayers: [...roomLayers].reverse(), exits })
         this.stack = new MapDThreeStack({
             layers,

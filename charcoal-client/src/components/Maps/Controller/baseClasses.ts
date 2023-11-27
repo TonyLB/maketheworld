@@ -1,5 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-sequence/dist/tree/baseClasses"
 import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import MapDThree from "../Edit/MapDThree"
+import { SimCallback } from "../Edit/MapDThree/baseClasses"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
@@ -24,7 +26,27 @@ type MapDispatchSetExitDrag = {
     type: 'SetExitDrag';
 } & Partial<MapContextExitDrag>
 
-export type MapDispatchAction = MapDispatchSetTool | MapDispatchSetExitDrag
+type MapDispatchUpdateTree = {
+    type: 'UpdateTree';
+    tree: GenericTree<MapTreeItem>;
+}
+
+type MapDispatchTick = {
+    type: 'Tick';
+    nodes: any;
+}
+
+type MapDispatchSetCallbacks = {
+    type: 'SetCallbacks';
+    onTick?: SimCallback;
+    onStability?: SimCallback;
+}
+
+export type MapDispatchAction = MapDispatchSetTool |
+    MapDispatchSetExitDrag |
+    MapDispatchUpdateTree |
+    MapDispatchTick |
+    MapDispatchSetCallbacks
 
 export type MapContextType = {
     mapId: string;
@@ -40,6 +62,6 @@ export type MapContextType = {
         toolSelected: ToolSelected;
         exitDrag: MapContextExitDrag;
     },
-    // mapD3: MapDThree,
+    mapD3: MapDThree,
     mapDispatch: (action: MapDispatchAction) => void;
 }
