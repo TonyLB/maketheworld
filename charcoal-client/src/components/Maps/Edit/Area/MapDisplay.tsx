@@ -206,23 +206,23 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         {
                             deduplicatedExits
                                 .map(({ fromRoomId, toRoomId, double }) => {
-                                const from = roomsByRoomId[fromRoomId]
-                                const fromX = from === undefined ? undefined : from.x + (MAP_WIDTH / 2)
-                                const fromY = from === undefined ? undefined : from.y + (MAP_HEIGHT / 2)
-                                const to = roomsByRoomId[toRoomId]
-                                const toX = to === undefined ? undefined : to.x + (MAP_WIDTH / 2)
-                                const toY = to === undefined ? undefined : to.y + (MAP_HEIGHT / 2)
-                                return <MapEdgeComponent
-                                    key={`${fromRoomId}::${toRoomId}`}
-                                    fromX={fromX}
-                                    fromY={fromY}
-                                    toX={toX}
-                                    toY={toY}
-                                    fromRoomId={fromRoomId}
-                                    toRoomId={toRoomId}
-                                    double={double}
-                                />
-                            })
+                                    const from = roomsByRoomId[fromRoomId]
+                                    const fromX = from === undefined ? undefined : from.x + (MAP_WIDTH / 2)
+                                    const fromY = from === undefined ? undefined : from.y + (MAP_HEIGHT / 2)
+                                    const to = roomsByRoomId[toRoomId]
+                                    const toX = to === undefined ? undefined : to.x + (MAP_WIDTH / 2)
+                                    const toY = to === undefined ? undefined : to.y + (MAP_HEIGHT / 2)
+                                    return <MapEdgeComponent
+                                        key={`${fromRoomId}::${toRoomId}`}
+                                        fromX={fromX}
+                                        fromY={fromY}
+                                        toX={toX}
+                                        toY={toY}
+                                        fromRoomId={fromRoomId}
+                                        toRoomId={toRoomId}
+                                        double={double}
+                                    />
+                                })
                         }
                         {
                             decoratorExits
@@ -239,41 +239,23 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                 ))
                         }
                         {
-                            rooms.map((room) => ({
-                                className: localClasses.roomNode,
-                                contrastClassName: localClasses.svgLightBlueContrast,
-                                ...room,
-                                Name: room.name,
-                                PermanentId: room.roomId,
-                                x: room.x + (MAP_WIDTH / 2),
-                                y: room.y + (MAP_HEIGHT / 2)
-                            }))
-                            .map(({
-                                PermanentId,
-                                roomId,
-                                Name,
-                                className,
-                                contrastClassName,
-                                x,
-                                y,
-                                zLevel
-                            }) => (
+                            rooms.map((room) => (
                                 <RoomGestures
-                                    key={`Gesture-${roomId}`}
-                                    roomId={roomId}
-                                    x={x}
-                                    y={y}
-                                    zLevel={zLevel}
+                                    key={`Gesture-${room.roomId}`}
+                                    roomId={room.roomId}
+                                    x={room.x + (MAP_WIDTH / 2)}
+                                    y={room.y + (MAP_HEIGHT / 2)}
+                                    zLevel={room.zLevel}
                                     localDispatch={mapDispatch}
                                     scale={scale}
                                 >
                                     <MapRoomComponent
-                                        PermanentId={PermanentId}
-                                        Name={Name}
-                                        className={className}
-                                        contrastClassName={contrastClassName}
-                                        x={x}
-                                        y={y}
+                                        PermanentId={room.roomId}
+                                        Name={room.name}
+                                        className={localClasses.roomNode}
+                                        contrastClassName={localClasses.svgLightBlueContrast}
+                                        x={room.x + (MAP_HEIGHT / 2)}
+                                        y={room.y + (MAP_HEIGHT / 2)}
                                     />
                                 </RoomGestures>
                             ))
