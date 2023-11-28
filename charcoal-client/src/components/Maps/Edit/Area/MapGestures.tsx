@@ -1,4 +1,4 @@
-import React, { FunctionComponent, PropsWithChildren, useContext } from 'react'
+import React, { FunctionComponent, PropsWithChildren, useMemo } from 'react'
 import { useGesture } from '@use-gesture/react'
 import { MAP_HEIGHT, MAP_WIDTH } from './constants'
 import { MapAreaReducerAction } from './area'
@@ -19,15 +19,15 @@ type RoomGestureProps = PropsWithChildren<{
 // need to know about them
 //
 export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLevel, x, y, scale, localDispatch, children }) => {
-    const { UI: { toolSelected } } = useMapContext()
+    const { UI: { toolSelected }, mapDispatch } = useMapContext()
     const bind = (useGesture as any)({
         onDrag: ({ offset: [ x, y ] }: { offset: [number, number] }) => {
             const destX = Math.max(-((MAP_WIDTH / 2) - 35), Math.min((MAP_WIDTH / 2) - 35, (x / scale) - (MAP_WIDTH / 2)))
             const destY = Math.max(-((MAP_HEIGHT / 2) - 35), Math.min((MAP_HEIGHT / 2) - 35, (y / scale) - (MAP_HEIGHT / 2)))
             switch(toolSelected) {
                 case 'Move':
-                    localDispatch({
-                        type: 'SETNODE',
+                    mapDispatch({
+                        type: 'SetNode',
                         roomId,
                         x: destX,
                         y: destY

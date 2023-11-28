@@ -106,8 +106,6 @@ export class MapDThree extends Object {
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        console.log(`roomLayers: ${JSON.stringify(roomLayers, null, 4)}`)
-        console.log(`exits: ${JSON.stringify(exits, null, 4)}`)
         const layers = argumentParse({ roomLayers: [...roomLayers].reverse(), exits })
         this.stack = new MapDThreeStack({
             layers,
@@ -125,8 +123,12 @@ export class MapDThree extends Object {
     get nodes(): SimNode[] {
         return this.stack.nodes
     }
-    setCallbacks(props: { onTick?: SimCallback, onStability?: SimCallback }) {
-        this.stack.setCallbacks(props)
+    setCallbacks(props: { onTick?: SimCallback, onStability?: SimCallback; onExitDrag?: (props: { sourceRoomId: string; x: number; y: number }) => void }) {
+        const { onTick, onStability, onExitDrag } = props
+        this.stack.setCallbacks({ onTick, onStability })
+        if (onExitDrag) {
+            this.onExitDrag = onExitDrag
+        }
     }
     //
     // Update responds to changes in the semantic structure of the map, while keeping live and running simulations.

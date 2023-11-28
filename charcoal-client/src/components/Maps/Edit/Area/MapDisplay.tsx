@@ -39,7 +39,6 @@ type ExitDeduplicationState = {
     double: boolean;
 }
 export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
-        rooms,
         exits,
         mapDispatch,
         onClick = () => {},
@@ -103,7 +102,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             }
         }
     })
-    const { UI: { toolSelected } } = useMapContext()
+    const { UI: { toolSelected }, localPositions: rooms } = useMapContext()
     const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
