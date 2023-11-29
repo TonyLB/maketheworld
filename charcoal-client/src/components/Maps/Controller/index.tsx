@@ -12,6 +12,7 @@ import MapDThree from "../Edit/MapDThree"
 import { MapLayer, SimNode } from "../Edit/MapDThree/baseClasses"
 import { VisibleMapRoom } from "../Edit/maps"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
+import { stabilizeFactory } from "./stabilize"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -124,7 +125,7 @@ export const useMapContext = () => (useContext(MapContext))
 //
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { normalForm } = useLibraryAsset()
+    const { normalForm, updateNormal } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
 
     //
@@ -221,6 +222,10 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
                 return
+            //
+            // TODO: ISS-3228: Add DragExit and EndDrag cases to mapDispatch
+            //
+
             // case 'ENDDRAG':
             //     state.mapD3.endDrag()
             //     return state
@@ -233,12 +238,15 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         console.log(`Setting callbacks`)
         mapD3.setCallbacks({
             onTick: onTick,
+            //
+            // TODO: ISS-3228: Add onStability handler.
+            //
             onStability: (value: SimNode[]) => {
                 // mapDispatch({ type: 'STABILIZE' })
-                // onStabilize(value)
+                stabilizeFactory({ mapId, normalForm, updateNormal })(value)
             }
         })
-    }, [mapD3, onTick])
+    }, [mapD3, onTick, normalForm, updateNormal])
     useEffect(() => () => {
         mapD3.unmount()
     }, [mapD3])
