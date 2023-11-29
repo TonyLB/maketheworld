@@ -222,25 +222,17 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'SetNode':
                 mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
                 return
-            //
-            // TODO: ISS-3228: Add DragExit and EndDrag cases to mapDispatch
-            //
-
-            // case 'ENDDRAG':
-            //     state.mapD3.endDrag()
-            //     return state
-            // case 'DRAGEXIT':
-            //     mapD3.dragExit({ roomId: action.roomId, x: action.x, y: action.y, double: action.double })
-            //     return
+            case 'EndDrag':
+                mapD3.endDrag()
+                return
+            case 'DragExit':
+                mapD3.dragExit({ roomId: action.sourceRoomId, x: action.x, y: action.y, double: action.double })
+                return
         }
     }, [mapD3, setToolSelected])
     useEffect(() => {
-        console.log(`Setting callbacks`)
         mapD3.setCallbacks({
             onTick: onTick,
-            //
-            // TODO: ISS-3228: Add onStability handler.
-            //
             onStability: (value: SimNode[]) => {
                 // mapDispatch({ type: 'STABILIZE' })
                 stabilizeFactory({ mapId, normalForm, updateNormal })(value)

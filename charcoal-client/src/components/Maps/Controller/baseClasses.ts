@@ -27,6 +27,15 @@ type MapDispatchSetExitDrag = {
     type: 'SetExitDrag';
 } & Partial<MapContextExitDrag>
 
+type MapDispatchEndDrag = {
+    type: 'EndDrag';
+}
+
+type MapDispatchDragExit = {
+    type: 'DragExit';
+    double?: boolean;
+} & MapContextExitDrag
+
 type MapDispatchSetNode = {
     type: 'SetNode',
     roomId: string;
@@ -39,23 +48,12 @@ type MapDispatchUpdateTree = {
     tree: GenericTree<MapTreeItem>;
 }
 
-type MapDispatchTick = {
-    type: 'Tick';
-    nodes: SimNode[];
-}
-
-type MapDispatchSetCallbacks = {
-    type: 'SetCallbacks';
-    onTick?: SimCallback;
-    onStability?: SimCallback;
-}
-
 export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetExitDrag |
+    MapDispatchEndDrag |
+    MapDispatchDragExit |
     MapDispatchSetNode |
-    MapDispatchUpdateTree |
-    MapDispatchTick |
-    MapDispatchSetCallbacks
+    MapDispatchUpdateTree
 
 export type MapContextType = {
     mapId: string;

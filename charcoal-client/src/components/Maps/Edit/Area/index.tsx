@@ -116,6 +116,9 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
     //
     const decoratorExits = exitDragSourceRoom
         ? [{ fromX: exitDragSourceRoom.x, fromY: exitDragSourceRoom.y, toX: exitDrag.x, toY: exitDrag.y, double: true }]: []
+    console.log(`exitDrag: ${JSON.stringify(exitDrag, null, 4)}`)
+    console.log(`decoratorExits: ${JSON.stringify(decoratorExits, null, 4)}`)
+    console.log(`rooms: ${JSON.stringify(rooms, null, 4)}`)
     return <React.Fragment>
         <AddRoomDialog
             open={dialogOpen}

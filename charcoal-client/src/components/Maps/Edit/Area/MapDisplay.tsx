@@ -244,8 +244,6 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                     roomId={room.roomId}
                                     x={room.x + (MAP_WIDTH / 2)}
                                     y={room.y + (MAP_HEIGHT / 2)}
-                                    zLevel={room.zLevel}
-                                    localDispatch={mapDispatch}
                                     scale={scale}
                                 >
                                     <MapRoomComponent
@@ -253,7 +251,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                         Name={room.name}
                                         className={localClasses.roomNode}
                                         contrastClassName={localClasses.svgLightBlueContrast}
-                                        x={room.x + (MAP_HEIGHT / 2)}
+                                        x={room.x + (MAP_WIDTH / 2)}
                                         y={room.y + (MAP_HEIGHT / 2)}
                                     />
                                 </RoomGestures>
