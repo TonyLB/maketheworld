@@ -1,13 +1,11 @@
-import React, { FunctionComponent, PropsWithChildren, useContext } from 'react'
+import React, { FunctionComponent, PropsWithChildren, useMemo } from 'react'
 import { useGesture } from '@use-gesture/react'
 import { MAP_HEIGHT, MAP_WIDTH } from './constants'
 import { MapAreaReducerAction } from './area'
-import { useMapEditContext } from '../Controller'
+import { useMapContext } from '../../Controller'
 
 type RoomGestureProps = PropsWithChildren<{
     roomId: string;
-    zLevel: number;
-    localDispatch: (action: MapAreaReducerAction) => void;
     x: number;
     y: number;
     scale: number;
@@ -18,16 +16,16 @@ type RoomGestureProps = PropsWithChildren<{
 // dynamically configured useGesture hook around a component that does not
 // need to know about them
 //
-export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLevel, x, y, scale, localDispatch, children }) => {
-    const { toolSelected } = useMapEditContext()
+export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, x, y, scale, children }) => {
+    const { UI: { toolSelected }, mapDispatch } = useMapContext()
     const bind = (useGesture as any)({
         onDrag: ({ offset: [ x, y ] }: { offset: [number, number] }) => {
             const destX = Math.max(-((MAP_WIDTH / 2) - 35), Math.min((MAP_WIDTH / 2) - 35, (x / scale) - (MAP_WIDTH / 2)))
             const destY = Math.max(-((MAP_HEIGHT / 2) - 35), Math.min((MAP_HEIGHT / 2) - 35, (y / scale) - (MAP_HEIGHT / 2)))
             switch(toolSelected) {
                 case 'Move':
-                    localDispatch({
-                        type: 'SETNODE',
+                    mapDispatch({
+                        type: 'SetNode',
                         roomId,
                         x: destX,
                         y: destY
@@ -35,9 +33,9 @@ export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLev
                     break;
                 case 'OneWayExit':
                 case 'TwoWayExit':
-                    localDispatch({
-                        type: 'DRAGEXIT',
-                        roomId,
+                    mapDispatch({
+                        type: 'DragExit',
+                        sourceRoomId: roomId,
                         x: destX,
                         y: destY,
                         double: toolSelected === 'TwoWayExit'
@@ -47,7 +45,7 @@ export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLev
         },
         onDragEnd: () => {
             if (['Move', 'OneWayExit', 'TwoWayExit'].includes(toolSelected)) {
-                localDispatch({ type: 'ENDDRAG' })
+                mapDispatch({ type: 'EndDrag' })
             }
         }
     },

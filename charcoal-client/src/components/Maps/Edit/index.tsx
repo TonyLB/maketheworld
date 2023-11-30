@@ -19,7 +19,7 @@ import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isSchemaMap, isSchemaRoom, SchemaMapLegalContents, SchemaRoomTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { extractConditionedItemFromContents } from '@tonylb/mtw-wml/dist/simpleSchema/utils'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
-import MapEditController from './Controller'
+import MapController from '../Controller'
 
 type MapEditProps = {
 }
@@ -186,7 +186,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         }
     }, [normalForm, mapId, updateNormal])
 
-    return <MapEditController mapId={mapId}>
+    return <MapController mapId={mapId}>
         <div className={localClasses.grid}>
             <div className={localClasses.content} >
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
@@ -195,17 +195,13 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 <MapArea
                     fileURL={mapImages.length ? mapImages[0] : undefined}
                     tree={tree}
-                    dispatch={dispatch}
-                    onStabilize={onStabilize}
-                    onAddExit={onAddExit}
-                    onAddRoom={onAddRoom}
                 />
             </div>
             <div className={localClasses.sidebar} >
                 <MapLayers mapId={mapId} tree={tree} dispatch={dispatch} />
             </div>
         </div>
-    </MapEditController>
+    </MapController>
 }
 
 export default MapEdit

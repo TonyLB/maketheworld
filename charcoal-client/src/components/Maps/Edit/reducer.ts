@@ -28,6 +28,9 @@ export type MapReducerState = {
 export type MapReducer = (state: MapReducerState, action: MapReducerAction) => MapReducerState
 export type MapDispatch = (action: MapReducerAction) => void
 
+//
+// TODO: Lift functionality from reducer to a reducer in Controller map context
+//
 export const mapReducer: MapReducer = (state, action) => {
     switch(action.type) {
         case 'updateTree':

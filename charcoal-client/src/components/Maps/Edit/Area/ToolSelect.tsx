@@ -10,7 +10,7 @@ import TwoWayExitIcon from '@mui/icons-material/SyncAlt'
 import RoomIcon from '@mui/icons-material/Home'
 import MoveIcon from '@mui/icons-material/OpenWith'
 import { ToolSelected } from './area'
-import { useMapEditContext } from '../Controller'
+import { useMapContext } from '../../Controller'
 
 export const localStyles = makeStyles((theme: Theme) => ({
     normal: {
@@ -35,7 +35,7 @@ interface ToolSelectGroups {
 }
 
 export const ToolSelect: FunctionComponent<{}> = () => {
-    const { toolSelected, setToolSelected } = useMapEditContext()
+    const { UI: { toolSelected }, mapDispatch } = useMapContext()
     const classes = localStyles()
     const tools: ToolSelectGroups[] = [
         {
@@ -71,7 +71,7 @@ export const ToolSelect: FunctionComponent<{}> = () => {
                             colorPrimary: classes['normal.selected']
                         }}
                         onClick={() => {
-                            setToolSelected(key)
+                            mapDispatch({ type: 'SetToolSelected', value: key })
                         }}
                         size="large">
                         {icon}
