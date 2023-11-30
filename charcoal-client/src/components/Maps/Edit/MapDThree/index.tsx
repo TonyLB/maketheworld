@@ -123,11 +123,19 @@ export class MapDThree extends Object {
     get nodes(): SimNode[] {
         return this.stack.nodes
     }
-    setCallbacks(props: { onTick?: SimCallback, onStability?: SimCallback; onExitDrag?: (props: { sourceRoomId: string; x: number; y: number }) => void }) {
-        const { onTick, onStability, onExitDrag } = props
+    setCallbacks(props: {
+            onTick?: SimCallback,
+            onStability?: SimCallback;
+            onExitDrag?: (props: { sourceRoomId: string; x: number; y: number }) => void;
+            onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+        }) {
+        const { onTick, onStability, onExitDrag, onAddExit } = props
         this.stack.setCallbacks({ onTick, onStability })
         if (onExitDrag) {
             this.onExitDrag = onExitDrag
+        }
+        if (onAddExit) {
+            this.onAddExit = onAddExit
         }
     }
     //

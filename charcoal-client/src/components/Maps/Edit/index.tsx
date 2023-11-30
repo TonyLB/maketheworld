@@ -195,10 +195,6 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 <MapArea
                     fileURL={mapImages.length ? mapImages[0] : undefined}
                     tree={tree}
-                    dispatch={dispatch}
-                    onStabilize={onStabilize}
-                    onAddExit={onAddExit}
-                    onAddRoom={onAddRoom}
                 />
             </div>
             <div className={localClasses.sidebar} >

@@ -21,7 +21,6 @@ import { useSelector } from 'react-redux'
 import { useMapContext } from '../../Controller'
 
 interface MapDisplayProps extends VisibleMapItems {
-    mapDispatch: MapAreaDispatch;
     onClick: React.MouseEventHandler<SVGElement>;
     decoratorCircles?: { x: number, y: number }[],
     decoratorExits?: {
@@ -40,7 +39,6 @@ type ExitDeduplicationState = {
 }
 export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
         exits,
-        mapDispatch,
         onClick = () => {},
         decoratorCircles = [],
         decoratorExits = [],
@@ -238,7 +236,9 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                 ))
                         }
                         {
-                            rooms.map((room) => (
+                            rooms
+                                .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
+                                .map((room) => (
                                 <RoomGestures
                                     key={`Gesture-${room.roomId}`}
                                     roomId={room.roomId}

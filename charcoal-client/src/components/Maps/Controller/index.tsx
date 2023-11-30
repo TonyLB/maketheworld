@@ -13,6 +13,7 @@ import { MapLayer, SimNode } from "../Edit/MapDThree/baseClasses"
 import { VisibleMapRoom } from "../Edit/maps"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { stabilizeFactory } from "./stabilize"
+import { addExitFactory } from "./addExit"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -178,6 +179,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         tree
             .map(({ data }) => (data))
             .filter(isSchemaRoom)
+            .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
             .map(({ key, x, y, name }) => ({ key, roomId: key, type: 'ROOM' as const, zLevel: 0, name: taggedMessageToString(name as any), x: x ?? 0, y: y ?? 0 }))
     )
     const onTick = useCallback((nodes: SimNode[]) => {
@@ -188,6 +190,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         return setLocalPositions(tree
                 .map(({ data }) => (data))
                 .filter(isSchemaRoom)
+                .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
                 .map((room) => ({
                     type: 'ROOM' as const,
                     roomId: room.key,
@@ -231,12 +234,20 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
     }, [mapD3, setToolSelected])
     useEffect(() => {
+        const addExitFactoryOutput = addExitFactory({ normalForm, updateNormal })
+        const onAddExit = (fromRoomId, toRoomId, double) => {
+            addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
+            if (double) {
+                addExitFactoryOutput({ from: toRoomId, to: fromRoomId })
+            }
+        }
         mapD3.setCallbacks({
             onTick: onTick,
             onStability: (value: SimNode[]) => {
                 // mapDispatch({ type: 'STABILIZE' })
                 stabilizeFactory({ mapId, normalForm, updateNormal })(value)
-            }
+            },
+            onAddExit
         })
     }, [mapD3, onTick, normalForm, updateNormal])
     useEffect(() => () => {

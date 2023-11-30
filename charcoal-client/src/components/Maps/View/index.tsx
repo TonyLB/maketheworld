@@ -72,7 +72,6 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         { MapId && <MapArea
             fileURL={maps[MapId].fileURL}
             tree={cacheToTree(maps[MapId])}
-            dispatch={() => {}}
         /> }
     </Box>
 }
