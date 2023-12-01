@@ -2,7 +2,6 @@ import { NormalForm, isNormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseCla
 import { UpdateNormalPayload } from "../../../slices/personalAssets/reducers"
 
 export const addExitFactory = ({ normalForm, updateNormal }: { normalForm: NormalForm, updateNormal: (action: UpdateNormalPayload) => void }) => ({ to, from }: { to: string; from: string }) => {
-    console.log(`Add Exit: ${from} => ${to}`)
     const normalRoom = normalForm[from || '']
     if (from && normalRoom && isNormalRoom(normalRoom)) {
         const firstUnconditionedAppearance = normalRoom.appearances.findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))

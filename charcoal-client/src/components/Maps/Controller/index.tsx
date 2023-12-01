@@ -5,7 +5,7 @@ import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/ba
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
 import { MapContextType, MapDispatchAction, MapTreeItem, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 import { unique } from "../../../lib/lists"
 import MapDThree from "../Edit/MapDThree"
@@ -147,8 +147,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     ), [standardizedNormalizer, mapId])
 
     const temporaryTreeToLayersMapping = useCallback((tree: GenericTree<MapTreeItem>): { roomLayers: MapLayer[]; exits: { to: string; from: string; visible: boolean; }[] } => {
-        console.log(`tree: ${JSON.stringify(tree, null, 4)}`)
-        return {
+        const returnValue = {
             roomLayers: [
                 {
                     key: 'Default',
@@ -157,14 +156,22 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                         ...tree
                             .map(({ data }) => (data))
                             .filter(isSchemaRoom)
+                            .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
                             .map(({ key, x, y }) => ({ [key]: { id: key, roomId: key, x: x ?? 0, y: y ?? 0 } }))
                     ),
                     roomVisibility: {}
                 },
                 { key: 'Inherited', rooms: {}, roomVisibility: {} }
             ],
-            exits: [],
+            exits: tree
+                .filter(({ data }) => (isSchemaRoom(data)))
+                .map(({ children }) => (
+                    children.map(({ data }) => (data))
+                        .filter(isSchemaExit)
+                        .map(({ from, to }) => ({ from, to, visible: true }))
+                )).flat(1)
         }
+        return returnValue
     }, [])
 
     //
@@ -250,6 +257,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             onAddExit
         })
     }, [mapD3, onTick, normalForm, updateNormal])
+    useEffect(() => {
+        mapDispatch({ type: 'UpdateTree', tree })
+    }, [mapDispatch, tree])
     useEffect(() => () => {
         mapD3.unmount()
     }, [mapD3])
