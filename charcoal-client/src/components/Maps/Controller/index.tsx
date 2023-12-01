@@ -94,7 +94,15 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
         })
     
     const mergeTreeOptions = {
-        compare: (a: MapTreeItem, b: MapTreeItem) => (deepEqual(a, b)),
+        compare: (a: MapTreeItem, b: MapTreeItem) => {
+            if (a.tag === 'Room' && b.tag === 'Room') {
+                return deepEqual(
+                    { ...a, x: 0, y: 0, contents: [], render: [], name: [] },
+                    { ...b, x: 0, y: 0, contents: [], render: [], name: [] }
+                )
+            }
+            return deepEqual(a, b)
+        },
         extractProperties: (item: MapTreeItem): MapTreeItem | undefined => {
             return item
         },
