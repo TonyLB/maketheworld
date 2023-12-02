@@ -4,29 +4,42 @@ import {
 } from 'd3-force'
 import { SimCallback, MapNodes, MapLinks, SimNode, SimulationReturn } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
+import { GenericTree, GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses';
 
 //
 // TODO: ISS3230: Refactor incoming properties to accept a tree of SimulationReturns, with
 // added visible property
 //
-type SimulationTreeNode = {
+export type SimulationTreeNode = {
     layer: SimulationReturn;
     visible: boolean;
 }
 
-interface MapDThreeStackProps {
-    layers: SimulationReturn[];
+type MapDThreeTreeProps = {
+    layers: SimulationTreeNode[];
     onStabilize?: SimCallback;
     onTick?: SimCallback;
 }
 
-export class MapDThreeStack extends Object {
+type MapDThreeDFSOutput = {
+    data: SimulationReturn;
+    previousLayer?: number;
+}
+
+type MapDThreeDFSReduce = {
+    output: MapDThreeDFSOutput[];
+    leadingLayer?: number;
+    leadingInvisibleLayer?: number;
+}
+
+
+export class MapDThreeTree extends Object {
     layers: MapDThreeIterator[] = []
     stable: boolean = true
     onStability: SimCallback = () => {}
     onTick: SimCallback = () => {}
 
-    constructor(props: MapDThreeStackProps) {
+    constructor(props: MapDThreeTreeProps) {
         super(props)
         const {
             layers,
@@ -36,7 +49,7 @@ export class MapDThreeStack extends Object {
         //
         // TODO: ISS3228: Refactor construction of MapDThree layers
         //
-        this.layers = layers.map(({ key, nodes, links }, index) => {
+        this.layers = layers.map(({ layer: { key, nodes, links } }, index) => {
             //
             // TODO: ISS3228: Refactor getCascadeNodes function to do a more sophisticated search through the
             // DFS ordering of the internal tree of layers.
@@ -48,10 +61,35 @@ export class MapDThreeStack extends Object {
         this.setCallbacks({ onTick, onStability: onStabilize })
         this.checkStability()
     }
+
     //
-    // TODO: ISS3230: Create dfsSequence method to convert the tree into a depth-first-sequence of
-    // layers (optionally filtering out invisible layers)
+    // TODO: ISS3230: Create dfsSequence method converts the tree into a depth-first-sequence of
+    // layers, appending data about which previous layer each layer should look to in order to
+    // gather cascading node positions
     //
+    _dfsSequenceHelper(options: { invisible?: boolean }): (previous: MapDThreeDFSReduce, layer: GenericTreeNode<SimulationTreeNode>) => MapDThreeDFSReduce {
+        const reducer = (previous: MapDThreeDFSReduce, layer: GenericTreeNode<SimulationTreeNode>): MapDThreeDFSReduce => {
+            let nodeOutput = previous
+            if (layer.data.layer.nodes.length > 0) {
+                nodeOutput = {
+                    output: [
+                        ...previous.output,
+                        {
+                            data: layer.data.layer,
+                            previousLayer: previous.leadingLayer
+                        }
+                    ],
+                    leadingLayer: (typeof previous.leadingLayer === 'undefined') ? 0 : previous.leadingLayer + 1
+                }
+            }
+            return layer.children.reduce(this._dfsSequenceHelper(options), nodeOutput)
+        }
+        return reducer
+    }
+    _dfsSequence(tree: GenericTree<SimulationTreeNode>): MapDThreeDFSOutput[] {
+        const { output } = tree.reduce(this._dfsSequenceHelper({}).bind(this), { output: [] })
+        return output
+    }
 
     //
     // An aggregator that decodes the nodes at the top layer (i.e., everything that has been cascaded up from the lower
@@ -273,4 +311,4 @@ export class MapDThreeStack extends Object {
     }
 }
 
-export default MapDThreeStack
+export default MapDThreeTree

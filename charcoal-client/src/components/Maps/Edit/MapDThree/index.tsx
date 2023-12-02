@@ -97,6 +97,10 @@ export class MapDThree extends Object {
     onTick: SimCallback = () => {}
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+    //
+    // TODO: Refactor constructor and update to accept GenericTree<MapTreeItem> rather than
+    // pre-sorted roomLayers and exits.
+    //
     constructor({ roomLayers, exits, onStability, onTick, onExitDrag, onAddExit }: {
         roomLayers: MapLayer[];
         exits: { to: string; from: string; visible: boolean; }[];
