@@ -1,4 +1,4 @@
-import shortestCommonSuperSequence from './shortestCommonSupersequence'
+import shortestCommonSuperSequence, { ShortestCommonSupersetDirection } from './shortestCommonSupersequence'
 
 describe('shortestCommonSupersequence', () => {
     it('should return unchanged list when merged with empty list', () => {
@@ -14,5 +14,17 @@ describe('shortestCommonSupersequence', () => {
     })
     it('should swap direction back and forth between lists as needed', () => {
         expect(shortestCommonSuperSequence([1, 2, 3, 4, 5], [3, 2, 1, 4, 3, 2])).toEqual([1, 2, 3, 2, 1, 4, 5, 3, 2])
+    })
+
+    it('should show source of items when option specified', () => {
+        expect(shortestCommonSuperSequence([1, 2, 3, 4, 5], [4, 3, 2], { showSource: true })).toEqual([
+            { value: 1, source: ShortestCommonSupersetDirection.A },
+            { value: 2, source: ShortestCommonSupersetDirection.A },
+            { value: 3, source: ShortestCommonSupersetDirection.A },
+            { value: 4, source: ShortestCommonSupersetDirection.both },
+            { value: 5, source: ShortestCommonSupersetDirection.A },
+            { value: 3, source: ShortestCommonSupersetDirection.B },
+            { value: 2, source: ShortestCommonSupersetDirection.B }
+        ])
     })
 })
