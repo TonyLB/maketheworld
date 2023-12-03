@@ -10,8 +10,7 @@ import { GenericTree, GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/bas
 // TODO: ISS3230: Refactor incoming properties to accept a tree of SimulationReturns, with
 // added visible property
 //
-export type SimulationTreeNode = {
-    layer: SimulationReturn;
+export type SimulationTreeNode = SimulationReturn & {
     visible: boolean;
 }
 
@@ -49,7 +48,7 @@ export class MapDThreeTree extends Object {
         //
         // TODO: ISS3228: Refactor construction of MapDThree layers
         //
-        this.layers = layers.map(({ layer: { key, nodes, links } }, index) => {
+        this.layers = layers.map(({ key, nodes, links }, index) => {
             //
             // TODO: ISS3228: Refactor getCascadeNodes function to do a more sophisticated search through the
             // DFS ordering of the internal tree of layers.
@@ -63,32 +62,45 @@ export class MapDThreeTree extends Object {
     }
 
     //
-    // TODO: ISS3230: Create dfsSequence method converts the tree into a depth-first-sequence of
-    // layers, appending data about which previous layer each layer should look to in order to
-    // gather cascading node positions
+    // dfsSequence method converts the tree into a depth-first-sequence of layers, appending
+    // data about which previous layer each layer should look to in order to gather cascading
+    // node positions
     //
     _dfsSequenceHelper(options: { invisible?: boolean }): (previous: MapDThreeDFSReduce, layer: GenericTreeNode<SimulationTreeNode>) => MapDThreeDFSReduce {
         const reducer = (previous: MapDThreeDFSReduce, layer: GenericTreeNode<SimulationTreeNode>): MapDThreeDFSReduce => {
+            const invisible = options.invisible || (!layer.data.visible)
+            const nextLayerIndex = previous.output.length
             let nodeOutput = previous
-            if (layer.data.layer.nodes.length > 0) {
+            if (layer.data.nodes.length > 0) {
+                const { visible, ...rest } = layer.data
                 nodeOutput = {
+                    ...previous,
                     output: [
                         ...previous.output,
                         {
-                            data: layer.data.layer,
-                            previousLayer: previous.leadingLayer
+                            data: rest,
+                            //
+                            // If you're in a nested invisible section, your siblings will be listed in leadingInvisibleLayer,
+                            // otherwise you should hark back to the most recent visible layer (even if the node itself is
+                            // freshly invisible)
+                            //
+                            previousLayer: (options.invisible ? previous.leadingInvisibleLayer : undefined) ?? previous.leadingLayer
                         }
                     ],
-                    leadingLayer: (typeof previous.leadingLayer === 'undefined') ? 0 : previous.leadingLayer + 1
+                    //
+                    // Update running track of invisible layer (for independent cascade of invisible branches) and visible layer
+                    // (for the cascade of everything visible, ignoring invisible)
+                    //
+                    ...(invisible ? { leadingInvisibleLayer: nextLayerIndex } : { leadingInvisibleLayer: undefined, leadingLayer: nextLayerIndex })
                 }
             }
-            return layer.children.reduce(this._dfsSequenceHelper(options), nodeOutput)
+            return layer.children.reduce(this._dfsSequenceHelper({ invisible }), nodeOutput)
         }
         return reducer
     }
-    _dfsSequence(tree: GenericTree<SimulationTreeNode>): MapDThreeDFSOutput[] {
-        const { output } = tree.reduce(this._dfsSequenceHelper({}).bind(this), { output: [] })
-        return output
+    _dfsSequence(tree: GenericTree<SimulationTreeNode>): { output: MapDThreeDFSOutput[]; cascadeIndex: number } {
+        const { output, leadingLayer: cascadeIndex } = tree.reduce<MapDThreeDFSReduce>(this._dfsSequenceHelper({}).bind(this), { output: [] })
+        return { output, cascadeIndex }
     }
 
     //
