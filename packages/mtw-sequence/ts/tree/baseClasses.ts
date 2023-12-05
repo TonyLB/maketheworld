@@ -13,7 +13,9 @@ export enum GenericTreeDiffAction {
     Delete
 }
 
-export type GenericTreeDiffNode<N extends {}> = GenericTreeNode<N> & {
+export type GenericTreeDiffNode<N extends {}> = {
+    data: N;
+    children: GenericTreeDiff<N>;
     action: GenericTreeDiffAction;
 }
 

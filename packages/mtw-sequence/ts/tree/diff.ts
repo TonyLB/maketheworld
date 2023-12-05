@@ -14,6 +14,52 @@ type SequenceToTreeReducer<N extends {}, InternalNode extends {}> = {
     currentStack: SequenceToTreeStackItem<N, InternalNode>[];
 }
 
+const nonContextActions = [GenericTreeDiffAction.Add, GenericTreeDiffAction.Delete, GenericTreeDiffAction.Set]
+
+export const condenseDiffTree = <N extends {}>(tree: GenericTreeDiff<N>): GenericTreeDiff<N> => {
+    const items = tree.map(({ data, action, children }) => {
+        const condensedChildren = condenseDiffTree(children)
+        if (action === GenericTreeDiffAction.Exclude && condensedChildren.length) {
+            return {
+                data,
+                action: GenericTreeDiffAction.Context,
+                children: condensedChildren
+            }
+        }
+        else {
+            return {
+                data,
+                action,
+                children
+            }
+        }
+    })
+    const itemsWithSiblingContext = items.reduce<GenericTreeDiff<N>>((previous, item) => {
+        const directlyPreviousItem = previous.length > 0 ? previous.slice(-1)[0] : undefined
+        if (item.action === GenericTreeDiffAction.Exclude && nonContextActions.includes(directlyPreviousItem?.action)) {
+            return [
+                ...previous,
+                {
+                    ...item,
+                    action: GenericTreeDiffAction.Context
+                }
+            ]
+        }
+        if (nonContextActions.includes(item.action) && directlyPreviousItem && directlyPreviousItem.action === GenericTreeDiffAction.Exclude) {
+            return [
+                ...previous.slice(0, -1),
+                {
+                    ...directlyPreviousItem,
+                    action: GenericTreeDiffAction.Context
+                },
+                item
+            ]
+        }
+        return [...previous, item]
+    }, [])
+    return itemsWithSiblingContext.filter(({ action }) => (action !== GenericTreeDiffAction.Exclude))
+}
+
 export const diffTrees = <N extends {}, InternalNode extends {}>(options: {
     compare: (A: N, B: N) => boolean;
     extractProperties: (value: N) => InternalNode | undefined;
@@ -55,7 +101,7 @@ export const diffTrees = <N extends {}, InternalNode extends {}>(options: {
                 : (matches.includes(ShortestCommonSupersetDirection.A)) ? ShortestCommonSupersetDirection.A : ShortestCommonSupersetDirection.B
 
             //
-            // Resolve node by rehydrating stored properties
+            // Resolve node by comparing stored properties
             //
             const baseNode = treeUtility._nodeIndexes.fromIndex(topStackItem.key)
             if (typeof baseNode === 'undefined') {
@@ -68,19 +114,23 @@ export const diffTrees = <N extends {}, InternalNode extends {}>(options: {
             const sharedProperties = topStackItem.properties.filter(({ source }) => (source === ShortestCommonSupersetDirection.both))
             const sourceProperties = topStackItem.properties.filter(({ source }) => (source === ShortestCommonSupersetDirection.A))
             const incomingProperties = topStackItem.properties.filter(({ source }) => (source === ShortestCommonSupersetDirection.B))
-            const properties = overallSource === ShortestCommonSupersetDirection.A ? [...incomingProperties, ...sharedProperties] : [...sharedProperties, ...sourceProperties]
+            const properties = overallSource === ShortestCommonSupersetDirection.A ? [...sharedProperties, ...sourceProperties] : [...incomingProperties, ...sharedProperties]
             const hydratedNode = treeUtility._rehydrateProperties(baseNode, properties.map(({ properties }) => (properties)))
             //
-            // Use the following to dedice the correct action for treeNode:
+            // Use the following to deduce the correct action for treeNode:
             //    - overallSource
             //    - the distribution of properties between shared and individual nodes (i.e., whether the property value has changed;
             //        if sharedProperties has length then it indicates that the node has unchanged properties)
-            //    - the actions of all incoming children
+            // The actions of all incoming children will be addressed in condenseDiffTree (and may change some Exclude actions to
+            // Context where needed in order to provide position for changes)
             //
+            const action = (overallSource === ShortestCommonSupersetDirection.A) ? GenericTreeDiffAction.Delete
+                : (overallSource === ShortestCommonSupersetDirection.B) ? GenericTreeDiffAction.Add
+                : (sharedProperties.length) ? GenericTreeDiffAction.Exclude : GenericTreeDiffAction.Set
             const treeNode = {
                 data: hydratedNode,
                 children: topStackItem.children,
-                action: GenericTreeDiffAction.Exclude
+                action
             }
             if (currentStack.length > 1) {
                 //
@@ -95,10 +145,7 @@ export const diffTrees = <N extends {}, InternalNode extends {}>(options: {
                             ...previousStackItem,
                             children: [
                                 ...previousStackItem.children,
-                                {
-                                    ...treeNode,
-                                    action: GenericTreeDiffAction.Exclude
-                                }
+                                treeNode
                             ]
                         }
                     ]
@@ -111,10 +158,7 @@ export const diffTrees = <N extends {}, InternalNode extends {}>(options: {
                 return {
                     topLevelOutput: [
                         ...previous.topLevelOutput,
-                        {
-                            ...treeNode,
-                            action: GenericTreeDiffAction.Exclude
-                        }
+                        treeNode
                     ],
                     currentStack: []
                 }
@@ -171,7 +215,7 @@ export const diffTrees = <N extends {}, InternalNode extends {}>(options: {
 
         }
     }, { topLevelOutput: [], currentStack: [] })
-    return topLevelOutput
+    return condenseDiffTree(topLevelOutput)
 }
 
 export default diffTrees
