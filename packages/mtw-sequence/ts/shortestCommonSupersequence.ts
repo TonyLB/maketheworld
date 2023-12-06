@@ -1,6 +1,6 @@
-enum ShortestCommonSupersetDirection {
-    left,
-    up,
+export enum ShortestCommonSupersetDirection {
+    B,
+    A,
     both
 }
 
@@ -15,7 +15,12 @@ type ShortestCommonSupersetDynamicMemo = {
 // between two equally valid orderings, the one that places the elements of listA earlier
 // in the sequence is chosen arbitrarily.
 //
-export const shortestCommonSupersequence = (listA: number[], listB: number[]): number[] => {
+export type ShortestCommonSupersetOptions = {
+    showSource?: boolean;
+}
+export function shortestCommonSupersequence (listA: number[], listB: number[], options: ShortestCommonSupersetOptions): { value: number, source: ShortestCommonSupersetDirection }[]
+export function shortestCommonSupersequence(listA: number[], listB: number[]): number[]
+export function shortestCommonSupersequence (listA: number[], listB: number[], options: ShortestCommonSupersetOptions = {}): number[] | { value: number, source: ShortestCommonSupersetDirection }[] {
     if (listA.length === 0) {
         return listB
     }
@@ -28,21 +33,21 @@ export const shortestCommonSupersequence = (listA: number[], listB: number[]): n
     //
     for(let i=0; i<listA.length + 1; i++) {
         memoArray[i][0] = {
-            direction: ShortestCommonSupersetDirection.up,
+            direction: ShortestCommonSupersetDirection.A,
             length: i
         }
     }
     for(let j=0; j<listB.length + 1; j++) {
         memoArray[0][j] = {
-            direction: ShortestCommonSupersetDirection.left,
+            direction: ShortestCommonSupersetDirection.B,
             length: j
         }
     }
     const valueRelative = (i: number, j: number, direction: ShortestCommonSupersetDirection): number => {
         switch(direction) {
-            case ShortestCommonSupersetDirection.up:
+            case ShortestCommonSupersetDirection.A:
                 return (memoArray[i-1][j] || []).length
-            case ShortestCommonSupersetDirection.left:
+            case ShortestCommonSupersetDirection.B:
                 return (memoArray[i][j-1] || []).length
             case ShortestCommonSupersetDirection.both:
                 return (memoArray[i-1][j-1] || []).length
@@ -51,11 +56,16 @@ export const shortestCommonSupersequence = (listA: number[], listB: number[]): n
     for(let i=1; i<=listA.length; i++) {
         for(let j=1; j<=listB.length; j++) {
             let direction: ShortestCommonSupersetDirection | undefined
+            //
+            // TODO: Refactor to include an option to measure the value of a sequence with an idiomatic function
+            // rather than assume that shorter length is always optimal (helpful for preventing sequences that
+            // would have unbalanced effects on the underlying structure they represent)
+            //
             if (listA[i - 1] === listB[j - 1]) {
                 direction = ShortestCommonSupersetDirection.both
             }
             else {
-                direction = valueRelative(i, j, ShortestCommonSupersetDirection.up) < valueRelative(i, j, ShortestCommonSupersetDirection.left) ? ShortestCommonSupersetDirection.up : ShortestCommonSupersetDirection.left
+                direction = valueRelative(i, j, ShortestCommonSupersetDirection.A) < valueRelative(i, j, ShortestCommonSupersetDirection.B) ? ShortestCommonSupersetDirection.A : ShortestCommonSupersetDirection.B
             }
             memoArray[i][j] = {
                 direction,
@@ -65,21 +75,27 @@ export const shortestCommonSupersequence = (listA: number[], listB: number[]): n
     }
     let i = listA.length
     let j = listB.length
-    let backtrack: number[] = []
+    let backtrack: { value: number, source: ShortestCommonSupersetDirection }[] = []
     while (i > 0 || j > 0) {
         switch(memoArray[i][j]?.direction) {
             case ShortestCommonSupersetDirection.both:
                 j--
-            case ShortestCommonSupersetDirection.up:
                 i--
-                backtrack.unshift(listA[i])
+                backtrack.unshift({ value: listA[i], source: ShortestCommonSupersetDirection.both })
                 break
-            case ShortestCommonSupersetDirection.left:
+            case ShortestCommonSupersetDirection.A:
+                i--
+                backtrack.unshift({ value: listA[i], source: ShortestCommonSupersetDirection.A })
+                break
+            case ShortestCommonSupersetDirection.B:
                 j--
-                backtrack.unshift(listB[j])
+                backtrack.unshift({ value: listB[j], source: ShortestCommonSupersetDirection.B })
         }
     }
-    return backtrack
+    if (options.showSource) {
+        return backtrack
+    }
+    return backtrack.map(({ value }) => (value))
 }
 
 export default shortestCommonSupersequence
