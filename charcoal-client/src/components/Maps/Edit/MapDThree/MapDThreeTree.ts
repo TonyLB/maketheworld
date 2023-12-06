@@ -136,8 +136,24 @@ export class MapDThreeTree extends Object {
     //
     update(layers: SimulationReturn[]): void {
         //
-        // TODO:  When we create bookmarks and references so that the same RoomId can appear meaningfully in different layers,
-        // we'll have to refactor this matching algorithm to be based on layer item IDs rather than roomIDs.
+        // TODO: Refactor _dfsSequence as _dfsWalk, with a callback rather than a return sequence.
+        //
+
+        //
+        // TODO: Modify tree diff to accept an option for whether or not to filter out Exclude action types.
+        //
+
+        //
+        // TODO: Record the current tree type in the class instance
+        //
+
+        //
+        // TODO: Use tree diff on the incoming tree (compared to the recorded tree) without filtering Exclude
+        // action types.
+        //
+
+        //
+        // TODO: Use _dfsWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
         //
         
         const previousNodesByRoomId = this.nodes.reduce<Record<string, SimNode>>((accumulator, node) => {
