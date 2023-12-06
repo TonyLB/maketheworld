@@ -140,10 +140,6 @@ export class MapDThreeTree extends Object {
         //
 
         //
-        // TODO: Modify tree diff to accept an option for whether or not to filter out Exclude action types.
-        //
-
-        //
         // TODO: Record the current tree type in the class instance
         //
 
