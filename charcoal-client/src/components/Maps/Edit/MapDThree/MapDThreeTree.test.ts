@@ -6,17 +6,19 @@ import { MapDFSWalk, MapDThreeTree, SimulationTreeNode } from './MapDThreeTree'
 
 import { mockClass } from '../../../../lib/jestHelpers'
 import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { SimulationReturn } from './baseClasses'
 const MapDThreeIterator = mockClass(MapDThreeIteratorRaw)
 
 describe('dfsWalk', () => {
+    const walkCallback = (value: { data: SimulationReturn; previousLayer: number }) => ([value])
 
     it('should return an empty list on an empty tree', () => {
-        const testWalk = new MapDFSWalk()
-        expect(testWalk.walk([], () => ([]))).toEqual({ output: [] })
+        const testWalk = new MapDFSWalk(walkCallback)
+        expect(testWalk.walk([])).toEqual({ output: [] })
     })
 
     it('should return an empty list on a tree with no positions or exits', () => {
-        const testWalk = new MapDFSWalk()
+        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTree<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -26,11 +28,11 @@ describe('dfsWalk', () => {
             },
             children: []
         }]
-        expect(testWalk.walk(incomingTree, () => ([]))).toEqual({ output: [] })
+        expect(testWalk.walk(incomingTree)).toEqual({ output: [] })
     })
 
     it('should return a single layer on an unnested tree', () => {
-        const testWalk = new MapDFSWalk()
+        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTree<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -45,7 +47,7 @@ describe('dfsWalk', () => {
             },
             children: []
         }]
-        expect(testWalk.walk(incomingTree, () => ([]))).toEqual({ output: [{
+        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -60,7 +62,7 @@ describe('dfsWalk', () => {
     })
 
     it('should return a dfs order on a nested tree', () => {
-        const testWalk = new MapDFSWalk()
+        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTree<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -102,7 +104,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(testWalk.walk(incomingTree, () => ([]))).toEqual({ output: [{
+        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -141,7 +143,7 @@ describe('dfsWalk', () => {
     })
 
     it('should return a nuanced dfs order on a nested tree with invisible branches', () => {
-        const testWalk = new MapDFSWalk()
+        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTree<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -183,7 +185,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(testWalk.walk(incomingTree, () => ([]))).toEqual({ output: [{
+        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -222,7 +224,7 @@ describe('dfsWalk', () => {
     })
 
     it('should not append invisible branches to the cascadeIndex returned', () => {
-        const testWalk = new MapDFSWalk()
+        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTree<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -264,7 +266,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(testWalk.walk(incomingTree, () => ([]))).toEqual({ output: [{
+        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
             data: {
                 key: 'Test-1',
                 nodes: [

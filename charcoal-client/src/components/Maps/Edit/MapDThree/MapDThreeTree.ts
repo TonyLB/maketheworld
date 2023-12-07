@@ -14,16 +14,16 @@ import { GenericTree, GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/bas
 export class MapDFSWalk {
     _leadingLayer: number;
     _leadingInvisibleLayer: number;
+    _callback: (value: { data: SimulationReturn; previousLayer: number; }) => MapDThreeDFSOutput[];
+    constructor(callback: (value: { data: SimulationReturn; previousLayer: number; }) => MapDThreeDFSOutput[]) {
+        this._callback = callback
+    }
 
     _walkHelper(
-        options: {
-            invisible?: boolean;
-            callback: (value: { item: SimulationReturn; previousLayer: number; }) => MapDThreeDFSOutput[]
-        }
+        options: { invisible?: boolean }
     ): (previous: MapDThreeDFSReduce, layer: GenericTreeNode<SimulationTreeNode>) => MapDThreeDFSReduce {
         return (previous, layer) => {
             const invisible = options.invisible || (!layer.data.visible)
-            const nextLayerIndex = previous.output.length
             let nodeOutput = previous
             if (layer.data.nodes.length > 0) {
                 const { visible, ...rest } = layer.data
@@ -33,28 +33,27 @@ export class MapDFSWalk {
                 // freshly invisible)
                 //
                 const previousLayer = (options.invisible ? previous.leadingInvisibleLayer : undefined) ?? previous.leadingLayer
+                const newItems = this._callback({ data: rest, previousLayer })
+                const output = [
+                    ...previous.output,
+                    ...newItems
+                ]
                 nodeOutput = {
                     ...previous,
-                    output: [
-                        ...previous.output,
-                        {
-                            data: rest,
-                            previousLayer
-                        }
-                    ],
+                    output,
                     //
                     // Update running track of invisible layer (for independent cascade of invisible branches) and visible layer
                     // (for the cascade of everything visible, ignoring invisible)
                     //
-                    ...(invisible ? { leadingInvisibleLayer: nextLayerIndex } : { leadingInvisibleLayer: undefined, leadingLayer: nextLayerIndex })
+                    ...(invisible ? { leadingInvisibleLayer: output.length - 1 } : { leadingInvisibleLayer: undefined, leadingLayer: output.length - 1 })
                 }
             }
-            return layer.children.reduce(this._walkHelper({ invisible, callback: options.callback }), nodeOutput)
+            return layer.children.reduce(this._walkHelper({ invisible }), nodeOutput)
         }
     }
 
-    walk(tree: GenericTree<SimulationTreeNode>, callback: (value: { item: SimulationReturn; previousLayer: number; }) => MapDThreeDFSOutput[])  {
-        const { output, leadingLayer: cascadeIndex } = tree.reduce<MapDThreeDFSReduce>(this._walkHelper({ callback }), { output: [] })
+    walk(tree: GenericTree<SimulationTreeNode>)  {
+        const { output, leadingLayer: cascadeIndex } = tree.reduce<MapDThreeDFSReduce>(this._walkHelper({}), { output: [] })
         return { output, cascadeIndex }
     }
 }
