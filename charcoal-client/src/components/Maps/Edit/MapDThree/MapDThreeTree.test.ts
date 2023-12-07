@@ -1,16 +1,18 @@
 import { jest, beforeEach, describe, it, expect } from '@jest/globals'
 
-jest.mock('./MapDThreeIterator.tsx')
-import MapDThreeIteratorRaw from './MapDThreeIterator'
-import { MapDFSWalk, MapDThreeTree, SimulationTreeNode } from './MapDThreeTree'
+import { MapDFSWalk, SimulationTreeNode } from './MapDThreeTree'
 
 import { mockClass } from '../../../../lib/jestHelpers'
-import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { SimulationReturn } from './baseClasses'
-const MapDThreeIterator = mockClass(MapDThreeIteratorRaw)
+
+type MapDThreeDFSOutput = {
+    data: SimulationReturn;
+    previousLayer?: number;
+}
 
 describe('dfsWalk', () => {
-    const walkCallback = (value: { data: SimulationReturn; previousLayer: number }) => ([value])
+    const walkCallback = ({ action, ...value }: (MapDThreeDFSOutput & { action: GenericTreeDiffAction })) => ([value])
 
     it('should return an empty list on an empty tree', () => {
         const testWalk = new MapDFSWalk(walkCallback)
@@ -19,13 +21,14 @@ describe('dfsWalk', () => {
 
     it('should return an empty list on a tree with no positions or exits', () => {
         const testWalk = new MapDFSWalk(walkCallback)
-        const incomingTree: GenericTree<SimulationTreeNode> = [{
+        const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
                 nodes: [],
                 links: [],
                 visible: true
             },
+            action: GenericTreeDiffAction.Add,
             children: []
         }]
         expect(testWalk.walk(incomingTree)).toEqual({ output: [] })
@@ -33,7 +36,7 @@ describe('dfsWalk', () => {
 
     it('should return a single layer on an unnested tree', () => {
         const testWalk = new MapDFSWalk(walkCallback)
-        const incomingTree: GenericTree<SimulationTreeNode> = [{
+        const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -45,6 +48,7 @@ describe('dfsWalk', () => {
                 ],
                 visible: true
             },
+            action: GenericTreeDiffAction.Add,
             children: []
         }]
         expect(testWalk.walk(incomingTree)).toEqual({ output: [{
@@ -63,7 +67,7 @@ describe('dfsWalk', () => {
 
     it('should return a dfs order on a nested tree', () => {
         const testWalk = new MapDFSWalk(walkCallback)
-        const incomingTree: GenericTree<SimulationTreeNode> = [{
+        const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -75,6 +79,7 @@ describe('dfsWalk', () => {
                 ],
                 visible: true
             },
+            action: GenericTreeDiffAction.Add,
             children: [
                 {
                     data: {
@@ -83,6 +88,7 @@ describe('dfsWalk', () => {
                         links: [],
                         visible: true    
                     },
+                    action: GenericTreeDiffAction.Add,
                     children: [{
                         data: {
                             key: 'Test-3',
@@ -90,6 +96,7 @@ describe('dfsWalk', () => {
                             links: [],
                             visible: true    
                         },
+                        action: GenericTreeDiffAction.Add,
                         children: []
                     }]
                 },
@@ -100,6 +107,7 @@ describe('dfsWalk', () => {
                         links: [],
                         visible: true    
                     },
+                    action: GenericTreeDiffAction.Add,
                     children: []
                 }
             ]
@@ -144,7 +152,7 @@ describe('dfsWalk', () => {
 
     it('should return a nuanced dfs order on a nested tree with invisible branches', () => {
         const testWalk = new MapDFSWalk(walkCallback)
-        const incomingTree: GenericTree<SimulationTreeNode> = [{
+        const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -156,6 +164,7 @@ describe('dfsWalk', () => {
                 ],
                 visible: true
             },
+            action: GenericTreeDiffAction.Add,
             children: [
                 {
                     data: {
@@ -164,6 +173,7 @@ describe('dfsWalk', () => {
                         links: [],
                         visible: false
                     },
+                    action: GenericTreeDiffAction.Add,
                     children: [{
                         data: {
                             key: 'Test-3',
@@ -171,6 +181,7 @@ describe('dfsWalk', () => {
                             links: [],
                             visible: true    
                         },
+                        action: GenericTreeDiffAction.Add,
                         children: []
                     }]
                 },
@@ -181,6 +192,7 @@ describe('dfsWalk', () => {
                         links: [],
                         visible: true    
                     },
+                    action: GenericTreeDiffAction.Add,
                     children: []
                 }
             ]
@@ -225,7 +237,7 @@ describe('dfsWalk', () => {
 
     it('should not append invisible branches to the cascadeIndex returned', () => {
         const testWalk = new MapDFSWalk(walkCallback)
-        const incomingTree: GenericTree<SimulationTreeNode> = [{
+        const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -237,6 +249,7 @@ describe('dfsWalk', () => {
                 ],
                 visible: true
             },
+            action: GenericTreeDiffAction.Add,
             children: [
                 {
                     data: {
@@ -245,6 +258,7 @@ describe('dfsWalk', () => {
                         links: [],
                         visible: false
                     },
+                    action: GenericTreeDiffAction.Add,
                     children: [{
                         data: {
                             key: 'Test-3',
@@ -252,6 +266,7 @@ describe('dfsWalk', () => {
                             links: [],
                             visible: true    
                         },
+                        action: GenericTreeDiffAction.Add,
                         children: []
                     }]
                 },
@@ -262,6 +277,7 @@ describe('dfsWalk', () => {
                         links: [],
                         visible: false
                     },
+                    action: GenericTreeDiffAction.Add,
                     children: []
                 }
             ]
