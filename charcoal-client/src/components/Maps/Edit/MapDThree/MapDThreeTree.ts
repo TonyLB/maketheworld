@@ -7,6 +7,59 @@ import MapDThreeIterator from './MapDThreeIterator'
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses';
 
 //
+// MapDFSWalk converts the tree into a depth-first-sequence of layers, appending
+// data about which previous layer each layer should look to in order to gather cascading
+// node positions
+//
+export class MapDFSWalk {
+    _leadingLayer: number;
+    _leadingInvisibleLayer: number;
+
+    _walkHelper(
+        options: {
+            invisible?: boolean;
+            callback: (value: { item: SimulationReturn; previousLayer: number; }) => MapDThreeDFSOutput[]
+        }
+    ): (previous: MapDThreeDFSReduce, layer: GenericTreeNode<SimulationTreeNode>) => MapDThreeDFSReduce {
+        return (previous, layer) => {
+            const invisible = options.invisible || (!layer.data.visible)
+            const nextLayerIndex = previous.output.length
+            let nodeOutput = previous
+            if (layer.data.nodes.length > 0) {
+                const { visible, ...rest } = layer.data
+                //
+                // If you're in a nested invisible section, your siblings will be listed in leadingInvisibleLayer,
+                // otherwise you should hark back to the most recent visible layer (even if the node itself is
+                // freshly invisible)
+                //
+                const previousLayer = (options.invisible ? previous.leadingInvisibleLayer : undefined) ?? previous.leadingLayer
+                nodeOutput = {
+                    ...previous,
+                    output: [
+                        ...previous.output,
+                        {
+                            data: rest,
+                            previousLayer
+                        }
+                    ],
+                    //
+                    // Update running track of invisible layer (for independent cascade of invisible branches) and visible layer
+                    // (for the cascade of everything visible, ignoring invisible)
+                    //
+                    ...(invisible ? { leadingInvisibleLayer: nextLayerIndex } : { leadingInvisibleLayer: undefined, leadingLayer: nextLayerIndex })
+                }
+            }
+            return layer.children.reduce(this._walkHelper({ invisible, callback: options.callback }), nodeOutput)
+        }
+    }
+
+    walk(tree: GenericTree<SimulationTreeNode>, callback: (value: { item: SimulationReturn; previousLayer: number; }) => MapDThreeDFSOutput[])  {
+        const { output, leadingLayer: cascadeIndex } = tree.reduce<MapDThreeDFSReduce>(this._walkHelper({ callback }), { output: [] })
+        return { output, cascadeIndex }
+    }
+}
+
+//
 // TODO: ISS3230: Refactor incoming properties to accept a tree of SimulationReturns, with
 // added visible property
 //
@@ -30,7 +83,6 @@ type MapDThreeDFSReduce = {
     leadingLayer?: number;
     leadingInvisibleLayer?: number;
 }
-
 
 export class MapDThreeTree extends Object {
     layers: MapDThreeIterator[] = []
@@ -59,48 +111,6 @@ export class MapDThreeTree extends Object {
         })
         this.setCallbacks({ onTick, onStability: onStabilize })
         this.checkStability()
-    }
-
-    //
-    // dfsSequence method converts the tree into a depth-first-sequence of layers, appending
-    // data about which previous layer each layer should look to in order to gather cascading
-    // node positions
-    //
-    _dfsSequenceHelper(options: { invisible?: boolean }): (previous: MapDThreeDFSReduce, layer: GenericTreeNode<SimulationTreeNode>) => MapDThreeDFSReduce {
-        const reducer = (previous: MapDThreeDFSReduce, layer: GenericTreeNode<SimulationTreeNode>): MapDThreeDFSReduce => {
-            const invisible = options.invisible || (!layer.data.visible)
-            const nextLayerIndex = previous.output.length
-            let nodeOutput = previous
-            if (layer.data.nodes.length > 0) {
-                const { visible, ...rest } = layer.data
-                nodeOutput = {
-                    ...previous,
-                    output: [
-                        ...previous.output,
-                        {
-                            data: rest,
-                            //
-                            // If you're in a nested invisible section, your siblings will be listed in leadingInvisibleLayer,
-                            // otherwise you should hark back to the most recent visible layer (even if the node itself is
-                            // freshly invisible)
-                            //
-                            previousLayer: (options.invisible ? previous.leadingInvisibleLayer : undefined) ?? previous.leadingLayer
-                        }
-                    ],
-                    //
-                    // Update running track of invisible layer (for independent cascade of invisible branches) and visible layer
-                    // (for the cascade of everything visible, ignoring invisible)
-                    //
-                    ...(invisible ? { leadingInvisibleLayer: nextLayerIndex } : { leadingInvisibleLayer: undefined, leadingLayer: nextLayerIndex })
-                }
-            }
-            return layer.children.reduce(this._dfsSequenceHelper({ invisible }), nodeOutput)
-        }
-        return reducer
-    }
-    _dfsSequence(tree: GenericTree<SimulationTreeNode>): { output: MapDThreeDFSOutput[]; cascadeIndex: number } {
-        const { output, leadingLayer: cascadeIndex } = tree.reduce<MapDThreeDFSReduce>(this._dfsSequenceHelper({}).bind(this), { output: [] })
-        return { output, cascadeIndex }
     }
 
     //
