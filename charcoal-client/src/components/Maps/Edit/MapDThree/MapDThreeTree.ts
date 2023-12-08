@@ -12,7 +12,7 @@ export type SimulationTreeNode = SimulationReturn & {
 }
 
 type MapDThreeTreeProps = {
-    layers: SimulationTreeNode[];
+    tree: GenericTree<SimulationTreeNode>;
     onStabilize?: SimCallback;
     onTick?: SimCallback;
 }
@@ -31,8 +31,8 @@ type MapDThreeDFSReduce<O> = {
 export class MapDFSWalk<O> {
     _leadingLayer: number;
     _leadingInvisibleLayer: number;
-    _callback: (value: { data: SimulationReturn; previousLayer: number; action: GenericTreeDiffAction }) => O[];
-    constructor(callback: (value: { data: SimulationReturn; previousLayer: number; action: GenericTreeDiffAction }) => O[]) {
+    _callback: (value: { data: SimulationReturn; previousLayer: number; action: GenericTreeDiffAction }, output: O[]) => O[];
+    constructor(callback: (value: { data: SimulationReturn; previousLayer: number; action: GenericTreeDiffAction }, output: O[]) => O[]) {
         this._callback = callback
     }
 
@@ -50,7 +50,7 @@ export class MapDFSWalk<O> {
                 // freshly invisible)
                 //
                 const previousLayer = (options.invisible ? previous.leadingInvisibleLayer : undefined) ?? previous.leadingLayer
-                const newItems = this._callback({ data: rest, previousLayer, action: layer.action })
+                const newItems = this._callback({ data: rest, previousLayer, action: layer.action }, previous.output)
                 const output = [
                     ...previous.output,
                     ...newItems
@@ -89,23 +89,16 @@ export class MapDThreeTree extends Object {
     constructor(props: MapDThreeTreeProps) {
         super(props)
         const {
-            layers,
+            tree,
             onStabilize,
             onTick
         } = props
         //
         // TODO: ISS3228: Refactor construction of MapDThree layers
         //
-        this.layers = layers.map(({ key, nodes, links }, index) => {
-            //
-            // TODO: ISS3228: Refactor getCascadeNodes function to do a more sophisticated search through the
-            // DFS ordering of the internal tree of layers.
-            //
-            const newMap = new MapDThreeIterator(key, nodes, links, index > 0 ? () => (this.layers[index-1].nodes) : () => [])
-            newMap.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
-            return newMap
-        })
+        this.layers = []
         this.setCallbacks({ onTick, onStability: onStabilize })
+        this.update(tree)
         this.checkStability()
     }
 
@@ -149,10 +142,10 @@ export class MapDThreeTree extends Object {
         })(this._tree, tree)
 
         //
-        // TODO: Use _dfsWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
+        // Use _dfsWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
         //
         let nextLayerIndex = 0
-        const dfsWalker = new MapDFSWalk(({ data, previousLayer, action }) => {
+        const dfsWalker = new MapDFSWalk(({ data, previousLayer, action }, outputLayers: MapDThreeIterator[]) => {
             //
             // TODO: Add appropriate callbacks based on previousLayer information
             //
@@ -162,6 +155,13 @@ export class MapDThreeTree extends Object {
                     if (this.layers[nextLayerIndex].key !== data.key) {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
+                    this.layers[nextLayerIndex].setCallbacks(
+                        () => (outputLayers[previousLayer].nodes),
+                        //
+                        // TODO: Does onStabilize need to be reset?
+                        //
+                        () => {}
+                    )
                     return [this.layers[nextLayerIndex++]]
                 case GenericTreeDiffAction.Delete:
                     if (this.layers[nextLayerIndex].key !== data.key) {
@@ -171,27 +171,40 @@ export class MapDThreeTree extends Object {
                     nextLayerIndex++
                     return []
                 case GenericTreeDiffAction.Add:
-                    return [new MapDThreeIterator(
+                    const addedIterator = new MapDThreeIterator(
                         data.key,
                         data.nodes,
-                        data.links
-                    )]
+                        data.links,
+                    )
+                    addedIterator.setCallbacks(
+                        () => (outputLayers[previousLayer].nodes),
+                        this.checkStability.bind(this)
+                    )
+                    return [addedIterator]
                 case GenericTreeDiffAction.Set:
                     this.layers[nextLayerIndex].update(data.nodes, data.links, true)
+                    this.layers[nextLayerIndex].setCallbacks(
+                        () => (outputLayers[previousLayer].nodes),
+                        this.checkStability.bind(this)
+                    )
                     return [this.layers[nextLayerIndex++]]
             }
         })
+        const { output, cascadeIndex } = dfsWalker.walk(incomingDiff)
+        this.layers = output
+        this.checkStability()
+        this._tree = tree
         
-        const previousNodesByRoomId = this.nodes.reduce<Record<string, SimNode>>((accumulator, node) => {
-            return {
-                ...accumulator,
-                [node.roomId]: node
-            }
-        }, {})
-        type PreviousLayerRecords = Record<string, { found: boolean; index: number, simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>> }>
-        const previousLayersByKey = this.layers.reduce<PreviousLayerRecords>((previous, { key, simulation }, index) => ({ ...previous, [key]: { index, found: false, simulation } }), {})
+        // const previousNodesByRoomId = this.nodes.reduce<Record<string, SimNode>>((accumulator, node) => {
+        //     return {
+        //         ...accumulator,
+        //         [node.roomId]: node
+        //     }
+        // }, {})
+        // type PreviousLayerRecords = Record<string, { found: boolean; index: number, simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>> }>
+        // const previousLayersByKey = this.layers.reduce<PreviousLayerRecords>((previous, { key, simulation }, index) => ({ ...previous, [key]: { index, found: false, simulation } }), {})
 
-        let forceRestart = false
+        // let forceRestart = false
 
         // type IncomingLayersReduce = {
         //     layers: MapDThreeIterator[];
