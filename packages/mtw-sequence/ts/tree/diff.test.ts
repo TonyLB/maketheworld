@@ -23,6 +23,25 @@ describe('diffTrees', () => {
         expect(diffTrees(options)(testTree, testTree)).toEqual([])
     })
 
+    it('should return all adds when compared against empty tree', () => {
+        const testTree = [
+            { data: { key: 'A', value: 'B' }, children: [
+                { data: { key: 'D', value: 'D' }, children: [] },
+                { data: { key: 'C', value: 'C' }, children: [] }
+            ] }
+        ]
+        expect(diffTrees(options)([], testTree)).toEqual([
+            { 
+                data: { key: 'A', value: 'B' },
+                action: GenericTreeDiffAction.Add,
+                children: [
+                    { data: { key: 'D', value: 'D' }, action: GenericTreeDiffAction.Add, children: [] },
+                    { data: { key: 'C', value: 'C' }, action: GenericTreeDiffAction.Add, children: [] }
+                ]
+            }
+        ])
+    })
+
     it('should compare simple overlapping trees', () => {
         const testTreeOne = [
             { data: { key: 'A', value: 'A' }, children: [
