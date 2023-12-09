@@ -6,9 +6,12 @@ import {
 import { SimCallback, SimNode, SimulationReturn, MapLayer, MapLayerRoom } from './baseClasses'
 
 import MapDThreeStack from './MapDThreeStack'
+import MapDThreeTree, { SimulationTreeNode } from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
+import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { MapTreeItem } from '../../Controller/baseClasses'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -53,7 +56,7 @@ const argumentParse = ({ roomLayers, exits }: {
             source: keyByRoomId[from],
             target: keyByRoomId[to],
             visible: true
-        } as SimulationLinkDatum<SimNode>))
+        } as (SimulationLinkDatum<SimNode> & { id: string })))
     const { layers } = roomLayers.reduce<{ layers: SimulationReturn[], previousRooms: Record<string, MapLayerRoom & { visible: boolean }>}>((previous, roomLayer) => {
         return {
             layers: [
@@ -89,7 +92,107 @@ const argumentParse = ({ roomLayers, exits }: {
     return layers
 }
 
+type MapTreeTranslateHelperOutput = {
+    topLevel: SimulationTreeNode;
+    children: GenericTree<SimulationTreeNode>;
+}
+
+//
+// TODO: Merge function for MapTreeTranslateHelperOutput that aggregates nodes and links
+//
+const mergeMapTreeTranslateHelperOutput = (...args: MapTreeTranslateHelperOutput[]): MapTreeTranslateHelperOutput => {
+    return args.reduce<MapTreeTranslateHelperOutput>((previous, { topLevel, children }) => ({
+        topLevel: {
+            nodes: [
+                ...previous.topLevel.nodes.filter(({ id }) => (!topLevel.nodes.find(({ id: checkId }) => (id === checkId)))),
+                ...topLevel.nodes
+            ],
+            links: [
+                ...previous.topLevel.links.filter(({ id }) => (!topLevel.links.find(({ id: checkId }) => (id === checkId)))),
+                ...topLevel.links
+            ],
+            visible: true,
+            key: ''
+        },
+        children: [
+            ...previous.children,
+            ...children
+        ]
+    }), { topLevel: { key: '', nodes: [], links: [], visible: true }, children: [] })
+}
+
+//
+// TODO: Refactor mapTreeTranslateHelper so that it:
+//    - Reorders entries at each level of the Tree to put non-conditional nodes before all conditional nodes,
+//      and then conditional nodes in their original order
+//    - Aggregate in depth-first order, creating a new layer each time a condition is reached.
+//
+const mapTreeTranslateHelper = (tree: GenericTree<MapTreeItem>): MapTreeTranslateHelperOutput => {
+    const directTopLevelNodes = tree.filter(({ data }) => (data.tag !== 'If'))
+    const directChildren = tree.filter(({ data }) => (data.tag === 'If'))
+    const { topLevel, children } = directTopLevelNodes.reduce<MapTreeTranslateHelperOutput>((previous, item) => {
+        const { data, children } = item
+        switch(data.tag) {
+            case 'If':
+                return {
+                    topLevel: previous.topLevel,
+                    children: [
+                        ...previous.children,
+                        ...mapTreeTranslate(children)
+                    ]
+                }
+            case 'Room':
+                return mergeMapTreeTranslateHelperOutput(
+                    previous,
+                    {
+                        topLevel: {
+                            nodes: [{
+                                id: data.key,
+                                roomId: data.key,
+                                x: data.x ?? 0,
+                                y: data.y ?? 0,
+                                cascadeNode: true,
+                                visible: true        
+                            }],
+                            links: [],
+                            visible: true,
+                            key: ''
+                        },
+                        children: []
+                    },
+                    mapTreeTranslateHelper(children)
+                )
+            case 'Exit':
+                return mergeMapTreeTranslateHelperOutput(
+                    previous,
+                    {
+                        topLevel: {
+                            nodes: [],
+                            links: [{
+                                id: data.key,
+                                source: data.from,
+                                target: data.to
+                            }],
+                            visible: true,
+                            key: ''
+                        },
+                        children: []
+                    },
+                    mapTreeTranslateHelper(children)
+                )
+        }
+    }, { topLevel: { key: '', nodes: [], links: [], visible: true }, children: [] })
+
+    return { topLevel, children }
+}
+
+export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>): GenericTree<SimulationTreeNode> => {
+    const { topLevel, children } = mapTreeTranslateHelper(tree)
+    return [{ data: topLevel, children }]
+}
+
 export class MapDThree extends Object {
+    tree: MapDThreeTree;
     stack: MapDThreeStack = new MapDThreeStack({ layers: [] })
     exitDragLayer?: ExitDragD3Layer
     stable: boolean = true
@@ -101,7 +204,8 @@ export class MapDThree extends Object {
     // TODO: Refactor constructor and update to accept GenericTree<MapTreeItem> rather than
     // pre-sorted roomLayers and exits.
     //
-    constructor({ roomLayers, exits, onStability, onTick, onExitDrag, onAddExit }: {
+    constructor({ tree, roomLayers, exits, onStability, onTick, onExitDrag, onAddExit }: {
+        tree: GenericTree<MapTreeItem>;
         roomLayers: MapLayer[];
         exits: { to: string; from: string; visible: boolean; }[];
         onStability?: SimCallback,
@@ -111,6 +215,8 @@ export class MapDThree extends Object {
     }) {
         super()
         const layers = argumentParse({ roomLayers: [...roomLayers].reverse(), exits })
+        const simulatorTree: GenericTree<SimulationTreeNode> = []
+        this.tree = new MapDThreeTree({ tree: simulatorTree })
         this.stack = new MapDThreeStack({
             layers,
             onTick,

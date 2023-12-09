@@ -20,7 +20,7 @@ export type LinkRecord = {
 export type SimulationReturn = {
     key: string,
     nodes: SimNode[],
-    links: SimulationLinkDatum<SimNode>[]
+    links: (SimulationLinkDatum<SimNode> & { id: string })[]
 }
 
 export type SimCallback = (nodes: SimNode[]) => void
