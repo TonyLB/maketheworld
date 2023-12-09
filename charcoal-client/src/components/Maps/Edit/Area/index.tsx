@@ -1,15 +1,38 @@
 import React, { FunctionComponent, useMemo } from 'react'
 
 import {
+    MapExit,
     MapTree
 } from '../maps'
 import MapDisplay from './MapDisplay'
-import { treeToVisible } from './reducer'
 import { useMapContext } from '../../Controller'
 
 type MapAreaProps = {
     fileURL?: string;
     tree: MapTree;
+}
+
+export const treeToExits = (tree: MapTree): MapExit[] => {
+    return tree.reduce<MapExit[]>((
+        previous,
+        { item, children, key },
+        index
+    ) => {
+        if (!item.visible) {
+            return previous
+        }
+        const childResult = treeToExits(children)
+        switch(item.type) {
+            case 'EXIT':
+                return [
+                    ...previous,
+                    item,
+                    ...childResult
+                ]
+            default:
+                return [...previous, ...childResult]
+        }
+    }, [])
 }
 
 //
@@ -21,7 +44,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
 }) => {
 
     const { UI: { exitDrag }, localPositions: rooms } = useMapContext()
-    const exits = useMemo(() => (treeToVisible(tree).exits), [tree])
+    const exits = useMemo(() => (treeToExits(tree)), [tree])
 
     const exitDragSourceRoom = exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))
     const decoratorCircles = [
