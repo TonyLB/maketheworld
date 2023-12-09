@@ -1,7 +1,5 @@
 import { jest, beforeEach, describe, it, expect } from '@jest/globals'
 
-jest.mock('./MapDThreeStack.ts')
-import MapDThreeStackRaw from './MapDThreeStack'
 jest.mock('./MapDThreeTree.ts')
 import MapDThreeTreeRaw from './MapDThreeTree'
 import { MapDThree, mapTreeTranslate } from '.'
@@ -9,7 +7,6 @@ import { MapDThree, mapTreeTranslate } from '.'
 import { mockClass } from '../../../../lib/jestHelpers'
 import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { MapTreeItem } from '../../Controller/baseClasses'
-const MapDThreeStack = mockClass(MapDThreeStackRaw)
 const MapDThreeTree = mockClass(MapDThreeTreeRaw)
 
 describe('mapTreeTranslate', () => {

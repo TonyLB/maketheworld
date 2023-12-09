@@ -5,7 +5,6 @@ import {
 
 import { SimCallback, SimNode, SimulationReturn, MapLayer, MapLayerRoom } from './baseClasses'
 
-import MapDThreeStack from './MapDThreeStack'
 import MapDThreeTree, { SimulationTreeNode } from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
@@ -20,7 +19,7 @@ import { MapTreeItem } from '../../Controller/baseClasses'
 //    * If a two-way link, reject only rooms that the focus room has both an exit to and an entry from
 //
 const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean = false): string[] => {
-    const currentExits = mapDThree.stack.links.reduce<Record<string, { from: boolean; to: boolean }>>(
+    const currentExits = mapDThree.tree.links.reduce<Record<string, { from: boolean; to: boolean }>>(
         (previous, { source, target }) => (produce(previous, (draft) => {
             if (source === roomId) {
                 draft[target as string] = {
@@ -193,7 +192,6 @@ export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>): GenericTree<Si
 
 export class MapDThree extends Object {
     tree: MapDThreeTree;
-    stack: MapDThreeStack = new MapDThreeStack({ layers: [] })
     exitDragLayer?: ExitDragD3Layer
     stable: boolean = true
     onStability: SimCallback = () => {}
@@ -222,9 +220,6 @@ export class MapDThree extends Object {
             onStabilize: onStability
         })
         this.tree.checkStability()
-        this.stack = new MapDThreeStack({
-            layers
-        })
         this.onExitDrag = onExitDrag
         this.onAddExit = onAddExit
         // this.stack.checkStability()
@@ -234,7 +229,7 @@ export class MapDThree extends Object {
     // level simulators) and delivers it in readable format.
     //
     get nodes(): SimNode[] {
-        return this.stack.nodes
+        return this.tree.nodes
     }
     setCallbacks(props: {
             onTick?: SimCallback,
@@ -284,7 +279,7 @@ export class MapDThree extends Object {
         this.exitDragLayer.drag(x, y)
     }
     endDrag(): void {
-        this.stack.endDrag()
+        this.tree.endDrag()
         if (this.exitDragLayer) {
             const dragNode = this.exitDragLayer.nodes.find(({ roomId }) => (roomId === 'DRAG-TARGET'))
             if (dragNode && this.onAddExit) {
@@ -316,7 +311,6 @@ export class MapDThree extends Object {
     }
     unmount(): void {
         this.tree.unmount()
-        this.stack.unmount()
     }
 }
 
