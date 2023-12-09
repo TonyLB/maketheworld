@@ -1,32 +1,25 @@
 import React, { FunctionComponent, useMemo } from 'react'
 
-import {
-    MapExit,
-    MapTree
-} from '../maps'
 import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
+import { MapTreeExit, MapTreeItem } from '../../Controller/baseClasses'
+import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 
 type MapAreaProps = {
     fileURL?: string;
-    tree: MapTree;
 }
 
-export const treeToExits = (tree: MapTree): MapExit[] => {
-    return tree.reduce<MapExit[]>((
+export const treeToExits = (tree: GenericTree<MapTreeItem>): MapTreeExit[] => {
+    return tree.reduce<MapTreeExit[]>((
         previous,
-        { item, children, key },
-        index
+        { data, children }
     ) => {
-        if (!item.visible) {
-            return previous
-        }
         const childResult = treeToExits(children)
-        switch(item.type) {
-            case 'EXIT':
+        switch(data.tag) {
+            case 'Exit':
                 return [
                     ...previous,
-                    item,
+                    data,
                     ...childResult
                 ]
             default:
@@ -35,15 +28,9 @@ export const treeToExits = (tree: MapTree): MapExit[] => {
     }, [])
 }
 
-//
-// TODO: ISS3228: Refactor MapArea to use MapContext data rather than be passed a tree
-//
-export const MapArea: FunctionComponent<MapAreaProps>= ({
-    fileURL,
-    tree
-}) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
 
-    const { UI: { exitDrag }, localPositions: rooms } = useMapContext()
+    const { UI: { exitDrag }, localPositions: rooms, tree } = useMapContext()
     const exits = useMemo(() => (treeToExits(tree)), [tree])
 
     const exitDragSourceRoom = exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))
@@ -53,11 +40,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
                 { x: exitDragSourceRoom.x, y: exitDragSourceRoom.y },
                 { x: exitDrag.x, y: exitDrag.y }
             ]: []
-        ),
-        // ...(clickPosition
-        //     ? [ { x: clickPosition.clientX, y: clickPosition.clientY }]
-        //     : []
-        // )
+        )
     ]
     //
     // TODO: Derive double from the current toolSelect setting somewhere along the line

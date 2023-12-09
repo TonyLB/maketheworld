@@ -1,42 +1,35 @@
-import { MapTree } from '../Edit/maps'
 import { ActiveCharacterMap } from '../../../slices/activeCharacters/baseClasses'
-import { MapDescribeRoom } from '@tonylb/mtw-interfaces/dist/messages'
+import { MapTreeItem } from '../Controller/baseClasses'
+import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { SchemaTaggedMessageLegalContents } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
-export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): MapTree => {
-    //
-    // TODO: Rewrite cacheToTree to deal with new incoming map format
-    //
-    const roomsById = rooms.reduce<Record<string, MapDescribeRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
-    const tree: MapTree = rooms
-        .reduce<MapTree>((previous, { roomId, name, x = 0, y = 0, exits }, index) => ([
+export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): GenericTree<MapTreeItem> => {
+    const tree = rooms
+        .reduce<GenericTree<MapTreeItem>>((previous, { roomId, name, x = 0, y = 0, exits }, index) => ([
             ...previous,
             {
-                key: roomId,
-                item: {
-                    type: 'ROOM',
-                    name: (name ?? []).map((item) => ((item.tag === 'String') ? item.value : '')).join(''),
+                data: {
+                    tag: 'Room',
+                    key: roomId,
+                    name: name as SchemaTaggedMessageLegalContents[],
                     x,
                     y,
-                    roomId,
-                    visible: true
+                    contents: [],
+                    render: []
                 },
-                children: []
-            },
-            ...((exits || []).reduce<MapTree>((accumulator, { to, name }, internalIndex) => ([
-                ...accumulator,
-                {
-                    key: `Exit-${index}-${internalIndex}`,
-                    item: {
-                        type: 'EXIT',
-                        name: name || '',
-                        fromRoomId: roomId,
-                        toRoomId: to,
-                        visible: true
+                children: exits.map(({ name, to }) => ({
+                    data: {
+                        tag: 'Exit',
+                        key: `${roomId}#${to}`,
+                        from: roomId,
+                        to,
+                        name,
+                        contents: []
                     },
                     children: []
-                }
-            ]), [] as MapTree))
-        ]), [] as MapTree)
+                }))
+            }
+        ]), [])
     return tree
 }
 
