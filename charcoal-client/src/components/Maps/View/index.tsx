@@ -16,6 +16,7 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
 import { EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
+import { MapDisplayController } from '../Controller';
 
 type MapViewProps = {
 }
@@ -69,10 +70,9 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                 </FormControl>
             </Box>
         </Box>
-        { MapId && <MapArea
-            fileURL={maps[MapId].fileURL}
-            tree={cacheToTree(maps[MapId])}
-        /> }
+        { MapId && <MapDisplayController tree={cacheToTree(maps[MapId])}>
+            <MapArea fileURL={maps[MapId].fileURL} />
+        </MapDisplayController> }
     </Box>
 }
 

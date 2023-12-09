@@ -7,8 +7,8 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import produce from 'immer'
 
-import DraggableTree, { treeStateReducer, recursiveUpdate } from '../../../DraggableTree'
-import { NestedTree, NestedTreeEntry } from '../../../DraggableTree/interfaces'
+import { recursiveUpdate } from '../../../DraggableTree'
+import { NestedTreeEntry } from '../../../DraggableTree/interfaces'
 
 import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from '../maps'
 import useMapStyles from '../useMapStyles'
@@ -19,19 +19,14 @@ import CopyAllIcon from '@mui/icons-material/CopyAll'
 import ArrowIcon from '@mui/icons-material/CallMade'
 import { grey } from '@mui/material/colors'
 import { useDispatch, useSelector } from 'react-redux'
-import { mapEditAllConditions, mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
-import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
 import { useMapContext } from '../../Controller'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
-import { isSchemaRoom } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
-import { MapTreeItem, MapTreeRoom } from '../../Controller/baseClasses'
+import { MapTreeItem } from '../../Controller/baseClasses'
 import { GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 
 type MapLayersProps = {
     mapId: string;
-    tree: MapTree;
-    dispatch: MapDispatch;
 }
 
 const VisibilityControl = ({ visible, onClick }: { visible: InheritedVisibilityType; onClick: () => void }) => {
@@ -222,7 +217,7 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 }
 
 //
-// TODO: Create MapItemLayer component that accepts any of GenericTreeNode<MapItem>, and farms out the top-level
+// MapItemLayer component accepts any of GenericTreeNode<MapItem>, and farms out the top-level
 // data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
 // children values
 //
@@ -241,32 +236,14 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<MapTreeItem> }> = 
     }
 }
 
-export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId, dispatch }) => {
+export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
     const { tree } = useMapContext()
-    // const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
-    //     tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
-    // ), [tree])
-    // const setTree = (tree: MapTree): void => {
-    //     dispatch({
-    //         type: 'updateTree',
-    //         tree
-    //     })
-    // }
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{position: "relative", zIndex: 0 }}>
             { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} />))}
         </Box>
     </MapLayersContext.Provider>
 
-    // return <DraggableTree
-    //     tree={processedTree}
-    //     renderComponent={renderComponent((key, visibility) => { setTree(setTreeVisibility(tree, { key, visibility })) })}
-    //     renderHandle={handleRender}
-    //     onOpen={(key) => { setTree(treeStateReducer(tree, { type: 'OPEN', key })) } }
-    //     onClose={(key) => { setTree(treeStateReducer(tree, { type: 'CLOSE', key })) } }
-    //     onMove={({ fromKey, toKey, position }) => { setTree(treeStateReducer(tree, { type: 'MOVE', fromKey, toKey, position })) }}
-    //     canDrop={canDrop}
-    // />
 }
 
 export default MapLayers

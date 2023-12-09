@@ -1,4 +1,5 @@
 import { NestedTree } from '../../DraggableTree/interfaces'
+import { MapTreeExit } from '../Controller/baseClasses';
 
 export type TestItemType = 'GROUP' | 'EXIT' | 'ROOM'
 
@@ -42,6 +43,6 @@ export interface VisibleMapRoom extends MapRoom {
 
 type VisibleMapItems = {
     rooms: VisibleMapRoom[];
-    exits: MapExit[];
+    exits: MapTreeExit[];
     fileURL?: string;
 }
