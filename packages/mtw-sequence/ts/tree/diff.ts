@@ -16,10 +16,10 @@ type SequenceToTreeReducer<N extends {}, InternalNode extends {}> = {
 
 const nonContextActions = [GenericTreeDiffAction.Add, GenericTreeDiffAction.Delete, GenericTreeDiffAction.Set]
 
-export const condenseDiffTree = <N extends {}>(tree: GenericTreeDiff<N>): GenericTreeDiff<N> => {
+export const condenseDiffTree = <N extends {}>(tree: GenericTreeDiff<N>, verbose?: boolean): GenericTreeDiff<N> => {
     const items = tree.map(({ data, action, children }) => {
-        const condensedChildren = condenseDiffTree(children)
-        if (action === GenericTreeDiffAction.Exclude && condensedChildren.length) {
+        const condensedChildren = condenseDiffTree(children, verbose)
+        if (action === GenericTreeDiffAction.Exclude && condensedChildren.filter(({ action }) => (action !== GenericTreeDiffAction.Exclude)).length) {
             return {
                 data,
                 action: GenericTreeDiffAction.Context,
@@ -57,13 +57,14 @@ export const condenseDiffTree = <N extends {}>(tree: GenericTreeDiff<N>): Generi
         }
         return [...previous, item]
     }, [])
-    return itemsWithSiblingContext.filter(({ action }) => (action !== GenericTreeDiffAction.Exclude))
+    return itemsWithSiblingContext.filter(({ action }) => (verbose || action !== GenericTreeDiffAction.Exclude))
 }
 
 export const diffTrees = <N extends {}, InternalNode extends {}>(options: {
     compare: (A: N, B: N) => boolean;
     extractProperties: (value: N) => InternalNode | undefined;
     rehydrateProperties: (baseValue: N, properties: InternalNode[]) => N;
+    verbose?: boolean;
 }) => (treeA: GenericTree<N>, treeB: GenericTree<N>): GenericTreeDiff<N> => {
     const treeUtility = new TreeUtility(options)
 
@@ -215,7 +216,7 @@ export const diffTrees = <N extends {}, InternalNode extends {}>(options: {
 
         }
     }, { topLevelOutput: [], currentStack: [] })
-    return condenseDiffTree(topLevelOutput)
+    return condenseDiffTree(topLevelOutput, options.verbose)
 }
 
 export default diffTrees

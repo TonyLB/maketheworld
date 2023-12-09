@@ -3,62 +3,55 @@
 exports[`MapDThree should initialize stack on construction 1`] = `
 Array [
   Object {
-    "layers": Array [
-      Object {
-        "key": "One",
-        "links": Array [],
-        "nodes": Array [
-          Object {
-            "cascadeNode": false,
-            "id": "One-B",
-            "roomId": "DEF",
-            "visible": true,
-            "x": 300,
-            "y": 200,
-          },
-          Object {
-            "cascadeNode": false,
-            "id": "One-A",
-            "roomId": "ABC",
-            "visible": true,
-            "x": 200,
-            "y": 200,
-          },
-        ],
-      },
-      Object {
-        "key": "Two",
-        "links": Array [],
-        "nodes": Array [
-          Object {
-            "cascadeNode": true,
-            "id": "One-B",
-            "roomId": "DEF",
-            "visible": true,
-            "x": 300,
-            "y": 200,
-          },
-          Object {
-            "cascadeNode": true,
-            "id": "One-A",
-            "roomId": "ABC",
-            "visible": true,
-            "x": 200,
-            "y": 200,
-          },
-          Object {
-            "cascadeNode": false,
-            "id": "Two-A",
-            "roomId": "GHI",
-            "visible": true,
-            "x": 300,
-            "y": 300,
-          },
-        ],
-      },
-    ],
     "onStabilize": undefined,
     "onTick": undefined,
+    "tree": Array [
+      Object {
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "key": "",
+              "links": Array [],
+              "nodes": Array [
+                Object {
+                  "cascadeNode": true,
+                  "id": "DEF",
+                  "roomId": "DEF",
+                  "visible": true,
+                  "x": 300,
+                  "y": 200,
+                },
+                Object {
+                  "cascadeNode": true,
+                  "id": "ABC",
+                  "roomId": "ABC",
+                  "visible": true,
+                  "x": 200,
+                  "y": 200,
+                },
+              ],
+              "visible": true,
+            },
+          },
+        ],
+        "data": Object {
+          "key": "",
+          "links": Array [],
+          "nodes": Array [
+            Object {
+              "cascadeNode": true,
+              "id": "GHI",
+              "roomId": "GHI",
+              "visible": true,
+              "x": 300,
+              "y": 300,
+            },
+          ],
+          "visible": true,
+        },
+      },
+    ],
   },
 ]
 `;

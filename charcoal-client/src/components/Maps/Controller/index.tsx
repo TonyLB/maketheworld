@@ -123,7 +123,7 @@ const MapContext = React.createContext<MapContextType>({
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: '', x: 0, y: 0 }
     },
-    mapD3: new MapDThree({ roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -221,7 +221,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
 
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
-            ...temporaryTreeToLayersMapping(tree),
+            tree,
+            roomLayers: [],
+            exits: [],
             onExitDrag: setExitDrag,
         })
     })
@@ -234,7 +236,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 //
                 // TODO: ISS3228: Refactor mapD3 update to accept GenericTree<MapTreeItem>
                 //
-                mapD3.update(temporaryTreeToLayersMapping(action.tree))
+                mapD3.update(action.tree)
                 return
                 // return returnVal({ ...state, ...treeToVisible(action.tree), tree: action.tree }, state.mapD3.nodes)
             case 'SetNode':

@@ -22,9 +22,15 @@ export function shortestCommonSupersequence (listA: number[], listB: number[], o
 export function shortestCommonSupersequence(listA: number[], listB: number[]): number[]
 export function shortestCommonSupersequence (listA: number[], listB: number[], options: ShortestCommonSupersetOptions = {}): number[] | { value: number, source: ShortestCommonSupersetDirection }[] {
     if (listA.length === 0) {
+        if (options.showSource) {
+            return listB.map((value) => ({ value, source: ShortestCommonSupersetDirection.B }))
+        }
         return listB
     }
     if (listB.length === 0) {
+        if (options.showSource) {
+            return listA.map((value) => ({ value, source: ShortestCommonSupersetDirection.A }))
+        }
         return listA
     }
     let memoArray: (ShortestCommonSupersetDynamicMemo | undefined)[][] = Array(listA.length + 1).fill(0).map(() => (Array(listB.length + 1).fill(undefined)))

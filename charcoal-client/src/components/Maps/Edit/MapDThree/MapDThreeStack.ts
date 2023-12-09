@@ -5,10 +5,14 @@ import {
 import { SimCallback, MapNodes, MapLinks, SimNode, SimulationReturn } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
 
-// interface MapDThreeLayerOutput {
-//     key: string;
-//     rooms: Record<string, { x: number; y: number; }>
-// }
+//
+// TODO: ISS3230: Refactor incoming properties to accept a tree of SimulationReturns, with
+// added visible property
+//
+type SimulationTreeNode = {
+    layer: SimulationReturn;
+    visible: boolean;
+}
 
 interface MapDThreeStackProps {
     layers: SimulationReturn[];
@@ -29,7 +33,14 @@ export class MapDThreeStack extends Object {
             onStabilize,
             onTick
         } = props
+        //
+        // TODO: ISS3228: Refactor construction of MapDThree layers
+        //
         this.layers = layers.map(({ key, nodes, links }, index) => {
+            //
+            // TODO: ISS3228: Refactor getCascadeNodes function to do a more sophisticated search through the
+            // DFS ordering of the internal tree of layers.
+            //
             const newMap = new MapDThreeIterator(key, nodes, links, index > 0 ? () => (this.layers[index-1].nodes) : () => [])
             newMap.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
             return newMap
@@ -37,6 +48,11 @@ export class MapDThreeStack extends Object {
         this.setCallbacks({ onTick, onStability: onStabilize })
         this.checkStability()
     }
+    //
+    // TODO: ISS3230: Create dfsSequence method to convert the tree into a depth-first-sequence of
+    // layers (optionally filtering out invisible layers)
+    //
+
     //
     // An aggregator that decodes the nodes at the top layer (i.e., everything that has been cascaded up from the lower
     // level simulators) and delivers it in readable format.
@@ -222,7 +238,15 @@ export class MapDThreeStack extends Object {
         this.layers.forEach((layer) => { layer.endDrag() })
     }
     //
-    // cascade takes positions from layer index and cascades them forward to later layers
+    // cascade takes positions from the layer tree and cascades them forward to layers that inherit that
+    // position data.  Inheritance is calculated as follows:
+    //   - Sequential in Depth-First-Search sequence, EXCEPT
+    //   - Non-visible nodes inherit data (to keep themselves up to date) but do not pass on their
+    //     own data to visible nodes
+    //
+
+    //
+    // TODO: ISS-3230: Refactor cascade to respect the new design, above.
     //
     cascade(startingIndex: number) {
         return () => {
@@ -232,10 +256,7 @@ export class MapDThreeStack extends Object {
             this.layers.forEach((layer, index) => {
                 if (index >= startingIndex) {
                     //
-                    // If cascading off of the topmost layer of the simulation, deliver to simulation onTick
-                    //
-                    //
-                    // TODO:  Assign onTick only to the topmost layer
+                    // If cascading off of the final layer of the simulation, deliver to simulation onTick
                     //
                     if (index === this.layers.length - 1) {
                         this.onTick(this.nodes)
