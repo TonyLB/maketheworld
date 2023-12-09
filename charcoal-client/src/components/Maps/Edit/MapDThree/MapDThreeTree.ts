@@ -85,6 +85,7 @@ export class MapDThreeTree extends Object {
     onStability: SimCallback = () => {}
     onTick: SimCallback = () => {}
     _tree: GenericTree<SimulationTreeNode> = [];
+    _cascadeIndex?: number;
 
     constructor(props: MapDThreeTreeProps) {
         super(props)
@@ -147,8 +148,11 @@ export class MapDThreeTree extends Object {
         let nextLayerIndex = 0
         const dfsWalker = new MapDFSWalk(({ data, previousLayer, action }, outputLayers: MapDThreeIterator[]) => {
             //
-            // TODO: Add appropriate callbacks based on previousLayer information
+            // Add appropriate callbacks based on previousLayer information
             //
+            const cascadeCallback = (typeof previousLayer === 'undefined' || previousLayer >= outputLayers.length - 1)
+                ? () => {}
+                : () => (outputLayers[previousLayer].nodes)
             switch(action) {
                 case GenericTreeDiffAction.Context:
                 case GenericTreeDiffAction.Exclude:
@@ -156,7 +160,7 @@ export class MapDThreeTree extends Object {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
                     this.layers[nextLayerIndex].setCallbacks(
-                        () => (outputLayers[previousLayer].nodes),
+                        cascadeCallback,
                         //
                         // TODO: Does onStabilize need to be reset?
                         //
@@ -177,14 +181,14 @@ export class MapDThreeTree extends Object {
                         data.links,
                     )
                     addedIterator.setCallbacks(
-                        () => (outputLayers[previousLayer].nodes),
+                        cascadeCallback,
                         this.checkStability.bind(this)
                     )
                     return [addedIterator]
                 case GenericTreeDiffAction.Set:
                     this.layers[nextLayerIndex].update(data.nodes, data.links, true)
                     this.layers[nextLayerIndex].setCallbacks(
-                        () => (outputLayers[previousLayer].nodes),
+                        cascadeCallback,
                         this.checkStability.bind(this)
                     )
                     return [this.layers[nextLayerIndex++]]
@@ -192,8 +196,12 @@ export class MapDThreeTree extends Object {
         })
         const { output, cascadeIndex } = dfsWalker.walk(incomingDiff)
         this.layers = output
-        this.checkStability()
+        this._cascadeIndex = cascadeIndex
         this._tree = tree
+        this.layers.forEach((layer, index) => {
+            layer.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
+        })
+        this.checkStability()
         
         // const previousNodesByRoomId = this.nodes.reduce<Record<string, SimNode>>((accumulator, node) => {
         //     return {
@@ -342,32 +350,18 @@ export class MapDThreeTree extends Object {
     endDrag(): void {
         this.layers.forEach((layer) => { layer.endDrag() })
     }
-    //
-    // cascade takes positions from the layer tree and cascades them forward to layers that inherit that
-    // position data.  Inheritance is calculated as follows:
-    //   - Sequential in Depth-First-Search sequence, EXCEPT
-    //   - Non-visible nodes inherit data (to keep themselves up to date) but do not pass on their
-    //     own data to visible nodes
-    //
 
-    //
-    // TODO: ISS-3230: Refactor cascade to respect the new design, above.
-    //
     cascade(startingIndex: number) {
         return () => {
             if (startingIndex < 0 || startingIndex >= this.layers.length ) {
                 throw new Error('MapDThree cascade index out of bounds')
             }
-            this.layers.forEach((layer, index) => {
-                if (index >= startingIndex) {
-                    //
-                    // If cascading off of the final layer of the simulation, deliver to simulation onTick
-                    //
-                    if (index === this.layers.length - 1) {
-                        this.onTick(this.nodes)
-                    }
-                }
-            })
+            //
+            // If cascading off of the final visible layer of the simulation, deliver to simulation onTick
+            //
+            if (this._cascadeIndex >= startingIndex && this.layers.length > this._cascadeIndex) {
+                this.onTick(this.layers[this._cascadeIndex].nodes)
+            }
         }
     }
 

@@ -49,7 +49,7 @@ describe('dfsWalk', () => {
                     { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
-                    { source: 'Room-1', target: 'Room-2' }
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ],
                 visible: true
             },
@@ -64,7 +64,7 @@ describe('dfsWalk', () => {
                     { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
-                    { source: 'Room-1', target: 'Room-2' }
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ]
             }
         }], cascadeIndex: 0 })
@@ -80,7 +80,7 @@ describe('dfsWalk', () => {
                     { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
-                    { source: 'Room-1', target: 'Room-2' }
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ],
                 visible: true
             },
@@ -125,7 +125,7 @@ describe('dfsWalk', () => {
                     { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
-                    { source: 'Room-1', target: 'Room-2' }
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ]
             }
         },
@@ -165,7 +165,7 @@ describe('dfsWalk', () => {
                     { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
-                    { source: 'Room-1', target: 'Room-2' }
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ],
                 visible: true
             },
@@ -210,7 +210,7 @@ describe('dfsWalk', () => {
                     { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
-                    { source: 'Room-1', target: 'Room-2' }
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ]
             }
         },
@@ -250,7 +250,7 @@ describe('dfsWalk', () => {
                     { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
-                    { source: 'Room-1', target: 'Room-2' }
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ],
                 visible: true
             },
@@ -295,7 +295,7 @@ describe('dfsWalk', () => {
                     { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
-                    { source: 'Room-1', target: 'Room-2' }
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ]
             }
         },
@@ -323,6 +323,91 @@ describe('dfsWalk', () => {
             },
             previousLayer: 0
         }], cascadeIndex: 0 })
+    })
+
+    it('should pass ongoing outputs to callback', () => {
+        let outputs: string[][] = []
+        const testCallback = ({ data }: (MapDThreeDFSOutput & { action: GenericTreeDiffAction }), output: SimulationReturn[]) => {
+            outputs.push(output.map(({ nodes }) => (nodes.map(({ id }) => (id)).join(','))))
+            return [data]
+        }
+        const testWalk = new MapDFSWalk(testCallback)
+        const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
+            data: {
+                key: 'Test-1',
+                nodes: [
+                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
+                ],
+                links: [
+                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
+                ],
+                visible: true
+            },
+            action: GenericTreeDiffAction.Add,
+            children: [
+                {
+                    data: {
+                        key: 'Test-2',
+                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
+                        links: [],
+                        visible: true    
+                    },
+                    action: GenericTreeDiffAction.Add,
+                    children: [{
+                        data: {
+                            key: 'Test-3',
+                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
+                            links: [],
+                            visible: true    
+                        },
+                        action: GenericTreeDiffAction.Add,
+                        children: []
+                    }]
+                },
+                {
+                    data: {
+                        key: 'Test-4',
+                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
+                        links: [],
+                        visible: true    
+                    },
+                    action: GenericTreeDiffAction.Add,
+                    children: []
+                }
+            ]
+        }]
+        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
+            key: 'Test-1',
+            nodes: [
+                { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
+            ],
+            links: [
+                { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
+            ]
+        },
+        {
+            key: 'Test-2',
+            nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
+            links: []
+        },
+        {
+            key: 'Test-3',
+            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
+            links: []
+        },
+        {
+            key: 'Test-4',
+            nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
+            links: []
+        }], cascadeIndex: 3 })
+        expect(outputs).toEqual([
+            [],
+            ['Room-1,Room-2'],
+            ['Room-1,Room-2', 'Room-3'],
+            ['Room-1,Room-2', 'Room-3', 'Room-4']
+        ])
     })
 })
 

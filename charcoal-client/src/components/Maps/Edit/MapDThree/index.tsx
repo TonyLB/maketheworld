@@ -98,7 +98,7 @@ type MapTreeTranslateHelperOutput = {
 }
 
 //
-// TODO: Merge function for MapTreeTranslateHelperOutput that aggregates nodes and links
+// Merge function for MapTreeTranslateHelperOutput that aggregates nodes and links
 //
 const mergeMapTreeTranslateHelperOutput = (...args: MapTreeTranslateHelperOutput[]): MapTreeTranslateHelperOutput => {
     return args.reduce<MapTreeTranslateHelperOutput>((previous, { topLevel, children }) => ({
@@ -125,7 +125,7 @@ const mergeMapTreeTranslateHelperOutput = (...args: MapTreeTranslateHelperOutput
 // TODO: Refactor mapTreeTranslateHelper so that it:
 //    - Reorders entries at each level of the Tree to put non-conditional nodes before all conditional nodes,
 //      and then conditional nodes in their original order
-//    - Aggregate in depth-first order, creating a new layer each time a condition is reached.
+//    - Aggregates in depth-first order, creating a new layer each time a condition is reached.
 //
 const mapTreeTranslateHelper = (tree: GenericTree<MapTreeItem>): MapTreeTranslateHelperOutput => {
     const directTopLevelNodes = tree.filter(({ data }) => (data.tag !== 'If'))
@@ -183,7 +183,7 @@ const mapTreeTranslateHelper = (tree: GenericTree<MapTreeItem>): MapTreeTranslat
         }
     }, { topLevel: { key: '', nodes: [], links: [], visible: true }, children: [] })
 
-    return { topLevel, children }
+    return { topLevel, children: [...children, ...directChildren.map(({ children }) => (mapTreeTranslate(children))).flat()] }
 }
 
 export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>): GenericTree<SimulationTreeNode> => {
@@ -215,16 +215,19 @@ export class MapDThree extends Object {
     }) {
         super()
         const layers = argumentParse({ roomLayers: [...roomLayers].reverse(), exits })
-        const simulatorTree: GenericTree<SimulationTreeNode> = []
-        this.tree = new MapDThreeTree({ tree: simulatorTree })
-        this.stack = new MapDThreeStack({
-            layers,
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
+        this.tree = new MapDThreeTree({
+            tree: simulatorTree,
             onTick,
             onStabilize: onStability
         })
+        this.tree.checkStability()
+        this.stack = new MapDThreeStack({
+            layers
+        })
         this.onExitDrag = onExitDrag
         this.onAddExit = onAddExit
-        this.stack.checkStability()
+        // this.stack.checkStability()
     }
     //
     // An aggregator that decodes the nodes at the top layer (i.e., everything that has been cascaded up from the lower
@@ -240,7 +243,8 @@ export class MapDThree extends Object {
             onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
         }) {
         const { onTick, onStability, onExitDrag, onAddExit } = props
-        this.stack.setCallbacks({ onTick, onStability })
+        this.tree.setCallbacks({ onTick, onStability })
+        // this.stack.setCallbacks({ onTick, onStability })
         if (onExitDrag) {
             this.onExitDrag = onExitDrag
         }
@@ -254,21 +258,18 @@ export class MapDThree extends Object {
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
     //
-    update(props: {
-        roomLayers: MapLayer[];
-        exits: { to: string; from: string; visible: boolean; }[];
-    } ): void {
-        const stackArguments = argumentParse({ roomLayers: [...props.roomLayers].reverse(), exits: props.exits })
-        this.stack.update(stackArguments)
-
-        this.stack.checkStability()
+    update(tree: GenericTree<MapTreeItem>): void {
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
+        
+        this.tree.update(simulatorTree)
+        this.tree.checkStability()
     }
 
     //
     // dragNode and endDrag dispatch events to set forces on the appropriate layer
     //
     dragNode(props: { roomId: string, x: number, y: number }): void {
-        this.stack.dragNode(props)
+        this.tree.dragNode(props)
     }
     //
     // dragExit creates (if needed) a dragging layer and passes data into its simulation
@@ -314,6 +315,7 @@ export class MapDThree extends Object {
         }
     }
     unmount(): void {
+        this.tree.unmount()
         this.stack.unmount()
     }
 }
