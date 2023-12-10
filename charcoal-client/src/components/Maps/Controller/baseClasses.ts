@@ -71,6 +71,12 @@ type MapDispatchAddRoom = {
     y: number;
 }
 
+type MapDispatchSetCursorPosition = {
+    type: 'SetCursor';
+    x?: number;
+    y?: number;
+}
+
 export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetExitDrag |
     MapDispatchEndDrag |
@@ -78,7 +84,8 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetNode |
     MapDispatchUpdateTree |
     MapDispatchSelectItem |
-    MapDispatchAddRoom
+    MapDispatchAddRoom |
+    MapDispatchSetCursorPosition
 
 export type MapContextType = {
     mapId: string;
@@ -90,12 +97,14 @@ export type MapContextType = {
         //    - Whether an exit is being dragged, from where, and to where
         //    - Which context is selected in Map Layers
         //    - Which item is selected in Map Layers of Unshown Rooms
+        //    - The current hover position of the cursor (if any) over the display
         // Updates to this data should be performed through the mapDispatch
         // function.
         //
         toolSelected: ToolSelected;
         exitDrag: MapContextExitDrag;
         itemSelected?: MapContextItemSelected;
+        cursorPosition?: { x: number; y: number };
     },
     mapD3: MapDThree,
     mapDispatch: (action: MapDispatchAction) => void;

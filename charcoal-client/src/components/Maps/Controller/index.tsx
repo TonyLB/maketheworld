@@ -134,6 +134,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const { normalForm, updateNormal } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
+    const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
 
     //
     // Generate a memo-fied standardizedNormalForm
@@ -224,8 +225,16 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'AddRoom':
                 addRoomFactory({ mapId, normalForm, updateNormal })({ roomId: action.roomId, x: action.x, y: action.y })
                 return
+            case 'SetCursor':
+                if ((typeof action.x !== 'undefined') || (typeof action.y !== 'undefined')) {
+                    setCursorPosition({ x: action.x, y: action.y })
+                }
+                else {
+                    setCursorPosition(undefined)
+                }
+
         }
-    }, [mapD3, setToolSelected, setItemSelected, normalForm, updateNormal])
+    }, [mapD3, setToolSelected, setItemSelected, setCursorPosition, normalForm, updateNormal])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ normalForm, updateNormal })
         const onAddExit = (fromRoomId, toRoomId, double) => {
@@ -256,7 +265,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             UI: {
                 toolSelected,
                 exitDrag,
-                itemSelected
+                itemSelected,
+                cursorPosition
             },
             mapDispatch,
             mapD3,
