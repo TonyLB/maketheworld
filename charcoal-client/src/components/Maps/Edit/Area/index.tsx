@@ -52,8 +52,14 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
     // Create an onClick that maps to the current settings to add a room
     //
     const onClick = useCallback(({ clientX, clientY }: { clientX: number; clientY: number }) => {
-        if (itemSelected && itemSelected.type === 'UnshownRoom') {
-            mapDispatch({ type: 'AddRoom', roomId: itemSelected.key, x: clientX, y: clientY })
+        if (itemSelected) {
+            switch(itemSelected.type) {
+                case 'UnshownRoom':
+                    mapDispatch({ type: 'AddRoom', roomId: itemSelected.key, x: clientX, y: clientY })
+                    break
+                case 'UnshownRoomNew':
+                    mapDispatch({ type: 'AddRoom', x: clientX, y: clientY })
+            }
         }
     }, [itemSelected, mapDispatch])
     return <React.Fragment>
