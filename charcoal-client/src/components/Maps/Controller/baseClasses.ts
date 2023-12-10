@@ -1,7 +1,6 @@
 import { GenericTree } from "@tonylb/mtw-sequence/dist/tree/baseClasses"
 import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
-import { SimCallback, SimNode } from "../Edit/MapDThree/baseClasses"
 import { VisibleMapRoom } from "../Edit/maps"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
@@ -48,12 +47,25 @@ type MapDispatchUpdateTree = {
     tree: GenericTree<MapTreeItem>;
 }
 
+type MapContextItemSelectedUnshown = {
+    type: 'UnshownRoom';
+    key: string;
+}
+
+export type MapContextItemSelected = MapContextItemSelectedUnshown
+
+type MapDispatchSelectItem = {
+    type: 'SelectItem';
+    item?: MapContextItemSelected;
+}
+
 export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetExitDrag |
     MapDispatchEndDrag |
     MapDispatchDragExit |
     MapDispatchSetNode |
-    MapDispatchUpdateTree
+    MapDispatchUpdateTree |
+    MapDispatchSelectItem
 
 export type MapContextType = {
     mapId: string;
@@ -63,11 +75,14 @@ export type MapContextType = {
         // The Map editor can conceivably need data for:
         //    - Which tool is selected in the toolbar
         //    - Whether an exit is being dragged, from where, and to where
+        //    - Which context is selected in Map Layers
+        //    - Which item is selected in Map Layers of Unshown Rooms
         // Updates to this data should be performed through the mapDispatch
         // function.
         //
         toolSelected: ToolSelected;
         exitDrag: MapContextExitDrag;
+        itemSelected?: MapContextItemSelected;
     },
     mapD3: MapDThree,
     mapDispatch: (action: MapDispatchAction) => void;

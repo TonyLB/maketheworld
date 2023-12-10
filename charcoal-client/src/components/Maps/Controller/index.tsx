@@ -3,7 +3,7 @@ import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
-import { MapContextType, MapDispatchAction, MapTreeItem, ToolSelected } from "./baseClasses"
+import { MapContextItemSelected, MapContextType, MapDispatchAction, MapTreeItem, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
@@ -132,6 +132,7 @@ export const useMapContext = () => (useContext(MapContext))
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
     const { normalForm, updateNormal } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
+    const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
 
     //
     // Generate a memo-fied standardizedNormalForm
@@ -216,8 +217,11 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'DragExit':
                 mapD3.dragExit({ roomId: action.sourceRoomId, x: action.x, y: action.y, double: action.double })
                 return
+            case 'SelectItem':
+                setItemSelected(action.item)
+                return
         }
-    }, [mapD3, setToolSelected])
+    }, [mapD3, setToolSelected, setItemSelected])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ normalForm, updateNormal })
         const onAddExit = (fromRoomId, toRoomId, double) => {
@@ -247,7 +251,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             tree,
             UI: {
                 toolSelected,
-                exitDrag
+                exitDrag,
+                itemSelected
             },
             mapDispatch,
             mapD3,
