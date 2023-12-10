@@ -245,7 +245,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                 >
                                     <MapRoomComponent
                                         PermanentId={room.roomId}
-                                        Name={room.name}
+                                        Name={room.name || room.roomId}
                                         className={localClasses.roomNode}
                                         contrastClassName={localClasses.svgLightBlueContrast}
                                         x={room.x + (MAP_WIDTH / 2)}
