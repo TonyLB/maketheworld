@@ -6,8 +6,6 @@ import { GenericTree } from "@tonylb/mtw-sequence/dist/tree/baseClasses"
 import { MapTreeItem } from "../../Controller/baseClasses"
 import { unique } from "../../../../lib/lists"
 import {
-    Avatar,
-    Box,
     List,
     ListItemAvatar,
     ListItemButton,
@@ -15,6 +13,7 @@ import {
 } from "@mui/material"
 import { blue, grey } from '@mui/material/colors'
 import RoomIcon from '@mui/icons-material/Home'
+import AddIcon from '@mui/icons-material/Add'
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 
 type UnshownRoomsProps = {
@@ -54,5 +53,16 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
                 </ListItemButton>
             ))
         }
+        <ListItemButton
+            dense
+            sx={{ width: '100%' }}
+            selected={itemSelected?.type === 'UnshownRoomNew'}
+            onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoomNew' }})}}
+        >
+            <ListItemAvatar>
+                <AddIcon sx={{ fontSize: "15px", color: grey[500] }} />
+            </ListItemAvatar>
+            <ListItemText primary="Add New Room" />
+        </ListItemButton>
     </List>
 }

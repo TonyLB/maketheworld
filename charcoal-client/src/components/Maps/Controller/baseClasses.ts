@@ -52,7 +52,12 @@ type MapContextItemSelectedUnshown = {
     key: string;
 }
 
-export type MapContextItemSelected = MapContextItemSelectedUnshown
+type MapContextItemSelectedUnshownAdd = {
+    type: 'UnshownRoomNew';
+}
+
+export type MapContextItemSelected = MapContextItemSelectedUnshown |
+    MapContextItemSelectedUnshownAdd
 
 type MapDispatchSelectItem = {
     type: 'SelectItem';
@@ -61,7 +66,7 @@ type MapDispatchSelectItem = {
 
 type MapDispatchAddRoom = {
     type: 'AddRoom';
-    roomId: string;
+    roomId?: string;
     x: number;
     y: number;
 }
