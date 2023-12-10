@@ -156,6 +156,9 @@ export class MapDThreeTree extends Object {
             switch(action) {
                 case GenericTreeDiffAction.Context:
                 case GenericTreeDiffAction.Exclude:
+                    if (data.nodes.length + data.links.length === 0) {
+                        return []
+                    }
                     if (this.layers[nextLayerIndex].key !== data.key) {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
@@ -168,6 +171,9 @@ export class MapDThreeTree extends Object {
                     )
                     return [this.layers[nextLayerIndex++]]
                 case GenericTreeDiffAction.Delete:
+                    if (data.nodes.length + data.links.length === 0) {
+                        return []
+                    }
                     if (this.layers[nextLayerIndex].key !== data.key) {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
@@ -186,6 +192,18 @@ export class MapDThreeTree extends Object {
                     )
                     return [addedIterator]
                 case GenericTreeDiffAction.Set:
+                    if (nextLayerIndex >= this.layers.length || this.layers[nextLayerIndex].key !== data.key) {
+                        const addedIterator = new MapDThreeIterator(
+                            data.key,
+                            data.nodes,
+                            data.links,
+                        )
+                        addedIterator.setCallbacks(
+                            cascadeCallback,
+                            this.checkStability.bind(this)
+                        )
+                        return [addedIterator]
+                    }
                     this.layers[nextLayerIndex].update(data.nodes, data.links, true)
                     this.layers[nextLayerIndex].setCallbacks(
                         cascadeCallback,
