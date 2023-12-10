@@ -1,11 +1,10 @@
-import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from 'react'
+import React, { FunctionComponent, useContext, useMemo, useState } from 'react'
 
-import RoomIcon from '@mui/icons-material/Home'
-import ExitIcon from '@mui/icons-material/CallMade'
-import LayersIcon from '@mui/icons-material/Layers'
+import ExpandLess from '@mui/icons-material/ExpandLess'
+import ExpandMore from '@mui/icons-material/ExpandMore'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, Collapse, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import CopyAllIcon from '@mui/icons-material/CopyAll'
 import ArrowIcon from '@mui/icons-material/CallMade'
@@ -34,91 +33,72 @@ export const useMapLayersContext = () => (useContext(MapLayersContext))
 
 const RoomLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited, children }) => {
     const { inheritedInvisible } = useMapLayersContext()
+    const [open, setOpen] = useState<boolean>(false)
+    const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
     return <React.Fragment>
-        <Box sx={{ borderRadius: '0.5em', margin: '0.25em', border: '1.5px solid', borderColor: inheritedInvisible ? grey[200] : grey[500], overflow: 'hidden' }}>
-            <Stack direction="row">
-                <Box sx={{ background: inheritedInvisible ? grey[100] : grey[300], paddingLeft: '0.5em', paddingRight: '0.25em', marginRight: '0.25em' }}>
-                    {
-                        inherited
-                            ? <CopyAllIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
-                            : <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
-                    }
-                </Box>
-                <Typography color={inheritedInvisible ? grey[500] : 'black' }>
-                    { name }
-                </Typography>
-            </Stack>
-        </Box>
-        { children }
+        <ListItem dense>
+            <ListItemIcon>
+                {
+                    inherited
+                        ? <CopyAllIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                        : <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                }
+            </ListItemIcon>
+            <ListItemText primary={name} />
+            {
+                childrenPresent && (open ? <ExpandMore onClick={() => { setOpen(false) }} /> : <ExpandLess onClick={() => { setOpen(true) }} />)
+            }
+        </ListItem>
+        { childrenPresent && <Collapse in={open} timeout="auto" unmountOnExit><List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{children}</List></Collapse> }
     </React.Fragment>
 }
 
 const ExitLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited }) => {
     const { inheritedInvisible } = useMapLayersContext()
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginLeft: '0.75em', border: '1px solid', borderColor: inheritedInvisible ? grey[100] : grey[300], overflow: 'hidden' }}>
-        <Stack direction="row">
-            <Box sx={{ background: inheritedInvisible ? grey[50] : grey[200], paddingLeft: '0.35em', paddingRight: '0.25em', marginTop: '-0.2em', marginRight: '0.25em' }}>
-                {
-                    inherited
-                        ? <CopyAllIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
-                        : <ArrowIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
-                }
-            </Box>
-            <Typography variant='overline' fontSize="8px" color={inheritedInvisible ? grey[500] : 'black' }>
-                to: { name }
-            </Typography>
-        </Stack>
-    </Box>
+    return <ListItem dense disablePadding sx={{ paddingLeft: '1em'}}>
+        <ListItemIcon>
+            {
+                inherited
+                    ? <CopyAllIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
+                    : <ArrowIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
+            }
+        </ListItemIcon>
+        <ListItemText primary={`to: ${name}`} />
+    </ListItem>
 }
 
 const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = ({ src, conditionId, children }) => {
     const { inheritedInvisible, mapId } = useMapLayersContext()
+    const [open, setOpen] = useState<boolean>(false)
+    const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
     const dispatch = useDispatch()
     const visible = !useSelector(mapEditConditionState(mapId, conditionId))
-    return <Box sx={{ borderRadius: '0.5em', margin: '0.25em', marginTop: '1em', border: '1.5px dashed', borderColor: inheritedInvisible ? grey[100] : grey[300] }}>
-        <Box sx={{
-            top: '-0.75em',
-            left: '0.5em',
-            position: 'relative',
-            background: 'white',
-            border: '1px solid',
-            borderRadius: '0.5em',
-            borderColor: grey[300],
-            maxWidth: '60%',
-            overflow: 'hidden'
-        }}>
-            <Stack direction="row">
-                <Box
-                    sx={{
-                        background: inheritedInvisible ? grey[50] : grey[200],
-                        paddingLeft: '0.25em',
-                        paddingTop: '0.2em',
-                        paddingBottom: '-0.2em',
-                        paddingRight: '0.25em',
-                        marginRight: '0.25em',
-                        cursor: 'pointer'
-                    }}
-                    onClick={inheritedInvisible ? () => {} : () => { dispatch(toggle({ mapId, key: conditionId })) }}
-                >
-                    {
-                        (visible && !inheritedInvisible)
-                            ? <VisibilityIcon fontSize="small" />
-                            : <VisibilityOffIcon fontSize="small" sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
-                    }
-                </Box>
-                <Typography color={inheritedInvisible ? grey[500] : 'black' }>
-                    { src }
-                </Typography>
-            </Stack>
-        </Box>
-        <Box sx={{ top: '-0.5em', marginLeft: '1em', position: 'relative' }}>
+    const visibilityOnClick = inheritedInvisible ? () => {} : () => { dispatch(toggle({ mapId, key: conditionId })) }
+
+    return <React.Fragment>
+        <ListItem dense>
+            <ListItemIcon>
+                {
+                    (visible && !inheritedInvisible)
+                        ? <VisibilityIcon fontSize="small" onClick={visibilityOnClick} />
+                        : <VisibilityOffIcon fontSize="small" sx={{ color: inheritedInvisible ? grey[500] : 'black' }} onClick={visibilityOnClick} />
+                }
+            </ListItemIcon>
+            <ListItemText primary={`If: ${src}`} />
             {
-                !visible
-                    ? <MapLayersContext.Provider value={{ mapId, inheritedInvisible: true }}>{ children }</MapLayersContext.Provider>
-                    : children
+                childrenPresent && (open ? <ExpandMore onClick={() => { setOpen(false) }} /> : <ExpandLess onClick={() => { setOpen(true) }} />)
             }
-        </Box>
-    </Box>
+        </ListItem>
+        { childrenPresent && 
+            <Collapse in={open} timeout="auto" unmountOnExit><List>
+                {
+                    !visible
+                        ? <MapLayersContext.Provider value={{ mapId, inheritedInvisible: true }}><List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{ children }</List></MapLayersContext.Provider>
+                        : children
+                }
+            </List></Collapse>
+        }
+    </React.Fragment>
 }
 
 //
