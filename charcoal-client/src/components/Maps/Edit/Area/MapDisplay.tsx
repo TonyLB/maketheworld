@@ -1,4 +1,4 @@
-import { FunctionComponent, useState, useRef, useEffect } from 'react'
+import { FunctionComponent, useState, useRef, useEffect, useCallback } from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { useGesture } from '@use-gesture/react'
 
@@ -77,6 +77,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             })
         }
     }, [cacheWindowDetails.current.width, cacheWindowDetails.current.height])
+    const { UI: { toolSelected }, localPositions: rooms, mapDispatch } = useMapContext()
     const bind = (useGesture as any)({
         onWheel: ({ movement: [, y] }: any) => {
             const oldScale = scale
@@ -97,7 +98,23 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             }
         }
     })
-    const { UI: { toolSelected }, localPositions: rooms } = useMapContext()
+    const internalBind = (useGesture as any)({
+        onMove: ({ event, currentTarget, xy: [x, y] }: any) => {
+            const rect = currentTarget.getBoundingClientRect()
+            const newX = (event.pageX - rect.left) / scale - (MAP_WIDTH / 2)
+            const newY = (event.pageY - rect.top) / scale - (MAP_HEIGHT / 2)
+            if (Math.abs(newX) <= MAP_WIDTH / 2 && Math.abs(newY) <= MAP_HEIGHT / 2) {
+                mapDispatch({ type: 'SetCursor', x: newX, y: newY })
+            }
+            else {
+                mapDispatch({ type: 'SetCursor' })
+            }
+            
+        }
+    })
+    const onMouseOut = useCallback(() => {
+        mapDispatch({ type: 'SetCursor' })
+    }, [mapDispatch])
     const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
@@ -141,17 +158,21 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                 ), [])
             const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
             return <div style={{ width: Math.max(width, MAP_WIDTH * scale), height: Math.max(height, MAP_HEIGHT * scale), backgroundColor: "#aaaaaa" }} {...bind()}>
-                <div style={{
-                    position: "absolute",
-                    width: MAP_WIDTH * scale,
-                    height: MAP_HEIGHT * scale,
-                    //
-                    // TODO:  Compensate for border offsets in scrolling algorithm, above
-                    //
-                    top: Math.max(0, (height - MAP_HEIGHT * scale) / 2),
-                    left: Math.max(0, (width - MAP_WIDTH * scale) / 2),
-                    backgroundColor: "white"
-                }}>
+                <div 
+                    style={{
+                        position: "absolute",
+                        width: MAP_WIDTH * scale,
+                        height: MAP_HEIGHT * scale,
+                        //
+                        // TODO:  Compensate for border offsets in scrolling algorithm, above
+                        //
+                        top: Math.max(0, (height - MAP_HEIGHT * scale) / 2),
+                        left: Math.max(0, (width - MAP_WIDTH * scale) / 2),
+                        backgroundColor: "white"
+                    }}
+                    onMouseOut={onMouseOut}
+                    {...internalBind()}
+                >
                     <svg width="100%" height="100%" viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} preserveAspectRatio="xMidYMid meet" onClick={onClickScaled} >
                         <defs>
                             <radialGradient id="Gradient1">
