@@ -1,4 +1,4 @@
-import { FunctionComponent, useState, useRef, useEffect, useCallback } from 'react'
+import { FunctionComponent, useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { useGesture } from '@use-gesture/react'
 
@@ -98,6 +98,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             }
         }
     })
+    const bindArgs = useMemo(() => (bind()), [bind])
     const internalBind = (useGesture as any)({
         onMove: ({ event, currentTarget, xy: [x, y] }: any) => {
             const rect = currentTarget.getBoundingClientRect()
@@ -112,6 +113,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             
         }
     })
+    const internalBindArgs = useMemo(() => (internalBind()), [internalBind])
     const onMouseOut = useCallback(() => {
         mapDispatch({ type: 'SetCursor' })
     }, [mapDispatch])
@@ -157,7 +159,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                     }, previous)
                 ), [])
             const appBaseURL = process.env.NODE_ENV === 'development' ? `https://${AppBaseURL}` : ''
-            return <div style={{ width: Math.max(width, MAP_WIDTH * scale), height: Math.max(height, MAP_HEIGHT * scale), backgroundColor: "#aaaaaa" }} {...bind()}>
+            return <div style={{ width: Math.max(width, MAP_WIDTH * scale), height: Math.max(height, MAP_HEIGHT * scale), backgroundColor: "#aaaaaa" }} {...bindArgs}>
                 <div 
                     style={{
                         position: "absolute",
@@ -171,7 +173,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         backgroundColor: "white"
                     }}
                     onMouseOut={onMouseOut}
-                    {...internalBind()}
+                    {...internalBindArgs}
                 >
                     <svg width="100%" height="100%" viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} preserveAspectRatio="xMidYMid meet" onClick={onClickScaled} >
                         <defs>
