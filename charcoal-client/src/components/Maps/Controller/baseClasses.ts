@@ -59,13 +59,21 @@ type MapDispatchSelectItem = {
     item?: MapContextItemSelected;
 }
 
+type MapDispatchAddRoom = {
+    type: 'AddRoom';
+    roomId: string;
+    x: number;
+    y: number;
+}
+
 export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetExitDrag |
     MapDispatchEndDrag |
     MapDispatchDragExit |
     MapDispatchSetNode |
     MapDispatchUpdateTree |
-    MapDispatchSelectItem
+    MapDispatchSelectItem |
+    MapDispatchAddRoom
 
 export type MapContextType = {
     mapId: string;

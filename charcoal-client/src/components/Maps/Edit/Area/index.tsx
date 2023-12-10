@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo } from 'react'
+import React, { FunctionComponent, useCallback, useMemo } from 'react'
 
 import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
@@ -30,7 +30,7 @@ export const treeToExits = (tree: GenericTree<MapTreeItem>): MapTreeExit[] => {
 
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
 
-    const { UI: { exitDrag }, localPositions: rooms, tree } = useMapContext()
+    const { UI: { exitDrag, itemSelected }, localPositions: rooms, tree, mapDispatch } = useMapContext()
     const exits = useMemo(() => (treeToExits(tree)), [tree])
 
     const exitDragSourceRoom = exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))
@@ -47,12 +47,21 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
     //
     const decoratorExits = exitDragSourceRoom
         ? [{ fromX: exitDragSourceRoom.x, fromY: exitDragSourceRoom.y, toX: exitDrag.x, toY: exitDrag.y, double: true }]: []
+
+    //
+    // Create an onClick that maps to the current settings to add a room
+    //
+    const onClick = useCallback(({ clientX, clientY }: { clientX: number; clientY: number }) => {
+        if (itemSelected && itemSelected.type === 'UnshownRoom') {
+            mapDispatch({ type: 'AddRoom', roomId: itemSelected.key, x: clientX, y: clientY })
+        }
+    }, [itemSelected, mapDispatch])
     return <React.Fragment>
         <MapDisplay
             fileURL={fileURL}
             rooms={rooms}
             exits={exits}
-            onClick={() => {}}
+            onClick={onClick}
             decoratorCircles={decoratorCircles}
             decoratorExits={decoratorExits}
         />

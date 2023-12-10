@@ -14,6 +14,7 @@ import { VisibleMapRoom } from "../Edit/maps"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { stabilizeFactory } from "./stabilize"
 import { addExitFactory } from "./addExit"
+import { addRoomFactory } from "./addRoom"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -220,8 +221,11 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             case 'SelectItem':
                 setItemSelected(action.item)
                 return
+            case 'AddRoom':
+                addRoomFactory({ mapId, normalForm, updateNormal })({ roomId: action.roomId, x: action.x, y: action.y })
+                return
         }
-    }, [mapD3, setToolSelected, setItemSelected])
+    }, [mapD3, setToolSelected, setItemSelected, normalForm, updateNormal])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ normalForm, updateNormal })
         const onAddExit = (fromRoomId, toRoomId, double) => {
