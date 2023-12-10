@@ -30,7 +30,7 @@ export const treeToExits = (tree: GenericTree<MapTreeItem>): MapTreeExit[] => {
 
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
 
-    const { UI: { exitDrag, itemSelected }, localPositions: rooms, tree, mapDispatch } = useMapContext()
+    const { UI: { toolSelected, exitDrag, itemSelected, cursorPosition }, localPositions: rooms, tree, mapDispatch } = useMapContext()
     const exits = useMemo(() => (treeToExits(tree)), [tree])
 
     const exitDragSourceRoom = exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))
@@ -40,6 +40,10 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
                 { x: exitDragSourceRoom.x, y: exitDragSourceRoom.y },
                 { x: exitDrag.x, y: exitDrag.y }
             ]: []
+        ),
+        ...( toolSelected === 'AddRoom' && itemSelected && cursorPosition
+            ? [{ x: cursorPosition.x, y: cursorPosition.y }]
+            : []
         )
     ]
     //
@@ -56,6 +60,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
             switch(itemSelected.type) {
                 case 'UnshownRoom':
                     mapDispatch({ type: 'AddRoom', roomId: itemSelected.key, x: clientX, y: clientY })
+                    mapDispatch({ type: 'SelectItem' })
                     break
                 case 'UnshownRoomNew':
                     mapDispatch({ type: 'AddRoom', x: clientX, y: clientY })
