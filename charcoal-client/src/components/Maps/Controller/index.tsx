@@ -297,6 +297,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             roomLayers: [],
             exits: [],
             onExitDrag: () => {},
+            onTick
         })
     })
     useEffect(() => {

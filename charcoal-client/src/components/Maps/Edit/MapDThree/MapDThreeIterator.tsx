@@ -36,8 +36,8 @@ export class MapDThreeIterator extends Object {
         const nodesById = this._nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.id]: node }), {})
         return forceFlexLink(
                 this._links
-                    .map(({ source, target, ...rest }) => ({ source: source as string, target: target as string, ...rest }))
-                    .filter(({ source, target }) => (nodesById[source]?.cascadeNode === false || nodesById[target]?.cascadeNode === false)),
+                    .map(({ source, target, ...rest }) => ({ source: source as string, target: target as string, ...rest })),
+                    // .filter(({ source, target }) => (nodesById[source]?.cascadeNode === false || nodesById[target]?.cascadeNode === false)),
                 this._nodes
             ).minDistance(70).maxDistance(180).id(({ id }: { id: string }) => (id))
     }
