@@ -102,6 +102,7 @@ class ForceFlexLink <L extends { source: string, target: string }, N extends Sim
     }
 
     applyForce(alpha: number) {
+        // console.log(`calculationData: ${JSON.stringify(this.calculationData, null, 4)}, nodes: ${JSON.stringify(this.nodes, null, 4)}, links: ${JSON.stringify(this.links, null, 4)}`)
         this.calculationData.forEach(({ link, minDistance, maxDistance, strength, bias }, index) => {
             //
             // TODO:  Replace the below with a lookup into the live nodes data (rather than storing a link to that data
