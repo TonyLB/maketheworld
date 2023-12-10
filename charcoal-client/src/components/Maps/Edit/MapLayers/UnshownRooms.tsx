@@ -32,7 +32,7 @@ const extractRooms = (tree: GenericTree<MapTreeItem>): string[] => {
 
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     const { normalForm } = useLibraryAsset()
-    const { tree } = useMapContext()
+    const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
     const shownRooms = useMemo(() => (extractRooms(tree)), [tree])
     const unshownRoomItems = Object.values(normalForm)
         .filter(isNormalRoom)
@@ -40,7 +40,13 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     return <List>
         {
             unshownRoomItems.map(({ key, appearances }) => (
-                <ListItemButton key={key} dense sx={{ width: '100%' }}>
+                <ListItemButton
+                    key={key}
+                    dense
+                    sx={{ width: '100%' }}
+                    selected={itemSelected?.type === 'UnshownRoom' && itemSelected?.key === key}
+                    onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key }})}}
+                >
                     <ListItemAvatar>
                         <RoomIcon sx={{ fontSize: "15px", color: grey[500] }} />
                     </ListItemAvatar>
