@@ -5,14 +5,6 @@ import ExitIcon from '@mui/icons-material/CallMade'
 import LayersIcon from '@mui/icons-material/Layers'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
-import produce from 'immer'
-
-import { recursiveUpdate } from '../../../DraggableTree'
-import { NestedTreeEntry } from '../../../DraggableTree/interfaces'
-
-import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from '../maps'
-import useMapStyles from '../useMapStyles'
-import { MapDispatch } from '../reducer'
 import { Box, Stack, Typography } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import CopyAllIcon from '@mui/icons-material/CopyAll'
@@ -24,99 +16,12 @@ import { useMapContext } from '../../Controller'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import { MapTreeItem } from '../../Controller/baseClasses'
 import { GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { UnshownRooms } from './UnshownRooms'
+import { blue } from '@mui/material/colors'
+
 
 type MapLayersProps = {
     mapId: string;
-}
-
-const VisibilityControl = ({ visible, onClick }: { visible: InheritedVisibilityType; onClick: () => void }) => {
-    const localClasses = useMapStyles()
-    return <div
-        className={["True", "False"].includes(visible) ? localClasses.visibilityControl : localClasses.overriddenVisibilityControl }
-        onClick={onClick}
-    >
-        {(["True", "OverrideTrue"].includes(visible)) ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
-    </div>
-}
-
-const SimpleRender: FunctionComponent<ProcessedTestItem & { itemKey?: string; setVisibility: (key: string, value: boolean) => void }> = ({ itemKey, name, visible, setVisibility }) => {
-    const localClasses = useMapStyles()
-    return <div className={localClasses.renderWrapper}>
-        { itemKey && <VisibilityControl onClick={() => { setVisibility(itemKey, !(['True', 'OverrideTrue'].includes(visible))) }} visible={visible} /> }
-        <div className={localClasses.renderContent}>{name}</div>
-    </div>
-}
-
-const renderComponent = (setVisibility: (key: string, value: boolean) => void) => ((props: ProcessedTestItem & { key? : string }) => (<SimpleRender setVisibility={setVisibility} {...props} />))
-
-const handleRender = ({ type }: ProcessedTestItem): React.ReactNode => {
-    switch(type) {
-        case 'GROUP':
-            return <LayersIcon />
-        case 'EXIT':
-            return <ExitIcon />
-        case 'ROOM':
-            return <RoomIcon />
-    }
-}
-
-const canDrop = ({ dropEntry, toEntry }: { dropEntry: ProcessedTestItem, toEntry: ProcessedTestItem | null, position: number | null}) => {
-    if (toEntry) {
-        switch(toEntry.type) {
-            case 'GROUP':
-                return true
-            default:
-                return false
-        }
-    }
-    else {
-        return dropEntry.type === 'GROUP'
-    }
-}
-
-const setTreeVisibility = (tree: MapTree, { key, visibility }: { key: string, visibility: boolean }): MapTree => (
-    produce(tree, (draft) => {
-        recursiveUpdate<MapItem>(draft as MapTree, (probe: NestedTreeEntry<MapItem>) => {
-            if (probe.key === key) {
-                probe.item.visible = visibility
-            }
-        })
-    })
-)
-
-const setInheritedVisibility = ({ children, item, ...rest }: NestedTreeEntry<MapItem>): NestedTreeEntry<ProcessedTestItem> => {
-    const visible = item.visible ? 'OverrideTrue' : 'OverrideFalse'
-    return {
-        item: {
-            ...item,
-            visible
-        },
-        children: children.map(setInheritedVisibility),
-        ...rest
-    }
-}
-
-const processTreeVisibility = ({ children, item, ...rest }: NestedTreeEntry<MapItem>): NestedTreeEntry<ProcessedTestItem> => {
-    if (item.visible) {            
-        return {
-            item: {
-                ...item,
-                visible: 'True'
-            },
-            children: children.map(processTreeVisibility),
-            ...rest
-        }
-    }
-    else {
-        return {
-            item: {
-                ...item,
-                visible: 'False'
-            },
-            children: children.map(setInheritedVisibility),
-            ...rest
-        }
-    }
 }
 
 type MapLayersContextType = {
@@ -239,6 +144,9 @@ const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<MapTreeItem> }> = 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
     const { tree } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
+        <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>
+        <UnshownRooms />
+        <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em', marginTop: '0.5em' }}>Map Layers</Box>
         <Box sx={{position: "relative", zIndex: 0 }}>
             { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} />))}
         </Box>
