@@ -4,10 +4,11 @@ import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
-import { Box, Collapse, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
+import { Box, Collapse, IconButton, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import CopyAllIcon from '@mui/icons-material/CopyAll'
 import ArrowIcon from '@mui/icons-material/CallMade'
+import TextFieldsIcon from '@mui/icons-material/TextFields'
 import { grey } from '@mui/material/colors'
 import { useDispatch, useSelector } from 'react-redux'
 import { mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
@@ -17,7 +18,7 @@ import { MapTreeItem } from '../../Controller/baseClasses'
 import { GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
-
+import RenameIcon from './RenameIcon'
 
 type MapLayersProps = {
     mapId: string;
@@ -45,8 +46,9 @@ const RoomLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ n
                 }
             </ListItemIcon>
             <ListItemText primary={name} />
+            <IconButton><RenameIcon /></IconButton>
             {
-                childrenPresent && (open ? <ExpandMore onClick={() => { setOpen(false) }} /> : <ExpandLess onClick={() => { setOpen(true) }} />)
+                childrenPresent && (open ? <ExpandLess onClick={() => { setOpen(false) }} /> : <ExpandMore onClick={() => { setOpen(true) }} />)
             }
         </ListItem>
         { childrenPresent && <Collapse in={open} timeout="auto" unmountOnExit><List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{children}</List></Collapse> }
