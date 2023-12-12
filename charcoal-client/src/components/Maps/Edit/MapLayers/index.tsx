@@ -1,14 +1,15 @@
-import React, { FunctionComponent, useContext, useMemo, useState } from 'react'
+import React, { FunctionComponent, useCallback, useContext, useMemo, useState } from 'react'
 
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
-import { Box, Collapse, IconButton, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
+import { Box, Collapse, IconButton, List, ListItem, ListItemIcon, ListItemText, TextField } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import CopyAllIcon from '@mui/icons-material/CopyAll'
 import ArrowIcon from '@mui/icons-material/CallMade'
-import TextFieldsIcon from '@mui/icons-material/TextFields'
+import AcceptIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
 import { grey } from '@mui/material/colors'
 import { useDispatch, useSelector } from 'react-redux'
 import { mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
@@ -19,6 +20,10 @@ import { GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
+import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import { NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { isSchemaRoom } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
 type MapLayersProps = {
     mapId: string;
@@ -32,10 +37,22 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited, children }) => {
+const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: boolean }> = ({ roomId, name, inherited, children }) => {
     const { inheritedInvisible } = useMapLayersContext()
+    const { normalForm, updateNormal } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
+    const [renaming, setRenaming] = useState<boolean>(false)
+    const [nameEdit, setNameEdit] = useState<string>('')
     const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
+    const onRename = useCallback((value: string) => {
+        const normalizer = new Normalizer()
+        normalizer._normalForm = normalForm
+        const reference: NormalReference = { tag: 'Room', key: roomId, index: 0 }
+        const baseSchema = normalizer.referenceToSchema(reference)
+        if (isSchemaRoom(baseSchema)) {
+            updateNormal({ type: 'put', item: { ...baseSchema, name: [{ tag: 'String', value }] }, position: { ...normalizer._referenceToInsertPosition(reference), replace: true } })
+        }
+    }, [normalForm, updateNormal, roomId])
     return <React.Fragment>
         <ListItem dense>
             <ListItemIcon>
@@ -45,8 +62,51 @@ const RoomLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ n
                         : <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
                 }
             </ListItemIcon>
-            <ListItemText primary={name} />
-            <IconButton><RenameIcon /></IconButton>
+            <ListItemText
+                primary={renaming
+                    ? <TextField
+                        size="small"
+                        margin="none"
+                        variant="filled"
+                        hiddenLabel
+                        sx={{ marginTop: '-0.15em' }}
+                        InputProps={{ sx: { fontSize: '12px' } }}
+                        value={nameEdit}
+                        onChange={(event) => { setNameEdit(event.target.value) }}
+                    />
+                    : name
+                }
+            />
+            {
+                renaming
+                    ? <React.Fragment>
+                        <IconButton
+                            onClick={() => {
+                                onRename(nameEdit)
+                                setRenaming(false)
+                                setNameEdit('')
+                            }}
+                        >
+                            <AcceptIcon />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => {
+                                setRenaming(false)
+                                setNameEdit('')
+                            }}
+                        >
+                            <CancelIcon />
+                        </IconButton>
+                    </React.Fragment>
+                    : <IconButton
+                            onClick={() => {
+                                setNameEdit(name)
+                                setRenaming(true)
+                            }}
+                        >
+                                <RenameIcon />
+                        </IconButton>
+            }
             {
                 childrenPresent && (open ? <ExpandLess onClick={() => { setOpen(false) }} /> : <ExpandMore onClick={() => { setOpen(true) }} />)
             }
@@ -111,7 +171,7 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<MapTreeItem> }> = ({ item }) => {
     switch(item.data.tag) {
         case 'Room':
-            return <RoomLayer name={taggedMessageToString(item.data.name as any) || item.data.key}>
+            return <RoomLayer roomId={item.data.key} name={taggedMessageToString(item.data.name as any) || item.data.key}>
                 { item.children.map((child, index) => (<MapItemLayer key={`${item.data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
         case 'Exit':
