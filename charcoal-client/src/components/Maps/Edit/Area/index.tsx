@@ -41,7 +41,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
                 { x: exitDrag.x, y: exitDrag.y }
             ]: []
         ),
-        ...( toolSelected === 'AddRoom' && itemSelected && cursorPosition
+        ...( toolSelected === 'AddRoom' && itemSelected && ['UnshownRoomNew', 'UnshownRoom'].includes(itemSelected.type) && cursorPosition
             ? [{ x: cursorPosition.x, y: cursorPosition.y }]
             : []
         )

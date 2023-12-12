@@ -47,6 +47,11 @@ type MapDispatchUpdateTree = {
     tree: GenericTree<MapTreeItem>;
 }
 
+type MapContextItemSelectedLayer = {
+    type: 'Layer';
+    key: string;
+}
+
 type MapContextItemSelectedUnshown = {
     type: 'UnshownRoom';
     key: string;
@@ -57,7 +62,8 @@ type MapContextItemSelectedUnshownAdd = {
 }
 
 export type MapContextItemSelected = MapContextItemSelectedUnshown |
-    MapContextItemSelectedUnshownAdd
+    MapContextItemSelectedUnshownAdd |
+    MapContextItemSelectedLayer
 
 type MapDispatchSelectItem = {
     type: 'SelectItem';

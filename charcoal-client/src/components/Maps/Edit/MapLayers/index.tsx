@@ -4,7 +4,7 @@ import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import VisibilityIcon from '@mui/icons-material/Visibility'
-import { Box, Collapse, IconButton, List, ListItem, ListItemIcon, ListItemText, TextField } from '@mui/material'
+import { Box, Collapse, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import CopyAllIcon from '@mui/icons-material/CopyAll'
 import ArrowIcon from '@mui/icons-material/CallMade'
@@ -38,6 +38,7 @@ const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' }
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
 const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: boolean }> = ({ roomId, name, inherited, children }) => {
+    const { UI: { itemSelected }, mapDispatch } = useMapContext()
     const { inheritedInvisible } = useMapLayersContext()
     const { normalForm, updateNormal } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
@@ -54,7 +55,11 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
         }
     }, [normalForm, updateNormal, roomId])
     return <React.Fragment>
-        <ListItem dense>
+        <ListItemButton
+            dense
+            selected={itemSelected && itemSelected.type === 'Layer' && itemSelected.key === roomId}
+            onClick={() => { mapDispatch({ type: 'SelectItem', item: { type: 'Layer', key: roomId }})}}
+        >
             <ListItemIcon>
                 {
                     inherited
@@ -108,9 +113,22 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
                         </IconButton>
             }
             {
-                childrenPresent && (open ? <ExpandLess onClick={() => { setOpen(false) }} /> : <ExpandMore onClick={() => { setOpen(true) }} />)
+                childrenPresent &&
+                (open
+                    ? <ExpandLess
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            setOpen(false)
+                        }}
+                    />
+                    : <ExpandMore
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            setOpen(true)
+                        }}
+                    />)
             }
-        </ListItem>
+        </ListItemButton>
         { childrenPresent && <Collapse in={open} timeout="auto" unmountOnExit><List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{children}</List></Collapse> }
     </React.Fragment>
 }
