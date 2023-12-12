@@ -3,7 +3,7 @@ import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
-import { MapContextItemSelected, MapContextType, MapDispatchAction, MapTreeItem, ToolSelected } from "./baseClasses"
+import { MapContextItemSelected, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
@@ -107,12 +107,20 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
         extractProperties: (item: MapTreeItem): MapTreeItem | undefined => {
             return item
         },
-        rehydrateProperties: (baseItem: MapTreeItem, properties: MapTreeItem[]) => (baseItem)
+        rehydrateProperties: (baseItem: MapTreeItem, properties: MapTreeItem[]) => (
+            baseItem.tag === 'Room'
+                ? properties.filter((value): value is MapTreeRoom => (value.tag === 'Room')).reduce((previous, { x, y }) => (
+                    (typeof x !== 'undefined' && typeof y !== 'undefined')
+                        ? { ...previous, x, y }
+                        : previous
+                ), baseItem)
+                : baseItem
+        )
     }
     return mergeTrees(mergeTreeOptions)(
         allRooms.filter(({ data }) => (data.tag === 'Room')),
-        allRooms.filter(({ data }) => (data.tag === 'If')),
-        ...allExits
+        ...allExits,
+        allRooms.filter(({ data }) => (data.tag === 'If'))
     )
 
 }
