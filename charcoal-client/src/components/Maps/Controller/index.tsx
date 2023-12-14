@@ -172,6 +172,10 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
 
     //
+    // TODO: Align localPositions derivation and setting with MapD3 understanding of the whole tree.
+    //
+
+    //
     // Make local data and setters for node positions denormalized for display
     //
     const [localPositions, setLocalPositions] = useState<VisibleMapRoom[]>(
