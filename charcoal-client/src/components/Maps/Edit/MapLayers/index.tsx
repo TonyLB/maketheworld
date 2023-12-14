@@ -149,11 +149,11 @@ const ExitLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ n
 
 const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = ({ src, conditionId, children }) => {
     const { inheritedInvisible, mapId } = useMapLayersContext()
+    const { UI: { hiddenBranches }, mapDispatch } = useMapContext()
     const [open, setOpen] = useState<boolean>(false)
     const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
-    const dispatch = useDispatch()
-    const visible = !useSelector(mapEditConditionState(mapId, conditionId))
-    const visibilityOnClick = inheritedInvisible ? () => {} : () => { dispatch(toggle({ mapId, key: conditionId })) }
+    const visible = useMemo(() => (!hiddenBranches.includes(conditionId)), [hiddenBranches])
+    const visibilityOnClick = inheritedInvisible ? () => {} : () => { mapDispatch({ type: 'ToggleVisibility', key: conditionId }) }
 
     return <React.Fragment>
         <ListItem dense>

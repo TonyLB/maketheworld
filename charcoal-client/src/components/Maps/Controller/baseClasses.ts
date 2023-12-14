@@ -83,6 +83,11 @@ type MapDispatchSetCursorPosition = {
     y?: number;
 }
 
+type MapDispatchToggleBranchVisibility = {
+    type: 'ToggleVisibility';
+    key: string;
+}
+
 export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetExitDrag |
     MapDispatchEndDrag |
@@ -91,7 +96,8 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchUpdateTree |
     MapDispatchSelectItem |
     MapDispatchAddRoom |
-    MapDispatchSetCursorPosition
+    MapDispatchSetCursorPosition |
+    MapDispatchToggleBranchVisibility
 
 export type MapContextType = {
     mapId: string;
@@ -104,6 +110,7 @@ export type MapContextType = {
         //    - Which context is selected in Map Layers
         //    - Which item is selected in Map Layers of Unshown Rooms
         //    - The current hover position of the cursor (if any) over the display
+        //    - Which condition branches are set invisible
         // Updates to this data should be performed through the mapDispatch
         // function.
         //
@@ -111,6 +118,7 @@ export type MapContextType = {
         exitDrag: MapContextExitDrag;
         itemSelected?: MapContextItemSelected;
         cursorPosition?: { x: number; y: number };
+        hiddenBranches: string[];
     },
     mapD3: MapDThree,
     mapDispatch: (action: MapDispatchAction) => void;

@@ -15,6 +15,8 @@ import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { stabilizeFactory } from "./stabilize"
 import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
+import { useDispatch, useSelector } from "react-redux"
+import { mapEditConditionsByMapId, toggle } from "../../../slices/UI/mapEdit"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -130,7 +132,8 @@ const MapContext = React.createContext<MapContextType>({
     tree: [],
     UI: {
         toolSelected: 'Select',
-        exitDrag: { sourceRoomId: '', x: 0, y: 0 }
+        exitDrag: { sourceRoomId: '', x: 0, y: 0 },
+        hiddenBranches: []
     },
     mapD3: new MapDThree({ tree: [], roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
@@ -143,6 +146,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
+    const hiddenBranches = useSelector(mapEditConditionsByMapId(mapId))
+    const dispatch = useDispatch()
 
     //
     // Generate a memo-fied standardizedNormalForm
@@ -240,9 +245,12 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 else {
                     setCursorPosition(undefined)
                 }
-
+                return
+            case 'ToggleVisibility':
+                dispatch(toggle({ mapId, key: action.key }))
+                return
         }
-    }, [mapD3, setToolSelected, setItemSelected, setCursorPosition, normalForm, updateNormal])
+    }, [mapD3, setToolSelected, setItemSelected, setCursorPosition, normalForm, updateNormal, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ normalForm, updateNormal })
         const onAddExit = (fromRoomId, toRoomId, double) => {
@@ -274,7 +282,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 toolSelected,
                 exitDrag,
                 itemSelected,
-                cursorPosition
+                cursorPosition,
+                hiddenBranches
             },
             mapDispatch,
             mapD3,
@@ -340,7 +349,8 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             tree,
             UI: {
                 toolSelected: 'Select',
-                exitDrag: { sourceRoomId: '', x: 0, y: 0 }
+                exitDrag: { sourceRoomId: '', x: 0, y: 0 },
+                hiddenBranches: []
             },
             mapDispatch: () => {},
             mapD3,
