@@ -40,4 +40,28 @@ describe('dfsWalk', () => {
         }]
         expect(testWalk(incomingTree)).toEqual(['Test-1', 'Test-1a', 'Test-1b', 'Test-1bi', 'Test-1bii', 'Test-2'])
     })
+
+    it('should nest and unNest when specified', () => {
+        const nestingTestWalk = dfsWalk<string, string[], { nest?: string }>({
+            default: { output: [], state: {}},
+            callback: ({ state, output }: { output: string[]; state: { nest?: string } }, value: string) => ({ output: [...output, [state.nest, value].filter((value) => (value)).join('#')], state }),
+            nest: ({ state, data }) => ({ nest: [state.nest ?? '', data].filter((value) => (value)).join('::') }),
+            unNest: ({ previous }) => (previous)
+        })
+        const incomingTree: GenericTree<string> = [{
+            data: 'Test-1',
+            children: [
+                { data: 'Test-1a', children: [] },
+                { data: 'Test-1b', children: [
+                    { data: 'Test-1bi', children: [] },
+                    { data: 'Test-1bii', children: [] }
+                ] }
+            ]
+        },
+        {
+            data: 'Test-2',
+            children: []
+        }]
+        expect(nestingTestWalk(incomingTree)).toEqual(['Test-1', 'Test-1#Test-1a', 'Test-1#Test-1b', 'Test-1::Test-1b#Test-1bi', 'Test-1::Test-1b#Test-1bii', 'Test-2'])
+    })
 })
