@@ -64,4 +64,27 @@ describe('dfsWalk', () => {
         }]
         expect(nestingTestWalk(incomingTree)).toEqual(['Test-1', 'Test-1#Test-1a', 'Test-1#Test-1b', 'Test-1::Test-1b#Test-1bi', 'Test-1::Test-1b#Test-1bii', 'Test-2'])
     })
+
+    it('should return state when called verbose', () => {
+        const verboseTestWalk = dfsWalk<string, string[], number>({
+            default: { output: [], state: 0},
+            callback: ({ state, output }: { output: string[]; state }, value: string) => ({ output: [...output, value], state: state + 1 }),
+            returnVerbose: true
+        })
+        const incomingTree: GenericTree<string> = [{
+            data: 'Test-1',
+            children: [
+                { data: 'Test-1a', children: [] },
+                { data: 'Test-1b', children: [
+                    { data: 'Test-1bi', children: [] },
+                    { data: 'Test-1bii', children: [] }
+                ] }
+            ]
+        },
+        {
+            data: 'Test-2',
+            children: []
+        }]
+        expect(verboseTestWalk(incomingTree)).toEqual({ output: ['Test-1', 'Test-1a', 'Test-1b', 'Test-1bi', 'Test-1bii', 'Test-2'], state: 6 })
+    })
 })

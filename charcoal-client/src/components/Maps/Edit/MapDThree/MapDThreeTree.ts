@@ -5,7 +5,8 @@ import {
 import { SimCallback, MapNodes, MapLinks, SimNode, SimulationReturn } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
 import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeDiffNode, GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
-import { diffTrees } from '@tonylb/mtw-sequence/dist/tree/diff'
+import { diffTrees, foldDiffTree } from '@tonylb/mtw-sequence/dist/tree/diff'
+import dfsWalk from '@tonylb/mtw-sequence/dist/tree/dfsWalk'
 
 export type SimulationTreeNode = SimulationReturn & {
     visible: boolean;
@@ -24,55 +25,41 @@ type MapDThreeDFSReduce<O> = {
 }
 
 //
-// MapDFSWalk converts the tree into a depth-first-sequence of layers, appending
+// mapDFSWalk converts the tree into a depth-first-sequence of layers, appending
 // data about which previous layer each layer should look to in order to gather cascading
 // node positions
 //
-export class MapDFSWalk<O> {
-    _leadingLayer: number;
-    _leadingInvisibleLayer: number;
-    _callback: (value: { data: SimulationReturn; previousLayer: number; action: GenericTreeDiffAction }, output: O[]) => O[];
-    constructor(callback: (value: { data: SimulationReturn; previousLayer: number; action: GenericTreeDiffAction }, output: O[]) => O[]) {
-        this._callback = callback
-    }
-
-    _walkHelper(
-        options: { invisible?: boolean }
-    ): (previous: MapDThreeDFSReduce<O>, layer: GenericTreeDiffNode<SimulationTreeNode>) => MapDThreeDFSReduce<O> {
-        return (previous, layer) => {
-            const invisible = options.invisible || (!layer.data.visible)
-            let nodeOutput = previous
-            if (layer.data.nodes.length > 0) {
-                const { visible, ...rest } = layer.data
+export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; previousLayer: number; action: GenericTreeDiffAction }, output: O[]) => O[]) => 
+        (tree: GenericTreeDiff<SimulationTreeNode>) => {
+    const { output, state } = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], { leadingLayer?: number; leadingInvisibleLayer?: number; invisible?: boolean }>({
+        default: { output: [], state: {} },
+        callback: (previous, data) => {
+            if (data.nodes.length > 0) {
+                const { action, ...rest } = data
+                const invisible = previous.state.invisible || (!data.visible)
                 //
                 // If you're in a nested invisible section, your siblings will be listed in leadingInvisibleLayer,
                 // otherwise you should hark back to the most recent visible layer (even if the node itself is
                 // freshly invisible)
                 //
-                const previousLayer = (options.invisible ? previous.leadingInvisibleLayer : undefined) ?? previous.leadingLayer
-                const newItems = this._callback({ data: rest, previousLayer, action: layer.action }, previous.output)
-                const output = [
-                    ...previous.output,
-                    ...newItems
-                ]
-                nodeOutput = {
-                    ...previous,
-                    output,
-                    //
-                    // Update running track of invisible layer (for independent cascade of invisible branches) and visible layer
-                    // (for the cascade of everything visible, ignoring invisible)
-                    //
-                    ...(invisible ? { leadingInvisibleLayer: output.length - 1 } : { leadingInvisibleLayer: undefined, leadingLayer: output.length - 1 })
+                const previousLayer = (previous.state.invisible ? previous.state.leadingInvisibleLayer : undefined) ?? previous.state.leadingLayer
+                return {
+                    output: [...previous.output, ...callback({ data: rest, previousLayer, action }, previous.output)],
+                    state: {
+                        ...previous.state,
+                        ...(invisible ? { leadingInvisibleLayer: previous.output.length } : { leadingInvisibleLayer: undefined, leadingLayer: previous.output.length })
+                    }
                 }
             }
-            return layer.children.reduce(this._walkHelper({ invisible }), nodeOutput)
-        }
-    }
-
-    walk(tree: GenericTreeDiff<SimulationTreeNode>)  {
-        const { output, leadingLayer: cascadeIndex } = tree.reduce<MapDThreeDFSReduce<O>>(this._walkHelper({}), { output: [] })
-        return { output, cascadeIndex }
-    }
+            else {
+                return previous
+            }
+        },
+        nest: ({ state, data: { visible } }) => ({ ...state, invisible: state.invisible || !visible }),
+        unNest: ({ previous, state }) => ({ ...state, invisible: previous.invisible }),
+        returnVerbose: true
+    })(foldDiffTree(tree))
+    return { output, cascadeIndex: state.leadingLayer }
 }
 
 //
@@ -143,10 +130,10 @@ export class MapDThreeTree extends Object {
         })(this._tree, tree)
 
         //
-        // Use _dfsWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
+        // Use mapDFSWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
         //
         let nextLayerIndex = 0
-        const dfsWalker = new MapDFSWalk(({ data, previousLayer, action }, outputLayers: MapDThreeIterator[]) => {
+        const { output, cascadeIndex } = mapDFSWalk(({ data, previousLayer, action }, outputLayers: MapDThreeIterator[]) => {
             //
             // Add appropriate callbacks based on previousLayer information
             //
@@ -211,8 +198,7 @@ export class MapDThreeTree extends Object {
                     )
                     return [this.layers[nextLayerIndex++]]
             }
-        })
-        const { output, cascadeIndex } = dfsWalker.walk(incomingDiff)
+        })(incomingDiff)
         this.layers = output
         this._cascadeIndex = cascadeIndex
         this._tree = tree
