@@ -5,6 +5,7 @@ type DFSWalkOptions<IncomingType, Output, State> = {
     callback: (previous: { output: Output; state: State }, data: IncomingType) => { output: Output; state: State };
     nest?: (value: { state: State, data: IncomingType }) => State;
     unNest?: (value: { previous: State; state: State; data: IncomingType }) => State;
+    returnVerbose?: boolean;
 }
 
 const dfsWalkHelper = <IncomingType, Output, State>(options: DFSWalkOptions<IncomingType, Output, State>) => (previous: { output: Output; state: State }, node: GenericTreeNode<IncomingType>): { output: Output; state: State } => {
@@ -13,9 +14,14 @@ const dfsWalkHelper = <IncomingType, Output, State>(options: DFSWalkOptions<Inco
     return options.unNest ? { ...allCallbacks, state: options.unNest({ previous: firstCallback.state, state: allCallbacks.state, data: node.data }) } : allCallbacks
 }
 
-export const dfsWalk = <IncomingType, Output, State>(options: DFSWalkOptions<IncomingType, Output, State>) => (tree: GenericTree<IncomingType>): Output => {
-    const { output } = tree.reduce(dfsWalkHelper(options), options.default)
-    return output
+export const dfsWalk = <IncomingType, Output, State>(options: DFSWalkOptions<IncomingType, Output, State>) => (tree: GenericTree<IncomingType>): Output | { output: Output; state: State } => {
+    const returnValue = tree.reduce(dfsWalkHelper(options), options.default)
+    if (options.returnVerbose) {
+        return returnValue
+    }
+    else {
+        return returnValue.output
+    }
 }
 
 export default dfsWalk
