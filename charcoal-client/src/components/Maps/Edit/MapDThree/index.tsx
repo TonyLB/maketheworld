@@ -110,8 +110,8 @@ const mergeMapTreeTranslateHelperOutput = (...args: MapTreeTranslateHelperOutput
                 ...previous.topLevel.links.filter(({ id }) => (!topLevel.links.find(({ id: checkId }) => (id === checkId)))),
                 ...topLevel.links
             ],
-            visible: true,
-            key: ''
+            visible: topLevel.visible,
+            key: topLevel.key
         },
         children: [
             ...previous.children,
@@ -123,39 +123,43 @@ const mergeMapTreeTranslateHelperOutput = (...args: MapTreeTranslateHelperOutput
 type MapTreeTranslateOptions = {
     hiddenLayers: string[];
     inheritedHidden?: boolean;
+    keyStack: string;
+    getConditionIndex: () => number;
 }
 //
-// TODO: Refactor mapTreeTranslateHelper so that it:
+// mapTreeTranslateHelper:
 //    - Reorders entries at each level of the Tree to put non-conditional nodes before all conditional nodes,
 //      and then conditional nodes in their original order
 //    - Aggregates in depth-first order, creating a new layer each time a condition is reached.
 //
-const mapTreeTranslateHelper = (tree: GenericTree<MapTreeItem>, options: MapTreeTranslateOptions = { hiddenLayers: [] }): MapTreeTranslateHelperOutput => {
-    const directTopLevelNodes = tree.filter(({ data }) => (data.tag !== 'If'))
-    const directChildren = tree.filter(({ data }) => (data.tag === 'If'))
-    const { topLevel, children } = directTopLevelNodes.reduce<MapTreeTranslateHelperOutput>((previous, item) => {
+
+//
+// TODO: Refactor mapTreeTranslateHelper with dfsWalk
+//
+const mapTreeTranslateHelper = (tree: GenericTree<MapTreeItem>, options: MapTreeTranslateOptions = { hiddenLayers: [], keyStack: 'Root', getConditionIndex: () => 0 }): MapTreeTranslateHelperOutput => {
+    return tree.reduce<MapTreeTranslateHelperOutput>((previous, item) => {
         const { data, children } = item
         switch(data.tag) {
             case 'If':
-                if (options.hiddenLayers.includes(data.key)) {
-                    return {
-                        topLevel: previous.topLevel,
-                        children: [
-                            ...previous.children,
-                            ...mapTreeTranslate(children, { ...options, inheritedHidden: true })
-                        ]
-                    }
-                }
-                else {
-                    return {
-                        topLevel: previous.topLevel,
-                        children: [
-                            ...previous.children,
-                            ...mapTreeTranslate(children)
-                        ]
-                    }    
+                const newKeyStack = `${options.keyStack}::If-${options.getConditionIndex()}`
+                return {
+                    topLevel: previous.topLevel,
+                    children: [
+                        ...previous.children,
+                        ...mapTreeTranslate(
+                            children,
+                            {
+                                ...options,
+                                keyStack: newKeyStack,
+                                inheritedHidden: options.inheritedHidden || options.hiddenLayers.includes(data.key)
+                            }
+                        )
+                    ]
                 }
             case 'Room':
+                if (typeof data.x === 'undefined' || typeof data.y === 'undefined') {
+                    return previous
+                }
                 return mergeMapTreeTranslateHelperOutput(
                     previous,
                     {
@@ -170,7 +174,7 @@ const mapTreeTranslateHelper = (tree: GenericTree<MapTreeItem>, options: MapTree
                             }],
                             links: [],
                             visible: !Boolean(options.inheritedHidden),
-                            key: ''
+                            key: options.keyStack
                         },
                         children: []
                     },
@@ -188,20 +192,22 @@ const mapTreeTranslateHelper = (tree: GenericTree<MapTreeItem>, options: MapTree
                                 target: data.to
                             }],
                             visible: !Boolean(options.inheritedHidden),
-                            key: ''
+                            key: options.keyStack
                         },
                         children: []
                     },
                     mapTreeTranslateHelper(children, options)
                 )
         }
-    }, { topLevel: { key: '', nodes: [], links: [], visible: true }, children: [] })
+    }, { topLevel: { key: options.keyStack, nodes: [], links: [], visible: true }, children: [] })
 
-    return { topLevel, children: [...children, ...directChildren.map(({ children }) => (mapTreeTranslate(children))).flat()] }
 }
 
 export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>, options?: MapTreeTranslateOptions): GenericTree<SimulationTreeNode> => {
-    const { topLevel, children } = mapTreeTranslateHelper(tree, options)
+    let nextConditionIndex = 1
+    const getConditionIndex = () => (nextConditionIndex++)
+    const finalOptions = options ?? { hiddenLayers: [], keyStack: 'Root', getConditionIndex }
+    const { topLevel, children } = mapTreeTranslateHelper(tree, finalOptions)
     return [{ data: topLevel, children }]
 }
 

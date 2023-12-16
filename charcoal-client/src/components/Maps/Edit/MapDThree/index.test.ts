@@ -33,7 +33,7 @@ describe('mapTreeTranslate', () => {
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
                 ],
                 visible: true,
-                key: ''
+                key: 'Root'
             },
             children: []
         }])
@@ -49,7 +49,8 @@ describe('mapTreeTranslate', () => {
                 ]}
             ] },
             { data: { tag: 'If', conditions: [], contents: [] }, children: [
-                { data: { tag: 'Room', key: 'Room3', x: -200, y: 100, name: [], render: [], contents: [] }, children: [] }
+                { data: { tag: 'Room', key: 'Room3', x: -200, y: 100, name: [], render: [], contents: [] }, children: [] },
+                { data: { tag: 'Room', key: 'Room4', x: 200, y: 100, name: [], render: [], contents: [] }, children: [] }
             ]},
             { data: { tag: 'Room', key: 'Room3', x: -100, y: 100, name: [], render: [], contents: [] }, children: [] }
         ]
@@ -65,7 +66,7 @@ describe('mapTreeTranslate', () => {
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
                 ],
                 visible: true,
-                key: ''
+                key: 'Root'
             },
             children: [
                 {
@@ -75,16 +76,16 @@ describe('mapTreeTranslate', () => {
                             { id: 'Room1#Room2', source: 'Room1', target: 'Room2' }
                         ],
                         visible: true,
-                        key: ''
+                        key: 'Root::If-1'
                     },
                     children: []
                 },
                 {
                     data: {
-                        nodes: [{ id: 'Room3', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: true }],
+                        nodes: [{ id: 'Room3', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: true }, { id: 'Room4', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: true }],
                         links: [],
                         visible: true,
-                        key: ''
+                        key: 'Root::If-2'
                     },
                     children: []
                 }

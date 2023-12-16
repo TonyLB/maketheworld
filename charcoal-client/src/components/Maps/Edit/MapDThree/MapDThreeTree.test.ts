@@ -471,15 +471,15 @@ describe('MapDThreeStack', () => {
         children: []
     }]
 
-    let testMapDThreeStack = new MapDThreeTree({ tree: [] })
+    let testMapDThreeTree = new MapDThreeTree({ tree: [] })
     let testLayerOne = new MapDThreeIterator('stub', [], [])
     let testLayerTwo = new MapDThreeIterator('stub', [], [])
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        testMapDThreeStack = new MapDThreeTree({ tree: testTree })
-        testLayerOne = testMapDThreeStack.layers[0]
+        testMapDThreeTree = new MapDThreeTree({ tree: testTree })
+        testLayerOne = testMapDThreeTree.layers[0]
         Object.defineProperty(testLayerOne, 'nodes', { get: jest.fn().mockReturnValue([{
             id: 'Two-A',
             roomId: 'GHI',
@@ -490,7 +490,7 @@ describe('MapDThreeStack', () => {
         }]) })
         testLayerOne.key = 'Two'
         testLayerOne.simulation = { stop: jest.fn() } as any
-        testLayerTwo = testMapDThreeStack.layers[1]
+        testLayerTwo = testMapDThreeTree.layers[1]
         Object.defineProperty(testLayerTwo, 'nodes', { get: jest.fn().mockReturnValue([{
             id: 'Two-A',
             roomId: 'GHI',
@@ -557,7 +557,7 @@ describe('MapDThreeStack', () => {
     })
 
     it('should update correctly when node moved between layers', () => {
-        testMapDThreeStack.update([{
+        testMapDThreeTree.update([{
             data: {
                 key: 'Two',
                 nodes: [{
@@ -643,7 +643,7 @@ describe('MapDThreeStack', () => {
     })
 
     it('should update correctly when layer removed', () => {
-        testMapDThreeStack.update([{
+        testMapDThreeTree.update([{
             data: {
                 key: 'One',
                 nodes: [{
@@ -670,7 +670,7 @@ describe('MapDThreeStack', () => {
             }], [], true)
 
         expect(testLayerOne.simulation.stop).toHaveBeenCalledTimes(1)
-        expect(testMapDThreeStack.layers.length).toEqual(1)
+        expect(testMapDThreeTree.layers.length).toEqual(1)
     })
 
 })

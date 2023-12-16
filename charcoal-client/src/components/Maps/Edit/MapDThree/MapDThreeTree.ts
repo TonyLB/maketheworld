@@ -1,10 +1,6 @@
-import {
-    SimulationLinkDatum,
-    Simulation,
-} from 'd3-force'
-import { SimCallback, MapNodes, MapLinks, SimNode, SimulationReturn } from './baseClasses'
+import { SimCallback, MapLinks, SimNode, SimulationReturn } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
-import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeDiffNode, GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { diffTrees, foldDiffTree } from '@tonylb/mtw-sequence/dist/tree/diff'
 import dfsWalk from '@tonylb/mtw-sequence/dist/tree/dfsWalk'
 
@@ -16,12 +12,6 @@ type MapDThreeTreeProps = {
     tree: GenericTree<SimulationTreeNode>;
     onStabilize?: SimCallback;
     onTick?: SimCallback;
-}
-
-type MapDThreeDFSReduce<O> = {
-    output: O[];
-    leadingLayer?: number;
-    leadingInvisibleLayer?: number;
 }
 
 //
