@@ -345,9 +345,12 @@ export class MapDThreeTree extends Object {
     // dragNode and endDrag dispatch events to set forces on the appropriate layer
     //
     dragNode({ roomId, x, y }: { roomId: string, x: number, y: number }): void {
-        const layerToMessage = this.layers.find(({ nodes }) => (nodes.find((node) => (node.roomId === roomId))))
-        if (layerToMessage) {
-            layerToMessage?.dragNode({ roomId, x, y })
+        //
+        // TODO: Drag *only* the specific selection
+        //
+        const relevantLayers = this.layers.filter(({ nodes }) => (nodes.find((node) => (node.roomId === roomId))))
+        relevantLayers.forEach((layer) => { layer.dragNode({ roomId, x, y }) })
+        if (relevantLayers.length) {
             this.checkStability()
         }
     }

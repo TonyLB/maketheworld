@@ -17,6 +17,7 @@ import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
 import { useDispatch, useSelector } from "react-redux"
 import { mapEditConditionsByMapId, toggle } from "../../../slices/UI/mapEdit"
+import dfsWalk from "@tonylb/mtw-sequence/dist/tree/dfsWalk"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -178,33 +179,37 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
+    const extractRoomsByIdWalk = (incomingPositions: Record<string, { x?: number; y?: number }>) => (previous: { output: VisibleMapRoom[]; state: {} }, item: MapTreeItem): { output: VisibleMapRoom[]; state: {} } => {
+        if (isSchemaRoom(item)) {
+            const previousMatch = previous.output.find(({ roomId }) => (roomId === item.key))
+            return {
+                ...previous,
+                output: [
+                    ...previous.output.filter(({ roomId }) => (roomId !== item.key)),
+                    {
+                        type: 'ROOM',
+                        key: item.key,
+                        roomId: item.key,
+                        zLevel: 0,
+                        name: taggedMessageToString(item.name as any),
+                        x: incomingPositions[item.key]?.x ?? item.x ?? previousMatch?.x ?? 0,
+                        y: incomingPositions[item.key]?.y ?? item.y ?? previousMatch?.y ?? 0,
+                    }
+                ]
+            }
+        }
+        return previous
+    }
     const [localPositions, setLocalPositions] = useState<VisibleMapRoom[]>(
-        tree
-            .map(({ data }) => (data))
-            .filter(isSchemaRoom)
-            .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
-            .map(({ key, x, y, name }) => ({ key, roomId: key, type: 'ROOM' as const, zLevel: 0, name: taggedMessageToString(name as any), x: x ?? 0, y: y ?? 0 }))
+        dfsWalk({ callback: extractRoomsByIdWalk({}), default: { output: [], state: {} } })(tree)
     )
     const onTick = useCallback((nodes: SimNode[]) => {
-        const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
+        const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x ?? previous[roomId]?.x, y: y ?? previous[roomId]?.y }}), {})
         //
         // TODO: Make room mapping more capable of parsing the whole tree, rather than just top-level rooms
         //
-        return setLocalPositions(tree
-                .map(({ data }) => (data))
-                .filter(isSchemaRoom)
-                .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
-                .map((room) => ({
-                    type: 'ROOM' as const,
-                    roomId: room.key,
-                    x: 0,
-                    y: 0,
-                    key: room.key,
-                    zLevel: 0,
-                    name: taggedMessageToString(room.name as any),
-                    ...(xyByRoomId[room.key] || {})
-                }))
-        )
+        const walkedPositions = dfsWalk({ callback: extractRoomsByIdWalk(xyByRoomId), default: { output: [], state: {} } })(tree)
+        return setLocalPositions(walkedPositions)
     }, [tree])
 
     const [mapD3] = useState<MapDThree>(() => {
