@@ -3,7 +3,7 @@ import {
     SimulationLinkDatum
 } from 'd3-force'
 
-import { SimCallback, SimNode, SimulationReturn, MapLayer, MapLayerRoom } from './baseClasses'
+import { SimCallback, SimNode } from './baseClasses'
 
 import MapDThreeTree, { SimulationTreeNode } from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
@@ -40,56 +40,6 @@ const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean =
         return [ ...Object.entries(currentExits).filter(([_, { to, from }]) => (to && from)).map(([key]) => key), roomId ]
     }
     return [ ...Object.entries(currentExits).filter(([_, { to }]) => (to)).map(([key]) => key), roomId ]
-}
-
-const argumentParse = ({ roomLayers, exits }: {
-    roomLayers: MapLayer[];
-    exits: { to: string; from: string; visible: boolean; }[];
-}) => {
-    const keyByRoomId = roomLayers.reduce<Record<string, string>>((previous, { rooms }) => (
-        Object.values(rooms).reduce<Record<string, string>>((accumulator, { id, roomId }) => ({ ...accumulator, [roomId]: id }), previous)
-    ), {})
-    const links = exits
-        .filter(({ to, from }) => (keyByRoomId[to] && keyByRoomId[from]))
-        .map(({ to, from }, index) => ({
-            id: `${index}`,
-            source: keyByRoomId[from],
-            target: keyByRoomId[to],
-            visible: true
-        } as (SimulationLinkDatum<SimNode> & { id: string })))
-    const { layers } = roomLayers.reduce<{ layers: SimulationReturn[], previousRooms: Record<string, MapLayerRoom & { visible: boolean }>}>((previous, roomLayer) => {
-        return {
-            layers: [
-                ...previous.layers,
-                {
-                    key: roomLayer.key,
-                    nodes: [
-                        ...Object.values(previous.previousRooms).map((room) => ({
-                            ...room,
-                            cascadeNode: true
-                        })),
-                        ...Object.values(roomLayer.rooms).map((room) => ({
-                            ...room,
-                            cascadeNode: false,
-                            visible: roomLayer.roomVisibility[room.roomId] || false
-                        }))
-                    ] as SimNode[],
-                    links
-                }
-            ],
-            previousRooms: {
-                ...previous.previousRooms,
-                ...Object.entries(roomLayer.rooms).reduce((previous, [key, value]) => ({
-                    ...previous,
-                    [key]: {
-                        ...value,
-                        visible: roomLayer.roomVisibility[key] || false
-                    }
-                }), {})
-            }
-        }
-    }, { layers: [] as SimulationReturn[], previousRooms: {} as Record<string, MapLayerRoom & { visible: boolean }> })
-    return layers
 }
 
 type MapTreeTranslateReduce = {
@@ -210,21 +160,15 @@ export class MapDThree extends Object {
     onTick: SimCallback = () => {}
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
-    //
-    // TODO: Refactor constructor and update to accept GenericTree<MapTreeItem> rather than
-    // pre-sorted roomLayers and exits.
-    //
-    constructor({ tree, roomLayers, exits, onStability, onTick, onExitDrag, onAddExit }: {
+
+    constructor({ tree, onStability, onTick, onExitDrag, onAddExit }: {
         tree: GenericTree<MapTreeItem>;
-        roomLayers: MapLayer[];
-        exits: { to: string; from: string; visible: boolean; }[];
         onStability?: SimCallback,
         onTick?: SimCallback,
         onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void,
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        const layers = argumentParse({ roomLayers: [...roomLayers].reverse(), exits })
         const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
         this.tree = new MapDThreeTree({
             tree: simulatorTree,

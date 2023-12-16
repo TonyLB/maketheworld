@@ -136,7 +136,7 @@ const MapContext = React.createContext<MapContextType>({
         exitDrag: { sourceRoomId: '', x: 0, y: 0 },
         hiddenBranches: []
     },
-    mapD3: new MapDThree({ tree: [], roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -215,8 +215,6 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
-            roomLayers: [],
-            exits: [],
             onExitDrag: setExitDrag,
         })
     })
@@ -316,9 +314,6 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
-        //
-        // TODO: Make room mapping more capable of parsing the whole tree, rather than just top-level rooms
-        //
         return setLocalPositions(tree
                 .map(({ data }) => (data))
                 .filter(isSchemaRoom)
@@ -339,8 +334,6 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
-            roomLayers: [],
-            exits: [],
             onExitDrag: () => {},
             onTick
         })

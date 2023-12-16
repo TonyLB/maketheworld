@@ -57,11 +57,12 @@ export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; prev
 // added visible property
 //
 export class MapDThreeTree extends Object {
-    layers: MapDThreeIterator[] = []
-    stable: boolean = true
-    onStability: SimCallback = () => {}
-    onTick: SimCallback = () => {}
+    layers: MapDThreeIterator[] = [];
+    stable: boolean = true;
+    onStability: SimCallback = () => {};
+    onTick: SimCallback = () => {};
     _tree: GenericTree<SimulationTreeNode> = [];
+    _hiddenConditions: string[];
     _cascadeIndex?: number;
 
     constructor(props: MapDThreeTreeProps) {

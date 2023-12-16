@@ -148,7 +148,7 @@ describe('MapDThree', () => {
                     children: []
                 }
             ]
-        }], roomLayers: [], exits: [] })
+        }] })
         expect(MapDThreeTree).toHaveBeenCalledTimes(1)
         expect(MapDThreeTree.mock.calls[0]).toMatchSnapshot()
 
