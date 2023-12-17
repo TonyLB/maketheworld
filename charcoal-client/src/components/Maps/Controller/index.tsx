@@ -3,14 +3,13 @@ import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
-import { MapContextItemSelected, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected } from "./baseClasses"
+import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 import { unique } from "../../../lib/lists"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
-import { VisibleMapRoom } from "../Edit/maps"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { stabilizeFactory } from "./stabilize"
 import { addExitFactory } from "./addExit"
@@ -180,35 +179,37 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const extractRoomsByIdWalk = (incomingPositions: Record<string, { x?: number; y?: number }>) => (previous: { output: VisibleMapRoom[]; state: {} }, item: MapTreeItem): { output: VisibleMapRoom[]; state: {} } => {
+    const extractRoomsByIdWalk = (incomingPositions: Record<string, { x: number; y: number }>) => (previous: { output: { roomId: string; name: string; x: number; y: number }[]; state: {} }, item: MapTreeItem): { output: { roomId: string; name: string; x: number; y: number }[]; state: {} } => {
         if (isSchemaRoom(item)) {
-            const previousMatch = previous.output.find(({ roomId }) => (roomId === item.key))
-            return {
-                ...previous,
-                output: [
-                    ...previous.output.filter(({ roomId }) => (roomId !== item.key)),
-                    {
-                        type: 'ROOM',
-                        key: item.key,
-                        roomId: item.key,
-                        zLevel: 0,
-                        name: taggedMessageToString(item.name as any),
-                        x: incomingPositions[item.key]?.x ?? item.x ?? previousMatch?.x ?? 0,
-                        y: incomingPositions[item.key]?.y ?? item.y ?? previousMatch?.y ?? 0,
-                    }
-                ]
+            if (item.key in incomingPositions) {
+                return {
+                    ...previous,
+                    output: [
+                        ...previous.output.filter(({ roomId }) => (roomId !== item.key)),
+                        {
+                            roomId: item.key,
+                            name: taggedMessageToString(item.name as any),
+                            x: incomingPositions[item.key]?.x,
+                            y: incomingPositions[item.key]?.y,
+                        }
+                    ]
+                }
             }
+            return previous
         }
         return previous
     }
-    const [localPositions, setLocalPositions] = useState<VisibleMapRoom[]>(
+    const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
         dfsWalk({ callback: extractRoomsByIdWalk({}), default: { output: [], state: {} } })(tree)
     )
     const onTick = useCallback((nodes: SimNode[]) => {
-        const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x ?? previous[roomId]?.x, y: y ?? previous[roomId]?.y }}), {})
-        //
-        // TODO: Make room mapping more capable of parsing the whole tree, rather than just top-level rooms
-        //
+        const xyByRoomId = nodes
+            .reduce<Record<string, { x: number; y: number}>>((previous, { roomId, x, y }) => (
+                (typeof x !== 'undefined' && typeof y !== 'undefined')
+                    ? { ...previous, [roomId]: { x: x ?? previous[roomId]?.x, y: y ?? previous[roomId]?.y }}
+                    : previous
+            ), {})
+
         const walkedPositions = dfsWalk({ callback: extractRoomsByIdWalk(xyByRoomId), default: { output: [], state: {} } })(tree)
         return setLocalPositions(walkedPositions)
     }, [tree])
@@ -307,12 +308,12 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const [localPositions, setLocalPositions] = useState<VisibleMapRoom[]>(
+    const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
         tree
             .map(({ data }) => (data))
             .filter(isSchemaRoom)
             .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
-            .map(({ key, x, y, name }) => ({ key, roomId: key, type: 'ROOM' as const, zLevel: 0, name: taggedMessageToString(name as any), x: x ?? 0, y: y ?? 0 }))
+            .map(({ key, x, y, name }) => ({ roomId: key, name: taggedMessageToString(name as any), x: x ?? 0, y: y ?? 0 }))
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})

@@ -9,8 +9,8 @@ import OneWayExitIcon from '@mui/icons-material/TrendingFlat'
 import TwoWayExitIcon from '@mui/icons-material/SyncAlt'
 import RoomIcon from '@mui/icons-material/Home'
 import MoveIcon from '@mui/icons-material/OpenWith'
-import { ToolSelected } from './area'
 import { useMapContext } from '../../Controller'
+import { ToolSelected } from '../../Controller/baseClasses'
 
 export const localStyles = makeStyles((theme: Theme) => ({
     normal: {

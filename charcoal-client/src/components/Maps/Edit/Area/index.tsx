@@ -70,7 +70,6 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL }) => {
     return <React.Fragment>
         <MapDisplay
             fileURL={fileURL}
-            rooms={rooms}
             exits={exits}
             onClick={onClick}
             decoratorCircles={decoratorCircles}

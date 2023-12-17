@@ -4,10 +4,6 @@ import { useGesture } from '@use-gesture/react'
 
 import { MAP_HEIGHT, MAP_WIDTH } from './constants'
 import useMapStyles from '../useMapStyles'
-import {
-    MapRoom,
-    VisibleMapItems
-} from '../maps'
 import MapRoomComponent from './MapRoom'
 import MapEdgeComponent from './MapEdge'
 import { RoomGestures } from './MapGestures'
@@ -16,8 +12,11 @@ import HighlightCircle from './HighlightCircle'
 import { getConfiguration } from '../../../../slices/configuration'
 import { useSelector } from 'react-redux'
 import { useMapContext } from '../../Controller'
+import { MapContextPosition, MapTreeExit } from '../../Controller/baseClasses'
 
-interface MapDisplayProps extends VisibleMapItems {
+interface MapDisplayProps  {
+    exits: MapTreeExit[];
+    fileURL?: string;
     onClick: React.MouseEventHandler<SVGElement>;
     decoratorCircles?: { x: number, y: number }[],
     decoratorExits?: {
@@ -117,7 +116,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
     const onMouseOut = useCallback(() => {
         mapDispatch({ type: 'SetCursor' })
     }, [mapDispatch])
-    const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
+    const roomsByRoomId = rooms.reduce<Record<string, MapContextPosition>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
             const midScalePoint = Math.min(height / MAP_HEIGHT, width / MAP_WIDTH)

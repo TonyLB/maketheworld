@@ -1,7 +1,6 @@
 import React, { FunctionComponent, PropsWithChildren, useMemo } from 'react'
 import { useGesture } from '@use-gesture/react'
 import { MAP_HEIGHT, MAP_WIDTH } from './constants'
-import { MapAreaReducerAction } from './area'
 import { useMapContext } from '../../Controller'
 
 type RoomGestureProps = PropsWithChildren<{
