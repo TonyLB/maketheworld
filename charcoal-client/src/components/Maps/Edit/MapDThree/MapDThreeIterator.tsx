@@ -21,7 +21,7 @@ export class MapDThreeIterator extends Object {
     _links: MapLinks = []
     simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>>
     stable: boolean = true
-    callback: SimCallback = () => {}
+    onTick: SimCallback = () => {}
     onStability: SimCallback = () => {}
     get boundingForce() {
         return boundingForceFactory(this._nodes)
@@ -67,7 +67,7 @@ export class MapDThreeIterator extends Object {
             .force("collision", forceCollide(40).iterations(3))
 
         this.simulation.on('tick', () => {
-            this.callback?.(this._nodes)
+            this.onTick?.(this._nodes)
         })
         this.simulation.on('end', () => {
             this.stable = true
@@ -144,9 +144,16 @@ export class MapDThreeIterator extends Object {
         }
         return anyDifference
     }
-    setCallbacks(callback: SimCallback, stabilityCallback: SimCallback) {
-        this.callback = callback
-        this.onStability = stabilityCallback
+    setCallbacks({ onTick, onStability, getCascadeNodes }: { onTick?: SimCallback, onStability?: SimCallback; getCascadeNodes?: () => MapNodes }) {
+        if (onTick) {
+            this.onTick = onTick
+        }
+        if (onStability) {
+            this.onStability = onStability
+        }
+        if (getCascadeNodes) {
+            this.simulation.force("cascade", cascadeForce(getCascadeNodes, this._nodes).id(({ roomId }) => roomId))
+        }
     }
     liven(first: boolean) {
         if (this.stable) {

@@ -147,7 +147,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
-    const hiddenBranches = useSelector(mapEditConditionsByMapId(mapId))
+    const mapConditionsSelector = useMemo(() => (mapEditConditionsByMapId(mapId)), [mapId])
+    const hiddenBranches = useSelector(mapConditionsSelector)
     const dispatch = useDispatch()
 
     //
