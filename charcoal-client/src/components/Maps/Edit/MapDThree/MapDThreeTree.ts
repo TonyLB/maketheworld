@@ -62,7 +62,6 @@ export class MapDThreeTree extends Object {
     onStability: SimCallback = () => {};
     onTick: SimCallback = () => {};
     _tree: GenericTree<SimulationTreeNode> = [];
-    _hiddenConditions: string[];
     _cascadeIndex?: number;
 
     constructor(props: MapDThreeTreeProps) {
@@ -115,7 +114,7 @@ export class MapDThreeTree extends Object {
     update(tree: GenericTree<SimulationTreeNode>): void {
         const incomingDiff = diffTrees({
             compare: ({ key: keyA }: SimulationTreeNode, { key: keyB }: SimulationTreeNode) => (keyA === keyB),
-            extractProperties: ({ key, nodes, links }): SimulationReturn => ({ key, nodes, links }),
+            extractProperties: ({ key, nodes, links, visible }): SimulationReturn & { visible: boolean } => ({ key, nodes, links, visible }),
             rehydrateProperties: (baseValue, properties) => (Object.assign(baseValue, ...properties)),
             verbose: true
         })(this._tree, tree)
@@ -124,10 +123,12 @@ export class MapDThreeTree extends Object {
         // Use mapDFSWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
         //
         let nextLayerIndex = 0
+        console.log(`update tree: ${JSON.stringify(incomingDiff, null, 4)}`)
         const { output, cascadeIndex } = mapDFSWalk(({ data, previousLayer, action }, outputLayers: MapDThreeIterator[]) => {
             //
-            // Add appropriate callbacks based on previousLayer information
+            // Add appropriate callbacks based on previous layers information
             //
+            console.log(`Cascading ${previousLayer} to ${data.key}`)
             const cascadeCallback = (typeof previousLayer === 'undefined' || previousLayer >= outputLayers.length - 1)
                 ? () => {}
                 : () => (outputLayers[previousLayer].nodes)
@@ -197,114 +198,7 @@ export class MapDThreeTree extends Object {
             layer.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
         })
         this.checkStability()
-        
-        // const previousNodesByRoomId = this.nodes.reduce<Record<string, SimNode>>((accumulator, node) => {
-        //     return {
-        //         ...accumulator,
-        //         [node.roomId]: node
-        //     }
-        // }, {})
-        // type PreviousLayerRecords = Record<string, { found: boolean; index: number, simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>> }>
-        // const previousLayersByKey = this.layers.reduce<PreviousLayerRecords>((previous, { key, simulation }, index) => ({ ...previous, [key]: { index, found: false, simulation } }), {})
 
-        // let forceRestart = false
-
-        // type IncomingLayersReduce = {
-        //     layers: MapDThreeIterator[];
-        //     previousLayersByKey: PreviousLayerRecords;
-        // }
-        // const { layers: newLayers, previousLayersByKey: processedLayers } = layers.reduce<IncomingLayersReduce>((previous, incomingLayer, index) => {
-
-        //     //
-        //     // Find where (if at all) this layer is positioned in current data
-        //     //
-
-        //     const previousIndex = previousLayersByKey[incomingLayer.key]?.index
-
-        //     //
-        //     // Map existing positions (where known) onto incoming nodes
-        //     //
-
-        //     const currentNodes = incomingLayer.nodes.map((node) => {
-        //         if (previousNodesByRoomId[node.roomId]) {
-        //             if (node.cascadeNode) {
-        //                 return {
-        //                     ...node,
-        //                     fx: previousNodesByRoomId[node.roomId].x,
-        //                     fy: previousNodesByRoomId[node.roomId].y,
-        //                 }    
-        //             }
-        //             else {
-        //                 return {
-        //                     ...node,
-        //                     x: previousNodesByRoomId[node.roomId].x,
-        //                     y: previousNodesByRoomId[node.roomId].y,
-        //                 }    
-        //             }
-        //         }
-        //         return node
-        //     })
-
-        //     //
-        //     // Apply create or update, and check whether forceRestart needs to be set
-        //     //
-
-        //     if (previousIndex !== undefined) {
-        //         const layerToUpdate = this.layers[previousIndex]
-        //         if (previousIndex !== index) {
-        //             forceRestart = true
-        //         }
-        //         const layerUpdateResult = layerToUpdate.update(currentNodes, incomingLayer.links, forceRestart, previous.layers.length > 0 ? () => previous.layers[previous.layers.length-1].nodes : () => []) ?? false
-        //         forceRestart = forceRestart || layerUpdateResult
-
-        //         return {
-        //             layers: [
-        //                 ...previous.layers,
-        //                 this.layers[previousIndex]
-        //             ],
-        //             previousLayersByKey: {
-        //                 ...previous.previousLayersByKey,
-        //                 [incomingLayer.key]: {
-        //                     ...previous.previousLayersByKey[incomingLayer.key],
-        //                     found: true
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     //
-        //     // If no match, you have a new layer (which needs to be created) and which should
-        //     // cause a forceRestart cascade
-        //     //
-
-        //     forceRestart = true
-        //     return {
-        //         layers: [
-        //             ...previous.layers,
-        //             new MapDThreeIterator(
-        //                 incomingLayer.key,
-        //                 incomingLayer.nodes,
-        //                 incomingLayer.links
-        //             )
-        //         ],
-        //         previousLayersByKey: previous.previousLayersByKey
-        //     }
-        // }, {
-        //     layers: [],
-        //     previousLayersByKey
-        // })
-
-        // //
-        // // If some layers have been removed, their DThree simulation processes should be stopped.
-        // //
-        // Object.values(processedLayers).filter(({ found }) => (!found))
-        //     .forEach(({ simulation }) => { simulation.stop() })
-
-        // this.layers = newLayers
-        // this.layers.forEach((layer, index) => {
-        //     layer.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
-        // })
-        // this.checkStability()
     }
     //
     // checkStability re-evaluates the stability of the entire stack of simulation layers.  Used as

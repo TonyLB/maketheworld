@@ -23,7 +23,7 @@ describe('mapTreeTranslate', () => {
             ] }
         ]
 
-        expect(mapTreeTranslate(testTree)).toEqual([{
+        expect(mapTreeTranslate(testTree, [])).toEqual([{
             data: {
                 nodes: [
                     { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: true },
@@ -55,7 +55,7 @@ describe('mapTreeTranslate', () => {
             { data: { tag: 'Room', key: 'Room3', x: -100, y: 100, name: [], render: [], contents: [] }, children: [] }
         ]
 
-        expect(mapTreeTranslate(testTree)).toEqual([{
+        expect(mapTreeTranslate(testTree, [])).toEqual([{
             data: {
                 nodes: [
                     { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: true },
@@ -103,52 +103,55 @@ describe('MapDThree', () => {
 
     it('should initialize stack on construction', () => {
 
-        const testMapDThree = new MapDThree({ tree: [{
-            data: {
-                tag: 'Room',
-                key: 'GHI',
-                x: 300,
-                y: 300,
-                name: [],
-                render: [],
-                contents: []
-            },
-            children: [],
-        },
-        {
-            data: {
-                tag: 'If',
-                key: 'One',
-                conditions: [],
-                contents: []
-            },
-            children: [
-                {
-                    data: {
-                        tag: 'Room',
-                        key: 'DEF',
-                        x: 300,
-                        y: 200,
-                        name: [],
-                        render: [],
-                        contents: []
-                    },
-                    children: []
+        const testMapDThree = new MapDThree({
+            tree: [{
+                data: {
+                    tag: 'Room',
+                    key: 'GHI',
+                    x: 300,
+                    y: 300,
+                    name: [],
+                    render: [],
+                    contents: []
                 },
-                {
-                    data: {
-                        tag: 'Room',
-                        key: 'ABC',
-                        x: 200,
-                        y: 200,
-                        name: [],
-                        render: [],
-                        contents: []
+                children: [],
+            },
+            {
+                data: {
+                    tag: 'If',
+                    key: 'One',
+                    conditions: [],
+                    contents: []
+                },
+                children: [
+                    {
+                        data: {
+                            tag: 'Room',
+                            key: 'DEF',
+                            x: 300,
+                            y: 200,
+                            name: [],
+                            render: [],
+                            contents: []
+                        },
+                        children: []
                     },
-                    children: []
-                }
-            ]
-        }] })
+                    {
+                        data: {
+                            tag: 'Room',
+                            key: 'ABC',
+                            x: 200,
+                            y: 200,
+                            name: [],
+                            render: [],
+                            contents: []
+                        },
+                        children: []
+                    }
+                ]
+            }],
+            hiddenConditions: []
+        })
         expect(MapDThreeTree).toHaveBeenCalledTimes(1)
         expect(MapDThreeTree.mock.calls[0]).toMatchSnapshot()
 

@@ -50,18 +50,14 @@ type MapTreeTranslateReduce = {
     links: (SimulationLinkDatum<SimNode> & { id: string })[]
 }
 
-//
-// TODO: Pass hidden conditions as an argument to mapTreeTranslate, and use to populate
-// the state.visible argument
-//
-export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>) => (dfsWalk<MapTreeItem, GenericTree<SimulationTreeNode>, MapTreeTranslateReduce>({
+export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>, hiddenConditions: string[]) => (dfsWalk<MapTreeItem, GenericTree<SimulationTreeNode>, MapTreeTranslateReduce>({
     nest: ({ state, data }) => {
         if (data.tag === 'If') {
             return {
                 ...state,
                 nextConditionIndex: state.nextConditionIndex + 1,
                 keyStack: `${state.keyStack}::If-${state.nextConditionIndex}`,
-                visible: state.visible /*&& data.visible*/,
+                visible: state.visible && !(hiddenConditions.includes(data.key)),
                 nodes: [],
                 links: []
             }
@@ -161,15 +157,16 @@ export class MapDThree extends Object {
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
 
-    constructor({ tree, onStability, onTick, onExitDrag, onAddExit }: {
+    constructor({ tree, hiddenConditions, onStability, onTick, onExitDrag, onAddExit }: {
         tree: GenericTree<MapTreeItem>;
+        hiddenConditions: string[];
         onStability?: SimCallback,
         onTick?: SimCallback,
         onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void,
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, hiddenConditions)
         this.tree = new MapDThreeTree({
             tree: simulatorTree,
             onTick,
@@ -195,7 +192,6 @@ export class MapDThree extends Object {
         }) {
         const { onTick, onStability, onExitDrag, onAddExit } = props
         this.tree.setCallbacks({ onTick, onStability })
-        // this.stack.setCallbacks({ onTick, onStability })
         if (onExitDrag) {
             this.onExitDrag = onExitDrag
         }
@@ -209,8 +205,8 @@ export class MapDThree extends Object {
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
     //
-    update(tree: GenericTree<MapTreeItem>): void {
-        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree)
+    update(tree: GenericTree<MapTreeItem>, hiddenConditions: string[]): void {
+        const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, hiddenConditions)
         
         this.tree.update(simulatorTree)
         this.tree.checkStability()

@@ -1,15 +1,15 @@
-import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react"
+import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
 import { MapContextItemSelected, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 import { unique } from "../../../lib/lists"
 import MapDThree from "../Edit/MapDThree"
-import { MapLayer, SimNode } from "../Edit/MapDThree/baseClasses"
+import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { VisibleMapRoom } from "../Edit/maps"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { stabilizeFactory } from "./stabilize"
@@ -136,7 +136,7 @@ const MapContext = React.createContext<MapContextType>({
         exitDrag: { sourceRoomId: '', x: 0, y: 0 },
         hiddenBranches: []
     },
-    mapD3: new MapDThree({ tree: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], hiddenConditions: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -215,6 +215,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
+            hiddenConditions: hiddenBranches,
             onExitDrag: setExitDrag,
         })
     })
@@ -227,7 +228,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 //
                 // TODO: ISS3228: Refactor mapD3 update to accept GenericTree<MapTreeItem>
                 //
-                mapD3.update(action.tree)
+                mapD3.update(action.tree, action.hiddenConditions)
                 return
                 // return returnVal({ ...state, ...treeToVisible(action.tree), tree: action.tree }, state.mapD3.nodes)
             case 'SetNode':
@@ -257,7 +258,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 dispatch(toggle({ mapId, key: action.key }))
                 return
         }
-    }, [mapD3, setToolSelected, setItemSelected, setCursorPosition, normalForm, updateNormal, dispatch])
+    }, [mapD3, mapId, setToolSelected, setItemSelected, setCursorPosition, normalForm, updateNormal, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ normalForm, updateNormal })
         const onAddExit = (fromRoomId, toRoomId, double) => {
@@ -273,10 +274,10 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             },
             onAddExit
         })
-    }, [mapD3, onTick, normalForm, updateNormal])
+    }, [mapD3, mapId, onTick, normalForm, updateNormal])
     useEffect(() => {
-        mapDispatch({ type: 'UpdateTree', tree })
-    }, [mapDispatch, tree])
+        mapDispatch({ type: 'UpdateTree', tree, hiddenConditions: hiddenBranches })
+    }, [mapDispatch, tree, hiddenBranches])
     useEffect(() => () => {
         mapD3.unmount()
     }, [mapD3])
@@ -334,12 +335,13 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
+            hiddenConditions: [],
             onExitDrag: () => {},
             onTick
         })
     })
     useEffect(() => {
-        mapD3.update(tree)
+        mapD3.update(tree, [])
     }, [mapD3, tree])
     useEffect(() => () => {
         mapD3.unmount()
