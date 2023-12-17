@@ -15,47 +15,64 @@ type MapDThreeTreeProps = {
 }
 
 //
-// mapDFSWalk converts the tree into a depth-first-sequence of layers, appending
-// data about which previous layer each layer should look to in order to gather cascading
-// node positions
+// mapDFSWalk converts the tree into a depth-first-sequence of layer-arguments for
+// MapDThreeIterator, including data about which previous layers are legitimate
+// sources of cascading information for nodes (given the relationship of the
+// current node to other layers and their visibility).
 //
-export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; previousLayer: number; action: GenericTreeDiffAction }, output: O[]) => O[]) => 
+export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; previousLayers: number[]; action: GenericTreeDiffAction }, output: O[]) => O[]) => 
         (tree: GenericTreeDiff<SimulationTreeNode>) => {
-    const { output, state } = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], { leadingLayer?: number; leadingInvisibleLayer?: number; invisible?: boolean }>({
-        default: { output: [], state: {} },
+    const output = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean }>({
+        default: { output: [], state: { previousLayers: [], previousInvisibleLayers: [], visible: true } },
         callback: (previous, data) => {
             if (data.nodes.length > 0) {
                 const { action, ...rest } = data
-                const invisible = previous.state.invisible || (!data.visible)
-                //
-                // If you're in a nested invisible section, your siblings will be listed in leadingInvisibleLayer,
-                // otherwise you should hark back to the most recent visible layer (even if the node itself is
-                // freshly invisible)
-                //
-                const previousLayer = (previous.state.invisible ? previous.state.leadingInvisibleLayer : undefined) ?? previous.state.leadingLayer
+                const previousLayers = previous.state.visible ? previous.state.previousLayers : previous.state.previousInvisibleLayers
+                const newLayers = callback({ data: rest, previousLayers, action }, previous.output)
+                const newPreviousLayers = [
+                    ...previousLayers,
+                    ...newLayers.map((_, index) => (index + previousLayers.length))
+                ]
                 return {
-                    output: [...previous.output, ...callback({ data: rest, previousLayer, action }, previous.output)],
-                    state: {
-                        ...previous.state,
-                        ...(invisible ? { leadingInvisibleLayer: previous.output.length } : { leadingInvisibleLayer: undefined, leadingLayer: previous.output.length })
-                    }
+                    output: [...previous.output, ...newLayers],
+                    state: previous.state.visible && data.visible
+                        ? { ...previous.state, previousLayers: newPreviousLayers }
+                        : { ...previous.state, previousInvisibleLayers: newPreviousLayers }
                 }
             }
             else {
                 return previous
             }
         },
-        nest: ({ state, data: { visible } }) => ({ ...state, invisible: state.invisible || !visible }),
-        unNest: ({ previous, state }) => ({ ...state, invisible: previous.invisible }),
-        returnVerbose: true
+        nest: ({ state, data }) => {
+            if (!data.visible) {
+                return {
+                    ...state,
+                    visible: false,
+                    previousInvisibleLayers: state.previousInvisibleLayers ?? state.previousLayers
+                }
+            }
+            return state
+        },
+        unNest: ({ previous, state, data }) => {
+            return {
+                ...state,
+                visible: previous.visible,
+                previousInvisibleLayers: previous.visible ? undefined : state.previousInvisibleLayers
+            }
+        },
     })(foldDiffTree(tree))
-    return { output, cascadeIndex: state.leadingLayer }
+    return output
 }
 
-//
-// TODO: ISS3230: Refactor incoming properties to accept a tree of SimulationReturns, with
-// added visible property
-//
+type MapDThreeTreeNode = {
+    index: number;
+    node: SimNode;
+}
+type MapDThreeTreeLink = {
+    index: number;
+    link: MapLinks;
+}
 export class MapDThreeTree extends Object {
     layers: MapDThreeIterator[] = [];
     stable: boolean = true;
@@ -123,15 +140,14 @@ export class MapDThreeTree extends Object {
         // Use mapDFSWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
         //
         let nextLayerIndex = 0
-        console.log(`update tree: ${JSON.stringify(incomingDiff, null, 4)}`)
-        const { output, cascadeIndex } = mapDFSWalk(({ data, previousLayer, action }, outputLayers: MapDThreeIterator[]) => {
+        const output = mapDFSWalk(({ data, previousLayers, action }, outputLayers: MapDThreeIterator[]) => {
             //
             // Add appropriate callbacks based on previous layers information
             //
-            console.log(`Cascading ${previousLayer} to ${data.key}`)
-            const cascadeCallback = (typeof previousLayer === 'undefined' || previousLayer >= outputLayers.length - 1)
-                ? () => {}
-                : () => (outputLayers[previousLayer].nodes)
+            const cascadeCallback = () => ([])
+            // const cascadeCallback = (typeof previousLayer === 'undefined' || previousLayer >= outputLayers.length - 1)
+            //     ? () => {}
+            //     : () => (outputLayers[previousLayer].nodes)
             switch(action) {
                 case GenericTreeDiffAction.Context:
                 case GenericTreeDiffAction.Exclude:
@@ -192,7 +208,6 @@ export class MapDThreeTree extends Object {
             }
         })(incomingDiff)
         this.layers = output
-        this._cascadeIndex = cascadeIndex
         this._tree = tree
         this.layers.forEach((layer, index) => {
             layer.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))

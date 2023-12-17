@@ -20,7 +20,7 @@ describe('dfsWalk', () => {
     const walkCallback = ({ action, ...value }: (MapDThreeDFSOutput & { action: GenericTreeDiffAction })) => ([value])
 
     it('should return an empty list on an empty tree', () => {
-        expect(mapDFSWalk(walkCallback)([])).toEqual({ output: [] })
+        expect(mapDFSWalk(walkCallback)([])).toEqual([])
     })
 
     it('should return an empty list on a tree with no positions or exits', () => {
@@ -34,7 +34,7 @@ describe('dfsWalk', () => {
             action: GenericTreeDiffAction.Add,
             children: []
         }]
-        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual({ output: [] })
+        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual([])
     })
 
     it('should return a single layer on an unnested tree', () => {
@@ -53,7 +53,7 @@ describe('dfsWalk', () => {
             action: GenericTreeDiffAction.Add,
             children: []
         }]
-        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual({ output: [{
+        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual([{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -64,8 +64,9 @@ describe('dfsWalk', () => {
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ],
                 visible: true
-            }
-        }], cascadeIndex: 0 })
+            },
+            previousLayers: []
+        }])
     })
 
     it('should return a dfs order on a nested tree', () => {
@@ -114,7 +115,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual({ output: [{
+        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual([{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -125,7 +126,8 @@ describe('dfsWalk', () => {
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ],
                 visible: true
-            }
+            },
+            previousLayers: []
         },
         {
             data: {
@@ -134,7 +136,7 @@ describe('dfsWalk', () => {
                 links: [],
                 visible: true
             },
-            previousLayer: 0
+            previousLayers: [0]
         },
         {
             data: {
@@ -143,7 +145,7 @@ describe('dfsWalk', () => {
                 links: [],
                 visible: true
             },
-            previousLayer: 1
+            previousLayers: [0, 1]
         },
         {
             data: {
@@ -152,8 +154,8 @@ describe('dfsWalk', () => {
                 links: [],
                 visible: true
             },
-            previousLayer: 2
-        }], cascadeIndex: 3 })
+            previousLayers: [0, 1, 2]
+        }])
     })
 
     it('should return a nuanced dfs order on a nested tree with invisible branches', () => {
@@ -202,7 +204,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual({ output: [{
+        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual([{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -213,7 +215,8 @@ describe('dfsWalk', () => {
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
                 ],
                 visible: true
-            }
+            },
+            previousLayers: []
         },
         {
             data: {
@@ -222,7 +225,7 @@ describe('dfsWalk', () => {
                 links: [],
                 visible: false
             },
-            previousLayer: 0
+            previousLayers: [0]
         },
         {
             data: {
@@ -231,7 +234,7 @@ describe('dfsWalk', () => {
                 links: [],
                 visible: true
             },
-            previousLayer: 1
+            previousLayers: [0, 1]
         },
         {
             data: {
@@ -240,96 +243,8 @@ describe('dfsWalk', () => {
                 links: [],
                 visible: true
             },
-            previousLayer: 0
-        }], cascadeIndex: 3 })
-    })
-
-    it('should not append invisible branches to the cascadeIndex returned', () => {
-        const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
-            data: {
-                key: 'Test-1',
-                nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
-                ],
-                links: [
-                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
-                ],
-                visible: true
-            },
-            action: GenericTreeDiffAction.Add,
-            children: [
-                {
-                    data: {
-                        key: 'Test-2',
-                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
-                        links: [],
-                        visible: false
-                    },
-                    action: GenericTreeDiffAction.Add,
-                    children: [{
-                        data: {
-                            key: 'Test-3',
-                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
-                            links: [],
-                            visible: true    
-                        },
-                        action: GenericTreeDiffAction.Add,
-                        children: []
-                    }]
-                },
-                {
-                    data: {
-                        key: 'Test-4',
-                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
-                        links: [],
-                        visible: false
-                    },
-                    action: GenericTreeDiffAction.Add,
-                    children: []
-                }
-            ]
-        }]
-        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual({ output: [{
-            data: {
-                key: 'Test-1',
-                nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
-                ],
-                links: [
-                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
-                ],
-                visible: true
-            }
-        },
-        {
-            data: {
-                key: 'Test-2',
-                nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
-                links: [],
-                visible: false
-            },
-            previousLayer: 0
-        },
-        {
-            data: {
-                key: 'Test-3',
-                nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
-                links: [],
-                visible: true
-            },
-            previousLayer: 1
-        },
-        {
-            data: {
-                key: 'Test-4',
-                nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
-                links: [],
-                visible: false
-            },
-            previousLayer: 0
-        }], cascadeIndex: 0 })
+            previousLayers: [0]
+        }])
     })
 
     it('should pass ongoing outputs to callback', () => {
@@ -383,7 +298,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(mapDFSWalk(testCallback)(incomingTree)).toEqual({ output: [{
+        expect(mapDFSWalk(testCallback)(incomingTree)).toEqual([{
             key: 'Test-1',
             nodes: [
                 { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
@@ -411,7 +326,7 @@ describe('dfsWalk', () => {
             nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
             links: [],
             visible: true    
-        }], cascadeIndex: 3 })
+        }])
         expect(outputs).toEqual([
             [],
             ['Room-1,Room-2'],
