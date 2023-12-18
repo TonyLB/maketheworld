@@ -14,6 +14,14 @@ type SequenceToTreeReducer<N extends {}, InternalNode extends {}> = {
     currentStack: SequenceToTreeStackItem<N, InternalNode>[];
 }
 
+//
+// foldDiffTree turns a GenericTreeDiff (with action outside of the data element) into a GenericTree (with action
+// inside of the modified data element))
+//
+export const foldDiffTree = <N extends {}>(tree: GenericTreeDiff<N>): GenericTree<N & { action: GenericTreeDiffAction }> => (
+    tree.map(({ data, action, children }) => ({ data: { ...data, action }, children: foldDiffTree(children) }))
+)
+
 const nonContextActions = [GenericTreeDiffAction.Add, GenericTreeDiffAction.Delete, GenericTreeDiffAction.Set]
 
 export const condenseDiffTree = <N extends {}>(tree: GenericTreeDiff<N>, verbose?: boolean): GenericTreeDiff<N> => {

@@ -1,7 +1,6 @@
 import { GenericTree } from "@tonylb/mtw-sequence/dist/tree/baseClasses"
 import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
-import { VisibleMapRoom } from "../Edit/maps"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
@@ -45,6 +44,7 @@ type MapDispatchSetNode = {
 type MapDispatchUpdateTree = {
     type: 'UpdateTree';
     tree: GenericTree<MapTreeItem>;
+    hiddenConditions: string[];
 }
 
 type MapContextItemSelectedLayer = {
@@ -83,6 +83,11 @@ type MapDispatchSetCursorPosition = {
     y?: number;
 }
 
+type MapDispatchToggleBranchVisibility = {
+    type: 'ToggleVisibility';
+    key: string;
+}
+
 export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetExitDrag |
     MapDispatchEndDrag |
@@ -91,7 +96,15 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchUpdateTree |
     MapDispatchSelectItem |
     MapDispatchAddRoom |
-    MapDispatchSetCursorPosition
+    MapDispatchSetCursorPosition |
+    MapDispatchToggleBranchVisibility
+
+export type MapContextPosition = {
+    roomId: string;
+    name: string;
+    x: number;
+    y: number;
+}
 
 export type MapContextType = {
     mapId: string;
@@ -104,6 +117,7 @@ export type MapContextType = {
         //    - Which context is selected in Map Layers
         //    - Which item is selected in Map Layers of Unshown Rooms
         //    - The current hover position of the cursor (if any) over the display
+        //    - Which condition branches are set invisible
         // Updates to this data should be performed through the mapDispatch
         // function.
         //
@@ -111,8 +125,9 @@ export type MapContextType = {
         exitDrag: MapContextExitDrag;
         itemSelected?: MapContextItemSelected;
         cursorPosition?: { x: number; y: number };
+        hiddenBranches: string[];
     },
     mapD3: MapDThree,
     mapDispatch: (action: MapDispatchAction) => void;
-    localPositions: VisibleMapRoom[];
+    localPositions: MapContextPosition[];
 }

@@ -1,20 +1,22 @@
-import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react"
+import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
-import { MapContextItemSelected, MapContextType, MapDispatchAction, MapTreeItem, ToolSelected } from "./baseClasses"
+import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 import { unique } from "../../../lib/lists"
 import MapDThree from "../Edit/MapDThree"
-import { MapLayer, SimNode } from "../Edit/MapDThree/baseClasses"
-import { VisibleMapRoom } from "../Edit/maps"
+import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
 import { stabilizeFactory } from "./stabilize"
 import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
+import { useDispatch, useSelector } from "react-redux"
+import { mapEditConditionsByMapId, toggle } from "../../../slices/UI/mapEdit"
+import dfsWalk from "@tonylb/mtw-sequence/dist/tree/dfsWalk"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -107,12 +109,20 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
         extractProperties: (item: MapTreeItem): MapTreeItem | undefined => {
             return item
         },
-        rehydrateProperties: (baseItem: MapTreeItem, properties: MapTreeItem[]) => (baseItem)
+        rehydrateProperties: (baseItem: MapTreeItem, properties: MapTreeItem[]) => (
+            baseItem.tag === 'Room'
+                ? properties.filter((value): value is MapTreeRoom => (value.tag === 'Room')).reduce((previous, { x, y }) => (
+                    (typeof x !== 'undefined' && typeof y !== 'undefined')
+                        ? { ...previous, x, y }
+                        : previous
+                ), baseItem)
+                : baseItem
+        )
     }
     return mergeTrees(mergeTreeOptions)(
         allRooms.filter(({ data }) => (data.tag === 'Room')),
-        allRooms.filter(({ data }) => (data.tag === 'If')),
-        ...allExits
+        ...allExits,
+        allRooms.filter(({ data }) => (data.tag === 'If'))
     )
 
 }
@@ -122,9 +132,10 @@ const MapContext = React.createContext<MapContextType>({
     tree: [],
     UI: {
         toolSelected: 'Select',
-        exitDrag: { sourceRoomId: '', x: 0, y: 0 }
+        exitDrag: { sourceRoomId: '', x: 0, y: 0 },
+        hiddenBranches: []
     },
-    mapD3: new MapDThree({ tree: [], roomLayers: [], exits: [], onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: new MapDThree({ tree: [], hiddenConditions: [], onAddExit: () => {}, onExitDrag: () => {} }),
     mapDispatch: () => {},
     localPositions: []
 })
@@ -135,6 +146,9 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
+    const mapConditionsSelector = useMemo(() => (mapEditConditionsByMapId(mapId)), [mapId])
+    const hiddenBranches = useSelector(mapConditionsSelector)
+    const dispatch = useDispatch()
 
     //
     // Generate a memo-fied standardizedNormalForm
@@ -159,42 +173,51 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
 
     //
+    // TODO: Align localPositions derivation and setting with MapD3 understanding of the whole tree.
+    //
+
+    //
     // Make local data and setters for node positions denormalized for display
     //
-    const [localPositions, setLocalPositions] = useState<VisibleMapRoom[]>(
-        tree
-            .map(({ data }) => (data))
-            .filter(isSchemaRoom)
-            .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
-            .map(({ key, x, y, name }) => ({ key, roomId: key, type: 'ROOM' as const, zLevel: 0, name: taggedMessageToString(name as any), x: x ?? 0, y: y ?? 0 }))
+    const extractRoomsByIdWalk = (incomingPositions: Record<string, { x: number; y: number }>) => (previous: { output: { roomId: string; name: string; x: number; y: number }[]; state: {} }, item: MapTreeItem): { output: { roomId: string; name: string; x: number; y: number }[]; state: {} } => {
+        if (isSchemaRoom(item)) {
+            if (item.key in incomingPositions) {
+                return {
+                    ...previous,
+                    output: [
+                        ...previous.output.filter(({ roomId }) => (roomId !== item.key)),
+                        {
+                            roomId: item.key,
+                            name: taggedMessageToString(item.name as any),
+                            x: incomingPositions[item.key]?.x,
+                            y: incomingPositions[item.key]?.y,
+                        }
+                    ]
+                }
+            }
+            return previous
+        }
+        return previous
+    }
+    const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
+        dfsWalk({ callback: extractRoomsByIdWalk({}), default: { output: [], state: {} } })(tree)
     )
     const onTick = useCallback((nodes: SimNode[]) => {
-        const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
-        //
-        // TODO: Make room mapping more capable of parsing the whole tree, rather than just top-level rooms
-        //
-        return setLocalPositions(tree
-                .map(({ data }) => (data))
-                .filter(isSchemaRoom)
-                .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
-                .map((room) => ({
-                    type: 'ROOM' as const,
-                    roomId: room.key,
-                    x: 0,
-                    y: 0,
-                    key: room.key,
-                    zLevel: 0,
-                    name: taggedMessageToString(room.name as any),
-                    ...(xyByRoomId[room.key] || {})
-                }))
-        )
+        const xyByRoomId = nodes
+            .reduce<Record<string, { x: number; y: number}>>((previous, { roomId, x, y }) => (
+                (typeof x !== 'undefined' && typeof y !== 'undefined')
+                    ? { ...previous, [roomId]: { x: x ?? previous[roomId]?.x, y: y ?? previous[roomId]?.y }}
+                    : previous
+            ), {})
+
+        const walkedPositions = dfsWalk({ callback: extractRoomsByIdWalk(xyByRoomId), default: { output: [], state: {} } })(tree)
+        return setLocalPositions(walkedPositions)
     }, [tree])
 
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
-            roomLayers: [],
-            exits: [],
+            hiddenConditions: hiddenBranches,
             onExitDrag: setExitDrag,
         })
     })
@@ -207,7 +230,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 //
                 // TODO: ISS3228: Refactor mapD3 update to accept GenericTree<MapTreeItem>
                 //
-                mapD3.update(action.tree)
+                mapD3.update(action.tree, action.hiddenConditions)
                 return
                 // return returnVal({ ...state, ...treeToVisible(action.tree), tree: action.tree }, state.mapD3.nodes)
             case 'SetNode':
@@ -232,9 +255,12 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 else {
                     setCursorPosition(undefined)
                 }
-
+                return
+            case 'ToggleVisibility':
+                dispatch(toggle({ mapId, key: action.key }))
+                return
         }
-    }, [mapD3, setToolSelected, setItemSelected, setCursorPosition, normalForm, updateNormal])
+    }, [mapD3, mapId, setToolSelected, setItemSelected, setCursorPosition, normalForm, updateNormal, dispatch])
     useEffect(() => {
         const addExitFactoryOutput = addExitFactory({ normalForm, updateNormal })
         const onAddExit = (fromRoomId, toRoomId, double) => {
@@ -250,10 +276,10 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             },
             onAddExit
         })
-    }, [mapD3, onTick, normalForm, updateNormal])
+    }, [mapD3, mapId, onTick, normalForm, updateNormal])
     useEffect(() => {
-        mapDispatch({ type: 'UpdateTree', tree })
-    }, [mapDispatch, tree])
+        mapDispatch({ type: 'UpdateTree', tree, hiddenConditions: hiddenBranches })
+    }, [mapDispatch, tree, hiddenBranches])
     useEffect(() => () => {
         mapD3.unmount()
     }, [mapD3])
@@ -266,7 +292,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 toolSelected,
                 exitDrag,
                 itemSelected,
-                cursorPosition
+                cursorPosition,
+                hiddenBranches
             },
             mapDispatch,
             mapD3,
@@ -281,18 +308,15 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const [localPositions, setLocalPositions] = useState<VisibleMapRoom[]>(
+    const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
         tree
             .map(({ data }) => (data))
             .filter(isSchemaRoom)
             .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
-            .map(({ key, x, y, name }) => ({ key, roomId: key, type: 'ROOM' as const, zLevel: 0, name: taggedMessageToString(name as any), x: x ?? 0, y: y ?? 0 }))
+            .map(({ key, x, y, name }) => ({ roomId: key, name: taggedMessageToString(name as any), x: x ?? 0, y: y ?? 0 }))
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
-        //
-        // TODO: Make room mapping more capable of parsing the whole tree, rather than just top-level rooms
-        //
         return setLocalPositions(tree
                 .map(({ data }) => (data))
                 .filter(isSchemaRoom)
@@ -313,14 +337,13 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const [mapD3] = useState<MapDThree>(() => {
         return new MapDThree({
             tree,
-            roomLayers: [],
-            exits: [],
+            hiddenConditions: [],
             onExitDrag: () => {},
             onTick
         })
     })
     useEffect(() => {
-        mapD3.update(tree)
+        mapD3.update(tree, [])
     }, [mapD3, tree])
     useEffect(() => () => {
         mapD3.unmount()
@@ -332,7 +355,8 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
             tree,
             UI: {
                 toolSelected: 'Select',
-                exitDrag: { sourceRoomId: '', x: 0, y: 0 }
+                exitDrag: { sourceRoomId: '', x: 0, y: 0 },
+                hiddenBranches: []
             },
             mapDispatch: () => {},
             mapD3,

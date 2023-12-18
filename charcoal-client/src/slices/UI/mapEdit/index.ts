@@ -34,6 +34,11 @@ export const { toggle } = mapEditSlice.actions
 
 export const mapEditAllConditions: Selector<Record<string, string[]>> = ({ UI: { mapEdit = {} } }) => (mapEdit)
 
+export const mapEditConditionsByMapId = (mapId: string): Selector<string[]> => createSelector(
+    mapEditAllConditions,
+    (mapEditAllConditions) => (mapEditAllConditions[mapId] || [])
+)
+
 export const mapEditConditionState = (mapId: string, key: string): Selector<boolean> => createSelector(
     mapEditAllConditions,
     (mapEditAllConditions) => ((mapEditAllConditions[mapId] || []).includes(key))

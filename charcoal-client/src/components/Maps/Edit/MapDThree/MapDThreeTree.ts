@@ -1,11 +1,8 @@
-import {
-    SimulationLinkDatum,
-    Simulation,
-} from 'd3-force'
-import { SimCallback, MapNodes, MapLinks, SimNode, SimulationReturn } from './baseClasses'
+import { SimCallback, MapLinks, SimNode, SimulationReturn } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
-import { GenericTree, GenericTreeDiff, GenericTreeDiffAction, GenericTreeDiffNode, GenericTreeNode } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
-import { diffTrees } from '@tonylb/mtw-sequence/dist/tree/diff'
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { diffTrees, foldDiffTree } from '@tonylb/mtw-sequence/dist/tree/diff'
+import dfsWalk from '@tonylb/mtw-sequence/dist/tree/dfsWalk'
 
 export type SimulationTreeNode = SimulationReturn & {
     visible: boolean;
@@ -17,75 +14,66 @@ type MapDThreeTreeProps = {
     onTick?: SimCallback;
 }
 
-type MapDThreeDFSReduce<O> = {
-    output: O[];
-    leadingLayer?: number;
-    leadingInvisibleLayer?: number;
-}
-
 //
-// MapDFSWalk converts the tree into a depth-first-sequence of layers, appending
-// data about which previous layer each layer should look to in order to gather cascading
-// node positions
+// mapDFSWalk converts the tree into a depth-first-sequence of layer-arguments for
+// MapDThreeIterator, including data about which previous layers are legitimate
+// sources of cascading information for nodes (given the relationship of the
+// current node to other layers and their visibility).
 //
-export class MapDFSWalk<O> {
-    _leadingLayer: number;
-    _leadingInvisibleLayer: number;
-    _callback: (value: { data: SimulationReturn; previousLayer: number; action: GenericTreeDiffAction }, output: O[]) => O[];
-    constructor(callback: (value: { data: SimulationReturn; previousLayer: number; action: GenericTreeDiffAction }, output: O[]) => O[]) {
-        this._callback = callback
-    }
-
-    _walkHelper(
-        options: { invisible?: boolean }
-    ): (previous: MapDThreeDFSReduce<O>, layer: GenericTreeDiffNode<SimulationTreeNode>) => MapDThreeDFSReduce<O> {
-        return (previous, layer) => {
-            const invisible = options.invisible || (!layer.data.visible)
-            let nodeOutput = previous
-            if (layer.data.nodes.length > 0) {
-                const { visible, ...rest } = layer.data
-                //
-                // If you're in a nested invisible section, your siblings will be listed in leadingInvisibleLayer,
-                // otherwise you should hark back to the most recent visible layer (even if the node itself is
-                // freshly invisible)
-                //
-                const previousLayer = (options.invisible ? previous.leadingInvisibleLayer : undefined) ?? previous.leadingLayer
-                const newItems = this._callback({ data: rest, previousLayer, action: layer.action }, previous.output)
-                const output = [
-                    ...previous.output,
-                    ...newItems
+export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; previousLayers: number[]; action: GenericTreeDiffAction }, output: O[]) => O[]) => 
+        (tree: GenericTreeDiff<SimulationTreeNode>) => {
+    const { output, state: { previousLayers } } = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean }>({
+        default: { output: [], state: { previousLayers: [], previousInvisibleLayers: [], visible: true } },
+        callback: (previous, data) => {
+            if (data.nodes.length > 0) {
+                const { action, ...rest } = data
+                const previousLayers = previous.state.visible ? previous.state.previousLayers : previous.state.previousInvisibleLayers
+                const newLayers = callback({ data: rest, previousLayers, action }, previous.output)
+                const newPreviousLayers = [
+                    ...previousLayers,
+                    ...newLayers.map((_, index) => (index + previousLayers.length))
                 ]
-                nodeOutput = {
-                    ...previous,
-                    output,
-                    //
-                    // Update running track of invisible layer (for independent cascade of invisible branches) and visible layer
-                    // (for the cascade of everything visible, ignoring invisible)
-                    //
-                    ...(invisible ? { leadingInvisibleLayer: output.length - 1 } : { leadingInvisibleLayer: undefined, leadingLayer: output.length - 1 })
+                return {
+                    output: [...previous.output, ...newLayers],
+                    state: previous.state.visible && data.visible
+                        ? { ...previous.state, previousLayers: newPreviousLayers }
+                        : { ...previous.state, previousInvisibleLayers: newPreviousLayers }
                 }
             }
-            return layer.children.reduce(this._walkHelper({ invisible }), nodeOutput)
-        }
-    }
-
-    walk(tree: GenericTreeDiff<SimulationTreeNode>)  {
-        const { output, leadingLayer: cascadeIndex } = tree.reduce<MapDThreeDFSReduce<O>>(this._walkHelper({}), { output: [] })
-        return { output, cascadeIndex }
-    }
+            else {
+                return previous
+            }
+        },
+        nest: ({ state, data }) => {
+            if (!data.visible) {
+                return {
+                    ...state,
+                    visible: false,
+                    previousInvisibleLayers: state.previousInvisibleLayers ?? state.previousLayers
+                }
+            }
+            return state
+        },
+        unNest: ({ previous, state, data }) => {
+            return {
+                ...state,
+                visible: previous.visible,
+                previousInvisibleLayers: previous.visible ? undefined : state.previousInvisibleLayers
+            }
+        },
+        returnVerbose: true
+    })(foldDiffTree(tree))
+    return { output, visibleLayers: previousLayers }
 }
 
-//
-// TODO: ISS3230: Refactor incoming properties to accept a tree of SimulationReturns, with
-// added visible property
-//
 export class MapDThreeTree extends Object {
-    layers: MapDThreeIterator[] = []
-    stable: boolean = true
-    onStability: SimCallback = () => {}
-    onTick: SimCallback = () => {}
+    layers: MapDThreeIterator[] = [];
+    stable: boolean = true;
+    onStability: SimCallback = () => {};
+    onTick: SimCallback = () => {};
     _tree: GenericTree<SimulationTreeNode> = [];
     _cascadeIndex?: number;
+    _visibleLayers: number[] = [];
 
     constructor(props: MapDThreeTreeProps) {
         super(props)
@@ -104,18 +92,24 @@ export class MapDThreeTree extends Object {
     }
 
     //
-    // An aggregator that decodes the nodes at the top layer (i.e., everything that has been cascaded up from the lower
-    // level simulators) and delivers it in readable format.
+    // An aggregator that decodes the nodes for a certain set of layers, and delivers it in readable format.
     //
-    get nodes(): SimNode[] {
-        if (this.layers.length > 0) {
-            //
-            // Overlay x and y with fx/fy if necessary (converting from null to undefined if needed)
-            //
-            return this.layers[this.layers.length - 1].nodes
-                .map(({ x, y, fx, fy, ...rest }) => ({ ...rest, x: x ?? (fx === null ? undefined : fx), y: y ?? (fy === null ? undefined : fy) }))
-        }
-        return []
+    getNodes(layers: number[], options: { referenceLayers?: MapDThreeIterator[] } = {}): (SimNode & { layers: number[] })[] {
+        return layers.reduceRight<(SimNode & { layers: number[] })[]>((previous, layerIndex) => {
+            const layer = (options.referenceLayers ?? this.layers)[layerIndex]
+            return (layer.nodes || [])
+                .reduce<(SimNode & { layers: number[] })[]>((accumulator, node) => {
+                    const previousNode = accumulator.find(({ id }) => (id === node.id))
+                    return [
+                        ...accumulator.filter(({ id }) => (id !== node.id)),
+                        { ...node, layers: [layerIndex, ...(previousNode?.layers ?? [])] }
+                    ]
+                }, previous)
+        }, [])
+    }
+
+    get nodes(): (SimNode & { layers: number[] })[] {
+        return this.getNodes(this._visibleLayers)
     }
     get links(): MapLinks {
         return this.layers.reduce<MapLinks>((previous, { links }) => ([ ...previous, ...links ]), [] as MapLinks)
@@ -137,22 +131,25 @@ export class MapDThreeTree extends Object {
     update(tree: GenericTree<SimulationTreeNode>): void {
         const incomingDiff = diffTrees({
             compare: ({ key: keyA }: SimulationTreeNode, { key: keyB }: SimulationTreeNode) => (keyA === keyB),
-            extractProperties: ({ key, nodes, links }): SimulationReturn => ({ key, nodes, links }),
+            extractProperties: ({ key, nodes, links, visible }): SimulationReturn & { visible: boolean } => ({ key, nodes, links, visible }),
             rehydrateProperties: (baseValue, properties) => (Object.assign(baseValue, ...properties)),
             verbose: true
         })(this._tree, tree)
 
         //
-        // Use _dfsWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
+        // Use mapDFSWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
         //
         let nextLayerIndex = 0
-        const dfsWalker = new MapDFSWalk(({ data, previousLayer, action }, outputLayers: MapDThreeIterator[]) => {
+        const { output, visibleLayers } = mapDFSWalk(({ data, previousLayers, action }, outputLayers: MapDThreeIterator[]) => {
             //
-            // Add appropriate callbacks based on previousLayer information
+            // Add appropriate callbacks based on previous layers information
             //
-            const cascadeCallback = (typeof previousLayer === 'undefined' || previousLayer >= outputLayers.length - 1)
-                ? () => {}
-                : () => (outputLayers[previousLayer].nodes)
+
+            //
+            // TODO: Limit cascadeCallback to the specific nodes and layers that are needed in cascade (rather
+            // than cascading everything).
+            //
+            const getCascadeNodes = () => (this.getNodes(previousLayers, { referenceLayers: outputLayers }))
             switch(action) {
                 case GenericTreeDiffAction.Context:
                 case GenericTreeDiffAction.Exclude:
@@ -162,13 +159,7 @@ export class MapDThreeTree extends Object {
                     if (this.layers[nextLayerIndex].key !== data.key) {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
-                    this.layers[nextLayerIndex].setCallbacks(
-                        cascadeCallback,
-                        //
-                        // TODO: Does onStabilize need to be reset?
-                        //
-                        () => {}
-                    )
+                    this.layers[nextLayerIndex].setCallbacks({ getCascadeNodes })
                     return [this.layers[nextLayerIndex++]]
                 case GenericTreeDiffAction.Delete:
                     if (data.nodes.length + data.links.length === 0) {
@@ -185,10 +176,7 @@ export class MapDThreeTree extends Object {
                         data.key,
                         data.nodes,
                         data.links,
-                    )
-                    addedIterator.setCallbacks(
-                        cascadeCallback,
-                        this.checkStability.bind(this)
+                        getCascadeNodes
                     )
                     return [addedIterator]
                 case GenericTreeDiffAction.Set:
@@ -198,136 +186,27 @@ export class MapDThreeTree extends Object {
                             data.nodes,
                             data.links,
                         )
-                        addedIterator.setCallbacks(
-                            cascadeCallback,
-                            this.checkStability.bind(this)
-                        )
+                        addedIterator.setCallbacks({ getCascadeNodes })
                         return [addedIterator]
                     }
-                    this.layers[nextLayerIndex].update(data.nodes, data.links, true)
-                    this.layers[nextLayerIndex].setCallbacks(
-                        cascadeCallback,
-                        this.checkStability.bind(this)
-                    )
+                    this.layers[nextLayerIndex].update(data.nodes, data.links, true, getCascadeNodes)
                     return [this.layers[nextLayerIndex++]]
             }
-        })
-        const { output, cascadeIndex } = dfsWalker.walk(incomingDiff)
+        })(incomingDiff)
         this.layers = output
-        this._cascadeIndex = cascadeIndex
+        this._visibleLayers = visibleLayers
         this._tree = tree
-        this.layers.forEach((layer, index) => {
-            layer.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
+        this.layers.forEach((layer) => {
+            layer.setCallbacks({
+                onTick: () => {},
+                onStability: this.checkStability.bind(this)
+            })
         })
+        if (visibleLayers.length) {
+            this.layers[visibleLayers.slice(-1)[0]].setCallbacks({ onTick: this.cascade.bind(this) })
+        }
         this.checkStability()
-        
-        // const previousNodesByRoomId = this.nodes.reduce<Record<string, SimNode>>((accumulator, node) => {
-        //     return {
-        //         ...accumulator,
-        //         [node.roomId]: node
-        //     }
-        // }, {})
-        // type PreviousLayerRecords = Record<string, { found: boolean; index: number, simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>> }>
-        // const previousLayersByKey = this.layers.reduce<PreviousLayerRecords>((previous, { key, simulation }, index) => ({ ...previous, [key]: { index, found: false, simulation } }), {})
 
-        // let forceRestart = false
-
-        // type IncomingLayersReduce = {
-        //     layers: MapDThreeIterator[];
-        //     previousLayersByKey: PreviousLayerRecords;
-        // }
-        // const { layers: newLayers, previousLayersByKey: processedLayers } = layers.reduce<IncomingLayersReduce>((previous, incomingLayer, index) => {
-
-        //     //
-        //     // Find where (if at all) this layer is positioned in current data
-        //     //
-
-        //     const previousIndex = previousLayersByKey[incomingLayer.key]?.index
-
-        //     //
-        //     // Map existing positions (where known) onto incoming nodes
-        //     //
-
-        //     const currentNodes = incomingLayer.nodes.map((node) => {
-        //         if (previousNodesByRoomId[node.roomId]) {
-        //             if (node.cascadeNode) {
-        //                 return {
-        //                     ...node,
-        //                     fx: previousNodesByRoomId[node.roomId].x,
-        //                     fy: previousNodesByRoomId[node.roomId].y,
-        //                 }    
-        //             }
-        //             else {
-        //                 return {
-        //                     ...node,
-        //                     x: previousNodesByRoomId[node.roomId].x,
-        //                     y: previousNodesByRoomId[node.roomId].y,
-        //                 }    
-        //             }
-        //         }
-        //         return node
-        //     })
-
-        //     //
-        //     // Apply create or update, and check whether forceRestart needs to be set
-        //     //
-
-        //     if (previousIndex !== undefined) {
-        //         const layerToUpdate = this.layers[previousIndex]
-        //         if (previousIndex !== index) {
-        //             forceRestart = true
-        //         }
-        //         const layerUpdateResult = layerToUpdate.update(currentNodes, incomingLayer.links, forceRestart, previous.layers.length > 0 ? () => previous.layers[previous.layers.length-1].nodes : () => []) ?? false
-        //         forceRestart = forceRestart || layerUpdateResult
-
-        //         return {
-        //             layers: [
-        //                 ...previous.layers,
-        //                 this.layers[previousIndex]
-        //             ],
-        //             previousLayersByKey: {
-        //                 ...previous.previousLayersByKey,
-        //                 [incomingLayer.key]: {
-        //                     ...previous.previousLayersByKey[incomingLayer.key],
-        //                     found: true
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     //
-        //     // If no match, you have a new layer (which needs to be created) and which should
-        //     // cause a forceRestart cascade
-        //     //
-
-        //     forceRestart = true
-        //     return {
-        //         layers: [
-        //             ...previous.layers,
-        //             new MapDThreeIterator(
-        //                 incomingLayer.key,
-        //                 incomingLayer.nodes,
-        //                 incomingLayer.links
-        //             )
-        //         ],
-        //         previousLayersByKey: previous.previousLayersByKey
-        //     }
-        // }, {
-        //     layers: [],
-        //     previousLayersByKey
-        // })
-
-        // //
-        // // If some layers have been removed, their DThree simulation processes should be stopped.
-        // //
-        // Object.values(processedLayers).filter(({ found }) => (!found))
-        //     .forEach(({ simulation }) => { simulation.stop() })
-
-        // this.layers = newLayers
-        // this.layers.forEach((layer, index) => {
-        //     layer.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
-        // })
-        // this.checkStability()
     }
     //
     // checkStability re-evaluates the stability of the entire stack of simulation layers.  Used as
@@ -359,9 +238,12 @@ export class MapDThreeTree extends Object {
     // dragNode and endDrag dispatch events to set forces on the appropriate layer
     //
     dragNode({ roomId, x, y }: { roomId: string, x: number, y: number }): void {
-        const layerToMessage = this.layers.find(({ nodes }) => (nodes.find((node) => (node.roomId === roomId))))
-        if (layerToMessage) {
-            layerToMessage?.dragNode({ roomId, x, y })
+        //
+        // TODO: Drag *only* the specific selection
+        //
+        const relevantLayers = this.layers.filter(({ nodes }) => (nodes.find((node) => (node.roomId === roomId))))
+        relevantLayers.forEach((layer) => { layer.dragNode({ roomId, x, y }) })
+        if (relevantLayers.length) {
             this.checkStability()
         }
     }
@@ -369,18 +251,8 @@ export class MapDThreeTree extends Object {
         this.layers.forEach((layer) => { layer.endDrag() })
     }
 
-    cascade(startingIndex: number) {
-        return () => {
-            if (startingIndex < 0 || startingIndex >= this.layers.length ) {
-                throw new Error('MapDThree cascade index out of bounds')
-            }
-            //
-            // If cascading off of the final visible layer of the simulation, deliver to simulation onTick
-            //
-            if (this._cascadeIndex >= startingIndex && this.layers.length > this._cascadeIndex) {
-                this.onTick(this.layers[this._cascadeIndex].nodes)
-            }
-        }
+    cascade() {
+        this.onTick(this.nodes)
     }
 
     unmount() {

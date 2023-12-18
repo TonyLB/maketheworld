@@ -1,4 +1,4 @@
-import { FunctionComponent, useReducer, useMemo, useEffect } from 'react'
+import { FunctionComponent, useMemo } from 'react'
 
 import {
     useParams
@@ -7,11 +7,8 @@ import {
 import useMapStyles from './useMapStyles'
 import MapArea from './Area'
 import MapLayers from './MapLayers'
-import { MapTree } from './maps'
 import ToolSelect from './Area/ToolSelect'
-import mapReducer, { MapReducer } from './reducer'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
-import normalToTree from './normalToTree'
 import { MapAppearance, isNormalImage } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import MapController from '../Controller'
@@ -31,21 +28,6 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         mapId: `MAP#${mapId}`,
         cascadingClose: true
     })
-
-    //
-    // TODO: Extract conditions and rooms from importDefaults
-    //
-
-    //
-    // TODO: Extract conditions and rooms from normalForm
-    //
-
-    //
-    // TODO: Display unconditioned rooms and exits
-    //
-    const defaultTree = useMemo(() => {
-        return normalToTree({ MapId: mapId || '', normalForm, rooms, inheritedExits: [], inheritedAppearances: [] })
-    }, [mapId, normalForm, rooms])
 
     //
     // TODO: Figure out how to extract fileURL from defaultAppearances

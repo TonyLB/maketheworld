@@ -1,6 +1,6 @@
 import { jest, beforeEach, describe, it, expect } from '@jest/globals'
 
-import MapDThreeTree, { MapDFSWalk, SimulationTreeNode } from './MapDThreeTree'
+import MapDThreeTree, { SimulationTreeNode, mapDFSWalk } from './MapDThreeTree'
 
 jest.mock('./MapDThreeIterator.tsx')
 import MapDThreeIteratorRaw from './MapDThreeIterator'
@@ -20,12 +20,10 @@ describe('dfsWalk', () => {
     const walkCallback = ({ action, ...value }: (MapDThreeDFSOutput & { action: GenericTreeDiffAction })) => ([value])
 
     it('should return an empty list on an empty tree', () => {
-        const testWalk = new MapDFSWalk(walkCallback)
-        expect(testWalk.walk([])).toEqual({ output: [] })
+        expect(mapDFSWalk(walkCallback)([])).toEqual([])
     })
 
     it('should return an empty list on a tree with no positions or exits', () => {
-        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -36,11 +34,10 @@ describe('dfsWalk', () => {
             action: GenericTreeDiffAction.Add,
             children: []
         }]
-        expect(testWalk.walk(incomingTree)).toEqual({ output: [] })
+        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual([])
     })
 
     it('should return a single layer on an unnested tree', () => {
-        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -56,7 +53,7 @@ describe('dfsWalk', () => {
             action: GenericTreeDiffAction.Add,
             children: []
         }]
-        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
+        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual([{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -65,13 +62,14 @@ describe('dfsWalk', () => {
                 ],
                 links: [
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
-                ]
-            }
-        }], cascadeIndex: 0 })
+                ],
+                visible: true
+            },
+            previousLayers: []
+        }])
     })
 
     it('should return a dfs order on a nested tree', () => {
-        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -117,7 +115,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
+        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual([{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -126,37 +124,41 @@ describe('dfsWalk', () => {
                 ],
                 links: [
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
-                ]
-            }
+                ],
+                visible: true
+            },
+            previousLayers: []
         },
         {
             data: {
                 key: 'Test-2',
                 nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
-                links: []
+                links: [],
+                visible: true
             },
-            previousLayer: 0
+            previousLayers: [0]
         },
         {
             data: {
                 key: 'Test-3',
                 nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
-                links: []
+                links: [],
+                visible: true
             },
-            previousLayer: 1
+            previousLayers: [0, 1]
         },
         {
             data: {
                 key: 'Test-4',
                 nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
-                links: []
+                links: [],
+                visible: true
             },
-            previousLayer: 2
-        }], cascadeIndex: 3 })
+            previousLayers: [0, 1, 2]
+        }])
     })
 
     it('should return a nuanced dfs order on a nested tree with invisible branches', () => {
-        const testWalk = new MapDFSWalk(walkCallback)
         const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -202,47 +204,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
-            data: {
-                key: 'Test-1',
-                nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
-                ],
-                links: [
-                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
-                ]
-            }
-        },
-        {
-            data: {
-                key: 'Test-2',
-                nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
-                links: []
-            },
-            previousLayer: 0
-        },
-        {
-            data: {
-                key: 'Test-3',
-                nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
-                links: []
-            },
-            previousLayer: 1
-        },
-        {
-            data: {
-                key: 'Test-4',
-                nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
-                links: []
-            },
-            previousLayer: 0
-        }], cascadeIndex: 3 })
-    })
-
-    it('should not append invisible branches to the cascadeIndex returned', () => {
-        const testWalk = new MapDFSWalk(walkCallback)
-        const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
+        expect(mapDFSWalk(walkCallback)(incomingTree)).toEqual([{
             data: {
                 key: 'Test-1',
                 nodes: [
@@ -254,75 +216,35 @@ describe('dfsWalk', () => {
                 ],
                 visible: true
             },
-            action: GenericTreeDiffAction.Add,
-            children: [
-                {
-                    data: {
-                        key: 'Test-2',
-                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
-                        links: [],
-                        visible: false
-                    },
-                    action: GenericTreeDiffAction.Add,
-                    children: [{
-                        data: {
-                            key: 'Test-3',
-                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
-                            links: [],
-                            visible: true    
-                        },
-                        action: GenericTreeDiffAction.Add,
-                        children: []
-                    }]
-                },
-                {
-                    data: {
-                        key: 'Test-4',
-                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
-                        links: [],
-                        visible: false
-                    },
-                    action: GenericTreeDiffAction.Add,
-                    children: []
-                }
-            ]
-        }]
-        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
-            data: {
-                key: 'Test-1',
-                nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
-                ],
-                links: [
-                    { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
-                ]
-            }
+            previousLayers: []
         },
         {
             data: {
                 key: 'Test-2',
                 nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
-                links: []
+                links: [],
+                visible: false
             },
-            previousLayer: 0
+            previousLayers: [0]
         },
         {
             data: {
                 key: 'Test-3',
                 nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
-                links: []
+                links: [],
+                visible: true
             },
-            previousLayer: 1
+            previousLayers: [0, 1]
         },
         {
             data: {
                 key: 'Test-4',
                 nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
-                links: []
+                links: [],
+                visible: true
             },
-            previousLayer: 0
-        }], cascadeIndex: 0 })
+            previousLayers: [0]
+        }])
     })
 
     it('should pass ongoing outputs to callback', () => {
@@ -331,7 +253,6 @@ describe('dfsWalk', () => {
             outputs.push(output.map(({ nodes }) => (nodes.map(({ id }) => (id)).join(','))))
             return [data]
         }
-        const testWalk = new MapDFSWalk(testCallback)
         const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
                 key: 'Test-1',
@@ -377,7 +298,7 @@ describe('dfsWalk', () => {
                 }
             ]
         }]
-        expect(testWalk.walk(incomingTree)).toEqual({ output: [{
+        expect(mapDFSWalk(testCallback)(incomingTree)).toEqual([{
             key: 'Test-1',
             nodes: [
                 { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
@@ -385,23 +306,27 @@ describe('dfsWalk', () => {
             ],
             links: [
                 { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
-            ]
+            ],
+            visible: true    
         },
         {
             key: 'Test-2',
             nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
-            links: []
+            links: [],
+            visible: true    
         },
         {
             key: 'Test-3',
             nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
-            links: []
+            links: [],
+            visible: true    
         },
         {
             key: 'Test-4',
             nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
-            links: []
-        }], cascadeIndex: 3 })
+            links: [],
+            visible: true    
+        }])
         expect(outputs).toEqual([
             [],
             ['Room-1,Room-2'],
@@ -461,15 +386,15 @@ describe('MapDThreeStack', () => {
         children: []
     }]
 
-    let testMapDThreeStack = new MapDThreeTree({ tree: [] })
+    let testMapDThreeTree = new MapDThreeTree({ tree: [] })
     let testLayerOne = new MapDThreeIterator('stub', [], [])
     let testLayerTwo = new MapDThreeIterator('stub', [], [])
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        testMapDThreeStack = new MapDThreeTree({ tree: testTree })
-        testLayerOne = testMapDThreeStack.layers[0]
+        testMapDThreeTree = new MapDThreeTree({ tree: testTree })
+        testLayerOne = testMapDThreeTree.layers[0]
         Object.defineProperty(testLayerOne, 'nodes', { get: jest.fn().mockReturnValue([{
             id: 'Two-A',
             roomId: 'GHI',
@@ -480,7 +405,7 @@ describe('MapDThreeStack', () => {
         }]) })
         testLayerOne.key = 'Two'
         testLayerOne.simulation = { stop: jest.fn() } as any
-        testLayerTwo = testMapDThreeStack.layers[1]
+        testLayerTwo = testMapDThreeTree.layers[1]
         Object.defineProperty(testLayerTwo, 'nodes', { get: jest.fn().mockReturnValue([{
             id: 'Two-A',
             roomId: 'GHI',
@@ -547,7 +472,7 @@ describe('MapDThreeStack', () => {
     })
 
     it('should update correctly when node moved between layers', () => {
-        testMapDThreeStack.update([{
+        testMapDThreeTree.update([{
             data: {
                 key: 'Two',
                 nodes: [{
@@ -633,7 +558,7 @@ describe('MapDThreeStack', () => {
     })
 
     it('should update correctly when layer removed', () => {
-        testMapDThreeStack.update([{
+        testMapDThreeTree.update([{
             data: {
                 key: 'One',
                 nodes: [{
@@ -660,7 +585,7 @@ describe('MapDThreeStack', () => {
             }], [], true)
 
         expect(testLayerOne.simulation.stop).toHaveBeenCalledTimes(1)
-        expect(testMapDThreeStack.layers.length).toEqual(1)
+        expect(testMapDThreeTree.layers.length).toEqual(1)
     })
 
 })
