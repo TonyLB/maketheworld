@@ -1,11 +1,11 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { NormalReference, isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 import { unique } from "../../../lib/lists"
 import MapDThree from "../Edit/MapDThree"
@@ -22,6 +22,30 @@ import dfsWalk from "@tonylb/mtw-sequence/dist/tree/dfsWalk"
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
 // representing the information needed to render the map in edit mode.
 //
+const extractMapTreeHelper = (schema: SchemaTag[], options: { baseRoomTags: Record<string, SchemaRoomTag> }): GenericTree<MapTreeItem> => {
+    const { baseRoomTags = {} } = options
+    return schema.map((node) => {
+        switch(node.tag) {
+            case 'Room':
+                return [{
+                    data: {
+                        ...baseRoomTags[node.key],
+                        x: node.x,
+                        y: node.y
+                    },
+                    children: []
+                }]
+            case 'If':
+                return [{
+                    data: node,
+                    children: extractMapTreeHelper(node.contents, { baseRoomTags })
+                }]
+            default:
+                return []
+        }
+    }).flat(1)
+}
+
 const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: string }): GenericTree<MapTreeItem> => {
     const mapItem = normalizer.normal[mapId]
     if (!mapItem || !isNormalMap(mapItem)) {
@@ -50,28 +74,13 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
                 [key]: roomTag
             }
         }, {})
-    const allRooms = mapItem.appearances.map<GenericTree<MapTreeItem>[]>(
-        ({ rooms }) => (
-            rooms
-                .map(({ conditions, key, x, y }) => {
-                    return [wrapConditionals(
-                        conditions.length ? [{
-                            tag: 'If',
-                            conditions,
-                            contents: [],
-                        }]: [],
-                        {
-                            data: {
-                                ...baseRoomTags[key],
-                                x,
-                                y
-                            },
-                            children: []
-                        }
-                    )]
-                })
-        )
-    ).flat(2)
+    //
+    // TODO: ISS-3272: Refactor this section here to use the contents of each appearance,
+    // rather than the rooms denormalization
+    //
+    const allRooms = mapItem.appearances.map<GenericTree<MapTreeItem>>(
+        ({ contents }) => (extractMapTreeHelper(contents.map((reference) => (normalizer.referenceToSchema(reference))), { baseRoomTags }))
+    ).flat(1)
     const allExits: GenericTree<MapTreeItem>[] = Object.values(normalizer.normal)
         .filter(isNormalExit)
         .filter(({ to, from }) => (to in baseRoomTags && from in baseRoomTags))
