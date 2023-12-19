@@ -1,11 +1,12 @@
 import { GenericTree } from "@tonylb/mtw-sequence/dist/tree/baseClasses"
 import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
+import { NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
 export type MapTreeExit = SchemaExitTag & { inherited?: boolean }
-export type MapTreeRoom = SchemaRoomTag & { inherited?: boolean }
+export type MapTreeRoom = SchemaRoomTag & { inherited?: boolean; reference?: NormalReference }
 export type MapTreeCondition = SchemaConditionTag & { inherited?: boolean }
 
 export type MapTreeItem = MapTreeExit | MapTreeRoom | MapTreeCondition
