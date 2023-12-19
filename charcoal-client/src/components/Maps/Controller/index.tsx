@@ -3,7 +3,7 @@ import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { BaseAppearance, ComponentAppearance, NormalCondition, NormalReference, isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
-import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected } from "./baseClasses"
+import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
@@ -200,8 +200,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Make local data and setters for node positions denormalized for display
     //
-    const extractRoomsByIdWalk = (incomingPositions: Record<string, { x: number; y: number }>) => (previous: { output: { roomId: string; name: string; x: number; y: number }[]; state: {} }, item: MapTreeItem): { output: { roomId: string; name: string; x: number; y: number }[]; state: {} } => {
-        if (isSchemaRoom(item)) {
+    const extractRoomsByIdWalk = (incomingPositions: Record<string, { x: number; y: number }>) => (previous: { output: MapContextPosition[]; state: {} }, item: MapTreeItem): { output: MapContextPosition[]; state: {} } => {
+        if (item.tag === 'Room' && item.reference) {
             if (item.key in incomingPositions) {
                 return {
                     ...previous,
@@ -212,6 +212,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                             name: taggedMessageToString(item.name as any),
                             x: incomingPositions[item.key]?.x,
                             y: incomingPositions[item.key]?.y,
+                            reference: item.reference
                         }
                     ]
                 }
@@ -332,24 +333,21 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(
         tree
             .map(({ data }) => (data))
-            .filter(isSchemaRoom)
-            .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
-            .map(({ key, x, y, name }) => ({ roomId: key, name: taggedMessageToString(name as any), x: x ?? 0, y: y ?? 0 }))
+            .filter(isMapTreeRoomWithPosition)
+            .map(({ key, x, y, name, reference }) => ({ roomId: key, name: taggedMessageToString(name as any), x, y, reference }))
     )
     const onTick = useCallback((nodes: SimNode[]) => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
         return setLocalPositions(tree
                 .map(({ data }) => (data))
-                .filter(isSchemaRoom)
-                .filter(({ x, y }) => ((typeof x !== 'undefined') && (typeof y !== 'undefined')))
+                .filter(isMapTreeRoomWithPosition)
                 .map((room) => ({
-                    type: 'ROOM' as const,
                     roomId: room.key,
                     x: 0,
                     y: 0,
                     key: room.key,
-                    zLevel: 0,
                     name: taggedMessageToString(room.name as any),
+                    reference: room.reference,
                     ...(xyByRoomId[room.key] || {})
                 }))
         )
