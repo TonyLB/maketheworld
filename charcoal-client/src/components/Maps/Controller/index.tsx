@@ -1,11 +1,11 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { NormalReference, isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { BaseAppearance, ComponentAppearance, NormalCondition, NormalReference, isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
 import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { SchemaConditionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 import { unique } from "../../../lib/lists"
 import MapDThree from "../Edit/MapDThree"
@@ -22,27 +22,36 @@ import dfsWalk from "@tonylb/mtw-sequence/dist/tree/dfsWalk"
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
 // representing the information needed to render the map in edit mode.
 //
-const extractMapTreeHelper = (schema: SchemaTag[], options: { baseRoomTags: Record<string, SchemaRoomTag> }): GenericTree<MapTreeItem> => {
-    const { baseRoomTags = {} } = options
-    return schema.map((node) => {
-        switch(node.tag) {
-            case 'Room':
-                return [{
-                    data: {
-                        ...baseRoomTags[node.key],
-                        x: node.x,
-                        y: node.y
-                    },
-                    children: []
-                }]
-            case 'If':
-                return [{
-                    data: node,
-                    children: extractMapTreeHelper(node.contents, { baseRoomTags })
-                }]
-            default:
-                return []
+const extractMapTreeHelper = (references: NormalReference[], options: { normalizer: Normalizer; baseRoomTags: Record<string, SchemaRoomTag> }): GenericTree<MapTreeItem> => {
+    const { baseRoomTags = {}, normalizer } = options
+    return references.map((reference) => {        
+        if (reference.tag === 'Room') {
+            const node = normalizer.normal[reference.key].appearances[reference.index] as ComponentAppearance
+            return [{
+                data: {
+                    ...baseRoomTags[reference.key],
+                    x: node.x,
+                    y: node.y,
+                    reference,
+                    contents: []
+                },
+                children: []
+            }]
         }
+        if (reference.tag === 'If') {
+            const baseNode = normalizer.normal[reference.key] as NormalCondition
+            const node = baseNode.appearances[reference.index] as BaseAppearance            
+            return [{
+                data: {
+                    tag: 'If' as const,
+                    key: baseNode.key,
+                    conditions: baseNode.conditions,
+                    contents: []
+                },
+                children: extractMapTreeHelper(node.contents, { normalizer, baseRoomTags })
+            }]
+        }
+        return []
     }).flat(1)
 }
 
@@ -79,7 +88,7 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
     // rather than the rooms denormalization
     //
     const allRooms = mapItem.appearances.map<GenericTree<MapTreeItem>>(
-        ({ contents }) => (extractMapTreeHelper(contents.map((reference) => (normalizer.referenceToSchema(reference))), { baseRoomTags }))
+        ({ contents }) => (extractMapTreeHelper(contents, { normalizer, baseRoomTags }))
     ).flat(1)
     const allExits: GenericTree<MapTreeItem>[] = Object.values(normalizer.normal)
         .filter(isNormalExit)
@@ -96,7 +105,10 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
                         return condition
                     })
                 return wrapConditionals(conditions, {
-                    data: baseRoomTags[exitTag.from],
+                    data: {
+                        ...baseRoomTags[exitTag.from],
+                        reference: { key: exitTag.from, tag: 'Room', index: 0 }
+                    },
                     children: [{
                         data: { tag: 'Exit', key: exitTag.key, to: exitTag.to, from: exitTag.from, name, contents: [] },
                         children: []
@@ -109,8 +121,8 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
         compare: (a: MapTreeItem, b: MapTreeItem) => {
             if (a.tag === 'Room' && b.tag === 'Room') {
                 return deepEqual(
-                    { ...a, x: 0, y: 0, contents: [], render: [], name: [] },
-                    { ...b, x: 0, y: 0, contents: [], render: [], name: [] }
+                    { ...a, x: 0, y: 0, reference: undefined, contents: [], render: [], name: [] },
+                    { ...b, x: 0, y: 0, reference: undefined, contents: [], render: [], name: [] }
                 )
             }
             return deepEqual(a, b)
