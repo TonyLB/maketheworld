@@ -1,5 +1,5 @@
 import { SchemaTag, isSchemaRoom, isSchemaWithContents } from "../baseClasses"
-import { mergeTrees } from '@tonylb/mtw-sequence/ts/tree/merge'
+import { mergeTrees } from '../../sequence/tree/merge'
 import { convertToTree, deconvertFromTree } from "./convert"
 import { deepEqual } from "../../lib/objects"
 

@@ -1,4 +1,4 @@
-import { GenericTree } from "@tonylb/mtw-sequence/dist/tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
 import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
@@ -10,6 +10,14 @@ export type MapTreeRoom = SchemaRoomTag & { inherited?: boolean; reference?: Nor
 export type MapTreeCondition = SchemaConditionTag & { inherited?: boolean }
 
 export type MapTreeItem = MapTreeExit | MapTreeRoom | MapTreeCondition
+export const isMapTreeRoom = (node: MapTreeItem): node is MapTreeRoom => (node.tag === 'Room')
+export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoom & { x: number; y: number; refeerence: NormalReference } => (
+    node.tag === 'Room' && (
+        typeof node.x !== 'undefined' &&
+        typeof node.y !== 'undefined' &&
+        Boolean(node.reference)
+    )
+)
 
 type MapContextExitDrag = {
     sourceRoomId: string;
@@ -105,6 +113,7 @@ export type MapContextPosition = {
     name: string;
     x: number;
     y: number;
+    reference: NormalReference;
 }
 
 export type MapContextType = {

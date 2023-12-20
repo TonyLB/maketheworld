@@ -1,3 +1,4 @@
+import { NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses';
 import {
     SimulationNodeDatum,
     SimulationLinkDatum
@@ -5,10 +6,10 @@ import {
 
 export type SimNode = SimulationNodeDatum & {
     id: string;
-    zLevel?: number;
     cascadeNode: boolean;
     roomId: string;
     visible: boolean;
+    reference: NormalReference;
 }
 export type NodeRecord = Record<string, SimNode>
 export type LinkRecord = {

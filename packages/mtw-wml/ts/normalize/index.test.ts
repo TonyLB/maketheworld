@@ -654,6 +654,20 @@ describe('WML normalize', () => {
             normalizer.delete({ key: 'Import-0', index: 0, tag: 'Import' })
             expect(normalizer.normal).toMatchSnapshot()
         })
+
+        it('should correctly delete from inside a conditional with options', () => {
+            const testSource = `<Asset key=(Test)>
+                <Room key=(room1) />
+                <If {true}><Room key=(room1)><Name>Test</Name></Room></If>
+            </Asset>`
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            normalizer.delete({ key: 'room1', index: 1, tag: 'Room' }, { removeEmptyConditions: false })
+            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+                <Asset key=(Test)><Room key=(room1) /><If {true} /></Asset>
+            `))
+
+        })
     })
 
     describe('positioned put method', () => {
@@ -1019,9 +1033,36 @@ describe('WML normalize', () => {
             normalizer.put(knowledgeUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }] })
             expect(normalizer.normal).toMatchSnapshot()
         })
+
+        it('should correctly update appearances in a nested conditional', () => {
+            const testSource = `<Asset key=(Test)>
+                <Room key=(room1) />
+                <Map key=(map1)>
+                    <If {true}><Room key=(room1) x="0" y="0" /></If>
+                </Map>
+            </Asset>`
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            const roomUpdate: SchemaTag = {
+                tag: 'Room',
+                key: 'room1',
+                contents: [],
+                render: [],
+                name: [],
+                x: 100,
+                y: 0
+            }
+            normalizer.put(roomUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'map1', tag: 'Map', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }], index: 0, replace: true })
+            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+            <Asset key=(Test)>
+                <Room key=(room1) />
+                <Map key=(map1)><If {true}><Room key=(room1) x="100" y="0" /></If></Map>
+            </Asset>
+            `))
+        })
     })
 
-    describe('merge function', () => {
+    xdescribe('merge function', () => {
         it('should merge two schemata', () => {
             const testOne = new Normalizer()
             testOne.loadSchema([

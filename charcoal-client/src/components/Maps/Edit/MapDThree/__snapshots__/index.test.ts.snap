@@ -17,6 +17,11 @@ Array [
                 Object {
                   "cascadeNode": true,
                   "id": "DEF",
+                  "reference": Object {
+                    "index": 0,
+                    "key": "",
+                    "tag": "Room",
+                  },
                   "roomId": "DEF",
                   "visible": true,
                   "x": 300,
@@ -25,6 +30,11 @@ Array [
                 Object {
                   "cascadeNode": true,
                   "id": "ABC",
+                  "reference": Object {
+                    "index": 0,
+                    "key": "",
+                    "tag": "Room",
+                  },
                   "roomId": "ABC",
                   "visible": true,
                   "x": 200,
@@ -42,6 +52,11 @@ Array [
             Object {
               "cascadeNode": true,
               "id": "GHI",
+              "reference": Object {
+                "index": 0,
+                "key": "",
+                "tag": "Room",
+              },
               "roomId": "GHI",
               "visible": true,
               "x": 300,

@@ -33,7 +33,8 @@ export class ExitDragD3Layer extends Object {
                 x: fx ?? x,
                 y: fy ?? y,
                 visible,
-                cascadeNode: true
+                cascadeNode: true,
+                reference: { tag: 'Room' as const, key: '', index: 0 }
             })),
             {
                 id: 'DRAG-TARGET',
@@ -41,7 +42,8 @@ export class ExitDragD3Layer extends Object {
                 x: 0,
                 y: 0,
                 visible: true,
-                cascadeNode: false
+                cascadeNode: false,
+                reference: { tag: 'Room' as const, key: '', index: 0 }
             }
         ]
         this.simulation = forceSimulation(this.nodes)

@@ -2,7 +2,7 @@ import { FunctionComponent, useMemo } from "react"
 import { useLibraryAsset } from "../../../Library/Edit/LibraryAsset"
 import { isNormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { useMapContext } from "../../Controller"
-import { GenericTree } from "@tonylb/mtw-sequence/dist/tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
 import { MapTreeItem } from "../../Controller/baseClasses"
 import { unique } from "../../../../lib/lists"
 import {
