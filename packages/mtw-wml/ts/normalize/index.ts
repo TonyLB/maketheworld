@@ -764,7 +764,7 @@ export class Normalizer {
         }
         if (position.replace) {
             const deleteReference = this._insertPositionToReference(position)
-            this.delete(deleteReference)
+            this.delete(deleteReference, { removeEmptyConditions: false })
         }
         const translateContext: NormalizerContext = {
             contextStack: position.contextStack
@@ -854,7 +854,7 @@ export class Normalizer {
         return returnValue
     }
 
-    delete(reference: NormalReference): void {
+    delete(reference: NormalReference, options: { removeEmptyConditions: boolean } = { removeEmptyConditions: true }): void {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
             const parentReference = this._getParentReference(appearance.contextStack)
@@ -866,11 +866,13 @@ export class Normalizer {
                 }
             }
             this._removeAppearance(reference)
-            const newParentReference = this._getParentReference(appearance.contextStack)
-            if (newParentReference && newParentReference.tag === 'If') {
-                const { contents = [] } = this._lookupAppearance(newParentReference)
-                if (!contents.length) {
-                    this.delete(newParentReference)
+            if (options.removeEmptyConditions) {
+                const newParentReference = this._getParentReference(appearance.contextStack)
+                if (newParentReference && newParentReference.tag === 'If') {
+                    const { contents = [] } = this._lookupAppearance(newParentReference)
+                    if (!contents.length) {
+                        this.delete(newParentReference)
+                    }
                 }
             }
             this._renameAllConditions()

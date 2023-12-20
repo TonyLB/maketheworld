@@ -132,9 +132,9 @@ const extractMapTree = ({ normalizer, mapId }: { normalizer: Normalizer, mapId: 
         },
         rehydrateProperties: (baseItem: MapTreeItem, properties: MapTreeItem[]) => (
             baseItem.tag === 'Room'
-                ? properties.filter((value): value is MapTreeRoom => (value.tag === 'Room')).reduce((previous, { x, y }) => (
+                ? properties.filter((value): value is MapTreeRoom => (value.tag === 'Room')).reduce((previous, { x, y, reference }) => (
                     (typeof x !== 'undefined' && typeof y !== 'undefined')
-                        ? { ...previous, x, y }
+                        ? { ...previous, x, y, reference }
                         : previous
                 ), baseItem)
                 : baseItem
