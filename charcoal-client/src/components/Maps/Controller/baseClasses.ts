@@ -1,4 +1,4 @@
-import { GenericTree } from "@tonylb/mtw-sequence/dist/tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
 import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses"

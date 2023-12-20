@@ -6,7 +6,7 @@ jest.mock('./MapDThreeIterator.tsx')
 import MapDThreeIteratorRaw from './MapDThreeIterator'
 
 import { mockClass } from '../../../../lib/jestHelpers'
-import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { SimulationReturn } from './baseClasses'
 
 const MapDThreeIterator = mockClass(MapDThreeIteratorRaw)

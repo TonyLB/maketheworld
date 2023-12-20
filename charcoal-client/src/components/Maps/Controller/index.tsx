@@ -1,8 +1,8 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 import { BaseAppearance, ComponentAppearance, NormalCondition, NormalReference, isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
-import { mergeTrees } from '@tonylb/mtw-sequence/dist/tree/merge'
+import { GenericTree, GenericTreeNode  } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { mergeTrees } from '@tonylb/mtw-wml/dist/sequence/tree/merge'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { SchemaConditionTag, SchemaRoomTag, isSchemaCondition, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
@@ -16,7 +16,7 @@ import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
 import { useDispatch, useSelector } from "react-redux"
 import { mapEditConditionsByMapId, toggle } from "../../../slices/UI/mapEdit"
-import dfsWalk from "@tonylb/mtw-sequence/dist/tree/dfsWalk"
+import dfsWalk from "@tonylb/mtw-wml/dist/sequence/tree/dfsWalk"
 
 //
 // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems

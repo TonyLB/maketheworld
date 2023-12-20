@@ -3,7 +3,7 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
 import { MapTreeExit, MapTreeItem } from '../../Controller/baseClasses'
-import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 
 type MapAreaProps = {
     fileURL?: string;

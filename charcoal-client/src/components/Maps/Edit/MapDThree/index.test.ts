@@ -5,7 +5,7 @@ import MapDThreeTreeRaw from './MapDThreeTree'
 import { MapDThree, mapTreeTranslate } from '.'
 
 import { mockClass } from '../../../../lib/jestHelpers'
-import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { MapTreeItem } from '../../Controller/baseClasses'
 const MapDThreeTree = mockClass(MapDThreeTreeRaw)
 

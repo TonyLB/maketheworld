@@ -1,4 +1,4 @@
-import { GenericTree } from "@tonylb/mtw-sequence/ts/tree/baseClasses"
+import { GenericTree } from "../../sequence/tree/baseClasses"
 import { SchemaContextItem, SchemaTag, isSchemaWithContents } from "../baseClasses"
 import converterMap from "../converters"
 

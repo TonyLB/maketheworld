@@ -9,9 +9,9 @@ import MapDThreeTree, { SimulationTreeNode } from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
+import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
-import dfsWalk from '@tonylb/mtw-sequence/dist/tree/dfsWalk'
+import dfsWalk from '@tonylb/mtw-wml/dist/sequence/tree/dfsWalk'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
