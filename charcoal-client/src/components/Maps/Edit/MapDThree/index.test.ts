@@ -15,10 +15,11 @@ describe('mapTreeTranslate', () => {
         jest.resetAllMocks()
     })
 
+    const reference = { tag: 'Room' as const, key: '', index: 0 }
     it('should aggregate nodes and links', () => {
         const testTree: GenericTree<MapTreeItem> = [
-            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100, name: [], render: [], contents: [] }, children: [] },
-            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100, name: [], render: [], contents: [] }, children: [
+            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100, name: [], render: [], contents: [], reference }, children: [] },
+            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100, name: [], render: [], contents: [], reference }, children: [
                 { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1', name: 'TestExit', contents: [] }, children: [] }
             ] }
         ]
@@ -26,8 +27,8 @@ describe('mapTreeTranslate', () => {
         expect(mapTreeTranslate(testTree, [])).toEqual([{
             data: {
                 nodes: [
-                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: true },
-                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: true }
+                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: true, reference },
+                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: true, reference }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -41,26 +42,26 @@ describe('mapTreeTranslate', () => {
 
     it('should nest conditionals as children of nodes and links', () => {
         const testTree: GenericTree<MapTreeItem> = [
-            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100, name: [], render: [], contents: [] }, children: [] },
-            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100, name: [], render: [], contents: [] }, children: [
+            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100, name: [], render: [], contents: [], reference }, children: [] },
+            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100, name: [], render: [], contents: [], reference }, children: [
                 { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1', name: 'TestExit', contents: [] }, children: [] },
                 { data: { tag: 'If', conditions: [], contents: [] }, children: [
                     { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2', name: 'TestExitBack', contents: [] }, children: [] }
                 ]}
             ] },
             { data: { tag: 'If', conditions: [], contents: [] }, children: [
-                { data: { tag: 'Room', key: 'Room3', x: -200, y: 100, name: [], render: [], contents: [] }, children: [] },
-                { data: { tag: 'Room', key: 'Room4', x: 200, y: 100, name: [], render: [], contents: [] }, children: [] }
+                { data: { tag: 'Room', key: 'Room3', x: -200, y: 100, name: [], render: [], contents: [], reference }, children: [] },
+                { data: { tag: 'Room', key: 'Room4', x: 200, y: 100, name: [], render: [], contents: [], reference }, children: [] }
             ]},
-            { data: { tag: 'Room', key: 'Room3', x: -100, y: 100, name: [], render: [], contents: [] }, children: [] }
+            { data: { tag: 'Room', key: 'Room3', x: -100, y: 100, name: [], render: [], contents: [], reference }, children: [] }
         ]
 
         expect(mapTreeTranslate(testTree, [])).toEqual([{
             data: {
                 nodes: [
-                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: true },
-                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: true },
-                    { id: 'Room3', roomId: 'Room3', x: -100, y: 100, visible: true, cascadeNode: true }
+                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: true, reference },
+                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: true, reference },
+                    { id: 'Room3', roomId: 'Room3', x: -100, y: 100, visible: true, cascadeNode: true, reference }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -82,7 +83,7 @@ describe('mapTreeTranslate', () => {
                 },
                 {
                     data: {
-                        nodes: [{ id: 'Room3', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: true }, { id: 'Room4', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: true }],
+                        nodes: [{ id: 'Room3', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: true, reference }, { id: 'Room4', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: true, reference }],
                         links: [],
                         visible: true,
                         key: 'Root::If-2'
@@ -96,6 +97,8 @@ describe('mapTreeTranslate', () => {
 })
 
 describe('MapDThree', () => {
+    const reference = { tag: 'Room' as const, key: '', index: 0 }
+
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -112,7 +115,8 @@ describe('MapDThree', () => {
                     y: 300,
                     name: [],
                     render: [],
-                    contents: []
+                    contents: [],
+                    reference
                 },
                 children: [],
             },
@@ -132,7 +136,8 @@ describe('MapDThree', () => {
                             y: 200,
                             name: [],
                             render: [],
-                            contents: []
+                            contents: [],
+                            reference
                         },
                         children: []
                     },
@@ -144,7 +149,8 @@ describe('MapDThree', () => {
                             y: 200,
                             name: [],
                             render: [],
-                            contents: []
+                            contents: [],
+                            reference
                         },
                         children: []
                     }

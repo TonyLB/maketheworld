@@ -1366,7 +1366,7 @@ export class Normalizer {
         return topLevelAppearances.map(({ key, appearanceIndex }) => (this._normalToSchema(key, appearanceIndex)))
     }
 
-    referenceToSchema(reference: NormalReference): SchemaTag {
+    referenceToSchema(reference: NormalReference): SchemaTag | undefined {
         return this._normalToSchema(reference.key, reference.index)
     }
 

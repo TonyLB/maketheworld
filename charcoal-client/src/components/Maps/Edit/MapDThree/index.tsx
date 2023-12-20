@@ -10,7 +10,7 @@ import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
 import { GenericTree } from '@tonylb/mtw-sequence/dist/tree/baseClasses'
-import { MapTreeItem } from '../../Controller/baseClasses'
+import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
 import dfsWalk from '@tonylb/mtw-sequence/dist/tree/dfsWalk'
 
 //
@@ -110,26 +110,27 @@ export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>, hiddenCondition
         //
         switch(data.tag) {
             case 'Room':
-                if (typeof data.x === 'undefined' || typeof data.y === 'undefined') {
-                    return previous
-                }
-                return {
-                    output: previous.output,
-                    state: {
-                        ...previous.state,
-                        nodes: [
-                            ...previous.state.nodes,
-                            {
-                                id: data.key,
-                                roomId: data.key,
-                                x: data.x ?? 0,
-                                y: data.y ?? 0,
-                                cascadeNode: true,
-                                visible: previous.state.visible
-                            }
-                        ]
+                if (isMapTreeRoomWithPosition(data)) {
+                    return {
+                        output: previous.output,
+                        state: {
+                            ...previous.state,
+                            nodes: [
+                                ...previous.state.nodes,
+                                {
+                                    id: data.key,
+                                    roomId: data.key,
+                                    x: data.x,
+                                    y: data.y,
+                                    cascadeNode: true,
+                                    visible: previous.state.visible,
+                                    reference: data.reference
+                                }
+                            ]
+                        }
                     }
                 }
+                return previous
             case 'Exit':
                 return {
                     output: previous.output,

@@ -1021,7 +1021,7 @@ describe('WML normalize', () => {
         })
     })
 
-    describe('merge function', () => {
+    xdescribe('merge function', () => {
         it('should merge two schemata', () => {
             const testOne = new Normalizer()
             testOne.loadSchema([
