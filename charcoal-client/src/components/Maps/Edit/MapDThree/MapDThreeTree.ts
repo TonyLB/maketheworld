@@ -21,15 +21,16 @@ type MapDThreeTreeProps = {
 // sources of cascading information for nodes (given the relationship of the
 // current node to other layers and their visibility).
 //
-export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; previousLayers: number[]; action: GenericTreeDiffAction }, output: O[]) => O[]) => 
+export const mapDFSWalk = <O, State extends {}>(callback: (value: { data: SimulationTreeNode; previousLayers: number[]; action: GenericTreeDiffAction; state: Partial<State> }, output: O[]) => O[]) => 
         (tree: GenericTreeDiff<SimulationTreeNode>) => {
-    const { output, state: { previousLayers } } = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean }>({
-        default: { output: [], state: { previousLayers: [], previousInvisibleLayers: [], visible: true } },
+    const { output, state: { previousLayers } } = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], Partial<State> & { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean }>({
+        default: { output: [], state: { previousLayers: [], previousInvisibleLayers: [], visible: true } as Partial<State> & { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean } },
         callback: (previous, data) => {
             if (data.nodes.length > 0) {
                 const { action, ...rest } = data
+                const { previousLayers: _, previousInvisibleLayers, visible, ...processState } = previous.state
                 const previousLayers = previous.state.visible ? previous.state.previousLayers : previous.state.previousInvisibleLayers
-                const newLayers = callback({ data: rest, previousLayers, action }, previous.output)
+                const newLayers = callback({ data: rest, previousLayers, action, state: processState as unknown as Partial<State> }, previous.output)
                 const newPreviousLayers = [
                     ...previousLayers,
                     ...newLayers.map((_, index) => (index + previousLayers.length))
@@ -147,7 +148,7 @@ export class MapDThreeTree extends Object {
             //
 
             //
-            // TODO: Limit cascadeCallback to the specific nodes and layers that are needed in cascade (rather
+            // Limit cascadeCallback to the specific nodes and layers that are needed in cascade (rather
             // than cascading everything).
             //
             const getCascadeNodes = () => (this.getNodes(previousLayers, { referenceLayers: outputLayers }))

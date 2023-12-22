@@ -17,7 +17,7 @@ type MapDThreeDFSOutput = {
 }
 
 describe('dfsWalk', () => {
-    const walkCallback = ({ action, ...value }: (MapDThreeDFSOutput & { action: GenericTreeDiffAction })) => ([value])
+    const walkCallback = ({ action, state, ...value }: (MapDThreeDFSOutput & { state: {}; action: GenericTreeDiffAction })) => ([value])
     const reference = { tag: 'Room' as const, key: '', index: 0 }
 
     it('should return an empty list on an empty tree', () => {
