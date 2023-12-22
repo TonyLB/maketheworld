@@ -15,7 +15,7 @@ Array [
               "links": Array [],
               "nodes": Array [
                 Object {
-                  "cascadeNode": true,
+                  "cascadeNode": false,
                   "id": "DEF",
                   "reference": Object {
                     "index": 0,
@@ -28,7 +28,7 @@ Array [
                   "y": 200,
                 },
                 Object {
-                  "cascadeNode": true,
+                  "cascadeNode": false,
                   "id": "ABC",
                   "reference": Object {
                     "index": 0,
@@ -50,7 +50,7 @@ Array [
           "links": Array [],
           "nodes": Array [
             Object {
-              "cascadeNode": true,
+              "cascadeNode": false,
               "id": "GHI",
               "reference": Object {
                 "index": 0,

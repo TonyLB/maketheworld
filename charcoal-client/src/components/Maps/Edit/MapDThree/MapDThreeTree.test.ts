@@ -17,7 +17,7 @@ type MapDThreeDFSOutput = {
 }
 
 describe('dfsWalk', () => {
-    const walkCallback = ({ action, ...value }: (MapDThreeDFSOutput & { action: GenericTreeDiffAction })) => ([value])
+    const walkCallback = ({ action, state, ...value }: (MapDThreeDFSOutput & { state: {}; action: GenericTreeDiffAction })) => ({ output: [value], state: {} })
     const reference = { tag: 'Room' as const, key: '', index: 0 }
 
     it('should return an empty list on an empty tree', () => {
@@ -261,7 +261,7 @@ describe('dfsWalk', () => {
         let outputs: string[][] = []
         const testCallback = ({ data }: (MapDThreeDFSOutput & { action: GenericTreeDiffAction }), output: SimulationReturn[]) => {
             outputs.push(output.map(({ nodes }) => (nodes.map(({ id }) => (id)).join(','))))
-            return [data]
+            return { output: [data], state: {} }
         }
         const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
@@ -405,16 +405,14 @@ describe('MapDThreeStack', () => {
         children: []
     }]
 
-    let testMapDThreeTree = new MapDThreeTree({ tree: [] })
-    let testLayerOne = new MapDThreeIterator('stub', [], [])
-    let testLayerTwo = new MapDThreeIterator('stub', [], [])
+    // let testMapDThreeTree = new MapDThreeTree({ tree: [] })
+    // let testLayerOne = new MapDThreeIterator('stub', [], [])
+    // let testLayerTwo = new MapDThreeIterator('stub', [], [])
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        testMapDThreeTree = new MapDThreeTree({ tree: testTree })
-        testLayerOne = testMapDThreeTree.layers[0]
-        Object.defineProperty(testLayerOne, 'nodes', { get: jest.fn().mockReturnValue([{
+        const nodesOne = [{
             id: 'Two-A',
             roomId: 'GHI',
             cascadeNode: false,
@@ -422,11 +420,8 @@ describe('MapDThreeStack', () => {
             y: 300,
             visible: true,
             reference
-        }]) })
-        testLayerOne.key = 'Two'
-        testLayerOne.simulation = { stop: jest.fn() } as any
-        testLayerTwo = testMapDThreeTree.layers[1]
-        Object.defineProperty(testLayerTwo, 'nodes', { get: jest.fn().mockReturnValue([{
+        }]
+        const nodesTwo = [{
             id: 'Two-A',
             roomId: 'GHI',
             cascadeNode: true,
@@ -452,12 +447,30 @@ describe('MapDThreeStack', () => {
             y: 200,
             visible: true,
             reference
-        }]) })
-        testLayerTwo.key = 'One'
+        }]
+        MapDThreeIterator
+            .mockImplementationOnce(() => ({
+                nodes: nodesOne,
+                _nodes: nodesOne,
+                key: 'Two',
+                simulation: { stop: jest.fn() },
+                setCallbacks: jest.fn(),
+                liven: jest.fn(),
+                update: jest.fn()
+            } as any))
+            .mockImplementationOnce(() => ({
+                nodes: nodesTwo,
+                _nodes: nodesTwo,
+                key: 'One',
+                simulation: { stop: jest.fn() },
+                setCallbacks: jest.fn(),
+                liven: jest.fn(),
+                update: jest.fn()
+            } as any))
     })
 
     it('should initialize layers on construction', () => {
-
+        const testMapDThreeTree = new MapDThreeTree({ tree: testTree })
         expect(MapDThreeIterator).toHaveBeenCalledTimes(2)
         expect(MapDThreeIterator).toHaveBeenCalledWith("Two", [{
             id: 'Two-A',
@@ -499,6 +512,7 @@ describe('MapDThreeStack', () => {
     })
 
     it('should update correctly when node moved between layers', () => {
+        const testMapDThreeTree = new MapDThreeTree({ tree: testTree })
         testMapDThreeTree.update([{
             data: {
                 key: 'Two',
@@ -553,7 +567,7 @@ describe('MapDThreeStack', () => {
         }])
             
 
-        expect(testLayerOne.update).toHaveBeenCalledWith([{
+        expect(testMapDThreeTree.layers[0].update).toHaveBeenCalledWith([{
             id: 'Two-A',
             roomId: 'GHI',
             x: 300,
@@ -572,7 +586,7 @@ describe('MapDThreeStack', () => {
             reference
         }], [], true, expect.any(Function))
 
-        expect(testLayerTwo.update).toHaveBeenCalledWith([{
+        expect(testMapDThreeTree.layers[1].update).toHaveBeenCalledWith([{
                 id: 'Two-A',
                 roomId: 'GHI',
                 x: 300,
@@ -593,6 +607,9 @@ describe('MapDThreeStack', () => {
     })
 
     it('should update correctly when layer removed', () => {
+        const testMapDThreeTree = new MapDThreeTree({ tree: testTree })
+        const movedLayer = testMapDThreeTree.layers[1]
+        const deletedLayer = testMapDThreeTree.layers[0]
         testMapDThreeTree.update([{
             data: {
                 key: 'One',
@@ -611,7 +628,7 @@ describe('MapDThreeStack', () => {
             children: []
         }])
 
-        expect(testLayerTwo.update).toHaveBeenCalledWith([{
+        expect(movedLayer.update).toHaveBeenCalledWith([{
                 id: 'One-A',
                 roomId: 'ABC',
                 x: 200,
@@ -621,7 +638,7 @@ describe('MapDThreeStack', () => {
                 reference
             }], [], true, expect.any(Function))
 
-        expect(testLayerOne.simulation.stop).toHaveBeenCalledTimes(1)
+        expect(deletedLayer.simulation.stop).toHaveBeenCalledTimes(1)
         expect(testMapDThreeTree.layers.length).toEqual(1)
     })
 

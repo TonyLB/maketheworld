@@ -27,8 +27,8 @@ describe('mapTreeTranslate', () => {
         expect(mapTreeTranslate(testTree, [])).toEqual([{
             data: {
                 nodes: [
-                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: true, reference },
-                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: true, reference }
+                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false, reference },
+                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false, reference }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -59,9 +59,9 @@ describe('mapTreeTranslate', () => {
         expect(mapTreeTranslate(testTree, [])).toEqual([{
             data: {
                 nodes: [
-                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: true, reference },
-                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: true, reference },
-                    { id: 'Room3', roomId: 'Room3', x: -100, y: 100, visible: true, cascadeNode: true, reference }
+                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false, reference },
+                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false, reference },
+                    { id: 'Room3', roomId: 'Room3', x: -100, y: 100, visible: true, cascadeNode: false, reference }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -83,7 +83,7 @@ describe('mapTreeTranslate', () => {
                 },
                 {
                     data: {
-                        nodes: [{ id: 'Room3', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: true, reference }, { id: 'Room4', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: true, reference }],
+                        nodes: [{ id: 'Room3', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: false, reference }, { id: 'Room4', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: false, reference }],
                         links: [],
                         visible: true,
                         key: 'Root::If-2'

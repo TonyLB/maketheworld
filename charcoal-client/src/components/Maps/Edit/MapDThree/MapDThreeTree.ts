@@ -3,6 +3,8 @@ import MapDThreeIterator from './MapDThreeIterator'
 import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/sequence/tree/diff'
 import dfsWalk from '@tonylb/mtw-wml/dist/sequence/tree/dfsWalk'
+import { unique } from '../../../../lib/lists'
+import { SimulationLinkDatum } from 'd3-force'
 
 export type SimulationTreeNode = SimulationReturn & {
     visible: boolean;
@@ -20,15 +22,16 @@ type MapDThreeTreeProps = {
 // sources of cascading information for nodes (given the relationship of the
 // current node to other layers and their visibility).
 //
-export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; previousLayers: number[]; action: GenericTreeDiffAction }, output: O[]) => O[]) => 
+export const mapDFSWalk = <O, State extends {}>(callback: (value: { data: SimulationTreeNode; previousLayers: number[]; action: GenericTreeDiffAction; state: Partial<State> }, output: O[]) => { output: O[]; state: State }) => 
         (tree: GenericTreeDiff<SimulationTreeNode>) => {
-    const { output, state: { previousLayers } } = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean }>({
-        default: { output: [], state: { previousLayers: [], previousInvisibleLayers: [], visible: true } },
+    const { output, state: { previousLayers } } = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], Partial<State> & { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean }>({
+        default: { output: [], state: { previousLayers: [], previousInvisibleLayers: [], visible: true } as Partial<State> & { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean } },
         callback: (previous, data) => {
             if (data.nodes.length > 0) {
                 const { action, ...rest } = data
+                const { previousLayers: _, previousInvisibleLayers, visible, ...processState } = previous.state
                 const previousLayers = previous.state.visible ? previous.state.previousLayers : previous.state.previousInvisibleLayers
-                const newLayers = callback({ data: rest, previousLayers, action }, previous.output)
+                const { output: newLayers, state: newState } = callback({ data: rest, previousLayers, action, state: processState as unknown as Partial<State> }, previous.output)
                 const newPreviousLayers = [
                     ...previousLayers,
                     ...newLayers.map((_, index) => (index + previousLayers.length))
@@ -36,8 +39,8 @@ export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; prev
                 return {
                     output: [...previous.output, ...newLayers],
                     state: previous.state.visible && data.visible
-                        ? { ...previous.state, previousLayers: newPreviousLayers }
-                        : { ...previous.state, previousInvisibleLayers: newPreviousLayers }
+                        ? { ...previous.state, ...newState, previousLayers: newPreviousLayers }
+                        : { ...previous.state, ...newState, previousInvisibleLayers: newPreviousLayers }
                 }
             }
             else {
@@ -56,8 +59,8 @@ export const mapDFSWalk = <O>(callback: (value: { data: SimulationTreeNode; prev
         },
         unNest: ({ previous, state, data }) => {
             return {
-                ...state,
-                visible: previous.visible,
+                ...previous,
+                previousLayers: state.previousLayers,
                 previousInvisibleLayers: previous.visible ? undefined : state.previousInvisibleLayers
             }
         },
@@ -140,57 +143,88 @@ export class MapDThreeTree extends Object {
         // Use mapDFSWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
         //
         let nextLayerIndex = 0
-        const { output, visibleLayers } = mapDFSWalk(({ data, previousLayers, action }, outputLayers: MapDThreeIterator[]) => {
+        const { output, visibleLayers } = mapDFSWalk<MapDThreeIterator, { links?: (SimulationLinkDatum<SimNode> & { id: string })[] }>(({ data, previousLayers, action, state }, outputLayers: MapDThreeIterator[]) => {
             //
             // Add appropriate callbacks based on previous layers information
             //
 
             //
-            // TODO: Limit cascadeCallback to the specific nodes and layers that are needed in cascade (rather
+            // Figure out all links from the running aggregate that are relevant to this layer
+            //
+            const internalRoomIds = data.nodes.map(({ roomId }) => (roomId))
+            const relevantLinks = [...(state.links ?? []), ...data.links]
+                .map(({ source, ...rest }) => ({ source: typeof source === 'number' ? '' : typeof source === 'string' ? source: source.roomId, ...rest }))
+                .map(({ target, ...rest }) => ({ target: typeof target === 'number' ? '' : typeof target === 'string' ? target: target.roomId, ...rest }))
+                .filter(({ source, target }) => (internalRoomIds.includes(source) || internalRoomIds.includes(target)))
+
+            //
+            // Limit cascadeCallback to the specific nodes and layers that are needed in cascade (rather
             // than cascading everything).
             //
             const getCascadeNodes = () => (this.getNodes(previousLayers, { referenceLayers: outputLayers }))
+            const addableCascadeNodes = previousLayers
+                .map((index) => (outputLayers[index].nodes))
+                .flat(1)
+                .reduce<Record<string, SimNode>>((previous, node) => ({
+                    ...previous,
+                    [node.roomId]: node
+                }), {})
+            const neededCascadeKeys = unique(relevantLinks
+                .map(({ source, target }) => {
+                    const sourceIncluded = internalRoomIds.includes(source)
+                    const targetIncluded = internalRoomIds.includes(target)
+                    if (sourceIncluded && !targetIncluded) {
+                        return [target]
+                    }
+                    if (targetIncluded && !sourceIncluded) {
+                        return [source]
+                    }
+                    return []
+                }).flat(1))
+            const addedCascadeNodes = neededCascadeKeys
+                .filter((key) => (key in addableCascadeNodes))
+                .map((key) => ({ ...addableCascadeNodes[key], cascadeNode: true }))
             switch(action) {
                 case GenericTreeDiffAction.Context:
                 case GenericTreeDiffAction.Exclude:
                     if (data.nodes.length + data.links.length === 0) {
-                        return []
+                        return { output: [], state }
                     }
                     if (this.layers[nextLayerIndex].key !== data.key) {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
                     this.layers[nextLayerIndex].setCallbacks({ getCascadeNodes })
-                    return [this.layers[nextLayerIndex++]]
+                    return { output: [this.layers[nextLayerIndex++]], state: { links: [ ...(state.links ?? []), ...data.links ]} }
                 case GenericTreeDiffAction.Delete:
                     if (data.nodes.length + data.links.length === 0) {
-                        return []
+                        return { output: [], state }
                     }
                     if (this.layers[nextLayerIndex].key !== data.key) {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
                     this.layers[nextLayerIndex].simulation.stop()
                     nextLayerIndex++
-                    return []
+                    return { output: [], state }
                 case GenericTreeDiffAction.Add:
                     const addedIterator = new MapDThreeIterator(
                         data.key,
-                        data.nodes,
-                        data.links,
+                        [...addedCascadeNodes, ...data.nodes],
+                        relevantLinks,
                         getCascadeNodes
                     )
-                    return [addedIterator]
+                    return { output: [addedIterator], state: { links: [ ...(state.links ?? []), ...data.links ]} }
                 case GenericTreeDiffAction.Set:
                     if (nextLayerIndex >= this.layers.length || this.layers[nextLayerIndex].key !== data.key) {
                         const addedIterator = new MapDThreeIterator(
                             data.key,
-                            data.nodes,
-                            data.links,
+                            [...addedCascadeNodes, ...data.nodes],
+                            relevantLinks,
+                            getCascadeNodes
                         )
-                        addedIterator.setCallbacks({ getCascadeNodes })
-                        return [addedIterator]
+                        return { output: [addedIterator], state: { links: [ ...(state.links ?? []), ...data.links ]} }
                     }
-                    this.layers[nextLayerIndex].update(data.nodes, data.links, true, getCascadeNodes)
-                    return [this.layers[nextLayerIndex++]]
+                    this.layers[nextLayerIndex].update([...addedCascadeNodes, ...data.nodes], relevantLinks, true, getCascadeNodes)
+                    return { output: [this.layers[nextLayerIndex++]], state: { links: [ ...(state.links ?? []), ...data.links ]} }
             }
         })(incomingDiff)
         this.layers = output
