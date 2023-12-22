@@ -3,6 +3,7 @@ import MapDThreeIterator from './MapDThreeIterator'
 import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/sequence/tree/diff'
 import dfsWalk from '@tonylb/mtw-wml/dist/sequence/tree/dfsWalk'
+import { unique } from '../../../../lib/lists'
 
 export type SimulationTreeNode = SimulationReturn & {
     visible: boolean;
@@ -150,6 +151,31 @@ export class MapDThreeTree extends Object {
             // than cascading everything).
             //
             const getCascadeNodes = () => (this.getNodes(previousLayers, { referenceLayers: outputLayers }))
+            const addableCascadeNodes = previousLayers
+                .map((index) => (outputLayers[index].nodes))
+                .flat(1)
+                .reduce<Record<string, SimNode>>((previous, node) => ({
+                    ...previous,
+                    [node.roomId]: node
+                }), {})
+            const internalRoomIds = data.nodes.map(({ roomId }) => (roomId))
+            const neededCascadeKeys = unique(data.links
+                .map(({ source, target }) => {
+                    const sourceRoomId = typeof source === 'number' ? '' : typeof source === 'string' ? source : source.roomId
+                    const targetRoomId = typeof target === 'number' ? '' : typeof target === 'string' ? target : target.roomId
+                    const sourceIncluded = internalRoomIds.includes(sourceRoomId)
+                    const targetIncluded = internalRoomIds.includes(targetRoomId)
+                    if (sourceIncluded && !targetIncluded) {
+                        return [targetRoomId]
+                    }
+                    if (targetIncluded && !sourceIncluded) {
+                        return [sourceRoomId]
+                    }
+                    return []
+                }).flat(1))
+            const addedCascadeNodes = neededCascadeKeys
+                .filter((key) => (key in addableCascadeNodes))
+                .map((key) => (addableCascadeNodes[key]))
             switch(action) {
                 case GenericTreeDiffAction.Context:
                 case GenericTreeDiffAction.Exclude:
@@ -174,7 +200,7 @@ export class MapDThreeTree extends Object {
                 case GenericTreeDiffAction.Add:
                     const addedIterator = new MapDThreeIterator(
                         data.key,
-                        data.nodes,
+                        [...addedCascadeNodes, ...data.nodes],
                         data.links,
                         getCascadeNodes
                     )
@@ -183,13 +209,13 @@ export class MapDThreeTree extends Object {
                     if (nextLayerIndex >= this.layers.length || this.layers[nextLayerIndex].key !== data.key) {
                         const addedIterator = new MapDThreeIterator(
                             data.key,
-                            data.nodes,
+                            [...addedCascadeNodes, ...data.nodes],
                             data.links,
                         )
                         addedIterator.setCallbacks({ getCascadeNodes })
                         return [addedIterator]
                     }
-                    this.layers[nextLayerIndex].update(data.nodes, data.links, true, getCascadeNodes)
+                    this.layers[nextLayerIndex].update([...addedCascadeNodes, ...data.nodes], data.links, true, getCascadeNodes)
                     return [this.layers[nextLayerIndex++]]
             }
         })(incomingDiff)
