@@ -21,7 +21,7 @@ type MapDThreeTreeProps = {
 // sources of cascading information for nodes (given the relationship of the
 // current node to other layers and their visibility).
 //
-export const mapDFSWalk = <O, State extends {}>(callback: (value: { data: SimulationTreeNode; previousLayers: number[]; action: GenericTreeDiffAction; state: Partial<State> }, output: O[]) => O[]) => 
+export const mapDFSWalk = <O, State extends {}>(callback: (value: { data: SimulationTreeNode; previousLayers: number[]; action: GenericTreeDiffAction; state: Partial<State> }, output: O[]) => { output: O[]; state: State }) => 
         (tree: GenericTreeDiff<SimulationTreeNode>) => {
     const { output, state: { previousLayers } } = dfsWalk<SimulationTreeNode & { action: GenericTreeDiffAction }, O[], Partial<State> & { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean }>({
         default: { output: [], state: { previousLayers: [], previousInvisibleLayers: [], visible: true } as Partial<State> & { previousLayers: number[], previousInvisibleLayers?: number[]; visible: boolean } },
@@ -30,7 +30,7 @@ export const mapDFSWalk = <O, State extends {}>(callback: (value: { data: Simula
                 const { action, ...rest } = data
                 const { previousLayers: _, previousInvisibleLayers, visible, ...processState } = previous.state
                 const previousLayers = previous.state.visible ? previous.state.previousLayers : previous.state.previousInvisibleLayers
-                const newLayers = callback({ data: rest, previousLayers, action, state: processState as unknown as Partial<State> }, previous.output)
+                const { output: newLayers, state: newState } = callback({ data: rest, previousLayers, action, state: processState as unknown as Partial<State> }, previous.output)
                 const newPreviousLayers = [
                     ...previousLayers,
                     ...newLayers.map((_, index) => (index + previousLayers.length))
@@ -38,8 +38,8 @@ export const mapDFSWalk = <O, State extends {}>(callback: (value: { data: Simula
                 return {
                     output: [...previous.output, ...newLayers],
                     state: previous.state.visible && data.visible
-                        ? { ...previous.state, previousLayers: newPreviousLayers }
-                        : { ...previous.state, previousInvisibleLayers: newPreviousLayers }
+                        ? { ...previous.state, ...newState, previousLayers: newPreviousLayers }
+                        : { ...previous.state, ...newState, previousInvisibleLayers: newPreviousLayers }
                 }
             }
             else {
@@ -58,8 +58,8 @@ export const mapDFSWalk = <O, State extends {}>(callback: (value: { data: Simula
         },
         unNest: ({ previous, state, data }) => {
             return {
-                ...state,
-                visible: previous.visible,
+                ...previous,
+                previousLayers: state.previousLayers,
                 previousInvisibleLayers: previous.visible ? undefined : state.previousInvisibleLayers
             }
         },
@@ -142,7 +142,7 @@ export class MapDThreeTree extends Object {
         // Use mapDFSWalk on the tree diff, handling Add, Delete and Set actions on Rooms, Exits, and Layers.
         //
         let nextLayerIndex = 0
-        const { output, visibleLayers } = mapDFSWalk(({ data, previousLayers, action }, outputLayers: MapDThreeIterator[]) => {
+        const { output, visibleLayers } = mapDFSWalk(({ data, previousLayers, action, state }, outputLayers: MapDThreeIterator[]) => {
             //
             // Add appropriate callbacks based on previous layers information
             //
@@ -181,23 +181,23 @@ export class MapDThreeTree extends Object {
                 case GenericTreeDiffAction.Context:
                 case GenericTreeDiffAction.Exclude:
                     if (data.nodes.length + data.links.length === 0) {
-                        return []
+                        return { output: [], state }
                     }
                     if (this.layers[nextLayerIndex].key !== data.key) {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
                     this.layers[nextLayerIndex].setCallbacks({ getCascadeNodes })
-                    return [this.layers[nextLayerIndex++]]
+                    return { output: [this.layers[nextLayerIndex++]], state }
                 case GenericTreeDiffAction.Delete:
                     if (data.nodes.length + data.links.length === 0) {
-                        return []
+                        return { output: [], state }
                     }
                     if (this.layers[nextLayerIndex].key !== data.key) {
                         throw new Error(`Unaligned diff node (${this.layers[nextLayerIndex].key} vs. ${data.key})`)
                     }
                     this.layers[nextLayerIndex].simulation.stop()
                     nextLayerIndex++
-                    return []
+                    return { output: [], state }
                 case GenericTreeDiffAction.Add:
                     const addedIterator = new MapDThreeIterator(
                         data.key,
@@ -205,7 +205,7 @@ export class MapDThreeTree extends Object {
                         data.links,
                         getCascadeNodes
                     )
-                    return [addedIterator]
+                    return { output: [addedIterator], state }
                 case GenericTreeDiffAction.Set:
                     if (nextLayerIndex >= this.layers.length || this.layers[nextLayerIndex].key !== data.key) {
                         const addedIterator = new MapDThreeIterator(
@@ -214,10 +214,10 @@ export class MapDThreeTree extends Object {
                             data.links,
                         )
                         addedIterator.setCallbacks({ getCascadeNodes })
-                        return [addedIterator]
+                        return { output: [addedIterator], state }
                     }
                     this.layers[nextLayerIndex].update([...addedCascadeNodes, ...data.nodes], data.links, true, getCascadeNodes)
-                    return [this.layers[nextLayerIndex++]]
+                    return { output: [this.layers[nextLayerIndex++]], state }
             }
         })(incomingDiff)
         this.layers = output

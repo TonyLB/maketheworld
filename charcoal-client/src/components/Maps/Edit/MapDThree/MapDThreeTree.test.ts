@@ -17,7 +17,7 @@ type MapDThreeDFSOutput = {
 }
 
 describe('dfsWalk', () => {
-    const walkCallback = ({ action, state, ...value }: (MapDThreeDFSOutput & { state: {}; action: GenericTreeDiffAction })) => ([value])
+    const walkCallback = ({ action, state, ...value }: (MapDThreeDFSOutput & { state: {}; action: GenericTreeDiffAction })) => ({ output: [value], state: {} })
     const reference = { tag: 'Room' as const, key: '', index: 0 }
 
     it('should return an empty list on an empty tree', () => {
@@ -261,7 +261,7 @@ describe('dfsWalk', () => {
         let outputs: string[][] = []
         const testCallback = ({ data }: (MapDThreeDFSOutput & { action: GenericTreeDiffAction }), output: SimulationReturn[]) => {
             outputs.push(output.map(({ nodes }) => (nodes.map(({ id }) => (id)).join(','))))
-            return [data]
+            return { output: [data], state: {} }
         }
         const incomingTree: GenericTreeDiff<SimulationTreeNode> = [{
             data: {
