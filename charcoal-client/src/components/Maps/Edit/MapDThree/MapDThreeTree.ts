@@ -183,7 +183,7 @@ export class MapDThreeTree extends Object {
                 }).flat(1))
             const addedCascadeNodes = neededCascadeKeys
                 .filter((key) => (key in addableCascadeNodes))
-                .map((key) => (addableCascadeNodes[key]))
+                .map((key) => ({ ...addableCascadeNodes[key], cascadeNode: true }))
             switch(action) {
                 case GenericTreeDiffAction.Context:
                 case GenericTreeDiffAction.Exclude:
@@ -223,7 +223,7 @@ export class MapDThreeTree extends Object {
                         )
                         return { output: [addedIterator], state: { links: [ ...(state.links ?? []), ...data.links ]} }
                     }
-                    this.layers[nextLayerIndex].update([...addedCascadeNodes, ...data.nodes], data.links, true, getCascadeNodes)
+                    this.layers[nextLayerIndex].update([...addedCascadeNodes, ...data.nodes], relevantLinks, true, getCascadeNodes)
                     return { output: [this.layers[nextLayerIndex++]], state: { links: [ ...(state.links ?? []), ...data.links ]} }
             }
         })(incomingDiff)

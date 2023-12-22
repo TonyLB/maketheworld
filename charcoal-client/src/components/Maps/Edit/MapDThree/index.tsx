@@ -122,7 +122,7 @@ export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>, hiddenCondition
                                     roomId: data.key,
                                     x: data.x,
                                     y: data.y,
-                                    cascadeNode: true,
+                                    cascadeNode: false,
                                     visible: previous.state.visible,
                                     reference: data.reference
                                 }
