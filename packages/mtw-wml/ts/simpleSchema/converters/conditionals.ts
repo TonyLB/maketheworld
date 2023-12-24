@@ -19,8 +19,8 @@ import { SchemaContextItem } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties, extractDependenciesFromJS } from "./utils"
-import { translateTaggedMessageContents } from '../utils'
-import { GenericTree, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
+import { removeIrrelevantWhitespace, translateTaggedMessageContents } from '../utils'
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 
 export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[], label: string) => {
     if (contextStack.length === 0) {
@@ -127,10 +127,16 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const conditionalPrintMap: Record<string, PrintMapEntry> = {
-    If: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaConditionTag }) => {
+    If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaConditionTag }) => {
 
-        const { siblings = [] } = args.options
-        const closestSibling: SchemaTag | undefined = siblings.length ? siblings.slice(-1)[0] : undefined
+        if (!isSchemaCondition(tag)) {
+            return ''
+        }
+        const siblings = removeIrrelevantWhitespace([
+            ...(args.options.siblings ?? []),
+            { data: tag, children }
+        ]).slice(0, -1)
+        const closestSibling: SchemaTag | undefined = siblings.length ? siblings.slice(-1)[0].data : undefined
         const conditionsToSrc = (conditions: NormalConditionStatement[]): string => {
             if (!conditions.length) { return '' }
             if (conditions.length > 1) {
@@ -166,7 +172,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
                     properties: [
                         { type: 'expression', value: conditionsToSrc(remainingConditions) }
                     ],
-                    contents: tag.contents,
+                    contents: children,
                 })
             }
             else {
@@ -177,7 +183,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
                     ...args,
                     tag: 'Else',
                     properties: [],
-                    contents: tag.contents,
+                    contents: children,
                 })
             }
         }
@@ -191,7 +197,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { type: 'expression', value: conditionsToSrc(tag.conditions) }
             ],
-            contents: tag.contents,
+            contents: children,
         })
     }
 }

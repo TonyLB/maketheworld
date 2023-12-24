@@ -46,7 +46,7 @@ export type SchemaToWMLOptions = {
     indent: number;
     forceNest?: 'closed' | 'contents' | 'properties';
     context: SchemaTag[];
-    siblings?: SchemaTag[];
+    siblings?: GenericTree<SchemaTag>;
 }
 
 export enum PrintMapOptionsChange {
@@ -58,7 +58,7 @@ export type PrintMapOptionsFactory = {
 }
 
 export type PrintMapEntryArguments = {
-    tag: SchemaTag;
+    tag: GenericTreeNode<SchemaTag>;
     options: SchemaToWMLOptions;
     optionsFactory: PrintMapOptionsFactory;
     schemaToWML: PrintMapEntry;

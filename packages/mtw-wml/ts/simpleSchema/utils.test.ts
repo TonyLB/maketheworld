@@ -1,4 +1,4 @@
-import { compressWhitespace, deIndentWML, legacyContentStructure } from './utils'
+import { compressWhitespace, deIndentWML, legacyContentStructure, removeIrrelevantWhitespace } from './utils'
 
 describe('compressWhitespace', () => {
     it('should return empty on an empty input', () => {
@@ -117,6 +117,42 @@ describe('compressWhitespace', () => {
         ])
     })
 
+})
+
+describe('removeIrrelevantWhitespace', () => {
+
+    it('should compress Space between adjacent connected conditional tags', () => {
+        expect(removeIrrelevantWhitespace([
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [] }], contents: [] },
+                children: []
+            },
+            { data: { tag: 'Space' }, children: [] },
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [] }], contents: [] },
+                children: []
+            },
+            { data: { tag: 'br' }, children: [] },
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [], not: true }], contents: [] },
+                children: []
+            }
+        ])).toEqual([
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [] }], contents: [] },
+                children: []
+            },
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [] }], contents: [] },
+                children: []
+            },
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [], not: true }], contents: [] },
+                children: []
+            }
+        ])
+
+    })
 })
 
 describe('legacyContentStructure', () => {

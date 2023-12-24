@@ -1,5 +1,5 @@
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaTaggedMessageLegalContents, SchemaWhitespaceTag, isSchemaString, isSchemaTaggedMessageLegalContents } from "../baseClasses"
+import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaTaggedMessageLegalContents, SchemaWhitespaceTag, isSchemaAfter, isSchemaBefore, isSchemaLink, isSchemaReplace, isSchemaString, isSchemaTaggedMessageLegalContents } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
@@ -85,40 +85,48 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
-    Before: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaBeforeTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Before',
-            properties: [],
-            contents: tag.contents,
-        })
+    Before: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaBeforeTag }) => (
+        isSchemaBefore(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Before',
+                properties: [],
+                contents: children,
+            })
+            : ''
     ),
-    After: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaAfterTag }) => (
-        tagRender({
-            ...args,
-            tag: 'After',
-            properties: [],
-            contents: tag.contents,
-        })
+    After: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaAfterTag }) => (
+        isSchemaAfter(tag)
+            ? tagRender({
+                ...args,
+                tag: 'After',
+                properties: [],
+                contents: children,
+            })
+            : ''
     ),
-    Replace: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaReplaceTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Replace',
-            properties: [],
-            contents: tag.contents,
-        })
+    Replace: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaReplaceTag }) => (
+        isSchemaReplace(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Replace',
+                properties: [],
+                contents: children,
+            })
+            : ''
     ),
-    String: ({ tag }: PrintMapEntryArguments & { tag: SchemaStringTag }) => (
-        escapeWMLCharacters(tag.value)
+    String: ({ tag: { data: tag } }: PrintMapEntryArguments & { tag: SchemaStringTag }) => (
+        isSchemaString(tag) ? escapeWMLCharacters(tag.value) : ''
     ),
-    Link: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaLinkTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Link',
-            properties: [{ key: 'to', type: 'key', value: tag.to }],
-            contents: [tag.text],
-        })
+    Link: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaLinkTag }) => (
+        isSchemaLink(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Link',
+                properties: [{ key: 'to', type: 'key', value: tag.to }],
+                contents: children,
+            })
+            : ''
     ),
     br: () => ('<br />'),
     Space: () => ('<Space />'),

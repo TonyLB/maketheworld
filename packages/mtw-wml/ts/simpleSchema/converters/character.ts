@@ -1,4 +1,4 @@
-import { SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag, isSchemaCharacterContents, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, isSchemaString } from "../baseClasses"
+import { SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag, isSchemaCharacter, isSchemaCharacterContents, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, isSchemaString } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -113,51 +113,47 @@ const stringToLiteral = (value: string | undefined, tag: 'FirstImpression' | 'Ou
     value ? [{ tag, value, contents: [{ tag: 'String' as 'String', value }] }] : []
 )
 
-const tagRenderLiteral = (tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing', value: string, args: PrintMapEntryArguments): string => (
-    tagRender({
-        ...args,
-        tag,
-        properties: [],
-        contents: [{ tag: 'String' as 'String', value }]
-    })
+const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string => (
+    (isSchemaFirstImpression(tag) || isSchemaOneCoolThing(tag) || isSchemaOutfit(tag))
+        ? tagRender({
+            ...args,
+            tag: tag.tag,
+            properties: [],
+            contents: [{ data: { tag: 'String' as 'String', value: tag.value }, children: [] }]
+        })
+        : ''
 )
 
 export const characterPrintMap: Record<string, PrintMapEntry> = {
-    Character: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaCharacterTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Character',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key }
-            ],
-            contents: [
-                ...(tag.Name ? [{ tag: 'Name' as 'Name', contents: [{ tag: 'String' as 'String', value: tag.Name }] }] : []),
-                ...(tag.Pronouns ? [{
-                    ...tag.Pronouns,
-                    tag: 'Pronouns' as 'Pronouns'
-                }] : []),
-                ...stringToLiteral(tag.FirstImpression, 'FirstImpression'),
-                ...stringToLiteral(tag.Outfit, 'Outfit'),
-                ...stringToLiteral(tag.OneCoolThing, 'OneCoolThing'),
-                ...tag.contents.filter((value) => (isSchemaImage(value) || isSchemaImport(value)))
-            ],
-        })
+    Character: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaCharacterTag }) => (
+        isSchemaCharacter(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Character',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key }
+                ],
+                contents: children,
+            })
+            : ''
     ),
-    FirstImpression: (args: PrintMapEntryArguments & { tag: SchemaFirstImpressionTag }) => (tagRenderLiteral('FirstImpression', args.tag.value, args)),
-    OneCoolThing: (args: PrintMapEntryArguments & { tag: SchemaOneCoolThingTag }) => (tagRenderLiteral('OneCoolThing', args.tag.value, args)),
-    Outfit: (args: PrintMapEntryArguments & { tag: SchemaOutfitTag }) => (tagRenderLiteral('Outfit', args.tag.value, args)),
-    Pronouns: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaPronounsTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Pronouns',
-            properties: [
-                { key: 'subject', type: 'literal', value: tag.subject},
-                { key: 'object', type: 'literal', value: tag.object},
-                { key: 'possessive', type: 'literal', value: tag.possessive},
-                { key: 'adjective', type: 'literal', value: tag.adjective},
-                { key: 'reflexive', type: 'literal', value: tag.reflexive}
-            ],
-            contents: []
-        })
+    FirstImpression: (args: PrintMapEntryArguments & { tag: SchemaFirstImpressionTag }) => (tagRenderLiteral(args.tag.data, args)),
+    OneCoolThing: (args: PrintMapEntryArguments & { tag: SchemaOneCoolThingTag }) => (tagRenderLiteral(args.tag.data, args)),
+    Outfit: (args: PrintMapEntryArguments & { tag: SchemaOutfitTag }) => (tagRenderLiteral(args.tag.data, args)),
+    Pronouns: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments & { tag: SchemaPronounsTag }) => (
+        isSchemaPronouns(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Pronouns',
+                properties: [
+                    { key: 'subject', type: 'literal', value: tag.subject},
+                    { key: 'object', type: 'literal', value: tag.object},
+                    { key: 'possessive', type: 'literal', value: tag.possessive},
+                    { key: 'adjective', type: 'literal', value: tag.adjective},
+                    { key: 'reflexive', type: 'literal', value: tag.reflexive}
+                ],
+                contents: []
+            })
+            : ''
     )
 }

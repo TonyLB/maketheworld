@@ -1,4 +1,4 @@
-import { SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMessageContents, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
+import { SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMessageContents, isSchemaMoment, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
@@ -56,31 +56,32 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const messagingPrintMap: Record<string, PrintMapEntry> = {
-    Message: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaMessageTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Message',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
-            ],
-            contents: [
-                ...tag.render,
-                ...(tag.rooms.map(({ key }) => ({ tag: 'Room' as 'Room', key, name: [], render: [], contents: [] })))
-            ],
-        })
+    Message: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaMessageTag }) => (
+        isSchemaMessage(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Message',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'from', type: 'key', value: tag.from },
+                    { key: 'as', type: 'key', value: tag.as }
+                ],
+                contents: children,
+            })
+            : ''
     ),
-    Moment: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaMomentTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Moment',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
-            ],
-            contents: tag.contents,
-        })
+    Moment: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaMomentTag }) => (
+        isSchemaMoment(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Moment',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'from', type: 'key', value: tag.from },
+                    { key: 'as', type: 'key', value: tag.as }
+                ],
+                contents: children,
+            })
+            : ''
     )
 }

@@ -83,16 +83,16 @@ export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
 
 export const printSchemaTag: PrintMapEntry = (args) => {
     const { tag } = args
-    if (tag.tag in printMap) {
-        return printMap[tag.tag](args)
+    if (tag.data.tag in printMap) {
+        return printMap[tag.data.tag](args)
     }
     else {
-        throw new Error(`Invalid tag ('${tag.tag}') in schemaToWML`)
+        throw new Error(`Invalid tag ('${tag.data.tag}') in schemaToWML`)
     }
 }
 
-export const schemaToWML = (tags: SchemaTag[]): string => {
-    const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: SchemaTag[] }>((previous, tag) => {
+export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
+    const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag> }>((previous, tag) => {
         return {
             returnValue: [
                 ...previous.returnValue,

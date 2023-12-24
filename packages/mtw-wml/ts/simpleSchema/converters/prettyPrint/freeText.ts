@@ -1,9 +1,10 @@
-import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag, SchemaTaggedMessageLegalContents } from "../../baseClasses"
+import { GenericTree } from "../../../sequence/tree/baseClasses"
+import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
 import { PrintMapEntry, SchemaToWMLOptions } from "../baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "../printUtils"
 import { optionsFactory } from "../utils"
 
-const areAdjacent = (a: SchemaTaggedMessageLegalContents, b: SchemaTaggedMessageLegalContents) => {
+const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
     const spaces = Boolean(
         (isSchemaString(a) && a.value.match(/\s$/)) ||
         (isSchemaString(b) && b.value.match(/^\s/)) ||
@@ -19,10 +20,10 @@ export const wordWrapString = (value: string, options: SchemaToWMLOptions & { pa
     return [value]
 }
 
-const mapTagRender = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
-    const { returnValue } = tags.reduce<{ returnValue: string[], siblings: SchemaTag[] }>(
+const mapTagRender = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): string[] => {
+    const { returnValue } = tags.reduce<{ returnValue: string[], siblings: GenericTree<SchemaTag> }>(
         (previous, tag) => {
-            const newOptions = { ...options, siblings: previous.siblings, context: [ ...options.context, tag ] }
+            const newOptions: SchemaToWMLOptions = { ...options, siblings: previous.siblings, context: [ ...options.context, tag.data ] }
             return {
                 returnValue: [
                     ...previous.returnValue,
@@ -36,23 +37,23 @@ const mapTagRender = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMessageL
     return returnValue
 }
 
-const naivePrint = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string => (
+const naivePrint = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): string => (
     mapTagRender(schemaToWML)(tags, { ...options, forceNest: 'closed' }).join('').trim()
 )
 
 type BreakTagsReturn = {
     outputLines: string[];
-    remainingTags: SchemaTaggedMessageLegalContents[];
-    extractedTags: SchemaTaggedMessageLegalContents[];
+    remainingTags: GenericTree<SchemaTag>;
+    extractedTags: GenericTree<SchemaTag>;
 }
 
 //
 // TODO: Make breakTagsOnFirstStringWhitespace more aggressive about seeing if it can pack multiple tags onto a line (breaking
 // on a later string)
 //
-const breakTagsOnFirstStringWhitespace = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions & { padding: number }): BreakTagsReturn => {
+const breakTagsOnFirstStringWhitespace = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions & { padding: number }): BreakTagsReturn => {
     const { indent, padding } = options
-    const indexOfFirstBreakableString = tags.findIndex((tag) => (isSchemaString(tag) && (tag.value.includes(' '))))
+    const indexOfFirstBreakableString = tags.findIndex((tag) => (isSchemaString(tag.data) && (tag.data.value.includes(' '))))
     const outputBeforeString = indexOfFirstBreakableString > 0 ? naivePrint(schemaToWML)(tags.slice(0, indexOfFirstBreakableString), { indent: 0, siblings: options.siblings, context: options.context }) : ''
     if (indexOfFirstBreakableString === -1 || (padding + outputBeforeString.length > lineLengthAfterIndent(indent))) {
         return {
@@ -62,14 +63,14 @@ const breakTagsOnFirstStringWhitespace = (schemaToWML: PrintMapEntry) => (tags: 
         }
     }
     const firstBreakableString = tags[indexOfFirstBreakableString]
-    if (!isSchemaString(firstBreakableString)) {
+    if (!isSchemaString(firstBreakableString.data)) {
         return {
             outputLines: [],
             remainingTags: tags,
             extractedTags: []
         }
     }
-    const splitIndex = firstBreakableString.value.split('').reduce<number>((previous, character, index) => {
+    const splitIndex = firstBreakableString.data.value.split('').reduce<number>((previous, character, index) => {
         if (character.match(/^\s$/) && index && padding + outputBeforeString.length + index <= lineLengthAfterIndent(indent)) {
             return index
         }
@@ -82,11 +83,11 @@ const breakTagsOnFirstStringWhitespace = (schemaToWML: PrintMapEntry) => (tags: 
             extractedTags: []
         }
     }
-    const extractedLine = firstBreakableString.value.slice(0, splitIndex)
+    const extractedLine = firstBreakableString.data.value.slice(0, splitIndex)
     const outputLine = `${outputBeforeString}${extractedLine}`.trim()
-    const remainderLine = firstBreakableString.value.slice(splitIndex + 1)
+    const remainderLine = firstBreakableString.data.value.slice(splitIndex + 1)
     const remainingTags = [
-        ...(remainderLine ? [{ tag: 'String' as 'String', value: remainderLine }] : []),
+        ...(remainderLine ? [{ data: { tag: 'String' as 'String', value: remainderLine }, children: [] }] : []),
         ...tags.slice(indexOfFirstBreakableString + 1)
     ]
     return {
@@ -95,8 +96,8 @@ const breakTagsOnFirstStringWhitespace = (schemaToWML: PrintMapEntry) => (tags: 
         extractedTags: [
             ...(indexOfFirstBreakableString > 0 ? tags.slice(0, indexOfFirstBreakableString - 1) : []),
             {
-                tag: 'String' as 'String',
-                value: extractedLine.trim()
+                data: { tag: 'String' as 'String', value: extractedLine.trim() },
+                children: []
             }
         ]
     }
@@ -104,7 +105,7 @@ const breakTagsOnFirstStringWhitespace = (schemaToWML: PrintMapEntry) => (tags: 
 
 const excludeSpacing = (tag) => (!isSchemaString(tag) || tag.value.trim())
 
-const breakTagsByNesting = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): BreakTagsReturn => {
+const breakTagsByNesting = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): BreakTagsReturn => {
     const { indent } = options
     const tagsRender = mapTagRender(schemaToWML)(tags, { indent, forceNest: 'contents', siblings: options.siblings, context: options.context }).join('').split('\n')
     return {
@@ -114,11 +115,11 @@ const breakTagsByNesting = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMe
     }
 }
 
-const printQueuedTags = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions): string[] => {
+const printQueuedTags = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): string[] => {
     const { indent, siblings } = options
     let currentSiblings = [...(siblings ?? [])]
     let outputLines: string[] = []
-    let tagsBeingConsidered: SchemaTaggedMessageLegalContents[] = []
+    let tagsBeingConsidered: GenericTree<SchemaTag> = []
     let prefix: string = ''
     tags.forEach((tag) => {
         tagsBeingConsidered.push(tag)
@@ -168,11 +169,11 @@ const printQueuedTags = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMessa
     return (prefix ? [...outputLines, prefix] : outputLines).filter((value) => (value.trim())).map((line, index) => ((index > 0 && !line.slice(0, indent * 4).trim()) ? line.slice(indent * 4) : line))
 }
 
-export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: SchemaTaggedMessageLegalContents[], options: SchemaToWMLOptions & { padding: number }): string => {
+export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions & { padding: number }): string => {
     const { indent, forceNest, padding, siblings } = options
     let currentSiblings = [...(siblings ?? []).filter(excludeSpacing)]
     let outputLines: string[] = []
-    let queue: SchemaTaggedMessageLegalContents[] = []
+    let queue: GenericTree<SchemaTag> = []
     let multiLine = forceNest && forceNest !== 'closed'
     let forceNestedRerun = false
     tags.forEach((tag) => {
@@ -182,7 +183,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Sch
                 // Group tags and blocks of text into adjacency lists that should stay connected
                 //
                 const lastElement = queue.slice(-1)[0]
-                if (areAdjacent(lastElement, tag) || !multiLine) {
+                if (areAdjacent(lastElement.data, tag.data) || !multiLine) {
                     queue.push(tag)
                     //
                     // If we've been accumulating tags in the hope of printing the whole list on

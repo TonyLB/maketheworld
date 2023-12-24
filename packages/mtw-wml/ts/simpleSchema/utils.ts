@@ -1,3 +1,4 @@
+import { deepEqual } from "../lib/objects"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../sequence/tree/baseClasses"
 import dfsWalk from "../sequence/tree/dfsWalk"
 import {
@@ -33,6 +34,33 @@ import {
     isSchemaBookmark,
     isSchemaWithContents
 } from "./baseClasses"
+
+//
+// Remove all pure whitespace that is between connected Conditions (i.e., an If and its ElseIf and Else)
+//
+export const removeIrrelevantWhitespace = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
+    tree.filter((item, index, all) => {
+        const { data } = item
+        if (
+            (isSchemaLineBreak(data) || isSchemaSpacer(data) || (isSchemaString(data) && !data.value.trim())) &&
+            (index > 0 && index < all.length - 1)
+        ) {
+            const previous = all[index - 1]
+            const next = all[index + 1]
+            if (
+                previous.data.tag === 'If' &&
+                next.data.tag === 'If' &&
+                deepEqual(
+                    previous.data.conditions.map((condition) => ({ ...condition, not: true })),
+                    next.data.conditions.slice(0, previous.data.conditions.length)
+                )
+            ) {
+                return false
+            }
+        }
+        return true
+    })
+)
 
 export function compressWhitespace (tags: GenericTree<SchemaTag>): GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>
 export function compressWhitespace (tags: GenericTree<SchemaTag>): GenericTree<SchemaTag> {
