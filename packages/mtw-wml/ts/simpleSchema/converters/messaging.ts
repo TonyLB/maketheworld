@@ -1,9 +1,10 @@
-import { SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, isSchemaMessage, isSchemaMessageContents, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
+import { SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMessageContents, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
+import { GenericTree, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 
 const messagingTemplates = {
     Message: {
@@ -28,18 +29,20 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(messagingTemplates.Message)(parseOpen)
         }),
         typeCheckContents: isSchemaMessageContents,
-        finalize: (initialTag: SchemaMessageTag, contents: SchemaMessageLegalContents[] ): SchemaMessageTag => ({
-            ...initialTag,
-            render: compressWhitespace(contents.filter(isSchemaTaggedMessageLegalContents)),
-            contents: contents.filter(isSchemaRoom),
-            rooms: contents.reduce((previous, room) => (
-                isSchemaRoom(room)
-                    ? [
-                        ...previous,
-                        { key: room.key }
-                    ]
-                    : previous
-            ), [])
+        finalize: (initialTag: SchemaMessageTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                render: compressWhitespace(contents.filter(({ data }) => (isSchemaTaggedMessageLegalContents(data)))).map(({ data }) => (data)),
+                rooms: contents.reduce((previous, { data: room }) => (
+                    isSchemaRoom(room)
+                        ? [
+                            ...previous,
+                            { key: room.key }
+                        ]
+                        : previous
+                ), [])
+            },
+            children: contents,
         })
     },
     Moment: {
@@ -48,11 +51,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
             contents: [],
             ...validateProperties(messagingTemplates.Moment)(parseOpen)
         }),
-        typeCheckContents: isSchemaMessage,
-        finalize: (initialTag: SchemaMomentTag, contents: SchemaMessageTag[] ): SchemaMomentTag => ({
-            ...initialTag,
-            contents
-        })
+        typeCheckContents: isSchemaMessage
     },
 }
 

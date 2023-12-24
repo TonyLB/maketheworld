@@ -3,6 +3,7 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 
 const characterTemplates = {
     Pronouns: {
@@ -35,9 +36,12 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.FirstImpression)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
-            ...initialTag,
-            value: contents.map(({ value }) => (value)).join('')
+        finalize: (initialTag: SchemaFirstImpressionTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                value: contents.map(({ data: { value } }) => (value)).join('')
+            },
+            children: []
         })
     },
     OneCoolThing: {
@@ -48,9 +52,12 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.OneCoolThing)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
-            ...initialTag,
-            value: contents.map(({ value }) => (value)).join('')
+        finalize: (initialTag: SchemaOneCoolThingTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                value: contents.map(({ data: { value } }) => (value)).join('')
+            },
+            children: []
         })
     },
     Outfit: {
@@ -61,9 +68,12 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.Outfit)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaFirstImpressionTag, contents: SchemaStringTag[]): SchemaFirstImpressionTag => ({
-            ...initialTag,
-            value: contents.map(({ value }) => (value)).join('')
+        finalize: (initialTag: SchemaOutfitTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                value: contents.map(({ data: { value } }) => (value)).join('')
+            },
+            children: []
         })
     },
     Character: {
@@ -81,16 +91,19 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.Character)(parseOpen)
         }),
         typeCheckContents: isSchemaCharacterContents,
-        finalize: (initialTag: SchemaCharacterTag, contents: SchemaCharacterLegalContents[]): SchemaCharacterTag => {
-            const { tag, ...Pronouns } = [{ tag: '', ...initialTag.Pronouns }, ...contents.filter(isSchemaPronouns)].slice(-1)[0]
+        finalize: (initialTag: SchemaCharacterTag, contents: GenericTreeFiltered<SchemaCharacterLegalContents, SchemaTag>): GenericTreeNodeFiltered<SchemaCharacterTag, SchemaTag> => {
+            const { tag, ...Pronouns } = [{ tag: '', ...initialTag.Pronouns }, ...contents.map(({ data }) => (data)).filter(isSchemaPronouns)].slice(-1)[0]
             return {
-                ...initialTag,
-                Name: contents.filter(isSchemaName).map(({ contents }) => (contents)).flat(1).filter(isSchemaString).map(({ value }) => (value)).join(''),
-                Pronouns,
-                FirstImpression: (contents as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
-                OneCoolThing: (contents as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
-                Outfit: (contents as SchemaTag[]).filter(isSchemaOutfit).length ? (contents as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
-                contents
+                data: {
+                    ...initialTag,
+                    Name: contents.filter(({ data }) => (isSchemaName(data))).map(({ children }) => (children)).flat(1).map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join(''),
+                    Pronouns,
+                    FirstImpression: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
+                    OneCoolThing: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
+                    Outfit: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOutfit).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
+                    contents: []
+                },
+                children: contents
             }
         }
     }

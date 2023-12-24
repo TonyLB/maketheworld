@@ -1,4 +1,5 @@
 import { ParseTag } from "../parser/baseClasses"
+import { GenericTree } from "../sequence/tree/baseClasses"
 
 export type SchemaAssetLegalContents = SchemaActionTag | SchemaBookmarkTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag | SchemaMessageTag | SchemaMomentTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
@@ -466,5 +467,5 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
 
 export type SchemaContextItem = {
     tag: SchemaTag;
-    contents: SchemaTag[];
+    children: GenericTree<SchemaTag>;
 }

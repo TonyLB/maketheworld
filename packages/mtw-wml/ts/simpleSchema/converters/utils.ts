@@ -1,3 +1,4 @@
+import { GenericTree } from "../../sequence/tree/baseClasses"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { SchemaTag } from "../baseClasses"
 import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
@@ -28,8 +29,8 @@ export const validateProperties = <V extends ValidationTemplate>(template: V) =>
     return remap
 }
 
-export const validateContents = ({ isValid, branchTags, leafTags }: ConverterMapValidateProperties) => (contents: SchemaTag[]): boolean => {
-    return contents.reduce<boolean>((previous, childTag) => {
+export const validateContents = ({ isValid, branchTags, leafTags }: ConverterMapValidateProperties) => (contents: GenericTree<SchemaTag>): boolean => {
+    return contents.reduce<boolean>((previous, { data: childTag, children }) => {
         if (!previous) {
             return previous
         }
@@ -40,8 +41,8 @@ export const validateContents = ({ isValid, branchTags, leafTags }: ConverterMap
             if (!isValid(childTag)) {
                 return false
             }
-            else if ('contents' in childTag) {
-                return validateContents({ isValid, branchTags, leafTags })(childTag.contents)
+            else if (children.length) {
+                return validateContents({ isValid, branchTags, leafTags })(children)
             }
         }
         return true

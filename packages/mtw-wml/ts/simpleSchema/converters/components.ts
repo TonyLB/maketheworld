@@ -7,6 +7,7 @@ import {
     SchemaFeatureTag,
     SchemaKnowledgeTag,
     SchemaMapTag,
+    SchemaMessageLegalContents,
     SchemaNameTag,
     SchemaRoomTag,
     SchemaStringTag,
@@ -25,12 +26,12 @@ import {
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
-import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../utils"
+import { compressWhitespace, extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents, legacyContentStructure } from "../utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
+import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 
 const componentTemplates = {
     Exit: {
@@ -93,10 +94,12 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaExitTag, contents: SchemaStringTag[]): SchemaExitTag => ({
-            ...initialTag,
-            name: contents.map(({ value }) => (value)).join(''),
-            contents
+        finalize: (initialTag: SchemaExitTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                name: contents.map(({ data: { value } }) => (value)).join('')
+            },
+            children: contents
         })
     },
     Description: {
@@ -106,9 +109,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Description)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaDescriptionTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaDescriptionTag => ({
-            ...initialTag,
-            contents: compressWhitespace(contents)
+        finalize: (initialTag: SchemaDescriptionTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => ({
+            data: initialTag,
+            children: compressWhitespace(contents)
         })
     },
     Bookmark: {
@@ -125,9 +128,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaBookmarkTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaBookmarkTag => ({
-            ...initialTag,
-            contents: compressWhitespace(contents)
+        finalize: (initialTag: SchemaBookmarkTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaBookmarkTag, SchemaTag> => ({
+            data: initialTag,
+            children: compressWhitespace(contents)
         })
     },
     Name: {
@@ -137,9 +140,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Name)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaNameTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaNameTag => ({
-            ...initialTag,
-            contents: compressWhitespace(contents)
+        finalize: (initialTag: SchemaNameTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => ({
+            data: initialTag,
+            children: compressWhitespace(contents)
         })
     },
     Room: {
@@ -162,12 +165,17 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: isSchemaRoomIncomingContents,
-        finalize: (initialTag: SchemaRoomTag, contents: SchemaTag[] ): SchemaRoomTag => ({
-            ...initialTag,
-            contents: contents.filter(isSchemaRoomContents),
-            name: compressWhitespace(extractNameFromContents(contents)),
-            render: compressWhitespace(extractDescriptionFromContents(contents))
-        })
+        finalize: (initialTag: SchemaRoomTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaRoomTag, SchemaTag> => {
+            const returnValue = {
+                data: {
+                    ...initialTag,
+                    name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+                    render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+                },
+                children: contents,
+            }
+            return returnValue
+        }
     },
     Feature: {
         initialize: ({ parseOpen }): SchemaFeatureTag => ({
@@ -178,11 +186,13 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Feature)(parseOpen)
         }),
         typeCheckContents: isSchemaFeatureIncomingContents,
-        finalize: (initialTag: SchemaFeatureTag, contents: SchemaTag[] ): SchemaFeatureTag => ({
-            ...initialTag,
-            contents: contents.filter(isSchemaFeatureContents),
-            name: compressWhitespace(extractNameFromContents(contents)),
-            render: compressWhitespace(extractDescriptionFromContents(contents))
+        finalize: (initialTag: SchemaFeatureTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaFeatureTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+                render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+        },
+            children: contents,
         })
     },
     Knowledge: {
@@ -194,10 +204,13 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Knowledge)(parseOpen)
         }),
         typeCheckContents: isSchemaKnowledgeIncomingContents,
-        finalize: (initialTag: SchemaKnowledgeTag, contents: SchemaTag[] ): SchemaKnowledgeTag => ({
-            ...initialTag,
-            name: compressWhitespace(extractNameFromContents(contents)),
-            render: compressWhitespace(extractDescriptionFromContents(contents))
+        finalize: (initialTag: SchemaKnowledgeTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaKnowledgeTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+                render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+        },
+            children: contents,
         })
     },
     Map: {
@@ -220,16 +233,18 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             branchTags: ['If'],
             leafTags: ['Room']
         },
-        finalize: (initialTag: SchemaMapTag, contents: SchemaTag[] ): SchemaMapTag => ({
-            ...initialTag,
-            contents: contents.filter(isSchemaMapContents),
-            name: compressWhitespace(extractNameFromContents(contents)),
-            rooms: extractConditionedItemFromContents({
-                contents,
-                typeGuard: isSchemaRoom,
-                transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
-            }),
-            images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
+        finalize: (initialTag: SchemaMapTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                name: compressWhitespace(extractNameFromContents(contents)).map(({ data }) => (data)),
+                rooms: extractConditionedItemFromContents({
+                    contents,
+                    typeGuard: isSchemaRoom,
+                    transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
+                }),
+                images: contents.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
+            },
+            children: contents.filter(({ data }) => (isSchemaMapContents(data))),
         })
     }
 }

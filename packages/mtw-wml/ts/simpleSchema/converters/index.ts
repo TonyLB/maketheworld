@@ -2,6 +2,7 @@ import {
     SchemaAssetLegalContents,
     SchemaAssetTag,
     SchemaStoryTag,
+    SchemaTag,
     isSchemaAssetContents,
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
@@ -15,6 +16,7 @@ import { importExportConverters, importExportPrintMap } from "./importExport"
 import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
 import { tagRender } from "./tagRender"
+import { GenericTree, GenericTreeNode } from "../../sequence/tree/baseClasses"
 
 const validationTemplates = {
     Asset: {
@@ -34,11 +36,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             Story: undefined,
             ...validateProperties(validationTemplates.Asset)(parseOpen)
         }),
-        typeCheckContents: isSchemaAssetContents,
-        finalize: (initialTag: SchemaAssetTag, contents: SchemaAssetLegalContents[] ): SchemaAssetTag => ({
-            ...initialTag,
-            contents
-        })
+        typeCheckContents: isSchemaAssetContents
     },
     Story: {
         initialize: ({ parseOpen }): SchemaStoryTag => ({
@@ -48,10 +46,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             ...validateProperties(validationTemplates.Story)(parseOpen)
         }),
         typeCheckContents: isSchemaAssetContents,
-        finalize: (initialTag: SchemaAssetTag, contents: SchemaAssetLegalContents[] ): SchemaAssetTag => ({
-            ...initialTag,
-            contents
-        })
     },
     ...characterConverters,
     ...componentConverters,
