@@ -14,7 +14,7 @@ export const mergeSchemaTrees = (...args: GenericTree<SchemaTag>[]): GenericTree
                 isSchemaRoom(itemB) ? { ...itemB, render: [], name: [], contents: [] } : itemB
             )
         },
-        extractProperties: (value) => {
+        extractProperties: (value: SchemaTag) => {
             if (isSchemaWithContents(value)) {
                 return {
                     ...value,
