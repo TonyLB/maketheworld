@@ -9,6 +9,7 @@ import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { isSchemaCondition, isSchemaImport, isSchemaRoom, SchemaTag } from '../simpleSchema/baseClasses'
 import { deIndentWML } from '../simpleSchema/utils'
+import { GenericTreeNode } from '../sequence/tree/baseClasses'
 
 describe('WML normalize', () => {
 
@@ -489,7 +490,7 @@ describe('WML normalize', () => {
             //    (c) specifying whether the put should insert or overwrite
             //
             normalizer.put(
-                { tag: 'Name' as 'Name', contents: [{ tag: 'String', value: 'TestName' }] },
+                { data: { tag: 'Name' as 'Name', contents: [] }, children: [{ data: { tag: 'String', value: 'TestName' }, children: [] }] },
                 {
                     contextStack: [
                         { tag: 'Asset', key: 'TestAsset', index: 0 },
@@ -519,7 +520,7 @@ describe('WML normalize', () => {
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
             normalizer.put(
-                { tag: 'Room' as const, key: '', name: [], contents: [], render: [] },
+                { data: { tag: 'Room' as const, key: '', name: [], contents: [], render: [] }, children: [] },
                 {
                     contextStack: [
                         { tag: 'Asset', key: 'TestAsset', index: 0 }
@@ -918,15 +919,15 @@ describe('WML normalize', () => {
             const toAddSource = `<Room key=(testRoom)><If {testVar}><Exit to=(targetThree)>three</Exit></If></Room>`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             const toAddRoomWrapper = toAddAsset[0]
-            if (!isSchemaRoom(toAddRoomWrapper)) {
+            if (!isSchemaRoom(toAddRoomWrapper.data)) {
                 throw new Error()
             }
-            const ifPredicate = toAddRoomWrapper.contents[0]
-            if (!isSchemaCondition(ifPredicate)) {
+            const ifPredicate = toAddRoomWrapper.children[0]
+            if (!isSchemaCondition(ifPredicate.data)) {
                 throw new Error()
             }
-            const { key, ...unkeyedIf } = ifPredicate
-            normalizer.put(unkeyedIf, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'testRoom', tag: 'Room', index: 0 }], index: 2 })
+            const { key, ...unkeyedIf } = ifPredicate.data
+            normalizer.put({ data: unkeyedIf, children: ifPredicate.children }, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'testRoom', tag: 'Room', index: 0 }], index: 2 })
             expect(normalizer.normal).toMatchSnapshot()
         })
 
@@ -950,7 +951,7 @@ describe('WML normalize', () => {
             </Room>`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             const toAddRoomWrapper = toAddAsset[0]
-            if (!isSchemaRoom(toAddRoomWrapper)) {
+            if (!isSchemaRoom(toAddRoomWrapper.data)) {
                 throw new Error()
             }
             normalizer.put(toAddRoomWrapper, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }], index: 1, replace: true })
@@ -971,7 +972,7 @@ describe('WML normalize', () => {
             </Import>`
             const toReplaceAsset = schemaFromParse(parse(tokenizer(new SourceStream(toReplaceSource))))
             const toReplaceWrapper = toReplaceAsset[0]
-            if (!isSchemaImport(toReplaceWrapper)) {
+            if (!isSchemaImport(toReplaceWrapper.data)) {
                 throw new Error()
             }
             normalizer.put(toReplaceWrapper, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }], index: 0, replace: true })
@@ -997,7 +998,7 @@ describe('WML normalize', () => {
             const toAddSource = `<Import from=(base) />`
             const toAddAsset = schemaFromParse(parse(tokenizer(new SourceStream(toAddSource))))
             const toAddWrapper = toAddAsset[0]
-            if (!isSchemaImport(toAddWrapper)) {
+            if (!isSchemaImport(toAddWrapper.data)) {
                 throw new Error()
             }
             normalizer.put(toAddWrapper, { contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }] })
@@ -1010,10 +1011,13 @@ describe('WML normalize', () => {
             </Asset>`
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            const variableUpdate: SchemaTag = {
-                tag: 'Variable',
-                key: 'testVar',
-                default: 'true'
+            const variableUpdate: GenericTreeNode<SchemaTag> = {
+                data: {
+                    tag: 'Variable',
+                    key: 'testVar',
+                    default: 'true'
+                },
+                children: []
             }
             normalizer.put(variableUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }], index: 0, replace: true })
             expect(normalizer.normal).toMatchSnapshot()
@@ -1023,12 +1027,19 @@ describe('WML normalize', () => {
             const testSource = `<Asset key=(Test) />`
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            const knowledgeUpdate: SchemaTag = {
-                tag: 'Knowledge',
-                key: 'testKnowledge',
-                contents: [],
-                render: [{ tag: 'String', value: 'Learning!' }],
-                name: [{ tag: 'String', value: 'Knowledge is power' }]
+            const knowledgeUpdate: GenericTreeNode<SchemaTag> = {
+                data: {
+                    tag: 'Knowledge',
+                    key: 'testKnowledge',
+                    contents: [],
+                    render: [{ tag: 'String', value: 'Learning!' }],
+                    name: [{ tag: 'String', value: 'Knowledge is power' }]
+                },
+                children: [
+                    { data: { tag: 'Name', contents: [] }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] } ] },
+                    { data: { tag: 'Description', contents: [] }, children: [{ data: { tag: 'String', value: 'Learning!' }, children: [] } ] },
+
+                ]
             }
             normalizer.put(knowledgeUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }] })
             expect(normalizer.normal).toMatchSnapshot()
@@ -1043,14 +1054,17 @@ describe('WML normalize', () => {
             </Asset>`
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
-            const roomUpdate: SchemaTag = {
-                tag: 'Room',
-                key: 'room1',
-                contents: [],
-                render: [],
-                name: [],
-                x: 100,
-                y: 0
+            const roomUpdate: GenericTreeNode<SchemaTag> = {
+                data: {
+                    tag: 'Room',
+                    key: 'room1',
+                    contents: [],
+                    render: [],
+                    name: [],
+                    x: 100,
+                    y: 0
+                },
+                children: []
             }
             normalizer.put(roomUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'map1', tag: 'Map', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }], index: 0, replace: true })
             expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
@@ -1065,106 +1079,41 @@ describe('WML normalize', () => {
     xdescribe('merge function', () => {
         it('should merge two schemata', () => {
             const testOne = new Normalizer()
-            testOne.loadSchema([
-                {
-                    tag: 'Asset',
-                    key: 'TestOne',
-                    Story: undefined,
-                    contents: [{
-                        tag: 'Room',
-                        key: 'TestRoom',
-                        name: [],
-                        render: [],
-                        contents: [{
-                            tag: 'Description',
-                            contents: [
-                                { tag: 'String', value: 'TestZero'},
-                                {
-                                    tag: 'If',
-                                    conditions: [{
-                                        if: 'test',
-                                        dependencies: ['test'],
-                                    }],
-                                    contents: [{
-                                        tag: 'String',
-                                        value: 'TestOne'
-                                    }]
-                                },
-                                {
-                                    tag: 'If',
-                                    conditions: [{
-                                        if: 'test2',
-                                        dependencies: ['test2']
-                                    },
-                                    {
-                                        if: 'test',
-                                        dependencies: ['test']
-                                    }],
-                                    contents: [
-                                        { tag: 'String', value: 'TestTwo'},
-                                        { tag: 'String', value: 'TestThree'}
-                                    ]
-                                }
-                            ]
-                        }]
-                    }]
-                }
-            ])
+            testOne.loadWML(`
+                <Asset key=(testOne)>
+                    <Room key=(TestRoom)>
+                        <Description>
+                            TestZero<If {true}>
+                                TestOne
+                            </If><If {false}>
+                                TestTwo
+                                TestThree
+                            </If>
+                        </Description>
+                    </Room>
+                </Asset>
+            `)
             const testTwo = new Normalizer()
-            testTwo.loadSchema([
-                {
-                    tag: 'Asset',
-                    key: 'TestOne',
-                    Story: undefined,
-                    contents: [{
-                        tag: 'Room',
-                        key: 'TestRoom',
-                        name: [],
-                        render: [],
-                        contents: [{
-                            tag: 'Description',
-                            contents: [
-                                { tag: 'String', value: 'TestFour'},
-                                {
-                                    tag: 'If',
-                                    conditions: [{
-                                        if: 'test2',
-                                        dependencies: ['test2']
-                                    }],
-                                    contents: [{
-                                        tag: 'If',
-                                        conditions: [{
-                                            if: 'test3',
-                                            dependencies: ['test3']
-                                        }],
-                                        contents: [{ tag: 'String', value: 'TestFive'}]
-                                    },
-                                    {
-                                        tag: 'If',
-                                        conditions: [{
-                                            if: 'test',
-                                            dependencies: ['test']
-                                        }],
-                                        contents: [{ tag: 'String', value: 'TestSix'}]
-
-                                    }]
-                                },
-                                {
-                                    tag: 'If',
-                                    conditions: [{
-                                        if: 'test',
-                                        dependencies: ['test'],
-                                    }],
-                                    contents: [{
-                                        tag: 'String',
-                                        value: 'TestSeven'
-                                    }]
-                                }
-                            ]
-                        }]
-                    }]
-                }
-            ])
+            testTwo.loadWML(`
+                <Asset key=(testOne)>
+                    <Room key=(TestRoom)>
+                        <Description>
+                            TestFour
+                            TestZero<If {false}>
+                                <If {1==0}>
+                                    TestFive
+                                </If>
+                                <If {true}>
+                                    TestSix
+                                </If>
+                            </If>
+                            <If {true}>
+                                TestSeven
+                            </If>
+                        </Description>
+                    </Room>
+                </Asset>
+            `)
             testOne.merge(testTwo)
             expect(testOne.schema).toEqual([])
         })

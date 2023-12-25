@@ -96,6 +96,8 @@ import parse from '../simpleParser';
 import tokenizer from '../parser/tokenizer';
 import { buildNormalPlaceholdersFromExport, rebuildContentsFromImport } from './importExportUtil';
 import { mergeOrderedConditionalTrees } from '../lib/sequenceTools/orderedConditionalTree';
+import { GenericTree, GenericTreeNode } from '../sequence/tree/baseClasses';
+import mergeSchemaTrees from '../simpleSchema/treeManipulation/merge';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -737,7 +739,7 @@ export class Normalizer {
     // that it has added to the NormalForm mapping as children of the most granular level of the context
     // (i.e., if a feature is being added in a Room then that feature becomes a child of that room)
     //
-    put(node: SchemaTag, position: NormalizerInsertPosition): NormalReference | undefined {
+    put({ data: node, children }: GenericTreeNode<SchemaTag>, position: NormalizerInsertPosition): NormalReference | undefined {
         let returnValue: NormalReference = undefined
         //
         // SchemaExportTag encodes its changes throughout the normalForm, rather than creating any normal Item
@@ -813,7 +815,7 @@ export class Normalizer {
                         }
                     ],
                 }
-                const importContents = importSchemaTags.map((tag) => (this.put(tag, updatedContext)))
+                const importContents = importSchemaTags.map((tag) => (this.put({ data: tag, children: [] }, updatedContext)))
                 this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
                 return {
                     key: translatedImport.key,
@@ -847,7 +849,7 @@ export class Normalizer {
                     returnValue
                 ]
             }
-            node.contents.forEach((child) => {
+            children.forEach((child) => {
                 this.put(child, updateContext)
             })
         }
@@ -1104,7 +1106,7 @@ export class Normalizer {
         }
     }
 
-    loadSchema(schema: SchemaTag[]): void {
+    loadSchema(schema: GenericTree<SchemaTag>): void {
         this._normalForm = {}
         this._tags = {}
         //
@@ -1144,7 +1146,7 @@ export class Normalizer {
         return this._normalForm
     }
 
-    _normalToSchema(key: string, appearanceIndex: number): SchemaTag | undefined {
+    _normalToSchema(key: string, appearanceIndex: number): GenericTreeNode<SchemaTag> | undefined {
         const node = this._normalForm[key]
         if (!node || appearanceIndex >= node.appearances.length) {
             return undefined
@@ -1165,198 +1167,251 @@ export class Normalizer {
                     .filter(({ tag }) => (isImportableTag(tag)))
                     .filter(({ appearances }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find(({ key }) => (key === node.key)))))))
                     .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
-                const exportSchemaTag: SchemaExportTag[] = allAssetDescendantNormals.length
+                const exportSchemaTag: GenericTree<SchemaTag> = allAssetDescendantNormals.length
                     ? [{
-                        tag: 'Export',
-                        mapping: Object.assign(
-                            {},
-                            ...allAssetDescendantNormals.map(({ key, tag, exportAs }) => ({ [exportAs || key]: { key, type: tag }}))
-                        )
+                        data: {
+                            tag: 'Export',
+                            mapping: Object.assign(
+                                {},
+                                ...allAssetDescendantNormals.map(({ key, tag, exportAs }) => ({ [exportAs || key]: { key, type: tag }}))
+                            )
+                        },
+                        //
+                        // TODO: Create or find a "defaultSchema" generator that creates a default item for any tag,
+                        // and use it to populate children here.
+                        //
+                        children: []
                     }]
                     : []
                 return {
-                    ...(node.Story
-                        ? { tag: 'Story', Story: true, instance: false }
-                        : { tag: 'Asset', Story: undefined }
-                    ),
-                    key,
-                    contents: [
+                    data: {
+                        ...(node.Story
+                            ? { tag: 'Story', Story: true, instance: false }
+                            : { tag: 'Asset', Story: undefined }
+                        ),
+                        key,
+                        contents: []
+                    },
+                    children: [
                         ...baseAppearance.contents
                             .map(({ key, index }) => (this._normalToSchema(key, index)))
                             .filter((value) => (value))
-                            .filter(isSchemaAssetContents),
+                            .filter(({ data }) => (isSchemaAssetContents(data))),
                         ...exportSchemaTag
                     ]
                 }
             case 'Image':
                 return {
-                    key,
-                    tag: 'Image'
+                    data: {
+                        key,
+                        tag: 'Image'
+                    },
+                    children: []
                 }
             case 'Variable':
                 return {
-                    key,
-                    tag: 'Variable',
-                    default: node.default
+                    data: {
+                        key,
+                        tag: 'Variable',
+                        default: node.default
+                    },
+                    children: []
                 }
             case 'Computed':
                 return {
-                    key,
-                    tag: 'Computed',
-                    src: node.src,
-                    dependencies: node.dependencies
+                    data: {
+                        key,
+                        tag: 'Computed',
+                        src: node.src,
+                        dependencies: node.dependencies
+                    },
+                    children: []
                 }
             case 'Action':
                 return {
-                    key,
-                    tag: 'Action',
-                    src: node.src
+                    data: {
+                        key,
+                        tag: 'Action',
+                        src: node.src
+                    },
+                    children: []
                 }
             case 'If':
-                const conditionContextTagList = baseAppearance.contextStack.map(({ tag }) => (tag)).filter(isLegalParseConditionContextTag)
-                const conditionContextTag = conditionContextTagList.length ? conditionContextTagList.slice(-1)[0] : 'Asset'
                 return {
-                    tag: 'If',
-                    conditions: node.conditions,
-                    contents: baseAppearance.contents
+                    data: {
+                        tag: 'If',
+                        conditions: node.conditions,
+                        contents: []
+                    },
+                    children: baseAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
-            } as SchemaConditionTag
+                }
             //
             // TODO: Recreate contents for Import SchemaTag
             //
             case 'Import':
                 return {
-                    tag: 'Import',
-                    from: node.from,
-                    mapping: Object.entries(node.mapping)
-                        .filter(([_, { type }]) => (isSchemaImportMappingType(type)))
-                        .reduce<Record<string, SchemaImportMapping>>((previous, [key, { key: from, type }]) => ({
-                            ...previous,
-                            [key]: {
-                                key: from,
-                                type: type as SchemaImportMapping["type"]
-                            }
-                        }), {})
+                    data: {
+                        tag: 'Import',
+                        from: node.from,
+                        mapping: Object.entries(node.mapping)
+                            .filter(([_, { type }]) => (isSchemaImportMappingType(type)))
+                            .reduce<Record<string, SchemaImportMapping>>((previous, [key, { key: from, type }]) => ({
+                                ...previous,
+                                [key]: {
+                                    key: from,
+                                    type: type as SchemaImportMapping["type"]
+                                }
+                            }), {})
+                    },
+                    children: []
                 }
             case 'Room':
                 const roomAppearance = baseAppearance as ComponentAppearance
                 return {
-                    key,
-                    tag: 'Room',
-                    ...(typeof roomAppearance.x !== 'undefined' ? { x: roomAppearance.x } : {}),
-                    ...(typeof roomAppearance.y !== 'undefined' ? { y: roomAppearance.y } : {}),
-                    render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
-                    name: (roomAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                    contents: roomAppearance.contents
+                    data: {
+                        key,
+                        tag: 'Room',
+                        ...(typeof roomAppearance.x !== 'undefined' ? { x: roomAppearance.x } : {}),
+                        ...(typeof roomAppearance.y !== 'undefined' ? { y: roomAppearance.y } : {}),
+                        render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                        name: (roomAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                        contents: []
+                    },
+                    children: roomAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
-                        .filter(isSchemaRoomContents)
                 }
             case 'Feature':
                 const featureAppearance = baseAppearance as ComponentAppearance
                 return {
-                    key,
-                    tag: 'Feature',
-                    render: (featureAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
-                    name: (featureAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                    contents: featureAppearance.contents
+                    data: {
+                        key,
+                        tag: 'Feature',
+                        render: (featureAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                        name: (featureAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                        contents: []
+                    },
+                    children: featureAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
-                        .filter(isSchemaFeatureContents)
                 }
             case 'Knowledge':
                 const knowledgeAppearance = baseAppearance as ComponentAppearance
                 return {
-                    key,
-                    tag: 'Knowledge',
-                    render: (knowledgeAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
-                    name: (knowledgeAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                    contents: knowledgeAppearance.contents
+                    data: {
+                        key,
+                        tag: 'Knowledge',
+                        render: (knowledgeAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                        name: (knowledgeAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                        contents: []
+                    },
+                    children: knowledgeAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
-                        .filter(isSchemaKnowledgeContents)
                 }
             case 'Bookmark':
                 const bookmarkAppearance = baseAppearance as ComponentAppearance
                 return {
-                    key,
-                    tag: 'Bookmark',
-                    contents: (bookmarkAppearance.render || []).map(componentRenderToSchemaTaggedMessage)
+                    data: {
+                        key,
+                        tag: 'Bookmark',
+                        contents: []
+                    },
+                    children: bookmarkAppearance.contents
+                        .map(({ key, index }) => (this._normalToSchema(key, index)))
+                        .filter((value) => (value))
                 }
             case 'Message':
                 const messageAppearance = baseAppearance as MessageAppearance
                 return {
-                    key,
-                    tag: 'Message',
-                    render: (messageAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
-                    contents: messageAppearance.contents
+                    data: {
+                        key,
+                        tag: 'Message',
+                        render: (messageAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+                        rooms: messageAppearance.rooms,
+                        contents: []
+                    },
+                    children: messageAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
-                        .filter(isSchemaMessageContents),
-                    rooms: messageAppearance.rooms
                 }
             case 'Moment':
                 const momentAppearance = baseAppearance as MomentAppearance
                 return {
-                    key,
-                    tag: 'Moment',
-                    contents: momentAppearance.contents
+                    data: {
+                        key,
+                        tag: 'Moment',
+                        contents: []
+                    },
+                    children: momentAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
-                        .filter(isSchemaMessage)
                 }
             case 'Map':
                 const mapAppearance = baseAppearance as MapAppearance
                 return {
-                    key,
-                    tag: 'Map',
-                    images: mapAppearance.images,
-                    name: (mapAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                    rooms: mapAppearance.rooms,
-                    contents: mapAppearance.contents
+                    data: {
+                        key,
+                        tag: 'Map',
+                        images: mapAppearance.images,
+                        name: (mapAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+                        rooms: mapAppearance.rooms,
+                        contents: []
+                    },
+                    children: mapAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
-                        .filter(isSchemaMapContents)
                 }
             case 'Exit':
                 return {
-                    key,
-                    tag: 'Exit',
-                    to: node.to,
-                    from: node.from,
-                    name: node.name,
-                    contents: baseAppearance.contents
+                    data: {
+                        key,
+                        tag: 'Exit',
+                        to: node.to,
+                        from: node.from,
+                        name: node.name,
+                        contents: []
+                    },
+                    children: baseAppearance.contents
                         .map(({ key, index }) => (this._normalToSchema(key, index)))
                         .filter((value) => (value))
-                        .filter(isSchemaString)
                 }
             case 'Character':
                 return {
-                    key,
-                    tag: 'Character',
-                    Name: node.Name,
-                    Pronouns: node.Pronouns,
-                    FirstImpression: node.FirstImpression,
-                    OneCoolThing: node.OneCoolThing,
-                    Outfit: node.Outfit,
-                    contents: [
-                        ...node.images.map((key): SchemaImageTag => ({
-                            tag: 'Image',
-                            key
+                    data: {
+                        key,
+                        tag: 'Character',
+                        Name: node.Name,
+                        Pronouns: node.Pronouns,
+                        FirstImpression: node.FirstImpression,
+                        OneCoolThing: node.OneCoolThing,
+                        Outfit: node.Outfit,
+                        fileName: node.fileName,
+                        contents: []
+                    },
+                    children: [
+                        ...node.images.map((key): GenericTreeNode<SchemaImageTag> => ({
+                            data: { tag: 'Image', key }, children: []
                         })),
-                        ...node.assets.map((key): SchemaImportTag => ({
-                            tag: 'Import',
-                            from: key,
-                            mapping: {}
+                        ...node.assets.map((key): GenericTreeNode<SchemaImportTag> => ({
+                            data: {
+                                tag: 'Import',
+                                from: key,
+                                mapping: {}
+                            },
+                            children: []
                         }))
                     ],
-                    fileName: node.fileName,
+                    // children: baseAppearance.contents
+                    //     .map(({ key, index }) => (this._normalToSchema(key, index)))
+                    //     .filter((value) => (value))
                 }
         }
     }
 
-    get schema(): SchemaTag[] {
+    get schema(): GenericTree<SchemaTag> {
         const topLevelAppearances: { key: string; appearanceIndex: number }[] = Object.entries(this._normalForm)
             .reduce<{ key: string; appearanceIndex: number }[]>((previous, [key, { appearances }]) => {
                 return (appearances as BaseAppearance[]).reduce<{ key: string; appearanceIndex: number }[]>((accumulator, { contextStack }, index) => (
@@ -1368,7 +1423,7 @@ export class Normalizer {
         return topLevelAppearances.map(({ key, appearanceIndex }) => (this._normalToSchema(key, appearanceIndex)))
     }
 
-    referenceToSchema(reference: NormalReference): SchemaTag | undefined {
+    referenceToSchema(reference: NormalReference): GenericTreeNode<SchemaTag> | undefined {
         return this._normalToSchema(reference.key, reference.index)
     }
 
@@ -1411,8 +1466,7 @@ export class Normalizer {
     merge(incomingNormalizer: Normalizer): void {
         const firstSchema = this.schema
         const secondSchema = incomingNormalizer.schema
-        const outputSchema = mergeOrderedConditionalTrees(firstSchema, secondSchema)
-        console.log(`outputSchema: ${JSON.stringify(outputSchema, null, 4)}`)
+        const outputSchema = mergeSchemaTrees(firstSchema, secondSchema)
         this.loadSchema(outputSchema)
     }
 

@@ -210,6 +210,17 @@ export const legacyContentStructure = (tree: GenericTree<SchemaTag>): SchemaTag[
     return output
 }
 
+export const decodeLegacyContentStructure = (tree: SchemaTag[]): GenericTree<SchemaTag> => {
+    return tree.map((data) => (
+        isSchemaWithContents(data)
+            ? {
+                data: { ...data, contents: [] },
+                children: decodeLegacyContentStructure(data.contents)
+            }
+            : { data, children: [] }
+    ))
+}
+
 //
 // Fold whitespace into TaggedMessage legal contents by appending or prepending it to String values
 //
