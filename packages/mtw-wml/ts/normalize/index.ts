@@ -44,7 +44,8 @@ import {
     isSchemaKnowledgeContents,
     SchemaExportTag,
     isImportableTag,
-    isSchemaExport
+    isSchemaExport,
+    isSchemaRoom
 } from '../simpleSchema/baseClasses'
 import {
     BaseAppearance,
@@ -61,6 +62,7 @@ import {
     isNormalKnowledge,
     isNormalMap,
     isNormalMessage,
+    isNormalReference,
     isNormalRoom,
     MapAppearance,
     MessageAppearance,
@@ -98,6 +100,7 @@ import { buildNormalPlaceholdersFromExport, rebuildContentsFromImport } from './
 import { mergeOrderedConditionalTrees } from '../lib/sequenceTools/orderedConditionalTree';
 import { GenericTree, GenericTreeNode } from '../sequence/tree/baseClasses';
 import mergeSchemaTrees from '../simpleSchema/treeManipulation/merge';
+import { extractConditionedItemFromContents } from '../simpleSchema/utils';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -255,7 +258,9 @@ export class Normalizer {
         }
         const parent = appearance.contextStack.length > 0 ? appearance.contextStack.slice(-1)[0] : undefined
         if (parent) {
-            const index = this._normalForm[parent.key].appearances[parent.index].contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
+            const index = this._normalForm[parent.key].appearances[parent.index].children.findIndex(({ data }) => (
+                isNormalReference(data) && data.key === reference.key && data.index === reference.index
+            ))
             if (index === -1) {
                 throw new Error('Parent lookup error in Normalizer')
             }
@@ -300,7 +305,11 @@ export class Normalizer {
         if (!parentAppearance) {
             throw new Error('Reference error in Normalizer')
         }
-        return parentAppearance.contents[position.index]
+        const returnValue = parentAppearance.children[position.index].data
+        if (isNormalReference(returnValue)) {
+            return returnValue
+        }
+        return undefined
     }
 
     _insertPositionSortOrder(locationA: NormalizerInsertPosition | NormalReference, locationB: NormalizerInsertPosition | NormalReference): number {
@@ -430,42 +439,6 @@ export class Normalizer {
         if (appearance >= this._normalForm[key].appearances.length) {
             throw new NormalizeKeyMismatchError(`Illegal appearance referenced on key "${key}"`)
         }
-        //
-        // A normalizer-centric version of the utility function from schema/utils, which does the same thing
-        // but looks up structures in a normalForm, rather than being provided with them in the schema
-        // object
-        //
-        const extractConditionedItemFromContents = <T extends NormalItem, O extends SchemaConditionMixin>(props: {
-            contents: NormalReference[];
-            typeGuard: (value: NormalItem) => value is T;
-            transform: (value: T, appearanceIndex: number, index: number) => O;
-        }): O[] => {
-            const { contents, typeGuard, transform } = props
-            return contents.reduce<O[]>((previous, reference, index) => {
-                const item = this._normalForm[reference.key]
-                if (item && typeGuard(item)) {
-                    return [
-                        ...previous,
-                        transform(item, reference.index, index)
-                    ]
-                }
-                if (item && isNormalCondition(item)) {
-                    const nestedItems = extractConditionedItemFromContents({ contents: item.appearances[reference.index].contents, typeGuard, transform })
-                        .map(({ conditions, ...rest }) => ({
-                            conditions: [
-                                ...item.conditions,
-                                ...conditions
-                            ],
-                            ...rest
-                        })) as O[]
-                    return [
-                        ...previous,
-                        ...nestedItems
-                    ]
-                }
-                return previous
-            }, [])
-        }
         switch(this._normalForm[key].tag) {
             case 'Map':
                 this._normalForm = produce(this._normalForm, (draft) => {
@@ -473,14 +446,14 @@ export class Normalizer {
                     if (isNormalMap(mapItem)) {
                         const appearanceData = mapItem.appearances[appearance]
                         appearanceData.rooms = extractConditionedItemFromContents({
-                            contents: appearanceData.contents,
-                            typeGuard: isNormalRoom,
-                            transform: ({ key, appearances }, appearanceIndex) => {
+                            contents: this._expandNormalRefTree(appearanceData.children),
+                            typeGuard: isSchemaRoom,
+                            transform: ({ key, x, y }) => {
                                 return {
                                     conditions: [],
                                     key,
-                                    x: appearances[appearanceIndex].x,
-                                    y: appearances[appearanceIndex].y
+                                    x,
+                                    y
                                 }
                             }
                         })
@@ -491,14 +464,18 @@ export class Normalizer {
                 this._normalForm = produce(this._normalForm, (draft) => {
                     const characterItem = draft[key]
                     if (isNormalCharacter(characterItem)) {
-                        characterItem.images = [...(new Set(characterItem.appearances.reduce<string[]>((previous, { contents }) => ([
+                        characterItem.images = [...(new Set(characterItem.appearances.reduce<string[]>((previous, { children }) => ([
                             ...previous,
-                            ...contents.filter(({ tag }) => (tag === 'Image'))
+                            ...this._expandNormalRefTree(children)
+                                .map(({ data }) => (data))
+                                .filter(isSchemaImage)
                                 .map(({ key }) => (key))
                         ]), [])))]
-                        characterItem.assets = [...(new Set(characterItem.appearances.reduce<string[]>((previous, { contents }) => ([
+                        characterItem.assets = [...(new Set(characterItem.appearances.reduce<string[]>((previous, { children }) => ([
                             ...previous,
-                            ...contents.filter(({ tag }) => (tag === 'Import'))
+                            ...this._expandNormalRefTree(children)
+                                .map(({ data }) => (data))
+                                .filter(isSchemaImport)
                                 .map(({ key }) => {
                                     const importItem = this._normalForm[key]
                                     if (isNormalImport(importItem)) {
@@ -521,7 +498,7 @@ export class Normalizer {
     // when the contents of an item are changed (e.g. recalculate rooms on Map when a room is added or
     // removed)
     //
-    _updateAppearanceContents(key: string, appearance: number, contents: NormalReference[]): void {
+    _updateAppearanceContents(key: string, appearance: number, children: GenericTree<NormalReference | SchemaTag>): void {
         if (!(key in this._normalForm)) {
             throw new NormalizeKeyMismatchError(`Key "${key}" does not match any tag in asset`)
         }
@@ -529,7 +506,7 @@ export class Normalizer {
             throw new NormalizeKeyMismatchError(`Illegal appearance referenced on key "${key}"`)
         }
         this._normalForm = { ...produce(this._normalForm, (draft) => {
-            draft[key].appearances[appearance].contents = contents
+            draft[key].appearances[appearance].children = children
         }) }
         const referencesNeedingRecalculation = [ { key, tag: this._normalForm[key].tag, index: appearance }, ...[ ...this._normalForm[key].appearances[appearance].contextStack ].reverse()]
         referencesNeedingRecalculation.forEach((itemRef) => {
@@ -555,15 +532,22 @@ export class Normalizer {
             }
             if (typeof fromIndex === 'number' && parent) {
                 this._updateAppearance(parent, (draft) => {
-                    const appearanceIndex = draft.contents.findIndex(({ key, index }) => (key === reference.key && index === fromIndex))
-                    draft.contents[appearanceIndex].index = reference.index
+                    const appearanceIndex = draft.children.map(({ data }) => (data)).findIndex((data) => (isNormalReference(data) && data.key === reference.key && data.index === fromIndex))
+                    const data = draft.children[appearanceIndex].data
+                    if (isNormalReference(data)) {
+                        data.index = reference.index
+                    }
                 })
             }
-            const { contents } = appearance
+            const { children } = appearance
             const newContextStack = [ ...(contextStack || appearance.contextStack), reference ]
-            contents.forEach((contentReference) => {
-                this._reindexReference(contentReference, { contextStack: newContextStack })
-            })
+            children
+                .map(({ data }) => (data))
+                .forEach((contentReference) => {
+                    if (isNormalReference(contentReference)) {
+                        this._reindexReference(contentReference, { contextStack: newContextStack })
+                    }
+                })
         }
     }
 
@@ -574,13 +558,13 @@ export class Normalizer {
     _removeAppearance(reference: NormalReference): void {
         const appearance = this._lookupAppearance(reference)
         if (appearance) {
-            const { contents } = appearance
+            const { children } = appearance
             //
             // Remove contents in reverse order in case of duplicate appearances of the same key (since
             // you *definitely* want to remove appearances in reverse order, or else the reindexing will
             // destroy the validity of your references)
             //
-            const reversedContents = [...contents].reverse()
+            const reversedContents = [...children].map(({ data }) => (data)).filter(isNormalReference).reverse()
             reversedContents.forEach((contentReference) => { this._removeAppearance(contentReference) })
             this._normalForm = produce(this._normalForm, (draft) => {
                 draft[reference.key].appearances.splice(reference.index, 1)
@@ -613,9 +597,9 @@ export class Normalizer {
             if (contextStack.length > 0) {
                 const parent = contextStack.slice(-1)[0]
                 this._updateAppearance(parent, (draft) => {
-                    draft.contents.forEach((contentItem) => {
-                        if (contentItem.key === fromKey) {
-                            contentItem.key = toKey
+                    draft.children.forEach(({ data }) => {
+                        if (isNormalReference(data) && data.key === fromKey) {
+                            data.key = toKey
                         }
                     })
                 })
@@ -776,7 +760,7 @@ export class Normalizer {
         let returnKey: string = node.key
         switch(node.tag) {
             case 'Exit':
-                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, contents: [] }, node), position)
+                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children: [] }, node), position)
                 returnValue = {
                     tag: 'Exit',
                     key: node.key,
@@ -784,20 +768,23 @@ export class Normalizer {
                 }
                 break
             case 'Import':
-                const translatedImport = this._translate({ ...translateContext, contents: [] }, node)
+                const translatedImport = this._translate({ ...translateContext, data: node, children: [] }, node)
                 const importIndex = this._mergeAppearance(translatedImport.key, translatedImport, position)
                 const importParentReference = this._getParentReference(translateContext.contextStack)
                 if (importParentReference) {
-                    const { contents = [] } = this._lookupAppearance(importParentReference)
+                    const { children = [] } = this._lookupAppearance(importParentReference)
                     this._updateAppearanceContents(
                         importParentReference.key,
                         importParentReference.index,
                         [
-                            ...contents,
+                            ...children,
                             {
-                                key: translatedImport.key,
-                                tag: 'Import',
-                                index: importIndex
+                                data: {
+                                    key: translatedImport.key,
+                                    tag: 'Import',
+                                    index: importIndex
+                                },
+                                children: []
                             }
                         ]
                     )
@@ -815,7 +802,7 @@ export class Normalizer {
                         }
                     ],
                 }
-                const importContents = importSchemaTags.map((tag) => (this.put({ data: tag, children: [] }, updatedContext)))
+                const importContents = importSchemaTags.map((tag) => ({ data: this.put({ data: tag, children: [] }, updatedContext), children: [] }))
                 this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
                 return {
                     key: translatedImport.key,
@@ -823,7 +810,7 @@ export class Normalizer {
                     index: importIndex
                 }
             default:
-                const translatedItem = this._translate({ ...translateContext, contents: [] }, node)
+                const translatedItem = this._translate({ ...translateContext, data: node, children: [] }, node)
                 returnKey = translatedItem.key
                 appearanceIndex = this._mergeAppearance(returnKey, translatedItem, position)
                 returnValue = {
@@ -834,12 +821,12 @@ export class Normalizer {
         }
         const parentReference = this._getParentReference(translateContext.contextStack)
         if (parentReference && !isSchemaImport(node)) {
-            const { contents = [] } = this._lookupAppearance(parentReference)
+            const { children = [] } = this._lookupAppearance(parentReference)
             if (typeof position.index === 'number') {
-                this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents.slice(0, position.index), returnValue, ...contents.slice(position.index)])
+                this._updateAppearanceContents(parentReference.key, parentReference.index, [...children.slice(0, position.index), { data: returnValue, children: [] }, ...children.slice(position.index)])
             }
             else {
-                this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents, returnValue])
+                this._updateAppearanceContents(parentReference.key, parentReference.index, [...children, { data: returnValue, children: [] }])
             }
         }
         if (isSchemaWithContents(node) && !isSchemaExit(node)) {
@@ -861,18 +848,18 @@ export class Normalizer {
         if (appearance) {
             const parentReference = this._getParentReference(appearance.contextStack)
             if (parentReference) {
-                const { contents = [] } = this._lookupAppearance(parentReference)
-                const index = contents.findIndex(({ key, index }) => (key === reference.key && index === reference.index))
+                const { children = [] } = this._lookupAppearance(parentReference)
+                const index = children.findIndex(({ data }) => (isNormalReference(data) && data.key === reference.key && data.index === reference.index))
                 if (index !== -1) {
-                    this._updateAppearanceContents(parentReference.key, parentReference.index, [...contents.slice(0, index), ...contents.slice(index + 1)])
+                    this._updateAppearanceContents(parentReference.key, parentReference.index, [...children.slice(0, index), ...children.slice(index + 1)])
                 }
             }
             this._removeAppearance(reference)
             if (options.removeEmptyConditions) {
                 const newParentReference = this._getParentReference(appearance.contextStack)
                 if (newParentReference && newParentReference.tag === 'If') {
-                    const { contents = [] } = this._lookupAppearance(newParentReference)
-                    if (!contents.length) {
+                    const { children = [] } = this._lookupAppearance(newParentReference)
+                    if (!children.length) {
                         this.delete(newParentReference)
                     }
                 }
@@ -1146,6 +1133,19 @@ export class Normalizer {
         return this._normalForm
     }
 
+    _expandNormalRefTree(tree: GenericTree<NormalReference | SchemaTag>): GenericTree<SchemaTag> {
+        return tree.map(({ data, children }) => {
+            const schemaValue = isNormalReference(data) ? this._lookupAppearance(data) : { data, children }
+            if (!schemaValue) {
+                throw new Error('Failed lookup in _expandNormalRefTree')
+            }
+            return {
+                data: schemaValue.data,
+                children: this._expandNormalRefTree(children)
+            }
+        })
+    }
+
     _normalToSchema(key: string, appearanceIndex: number): GenericTreeNode<SchemaTag> | undefined {
         const node = this._normalForm[key]
         if (!node || appearanceIndex >= node.appearances.length) {
@@ -1155,261 +1155,276 @@ export class Normalizer {
         if (!baseAppearance) {
             return undefined
         }
-        switch(node.tag) {
-            case 'Asset':
-                //
-                // TODO: Create a SchemaExportTag manually out of `exportAs` data on every item in the
-                // entire normalForm that has this node somewhere in the context of one of its appearances,
-                // and which has an exportAs specified different from its key, to be the last element of the
-                // Asset contents.
-                //
-                const allAssetDescendantNormals = (Object.values(this._normalForm) as NormalItem[])
-                    .filter(({ tag }) => (isImportableTag(tag)))
-                    .filter(({ appearances }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find(({ key }) => (key === node.key)))))))
-                    .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
-                const exportSchemaTag: GenericTree<SchemaTag> = allAssetDescendantNormals.length
-                    ? [{
-                        data: {
-                            tag: 'Export',
-                            mapping: Object.assign(
-                                {},
-                                ...allAssetDescendantNormals.map(({ key, tag, exportAs }) => ({ [exportAs || key]: { key, type: tag }}))
-                            )
-                        },
-                        //
-                        // TODO: Create or find a "defaultSchema" generator that creates a default item for any tag,
-                        // and use it to populate children here.
-                        //
-                        children: []
-                    }]
-                    : []
-                return {
-                    data: {
-                        ...(node.Story
-                            ? { tag: 'Story', Story: true, instance: false }
-                            : { tag: 'Asset', Story: undefined }
-                        ),
-                        key,
-                        contents: []
-                    },
-                    children: [
-                        ...baseAppearance.contents
-                            .map(({ key, index }) => (this._normalToSchema(key, index)))
-                            .filter((value) => (value))
-                            .filter(({ data }) => (isSchemaAssetContents(data))),
-                        ...exportSchemaTag
-                    ]
-                }
-            case 'Image':
-                return {
-                    data: {
-                        key,
-                        tag: 'Image'
-                    },
-                    children: []
-                }
-            case 'Variable':
-                return {
-                    data: {
-                        key,
-                        tag: 'Variable',
-                        default: node.default
-                    },
-                    children: []
-                }
-            case 'Computed':
-                return {
-                    data: {
-                        key,
-                        tag: 'Computed',
-                        src: node.src,
-                        dependencies: node.dependencies
-                    },
-                    children: []
-                }
-            case 'Action':
-                return {
-                    data: {
-                        key,
-                        tag: 'Action',
-                        src: node.src
-                    },
-                    children: []
-                }
-            case 'If':
-                return {
-                    data: {
-                        tag: 'If',
-                        conditions: node.conditions,
-                        contents: []
-                    },
-                    children: baseAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            //
-            // TODO: Recreate contents for Import SchemaTag
-            //
-            case 'Import':
-                return {
-                    data: {
-                        tag: 'Import',
-                        from: node.from,
-                        mapping: Object.entries(node.mapping)
-                            .filter(([_, { type }]) => (isSchemaImportMappingType(type)))
-                            .reduce<Record<string, SchemaImportMapping>>((previous, [key, { key: from, type }]) => ({
-                                ...previous,
-                                [key]: {
-                                    key: from,
-                                    type: type as SchemaImportMapping["type"]
-                                }
-                            }), {})
-                    },
-                    children: []
-                }
-            case 'Room':
-                const roomAppearance = baseAppearance as ComponentAppearance
-                return {
-                    data: {
-                        key,
-                        tag: 'Room',
-                        ...(typeof roomAppearance.x !== 'undefined' ? { x: roomAppearance.x } : {}),
-                        ...(typeof roomAppearance.y !== 'undefined' ? { y: roomAppearance.y } : {}),
-                        render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
-                        name: (roomAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                        contents: []
-                    },
-                    children: roomAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            case 'Feature':
-                const featureAppearance = baseAppearance as ComponentAppearance
-                return {
-                    data: {
-                        key,
-                        tag: 'Feature',
-                        render: (featureAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
-                        name: (featureAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                        contents: []
-                    },
-                    children: featureAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            case 'Knowledge':
-                const knowledgeAppearance = baseAppearance as ComponentAppearance
-                return {
-                    data: {
-                        key,
-                        tag: 'Knowledge',
-                        render: (knowledgeAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
-                        name: (knowledgeAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                        contents: []
-                    },
-                    children: knowledgeAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            case 'Bookmark':
-                const bookmarkAppearance = baseAppearance as ComponentAppearance
-                return {
-                    data: {
-                        key,
-                        tag: 'Bookmark',
-                        contents: []
-                    },
-                    children: bookmarkAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            case 'Message':
-                const messageAppearance = baseAppearance as MessageAppearance
-                return {
-                    data: {
-                        key,
-                        tag: 'Message',
-                        render: (messageAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
-                        rooms: messageAppearance.rooms,
-                        contents: []
-                    },
-                    children: messageAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            case 'Moment':
-                const momentAppearance = baseAppearance as MomentAppearance
-                return {
-                    data: {
-                        key,
-                        tag: 'Moment',
-                        contents: []
-                    },
-                    children: momentAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            case 'Map':
-                const mapAppearance = baseAppearance as MapAppearance
-                return {
-                    data: {
-                        key,
-                        tag: 'Map',
-                        images: mapAppearance.images,
-                        name: (mapAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
-                        rooms: mapAppearance.rooms,
-                        contents: []
-                    },
-                    children: mapAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            case 'Exit':
-                return {
-                    data: {
-                        key,
-                        tag: 'Exit',
-                        to: node.to,
-                        from: node.from,
-                        name: node.name,
-                        contents: []
-                    },
-                    children: baseAppearance.contents
-                        .map(({ key, index }) => (this._normalToSchema(key, index)))
-                        .filter((value) => (value))
-                }
-            case 'Character':
-                return {
-                    data: {
-                        key,
-                        tag: 'Character',
-                        Name: node.Name,
-                        Pronouns: node.Pronouns,
-                        FirstImpression: node.FirstImpression,
-                        OneCoolThing: node.OneCoolThing,
-                        Outfit: node.Outfit,
-                        fileName: node.fileName,
-                        contents: []
-                    },
-                    children: [
-                        ...node.images.map((key): GenericTreeNode<SchemaImageTag> => ({
-                            data: { tag: 'Image', key }, children: []
-                        })),
-                        ...node.assets.map((key): GenericTreeNode<SchemaImportTag> => ({
-                            data: {
-                                tag: 'Import',
-                                from: key,
-                                mapping: {}
-                            },
-                            children: []
-                        }))
-                    ],
-                    // children: baseAppearance.contents
-                    //     .map(({ key, index }) => (this._normalToSchema(key, index)))
-                    //     .filter((value) => (value))
-                }
+        return {
+            data: baseAppearance.data,
+            children: this._expandNormalRefTree(baseAppearance.children)
         }
     }
+
+    // _normalToSchema(key: string, appearanceIndex: number): GenericTreeNode<SchemaTag> | undefined {
+    //     const node = this._normalForm[key]
+    //     if (!node || appearanceIndex >= node.appearances.length) {
+    //         return undefined
+    //     }
+    //     const baseAppearance = this._lookupAppearance({ key, index: appearanceIndex, tag: node.tag })
+    //     if (!baseAppearance) {
+    //         return undefined
+    //     }
+    //     switch(node.tag) {
+    //         case 'Asset':
+    //             //
+    //             // TODO: Create a SchemaExportTag manually out of `exportAs` data on every item in the
+    //             // entire normalForm that has this node somewhere in the context of one of its appearances,
+    //             // and which has an exportAs specified different from its key, to be the last element of the
+    //             // Asset contents.
+    //             //
+    //             const allAssetDescendantNormals = (Object.values(this._normalForm) as NormalItem[])
+    //                 .filter(({ tag }) => (isImportableTag(tag)))
+    //                 .filter(({ appearances }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find(({ key }) => (key === node.key)))))))
+    //                 .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
+    //             const exportSchemaTag: GenericTree<SchemaTag> = allAssetDescendantNormals.length
+    //                 ? [{
+    //                     data: {
+    //                         tag: 'Export',
+    //                         mapping: Object.assign(
+    //                             {},
+    //                             ...allAssetDescendantNormals.map(({ key, tag, exportAs }) => ({ [exportAs || key]: { key, type: tag }}))
+    //                         )
+    //                     },
+    //                     //
+    //                     // TODO: Create or find a "defaultSchema" generator that creates a default item for any tag,
+    //                     // and use it to populate children here.
+    //                     //
+    //                     children: []
+    //                 }]
+    //                 : []
+    //             return {
+    //                 data: {
+    //                     ...(node.Story
+    //                         ? { tag: 'Story', Story: true, instance: false }
+    //                         : { tag: 'Asset', Story: undefined }
+    //                     ),
+    //                     key,
+    //                     contents: []
+    //                 },
+    //                 children: [
+    //                     ...baseAppearance.contents
+    //                         .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                         .filter((value) => (value))
+    //                         .filter(({ data }) => (isSchemaAssetContents(data))),
+    //                     ...exportSchemaTag
+    //                 ]
+    //             }
+    //         case 'Image':
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Image'
+    //                 },
+    //                 children: []
+    //             }
+    //         case 'Variable':
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Variable',
+    //                     default: node.default
+    //                 },
+    //                 children: []
+    //             }
+    //         case 'Computed':
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Computed',
+    //                     src: node.src,
+    //                     dependencies: node.dependencies
+    //                 },
+    //                 children: []
+    //             }
+    //         case 'Action':
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Action',
+    //                     src: node.src
+    //                 },
+    //                 children: []
+    //             }
+    //         case 'If':
+    //             return {
+    //                 data: {
+    //                     tag: 'If',
+    //                     conditions: node.conditions,
+    //                     contents: []
+    //                 },
+    //                 children: baseAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         //
+    //         // TODO: Recreate contents for Import SchemaTag
+    //         //
+    //         case 'Import':
+    //             return {
+    //                 data: {
+    //                     tag: 'Import',
+    //                     from: node.from,
+    //                     mapping: Object.entries(node.mapping)
+    //                         .filter(([_, { type }]) => (isSchemaImportMappingType(type)))
+    //                         .reduce<Record<string, SchemaImportMapping>>((previous, [key, { key: from, type }]) => ({
+    //                             ...previous,
+    //                             [key]: {
+    //                                 key: from,
+    //                                 type: type as SchemaImportMapping["type"]
+    //                             }
+    //                         }), {})
+    //                 },
+    //                 children: []
+    //             }
+    //         case 'Room':
+    //             const roomAppearance = baseAppearance as ComponentAppearance
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Room',
+    //                     ...(typeof roomAppearance.x !== 'undefined' ? { x: roomAppearance.x } : {}),
+    //                     ...(typeof roomAppearance.y !== 'undefined' ? { y: roomAppearance.y } : {}),
+    //                     render: (roomAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+    //                     name: (roomAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+    //                     contents: []
+    //                 },
+    //                 children: roomAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         case 'Feature':
+    //             const featureAppearance = baseAppearance as ComponentAppearance
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Feature',
+    //                     render: (featureAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+    //                     name: (featureAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+    //                     contents: []
+    //                 },
+    //                 children: featureAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         case 'Knowledge':
+    //             const knowledgeAppearance = baseAppearance as ComponentAppearance
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Knowledge',
+    //                     render: (knowledgeAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+    //                     name: (knowledgeAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+    //                     contents: []
+    //                 },
+    //                 children: knowledgeAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         case 'Bookmark':
+    //             const bookmarkAppearance = baseAppearance as ComponentAppearance
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Bookmark',
+    //                     contents: []
+    //                 },
+    //                 children: bookmarkAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         case 'Message':
+    //             const messageAppearance = baseAppearance as MessageAppearance
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Message',
+    //                     render: (messageAppearance.render || []).map(componentRenderToSchemaTaggedMessage),
+    //                     rooms: messageAppearance.rooms,
+    //                     contents: []
+    //                 },
+    //                 children: messageAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         case 'Moment':
+    //             const momentAppearance = baseAppearance as MomentAppearance
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Moment',
+    //                     contents: []
+    //                 },
+    //                 children: momentAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         case 'Map':
+    //             const mapAppearance = baseAppearance as MapAppearance
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Map',
+    //                     images: mapAppearance.images,
+    //                     name: (mapAppearance.name || []).map(componentRenderToSchemaTaggedMessage),
+    //                     rooms: mapAppearance.rooms,
+    //                     contents: []
+    //                 },
+    //                 children: mapAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         case 'Exit':
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Exit',
+    //                     to: node.to,
+    //                     from: node.from,
+    //                     name: node.name,
+    //                     contents: []
+    //                 },
+    //                 children: baseAppearance.contents
+    //                     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                     .filter((value) => (value))
+    //             }
+    //         case 'Character':
+    //             return {
+    //                 data: {
+    //                     key,
+    //                     tag: 'Character',
+    //                     Name: node.Name,
+    //                     Pronouns: node.Pronouns,
+    //                     FirstImpression: node.FirstImpression,
+    //                     OneCoolThing: node.OneCoolThing,
+    //                     Outfit: node.Outfit,
+    //                     fileName: node.fileName,
+    //                     contents: []
+    //                 },
+    //                 children: [
+    //                     ...node.images.map((key): GenericTreeNode<SchemaImageTag> => ({
+    //                         data: { tag: 'Image', key }, children: []
+    //                     })),
+    //                     ...node.assets.map((key): GenericTreeNode<SchemaImportTag> => ({
+    //                         data: {
+    //                             tag: 'Import',
+    //                             from: key,
+    //                             mapping: {}
+    //                         },
+    //                         children: []
+    //                     }))
+    //                 ],
+    //                 // children: baseAppearance.contents
+    //                 //     .map(({ key, index }) => (this._normalToSchema(key, index)))
+    //                 //     .filter((value) => (value))
+    //             }
+    //     }
+    // }
 
     get schema(): GenericTree<SchemaTag> {
         const topLevelAppearances: { key: string; appearanceIndex: number }[] = Object.entries(this._normalForm)
