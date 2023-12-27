@@ -1,3 +1,6 @@
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../sequence/tree/baseClasses";
+import { SchemaTag } from "../simpleSchema/baseClasses";
+
 type TagType = 'Asset' |
     'Story' |
     'Character' |
@@ -24,9 +27,13 @@ export type NormalReference = {
     index: number;
 }
 
-export type BaseAppearance = {
+export const isNormalReference = (value: NormalReference | SchemaTag): value is NormalReference => {
+    const keys = Object.keys(value)
+    return (keys.length === 3 && keys.includes('key') && keys.includes('tag') && keys.includes('index'))
+}
+
+export type BaseAppearance = GenericTreeNodeFiltered<SchemaTag, NormalReference | SchemaTag> & {
     contextStack: NormalReference[];
-    contents: NormalReference[];
 }
 
 type NormalBase = {

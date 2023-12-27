@@ -65,41 +65,57 @@ describe('schemaFromParse', () => {
             </Asset>
         `)))
         expect(schemaFromParse(testParse)).toEqual([{
-            Story: undefined,
-            contents: [
+            data: {
+                Story: undefined,
+                key: "Test",
+                tag: "Asset",
+                contents: []
+            },
+            children: [
                 {
-                    from: "BASE",
-                    mapping: {
-                        baseInfo: { key: "baseInfo", type: "Knowledge" },
-                        overview: { key: "overview", type: "Room" },
-                        power: { key: "basePower", type: "Variable" }
+                    data: {
+                        from: "BASE",
+                        mapping: {
+                            baseInfo: { key: "baseInfo", type: "Knowledge" },
+                            overview: { key: "overview", type: "Room" },
+                            power: { key: "basePower", type: "Variable" }
+                        },
+                        tag: "Import"
                     },
-                    tag: "Import",
+                    children: [
+                        { data: { tag: 'Variable', key: 'power', from: 'basePower' }, children: [] },
+                        { data: { tag: 'Room', key: 'overview', contents: [], render: [], name: [] }, children: [] },
+                        { data: { tag: 'Knowledge', key: 'baseInfo', contents: [], render: [], name: [] }, children: [] }
+                    ]
                 },
                 {
-                    contents: [{
-                        contents: [
+                    data: {
+                        tag: "Room",
+                        key: "ABC",
+                        display: undefined,
+                        name: [{ tag: "String", value: "Vortex" }],
+                        render: [
                             { tag: "Space" },
                             { tag: "String", value: "Vortex" },
                             {
                                 conditions: [{
                                     dependencies: ["open"],
-                                    if: "open",
+                                    if: "open"
                                 }],
                                 contents: [{ tag: "String", value: ": Open" }],
-                                tag: "If",
+                                tag: "If"
                             },
                             {
                                 conditions: [
                                     {
                                         dependencies: ["open"],
                                         if: "open",
-                                        not: true,
+                                        not: true
                                     },
                                     {
                                         dependencies: ["closed"],
-                                        if: "!closed",
-                                    },
+                                        if: "!closed"
+                                    }
                                 ],
                                 contents: [{ tag: "String", value: ": Indeterminate" }],
                                 tag: "If",
@@ -130,157 +146,229 @@ describe('schemaFromParse', () => {
                                 to: "toggleOpen",
                             },
                         ],
-                        tag: "Description",
+                        contents: []
+                    },
+                    children: [{
+                        data: {
+                            tag: 'Name',
+                            contents: []
+                        },
+                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
+                    },
+                    {
+                        data: { tag: "Description", contents: [] },
+                        children: [
+                            { data: { tag: "Space" }, children: [] },
+                            { data: { tag: "String", value: "Vortex" }, children: [] },
+                            {
+                                data: {
+                                    conditions: [{
+                                        dependencies: ["open"],
+                                        if: "open",
+                                    }],
+                                    tag: "If",
+                                    contents: []
+                                },
+                                children: [{ data: { tag: "String", value: ": Open" }, children: [] }],
+                            },
+                            {
+                                data: {
+                                    tag: "If",
+                                    conditions: [
+                                        {
+                                            dependencies: ["open"],
+                                            if: "open",
+                                            not: true,
+                                        },
+                                        {
+                                            dependencies: ["closed"],
+                                            if: "!closed",
+                                        },
+                                    ],
+                                    contents: []
+                                },
+                                children: [{ data: { tag: "String", value: ": Indeterminate" }, children: [] }],
+                            },
+                            {
+                                data: {
+                                    tag: "If",
+                                    conditions: [
+                                        {
+                                            dependencies: ["open"],
+                                            if: "open",
+                                            not: true,
+                                        },
+                                        {
+                                            dependencies: ["closed"],
+                                            if: "!closed",
+                                            not: true,
+                                        },
+                                    ],
+                                    contents: []
+                                },
+                                children: [{ data: { tag: "String", value: ": Closed" }, children: [] }],
+                            },
+                            {
+                                data: {
+                                    tag: "String",
+                                    value: " "    
+                                },
+                                children: []
+                            },
+                            {
+                                data: {
+                                    tag: "Link",
+                                    text: "(toggle)",
+                                    to: "toggleOpen"    
+                                },
+                                children: [{ data: { tag: 'String', value: '(toggle)' }, children: [] }]
+                            },
+                        ],
                     }],
-                    display: undefined,
-                    key: "ABC",
-                    name: [{ tag: "String", value: "Vortex" }],
-                    render: [
-                        { tag: "Space" },
-                        { tag: "String", value: "Vortex" },
-                        {
-                            conditions: [{
-                                dependencies: ["open"],
-                                if: "open"
-                            }],
-                            contents: [{ tag: "String", value: ": Open" }],
-                            tag: "If"
-                        },
-                        {
-                            conditions: [
-                                {
-                                    dependencies: ["open"],
-                                    if: "open",
-                                    not: true
-                                },
-                                {
-                                    dependencies: ["closed"],
-                                    if: "!closed"
-                                }
-                            ],
-                            contents: [{
-                                tag: "String",
-                                value: ": Indeterminate",
-                            }],
-                            tag: "If",
-                        },
-                        {
-                            conditions: [
-                                {
-                                    dependencies: ["open"],
-                                    if: "open",
-                                    not: true,
-                                },
-                                {
-                                    dependencies: ["closed"],
-                                    if: "!closed",
-                                    not: true,
-                                },
-                            ],
-                            contents: [{ tag: "String", value: ": Closed" }],
-                            tag: "If",
-                        },
-                        {
-                            tag: "String",
-                            value: " ",
-                        },
-                        {
-                            tag: "Link",
-                            text: "(toggle)",
-                            to: "toggleOpen",
-                        },
-                    ],
-                    tag: "Room"
                 },
                 {
-                    conditions: [{
-                        dependencies: ["open"],
-                        if: "open",
-                    }],
-                    contents: [{
-                        contents: [{
-                            contents: [{ tag: "String", value: "welcome" }],
-                            from: "ABC",
-                            key: "ABC#DEF",
-                            name: "welcome",
-                            tag: "Exit",
-                            to: "DEF",
+                    data: {
+                        tag: "If",
+                        conditions: [{
+                            dependencies: ["open"],
+                            if: "open",
                         }],
-                        display: undefined,
-                        key: "ABC",
-                        name: [],
-                        render: [],
-                        tag: "Room"
-                    }],
-                    tag: "If",
-                },
-                {
-                    contents: [{
-                        contents: [{ tag: "String", value: "vortex" }],
-                        from: "DEF",
-                        key: "DEF#DEF",
-                        name: "vortex",
-                        tag: "Exit",
-                        to: "DEF",
-                    }],
-                    display: undefined,
-                    key: "DEF",
-                    name: [{ tag: "String", value: "Welcome" }],
-                    render: [],
-                    tag: "Room",
-                },
-                {
-                    contents: [],
-                    key: "GHI",
-                    name: [{ tag: "String", value: "Learn" }],
-                    render: [{ tag: "String", value: "There is so much to know!" }],
-                    tag: "Knowledge",
-                },
-                {
-                    default: "false",
-                    key: "open",
-                    tag: "Variable",
-                },
-                {
-                    key: "toggleOpen",
-                    src: "open = !open",
-                    tag: "Action",
-                },
-                {
-                    dependencies: ["open"],
-                    key: "closed",
-                    src: "!open",
-                    tag: "Computed",
-                },
-                {
-                    contents: [{
-                        contents: [{
-                            contents: [],
+                        contents: []
+                    },
+                    children: [{
+                        data: {
+                            tag: "Room",
                             display: undefined,
                             key: "ABC",
                             name: [],
                             render: [],
-                            tag: "Room",
+                            contents: []
+                        },
+                        children: [{
+                            data: {
+                                tag: "Exit",
+                                key: "ABC#DEF",
+                                from: "ABC",
+                                name: "welcome",
+                                to: "DEF",
+                                contents: []
+                            },
+                            children: [{ data: { tag: "String", value: "welcome" }, children: [] }],
                         }],
-                        key: "openDoor",
-                        render: [{ tag: "String", value: "The door opens!" }],
-                        rooms: [{ key: "ABC" }],
-                        tag: "Message",
                     }],
-                    key: "openDoorMoment",
-                    tag: "Moment",
                 },
                 {
-                    mapping: {
-                        QRS: { key: 'ABC', type: 'Room' },
-                        DEF: { key: 'DEF', type: 'Room' },
-                        GHI: { key: 'GHI', type: 'Knowledge' }
+                    data: {
+                        tag: "Room",
+                        display: undefined,
+                        key: "DEF",
+                        name: [{ tag: "String", value: "Welcome" }],
+                        render: [],
+                        contents: []
                     },
-                    tag: "Export"
+                    children: [{
+                        data: { tag: 'Name', contents: [] },
+                        children: [{ data: { tag: 'String', value: 'Welcome' }, children: [] }]
+                    },
+                    {
+                        data: {
+                            tag: "Exit",
+                            key: "DEF#DEF",
+                            from: "DEF",
+                            name: "vortex",
+                            to: "DEF",
+                            contents: []
+                        },
+                        children: [{ data: { tag: "String", value: "vortex" }, children: [] }],
+                    }],
+                },
+                {
+                    data: {
+                        tag: "Knowledge",
+                        key: "GHI",
+                        name: [{ tag: "String", value: "Learn" }],
+                        render: [{ tag: "String", value: "There is so much to know!" }],
+                        contents: []
+                    },
+                    children: [
+                        { data: { tag: 'Name', contents: [] }, children : [{ data: { tag: 'String', value: 'Learn' }, children: [] }] },
+                        {
+                            data: { tag: 'Description', contents: [] },
+                            children: [{ data: { tag: 'String', value: 'There is so much to know!' }, children: [] }]
+                        }
+                    ],
+                },
+                {
+                    data: {
+                        tag: "Variable",    
+                        default: "false",
+                        key: "open",
+                    },
+                    children: []
+                },
+                {
+                    data: {
+                        key: "toggleOpen",
+                        src: "open = !open",
+                        tag: "Action",
+                    },
+                    children: []
+                },
+                {
+                    data: {
+                        dependencies: ["open"],
+                        key: "closed",
+                        src: "!open",
+                        tag: "Computed",
+                    },
+                    children: []
+                },
+                {
+                    data: {
+                        tag: "Moment",
+                        key: "openDoorMoment",
+                        contents: []
+                    },
+                    children: [{
+                        data: {
+                            tag: "Message",    
+                            key: "openDoor",
+                            render: [{ tag: "String", value: "The door opens!" }],
+                            rooms: [{ key: "ABC" }],
+                            contents: []
+                        },
+                        children: [{
+                            data: { tag: 'String', value: 'The door opens! ' }, children: []
+                        },
+                        {
+                            data: {
+                                tag: "Room",    
+                                key: "ABC",
+                                display: undefined,
+                                name: [],
+                                render: [],
+                                contents: []
+                            },
+                            children: [],
+                        }],
+                    }],
+                },
+                {
+                    data: {
+                        tag: "Export",
+                        mapping: {
+                            QRS: { key: 'ABC', type: 'Room' },
+                            DEF: { key: 'DEF', type: 'Room' },
+                            GHI: { key: 'GHI', type: 'Knowledge' }
+                        },
+                    },
+                    children: [
+                        { data: { tag: 'Room', key: 'ABC', as: 'QRS', name: [], render: [], contents: [] }, children: [] },
+                        { data: { tag: 'Room', key: 'DEF', name: [], render: [], contents: [] }, children: [] },
+                        { data: { tag: 'Knowledge', key: 'GHI', name: [], render: [], contents: [] }, children: [] }
+                    ]
                 }
-            ],
-            key: "Test",
-            tag: "Asset"
+            ]
         }])
     })
 
@@ -307,89 +395,100 @@ describe('schemaFromParse', () => {
             </Asset>
         `)))
         expect(schemaFromParse(testParse)).toEqual([{
-            Story: undefined,
-            contents: [{
-                contents: [{
-                    contents: [
+            data: {
+                tag: "Asset",
+                key: "Test",
+                contents: []
+            },
+            children: [{
+                data: {
+                    tag: "Room",    
+                    key: "ABC",
+                    name: [],
+                    render: [
                         { tag: "String", value: "Test One " },
                         {
                             conditions: [{
                                 dependencies: ["open"],
                                 if: "open",
                             }],
-                            contents: [{ tag: "String", value: "Test Two" } ],
+                            contents: [{ tag: "String", value: "Test Two" }],
+                            tag: "If",
+                        },
+                        {
+                            conditions: [{
+                                dependencies: ["open"],
+                                if: "open",
+                            }],
+                            contents: [{ tag: "String", value: "Test Three" }],
                             tag: "If",
                         },
                     ],
-                    tag: "Description",
+                    contents: []
+                },
+                children: [{
+                    data: { tag: "Description", contents: [] },
+                    children: [
+                        { data: { tag: "String", value: "Test One " }, children: [] },
+                        {
+                            data: {
+                                tag: "If",    
+                                conditions: [{
+                                    dependencies: ["open"],
+                                    if: "open",
+                                }],
+                                contents: []
+                            },
+                            children: [{ data: { tag: "String", value: "Test Two" }, children: [] }],
+                        },
+                    ],
                 },
                 {
+                    data: {
+                        tag: "If",
+                        conditions: [{
+                            dependencies: ["open"],
+                            if: "open",
+                        }],
+                        contents: []
+                    },
+                    children: [{
+                        data: { tag: "Description", contents: [] },
+                        children: [{ data: { tag: "String", value: "Test Three" }, children: [] }],
+                    }],
+                }]
+            },
+            {
+                data: {
+                    tag: "If",
                     conditions: [{
                         dependencies: ["open"],
                         if: "open",
                     }],
-                    contents: [{
-                        contents: [{ tag: "String", value: "Test Three" }],
-                        tag: "Description",
+                    contents: []
+                },
+                children: [{
+                    data: {
+                        tag: "Room",
+                        key: "ABC",
+                        name: [],
+                        render: [{ tag: "String", value: "Test Four" } ],
+                        contents: []    
+                    },
+                    children: [{
+                        data: { tag: "Description", contents: [] },
+                        children: [{ data: { tag: "String", value: "Test Four" }, children: [] }],
                     }],
-                    tag: "If",
                 }],
-                display: undefined,
-                key: "ABC",
-                name: [],
-                render: [
-                    { tag: "String", value: "Test One " },
-                    {
-                        conditions: [{
-                            dependencies: ["open"],
-                            if: "open",
-                        }],
-                        contents: [{ tag: "String", value: "Test Two" }],
-                        tag: "If",
-                    },
-                    {
-                        conditions: [{
-                            dependencies: ["open"],
-                            if: "open",
-                        }],
-                        contents: [{ tag: "String", value: "Test Three" }],
-                        tag: "If",
-                    },
-                ],
-                tag: "Room",
-                x: undefined,
-                y: undefined,
             },
             {
-                conditions: [{
-                    dependencies: ["open"],
-                    if: "open",
-                }],
-                contents: [{
-                    contents: [{
-                        contents: [{ tag: "String", value: "Test Four" }],
-                        tag: "Description",
-                    }],
-                    display: undefined,
-                    key: "ABC",
-                    name: [],
-                    render: [{ tag: "String", value: "Test Four" } ],
-                    tag: "Room",
-                    x: undefined,
-                    y: undefined,
-                }],
-                tag: "If",
-            },
-            {
-                default: "false",
-                key: "open",
-                tag: "Variable",
+                data: {
+                    default: "false",
+                    key: "open",
+                    tag: "Variable"    
+                },
+                children: []
             }],
-            key: "Test",
-            player: undefined,
-            subFolder: undefined,
-            tag: "Asset",
-            zone: undefined,
         }])
 
     })
@@ -412,52 +511,43 @@ describe('schemaFromParse', () => {
         </Character>
         `)))
         expect(schemaFromParse(testParse)).toEqual([{
-            FirstImpression: "Frumpy Goth",
-            Name: "Tess",
-            OneCoolThing: "Fuchsia eyes",
-            Outfit: "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
-            Pronouns: {
-                adjective: "hers",
-                object: "her",
-                possessive: "her",
-                reflexive: "herself",
-                subject: "she",
-            },
-            contents: [
-                {
-                    contents: [{ tag: "String", value: "Tess" }],
-                    tag: "Name",
-                },
-                {
-                    contents: [],
-                    tag: "FirstImpression",
-                    value: "Frumpy Goth",
-                },
-                {
-                    contents: [],
-                    tag: "OneCoolThing",
-                    value: "Fuchsia eyes",
-                },
-                {
+            data: {
+                tag: "Character",
+                key: "TESS",
+                FirstImpression: "Frumpy Goth",
+                Name: "Tess",
+                OneCoolThing: "Fuchsia eyes",
+                Outfit: "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+                Pronouns: {
                     adjective: "hers",
                     object: "her",
                     possessive: "her",
                     reflexive: "herself",
                     subject: "she",
-                    tag: "Pronouns",
+                },
+                contents: []
+            },
+            children: [
+                { data: { tag: 'Name', contents: [] }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ] },
+                { data: { tag: 'FirstImpression', value: 'Frumpy Goth', contents: [] }, children: [] },
+                { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes', contents: [] }, children: [] },
+                {
+                    data: {
+                        tag: "Pronouns",    
+                        adjective: "hers",
+                        object: "her",
+                        possessive: "her",
+                        reflexive: "herself",
+                        subject: "she",
+                    },
+                    children: []
                 },
                 {
-                    contents: [],
-                    tag: "Outfit",
-                    value: "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+                    data: { tag: 'Outfit', value: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.', contents: [] },
+                    children: []
                 },
-                {
-                    key: "testIcon",
-                    tag: "Image",
-                },
-            ],
-            key: "TESS",
-            tag: "Character",
+                { data: { tag: 'Image', key: 'testIcon' }, children: [] }
+            ]
         }])
 
     })
@@ -492,65 +582,79 @@ describe('schemaFromParse', () => {
             </Asset>
         `)))
         expect(schemaFromParse(testParse)).toEqual([{
-            contents: [{
-                contents: [
-                    {
-                        contents: [],
-                        display: undefined,
-                        key: "ABC",
-                        name: [],
-                        render: [],
-                        tag: "Room",
-                        x: 100,
-                        y: 0,
-                    },
-                    {
-                        conditions: [{
-                            dependencies: ["open"],
-                            if: "open",
-                        }],
-                        contents: [{
-                            contents: [],
-                            display: undefined,
-                            key: "DEF",
-                            name: [],
-                            render: [],
-                            tag: "Room",
-                            x: -100,
-                            y: 0,
-                        }],
-                        tag: "If",
-                    },
-                ],
-                images: [],
-                key: "testMap",
-                name: [{ tag: "String", value: "Test Map" }],
-                rooms: [
-                    {
-                        conditions: [],
-                        key: "ABC",
-                        x: 100,
-                        y: 0,
-                    },
-                    {
-                        conditions: [{
-                            dependencies: ["open"],
-                            if: "open",
-                        }],
-                        key: "DEF",
-                        x: -100,
-                        y: 0,
-                    },
-                ],
-                tag: "Map",
+            data: {
+                tag: "Asset",
+                key: "Test",
+                contents: []
             },
-            {
-                default: "false",
-                key: "open",
-                tag: "Variable",
-            }],
-            key: "Test",
-            tag: "Asset",
+            children: [
+                {
+                    data: {
+                        tag: "Map",
+                        images: [],
+                        key: "testMap",
+                        name: [{ tag: "String", value: "Test Map" }],
+                        rooms: [
+                            {
+                                conditions: [],
+                                key: "ABC",
+                                x: 100,
+                                y: 0,
+                            },
+                            {
+                                conditions: [{
+                                    dependencies: ["open"],
+                                    if: "open",
+                                }],
+                                key: "DEF",
+                                x: -100,
+                                y: 0,
+                            },
+                        ],
+                        contents: []
+                    },
+                    children: [
+                        {
+                            data: {
+                                tag: 'Room',
+                                key: 'ABC',
+                                name: [],
+                                render: [],
+                                contents: [],
+                                x: 100,
+                                y: 0
+                            },
+                            children: []
+                        },
+                        {
+                            data: {
+                                tag: 'If',
+                                conditions: [{
+                                    dependencies: ["open"],
+                                    if: "open",
+                                }],
+                                contents: []
+                            },
+                            children: [{
+                                data: {
+                                    tag: "Room",
+                                    key: "DEF",
+                                    name: [],
+                                    render: [],
+                                    contents: [],
+                                    x: -100,
+                                    y: 0
+                                },
+                                children: []
+                            }]
+                        }
+                    ]
+                },
+                {
+                    data: { tag: 'Variable', key: 'open', default: 'false' },
+                    children: []
+                }
+            ]
         }])
 
     })
@@ -568,19 +672,31 @@ describe('schemaFromParse', () => {
             </Story>
         `)))
         expect(schemaFromParse(testParse)).toEqual([{
-            Story: true,
-            contents: [
+            data: {
+                tag: "Story",
+                key: "Test",
+                Story: true,
+                instance: true,
+                contents: []
+            },
+            children: [
                 {
-                    contents: [
-                        { tag: "Space" },
-                        { tag: "String", value: "(awesome!)" },
-                    ],
-                    key: "postFix",
-                    tag: "Bookmark",
+                    data: {
+                        tag: "Bookmark",
+                        key: "postFix",
+                        contents: []
+                    },
+                    children: [
+                        { data: { tag: 'Space' }, children: [] },
+                        { data: { tag: 'String', value: '(awesome!)' }, children: [] }
+                    ]
                 },
                 {
-                    contents: [{
-                        contents: [
+                    data: {
+                        tag: "Room",    
+                        key: "ABC",
+                        name: [{ tag: "String", value: "Vortex" } ],
+                        render: [
                             { tag: "String", value: "Vortex" },
                             {
                                 contents: [],
@@ -588,25 +704,21 @@ describe('schemaFromParse', () => {
                                 tag: "Bookmark",
                             },
                         ],
-                        tag: "Description",
-                    }],
-                    display: undefined,
-                    key: "ABC",
-                    name: [{ tag: "String", value: "Vortex" } ],
-                    render: [
-                        { tag: "String", value: "Vortex" },
-                        {
-                            contents: [],
-                            key: "postFix",
-                            tag: "Bookmark",
-                        },
-                    ],
-                    tag: "Room",
+                        contents: []
+                    },
+                    children: [{
+                        data: { tag: 'Name', contents: [] },
+                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
+                    },
+                    {
+                        data: { tag: 'Description', contents: [] },
+                        children: [
+                            { data: { tag: 'String', value: 'Vortex' }, children: [] },
+                            { data: { tag: 'Bookmark', key: 'postFix', contents: [] }, children: [] }
+                        ]
+                    }]
                 }
             ],
-            instance: true,
-            key: "Test",
-            tag: "Story",
         }])
 
     })

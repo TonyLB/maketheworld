@@ -17,8 +17,8 @@ describe('parser utilities', () => {
                 branchTags: [],
                 leafTags: ['Room']
             })([
-                { tag: 'Room', name: [], render: [], contents: [], key: 'ABC', x: 0, y: 100 },
-                { tag: 'Room', name: [], render: [], contents: [], key: 'DEF' },                
+                { data: { tag: 'Room', name: [], render: [], contents: [], key: 'ABC', x: 0, y: 100 }, children: [] },
+                { data: { tag: 'Room', name: [], render: [], contents: [], key: 'DEF' }, children: [] }
             ])).toBe(false)
         })
 
@@ -33,8 +33,8 @@ describe('parser utilities', () => {
                 branchTags: [],
                 leafTags: ['Room']
             })([
-                { tag: 'Room', name: [], render: [], contents: [], key: 'ABC', x: 0, y: 100 },
-                { tag: 'Room', name: [], render: [], contents: [], key: 'DEF', x: 0, y: 0 },                
+                { data: { tag: 'Room', name: [], render: [], contents: [], key: 'ABC', x: 0, y: 100 }, children: [] },
+                { data: { tag: 'Room', name: [], render: [], contents: [], key: 'DEF', x: 0, y: 0 }, children: [] }
             ])).toBe(true)
         })
 
@@ -48,11 +48,18 @@ describe('parser utilities', () => {
                 },
                 branchTags: [],
                 leafTags: ['Room']
-            })([
-                { tag: 'Room', name: [], render: [], contents: [
-                    { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '', contents: [] }
-                ], key: 'ABC' }
-            ])).toBe(true)
+            })([{ 
+                data: {
+                    tag: 'Room',
+                    key: 'ABC',
+                    name: [],
+                    render: [],
+                    contents: []
+                },
+                children: [
+                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '', contents: [] }, children: [] }
+                ]
+            }])).toBe(true)
         })
 
         it('should recurse into labelled tags', () => {
@@ -65,11 +72,18 @@ describe('parser utilities', () => {
                 },
                 branchTags: ['Room'],
                 leafTags: ['Exit']
-            })([
-                { tag: 'Room', name: [], render: [], contents: [
-                    { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '', contents: [] }
-                ], key: 'ABC' }
-            ])).toBe(false)
+            })([{
+                data: {
+                    tag: 'Room',
+                    key: 'ABC',
+                    name: [],
+                    render: [],
+                    contents: []
+                },
+                children: [
+                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '', contents: [] }, children: [] }
+                ]
+            }])).toBe(false)
         })
 
     })

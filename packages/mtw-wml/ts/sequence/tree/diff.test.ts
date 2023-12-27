@@ -9,7 +9,7 @@ type TestType = {
 describe('diffTrees', () => {
     const options = {
         compare: ({ key: keyA }, { key: keyB }) => (keyA === keyB),
-        extractProperties: ({ value }) => (value),
+        extractProperties: ({ value }: TestType) => (value),
         rehydrateProperties: ({ key }, value) => ({ key, value: [...new Set(value)].join(':') })
     }
 

@@ -1,4 +1,4 @@
-import { compressWhitespace, deIndentWML } from './utils'
+import { compressWhitespace, deIndentWML, legacyContentStructure, removeIrrelevantWhitespace } from './utils'
 
 describe('compressWhitespace', () => {
     it('should return empty on an empty input', () => {
@@ -7,116 +7,201 @@ describe('compressWhitespace', () => {
 
     it('should remove leading whitespace at beginning', () => {
         expect(compressWhitespace([
-            { tag: 'String', value: ' Test' }
+            { data: { tag: 'String', value: ' Test' }, children: [] }
         ])).toEqual([
-            { tag: 'String', value: 'Test' }
+            { data: { tag: 'String', value: 'Test' }, children: [] }
         ])
     })
 
     it('should remove leading whitespace after Space', () => {
         expect(compressWhitespace([
-            { tag: 'Space' },
-            { tag: 'String', value: ' Test' }
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'String', value: ' Test' }, children: [] }
         ])).toEqual([
-            { tag: 'Space' },
-            { tag: 'String', value: 'Test' }
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'String', value: 'Test' }, children: [] }
         ])
     })
 
     it('should remove leading whitespace after line break', () => {
         expect(compressWhitespace([
-            { tag: 'br' },
-            { tag: 'String', value: ' Test' }
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: ' Test' }, children: [] }
         ])).toEqual([
-            { tag: 'br' },
-            { tag: 'String', value: 'Test' }
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: 'Test' }, children: [] }
         ])
     })
 
     it('should remove trailing whitespace at end', () => {
         expect(compressWhitespace([
-            { tag: 'String', value: 'Test ' }
+            { data: { tag: 'String', value: 'Test ' }, children: [] }
         ])).toEqual([
-            { tag: 'String', value: 'Test' }
+            { data: { tag: 'String', value: 'Test' }, children: [] }
         ])
     })
 
     it('should remove trailing whitespace before Space', () => {
         expect(compressWhitespace([
-            { tag: 'String', value: 'Test ' },
-            { tag: 'Space' }
+            { data: { tag: 'String', value: 'Test ' }, children: [] },
+            { data: { tag: 'Space' }, children: [] }
         ])).toEqual([
-            { tag: 'String', value: 'Test' },
-            { tag: 'Space' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'Space' }, children: [] }
         ])
     })
 
     it('should remove trailing whitespace before line break', () => {
         expect(compressWhitespace([
-            { tag: 'String', value: 'Test ' },
-            { tag: 'br' }
+            { data: { tag: 'String', value: 'Test ' }, children: [] },
+            { data: { tag: 'br' }, children: [] }
         ])).toEqual([
-            { tag: 'String', value: 'Test' },
-            { tag: 'br' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'br' }, children: [] }
         ])
     })
 
     it('should eliminate whitespace compressed to nothing', () => {
         expect(compressWhitespace([
-            { tag: 'String', value: ' ' },
-            { tag: 'br' }
+            { data: { tag: 'String', value: ' ' }, children: [] },
+            { data: { tag: 'br' }, children: [] }
         ])).toEqual([
-            { tag: 'br' }
+            { data: { tag: 'br' }, children: [] }
         ])
     })
 
     it('should compress any number of Spacers after linebreak', () => {
         expect(compressWhitespace([
-            { tag: 'String', value: 'Test' },
-            { tag: 'br' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'String', value: 'Second line' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])).toEqual([
-            { tag: 'String', value: 'Test' },
-            { tag: 'br' },
-            { tag: 'String', value: 'Second line' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])
     })
 
     it('should compress any number of Spacers before linebreak', () => {
         expect(compressWhitespace([
-            { tag: 'String', value: 'Test' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'br' },
-            { tag: 'String', value: 'Second line' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])).toEqual([
-            { tag: 'String', value: 'Test' },
-            { tag: 'br' },
-            { tag: 'String', value: 'Second line' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])
     })
 
     it('should compress any number of Spacers', () => {
         expect(compressWhitespace([
-            { tag: 'String', value: 'Test' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'Space' },
-            { tag: 'String', value: 'Second line' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])).toEqual([
-            { tag: 'String', value: 'Test' },
-            { tag: 'Space' },
-            { tag: 'String', value: 'Second line' }
+            { data: { tag: 'String', value: 'Test' }, children: [] },
+            { data: { tag: 'Space' }, children: [] },
+            { data: { tag: 'String', value: 'Second line' }, children: [] }
         ])
     })
 
+})
+
+describe('removeIrrelevantWhitespace', () => {
+
+    it('should compress Space between adjacent connected conditional tags', () => {
+        expect(removeIrrelevantWhitespace([
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [] }], contents: [] },
+                children: []
+            },
+            { data: { tag: 'Space' }, children: [] },
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [] }], contents: [] },
+                children: []
+            },
+            { data: { tag: 'br' }, children: [] },
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [], not: true }], contents: [] },
+                children: []
+            }
+        ])).toEqual([
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [] }], contents: [] },
+                children: []
+            },
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [] }], contents: [] },
+                children: []
+            },
+            {
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [], not: true }], contents: [] },
+                children: []
+            }
+        ])
+
+    })
+})
+
+describe('legacyContentStructure', () => {
+    it('should properly nest content structure', () => {
+        expect(legacyContentStructure([
+            {
+                data: {
+                    tag: 'Room',
+                    key: 'Room-1',
+                    name: [],
+                    render: [],
+                    contents: []
+                },
+                children: [
+                    {
+                        data: { tag: 'Name', contents: [] },
+                        children: [{ data: { tag: 'String', value: 'Test Name' }, children: [] }]
+                    },
+                    {
+                        data: { tag: 'Description', contents: [] },
+                        children: [{
+                            data: {
+                                tag: 'If',
+                                conditions: [],
+                                contents: []
+                            },
+                            children: [{ data: { tag: 'String', value: 'Test Description' }, children: [] }]
+                        }]
+                    }
+                ]
+            }
+        ])).toEqual([{
+            tag: 'Room',
+            key: 'Room-1',
+            name: [],
+            render: [],
+            contents: [
+                { tag: 'Name', contents: [{ tag: 'String', value: 'Test Name' }] },
+                {
+                    tag: 'Description',
+                    contents: [{
+                        tag: 'If',
+                        conditions: [],
+                        contents: [{ tag: 'String', value: 'Test Description' }]
+                    }]
+                }
+            ]
+        }])
+    })
 })
 
 describe('deIndentWML', () => {

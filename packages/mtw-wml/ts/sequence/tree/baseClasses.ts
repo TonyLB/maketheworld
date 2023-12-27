@@ -1,9 +1,13 @@
-export type GenericTreeNode<N extends {}> = {
-    data: N;
+export type GenericTreeNodeFiltered<F extends {}, N extends {}> = {
+    data: F;
     children: GenericTree<N>;
 }
 
-export type GenericTree<N extends {}> = GenericTreeNode<N>[]
+export type GenericTreeNode<N extends {}> = GenericTreeNodeFiltered<N, N>
+
+export type GenericTreeFiltered<F extends {}, N extends {}> = GenericTreeNodeFiltered<F, N>[]
+
+export type GenericTree<N extends {}> = GenericTreeFiltered<N, N>
 
 export enum GenericTreeDiffAction {
     Exclude,

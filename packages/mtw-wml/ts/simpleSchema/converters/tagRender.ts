@@ -5,6 +5,7 @@ import { PrintMapEntryArguments, PrintMapOptionsChange } from "./baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
 import { optionsFactory } from "./utils"
+import { GenericTree } from "../../sequence/tree/baseClasses"
 
 type TagRenderProperty = {
     key?: string;
@@ -35,7 +36,7 @@ const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] => {
 //    - Property-Nested: Render the opening tag with each property nested inside it on an individual line, the closing tag on a single line, and
 //      nest contents between them.
 //
-export const tagRender = ({ schemaToWML, options, tag, properties, contents }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; contents: (string | SchemaTag)[]; }): string => {
+export const tagRender = ({ schemaToWML, options, tag, properties, contents }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; contents: GenericTree<SchemaTag>; }): string => {
     //
     // TODO: Further document the control flow of the function.
     //
@@ -61,26 +62,27 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
     //
     // Parse sequentially through the contents, mapping strings/Tags to renderings of their value.
     //
-    const { returnValue: mappedContents } = contents.reduce<{ returnValue: string[]; siblings: SchemaTag[]; taggedMessageStack: SchemaTaggedMessageLegalContents[] }>((previous, tag, index) => {
+    const { returnValue: mappedContents } = contents.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
         //
         // TODO: Explain why a tag would ever be a string, and how it's handled.
         //
-        if (typeof tag === 'string') {
-            return {
-                returnValue: [
-                    ...previous.returnValue,
-                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0, context, siblings: previous.siblings })] : []),
-                    tag
-                ],
-                siblings: previous.siblings,
-                taggedMessageStack: []
-            }
-        }
+        const { data } = tag
+        // if (typeof data === 'string') {
+        //     return {
+        //         returnValue: [
+        //             ...previous.returnValue,
+        //             ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0, context, siblings: previous.siblings })] : []),
+        //             data
+        //         ],
+        //         siblings: previous.siblings,
+        //         taggedMessageStack: []
+        //     }
+        // }
         //
         // Branch 2: Free text in a legal context should be parsed using schemaDescriptionToWML (which includes the more-sophisticated
         // word-wrap functionality that can break strings across lines as needed)
         //
-        if (descriptionContext && isSchemaTaggedMessageLegalContents(tag)) {
+        if (descriptionContext && isSchemaTaggedMessageLegalContents(data)) {
             //
             // Branch 2.1: You are at the end of the description, so take all previous tags, as well as this tag, and run the whole list
             // through schemaDescriptionToWML using an added indent.
@@ -112,12 +114,12 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
         // then render the tag with a recursive call to the passed schemaToWML callback function.
         //
         else {
-            const newOptions = optionsFactory(PrintMapOptionsChange.Indent)({ ...options, siblings: previous.siblings, context: [...options.context, tag] })
+            const newOptions = optionsFactory(PrintMapOptionsChange.Indent)({ ...options, siblings: previous.siblings, context: [...options.context, data] })
             return {
                 returnValue: [
                     ...previous.returnValue,
                     ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 })] : []),
-                    schemaToWML({ tag, options: newOptions, schemaToWML, optionsFactory })
+                    schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
                 ],
                 siblings: [ ...previous.siblings, tag],
                 taggedMessageStack: []

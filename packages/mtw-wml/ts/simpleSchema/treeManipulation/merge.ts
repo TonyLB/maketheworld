@@ -1,9 +1,9 @@
 import { SchemaTag, isSchemaRoom, isSchemaWithContents } from "../baseClasses"
 import { mergeTrees } from '../../sequence/tree/merge'
-import { convertToTree, deconvertFromTree } from "./convert"
 import { deepEqual } from "../../lib/objects"
+import { GenericTree } from "../../sequence/tree/baseClasses"
 
-export const mergeSchemaTrees = (...args: SchemaTag[][]): SchemaTag[] => {
+export const mergeSchemaTrees = (...args: GenericTree<SchemaTag>[]): GenericTree<SchemaTag> => {
     //
     // TODO: Create schemaCompare utility method
     //
@@ -14,7 +14,7 @@ export const mergeSchemaTrees = (...args: SchemaTag[][]): SchemaTag[] => {
                 isSchemaRoom(itemB) ? { ...itemB, render: [], name: [], contents: [] } : itemB
             )
         },
-        extractProperties: (value) => {
+        extractProperties: (value: SchemaTag) => {
             if (isSchemaWithContents(value)) {
                 return {
                     ...value,
@@ -25,9 +25,8 @@ export const mergeSchemaTrees = (...args: SchemaTag[][]): SchemaTag[] => {
         },
         rehydrateProperties: (base, properties) => (Object.assign(base, ...properties) as SchemaTag)
     }
-    const translatedTrees = args.map(convertToTree)
-    const mergedTree = mergeTrees(options)(...translatedTrees)
-    return deconvertFromTree(mergedTree)
+    const mergedTree = mergeTrees(options)(...args)
+    return mergedTree
 }
 
 export default mergeSchemaTrees

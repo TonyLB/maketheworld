@@ -1,4 +1,4 @@
-import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "../baseClasses"
+import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag, isSchemaAction, isSchemaComputed, isSchemaVariable } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -51,43 +51,49 @@ export const computationConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const computationPrintMap: Record<string, PrintMapEntry> = {
-    Variable: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaVariableTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Variable',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-                { key: 'default', type: 'expression', value: tag.default },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
-            ],
-            contents: [],
-        })
+    Variable: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments & { tag: SchemaVariableTag }) => (
+        isSchemaVariable(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Variable',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'default', type: 'expression', value: tag.default },
+                    { key: 'from', type: 'key', value: tag.from },
+                    { key: 'as', type: 'key', value: tag.as }
+                ],
+                contents: [],
+            })
+            : ''
     ),
-    Computed: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaComputedTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Computed',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-                { key: 'src', type: 'expression', value: tag.src },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
-            ],
-            contents: [],
-        })
+    Computed: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments & { tag: SchemaComputedTag }) => (
+        isSchemaComputed(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Computed',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'src', type: 'expression', value: tag.src },
+                    { key: 'from', type: 'key', value: tag.from },
+                    { key: 'as', type: 'key', value: tag.as }
+                ],
+                contents: [],
+            })
+            : ''
     ),
-    Action: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaActionTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Action',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-                { key: 'src', type: 'expression', value: tag.src },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
-            ],
-            contents: [],
-        })
+    Action: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments & { tag: SchemaActionTag }) => (
+        isSchemaAction(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Action',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'src', type: 'expression', value: tag.src },
+                    { key: 'from', type: 'key', value: tag.from },
+                    { key: 'as', type: 'key', value: tag.as }
+                ],
+                contents: [],
+            })
+            : ''
     )
 }

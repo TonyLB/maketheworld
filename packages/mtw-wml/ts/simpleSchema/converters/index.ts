@@ -2,6 +2,8 @@ import {
     SchemaAssetLegalContents,
     SchemaAssetTag,
     SchemaStoryTag,
+    SchemaTag,
+    isSchemaAsset,
     isSchemaAssetContents,
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
@@ -34,11 +36,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             Story: undefined,
             ...validateProperties(validationTemplates.Asset)(parseOpen)
         }),
-        typeCheckContents: isSchemaAssetContents,
-        finalize: (initialTag: SchemaAssetTag, contents: SchemaAssetLegalContents[] ): SchemaAssetTag => ({
-            ...initialTag,
-            contents
-        })
+        typeCheckContents: isSchemaAssetContents
     },
     Story: {
         initialize: ({ parseOpen }): SchemaStoryTag => ({
@@ -48,10 +46,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
             ...validateProperties(validationTemplates.Story)(parseOpen)
         }),
         typeCheckContents: isSchemaAssetContents,
-        finalize: (initialTag: SchemaAssetTag, contents: SchemaAssetLegalContents[] ): SchemaAssetTag => ({
-            ...initialTag,
-            contents
-        })
     },
     ...characterConverters,
     ...componentConverters,
@@ -63,16 +57,18 @@ export const converterMap: Record<string, ConverterMapEntry> = {
 }
 
 export const printMap: Record<string, PrintMapEntry> = {
-    Asset: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaAssetTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Asset',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-                { key: 'Story', type: 'boolean', value: tag.Story }
-            ],
-            contents: tag.contents,
-        })
+    Asset: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaAssetTag }) => (
+        isSchemaAsset(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Asset',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key },
+                    { key: 'Story', type: 'boolean', value: tag.Story }
+                ],
+                contents: children,
+            })
+            : ''
     ),
     ...characterPrintMap,
     ...componentPrintMap,

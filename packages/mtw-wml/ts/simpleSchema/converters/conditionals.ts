@@ -4,7 +4,6 @@ import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import {
     SchemaConditionTag,
     SchemaTag,
-    SchemaTaggedMessageIncomingContents,
     isSchemaAssetContents,
     isSchemaCondition,
     isSchemaFeatureIncomingContents,
@@ -14,24 +13,25 @@ import {
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
-import { translateTaggedMessageContents } from "../../schema/taggedMessage"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties, extractDependenciesFromJS } from "./utils"
+import { removeIrrelevantWhitespace, translateTaggedMessageContents } from '../utils'
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 
 export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[], label: string) => {
     if (contextStack.length === 0) {
         throw new Error(`${label} cannot be a top-level component`)
     }
-    const siblings = contextStack.slice(-1)[0].contents.filter((tag) => (!(isSchemaString(tag) && (!tag.value.trim()))))
+    const siblings = contextStack.slice(-1)[0].children.filter(({ data: tag }) => (!(isSchemaString(tag) && (!tag.value.trim()))))
     if (siblings.length === 0) {
         throw new Error(`${label} must follow an If or ElseIf tag`)
     }
     const nearestSibling = siblings.slice(-1)[0]
-    if (isSchemaCondition(nearestSibling)) {
-        if (nearestSibling.conditions.slice(-1)[0].not) {
+    if (isSchemaCondition(nearestSibling.data)) {
+        if (nearestSibling.data.conditions.slice(-1)[0].not) {
             throw new Error(`${label} must follow an If or ElseIf tag`)
         }
     }
@@ -39,7 +39,7 @@ export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[],
         console.log(`siblings: ${JSON.stringify(siblings, null, 4)}`)
         throw new Error(`${label} must follow an If or ElseIf tag`)
     }
-    return nearestSibling.conditions
+    return nearestSibling.data.conditions
 }
 
 export const conditionLegalContents = (item, contextStack) => {
@@ -60,17 +60,17 @@ export const conditionLegalContents = (item, contextStack) => {
     }
 }
 
-export const conditionFinalize = (initialTag: SchemaConditionTag, contents: SchemaTag[], contextStack: SchemaContextItem[]): SchemaConditionTag => {
+export const conditionFinalize = (initialTag: SchemaConditionTag, contents: GenericTree<SchemaTag>, contextStack: SchemaContextItem[]): GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag> => {
     const legalContextStack = contextStack.map(({ tag }) => (tag.tag)).filter(isLegalParseConditionContextTag)
     if (legalContextStack.length === 0) {
         throw new Error('Conditional items cannot be top-level')
     }
     const nearestLegalContext = legalContextStack.slice(-1)[0]
     return {
-        ...initialTag,
-        contents: (['Bookmark', 'Description'].includes(nearestLegalContext))
-            ? translateTaggedMessageContents(contents as SchemaTaggedMessageIncomingContents[])
-            : contents as any
+        data: initialTag,
+        children: (['Bookmark', 'Description'].includes(nearestLegalContext))
+            ? translateTaggedMessageContents(contents)
+            : contents
     }
 }
 
@@ -126,10 +126,16 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const conditionalPrintMap: Record<string, PrintMapEntry> = {
-    If: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaConditionTag }) => {
+    If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaConditionTag }) => {
 
-        const { siblings = [] } = args.options
-        const closestSibling: SchemaTag | undefined = siblings.length ? siblings.slice(-1)[0] : undefined
+        if (!isSchemaCondition(tag)) {
+            return ''
+        }
+        const siblings = removeIrrelevantWhitespace([
+            ...(args.options.siblings ?? []),
+            { data: tag, children }
+        ]).slice(0, -1)
+        const closestSibling: SchemaTag | undefined = siblings.length ? siblings.slice(-1)[0].data : undefined
         const conditionsToSrc = (conditions: NormalConditionStatement[]): string => {
             if (!conditions.length) { return '' }
             if (conditions.length > 1) {
@@ -165,7 +171,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
                     properties: [
                         { type: 'expression', value: conditionsToSrc(remainingConditions) }
                     ],
-                    contents: tag.contents,
+                    contents: children,
                 })
             }
             else {
@@ -176,7 +182,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
                     ...args,
                     tag: 'Else',
                     properties: [],
-                    contents: tag.contents,
+                    contents: children,
                 })
             }
         }
@@ -190,7 +196,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { type: 'expression', value: conditionsToSrc(tag.conditions) }
             ],
-            contents: tag.contents,
+            contents: children,
         })
     }
 }

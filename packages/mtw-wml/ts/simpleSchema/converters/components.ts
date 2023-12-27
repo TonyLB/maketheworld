@@ -7,16 +7,22 @@ import {
     SchemaFeatureTag,
     SchemaKnowledgeTag,
     SchemaMapTag,
+    SchemaMessageLegalContents,
     SchemaNameTag,
     SchemaRoomTag,
     SchemaStringTag,
     SchemaTag,
     SchemaTaggedMessageLegalContents,
+    isSchemaBookmark,
     isSchemaDescription,
+    isSchemaExit,
+    isSchemaFeature,
     isSchemaFeatureContents,
     isSchemaFeatureIncomingContents,
     isSchemaImage,
+    isSchemaKnowledge,
     isSchemaKnowledgeIncomingContents,
+    isSchemaMap,
     isSchemaMapContents,
     isSchemaName,
     isSchemaRoom,
@@ -25,12 +31,12 @@ import {
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
-import { extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents } from "../utils"
+import { compressWhitespace, extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents, legacyContentStructure } from "../utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 
 const componentTemplates = {
     Exit: {
@@ -93,10 +99,12 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaExitTag, contents: SchemaStringTag[]): SchemaExitTag => ({
-            ...initialTag,
-            name: contents.map(({ value }) => (value)).join(''),
-            contents
+        finalize: (initialTag: SchemaExitTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                name: contents.map(({ data: { value } }) => (value)).join('')
+            },
+            children: contents
         })
     },
     Description: {
@@ -106,9 +114,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Description)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaDescriptionTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaDescriptionTag => ({
-            ...initialTag,
-            contents: compressWhitespace(contents)
+        finalize: (initialTag: SchemaDescriptionTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => ({
+            data: initialTag,
+            children: compressWhitespace(contents)
         })
     },
     Bookmark: {
@@ -125,9 +133,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaBookmarkTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaBookmarkTag => ({
-            ...initialTag,
-            contents: compressWhitespace(contents)
+        finalize: (initialTag: SchemaBookmarkTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaBookmarkTag, SchemaTag> => ({
+            data: initialTag,
+            children: compressWhitespace(contents)
         })
     },
     Name: {
@@ -137,9 +145,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Name)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaNameTag, contents: SchemaTaggedMessageLegalContents[] ): SchemaNameTag => ({
-            ...initialTag,
-            contents: compressWhitespace(contents)
+        finalize: (initialTag: SchemaNameTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => ({
+            data: initialTag,
+            children: compressWhitespace(contents)
         })
     },
     Room: {
@@ -162,12 +170,17 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: isSchemaRoomIncomingContents,
-        finalize: (initialTag: SchemaRoomTag, contents: SchemaTag[] ): SchemaRoomTag => ({
-            ...initialTag,
-            contents: contents.filter(isSchemaRoomContents),
-            name: compressWhitespace(extractNameFromContents(contents)),
-            render: compressWhitespace(extractDescriptionFromContents(contents))
-        })
+        finalize: (initialTag: SchemaRoomTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaRoomTag, SchemaTag> => {
+            const returnValue = {
+                data: {
+                    ...initialTag,
+                    name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+                    render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+                },
+                children: contents,
+            }
+            return returnValue
+        }
     },
     Feature: {
         initialize: ({ parseOpen }): SchemaFeatureTag => ({
@@ -178,11 +191,13 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Feature)(parseOpen)
         }),
         typeCheckContents: isSchemaFeatureIncomingContents,
-        finalize: (initialTag: SchemaFeatureTag, contents: SchemaTag[] ): SchemaFeatureTag => ({
-            ...initialTag,
-            contents: contents.filter(isSchemaFeatureContents),
-            name: compressWhitespace(extractNameFromContents(contents)),
-            render: compressWhitespace(extractDescriptionFromContents(contents))
+        finalize: (initialTag: SchemaFeatureTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaFeatureTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+                render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+        },
+            children: contents,
         })
     },
     Knowledge: {
@@ -194,10 +209,13 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Knowledge)(parseOpen)
         }),
         typeCheckContents: isSchemaKnowledgeIncomingContents,
-        finalize: (initialTag: SchemaKnowledgeTag, contents: SchemaTag[] ): SchemaKnowledgeTag => ({
-            ...initialTag,
-            name: compressWhitespace(extractNameFromContents(contents)),
-            render: compressWhitespace(extractDescriptionFromContents(contents))
+        finalize: (initialTag: SchemaKnowledgeTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaKnowledgeTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+                render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+        },
+            children: contents,
         })
     },
     Map: {
@@ -220,26 +238,35 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             branchTags: ['If'],
             leafTags: ['Room']
         },
-        finalize: (initialTag: SchemaMapTag, contents: SchemaTag[] ): SchemaMapTag => ({
-            ...initialTag,
-            contents: contents.filter(isSchemaMapContents),
-            name: compressWhitespace(extractNameFromContents(contents)),
-            rooms: extractConditionedItemFromContents({
-                contents,
-                typeGuard: isSchemaRoom,
-                transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
-            }),
-            images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
+        finalize: (initialTag: SchemaMapTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => ({
+            data: {
+                ...initialTag,
+                name: compressWhitespace(extractNameFromContents(contents)).map(({ data }) => (data)),
+                rooms: extractConditionedItemFromContents({
+                    contents,
+                    typeGuard: isSchemaRoom,
+                    transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
+                }),
+                images: contents.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
+            },
+            children: contents.filter(({ data }) => (isSchemaMapContents(data))),
         })
     }
 }
 
 export const componentPrintMap: Record<string, PrintMapEntry> = {
-    Exit: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaExitTag }) => {
+    Exit: ({ tag: { data: tag }, ...args }) => {
 
         const { context } = args.options
+        if (!isSchemaExit(tag)) {
+            return ''
+        }
         const roomsContextList = context.filter(isSchemaRoom)
         const roomContext: SchemaTag | undefined = roomsContextList.length > 0 ? roomsContextList.slice(-1)[0] : undefined
+        const roomContextTypecheck = (roomContext: SchemaTag | undefined): roomContext is SchemaRoomTag | undefined => (!roomContext || isSchemaRoom(roomContext))
+        if (!roomContextTypecheck(roomContext)) {
+            return ''
+        }
         return tagRender({
             ...args,
             tag: 'Exit',
@@ -250,34 +277,32 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 ...((!tag.from || (roomContext && roomContext.key === tag.from)) ? [] : [{ key: 'from', type: 'key' as 'key', value: tag.from }]),
                 ...((!tag.to || (roomContext && roomContext.key === tag.to)) ? [] : [{ key: 'to', type: 'key' as 'key', value: tag.to }]),
             ],
-            contents: tag.name ? [tag.name] : [],
+            contents: tag.name ? [{ data: { tag: 'String', value: tag.name }, children: [] }] : [],
         })
     },
-    Description: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaDescriptionTag }) => (
+    Description: ({ tag: { children }, ...args }: PrintMapEntryArguments & { tag: SchemaDescriptionTag }) => (
         tagRender({
             ...args,
             tag: 'Description',
             properties: [],
-            contents: tag.contents,
+            contents: children,
         })
     ),
-    Name: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaNameTag }) => (
+    Name: ({ tag: { children }, ...args }: PrintMapEntryArguments & { tag: SchemaNameTag }) => (
         tagRender({
             ...args,
             tag: 'Name',
             properties: [],
-            contents: tag.contents,
+            contents: children,
         })
     ),
-    Room: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaRoomTag }) => {
+    Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaRoomTag }) => {
         //
         // Reassemble the contents out of name and description fields
         //
-        const roomContents: SchemaTag[] = [
-            ...((tag.name ?? []).length ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
-            ...((tag.render ?? []).length ? [{ tag: 'Description' as 'Description', contents: tag.render }] : []),
-            ...tag.contents.filter((childTag) => (!(isSchemaName(childTag) || isSchemaDescription(childTag))))
-        ]
+        if (!isSchemaRoom(tag)) {
+            return ''
+        }
         return tagRender({
             ...args,
             tag: 'Room',
@@ -291,19 +316,17 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'from', type: 'key', value: tag.from },
                 { key: 'as', type: 'key', value: tag.as }
             ],
-            contents: roomContents,
+            contents: children,
         })
 
     },
-    Feature: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaFeatureTag }) => {
+    Feature: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaFeatureTag }) => {
         //
         // Reassemble the contents out of name and description fields
         //
-        const featureContents: SchemaTag[] = [
-            ...((tag.name ?? []).length ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
-            ...((tag.render ?? []).length ? [{ tag: 'Description' as 'Description', contents: tag.render }] : []),
-            ...tag.contents.filter((childTag) => (!(isSchemaName(childTag) || isSchemaDescription(childTag))))
-        ]
+        if (!isSchemaFeature(tag)) {
+            return ''
+        }
         return tagRender({
             ...args,
             tag: 'Feature',
@@ -312,18 +335,16 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'from', type: 'key', value: tag.from },
                 { key: 'as', type: 'key', value: tag.as }
             ],
-            contents: featureContents,
+            contents: children,
         })
     },
-    Knowledge: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaKnowledgeTag }) => {
+    Knowledge: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaKnowledgeTag }) => {
         //
         // Reassemble the contents out of name and description fields
         //
-        const knowledgeContents: SchemaTag[] = [
-            ...((tag.name ?? []).length ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
-            ...((tag.render ?? []).length ? [{ tag: 'Description' as 'Description', contents: tag.render }] : []),
-            ...tag.contents.filter((childTag) => (!(isSchemaName(childTag) || isSchemaDescription(childTag))))
-        ]
+        if (!isSchemaKnowledge(tag)) {
+            return ''
+        }
         return tagRender({
             ...args,
             tag: 'Knowledge',
@@ -332,37 +353,25 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'from', type: 'key', value: tag.from },
                 { key: 'as', type: 'key', value: tag.as }
             ],
-            contents: knowledgeContents,
+            contents: children,
         })
     },
-    Bookmark: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaBookmarkTag }) => (
-        tagRender({
-            ...args,
-            tag: 'Bookmark',
-            properties: [
-                { key: 'key', type: 'key', value: tag.key },
-            ],
-            contents: tag.contents,
-        })
+    Bookmark: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaBookmarkTag }) => (
+        isSchemaBookmark(tag)
+            ? tagRender({
+                ...args,
+                tag: 'Bookmark',
+                properties: [
+                    { key: 'key', type: 'key', value: tag.key },
+                ],
+                contents: children,
+            })
+            : ''
     ),
-    Map: ({ tag, ...args }: PrintMapEntryArguments & { tag: SchemaMapTag }) => {
-        const mapContents: SchemaTag[] = mergeOrderedConditionalTrees(
-            [
-                ...(tag.name.length ? [{ tag: 'Name' as 'Name', contents: tag.name}] : []),
-                ...((tag.images || []).map((key) => ({ tag: 'Image' as 'Image', key,  contents: []}))),
-            ],
-            tag.rooms.map((room) => ({
-                tag: 'If',
-                conditions: room.conditions,
-                contents: [{
-                    tag: 'Room',
-                    key: room.key,
-                    x: room.x,
-                    y: room.y,
-                    contents: []
-                }]
-            })) as SchemaConditionTag[]
-        )
+    Map: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaMapTag }) => {
+        if (!isSchemaMap(tag)) {
+            return ''
+        }
         return tagRender({
             ...args,
             tag: 'Map',
@@ -371,7 +380,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'from', type: 'key', value: tag.from },
                 { key: 'as', type: 'key', value: tag.as }
             ],
-            contents: mapContents,
+            contents: children,
         })
     }
 }

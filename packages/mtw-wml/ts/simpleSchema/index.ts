@@ -4,18 +4,19 @@ import { SchemaContextItem } from "./baseClasses"
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
 import { optionsFactory, validateContents } from "./converters/utils"
+import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses"
 
-export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
+export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
     let contextStack: SchemaContextItem[] = []
-    let returnValue: SchemaTag[] = []
-    const addSchemaTag = (toAdd: SchemaTag) => {
+    let returnValue: GenericTree<SchemaTag> = []
+    const addSchemaTag = (toAdd: GenericTreeNode<SchemaTag>) => {
         if (contextStack.length) {
             const [priorStack, parentItem] = [contextStack.slice(0, -1), contextStack.slice(-1)[0]]
             contextStack = [
                 ...priorStack,
                 {
                     ...parentItem,
-                    contents: [...parentItem.contents, toAdd]
+                    children: [...parentItem.children, toAdd]
                 }
             ]
         }
@@ -27,17 +28,20 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
         switch(item.type) {
             case ParseTypes.Text:
                 addSchemaTag({
-                    tag: 'String',
-                    value: item.text
+                    data: {
+                        tag: 'String',
+                        value: item.text
+                    },
+                    children: []
                 })
                 break
             case ParseTypes.SelfClosure:
-                addSchemaTag(converterMap[item.tag].initialize({ parseOpen: item, contextStack }))
+                addSchemaTag({ data: converterMap[item.tag].initialize({ parseOpen: item, contextStack }), children: [] })
                 break
             case ParseTypes.Open:
                 contextStack.push({
                     tag: converterMap[item.tag].initialize({ parseOpen: item, contextStack }),
-                    contents: []
+                    children: []
                 })
                 break
             case ParseTypes.Close:
@@ -57,20 +61,20 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
                 if (!converter) {
                     throw new Error(`No converter available for '${closingItem.tag.tag}' parse tag`)
                 }
-                const illegalTag = closingItem.contents.find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, contextStack)))
+                const illegalTag = closingItem.children.map(({ data }) => (data)).find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, contextStack)))
                 if (illegalTag) {
                     throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.tag.tag}' item contents`)
                 }
                 if (converter.validateContents) {
-                    if (!validateContents(converter.validateContents)(closingItem.contents)) {
+                    if (!validateContents(converter.validateContents)(closingItem.children)) {
                         throw new Error(`Illegal contents in '${closingItem.tag.tag}' item`)
                     }
                 }
                 addSchemaTag(
                     converter.finalize
-                        ? converter.finalize(closingItem.tag, closingItem.contents, contextStack)
-                        : closingItem.tag
-                    )
+                        ? converter.finalize(closingItem.tag, closingItem.children, contextStack)
+                        : { data: closingItem.tag, children: closingItem.children }
+                )
                 break
         }
     })
@@ -79,16 +83,16 @@ export const schemaFromParse = (items: ParseItem[]): SchemaTag[] => {
 
 export const printSchemaTag: PrintMapEntry = (args) => {
     const { tag } = args
-    if (tag.tag in printMap) {
-        return printMap[tag.tag](args)
+    if (tag.data.tag in printMap) {
+        return printMap[tag.data.tag](args)
     }
     else {
-        throw new Error(`Invalid tag ('${tag.tag}') in schemaToWML`)
+        throw new Error(`Invalid tag ('${tag.data.tag}') in schemaToWML`)
     }
 }
 
-export const schemaToWML = (tags: SchemaTag[]): string => {
-    const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: SchemaTag[] }>((previous, tag) => {
+export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
+    const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag> }>((previous, tag) => {
         return {
             returnValue: [
                 ...previous.returnValue,
@@ -101,4 +105,101 @@ export const schemaToWML = (tags: SchemaTag[]): string => {
         }
     }, { returnValue: [], siblings: [] })
     return returnValue.join('\n')
+}
+
+export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag => {
+    switch(tag) {
+        case 'Room':
+        case 'Feature':
+        case 'Knowledge':
+            return {
+                tag,
+                key: '',
+                contents: [],
+                render: [],
+                name: []
+            }
+        case 'Action':
+            return {
+                tag,
+                key: '',
+                src: '',
+            }
+        case 'Computed':
+            return {
+                tag,
+                key: '',
+                src: '',
+                dependencies: []
+            }
+        case 'Variable':
+            return {
+                tag,
+                key: '',
+                default: ''
+            }
+        case 'If':
+            return {
+                tag,
+                key: '',
+                conditions: [],
+                contents: []
+            }
+        case 'After':
+        case 'Before':
+        case 'Replace':
+        case 'Description':
+            return {
+                tag,
+                contents: []
+            }
+        case 'Bookmark':
+            return {
+                tag,
+                key: '',
+                contents: []
+            }
+        case 'Exit':
+            return {
+                tag,
+                key: '',
+                name: '',
+                to: '',
+                from: '',
+                contents: []
+            }
+        case 'Image':
+            return {
+                tag,
+                key: ''
+            }
+        case 'Map':
+            return {
+                tag,
+                key: '',
+                rooms: [],
+                name: [],
+                contents: [],
+                images: []
+            }
+        case 'Message':
+            return {
+                tag,
+                key: '',
+                rooms: [],
+                render: [],
+                contents: []
+            }
+        case 'Moment':
+            return {
+                tag,
+                key: '',
+                contents: []
+            }
+        default:
+            return {
+                tag: 'String',
+                value: ''
+            }
+    }
 }
