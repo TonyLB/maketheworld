@@ -6,24 +6,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testVar",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testVar",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testOne",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testOne",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testTwo",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testTwo",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -35,7 +50,23 @@ Object {
   "testOne": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -43,6 +74,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testOne",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -58,7 +103,7 @@ Object {
   "testTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -66,6 +111,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testTwo",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -76,7 +130,7 @@ Object {
   "testVar": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -84,6 +138,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "testVar",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -99,8 +158,14 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "TestAsset",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -118,14 +183,23 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testVar",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testVar",
+              "tag": "Variable",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "TestAsset",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -137,7 +211,7 @@ Object {
   "testVar": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -145,6 +219,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "testVar",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -160,14 +239,23 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -179,7 +267,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -187,6 +291,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -208,8 +326,14 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -226,11 +350,14 @@ Object {
   "If-0": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testOne",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testOne",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -240,6 +367,18 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "testVarOne",
+              ],
+              "if": "testVarOne",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -256,11 +395,14 @@ Object {
   "If-1": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 1,
-            "key": "testOne",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "testOne",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -270,6 +412,18 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "testVarThree",
+              ],
+              "if": "testVarThree",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -287,34 +441,55 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testVarOne",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testVarOne",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testVarTwo",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testVarTwo",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testVarThree",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testVarThree",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "If-0",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-0",
+              "tag": "If",
+            },
           },
           Object {
-            "index": 0,
-            "key": "If-1",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-1",
+              "tag": "If",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -326,7 +501,23 @@ Object {
   "testOne": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -339,6 +530,20 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testOne",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -348,7 +553,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Three",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -361,6 +582,20 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testOne",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Three",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -376,7 +611,7 @@ Object {
   "testVarOne": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -384,6 +619,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "testVarOne",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -393,7 +633,7 @@ Object {
   "testVarThree": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -401,6 +641,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "testVarThree",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -410,7 +655,7 @@ Object {
   "testVarTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -418,6 +663,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "testVarTwo",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -433,14 +683,23 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testKnowledge",
-            "tag": "Knowledge",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testKnowledge",
+              "tag": "Knowledge",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -452,7 +711,38 @@ Object {
   "testKnowledge": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Knowledge is power",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Learning!",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -460,6 +750,23 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testKnowledge",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Knowledge is power",
+            },
+          ],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Learning!",
+            },
+          ],
+          "tag": "Knowledge",
+        },
         "name": Array [
           Object {
             "tag": "String",
@@ -486,24 +793,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 2,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -515,7 +837,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -523,6 +861,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -532,7 +884,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Two",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -540,6 +908,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Two",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -549,7 +931,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Three",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -557,6 +955,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Three",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -578,24 +990,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testMap",
-            "tag": "Map",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testMap",
+              "tag": "Map",
+            },
           },
           Object {
-            "index": 2,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -607,7 +1034,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -615,6 +1058,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -624,7 +1081,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Two",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -637,6 +1110,20 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Two",
+            },
+          ],
+          "tag": "Room",
+          "x": 0,
+          "y": 0,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -648,7 +1135,23 @@ Object {
         "y": 0,
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Three",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -656,6 +1159,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Three",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -671,11 +1188,14 @@ Object {
   "testMap": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -685,6 +1205,21 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "images": Array [],
+          "key": "testMap",
+          "name": Array [],
+          "rooms": Array [
+            Object {
+              "conditions": Array [],
+              "key": "test",
+              "x": 0,
+              "y": 0,
+            },
+          ],
+          "tag": "Map",
+        },
         "images": Array [],
         "name": Array [],
         "rooms": Array [
@@ -709,14 +1244,23 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testMap",
-            "tag": "Map",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testMap",
+              "tag": "Map",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -728,7 +1272,7 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -741,6 +1285,15 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": 0,
+          "y": 0,
+        },
         "name": Array [],
         "render": Array [],
         "x": 0,
@@ -753,16 +1306,22 @@ Object {
   "testMap": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testTwo",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testTwo",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -772,6 +1331,21 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "images": Array [],
+          "key": "testMap",
+          "name": Array [],
+          "rooms": Array [
+            Object {
+              "conditions": Array [],
+              "key": "test",
+              "x": 0,
+              "y": 0,
+            },
+          ],
+          "tag": "Map",
+        },
         "images": Array [],
         "name": Array [],
         "rooms": Array [
@@ -796,7 +1370,7 @@ Object {
   "testTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -809,6 +1383,15 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testTwo",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": 0,
+          "y": 100,
+        },
         "name": Array [],
         "render": Array [],
         "x": 0,
@@ -827,14 +1410,23 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testVar",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testVar",
+              "tag": "Variable",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -846,7 +1438,7 @@ Object {
   "testVar": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -854,6 +1446,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "true",
+          "key": "testVar",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "true",
@@ -869,24 +1466,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 2,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -898,7 +1510,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -906,6 +1534,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -915,7 +1557,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Two",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -923,6 +1581,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Two",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -932,7 +1604,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Three",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -940,6 +1628,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Three",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -971,8 +1673,24 @@ Object {
     },
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [],
+        "data": Object {
+          "FirstImpression": "Frumpy goth",
+          "Name": "Tessa",
+          "OneCoolThing": "Thousand yard stare",
+          "Outfit": "A battered frock-coat",
+          "Pronouns": Object {
+            "adjective": "hers",
+            "object": "her",
+            "possessive": "her",
+            "reflexive": "herself",
+            "subject": "she",
+          },
+          "contents": Array [],
+          "key": "Tess",
+          "tag": "Character",
+        },
       },
     ],
     "assets": Array [],
@@ -990,24 +1708,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testTwo",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testTwo",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -1019,7 +1752,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1027,6 +1776,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -1036,7 +1799,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Two",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1044,6 +1823,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Two",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -1059,7 +1852,23 @@ Object {
   "testTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Bar",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1067,6 +1876,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testTwo",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Bar",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -1088,24 +1911,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testMap",
-            "tag": "Map",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testMap",
+              "tag": "Map",
+            },
           },
           Object {
-            "index": 2,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -1117,7 +1955,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1125,6 +1979,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -1134,7 +2002,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Two",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1147,6 +2031,20 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Two",
+            },
+          ],
+          "tag": "Room",
+          "x": 0,
+          "y": 0,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -1158,7 +2056,23 @@ Object {
         "y": 0,
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Three",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1166,6 +2080,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Three",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -1181,11 +2109,14 @@ Object {
   "testMap": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -1195,6 +2126,21 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "images": Array [],
+          "key": "testMap",
+          "name": Array [],
+          "rooms": Array [
+            Object {
+              "conditions": Array [],
+              "key": "test",
+              "x": 0,
+              "y": 0,
+            },
+          ],
+          "tag": "Map",
+        },
         "images": Array [],
         "name": Array [],
         "rooms": Array [
@@ -1218,11 +2164,14 @@ Object {
   "If-0": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testTwo",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testTwo",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -1237,13 +2186,26 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [],
+              "if": "true",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 1,
-            "key": "testMap",
-            "tag": "Map",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "testMap",
+              "tag": "Map",
+            },
           },
         ],
         "contextStack": Array [
@@ -1253,6 +2215,16 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [],
+              "if": "true",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -1268,19 +2240,31 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testMap",
-            "tag": "Map",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testMap",
+              "tag": "Map",
+            },
           },
           Object {
-            "index": 1,
-            "key": "If-0",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "If-0",
+              "tag": "If",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -1292,7 +2276,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1305,6 +2305,20 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": 0,
+          "y": 100,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -1322,16 +2336,22 @@ Object {
   "testMap": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "If-0",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-0",
+              "tag": "If",
+            },
           },
         ],
         "contextStack": Array [
@@ -1341,6 +2361,32 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "images": Array [],
+          "key": "testMap",
+          "name": Array [],
+          "rooms": Array [
+            Object {
+              "conditions": Array [],
+              "key": "test",
+              "x": 0,
+              "y": 100,
+            },
+            Object {
+              "conditions": Array [
+                Object {
+                  "dependencies": Array [],
+                  "if": "true",
+                },
+              ],
+              "key": "testTwo",
+              "x": 100,
+              "y": 0,
+            },
+          ],
+          "tag": "Map",
+        },
         "images": Array [],
         "name": Array [],
         "rooms": Array [
@@ -1364,11 +2410,14 @@ Object {
         ],
       },
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testThree",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testThree",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -1383,6 +2432,21 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "images": Array [],
+          "key": "testMap",
+          "name": Array [],
+          "rooms": Array [
+            Object {
+              "conditions": Array [],
+              "key": "testThree",
+              "x": -100,
+              "y": 0,
+            },
+          ],
+          "tag": "Map",
+        },
         "images": Array [],
         "name": Array [],
         "rooms": Array [
@@ -1401,7 +2465,7 @@ Object {
   "testThree": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1419,6 +2483,15 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testThree",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": -100,
+          "y": 0,
+        },
         "name": Array [],
         "render": Array [],
         "x": -100,
@@ -1431,7 +2504,23 @@ Object {
   "testTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Two",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1449,6 +2538,20 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testTwo",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Two",
+            },
+          ],
+          "tag": "Room",
+          "x": 100,
+          "y": 0,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -1471,16 +2574,22 @@ Object {
   "Import-0": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testOne",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testOne",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testTwo",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testTwo",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -1490,6 +2599,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "from": "base",
+          "mapping": Object {
+            "testOne": Object {
+              "key": "testOne",
+              "type": "Room",
+            },
+            "testTwo": Object {
+              "key": "testTwo",
+              "type": "Room",
+            },
+          },
+          "tag": "Import",
+        },
       },
     ],
     "from": "base",
@@ -1510,14 +2633,23 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "Import-0",
-            "tag": "Import",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "Import-0",
+              "tag": "Import",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "TestAsset",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -1529,7 +2661,7 @@ Object {
   "testOne": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1542,6 +2674,14 @@ Object {
             "tag": "Import",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "testOne",
+          "key": "testOne",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -1552,7 +2692,7 @@ Object {
   "testTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1565,6 +2705,14 @@ Object {
             "tag": "Import",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "testTwo",
+          "key": "testTwo",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -1580,7 +2728,7 @@ Object {
   "If-1": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1593,13 +2741,28 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "testVar",
+              ],
+              "if": "testVar",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testRoom#targetTwo",
-            "tag": "Exit",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testRoom#targetTwo",
+              "tag": "Exit",
+            },
           },
         ],
         "contextStack": Array [
@@ -1614,13 +2777,28 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "testVar",
+              ],
+              "if": "testVar",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testRoom#targetThree",
-            "tag": "Exit",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testRoom#targetThree",
+              "tag": "Exit",
+            },
           },
         ],
         "contextStack": Array [
@@ -1635,6 +2813,18 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "testVar",
+              ],
+              "if": "testVar",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -1652,34 +2842,55 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testVar",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testVar",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testRoom",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testRoom",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "targetOne",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "targetOne",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "targetTwo",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "targetTwo",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "targetThree",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "targetThree",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "TestAsset",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -1691,7 +2902,7 @@ Object {
   "targetOne": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1699,6 +2910,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "targetOne",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -1709,7 +2929,7 @@ Object {
   "targetThree": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1717,6 +2937,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "targetThree",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -1727,7 +2956,7 @@ Object {
   "targetTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1735,6 +2964,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "targetTwo",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -1745,21 +2983,30 @@ Object {
   "testRoom": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "If-1",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-1",
+              "tag": "If",
+            },
           },
           Object {
-            "index": 1,
-            "key": "If-1",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "If-1",
+              "tag": "If",
+            },
           },
           Object {
-            "index": 2,
-            "key": "If-1",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "If-1",
+              "tag": "If",
+            },
           },
         ],
         "contextStack": Array [
@@ -1769,6 +3016,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testRoom",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -1779,7 +3035,7 @@ Object {
   "testRoom#targetThree": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1797,6 +3053,14 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "testRoom",
+          "key": "testRoom#targetThree",
+          "name": "three",
+          "tag": "Exit",
+          "to": "targetThree",
+        },
       },
     ],
     "from": "testRoom",
@@ -1808,7 +3072,7 @@ Object {
   "testRoom#targetTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1826,6 +3090,14 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "testRoom",
+          "key": "testRoom#targetTwo",
+          "name": "two",
+          "tag": "Exit",
+          "to": "targetTwo",
+        },
       },
     ],
     "from": "testRoom",
@@ -1837,7 +3109,7 @@ Object {
   "testVar": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1845,6 +3117,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "testVar",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -1859,7 +3136,7 @@ Object {
   "Import-0": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1867,6 +3144,11 @@ Object {
             "tag": "Character",
           },
         ],
+        "data": Object {
+          "from": "base",
+          "mapping": Object {},
+          "tag": "Import",
+        },
       },
     ],
     "from": "base",
@@ -1888,19 +3170,36 @@ Object {
     },
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "Import-0",
-            "tag": "Import",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "Import-0",
+              "tag": "Import",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "FirstImpression": "Frumpy goth",
+          "Name": "Tess",
+          "OneCoolThing": "Fuchsia eyes",
+          "Outfit": "A battered frock-coat",
+          "Pronouns": Object {
+            "adjective": "hers",
+            "object": "her",
+            "possessive": "her",
+            "reflexive": "herself",
+            "subject": "she",
+          },
+          "contents": Array [],
+          "key": "Tess",
+          "tag": "Character",
+        },
       },
     ],
-    "assets": Array [
-      "base",
-    ],
+    "assets": Array [],
     "fileName": undefined,
     "images": Array [],
     "key": "Tess",
@@ -1914,7 +3213,7 @@ Object {
   "If-0": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1927,13 +3226,28 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "testVar",
+              ],
+              "if": "testVar",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testRoom#targetTwo",
-            "tag": "Exit",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testRoom#targetTwo",
+              "tag": "Exit",
+            },
           },
         ],
         "contextStack": Array [
@@ -1948,13 +3262,28 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "testVar",
+              ],
+              "if": "testVar",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testRoom#targetThree",
-            "tag": "Exit",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testRoom#targetThree",
+              "tag": "Exit",
+            },
           },
         ],
         "contextStack": Array [
@@ -1969,6 +3298,18 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "testVar",
+              ],
+              "if": "testVar",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -1986,34 +3327,55 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "testVar",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testVar",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "testRoom",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "testRoom",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "targetOne",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "targetOne",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "targetTwo",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "targetTwo",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "targetThree",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "targetThree",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "TestAsset",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -2025,7 +3387,7 @@ Object {
   "targetOne": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2033,6 +3395,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "targetOne",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -2043,7 +3414,7 @@ Object {
   "targetThree": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2051,6 +3422,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "targetThree",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -2061,7 +3441,7 @@ Object {
   "targetTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2069,6 +3449,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "targetTwo",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -2079,21 +3468,30 @@ Object {
   "testRoom": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "If-0",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-0",
+              "tag": "If",
+            },
           },
           Object {
-            "index": 1,
-            "key": "If-0",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "If-0",
+              "tag": "If",
+            },
           },
           Object {
-            "index": 2,
-            "key": "If-0",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "If-0",
+              "tag": "If",
+            },
           },
         ],
         "contextStack": Array [
@@ -2103,6 +3501,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "testRoom",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -2113,7 +3520,7 @@ Object {
   "testRoom#targetThree": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2131,6 +3538,14 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "testRoom",
+          "key": "testRoom#targetThree",
+          "name": "three",
+          "tag": "Exit",
+          "to": "targetThree",
+        },
       },
     ],
     "from": "testRoom",
@@ -2142,7 +3557,7 @@ Object {
   "testRoom#targetTwo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2160,6 +3575,14 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "testRoom",
+          "key": "testRoom#targetTwo",
+          "name": "two",
+          "tag": "Exit",
+          "to": "targetTwo",
+        },
       },
     ],
     "from": "testRoom",
@@ -2171,7 +3594,7 @@ Object {
   "testVar": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2179,6 +3602,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "testVar",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -2194,24 +3622,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 2,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -2223,7 +3666,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Uno",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2231,6 +3690,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Uno",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2240,7 +3713,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Dos",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2248,6 +3737,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Dos",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2257,7 +3760,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Tres",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2265,6 +3784,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Tres",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2286,19 +3819,31 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "TestAsset",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -2310,7 +3855,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2318,6 +3879,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2327,7 +3902,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Two",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2335,6 +3926,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Two",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2355,11 +3960,14 @@ Object {
   "If-0": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 2,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -2369,6 +3977,16 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [],
+              "if": "true",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -2384,24 +4002,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 1,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "If-0",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-0",
+              "tag": "If",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -2413,7 +4046,23 @@ Object {
   "a123": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2421,6 +4070,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Vortex",
+            },
+          ],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [
           Object {
             "tag": "String",
@@ -2430,7 +4093,29 @@ Object {
         "render": Array [],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Hello, world!",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "Space",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2438,6 +4123,23 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Hello, world!",
+            },
+            Object {
+              "tag": "Space",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2450,7 +4152,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Vortex!",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2463,6 +4181,20 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Vortex!",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2484,24 +4216,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "strong",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "strong",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "trendy",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "trendy",
+              "tag": "Variable",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -2513,7 +4260,107 @@ Object {
   "a123": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Hello, world!",
+                },
+              },
+              Object {
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "tag": "String",
+                      "value": "Vortex!",
+                    },
+                  },
+                ],
+                "data": Object {
+                  "conditions": Array [
+                    Object {
+                      "dependencies": Array [
+                        "strong",
+                      ],
+                      "if": "strong",
+                    },
+                  ],
+                  "contents": Array [],
+                  "tag": "If",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": " ",
+                },
+              },
+              Object {
+                "children": Array [
+                  Object {
+                    "children": Array [
+                      Object {
+                        "children": Array [],
+                        "data": Object {
+                          "tag": "String",
+                          "value": "V.O.R.T.E.X.",
+                        },
+                      },
+                    ],
+                    "data": Object {
+                      "conditions": Array [
+                        Object {
+                          "dependencies": Array [
+                            "trendy",
+                          ],
+                          "if": "trendy",
+                        },
+                      ],
+                      "contents": Array [],
+                      "tag": "If",
+                    },
+                  },
+                ],
+                "data": Object {
+                  "conditions": Array [
+                    Object {
+                      "dependencies": Array [
+                        "strong",
+                      ],
+                      "if": "!strong",
+                    },
+                  ],
+                  "contents": Array [],
+                  "tag": "If",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2521,6 +4368,76 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Vortex",
+            },
+          ],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Hello, world!",
+            },
+            Object {
+              "conditions": Array [
+                Object {
+                  "dependencies": Array [
+                    "strong",
+                  ],
+                  "if": "strong",
+                },
+              ],
+              "contents": Array [
+                Object {
+                  "tag": "String",
+                  "value": "Vortex!",
+                },
+              ],
+              "tag": "If",
+            },
+            Object {
+              "tag": "String",
+              "value": " ",
+            },
+            Object {
+              "conditions": Array [
+                Object {
+                  "dependencies": Array [
+                    "strong",
+                  ],
+                  "if": "!strong",
+                },
+              ],
+              "contents": Array [
+                Object {
+                  "conditions": Array [
+                    Object {
+                      "dependencies": Array [
+                        "trendy",
+                      ],
+                      "if": "trendy",
+                    },
+                  ],
+                  "contents": Array [
+                    Object {
+                      "tag": "String",
+                      "value": "V.O.R.T.E.X.",
+                    },
+                  ],
+                  "tag": "If",
+                },
+              ],
+              "tag": "If",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [
           Object {
             "tag": "String",
@@ -2592,7 +4509,7 @@ Object {
   "strong": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2600,6 +4517,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "strong",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -2609,7 +4531,7 @@ Object {
   "trendy": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2617,6 +4539,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "trendy",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -2631,11 +4558,14 @@ Object {
   "If-1": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 1,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -2645,6 +4575,18 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "strong",
+              ],
+              "if": "strong",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -2661,11 +4603,14 @@ Object {
   "If-2": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "If-3",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-3",
+              "tag": "If",
+            },
           },
         ],
         "contextStack": Array [
@@ -2675,6 +4620,18 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "strong",
+              ],
+              "if": "!strong",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -2691,11 +4648,14 @@ Object {
   "If-3": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 2,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -2710,6 +4670,18 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "trendy",
+              ],
+              "if": "trendy",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -2727,34 +4699,55 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "If-1",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-1",
+              "tag": "If",
+            },
           },
           Object {
-            "index": 0,
-            "key": "If-2",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-2",
+              "tag": "If",
+            },
           },
           Object {
-            "index": 0,
-            "key": "strong",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "strong",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "trendy",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "trendy",
+              "tag": "Variable",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -2766,7 +4759,38 @@ Object {
   "a123": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Hello, world!",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2774,6 +4798,25 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Vortex",
+            },
+          ],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Hello, world!",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [
           Object {
             "tag": "String",
@@ -2788,7 +4831,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Vortex!",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2801,6 +4860,20 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Vortex!",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2810,7 +4883,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "V.O.R.T.E.X.",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2828,6 +4917,20 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "V.O.R.T.E.X.",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2843,7 +4946,7 @@ Object {
   "strong": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2851,6 +4954,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "strong",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -2860,7 +4968,7 @@ Object {
   "trendy": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2868,6 +4976,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "trendy",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -2883,19 +4996,31 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "test",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 1,
-            "key": "test",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "test",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -2907,7 +5032,23 @@ Object {
   "test": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "One",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2915,6 +5056,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "One",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2924,7 +5079,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Two",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2932,6 +5103,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "test",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Two",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -2952,11 +5137,14 @@ Object {
   "If-1": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 1,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -2966,6 +5154,18 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "conditions": Array [
+            Object {
+              "dependencies": Array [
+                "strong",
+              ],
+              "if": "strong",
+            },
+          ],
+          "contents": Array [],
+          "tag": "If",
+        },
       },
     ],
     "conditions": Array [
@@ -2983,24 +5183,39 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "If-1",
-            "tag": "If",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "If-1",
+              "tag": "If",
+            },
           },
           Object {
-            "index": 0,
-            "key": "strong",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "strong",
+              "tag": "Variable",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -3012,7 +5227,38 @@ Object {
   "a123": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Hello, world!",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3020,6 +5266,25 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Vortex",
+            },
+          ],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Hello, world!",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [
           Object {
             "tag": "String",
@@ -3034,7 +5299,23 @@ Object {
         ],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Vortex!",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3047,6 +5328,20 @@ Object {
             "tag": "If",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "Vortex!",
+            },
+          ],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [
           Object {
@@ -3062,7 +5357,7 @@ Object {
   "strong": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3070,6 +5365,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "false",
+          "key": "strong",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "false",
@@ -3084,7 +5384,7 @@ Object {
   "Import-0": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3092,6 +5392,11 @@ Object {
             "tag": "Character",
           },
         ],
+        "data": Object {
+          "from": "base",
+          "mapping": Object {},
+          "tag": "Import",
+        },
       },
     ],
     "from": "base",
@@ -3113,19 +5418,36 @@ Object {
     },
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "Import-0",
-            "tag": "Import",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "Import-0",
+              "tag": "Import",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "FirstImpression": "Frumpy goth",
+          "Name": "Tess",
+          "OneCoolThing": "Fuchsia eyes",
+          "Outfit": "A battered frock-coat",
+          "Pronouns": Object {
+            "adjective": "hers",
+            "object": "her",
+            "possessive": "her",
+            "reflexive": "herself",
+            "subject": "she",
+          },
+          "contents": Array [],
+          "key": "Tess",
+          "tag": "Character",
+        },
       },
     ],
-    "assets": Array [
-      "base",
-    ],
+    "assets": Array [],
     "fileName": undefined,
     "images": Array [],
     "key": "Tess",
@@ -3140,29 +5462,47 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "clockTower",
-            "tag": "Feature",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "clockTower",
+              "tag": "Feature",
+            },
           },
           Object {
-            "index": 0,
-            "key": "town",
-            "tag": "Knowledge",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "town",
+              "tag": "Knowledge",
+            },
           },
           Object {
-            "index": 0,
-            "key": "active",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "active",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "toggleActive",
-            "tag": "Action",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "toggleActive",
+              "tag": "Action",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -3174,7 +5514,7 @@ Object {
   "active": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3182,6 +5522,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "true",
+          "key": "active",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "true",
@@ -3191,7 +5536,69 @@ Object {
   "clockTower": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Clock Tower",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "Link",
+                  "text": "Waverly",
+                  "to": "town",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": " ",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "Link",
+                  "text": "Clock",
+                  "to": "clockTower",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": " ",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "Link",
+                  "text": "Toggle",
+                  "to": "toggleActive",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3199,6 +5606,42 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "clockTower",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Clock Tower",
+            },
+          ],
+          "render": Array [
+            Object {
+              "tag": "Link",
+              "text": "Waverly",
+              "to": "town",
+            },
+            Object {
+              "tag": "String",
+              "value": " ",
+            },
+            Object {
+              "tag": "Link",
+              "text": "Clock",
+              "to": "clockTower",
+            },
+            Object {
+              "tag": "String",
+              "value": " ",
+            },
+            Object {
+              "tag": "Link",
+              "text": "Toggle",
+              "to": "toggleActive",
+            },
+          ],
+          "tag": "Feature",
+        },
         "name": Array [
           Object {
             "tag": "String",
@@ -3241,7 +5684,7 @@ Object {
   "toggleActive": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3249,6 +5692,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "key": "toggleActive",
+          "src": "active = !active",
+          "tag": "Action",
+        },
       },
     ],
     "key": "toggleActive",
@@ -3258,7 +5706,38 @@ Object {
   "town": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Waverly",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "The town of Waverly is a pleasant place to live.",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3266,6 +5745,23 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "town",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Waverly",
+            },
+          ],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "The town of Waverly is a pleasant place to live.",
+            },
+          ],
+          "tag": "Knowledge",
+        },
         "name": Array [
           Object {
             "tag": "String",
@@ -3291,7 +5787,7 @@ Object {
   "ImageTest": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3304,6 +5800,10 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "key": "ImageTest",
+          "tag": "Image",
+        },
       },
     ],
     "key": "ImageTest",
@@ -3312,21 +5812,30 @@ Object {
   "Import-0": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "power",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "power",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "overview",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "overview",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "baseInfo",
-            "tag": "Knowledge",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "baseInfo",
+              "tag": "Knowledge",
+            },
           },
         ],
         "contextStack": Array [
@@ -3336,6 +5845,24 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "from": "BASE",
+          "mapping": Object {
+            "baseInfo": Object {
+              "key": "baseInfo",
+              "type": "Knowledge",
+            },
+            "overview": Object {
+              "key": "overview",
+              "type": "Room",
+            },
+            "power": Object {
+              "key": "basePower",
+              "type": "Variable",
+            },
+          },
+          "tag": "Import",
+        },
       },
     ],
     "from": "BASE",
@@ -3360,64 +5887,103 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "Import-0",
-            "tag": "Import",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "Import-0",
+              "tag": "Import",
+            },
           },
           Object {
-            "index": 0,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "b456",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "b456",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "TestMap",
-            "tag": "Map",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "TestMap",
+              "tag": "Map",
+            },
           },
           Object {
-            "index": 1,
-            "key": "clockTower",
-            "tag": "Feature",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "clockTower",
+              "tag": "Feature",
+            },
           },
           Object {
-            "index": 0,
-            "key": "town",
-            "tag": "Knowledge",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "town",
+              "tag": "Knowledge",
+            },
           },
           Object {
-            "index": 0,
-            "key": "active",
-            "tag": "Variable",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "active",
+              "tag": "Variable",
+            },
           },
           Object {
-            "index": 0,
-            "key": "inactive",
-            "tag": "Computed",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "inactive",
+              "tag": "Computed",
+            },
           },
           Object {
-            "index": 0,
-            "key": "toggleActive",
-            "tag": "Action",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "toggleActive",
+              "tag": "Action",
+            },
           },
           Object {
-            "index": 0,
-            "key": "postFix",
-            "tag": "Bookmark",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "postFix",
+              "tag": "Bookmark",
+            },
           },
           Object {
-            "index": 0,
-            "key": "activateMoment",
-            "tag": "Moment",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "activateMoment",
+              "tag": "Moment",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "contents": Array [],
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -3429,16 +5995,22 @@ Object {
   "TestMap": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "ImageTest",
-            "tag": "Image",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "ImageTest",
+              "tag": "Image",
+            },
           },
           Object {
-            "index": 1,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 1,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -3448,6 +6020,28 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "images": Array [
+            "ImageTest",
+          ],
+          "key": "TestMap",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Test Map",
+            },
+          ],
+          "rooms": Array [
+            Object {
+              "conditions": Array [],
+              "key": "a123",
+              "x": 200,
+              "y": 150,
+            },
+          ],
+          "tag": "Map",
+        },
         "images": Array [
           "ImageTest",
         ],
@@ -3473,16 +6067,22 @@ Object {
   "a123": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "a123#b456",
-            "tag": "Exit",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "a123#b456",
+              "tag": "Exit",
+            },
           },
           Object {
-            "index": 0,
-            "key": "clockTower",
-            "tag": "Feature",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "clockTower",
+              "tag": "Feature",
+            },
           },
         ],
         "contextStack": Array [
@@ -3492,11 +6092,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3509,13 +6118,22 @@ Object {
             "tag": "Map",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": 200,
+          "y": 150,
+        },
         "name": Array [],
         "render": Array [],
         "x": 200,
         "y": 150,
       },
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3533,6 +6151,15 @@ Object {
             "tag": "Message",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "a123",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -3543,7 +6170,7 @@ Object {
   "a123#b456": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3556,6 +6183,14 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "a123",
+          "key": "a123#b456",
+          "name": "",
+          "tag": "Exit",
+          "to": "b456",
+        },
       },
     ],
     "from": "a123",
@@ -3567,11 +6202,21 @@ Object {
   "activate": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 2,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "tag": "String",
+              "value": "It activates!",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "index": 2,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [
@@ -3586,6 +6231,22 @@ Object {
             "tag": "Moment",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "activate",
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "It activates!",
+            },
+          ],
+          "rooms": Array [
+            Object {
+              "key": "a123",
+            },
+          ],
+          "tag": "Message",
+        },
         "render": Array [
           Object {
             "tag": "String",
@@ -3605,11 +6266,14 @@ Object {
   "activateMoment": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "activate",
-            "tag": "Message",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "activate",
+              "tag": "Message",
+            },
           },
         ],
         "contextStack": Array [
@@ -3619,9 +6283,12 @@ Object {
             "tag": "Asset",
           },
         ],
-        "messages": Array [
-          "activate",
-        ],
+        "data": Object {
+          "contents": Array [],
+          "key": "activateMoment",
+          "tag": "Moment",
+        },
+        "messages": Array [],
       },
     ],
     "key": "activateMoment",
@@ -3630,7 +6297,7 @@ Object {
   "active": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3638,6 +6305,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "default": "true",
+          "key": "active",
+          "tag": "Variable",
+        },
       },
     ],
     "default": "true",
@@ -3647,7 +6319,7 @@ Object {
   "b456": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3655,6 +6327,15 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "b456",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -3665,7 +6346,7 @@ Object {
   "baseInfo": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3678,6 +6359,14 @@ Object {
             "tag": "Import",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "baseInfo",
+          "key": "baseInfo",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Knowledge",
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -3688,7 +6377,7 @@ Object {
   "clockTower": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3701,11 +6390,34 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "clockTower",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Feature",
+        },
         "name": Array [],
         "render": Array [],
       },
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Clock Tower",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3713,6 +6425,18 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "clockTower",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Clock Tower",
+            },
+          ],
+          "render": Array [],
+          "tag": "Feature",
+        },
         "name": Array [
           Object {
             "tag": "String",
@@ -3728,7 +6452,7 @@ Object {
   "inactive": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3736,6 +6460,14 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "dependencies": Array [
+            "active",
+          ],
+          "key": "inactive",
+          "src": "!active",
+          "tag": "Computed",
+        },
       },
     ],
     "dependencies": Array [
@@ -3748,7 +6480,7 @@ Object {
   "overview": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3761,6 +6493,14 @@ Object {
             "tag": "Import",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "from": "overview",
+          "key": "overview",
+          "name": Array [],
+          "render": Array [],
+          "tag": "Room",
+        },
         "name": Array [],
         "render": Array [],
       },
@@ -3771,7 +6511,21 @@ Object {
   "postFix": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "Space",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "String",
+              "value": "Inactive",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3779,6 +6533,12 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "display": undefined,
+          "key": "postFix",
+          "tag": "Bookmark",
+        },
         "render": Array [
           Object {
             "tag": "Space",
@@ -3796,7 +6556,7 @@ Object {
   "power": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3809,6 +6569,11 @@ Object {
             "tag": "Import",
           },
         ],
+        "data": Object {
+          "from": "basePower",
+          "key": "power",
+          "tag": "Variable",
+        },
       },
     ],
     "default": undefined,
@@ -3818,7 +6583,7 @@ Object {
   "toggleActive": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3826,6 +6591,11 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "key": "toggleActive",
+          "src": "active = !active",
+          "tag": "Action",
+        },
       },
     ],
     "key": "toggleActive",
@@ -3835,7 +6605,38 @@ Object {
   "town": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Waverly",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "The town of Waverly is a pleasant place to live.",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Description",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3843,6 +6644,23 @@ Object {
             "tag": "Asset",
           },
         ],
+        "data": Object {
+          "contents": Array [],
+          "key": "town",
+          "name": Array [
+            Object {
+              "tag": "String",
+              "value": "Waverly",
+            },
+          ],
+          "render": Array [
+            Object {
+              "tag": "String",
+              "value": "The town of Waverly is a pleasant place to live.",
+            },
+          ],
+          "tag": "Knowledge",
+        },
         "name": Array [
           Object {
             "tag": "String",

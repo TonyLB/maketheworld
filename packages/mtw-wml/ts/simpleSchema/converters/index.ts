@@ -17,7 +17,6 @@ import { importExportConverters, importExportPrintMap } from "./importExport"
 import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
 import { tagRender } from "./tagRender"
-import { GenericTree, GenericTreeNode } from "../../sequence/tree/baseClasses"
 
 const validationTemplates = {
     Asset: {

@@ -106,3 +106,100 @@ export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
     }, { returnValue: [], siblings: [] })
     return returnValue.join('\n')
 }
+
+export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag => {
+    switch(tag) {
+        case 'Room':
+        case 'Feature':
+        case 'Knowledge':
+            return {
+                tag,
+                key: '',
+                contents: [],
+                render: [],
+                name: []
+            }
+        case 'Action':
+            return {
+                tag,
+                key: '',
+                src: '',
+            }
+        case 'Computed':
+            return {
+                tag,
+                key: '',
+                src: '',
+                dependencies: []
+            }
+        case 'Variable':
+            return {
+                tag,
+                key: '',
+                default: ''
+            }
+        case 'If':
+            return {
+                tag,
+                key: '',
+                conditions: [],
+                contents: []
+            }
+        case 'After':
+        case 'Before':
+        case 'Replace':
+        case 'Description':
+            return {
+                tag,
+                contents: []
+            }
+        case 'Bookmark':
+            return {
+                tag,
+                key: '',
+                contents: []
+            }
+        case 'Exit':
+            return {
+                tag,
+                key: '',
+                name: '',
+                to: '',
+                from: '',
+                contents: []
+            }
+        case 'Image':
+            return {
+                tag,
+                key: ''
+            }
+        case 'Map':
+            return {
+                tag,
+                key: '',
+                rooms: [],
+                name: [],
+                contents: [],
+                images: []
+            }
+        case 'Message':
+            return {
+                tag,
+                key: '',
+                rooms: [],
+                render: [],
+                contents: []
+            }
+        case 'Moment':
+            return {
+                tag,
+                key: '',
+                contents: []
+            }
+        default:
+            return {
+                tag: 'String',
+                value: ''
+            }
+    }
+}

@@ -45,7 +45,9 @@ import {
     SchemaExportTag,
     isImportableTag,
     isSchemaExport,
-    isSchemaRoom
+    isSchemaRoom,
+    isImportable,
+    isSchemaLink
 } from '../simpleSchema/baseClasses'
 import {
     BaseAppearance,
@@ -93,14 +95,16 @@ import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
 import { objectFilterEntries, objectMap } from '../lib/objects';
 import standardizeNormal from './standardize';
-import { schemaFromParse } from '../simpleSchema';
+import { schemaFromParse, defaultSchemaTag } from '../simpleSchema';
 import parse from '../simpleParser';
 import tokenizer from '../parser/tokenizer';
 import { buildNormalPlaceholdersFromExport, rebuildContentsFromImport } from './importExportUtil';
 import { mergeOrderedConditionalTrees } from '../lib/sequenceTools/orderedConditionalTree';
 import { GenericTree, GenericTreeNode } from '../sequence/tree/baseClasses';
 import mergeSchemaTrees from '../simpleSchema/treeManipulation/merge';
-import { extractConditionedItemFromContents } from '../simpleSchema/utils';
+import { decodeLegacyContentStructure, extractConditionedItemFromContents, legacyContentStructure } from '../simpleSchema/utils';
+import { base } from 'acorn-walk';
+import dfsWalk from '../sequence/tree/dfsWalk';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -587,8 +591,19 @@ export class Normalizer {
         this._normalForm = { ...this._normalForm, [toKey]: {
             ...this._normalForm[fromKey],
             key: toKey,
-            ...(updateExports ? { exportAs: this._normalForm[fromKey]?.exportAs ?? fromKey } : {})
-        } }
+            ...(updateExports ? { exportAs: this._normalForm[fromKey]?.exportAs ?? fromKey } : {}),
+            appearances: appearances.map(({ data, ...rest }) => {
+                if (isSchemaWithKey(data)) {
+                    return {
+                        data: { ...data, key: toKey },
+                        ...rest
+                    }
+                }
+                else {
+                    return { data, ...rest }
+                }
+            })
+        } } as NormalForm
         const tag = this._normalForm[toKey].tag
         appearances.forEach(({ contextStack }, index) => {
             //
@@ -638,10 +653,27 @@ export class Normalizer {
                 this._normalForm[item.key] = {
                     ...item,
                     to: newTo,
-                    from: newFrom
+                    from: newFrom,
+                    appearances: this._normalForm[item.key].appearances.map((appearance) => {
+                        const { data, children } = appearance
+                        if (isSchemaExit(data)) {
+                            return {
+                                ...appearance,
+                                data: {
+                                    ...data,
+                                    to: newTo,
+                                    from: newFrom
+                                },
+                                children
+                            }
+                        }
+                        else {
+                            return appearance
+                        }
+                    })
                 }
                 this.renameItem(item.key, `${newFrom}#${newTo}`)
-        })
+            })
 
         //
         // Next use immer to create an immutable derivative of the original normalForm,
@@ -673,6 +705,15 @@ export class Normalizer {
                                     : item
                             ))
                         }
+                        const renameChildren = (tree: GenericTree<NormalReference | SchemaTag>): void => {
+                            tree.forEach(({ data, children }) => {
+                                if (!isNormalReference(data) && isSchemaLink(data) && (data.to === fromKey)) {
+                                    data.to = toKey
+                                }
+                                renameChildren(children)
+                            })
+                        }
+                        renameChildren(appearance.children)
                     })
                 }
                 if (isNormalMap(item) || isNormalMessage(item)) {
@@ -755,7 +796,7 @@ export class Normalizer {
         const translateContext: NormalizerContext = {
             contextStack: position.contextStack
         }
-        this._validateTags(node)
+        this._validateTags({ data: node, children })
         let appearanceIndex: number
         let returnKey: string = node.key
         switch(node.tag) {
@@ -763,6 +804,14 @@ export class Normalizer {
                 appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children: [] }, node), position)
                 returnValue = {
                     tag: 'Exit',
+                    key: node.key,
+                    index: appearanceIndex
+                }
+                break
+            case 'Bookmark':
+                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children }, node), position)
+                returnValue = {
+                    tag: 'Bookmark',
                     key: node.key,
                     index: appearanceIndex
                 }
@@ -829,17 +878,15 @@ export class Normalizer {
                 this._updateAppearanceContents(parentReference.key, parentReference.index, [...children, { data: returnValue, children: [] }])
             }
         }
-        if (isSchemaWithContents(node) && !isSchemaExit(node)) {
-            const updateContext: NormalizerInsertPosition = {
-                contextStack: [
-                    ...translateContext.contextStack,
-                    returnValue
-                ]
-            }
-            children.forEach((child) => {
-                this.put(child, updateContext)
-            })
+        const updateContext: NormalizerInsertPosition = {
+            contextStack: [
+                ...translateContext.contextStack,
+                returnValue
+            ]
         }
+        children.forEach((child) => {
+            this.put(child, updateContext)
+        })
         return returnValue
     }
 
@@ -868,7 +915,7 @@ export class Normalizer {
         }
     }
 
-    _validateTags(node: SchemaTag): void {
+    _validateTags({ data: node, children }: GenericTreeNode<SchemaTag>): void {
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return
         }
@@ -891,9 +938,7 @@ export class Normalizer {
         if (!(keyToCompare in this._tags)) {
             this._tags[keyToCompare] = tagToCompare as NormalItem["tag"]
         }
-        if (isSchemaWithContents(node)) {
-            node.contents.forEach(this._validateTags.bind(this))
-        }
+        children.forEach(this._validateTags.bind(this))
 
         if (node.tag === 'Import') {
             Object.entries(node.mapping).forEach(([key, { type }]) => {
@@ -943,6 +988,8 @@ export class Normalizer {
             defaultKeyIndex++
         }
         const defaultKey = `${node.tag}${defaultKeyIndex}`
+        const { data } = appearance
+        const defaultedAppearance = isSchemaWithKey(data) ? { ...appearance, data: { ...data, key: data.key || defaultKey } } : appearance
         switch(node.tag) {
             case 'Asset':
                 return {
@@ -968,14 +1015,14 @@ export class Normalizer {
                 return {
                     key: node.key || defaultKey,
                     tag: 'Image',
-                    appearances: [appearance]
+                    appearances: [defaultedAppearance]
                 }
             case 'Variable':
                 return {
                     key: node.key || defaultKey,
                     tag: 'Variable',
                     default: node.default,
-                    appearances: [appearance]
+                    appearances: [defaultedAppearance]
                 }
             case 'Computed':
                 return {
@@ -983,14 +1030,14 @@ export class Normalizer {
                     tag: 'Computed',
                     src: node.src,
                     dependencies: node.dependencies,
-                    appearances: [appearance]
+                    appearances: [defaultedAppearance]
                 }
             case 'Action':
                 return {
                     key: node.key || defaultKey,
                     tag: 'Action',
                     src: node.src,
-                    appearances: [appearance]
+                    appearances: [defaultedAppearance]
                 }
             case 'If':
                 return {
@@ -1010,13 +1057,26 @@ export class Normalizer {
             case 'Room':
             case 'Feature':
             case 'Knowledge':
+                const componentRenderTree = decodeLegacyContentStructure(node.render.filter(isSchemaTaggedMessageLegalContents))
+                const componentNameTree = decodeLegacyContentStructure(node.name.filter(isSchemaTaggedMessageLegalContents))
                 return {
                     key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
-                        ...appearance,
+                        ...defaultedAppearance,
                         render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
                         name: node.name.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
+                        children: [
+                            ...appearance.children,
+                            ...(componentNameTree.length
+                                ? [{ data: { tag: 'Name' as const, contents: [] }, children: componentNameTree }]
+                                : []
+                            ),
+                            ...(componentRenderTree.length
+                                ? [{ data: { tag: 'Description' as const, contents: [] }, children: componentRenderTree }]
+                                : []
+                            )
+                        ],
                         ...((node.tag === 'Room' && (node.x !== undefined || node.y !== undefined)) ? { x: node.x, y: node.y } : {})
                     }]
                 }
@@ -1025,8 +1085,8 @@ export class Normalizer {
                     key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
-                        ...appearance,
-                        render: node.contents.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value))
+                        ...defaultedAppearance,
+                        render: legacyContentStructure(this._expandNormalRefTree(appearance.children)).map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value))
                     }]
                 }
             case 'Message':
@@ -1034,9 +1094,13 @@ export class Normalizer {
                     key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
-                        ...appearance,
+                        ...defaultedAppearance,
                         render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
-                        rooms: node.rooms
+                        rooms: node.rooms,
+                        children: [
+                            ...decodeLegacyContentStructure(node.contents),
+                            ...decodeLegacyContentStructure(node.render)
+                        ]
                     }]
                 }
             case 'Moment':
@@ -1044,8 +1108,9 @@ export class Normalizer {
                     key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
-                        ...appearance,
-                        messages: node.contents.filter(isSchemaMessage).map(({ key }) => (key))
+                        ...defaultedAppearance,
+                        messages: node.contents.filter(isSchemaMessage).map(({ key }) => (key)),
+                        children: decodeLegacyContentStructure(node.contents)
                     }]
                 }
             case 'Map':
@@ -1053,7 +1118,7 @@ export class Normalizer {
                     key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
-                        ...appearance,
+                        ...defaultedAppearance,
                         rooms: node.rooms,
                         images: node.images,
                         name: node.name
@@ -1135,13 +1200,29 @@ export class Normalizer {
 
     _expandNormalRefTree(tree: GenericTree<NormalReference | SchemaTag>): GenericTree<SchemaTag> {
         return tree.map(({ data, children }) => {
-            const schemaValue = isNormalReference(data) ? this._lookupAppearance(data) : { data, children }
-            if (!schemaValue) {
-                throw new Error('Failed lookup in _expandNormalRefTree')
+            if (isNormalReference(data)) {
+                const { data: refData, children: refChildren } = this._normalToSchema(data.key, data.index)
+                return {
+                    data: refData,
+                    children: [...this._expandNormalRefTree(children), ...refChildren]
+                }
+            }
+            let expandedTags: GenericTree<SchemaTag> = []
+            if (data.tag === 'Link') {
+                expandedTags = [
+                    ...expandedTags,
+                    {
+                        data: { tag: 'String', value: data.text },
+                        children: []
+                    }
+                ]
             }
             return {
-                data: schemaValue.data,
-                children: this._expandNormalRefTree(children)
+                data,
+                children: [
+                    ...this._expandNormalRefTree(children),
+                    ...expandedTags
+                ]
             }
         })
     }
@@ -1155,9 +1236,29 @@ export class Normalizer {
         if (!baseAppearance) {
             return undefined
         }
+        let expandedTags: GenericTree<SchemaTag> = []
+        if (node.tag === 'Asset') {
+            const allAssetDescendantNormals = (Object.values(this._normalForm) as NormalItem[])
+                .filter(({ tag }) => (isImportableTag(tag)))
+                .filter(({ appearances }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find(({ key }) => (key === node.key)))))))
+                .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
+            if (allAssetDescendantNormals.length) {
+                expandedTags = [...expandedTags, {
+                    data: {
+                        tag: 'Export',
+                        mapping: Object.assign(
+                            {},
+                            ...allAssetDescendantNormals.map(({ key, tag, exportAs }) => ({ [exportAs || key]: { key, type: tag }}))
+                        )
+                    },
+                    children: allAssetDescendantNormals.map(({ tag, key, exportAs }) => ({ data: { ...defaultSchemaTag(tag), key, as: exportAs }, children: [] }))
+                }]
+            }
+        }
+        const returnData = baseAppearance.data
         return {
-            data: baseAppearance.data,
-            children: this._expandNormalRefTree(baseAppearance.children)
+            data: isImportable(returnData) ? { ...returnData, from: (returnData.from && returnData.from !== returnData.key) ? returnData.from : undefined } : returnData,
+            children: [...this._expandNormalRefTree(baseAppearance.children), ...expandedTags]
         }
     }
 

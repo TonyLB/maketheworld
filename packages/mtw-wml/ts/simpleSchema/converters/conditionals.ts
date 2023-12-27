@@ -13,7 +13,6 @@ import {
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
-import {  } from "../../schema/taggedMessage"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"

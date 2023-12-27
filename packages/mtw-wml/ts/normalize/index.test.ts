@@ -266,8 +266,7 @@ describe('WML normalize', () => {
             <Bookmark key=(postFix)><Space />Inactive</Bookmark>
             <Moment key=(activateMoment)>
                 <Message key=(activate)>
-                    <Room key=(a123) />
-                    It activates!
+                    It activates!<Room key=(a123) />
                 </Message>
             </Moment>
             <Export><Room key=(a123) as=(Room2) /></Export>
