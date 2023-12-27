@@ -1,24 +1,47 @@
+import { deepEqual } from "../lib/objects";
 import { GenericTree } from "../sequence/tree/baseClasses"
+import dfsWalk from "../sequence/tree/dfsWalk";
 
-type TagTreeLeafNode<NodeData extends {}> = {
-    node: NodeData;
-    tagKeys: string[];
+type TagTreeLeafNode<NodeData extends {}> = NodeData[]
+
+type TagTreeTreeOptions = {
+    reorderTags?: string[];
+}
+
+export const iterativeMerge = <NodeData extends {}>(previous: GenericTree<NodeData>, tagItem: NodeData[]): GenericTree<NodeData> => {
+    if (!tagItem.length) {
+        return previous
+    }
+    if (previous.length) {
+        const lastPrevious = previous.slice(-1)[0]
+        if (deepEqual(lastPrevious.data, tagItem[0])) {
+            return [...previous.slice(0, -1), { data: lastPrevious.data, children: iterativeMerge(lastPrevious.children, tagItem.slice(1)) }]
+        }
+    }
+    return [...previous, { data: tagItem[0], children: iterativeMerge([], tagItem.slice(1)) }]
 }
 
 export class TagTree<NodeData extends {}> {
-    _tree: GenericTree<NodeData>
+    _tagList: NodeData[][];
 
     constructor(tree: GenericTree<NodeData>) {
-        this._tree = tree
+        this._tagList = dfsWalk<NodeData, NodeData[][], {}>({
+            default: { output: [], state: {} },
+            callback: (previous: { output: NodeData[][], state: {} }, data: NodeData) => {
+                return { output: [...previous.output, [data]], state: {} }
+            },
+            aggregate: ({ direct, children, data }) => {
+                return {
+                    output: children.output.length ? children.output.map((nodes) => ([...(data ? [data] : []), ...nodes])) : direct.output,
+                    state: {}
+                }
+            }
+        })(tree)
     }
 
-    tree() {
-        return this._tree
+    tree(options?: TagTreeTreeOptions) {
+        return this._tagList.reduce<GenericTree<NodeData>>(iterativeMerge, [])
     }
-    //
-    // TODO: Create first-draft serializer that returns original tree
-    //
-
 }
 
 export default TagTree
