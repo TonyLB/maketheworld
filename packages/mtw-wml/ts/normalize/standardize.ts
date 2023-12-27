@@ -221,6 +221,7 @@ const extractConditionedMomentChildren = (contextNormalizer: Normalizer) => (ite
             return previous
         }
         const children = stripComponentContents(schemaVersion.children)
+            .map(({ data, children }) => (isSchemaMessage(data) ? { data, children: [] } : { data, children }))
         //
         // TODO: Extend this functionality when Messages are refactored to include conditionals
         //
@@ -492,7 +493,7 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                 data: {
                     tag: 'Message',
                     key: message.key,
-                    contents: legacyContentStructure(children).filter(isSchemaMessageContents),
+                    contents: [],
                     rooms: extractConditionedItemFromContents({
                         contents: children,
                         typeGuard: isSchemaRoom,
