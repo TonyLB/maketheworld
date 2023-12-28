@@ -5,7 +5,7 @@ import dfsWalk from "../sequence/tree/dfsWalk";
 type TagTreeTreeOptions<NodeData extends {}> = {
     classify: (data: NodeData) => string;
     compare?: (A: NodeData, B: NodeData) => boolean;
-    orderIndependence?: [string, string][];
+    orderIndependence?: string[][];
 }
 
 export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>): NodeData[][] => {
@@ -51,9 +51,8 @@ export const iterativeMerge = <NodeData extends {}>(options?: TagTreeTreeOptions
             // Otherwise, if this element is one that can be merged past because of
             // order independence then continue the search
             //
-            if ((options.orderIndependence ?? []).find(([checkOne, checkTwo]) => (
-                (classOne === checkOne && classTwo === checkTwo) ||
-                (classOne === checkTwo && classTwo === checkOne)
+            if ((options.orderIndependence ?? []).find((independenceGroup) => (
+                independenceGroup.includes(classOne) && independenceGroup.includes(classTwo)
             ))) {
                 return matchReduce
             }
@@ -75,15 +74,12 @@ export const iterativeMerge = <NodeData extends {}>(options?: TagTreeTreeOptions
     return [...previous, { data: tagItem[0], children: iterativeMerge(options)([], tagItem.slice(1)) }]
 }
 
-export const reorderTags = (orderGroups: string[][]) => <NodeData extends {}>(tags: NodeData[]): NodeData[] => {
-    return tags
-}
 
 export class TagTree<NodeData extends {}> {
     _tagList: NodeData[][];
     _compare: (A: NodeData, B: NodeData) => boolean;
     _classifier: (data: NodeData) => string;
-    _orderIndependence: [string, string][];
+    _orderIndependence: string[][];
 
     constructor(args: { tree: GenericTree<NodeData> } & TagTreeTreeOptions<NodeData>) {
         this._classifier = args.classify
@@ -96,13 +92,39 @@ export class TagTree<NodeData extends {}> {
         return this._tagList.reduce<GenericTree<NodeData>>(iterativeMerge({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence }), [])
     }
 
+
+    //
+    // Reorder a list of tags so that any tags classified to classes that are specified in the order argument
+    // are arranged in the same order *as* that argument, with minimal changes otherwise (basically, bubble-sort
+    // the specified classes and only those, in place)
+    //
+    _reorderTags(order: string[]) {
+        return (tags: NodeData[]): NodeData[] => {
+            const returnValue = tags.reduce<NodeData[]>((previous, node) => {
+                const orderIndex = order.indexOf(this._classifier(node))
+                const sortBeforeList = orderIndex === -1 ? [] : order.slice(orderIndex + 1)
+                if (sortBeforeList.length) {
+                    const sortBeforeIndex = previous.findIndex((node) => (sortBeforeList.includes(this._classifier(node))))
+                    if (sortBeforeIndex !== -1) {
+                        return [
+                            ...previous.slice(0, sortBeforeIndex),
+                            node,
+                            ...previous.slice(sortBeforeIndex)
+                        ]
+                    }
+                }
+                return [...previous, node]
+            }, [])
+            return returnValue
+        }
+    }
     //
     // TODO: Design what information needs to be passed to reordered in order
     // to let it operate
     //
-    reordered(orderGroups: string[][]): TagTree<NodeData> {
-        const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier })
-        returnValue._tagList = this._tagList.map(reorderTags(orderGroups))
+    reordered(orderGroups: string[]): TagTree<NodeData> {
+        const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+        returnValue._tagList = this._tagList.map(this._reorderTags(orderGroups))
         return returnValue
     }
 }

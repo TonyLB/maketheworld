@@ -149,12 +149,14 @@ describe('TagTree', () => {
                     <Description>Test description</Description>
                     <Name>Test room</Name>
                     <Exit to=(room2) />
-                    <Description>: Added</Description>
                 </Room>
                 <Room key=(room2) />
+                <Room key=(room1)>
+                    <Description>: Added</Description>
+                </Room>
             </Asset>
         `))))
-        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name'], ['Description', 'Exit'], ['Name', 'Exit']] })
+        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
                 <Room key=(room1)>
@@ -167,7 +169,7 @@ describe('TagTree', () => {
         `))
     })
 
-    xit('should reorder tags correctly', () => {
+    it('should reorder tags correctly', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset key=(test)>
                 <Room key=(room1)>
@@ -182,14 +184,15 @@ describe('TagTree', () => {
                 </If>
             </Asset>
         `))))
-        const tagTree = new TagTree({ tree: testTree, classify, compare })
-        const reorderedTree = tagTree.reordered([['Room'], ['Description', 'Name'], ['If']])
+        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+        const reorderedTree = tagTree.reordered(['Room', 'Description', 'Name', 'If'])
         expect(schemaToWML(reorderedTree.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
                 <Room key=(room1)>
                     <Name>Lobby<If {true}><Space />at night</If></Name>
                     <Description>
-                        An institutional lobby.<If {true}>
+                        An institutional
+                        lobby.<If {true}>
                             <Space />
                             The lights are out, and shadows stretch along the walls.
                         </If>
