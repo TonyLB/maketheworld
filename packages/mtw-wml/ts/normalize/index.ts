@@ -697,15 +697,6 @@ export class Normalizer {
                 }
                 if (isNormalRoom(item) || isNormalFeature(item) || isNormalKnowledge(item) || isNormalBookmark(item)) {
                     item.appearances.forEach((appearance) => {
-                        if ((appearance.render || []).find((item) => (
-                            (item.tag === 'Link' || item.tag === 'Bookmark') && item.to === fromKey
-                        ))) {
-                            appearance.render = appearance.render.map((item) => (
-                                ((item.tag === 'Link' || item.tag === 'Bookmark') && item.to === fromKey)
-                                    ? { ...item, to: toKey }
-                                    : item
-                            ))
-                        }
                         const renameChildren = (tree: GenericTree<NormalReference | SchemaTag>): void => {
                             tree.forEach(({ data, children }) => {
                                 if (!isNormalReference(data) && isSchemaLink(data) && (data.to === fromKey)) {
@@ -1065,7 +1056,6 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...defaultedAppearance,
-                        render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
                         name: node.name.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
                         children: [
                             ...appearance.children,
@@ -1085,10 +1075,7 @@ export class Normalizer {
                 return {
                     key: node.key || defaultKey,
                     tag: node.tag,
-                    appearances: [{
-                        ...defaultedAppearance,
-                        render: legacyContentStructure(this._expandNormalRefTree(appearance.children)).map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value))
-                    }]
+                    appearances: [defaultedAppearance]
                 }
             case 'Message':
                 return {

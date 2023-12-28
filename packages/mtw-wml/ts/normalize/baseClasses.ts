@@ -102,14 +102,7 @@ export type ComponentRenderItem = {
     contents: ComponentRenderItem[];
 } & NormalConditionMixin)
 
-export type NormalDescriptionPayload = {
-    type: 'Description';
-    render?: ComponentRenderItem[];
-}
-
-export type NormalDescription = NormalDescriptionPayload & NormalBase
-
-export type ComponentAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseAppearance & {
+export type ComponentAppearance = BaseAppearance & {
     name?: ComponentRenderItem[];
     x?: number;
     y?: number;
@@ -134,7 +127,7 @@ export type NormalKnowledge = NormalComponent & {
     tag: 'Knowledge';
 }
 
-export type NormalBookmarkAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseAppearance
+export type NormalBookmarkAppearance = BaseAppearance
 
 export type NormalBookmark = {
     tag: 'Bookmark';
