@@ -1118,4 +1118,38 @@ describe('WML normalize', () => {
         })
     })
 
+    describe('select function', () => {
+        it('should select a single key from a normalForm', () => {
+            const testOne = new Normalizer()
+            testOne.loadWML(`
+                <Asset key=(testOne)>
+                    <Room key=(room1)>
+                        <Name>Test room</Name>
+                        <Description>
+                            TestZero
+                        </Description>
+                    </Room>
+                    <Room key=(room2) />
+                    <If {true}>
+                        <Room key=(room1)>
+                            <Description>: Addendum</Description>
+                        </Room>
+                    </If>
+                    <Variable key=(testVar) default={false} />
+                </Asset>
+            `)
+            expect(testOne.select({ key: 'room1', selector: schemaToWML })).toEqual(deIndentWML(`
+                <Asset key=(testOne)>
+                    <Room key=(room1)>
+                        <Name>Test room</Name>
+                        <Description>TestZero</Description>
+                    </Room>
+                    <If {true}>
+                        <Room key=(room1)><Description>: Addendum</Description></Room>
+                    </If>
+                </Asset>
+            `))
+        })
+    })
+
 })

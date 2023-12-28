@@ -29,7 +29,7 @@ describe('TagTree', () => {
                     <Room key=(room2) />
                 </Asset>
             `))))
-            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name'], ['Description', 'Exit'], ['Name', 'Exit']] })
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit']] })
             expect(tagTree._tagList).toEqual([
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
