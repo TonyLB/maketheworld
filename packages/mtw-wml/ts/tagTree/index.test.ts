@@ -202,4 +202,50 @@ describe('TagTree', () => {
         `))
     })
 
+    it('should filter tags correctly', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <Room key=(room1)>
+                    <Name>Lobby</Name>
+                    <Description>An institutional lobby.</Description>
+                </Room>
+                <Feature key=(clockTower)><Description>A square clock-tower of yellow stone.</Description></Feature>
+                <Room key=(room2)><Description>A boring test room</Description></Room>
+                <If {true}>
+                    <Room key=(room1)>
+                        <Name><Space />at night</Name>
+                        <Description><Space />The lights are out, and shadows stretch along the walls.</Description>
+                    </Room>
+                </If>
+            </Asset>
+        `))))
+        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+        const filteredTreeOne = tagTree.filtered({ nodes: [{ tag: 'Room', key: 'room1', render: [], name: [], contents: [] }], classes: ['Description'], prune: ['Asset', 'Room', 'Description'] })
+        expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
+            An institutional lobby.
+            <If {true}>
+                <Space />
+                The lights are out, and shadows stretch along the walls.
+            </If>
+        `))
+        const filteredTreeTwo = tagTree.filtered({ nodes: [{ tag: 'Room', key: 'room1', render: [], name: [], contents: [] }], classes: ['Name'], prune: ['Asset', 'Room', 'Name'] })
+        expect(schemaToWML(filteredTreeTwo.tree)).toEqual(deIndentWML(`
+            Lobby
+            <If {true}><Space />at night</If>
+        `))
+        const filteredTreeThree = tagTree.reordered(['Room', 'Description', 'Name', 'If']).filtered({ classes: ['Room', 'Description'], prune: ['Asset'] })
+        expect(schemaToWML(filteredTreeThree.tree)).toEqual(deIndentWML(`
+            <Room key=(room1)>
+                <Description>
+                    An institutional
+                    lobby.<If {true}>
+                        <Space />
+                        The lights are out, and shadows stretch along the walls.
+                    </If>
+                </Description>
+            </Room>
+            <Room key=(room2)><Description>A boring test room</Description></Room>
+        `))
+    })
+
 })
