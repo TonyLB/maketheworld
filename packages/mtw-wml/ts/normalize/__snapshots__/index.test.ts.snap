@@ -89,12 +89,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
     ],
     "key": "testOne",
@@ -121,7 +115,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "testTwo",
@@ -306,12 +299,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -545,12 +532,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -597,12 +578,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Three",
-          },
-        ],
       },
     ],
     "key": "testOne",
@@ -773,12 +748,6 @@ Object {
             "value": "Knowledge is power",
           },
         ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Learning!",
-          },
-        ],
       },
     ],
     "key": "testKnowledge",
@@ -876,12 +845,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -923,12 +886,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Two",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -970,12 +927,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Three",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -1073,12 +1024,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -1125,12 +1070,6 @@ Object {
           "y": 0,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Two",
-          },
-        ],
         "x": 0,
         "y": 0,
       },
@@ -1174,12 +1113,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Three",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -1295,7 +1228,6 @@ Object {
           "y": 0,
         },
         "name": Array [],
-        "render": Array [],
         "x": 0,
         "y": 0,
       },
@@ -1393,7 +1325,6 @@ Object {
           "y": 100,
         },
         "name": Array [],
-        "render": Array [],
         "x": 0,
         "y": 100,
       },
@@ -1549,12 +1480,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -1596,12 +1521,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Two",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -1643,12 +1562,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Three",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -1791,12 +1704,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -1838,12 +1745,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Two",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -1891,12 +1792,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Bar",
-          },
-        ],
       },
     ],
     "key": "testTwo",
@@ -1994,12 +1889,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -2046,12 +1935,6 @@ Object {
           "y": 0,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Two",
-          },
-        ],
         "x": 0,
         "y": 0,
       },
@@ -2095,12 +1978,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Three",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -2320,12 +2197,6 @@ Object {
           "y": 100,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
         "x": 0,
         "y": 100,
       },
@@ -2493,7 +2364,6 @@ Object {
           "y": 0,
         },
         "name": Array [],
-        "render": Array [],
         "x": -100,
         "y": 0,
       },
@@ -2553,12 +2423,6 @@ Object {
           "y": 0,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Two",
-          },
-        ],
         "x": 100,
         "y": 0,
       },
@@ -2683,7 +2547,6 @@ Object {
           "tag": "Room",
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "testOne",
@@ -2714,7 +2577,6 @@ Object {
           "tag": "Room",
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "testTwo",
@@ -2920,7 +2782,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "targetOne",
@@ -2947,7 +2808,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "targetThree",
@@ -2974,7 +2834,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "targetTwo",
@@ -3026,7 +2885,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "testRoom",
@@ -3405,7 +3263,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "targetOne",
@@ -3432,7 +3289,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "targetThree",
@@ -3459,7 +3315,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "targetTwo",
@@ -3511,7 +3366,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "testRoom",
@@ -3705,12 +3559,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Uno",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -3752,12 +3600,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Dos",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -3799,12 +3641,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Tres",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -3894,12 +3730,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -3941,12 +3771,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Two",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -4090,7 +3914,6 @@ Object {
             "value": "Vortex",
           },
         ],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -4141,15 +3964,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Hello, world!",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4196,12 +4010,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Vortex!",
-          },
-        ],
       },
     ],
     "key": "a123",
@@ -4442,63 +4250,6 @@ Object {
           Object {
             "tag": "String",
             "value": "Vortex",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Hello, world!",
-          },
-          Object {
-            "conditions": Array [
-              Object {
-                "dependencies": Array [
-                  "strong",
-                ],
-                "if": "strong",
-              },
-            ],
-            "contents": Array [
-              Object {
-                "tag": "String",
-                "value": "Vortex!",
-              },
-            ],
-            "tag": "Condition",
-          },
-          Object {
-            "tag": "String",
-            "value": " ",
-          },
-          Object {
-            "conditions": Array [
-              Object {
-                "dependencies": Array [
-                  "strong",
-                ],
-                "if": "!strong",
-              },
-            ],
-            "contents": Array [
-              Object {
-                "conditions": Array [
-                  Object {
-                    "dependencies": Array [
-                      "trendy",
-                    ],
-                    "if": "trendy",
-                  },
-                ],
-                "contents": Array [
-                  Object {
-                    "tag": "String",
-                    "value": "V.O.R.T.E.X.",
-                  },
-                ],
-                "tag": "Condition",
-              },
-            ],
-            "tag": "Condition",
           },
         ],
       },
@@ -4823,12 +4574,6 @@ Object {
             "value": "Vortex",
           },
         ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Hello, world!",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4875,12 +4620,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Vortex!",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4932,12 +4671,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "V.O.R.T.E.X.",
-          },
-        ],
       },
     ],
     "key": "a123",
@@ -5071,12 +4804,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "One",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5118,12 +4845,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Two",
-          },
-        ],
       },
     ],
     "key": "test",
@@ -5291,12 +5012,6 @@ Object {
             "value": "Vortex",
           },
         ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Hello, world!",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5343,12 +5058,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Vortex!",
-          },
-        ],
       },
     ],
     "key": "a123",
@@ -5648,34 +5357,6 @@ Object {
             "value": "Clock Tower",
           },
         ],
-        "render": Array [
-          Object {
-            "tag": "Link",
-            "targetTag": "Knowledge",
-            "text": "Waverly",
-            "to": "town",
-          },
-          Object {
-            "tag": "String",
-            "value": " ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "Clock",
-            "to": "clockTower",
-          },
-          Object {
-            "tag": "String",
-            "value": " ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "Toggle",
-            "to": "toggleActive",
-          },
-        ],
       },
     ],
     "key": "clockTower",
@@ -5766,12 +5447,6 @@ Object {
           Object {
             "tag": "String",
             "value": "Waverly",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "The town of Waverly is a pleasant place to live.",
           },
         ],
       },
@@ -6102,7 +5777,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [],
@@ -6128,7 +5802,6 @@ Object {
           "y": 150,
         },
         "name": Array [],
-        "render": Array [],
         "x": 200,
         "y": 150,
       },
@@ -6161,7 +5834,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "a123",
@@ -6337,7 +6009,6 @@ Object {
           "y": undefined,
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "b456",
@@ -6368,7 +6039,6 @@ Object {
           "tag": "Knowledge",
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "baseInfo",
@@ -6398,7 +6068,6 @@ Object {
           "tag": "Feature",
         },
         "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -6443,7 +6112,6 @@ Object {
             "value": "Clock Tower",
           },
         ],
-        "render": Array [],
       },
     ],
     "key": "clockTower",
@@ -6502,7 +6170,6 @@ Object {
           "tag": "Room",
         },
         "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "overview",
@@ -6539,15 +6206,6 @@ Object {
           "key": "postFix",
           "tag": "Bookmark",
         },
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "Inactive",
-          },
-        ],
       },
     ],
     "key": "postFix",
@@ -6665,12 +6323,6 @@ Object {
           Object {
             "tag": "String",
             "value": "Waverly",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "The town of Waverly is a pleasant place to live.",
           },
         ],
       },
