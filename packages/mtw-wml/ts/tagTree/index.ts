@@ -8,6 +8,12 @@ type TagTreeTreeOptions<NodeData extends {}> = {
     orderIndependence?: string[][];
 }
 
+type TagTreeFilterArguments<NodeData extends {}> = {
+    classes?: string[];
+    nodes?: NodeData[];
+    prune?: string[];
+}
+
 export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>): NodeData[][] => {
     return dfsWalk<NodeData, NodeData[][], {}>({
         default: { output: [], state: {} },
@@ -119,12 +125,30 @@ export class TagTree<NodeData extends {}> {
         }
     }
     //
-    // TODO: Design what information needs to be passed to reordered in order
-    // to let it operate
+    // Create a new TagTree with tags ordered (and therefore grouped) in a new way. The orderGroups will specify
+    // how to internally reorder tags.
     //
     reordered(orderGroups: string[]): TagTree<NodeData> {
         const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
         returnValue._tagList = this._tagList.map(this._reorderTags(orderGroups))
+        return returnValue
+    }
+
+    //
+    // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
+    //
+    filtered(args: TagTreeFilterArguments<NodeData>): TagTree<NodeData> {
+        const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+        const { nodes = [], classes = [], prune = [] } = args
+        returnValue._tagList = this._tagList
+            .filter((tags) => {
+                const classifiedTags = tags.map(this._classifier)
+                return classes.reduce<boolean>((previous, tag) => (previous && classifiedTags.includes(tag)), true)
+            })
+            .filter((tags) => {
+                return nodes.reduce<boolean>((previous, node) => (previous && Boolean(tags.find((check) => (this._compare(node, check))))), true)
+            })
+            .map((tags) => (tags.filter((node) => (!prune.includes(this._classifier(node))))))
         return returnValue
     }
 }
