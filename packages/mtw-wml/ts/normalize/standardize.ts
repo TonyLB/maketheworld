@@ -9,79 +9,81 @@ import { SchemaTaggedMessageLegalContents, isSchemaRoom, isSchemaFeature, isSche
 import { decodeLegacyContentStructure, extractConditionedItemFromContents, extractNameFromContents, legacyContentStructure } from "../simpleSchema/utils";
 import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses";
 import dfsWalk from "../sequence/tree/dfsWalk";
+import { selectRender } from "./selectors/render";
+import { selectName } from "./selectors/name";
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
 
-const extractConditionedRender = (contextNormalizer: Normalizer) => (item: NormalRoom | NormalFeature | NormalKnowledge | NormalBookmark | NormalMessage) => {
-    const { appearances } = item
-    const render = (appearances as ComponentAppearance[]).reduce<GenericTree<SchemaTag>>((previous, { contextStack }, index ) => {
-        const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
-        if (!(schemaVersion && (isSchemaRoom(schemaVersion.data) || isSchemaFeature(schemaVersion.data) || isSchemaKnowledge(schemaVersion.data) || isSchemaBookmark(schemaVersion.data) || isSchemaMessage(schemaVersion.data)))) {
-            return previous
-        }
-        const render = isSchemaBookmark(schemaVersion.data) ? schemaVersion.data.contents : schemaVersion.data.render
-        if (!render.length) {
-            return previous
-        }
-        const newRender = contextStack
-            .filter(({ tag }) => (tag === 'If'))
-            .reduceRight<GenericTree<SchemaTag>>((previous, { key }) => {
-                const ifReference = contextNormalizer.normal[key]
-                if (!(ifReference && isNormalCondition(ifReference))) {
-                    return previous
-                }
-                const returnValue: GenericTreeNode<SchemaTag> = {
-                    data: {
-                        tag: 'If' as 'If',
-                        conditions: ifReference.conditions,
-                        contents: []
-                    },
-                    children: previous
-                }
-                return [returnValue]
-            }, decodeLegacyContentStructure(render.filter(isSchemaTaggedMessageLegalContents)))
-        return [
-            ...previous,
-            ...newRender
-        ]
-    }, [])
+// const extractConditionedRender = (contextNormalizer: Normalizer) => (item: NormalRoom | NormalFeature | NormalKnowledge | NormalBookmark | NormalMessage) => {
+//     const { appearances } = item
+//     const render = (appearances as ComponentAppearance[]).reduce<GenericTree<SchemaTag>>((previous, { contextStack }, index ) => {
+//         const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
+//         if (!(schemaVersion && (isSchemaRoom(schemaVersion.data) || isSchemaFeature(schemaVersion.data) || isSchemaKnowledge(schemaVersion.data) || isSchemaBookmark(schemaVersion.data) || isSchemaMessage(schemaVersion.data)))) {
+//             return previous
+//         }
+//         const render = isSchemaBookmark(schemaVersion.data) ? schemaVersion.data.contents : schemaVersion.data.render
+//         if (!render.length) {
+//             return previous
+//         }
+//         const newRender = contextStack
+//             .filter(({ tag }) => (tag === 'If'))
+//             .reduceRight<GenericTree<SchemaTag>>((previous, { key }) => {
+//                 const ifReference = contextNormalizer.normal[key]
+//                 if (!(ifReference && isNormalCondition(ifReference))) {
+//                     return previous
+//                 }
+//                 const returnValue: GenericTreeNode<SchemaTag> = {
+//                     data: {
+//                         tag: 'If' as 'If',
+//                         conditions: ifReference.conditions,
+//                         contents: []
+//                     },
+//                     children: previous
+//                 }
+//                 return [returnValue]
+//             }, decodeLegacyContentStructure(render.filter(isSchemaTaggedMessageLegalContents)))
+//         return [
+//             ...previous,
+//             ...newRender
+//         ]
+//     }, [])
 
-    return render
-}
+//     return render
+// }
 
-const extractConditionedName = (contextNormalizer: Normalizer) => (item: NormalRoom | NormalFeature | NormalKnowledge) => {
-    const { appearances } = item
-    const name = appearances.reduce<SchemaTaggedMessageLegalContents[]>((previous, { contextStack }, index ) => {
-        const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
-        if (!(schemaVersion && (isSchemaRoom(schemaVersion.data) || isSchemaFeature(schemaVersion.data) || isSchemaKnowledge(schemaVersion.data)))) {
-            return previous
-        }
-        const { name } = schemaVersion.data
-        if (!name.length) {
-            return previous
-        }
-        const newName = contextStack
-            .filter(({ tag }) => (tag === 'If'))
-            .reduceRight<SchemaTaggedMessageLegalContents[]>((previous, { key }) => {
-                const ifReference = contextNormalizer.normal[key]
-                if (!(ifReference && isNormalCondition(ifReference))) {
-                    return previous
-                }
-                const returnValue: SchemaConditionTag = {
-                    tag: 'If' as 'If',
-                    conditions: ifReference.conditions,
-                    contents: previous
-                }
-                return [returnValue]
-            }, name)
-        return [
-            ...previous,
-            ...newName
-        ]
-    }, [])
+// const extractConditionedName = (contextNormalizer: Normalizer) => (item: NormalRoom | NormalFeature | NormalKnowledge) => {
+//     const { appearances } = item
+//     const name = appearances.reduce<SchemaTaggedMessageLegalContents[]>((previous, { contextStack }, index ) => {
+//         const schemaVersion = contextNormalizer._normalToSchema(item.key, index)
+//         if (!(schemaVersion && (isSchemaRoom(schemaVersion.data) || isSchemaFeature(schemaVersion.data) || isSchemaKnowledge(schemaVersion.data)))) {
+//             return previous
+//         }
+//         const { name } = schemaVersion.data
+//         if (!name.length) {
+//             return previous
+//         }
+//         const newName = contextStack
+//             .filter(({ tag }) => (tag === 'If'))
+//             .reduceRight<SchemaTaggedMessageLegalContents[]>((previous, { key }) => {
+//                 const ifReference = contextNormalizer.normal[key]
+//                 if (!(ifReference && isNormalCondition(ifReference))) {
+//                     return previous
+//                 }
+//                 const returnValue: SchemaConditionTag = {
+//                     tag: 'If' as 'If',
+//                     conditions: ifReference.conditions,
+//                     contents: previous
+//                 }
+//                 return [returnValue]
+//             }, name)
+//         return [
+//             ...previous,
+//             ...newName
+//         ]
+//     }, [])
 
-    return name
-}
+//     return name
+// }
 
 const extractConditionedExits = (contextNormalizer: Normalizer) => (item: NormalRoom) => {
     const { appearances } = item
@@ -271,14 +273,12 @@ const stripComponentContents = (items: GenericTree<SchemaTag>): GenericTree<Sche
         const { data, children } = item
         const strippedData = (
             isSchemaRoom(data)
-                ? { ...data, render: [], name: [], contents: [] }
-                : (isSchemaFeature(data) || isSchemaKnowledge(data))
-                    ? { ...data, name: [], render: [] }
-                    : isSchemaMessage(data)
-                        ? { ...data, render: [], contents: [], rooms: [] }
-                        : isSchemaBookmark(data)
-                            ? { ...data, contents: [] }
-                            : data
+                ? { ...data, contents: [] }
+                : isSchemaMessage(data)
+                    ? { ...data, contents: [], rooms: [] }
+                    : isSchemaBookmark(data)
+                        ? { ...data, contents: [] }
+                        : data
         )
         return {
             data: strippedData,
@@ -308,14 +308,17 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
     const bookmarkValues: GenericTree<SchemaTag> = Object.values(normal)
         .filter(isNormalBookmark)
         .sort(normalAlphabeticKeySort)
-        .map((bookmark): GenericTreeNode<SchemaTag> => ({
-            data: {
-                tag: 'Bookmark',
-                key: bookmark.key,
-                contents: []
-            },
-            children: extractConditionedRender(argumentNormalizer)(bookmark),
-        }))
+        .map((bookmark): GenericTreeNode<SchemaTag> => {
+            const render = argumentNormalizer.select({ key: bookmark.key, selector: selectRender })
+            return {
+                data: {
+                    tag: 'Bookmark',
+                    key: bookmark.key,
+                    contents: []
+                },
+                children: render,
+            }
+        })
     //
     // TODO: Refactor the below by borrowing the graph utilities from mtw-utilities,
     // making a Graph of references, and then applying the topologicalSort
@@ -366,17 +369,25 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .filter(isNormalRoom)
         .sort(normalAlphabeticKeySort)
         .forEach((room) => {
+            console.log(`normal to render: ${JSON.stringify(argumentNormalizer.normal, null, 4)}`)
+            const render = argumentNormalizer.select({ key: room.key, selector: selectRender })
+            console.log(`render: ${JSON.stringify(render, null, 4)}`)
+            const name = argumentNormalizer.select({ key: room.key, selector: selectName })
             resultNormalizer.put({
                 data: {
                     tag: 'Room',
                     key: room.key,
-                    name: extractConditionedName(argumentNormalizer)(room),
-                    render: legacyContentStructure(extractConditionedRender(argumentNormalizer)(room)) as SchemaTaggedMessageLegalContents[],
                     contents: [],
                 },
                 children: ([
-                    ...decodeLegacyContentStructure(extractConditionedName(argumentNormalizer)(room)),
-                    ...extractConditionedRender(argumentNormalizer)(room),
+                    ...(name.length ? [{
+                        data: { tag: 'Name' as const, contents: [] },
+                        children: name
+                    }] : []),
+                    ...(render.length ? [{
+                        data: { tag: 'Description' as const, contents: [] },
+                        children: render
+                    }] : []),
                     ...decodeLegacyContentStructure(extractConditionedExits(argumentNormalizer)(room)),
                 ])
             }, { 
@@ -396,17 +407,23 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .filter(isNormalFeature)
         .sort(normalAlphabeticKeySort)
         .forEach((feature) => {
+            const render = argumentNormalizer.select({ key: feature.key, selector: selectRender })
+            const name = argumentNormalizer.select({ key: feature.key, selector: selectName })
             resultNormalizer.put({
                 data: {
                     tag: 'Feature',
                     key: feature.key,
-                    name: extractConditionedName(argumentNormalizer)(feature),
-                    render: legacyContentStructure(extractConditionedRender(argumentNormalizer)(feature)) as SchemaTaggedMessageLegalContents[],
                     contents: [],
                 },
                 children: [
-                    ...decodeLegacyContentStructure(extractConditionedName(argumentNormalizer)(feature)),
-                    ...extractConditionedRender(argumentNormalizer)(feature),
+                    ...(name.length ? [{
+                        data: { tag: 'Name' as const, contents: [] },
+                        children: name
+                    }] : []),
+                    ...(render.length ? [{
+                        data: { tag: 'Description' as const, contents: [] },
+                        children: render
+                    }] : []),
                 ]
             }, { 
                 contextStack: [{
@@ -425,17 +442,23 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .filter(isNormalKnowledge)
         .sort(normalAlphabeticKeySort)
         .forEach((knowledge) => {
+            const render = argumentNormalizer.select({ key: knowledge.key, selector: selectRender })
+            const name = argumentNormalizer.select({ key: knowledge.key, selector: selectName })
             resultNormalizer.put({
                 data: {
                     tag: 'Knowledge',
                     key: knowledge.key,
-                    name: extractConditionedName(argumentNormalizer)(knowledge),
-                    render: legacyContentStructure(extractConditionedRender(argumentNormalizer)(knowledge)) as SchemaTaggedMessageLegalContents[],
                     contents: [],
                 },
                 children: [
-                    ...decodeLegacyContentStructure(extractConditionedName(argumentNormalizer)(knowledge)),
-                    ...extractConditionedRender(argumentNormalizer)(knowledge),
+                    ...(name.length ? [{
+                        data: { tag: 'Name' as const, contents: [] },
+                        children: name
+                    }] : []),
+                    ...(render.length ? [{
+                        data: { tag: 'Description' as const, contents: [] },
+                        children: render
+                    }] : []),
                 ]
             }, { 
                 contextStack: [{
@@ -499,7 +522,6 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                         typeGuard: isSchemaRoom,
                         transform: ({ key }) => ({ conditions: [], key })
                     }),
-                    render: legacyContentStructure(extractConditionedRender(argumentNormalizer)(message)) as SchemaTaggedMessageLegalContents[]
                 },
                 children
             }, { 

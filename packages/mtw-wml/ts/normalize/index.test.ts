@@ -21,6 +21,25 @@ describe('WML normalize', () => {
         expect((new Normalizer()).normal).toEqual({})
     })
 
+    it('should normalize a room', () => {
+        const testSource = `<Asset key=(Test)>
+            <Room key=(a123)>
+                <Name>Test Name</Name>
+                <Description>Test Description</Description>
+            </Room>
+        </Asset>`
+        const normalizer = new Normalizer()
+        normalizer.loadWML(testSource)
+        expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+        <Asset key=(Test)>
+            <Room key=(a123)>
+                <Name>Test Name</Name>
+                <Description>Test Description</Description>
+            </Room>
+        </Asset>
+        `))
+    })
+
     it('should normalize every needed tag', () => {
         const testSource = `<Asset key=(Test)>
             <Import from=(BASE)>
@@ -519,7 +538,7 @@ describe('WML normalize', () => {
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
             normalizer.put(
-                { data: { tag: 'Room' as const, key: '', name: [], contents: [], render: [] }, children: [] },
+                { data: { tag: 'Room' as const, key: '', contents: [] }, children: [] },
                 {
                     contextStack: [
                         { tag: 'Asset', key: 'TestAsset', index: 0 }
@@ -1030,14 +1049,11 @@ describe('WML normalize', () => {
                 data: {
                     tag: 'Knowledge',
                     key: 'testKnowledge',
-                    contents: [],
-                    render: [{ tag: 'String', value: 'Learning!' }],
-                    name: [{ tag: 'String', value: 'Knowledge is power' }]
+                    contents: []
                 },
                 children: [
                     { data: { tag: 'Name', contents: [] }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] } ] },
                     { data: { tag: 'Description', contents: [] }, children: [{ data: { tag: 'String', value: 'Learning!' }, children: [] } ] },
-
                 ]
             }
             normalizer.put(knowledgeUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }] })
@@ -1058,8 +1074,6 @@ describe('WML normalize', () => {
                     tag: 'Room',
                     key: 'room1',
                     contents: [],
-                    render: [],
-                    name: [],
                     x: 100,
                     y: 0
                 },

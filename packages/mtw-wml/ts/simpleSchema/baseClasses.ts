@@ -207,9 +207,6 @@ export type SchemaRoomLegalIncomingContents = SchemaNameTag | SchemaDescriptionT
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
-    name: SchemaTaggedMessageLegalContents[];
-    render: SchemaTaggedMessageLegalContents[];
-    display?: string;
     x?: number;
     y?: number;
     contents: SchemaTag[];
@@ -219,8 +216,6 @@ export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag | 
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
-    name: SchemaTaggedMessageLegalContents[];
-    render: SchemaTaggedMessageLegalContents[];
     contents: SchemaTag[];
 } & SchemaImportableBase
 
@@ -228,8 +223,6 @@ export type SchemaKnowledgeLegalContents = SchemaDescriptionTag | SchemaNameTag 
 export type SchemaKnowledgeTag = {
     tag: 'Knowledge';
     key: string;
-    name: SchemaTaggedMessageLegalContents[];
-    render: SchemaTaggedMessageLegalContents[];
     contents: SchemaTag[];
 } & SchemaImportableBase
 
@@ -259,7 +252,6 @@ export type SchemaMessageLegalContents = SchemaRoomTag | SchemaTaggedMessageLega
 export type SchemaMessageTag = {
     tag: 'Message';
     key: string;
-    render: SchemaTaggedMessageLegalContents[];
     contents: SchemaTag[];
     rooms: SchemaMessageRoom[];
 } & SchemaImportableBase

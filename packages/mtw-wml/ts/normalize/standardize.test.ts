@@ -45,6 +45,7 @@ describe('standardizeNormal', () => {
         </Asset>`)
         const normalizer = new Normalizer()
         normalizer.loadNormal(standardizeNormal(testNormal))
+        console.log(`normalForm: ${JSON.stringify(normalizer.normal, null, 4)}`)
         expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(test)>

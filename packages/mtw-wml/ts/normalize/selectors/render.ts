@@ -15,6 +15,6 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
     //
     return tagTree
         .reordered([options.tag, 'Description', 'If'])
-        .filtered({ classes: ['Description'], prune: ['Asset', options.tag, 'Description']})
+        .filtered({ classes: ['Description'], prune: ['Asset', options.tag, 'Description', 'Map', 'Moment', 'Message']})
         .tree
 }

@@ -13,25 +13,19 @@ export const rebuildContentsFromImport = (node: SchemaImportTag): SchemaTag[] =>
                 return {
                     ...keyAssign,
                     tag: 'Room',
-                    name: [],
                     contents: [],
-                    render: []
                 }
             case 'Feature':
                 return {
                     ...keyAssign,
                     tag: 'Feature',
-                    name: [],
                     contents: [],
-                    render: []
                 }
             case 'Knowledge':
                 return {
                     ...keyAssign,
                     tag: 'Knowledge',
-                    name: [],
                     contents: [],
-                    render: []
                 }
             case 'Variable':
                 return {

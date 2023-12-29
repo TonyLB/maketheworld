@@ -32,7 +32,8 @@ import {
     isSchemaReplace,
     isSchemaLink,
     isSchemaBookmark,
-    isSchemaWithContents
+    isSchemaWithContents,
+    isSchemaRoom
 } from "./baseClasses"
 
 //
@@ -62,8 +63,8 @@ export const removeIrrelevantWhitespace = (tree: GenericTree<SchemaTag>): Generi
     })
 )
 
-export function compressWhitespace (tags: GenericTree<SchemaTag>): GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>
-export function compressWhitespace (tags: GenericTree<SchemaTag>): GenericTree<SchemaTag> {
+export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { messageParsing: boolean }): GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>
+export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { messageParsing: boolean }): GenericTree<SchemaTag> {
     //
     // First, compress all explicit whitespace items that are adjacent
     //
@@ -97,10 +98,10 @@ export function compressWhitespace (tags: GenericTree<SchemaTag>): GenericTree<S
         const next = index < allTags.length - 1 ? allTags[index + 1].data : undefined
         if (isSchemaString(tag)) {
             let returnValue = tag.value
-            if (!previous || isSchemaSpacer(previous) || isSchemaLineBreak(previous)) {
+            if (!previous || isSchemaSpacer(previous) || isSchemaLineBreak(previous) || (options?.messageParsing && isSchemaRoom(previous))) {
                 returnValue = returnValue.trimStart()
             }
-            if (!next || isSchemaSpacer(next) || isSchemaLineBreak(next)) {
+            if (!next || isSchemaSpacer(next) || isSchemaLineBreak(next) || (options?.messageParsing && isSchemaRoom(next))) {
                 returnValue = returnValue.trimEnd()
             }
             if (!returnValue) {

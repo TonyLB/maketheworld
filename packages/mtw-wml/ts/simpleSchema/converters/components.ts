@@ -162,61 +162,51 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             return {
                 tag: 'Room',
                 contents: [],
-                render: [],
-                name: [],
                 x: typeof x !== 'undefined' ? parseInt(x) : undefined,
                 y: typeof y !== 'undefined' ? parseInt(y) : undefined,
                 ...rest
             }
         },
-        typeCheckContents: isSchemaRoomIncomingContents,
-        finalize: (initialTag: SchemaRoomTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaRoomTag, SchemaTag> => {
-            const returnValue = {
-                data: {
-                    ...initialTag,
-                    name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-                    render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-                },
-                children: contents,
-            }
-            return returnValue
-        }
+        // typeCheckContents: isSchemaRoomIncomingContents,
+        // finalize: (initialTag: SchemaRoomTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaRoomTag, SchemaTag> => {
+        //     const returnValue = {
+        //         data: initialTag,
+        //         children: contents,
+        //     }
+        //     return returnValue
+        // }
     },
     Feature: {
         initialize: ({ parseOpen }): SchemaFeatureTag => ({
             tag: 'Feature',
             contents: [],
-            render: [],
-            name: [],
             ...validateProperties(componentTemplates.Feature)(parseOpen)
         }),
         typeCheckContents: isSchemaFeatureIncomingContents,
-        finalize: (initialTag: SchemaFeatureTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaFeatureTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-                render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-        },
-            children: contents,
-        })
+        // finalize: (initialTag: SchemaFeatureTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaFeatureTag, SchemaTag> => ({
+        //     data: {
+        //         ...initialTag,
+        //         name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+        //         render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+        // },
+        //     children: contents,
+        // })
     },
     Knowledge: {
         initialize: ({ parseOpen }): SchemaKnowledgeTag => ({
             tag: 'Knowledge',
             contents: [],
-            render: [],
-            name: [],
             ...validateProperties(componentTemplates.Knowledge)(parseOpen)
         }),
         typeCheckContents: isSchemaKnowledgeIncomingContents,
-        finalize: (initialTag: SchemaKnowledgeTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaKnowledgeTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-                render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-        },
-            children: contents,
-        })
+        // finalize: (initialTag: SchemaKnowledgeTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaKnowledgeTag, SchemaTag> => ({
+        //     data: {
+        //         ...initialTag,
+        //         name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+        //         render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
+        // },
+        //     children: contents,
+        // })
     },
     Map: {
         initialize: ({ parseOpen }): SchemaMapTag => ({

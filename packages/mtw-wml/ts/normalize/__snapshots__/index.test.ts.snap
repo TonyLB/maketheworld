@@ -77,13 +77,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testOne",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -107,8 +100,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testTwo",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -285,13 +276,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -517,13 +501,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testOne",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -562,13 +539,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testOne",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Three",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -723,18 +693,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testKnowledge",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Knowledge is power",
-            },
-          ],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Learning!",
-            },
-          ],
           "tag": "Knowledge",
         },
       },
@@ -822,13 +780,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -862,13 +813,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Two",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -902,13 +846,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Three",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -998,13 +935,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1043,19 +973,10 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Two",
-            },
-          ],
           "tag": "Room",
           "x": 0,
           "y": 0,
         },
-        "x": 0,
-        "y": 0,
       },
       Object {
         "children": Array [
@@ -1085,13 +1006,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Three",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1203,14 +1117,10 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": 0,
           "y": 0,
         },
-        "x": 0,
-        "y": 0,
       },
     ],
     "key": "test",
@@ -1298,14 +1208,10 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testTwo",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": 0,
           "y": 100,
         },
-        "x": 0,
-        "y": 100,
       },
     ],
     "key": "testTwo",
@@ -1447,13 +1353,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1487,13 +1386,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Two",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1527,13 +1419,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Three",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1562,7 +1447,58 @@ Object {
     },
     "appearances": Array [
       Object {
-        "children": Array [],
+        "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Tessa",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "FirstImpression",
+              "value": "Frumpy goth",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "adjective": "hers",
+              "object": "her",
+              "possessive": "her",
+              "reflexive": "herself",
+              "subject": "she",
+              "tag": "Pronouns",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "OneCoolThing",
+              "value": "Thousand yard stare",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Outfit",
+              "value": "A battered frock-coat",
+            },
+          },
+        ],
         "contextStack": Array [],
         "data": Object {
           "FirstImpression": "Frumpy goth",
@@ -1668,13 +1604,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1708,13 +1637,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Two",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1754,13 +1676,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testTwo",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Bar",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1850,13 +1765,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -1895,19 +1803,10 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Two",
-            },
-          ],
           "tag": "Room",
           "x": 0,
           "y": 0,
         },
-        "x": 0,
-        "y": 0,
       },
       Object {
         "children": Array [
@@ -1937,13 +1836,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Three",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -2154,19 +2046,10 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": 0,
           "y": 100,
         },
-        "x": 0,
-        "y": 100,
       },
     ],
     "key": "test",
@@ -2323,14 +2206,10 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testThree",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": -100,
           "y": 0,
         },
-        "x": -100,
-        "y": 0,
       },
     ],
     "key": "testThree",
@@ -2376,19 +2255,10 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testTwo",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Two",
-            },
-          ],
           "tag": "Room",
           "x": 100,
           "y": 0,
         },
-        "x": 100,
-        "y": 0,
       },
     ],
     "key": "testTwo",
@@ -2506,8 +2376,6 @@ Object {
           "contents": Array [],
           "from": "testOne",
           "key": "testOne",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
         },
       },
@@ -2535,8 +2403,6 @@ Object {
           "contents": Array [],
           "from": "testTwo",
           "key": "testTwo",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
         },
       },
@@ -2737,8 +2603,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "targetOne",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -2762,8 +2626,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "targetThree",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -2787,8 +2649,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "targetTwo",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -2837,8 +2697,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testRoom",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -2851,7 +2709,15 @@ Object {
   "testRoom#targetThree": Object {
     "appearances": Array [
       Object {
-        "children": Array [],
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "String",
+              "value": "three",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2888,7 +2754,15 @@ Object {
   "testRoom#targetTwo": Object {
     "appearances": Array [
       Object {
-        "children": Array [],
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "String",
+              "value": "two",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2987,6 +2861,56 @@ Object {
     "appearances": Array [
       Object {
         "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Tess",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "FirstImpression",
+              "value": "Frumpy goth",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "adjective": "hers",
+              "object": "her",
+              "possessive": "her",
+              "reflexive": "herself",
+              "subject": "she",
+              "tag": "Pronouns",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "OneCoolThing",
+              "value": "Fuchsia eyes",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Outfit",
+              "value": "A battered frock-coat",
+            },
+          },
           Object {
             "children": Array [],
             "data": Object {
@@ -3214,8 +3138,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "targetOne",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3239,8 +3161,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "targetThree",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3264,8 +3184,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "targetTwo",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3314,8 +3232,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "testRoom",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3328,7 +3244,15 @@ Object {
   "testRoom#targetThree": Object {
     "appearances": Array [
       Object {
-        "children": Array [],
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "String",
+              "value": "three",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3365,7 +3289,15 @@ Object {
   "testRoom#targetTwo": Object {
     "appearances": Array [
       Object {
-        "children": Array [],
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "String",
+              "value": "two",
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -3501,13 +3433,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Uno",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3541,13 +3466,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Dos",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3581,13 +3499,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Tres",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3649,6 +3560,21 @@ Object {
                 "children": Array [],
                 "data": Object {
                   "tag": "String",
+                  "value": "TestName",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
                   "value": "One",
                 },
               },
@@ -3669,13 +3595,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3709,13 +3628,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Two",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3846,13 +3758,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Vortex",
-            },
-          ],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3892,16 +3797,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Hello, world!",
-            },
-            Object {
-              "tag": "Space",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -3940,13 +3835,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Vortex!",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -4120,69 +4008,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Vortex",
-            },
-          ],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Hello, world!",
-            },
-            Object {
-              "conditions": Array [
-                Object {
-                  "dependencies": Array [
-                    "strong",
-                  ],
-                  "if": "strong",
-                },
-              ],
-              "contents": Array [
-                Object {
-                  "tag": "String",
-                  "value": "Vortex!",
-                },
-              ],
-              "tag": "If",
-            },
-            Object {
-              "tag": "String",
-              "value": " ",
-            },
-            Object {
-              "conditions": Array [
-                Object {
-                  "dependencies": Array [
-                    "strong",
-                  ],
-                  "if": "!strong",
-                },
-              ],
-              "contents": Array [
-                Object {
-                  "conditions": Array [
-                    Object {
-                      "dependencies": Array [
-                        "trendy",
-                      ],
-                      "if": "trendy",
-                    },
-                  ],
-                  "contents": Array [
-                    Object {
-                      "tag": "String",
-                      "value": "V.O.R.T.E.X.",
-                    },
-                  ],
-                  "tag": "If",
-                },
-              ],
-              "tag": "If",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -4487,18 +4312,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Vortex",
-            },
-          ],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Hello, world!",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -4537,13 +4350,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Vortex!",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -4587,13 +4393,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "V.O.R.T.E.X.",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -4719,13 +4518,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "One",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -4759,13 +4551,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "test",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Two",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -4915,18 +4700,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Vortex",
-            },
-          ],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Hello, world!",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -4965,13 +4738,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "Vortex!",
-            },
-          ],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -5046,6 +4812,56 @@ Object {
     "appearances": Array [
       Object {
         "children": Array [
+          Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Tess",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "FirstImpression",
+              "value": "Frumpy goth",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "adjective": "hers",
+              "object": "her",
+              "possessive": "her",
+              "reflexive": "herself",
+              "subject": "she",
+              "tag": "Pronouns",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "OneCoolThing",
+              "value": "Fuchsia eyes",
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Outfit",
+              "value": "A battered frock-coat",
+            },
+          },
           Object {
             "children": Array [],
             "data": Object {
@@ -5182,7 +4998,15 @@ Object {
           Object {
             "children": Array [
               Object {
-                "children": Array [],
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "tag": "String",
+                      "value": "Waverly",
+                    },
+                  },
+                ],
                 "data": Object {
                   "tag": "Link",
                   "text": "Waverly",
@@ -5197,7 +5021,15 @@ Object {
                 },
               },
               Object {
-                "children": Array [],
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "tag": "String",
+                      "value": "Clock",
+                    },
+                  },
+                ],
                 "data": Object {
                   "tag": "Link",
                   "text": "Clock",
@@ -5212,7 +5044,15 @@ Object {
                 },
               },
               Object {
-                "children": Array [],
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "tag": "String",
+                      "value": "Toggle",
+                    },
+                  },
+                ],
                 "data": Object {
                   "tag": "Link",
                   "text": "Toggle",
@@ -5236,37 +5076,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "clockTower",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Clock Tower",
-            },
-          ],
-          "render": Array [
-            Object {
-              "tag": "Link",
-              "text": "Waverly",
-              "to": "town",
-            },
-            Object {
-              "tag": "String",
-              "value": " ",
-            },
-            Object {
-              "tag": "Link",
-              "text": "Clock",
-              "to": "clockTower",
-            },
-            Object {
-              "tag": "String",
-              "value": " ",
-            },
-            Object {
-              "tag": "Link",
-              "text": "Toggle",
-              "to": "toggleActive",
-            },
-          ],
           "tag": "Feature",
         },
       },
@@ -5341,18 +5150,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "town",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Waverly",
-            },
-          ],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "The town of Waverly is a pleasant place to live.",
-            },
-          ],
           "tag": "Knowledge",
         },
       },
@@ -5670,8 +5467,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -5694,14 +5489,10 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": 200,
           "y": 150,
         },
-        "x": 200,
-        "y": 150,
       },
       Object {
         "children": Array [],
@@ -5725,8 +5516,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "a123",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -5775,16 +5564,16 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
-              "tag": "String",
-              "value": "It activates!",
+              "index": 2,
+              "key": "a123",
+              "tag": "Room",
             },
           },
           Object {
             "children": Array [],
             "data": Object {
-              "index": 2,
-              "key": "a123",
-              "tag": "Room",
+              "tag": "String",
+              "value": "It activates!",
             },
           },
         ],
@@ -5803,12 +5592,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "activate",
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "It activates!",
-            },
-          ],
           "rooms": Array [
             Object {
               "key": "a123",
@@ -5816,12 +5599,6 @@ Object {
           ],
           "tag": "Message",
         },
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "It activates!",
-          },
-        ],
         "rooms": Array [
           Object {
             "key": "a123",
@@ -5899,8 +5676,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "b456",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
           "x": undefined,
           "y": undefined,
@@ -5930,8 +5705,6 @@ Object {
           "contents": Array [],
           "from": "baseInfo",
           "key": "baseInfo",
-          "name": Array [],
-          "render": Array [],
           "tag": "Knowledge",
         },
       },
@@ -5958,8 +5731,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "clockTower",
-          "name": Array [],
-          "render": Array [],
           "tag": "Feature",
         },
       },
@@ -5991,13 +5762,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "clockTower",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Clock Tower",
-            },
-          ],
-          "render": Array [],
           "tag": "Feature",
         },
       },
@@ -6053,8 +5817,6 @@ Object {
           "contents": Array [],
           "from": "overview",
           "key": "overview",
-          "name": Array [],
-          "render": Array [],
           "tag": "Room",
         },
       },
@@ -6192,18 +5954,6 @@ Object {
         "data": Object {
           "contents": Array [],
           "key": "town",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Waverly",
-            },
-          ],
-          "render": Array [
-            Object {
-              "tag": "String",
-              "value": "The town of Waverly is a pleasant place to live.",
-            },
-          ],
           "tag": "Knowledge",
         },
       },

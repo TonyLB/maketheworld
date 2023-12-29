@@ -33,30 +33,30 @@ describe('TagTree', () => {
             expect(tagTree._tagList).toEqual([
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room1', name: [{ tag: 'String', value: 'Test room' }], render: [{ tag: 'String', value: 'Test description' }, { tag: 'String', value: ': Added' }], contents: [] },
+                    { tag: 'Room', key: 'room1', contents: [] },
                     { tag: 'Description', contents: [] },
                     { tag: 'String', value: 'Test description' },
                 ],
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room1', name: [{ tag: 'String', value: 'Test room' }], render: [{ tag: 'String', value: 'Test description' }, { tag: 'String', value: ': Added' }], contents: [] },
+                    { tag: 'Room', key: 'room1', contents: [] },
                     { tag: 'Name', contents: [] },
                     { tag: 'String', value: 'Test room' },
                 ],
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room1', name: [{ tag: 'String', value: 'Test room' }], render: [{ tag: 'String', value: 'Test description' }, { tag: 'String', value: ': Added' }], contents: [] },
+                    { tag: 'Room', key: 'room1', contents: [] },
                     { tag: 'Exit', key: 'room1#room2', from: 'room1', to: 'room2', name: '', contents: [] }
                 ],
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room1', name: [{ tag: 'String', value: 'Test room' }], render: [{ tag: 'String', value: 'Test description' }, { tag: 'String', value: ': Added' }], contents: [] },
+                    { tag: 'Room', key: 'room1', contents: [] },
                     { tag: 'Description', contents: [] },
                     { tag: 'String', value: ': Added' },
                 ],
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room2', name: [], render: [], contents: [] }
+                    { tag: 'Room', key: 'room2', contents: [] }
                 ]
             ])
         })
@@ -220,7 +220,7 @@ describe('TagTree', () => {
             </Asset>
         `))))
         const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-        const filteredTreeOne = tagTree.filtered({ nodes: [{ tag: 'Room', key: 'room1', render: [], name: [], contents: [] }], classes: ['Description'], prune: ['Asset', 'Room', 'Description'] })
+        const filteredTreeOne = tagTree.filtered({ nodes: [{ tag: 'Room', key: 'room1', contents: [] }], classes: ['Description'], prune: ['Asset', 'Room', 'Description'] })
         expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
             An institutional lobby.
             <If {true}>
@@ -228,7 +228,7 @@ describe('TagTree', () => {
                 The lights are out, and shadows stretch along the walls.
             </If>
         `))
-        const filteredTreeTwo = tagTree.filtered({ nodes: [{ tag: 'Room', key: 'room1', render: [], name: [], contents: [] }], classes: ['Name'], prune: ['Asset', 'Room', 'Name'] })
+        const filteredTreeTwo = tagTree.filtered({ nodes: [{ tag: 'Room', key: 'room1', contents: [] }], classes: ['Name'], prune: ['Asset', 'Room', 'Name'] })
         expect(schemaToWML(filteredTreeTwo.tree)).toEqual(deIndentWML(`
             Lobby
             <If {true}><Space />at night</If>

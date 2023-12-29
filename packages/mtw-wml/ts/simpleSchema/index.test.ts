@@ -84,8 +84,8 @@ describe('schemaFromParse', () => {
                     },
                     children: [
                         { data: { tag: 'Variable', key: 'power', from: 'basePower' }, children: [] },
-                        { data: { tag: 'Room', key: 'overview', contents: [], render: [], name: [] }, children: [] },
-                        { data: { tag: 'Knowledge', key: 'baseInfo', contents: [], render: [], name: [] }, children: [] }
+                        { data: { tag: 'Room', key: 'overview', contents: [] }, children: [] },
+                        { data: { tag: 'Knowledge', key: 'baseInfo', contents: [] }, children: [] }
                     ]
                 },
                 {
@@ -93,59 +93,6 @@ describe('schemaFromParse', () => {
                         tag: "Room",
                         key: "ABC",
                         display: undefined,
-                        name: [{ tag: "String", value: "Vortex" }],
-                        render: [
-                            { tag: "Space" },
-                            { tag: "String", value: "Vortex" },
-                            {
-                                conditions: [{
-                                    dependencies: ["open"],
-                                    if: "open"
-                                }],
-                                contents: [{ tag: "String", value: ": Open" }],
-                                tag: "If"
-                            },
-                            {
-                                conditions: [
-                                    {
-                                        dependencies: ["open"],
-                                        if: "open",
-                                        not: true
-                                    },
-                                    {
-                                        dependencies: ["closed"],
-                                        if: "!closed"
-                                    }
-                                ],
-                                contents: [{ tag: "String", value: ": Indeterminate" }],
-                                tag: "If",
-                            },
-                            {
-                                conditions: [
-                                    {
-                                        dependencies: ["open"],
-                                        if: "open",
-                                        not: true,
-                                    },
-                                    {
-                                        dependencies: ["closed"],
-                                        if: "!closed",
-                                        not: true,
-                                    },
-                                ],
-                                contents: [{ tag: "String", value: ": Closed" }],
-                                tag: "If",
-                            },
-                            {
-                                tag: "String",
-                                value: " ",
-                            },
-                            {
-                                tag: "Link",
-                                text: "(toggle)",
-                                to: "toggleOpen",
-                            },
-                        ],
                         contents: []
                     },
                     children: [{
@@ -240,8 +187,6 @@ describe('schemaFromParse', () => {
                             tag: "Room",
                             display: undefined,
                             key: "ABC",
-                            name: [],
-                            render: [],
                             contents: []
                         },
                         children: [{
@@ -262,8 +207,6 @@ describe('schemaFromParse', () => {
                         tag: "Room",
                         display: undefined,
                         key: "DEF",
-                        name: [{ tag: "String", value: "Welcome" }],
-                        render: [],
                         contents: []
                     },
                     children: [{
@@ -286,8 +229,6 @@ describe('schemaFromParse', () => {
                     data: {
                         tag: "Knowledge",
                         key: "GHI",
-                        name: [{ tag: "String", value: "Learn" }],
-                        render: [{ tag: "String", value: "There is so much to know!" }],
                         contents: []
                     },
                     children: [
@@ -333,7 +274,6 @@ describe('schemaFromParse', () => {
                         data: {
                             tag: "Message",    
                             key: "openDoor",
-                            render: [{ tag: "String", value: "The door opens!" }],
                             rooms: [{ key: "ABC" }],
                             contents: []
                         },
@@ -344,9 +284,6 @@ describe('schemaFromParse', () => {
                             data: {
                                 tag: "Room",    
                                 key: "ABC",
-                                display: undefined,
-                                name: [],
-                                render: [],
                                 contents: []
                             },
                             children: [],
@@ -363,9 +300,9 @@ describe('schemaFromParse', () => {
                         },
                     },
                     children: [
-                        { data: { tag: 'Room', key: 'ABC', as: 'QRS', name: [], render: [], contents: [] }, children: [] },
-                        { data: { tag: 'Room', key: 'DEF', name: [], render: [], contents: [] }, children: [] },
-                        { data: { tag: 'Knowledge', key: 'GHI', name: [], render: [], contents: [] }, children: [] }
+                        { data: { tag: 'Room', key: 'ABC', as: 'QRS', contents: [] }, children: [] },
+                        { data: { tag: 'Room', key: 'DEF', contents: [] }, children: [] },
+                        { data: { tag: 'Knowledge', key: 'GHI', contents: [] }, children: [] }
                     ]
                 }
             ]
@@ -404,26 +341,6 @@ describe('schemaFromParse', () => {
                 data: {
                     tag: "Room",    
                     key: "ABC",
-                    name: [],
-                    render: [
-                        { tag: "String", value: "Test One " },
-                        {
-                            conditions: [{
-                                dependencies: ["open"],
-                                if: "open",
-                            }],
-                            contents: [{ tag: "String", value: "Test Two" }],
-                            tag: "If",
-                        },
-                        {
-                            conditions: [{
-                                dependencies: ["open"],
-                                if: "open",
-                            }],
-                            contents: [{ tag: "String", value: "Test Three" }],
-                            tag: "If",
-                        },
-                    ],
                     contents: []
                 },
                 children: [{
@@ -471,9 +388,7 @@ describe('schemaFromParse', () => {
                     data: {
                         tag: "Room",
                         key: "ABC",
-                        name: [],
-                        render: [{ tag: "String", value: "Test Four" } ],
-                        contents: []    
+                        contents: []
                     },
                     children: [{
                         data: { tag: "Description", contents: [] },
@@ -618,8 +533,6 @@ describe('schemaFromParse', () => {
                             data: {
                                 tag: 'Room',
                                 key: 'ABC',
-                                name: [],
-                                render: [],
                                 contents: [],
                                 x: 100,
                                 y: 0
@@ -639,8 +552,6 @@ describe('schemaFromParse', () => {
                                 data: {
                                     tag: "Room",
                                     key: "DEF",
-                                    name: [],
-                                    render: [],
                                     contents: [],
                                     x: -100,
                                     y: 0
@@ -695,15 +606,6 @@ describe('schemaFromParse', () => {
                     data: {
                         tag: "Room",    
                         key: "ABC",
-                        name: [{ tag: "String", value: "Vortex" } ],
-                        render: [
-                            { tag: "String", value: "Vortex" },
-                            {
-                                contents: [],
-                                key: "postFix",
-                                tag: "Bookmark",
-                            },
-                        ],
                         contents: []
                     },
                     children: [{
