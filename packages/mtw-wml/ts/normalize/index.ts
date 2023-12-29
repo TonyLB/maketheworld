@@ -1056,7 +1056,6 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...defaultedAppearance,
-                        name: node.name.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
                         children: [
                             ...appearance.children,
                             ...(componentNameTree.length
@@ -1109,7 +1108,6 @@ export class Normalizer {
                         ...defaultedAppearance,
                         rooms: node.rooms,
                         images: node.images,
-                        name: node.name
                     }] as MapAppearance[]
                 }
             case 'Exit':

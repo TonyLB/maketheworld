@@ -2872,25 +2872,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Cave entrance",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
-          },
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
-          },
-        ],
       },
       Object {
         "children": Array [],
@@ -2915,8 +2896,6 @@ Object {
           "x": 0,
           "y": 250,
         },
-        "name": Array [],
-        "render": Array [],
         "x": 0,
         "y": 250,
       },
@@ -3015,18 +2994,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Bellows",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "A large contraption of aged leather, wood, and iron. It connects by a loose hose to the hearth.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -3112,29 +3079,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "There is a large handled wheel, spinning with the drawing power of the bellows, that you could slow in order to ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "stop the bellows",
-            "to": "toggleBellowsRunning",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -3211,26 +3155,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "There is a large handled wheel, and it looks like you could spin the wheel in order to ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "start the bellows",
-            "to": "toggleBellowsRunning",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
     ],
     "key": "bellows",
@@ -3326,21 +3250,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Bird Column",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Birds in clusters dominate the carvings on this column. They seem to have their beaks open in song.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -3393,16 +3302,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "Strands of glowing milky energy cling and crawl across the surface of this column.",
-          },
-        ],
       },
     ],
     "key": "birdColumn",
@@ -3655,21 +3554,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Cat Column",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Lounging cats are carved all up and down this column, surrounding one huge cat-face in relief.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -3722,16 +3606,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "Strands of glowing milky energy cling and crawl across the surface of this column.",
-          },
-        ],
       },
     ],
     "key": "catColumn",
@@ -3801,8 +3675,6 @@ Object {
           "x": 0,
           "y": 150,
         },
-        "name": Array [],
-        "render": Array [],
         "x": 0,
         "y": 150,
       },
@@ -3865,18 +3737,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Shallow cave",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
-          },
-        ],
       },
     ],
     "key": "cave",
@@ -4015,18 +3875,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Child Statue",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "The smooth, flowing lines of the statue's shapes, its hands upraised in prayer, and its featureless face tilted toward the ceiling all give the impression of intense and impassioned piety.",
-          },
-        ],
       },
     ],
     "key": "childStatue",
@@ -4152,31 +4000,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Carved columns",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Each of the columns spaced around the perimeter of the room is carved differently. There is a ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "column with singing people",
-            "to": "singingColumn",
-          },
-          Object {
-            "tag": "String",
-            "value": ", a",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4238,19 +4061,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "glowing",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4320,25 +4130,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "column with cats",
-            "to": "catColumn",
-          },
-          Object {
-            "tag": "String",
-            "value": ", and a",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4391,16 +4182,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "glowing",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4470,25 +4251,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "column with birds",
-            "to": "birdColumn",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
     ],
     "key": "columns",
@@ -4536,8 +4298,6 @@ Object {
           "x": -150,
           "y": 100,
         },
-        "name": Array [],
-        "render": Array [],
         "x": -150,
         "y": 100,
       },
@@ -4600,18 +4360,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Curving Passage",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
-          },
-        ],
       },
       Object {
         "children": Array [],
@@ -4636,8 +4384,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [],
@@ -4662,8 +4408,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
     ],
     "key": "curvingPassage",
@@ -4782,13 +4526,6 @@ Object {
           "render": Array [],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Striding statue's neck",
-          },
-        ],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -4880,31 +4617,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Striding statue neck",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "In several places the stone shapes are cunning carved to hide joints. You could ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "turn the head",
-            "to": "turnDeterminedHead",
-          },
-          Object {
-            "tag": "String",
-            "value": ",",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4979,25 +4691,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "lower the right arm",
-            "to": "lowerRightArm",
-          },
-          Object {
-            "tag": "String",
-            "value": ",",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5072,25 +4765,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "raise the right arm",
-            "to": "raiseRightArm",
-          },
-          Object {
-            "tag": "String",
-            "value": ",",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5167,26 +4841,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "or ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "lower the left arm",
-            "to": "lowerLeftArm",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5263,26 +4917,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "or ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "raise the left arm",
-            "to": "raiseLeftArm",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
     ],
     "key": "determinedNeck",
@@ -5356,21 +4990,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Striding Statue",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Captured mid-stride, this figure is",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5432,19 +5051,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "gazing forward with determination.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5506,19 +5112,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "looking away dismissively toward the side of the room.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5590,26 +5183,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "There is something strange about the carving of the figure's ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "neck",
-            "to": "determinedNeck",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
     ],
     "key": "determinedStatue",
@@ -5912,7 +5485,6 @@ Object {
         "images": Array [
           "dungeonImage",
         ],
-        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -6014,8 +5586,6 @@ Object {
           "x": 250,
           "y": -150,
         },
-        "name": Array [],
-        "render": Array [],
         "x": 250,
         "y": -150,
       },
@@ -6087,21 +5657,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Grotto",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Moss and vines cling to the sloping floor. Midway up the cave it connects to a finished room. Water pours from that room in a slow stream down the cave and into a",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -6135,8 +5690,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -6224,29 +5777,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "pool of water blocking the entire bottom passage, and covering a blocked ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "grated opening",
-            "to": "gratingDetail",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -6334,29 +5864,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "shallow pool of water draining slowly into a ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "grated opening",
-            "to": "gratingDetail",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -6433,25 +5940,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "grated opening",
-            "to": "gratingDetail",
-          },
-          Object {
-            "tag": "String",
-            "value": "at the low opening from the bottom of this cave to the next deeper one.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -6510,19 +5998,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "At the top of the room, a raised area has a clay wall, with several holes dug into it.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [],
@@ -6547,8 +6022,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [],
@@ -6573,8 +6046,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -6629,16 +6100,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -6693,16 +6154,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -6757,16 +6208,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -6821,16 +6262,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss winds through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -6885,16 +6316,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound echoes through the caverns.",
-          },
-        ],
       },
     ],
     "key": "fireCatGrotto",
@@ -7008,8 +6429,6 @@ Object {
           "x": -50,
           "y": -200,
         },
-        "name": Array [],
-        "render": Array [],
         "x": -50,
         "y": -200,
       },
@@ -7036,8 +6455,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [],
@@ -7062,8 +6479,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -7157,31 +6572,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Forest",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "A few narrow cracks in the ceiling of this cavern let in streams of sunlight. Hardy trees have grown here, spreading low and squat, competing for light. Their dense branches are home to many ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "nests",
-            "to": "nests",
-          },
-          Object {
-            "tag": "String",
-            "value": ". To the east, another cavern opens. In the southwest wall of this forest-cave is a set of small, jagged, openings",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -7236,16 +6626,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "lit from within by flame.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -7308,16 +6688,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "that a person might manage to squeeze through.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -7372,16 +6742,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -7436,16 +6796,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -7500,16 +6850,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -7564,16 +6904,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss winds through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -7628,16 +6958,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound echoes through the caverns.",
-          },
-        ],
       },
     ],
     "key": "forest",
@@ -7751,8 +7071,6 @@ Object {
           "x": -200,
           "y": -150,
         },
-        "name": Array [],
-        "render": Array [],
         "x": -200,
         "y": -150,
       },
@@ -7779,8 +7097,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -7922,51 +7238,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Foundry",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "This room is filled with racks of ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "iron-working tools",
-            "to": "ironworkingTools",
-          },
-          Object {
-            "tag": "String",
-            "value": ", and ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "strange devices",
-            "to": "bellows",
-          },
-          Object {
-            "tag": "String",
-            "value": ". What looks like a huge ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "open fireplace",
-            "to": "hearthDetail",
-          },
-          Object {
-            "tag": "String",
-            "value": " dominates the north-east corner,",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8021,16 +7292,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "flaming brightly.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8093,16 +7354,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "and past the cold hearth are some jagged openings that a person might squeeze through carefully.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8157,16 +7408,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8221,16 +7462,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8285,16 +7516,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8349,16 +7570,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss winds through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8413,16 +7624,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound echoes through the caverns.",
-          },
-        ],
       },
     ],
     "key": "foundry",
@@ -8585,28 +7786,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Fruit Trees",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Gnarled fruit trees, planted in careful rows but clearly left to grow on their own for some time. Their limbs are heavily burdened with ripe fruit. Some would probably fall off if you ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "shake a tree",
-            "to": "shakeFruitTrees",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
     ],
     "key": "fruitTrees",
@@ -8702,21 +7881,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Grating",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Made of wrought iron and bolted into the stone, this grating covers a crevasse down which water pours.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8793,26 +7957,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "Moss-covered rocks cover the grating. You could easily move them to ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "open the flow",
-            "to": "toggleGratingBlocked",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -8889,26 +8033,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "Moss-covered rocks surround the grating. You could easily move them to ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "block the flow",
-            "to": "toggleGratingBlocked",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
     ],
     "key": "gratingDetail",
@@ -9004,21 +8128,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Crest",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "A plaque with an icon of a flame pointing",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -9080,19 +8189,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "upward.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -9154,19 +8250,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "downward.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -9238,26 +8321,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "The plaque is attached loosely, and it seems that you could ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "turn the crest",
-            "to": "toggleHearthPrimed",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
     ],
     "key": "hearthCrest",
@@ -9355,31 +8418,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Hearth",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "This huge construction is made of obsidian. If has an open back with various small tunnels leading further into the caves. There is a mantelpiece that is bare except for a single ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "crest",
-            "to": "hearthCrest",
-          },
-          Object {
-            "tag": "String",
-            "value": " mounted on it.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -9432,16 +8470,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "A roaring fire crackles in the hearth.",
-          },
-        ],
       },
     ],
     "key": "hearthDetail",
@@ -9519,8 +8547,6 @@ Object {
           "x": -150,
           "y": -50,
         },
-        "name": Array [],
-        "render": Array [],
         "x": -150,
         "y": -50,
       },
@@ -9583,18 +8609,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Intersection",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Passages lead south toward a gently curving passage, east toward a large open chamber with carved columns, and north toward what looks like some sort of workspace.",
-          },
-        ],
       },
       Object {
         "children": Array [],
@@ -9619,8 +8633,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [],
@@ -9645,8 +8657,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -9701,16 +8711,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -9765,16 +8765,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -9829,16 +8819,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -9893,16 +8873,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss winds through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -9957,16 +8927,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound echoes through the caverns.",
-          },
-        ],
       },
     ],
     "key": "intersection",
@@ -10142,18 +9102,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Iron working tools",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "A large rack of tools that, sadly, have gone so far to rust that they are now fused with the rack and each other. There are tongs, hammers, and various chisels, but none of them can be worked free (at least not until the system code is expanded to support objects).",
-          },
-        ],
       },
     ],
     "key": "ironworkingTools",
@@ -10334,18 +9282,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Nests",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "The trees are filled with snug little nests built of sticks and creeper. You occasionally get a glimpse of one of the shy little blue birds that inhabit them.",
-          },
-        ],
       },
     ],
     "key": "nests",
@@ -10393,8 +9329,6 @@ Object {
           "x": 100,
           "y": -200,
         },
-        "name": Array [],
-        "render": Array [],
         "x": 100,
         "y": -200,
       },
@@ -10490,31 +9424,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Orchard",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Sunlight streams into this cavern from several vine-choked openings in the ceiling. Someone has planted careful rows of ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "fruit trees",
-            "to": "fruitTrees",
-          },
-          Object {
-            "tag": "String",
-            "value": " here, taking advantage of the sunlight. There are openings to",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -10569,16 +9478,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "a cavern on the west and a flooded passageway on the east.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -10647,19 +9546,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "Wild cats prowl around this space, glaring occasionally at the pool to the west.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -10723,19 +9609,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "the east and west into other caverns.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -10804,19 +9677,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "Wild cats prowl around this space, occasionally bounding back and forth from the passage to the east.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -10871,16 +9731,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "A flock of small blue birds are happily eating fallen fruit here, and singing noisily.",
-          },
-        ],
       },
       Object {
         "children": Array [],
@@ -10905,8 +9755,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [],
@@ -10931,8 +9779,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -10987,16 +9833,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -11051,16 +9887,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -11115,16 +9941,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -11179,16 +9995,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss winds through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -11243,16 +10049,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound echoes through the caverns.",
-          },
-        ],
       },
     ],
     "key": "orchard",
@@ -11659,21 +10455,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Robed Statue",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "This robed figure holds its head",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -11735,19 +10516,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "upright, looking into the distance.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -11809,19 +10577,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "slumped into its cupped hands, the bend of its shoulders conveying miserable weeping.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -11893,26 +10648,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "On close inspection, there seems something strange about how the ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "shoulders",
-            "to": "robedStatueShoulders",
-          },
-          Object {
-            "tag": "String",
-            "value": " are sculpted.",
-          },
-        ],
       },
     ],
     "key": "robedStatue",
@@ -12008,21 +10743,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Statue Shoulders",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "In the folds of the robes of this statue, there are two fine joints of stonework hidden. It looks very much as if the statue has been crafted so that one could, with some effort,",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -12088,22 +10808,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "lower the head",
-            "to": "lowerRobedStatueHead",
-          },
-          Object {
-            "tag": "String",
-            "value": "into its hands.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -12169,22 +10873,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "raise the head",
-            "to": "raiseRobedStatueHead",
-          },
-          Object {
-            "tag": "String",
-            "value": "from its weeping position.",
-          },
-        ],
       },
     ],
     "key": "robedStatueShoulders",
@@ -12377,28 +11065,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Singing Column",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Groups of people in various sizes dominate the carvings on this column. Each of the people has their heads raised, mouth open in what appears to be song. You could ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "sing",
-            "to": "sing",
-          },
-          Object {
-            "tag": "String",
-            "value": " and see if it does anything.",
-          },
-        ],
       },
     ],
     "key": "singingColumn",
@@ -12446,8 +11112,6 @@ Object {
           "x": 0,
           "y": 0,
         },
-        "name": Array [],
-        "render": Array [],
         "x": 0,
         "y": 0,
       },
@@ -12474,8 +11138,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [],
@@ -12500,8 +11162,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -12610,38 +11270,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Column Chamber",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "The ceiling of this circular room is vaulted, and three ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "carved columns",
-            "to": "columns",
-          },
-          Object {
-            "tag": "String",
-            "value": " rise to meet it. In the center of the floor is a ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "trap door",
-            "to": "trapDoor",
-          },
-          Object {
-            "tag": "String",
-            "value": ". There are exits to east and west.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -12696,16 +11324,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -12760,16 +11378,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -12824,16 +11432,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -12888,16 +11486,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss winds through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -12952,16 +11540,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound echoes through the caverns.",
-          },
-        ],
       },
     ],
     "key": "statueChamber",
@@ -13100,18 +11678,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Stooped Statue",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "This statue is built from thinner, more angled, shapes than the others. Its stooped appearance and sunken shapes convey weary old age.",
-          },
-        ],
       },
     ],
     "key": "stoopedStatue",
@@ -13475,21 +12041,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Trap Door",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "A sturdy wooden door set into the floor on heavy iron hinges.",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -13586,33 +12137,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "It is opened, resting against the floor. The opening reveals a staircase descending down into darkness (and, again, room for more story that has not yet been created ... but congrats on solving everything!)",
-          },
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "You can ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Action",
-            "text": "close the door",
-            "to": "closeTrapDoor",
-          },
-          Object {
-            "tag": "String",
-            "value": ".",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -13665,16 +12189,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "It is closed. Pulling on the circular handle shows that it is firmly locked by some internal mechanism.",
-          },
-        ],
       },
     ],
     "key": "trapDoor",
@@ -13882,74 +12396,6 @@ Object {
           "key": "waterDescription",
           "tag": "Bookmark",
         },
-        "render": Array [
-          Object {
-            "conditions": Array [
-              Object {
-                "dependencies": Array [
-                  "waterFlow",
-                ],
-                "if": "waterFlow === 0",
-              },
-            ],
-            "contents": Array [
-              Object {
-                "tag": "String",
-                "value": "trickles out of the well, forming a small stream headed west.",
-              },
-            ],
-            "tag": "Condition",
-          },
-          Object {
-            "conditions": Array [
-              Object {
-                "dependencies": Array [
-                  "waterFlow",
-                ],
-                "if": "waterFlow === 0",
-                "not": true,
-              },
-              Object {
-                "dependencies": Array [
-                  "waterFlow",
-                ],
-                "if": "waterFlow === 1",
-              },
-            ],
-            "contents": Array [
-              Object {
-                "tag": "String",
-                "value": "pours over the edge of the well, forming a burbling stream to the west.",
-              },
-            ],
-            "tag": "Condition",
-          },
-          Object {
-            "conditions": Array [
-              Object {
-                "dependencies": Array [
-                  "waterFlow",
-                ],
-                "if": "waterFlow === 0",
-                "not": true,
-              },
-              Object {
-                "dependencies": Array [
-                  "waterFlow",
-                ],
-                "if": "waterFlow === 1",
-                "not": true,
-              },
-            ],
-            "contents": Array [
-              Object {
-                "tag": "String",
-                "value": "rushes out of the well, forming a gushing torrent to the west.",
-              },
-            ],
-            "tag": "Condition",
-          },
-        ],
       },
     ],
     "key": "waterDescription",
@@ -14057,8 +12503,6 @@ Object {
           "x": 150,
           "y": -50,
         },
-        "name": Array [],
-        "render": Array [],
         "x": 150,
         "y": -50,
       },
@@ -14169,35 +12613,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Well Room",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "This is a mostly finished room, opening into a passage to the west and a ragged unfinished cave in its northeast corner. The room is filled with ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "statues",
-            "to": "wellStatues",
-          },
-          Object {
-            "tag": "String",
-            "value": " of stylized people in strange poses. In the center of the room is a well. Water",
-          },
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Bookmark",
-            "to": "waterDescription",
-          },
-        ],
       },
       Object {
         "children": Array [],
@@ -14222,8 +12637,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [],
@@ -14248,8 +12661,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [],
       },
       Object {
         "children": Array [
@@ -14304,16 +12715,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound and the echoes of birdsong sound through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -14368,16 +12769,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss and the sound of birdsong echo through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -14432,16 +12823,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "The sound of birdsong echoes through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -14496,16 +12877,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A loud hiss winds through the caverns.",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -14560,16 +12931,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "LineBreak",
-          },
-          Object {
-            "tag": "String",
-            "value": "A low purring sound echoes through the caverns.",
-          },
-        ],
       },
     ],
     "key": "well",
@@ -14838,73 +13199,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Stylized statues",
-          },
-        ],
-        "render": Array [
-          Object {
-            "tag": "String",
-            "value": "Four statues of people portrayed in sweeping geometric shapes: A ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "child",
-            "to": "childStatue",
-          },
-          Object {
-            "tag": "String",
-            "value": " with hands raised in prayer, a ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "robed figure",
-            "to": "robedStatue",
-          },
-          Object {
-            "tag": "String",
-            "value": " ",
-          },
-          Object {
-            "conditions": Array [
-              Object {
-                "dependencies": Array [
-                  "robedStatueActive",
-                ],
-                "if": "robedStatueActive",
-              },
-            ],
-            "contents": Array [
-              Object {
-                "tag": "String",
-                "value": "with cupped hands,",
-              },
-            ],
-            "tag": "Condition",
-          },
-          Object {
-            "conditions": Array [
-              Object {
-                "dependencies": Array [
-                  "robedStatueActive",
-                ],
-                "if": "robedStatueActive",
-                "not": true,
-              },
-            ],
-            "contents": Array [
-              Object {
-                "tag": "String",
-                "value": "weeping,",
-              },
-            ],
-            "tag": "Condition",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -14966,19 +13260,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "weeping,",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -15059,29 +13340,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "a ",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "stooped figure",
-            "to": "stoopedStatue",
-          },
-          Object {
-            "tag": "String",
-            "value": ", and",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -15143,19 +13401,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "a determined",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -15217,19 +13462,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "String",
-            "value": "an arrogant",
-          },
-          Object {
-            "tag": "Space",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -15290,22 +13522,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [],
-        "render": Array [
-          Object {
-            "tag": "Space",
-          },
-          Object {
-            "tag": "Link",
-            "targetTag": "Feature",
-            "text": "figure striding",
-            "to": "determinedStatue",
-          },
-          Object {
-            "tag": "String",
-            "value": "forward.",
-          },
-        ],
       },
     ],
     "key": "wellStatues",

@@ -88,7 +88,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "testOne",
@@ -114,7 +113,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "testTwo",
@@ -298,7 +296,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -531,7 +528,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -577,7 +573,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "testOne",
@@ -742,12 +737,6 @@ Object {
           ],
           "tag": "Knowledge",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Knowledge is power",
-          },
-        ],
       },
     ],
     "key": "testKnowledge",
@@ -844,7 +833,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -885,7 +873,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -926,7 +913,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -1023,7 +1009,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -1069,7 +1054,6 @@ Object {
           "x": 0,
           "y": 0,
         },
-        "name": Array [],
         "x": 0,
         "y": 0,
       },
@@ -1112,7 +1096,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -1154,7 +1137,6 @@ Object {
           "tag": "Map",
         },
         "images": Array [],
-        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -1227,7 +1209,6 @@ Object {
           "x": 0,
           "y": 0,
         },
-        "name": Array [],
         "x": 0,
         "y": 0,
       },
@@ -1279,7 +1260,6 @@ Object {
           "tag": "Map",
         },
         "images": Array [],
-        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -1324,7 +1304,6 @@ Object {
           "x": 0,
           "y": 100,
         },
-        "name": Array [],
         "x": 0,
         "y": 100,
       },
@@ -1479,7 +1458,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -1520,7 +1498,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -1561,7 +1538,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -1703,7 +1679,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -1744,7 +1719,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -1791,7 +1765,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "testTwo",
@@ -1888,7 +1861,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -1934,7 +1906,6 @@ Object {
           "x": 0,
           "y": 0,
         },
-        "name": Array [],
         "x": 0,
         "y": 0,
       },
@@ -1977,7 +1948,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -2019,7 +1989,6 @@ Object {
           "tag": "Map",
         },
         "images": Array [],
-        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -2196,7 +2165,6 @@ Object {
           "x": 0,
           "y": 100,
         },
-        "name": Array [],
         "x": 0,
         "y": 100,
       },
@@ -2259,7 +2227,6 @@ Object {
           "tag": "Map",
         },
         "images": Array [],
-        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -2319,7 +2286,6 @@ Object {
           "tag": "Map",
         },
         "images": Array [],
-        "name": Array [],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -2363,7 +2329,6 @@ Object {
           "x": -100,
           "y": 0,
         },
-        "name": Array [],
         "x": -100,
         "y": 0,
       },
@@ -2422,7 +2387,6 @@ Object {
           "x": 100,
           "y": 0,
         },
-        "name": Array [],
         "x": 100,
         "y": 0,
       },
@@ -2546,7 +2510,6 @@ Object {
           "render": Array [],
           "tag": "Room",
         },
-        "name": Array [],
       },
     ],
     "key": "testOne",
@@ -2576,7 +2539,6 @@ Object {
           "render": Array [],
           "tag": "Room",
         },
-        "name": Array [],
       },
     ],
     "key": "testTwo",
@@ -2781,7 +2743,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "targetOne",
@@ -2807,7 +2768,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "targetThree",
@@ -2833,7 +2793,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "targetTwo",
@@ -2884,7 +2843,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "testRoom",
@@ -3262,7 +3220,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "targetOne",
@@ -3288,7 +3245,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "targetThree",
@@ -3314,7 +3270,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "targetTwo",
@@ -3365,7 +3320,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "testRoom",
@@ -3558,7 +3512,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -3599,7 +3552,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -3640,7 +3592,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -3729,7 +3680,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -3770,7 +3720,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -3908,12 +3857,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Vortex",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -3963,7 +3906,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -4009,7 +3951,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "a123",
@@ -4246,12 +4187,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Vortex",
-          },
-        ],
       },
     ],
     "key": "a123",
@@ -4568,12 +4503,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Vortex",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -4619,7 +4548,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -4670,7 +4598,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "a123",
@@ -4803,7 +4730,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -4844,7 +4770,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "test",
@@ -5006,12 +4931,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Vortex",
-          },
-        ],
       },
       Object {
         "children": Array [
@@ -5057,7 +4976,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "a123",
@@ -5351,12 +5269,6 @@ Object {
           ],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Clock Tower",
-          },
-        ],
       },
     ],
     "key": "clockTower",
@@ -5443,12 +5355,6 @@ Object {
           ],
           "tag": "Knowledge",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Waverly",
-          },
-        ],
       },
     ],
     "key": "town",
@@ -5720,12 +5626,6 @@ Object {
         "images": Array [
           "ImageTest",
         ],
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Test Map",
-          },
-        ],
         "rooms": Array [
           Object {
             "conditions": Array [],
@@ -5776,7 +5676,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
       Object {
         "children": Array [],
@@ -5801,7 +5700,6 @@ Object {
           "x": 200,
           "y": 150,
         },
-        "name": Array [],
         "x": 200,
         "y": 150,
       },
@@ -5833,7 +5731,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "a123",
@@ -6008,7 +5905,6 @@ Object {
           "x": undefined,
           "y": undefined,
         },
-        "name": Array [],
       },
     ],
     "key": "b456",
@@ -6038,7 +5934,6 @@ Object {
           "render": Array [],
           "tag": "Knowledge",
         },
-        "name": Array [],
       },
     ],
     "key": "baseInfo",
@@ -6067,7 +5962,6 @@ Object {
           "render": Array [],
           "tag": "Feature",
         },
-        "name": Array [],
       },
       Object {
         "children": Array [
@@ -6106,12 +6000,6 @@ Object {
           "render": Array [],
           "tag": "Feature",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Clock Tower",
-          },
-        ],
       },
     ],
     "key": "clockTower",
@@ -6169,7 +6057,6 @@ Object {
           "render": Array [],
           "tag": "Room",
         },
-        "name": Array [],
       },
     ],
     "key": "overview",
@@ -6319,12 +6206,6 @@ Object {
           ],
           "tag": "Knowledge",
         },
-        "name": Array [
-          Object {
-            "tag": "String",
-            "value": "Waverly",
-          },
-        ],
       },
     ],
     "key": "town",

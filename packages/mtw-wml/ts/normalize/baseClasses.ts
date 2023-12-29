@@ -103,7 +103,6 @@ export type ComponentRenderItem = {
 } & NormalConditionMixin)
 
 export type ComponentAppearance = BaseAppearance & {
-    name?: ComponentRenderItem[];
     x?: number;
     y?: number;
 }
@@ -180,7 +179,6 @@ export type MapAppearanceRoom = {
 type MapAppearanceImage = string
 
 export type MapAppearance = {
-    name: ComponentRenderItem[];
     images: MapAppearanceImage[];
     rooms: MapAppearanceRoom[];
 } & BaseAppearance
