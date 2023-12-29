@@ -3262,7 +3262,7 @@ Object {
             "children": Array [],
             "data": Object {
               "tag": "String",
-              "value": "The sound of bird-song fades away. ",
+              "value": "The sound of bird-song fades away.",
             },
           },
           Object {
@@ -9280,7 +9280,7 @@ Object {
             "children": Array [],
             "data": Object {
               "tag": "String",
-              "value": "The loud low purr echoing through the halls fades away. ",
+              "value": "The loud low purr echoing through the halls fades away.",
             },
           },
           Object {

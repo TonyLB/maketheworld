@@ -278,7 +278,7 @@ describe('schemaFromParse', () => {
                             contents: []
                         },
                         children: [{
-                            data: { tag: 'String', value: 'The door opens! ' }, children: []
+                            data: { tag: 'String', value: 'The door opens!' }, children: []
                         },
                         {
                             data: {
