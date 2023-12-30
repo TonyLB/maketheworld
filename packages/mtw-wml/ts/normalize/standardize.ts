@@ -8,9 +8,11 @@ import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderIte
 import { SchemaTaggedMessageLegalContents, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge, isSchemaTaggedMessageLegalContents, SchemaConditionTag, isImportableTag, isSchemaWithKey } from "../simpleSchema/baseClasses"
 import { decodeLegacyContentStructure, extractConditionedItemFromContents, extractNameFromContents, legacyContentStructure } from "../simpleSchema/utils";
 import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses";
-import dfsWalk from "../sequence/tree/dfsWalk";
-import { selectRender } from "./selectors/render";
-import { selectName } from "./selectors/name";
+import dfsWalk from "../sequence/tree/dfsWalk"
+import { selectRender } from "./selectors/render"
+import { selectName } from "./selectors/name"
+import { selectMapRooms } from "./selectors/mapRooms"
+import { selectImages } from './selectors/images'
 
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
 
@@ -478,7 +480,10 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .sort(normalAlphabeticKeySort)
         .forEach((map) => {
             const { contents, name } = extractConditionedMapContents(argumentNormalizer)(map)
-            const children = stripComponentContents(decodeLegacyContentStructure(contents))
+            const rooms = argumentNormalizer.select({ key: map.key, selector: selectMapRooms })
+            const nameChildren = argumentNormalizer.select({ key: map.key, selector: selectName })
+            const images = argumentNormalizer.select({ key: map.key, selector: selectImages })
+
             resultNormalizer.put({
                 data: {
                     tag: 'Map',
@@ -492,7 +497,14 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
                     }),
                     images: (contents as SchemaTag[]).filter(isSchemaImage).map(({ key }) => (key))
                 },
-                children
+                children: [
+                    ...(nameChildren.length ? [{
+                        data: { tag: 'Name' as const, contents: [] },
+                        children: nameChildren
+                    }] : []),
+                    ...images,
+                    ...rooms
+                ]
             }, { 
                 contextStack: [{
                     key: rootNode.key,

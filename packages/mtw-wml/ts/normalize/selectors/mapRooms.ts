@@ -8,10 +8,11 @@ export const selectMapRooms = (tree: GenericTree<SchemaTag>, options={ tag: '', 
     }
     const tagTree = new SchemaTagTree(tree)
     //
-    // TODO: Create a separate Bookmark render, which doesn't prune internal bookmarks
+    // TODO: Create prune { type: 'After' } options in filtered, and use that to prune out all the
+    // children after Room.
     //
     return tagTree
         .reordered([options.tag, 'If', 'Room'])
-        .filtered({ classes: ['Room'], prune: ['Asset', options.tag]})
+        .filtered({ classes: ['Room'], prune: ['Asset', options.tag, 'Description', 'Exit', 'Name']})
         .tree
 }
