@@ -18,3 +18,7 @@ export const zipList = <T extends any, O extends any>(list: T[], callback: (valu
         finalReturn
     ]
 }
+
+export const unique = <T>(...lists: T[][]): T[] => ([
+    ...(new Set(lists.reduce<T[]>((previous, item) => ([ ...previous, ...item ]), [])))
+])
