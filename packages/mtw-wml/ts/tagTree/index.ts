@@ -205,6 +205,23 @@ export class TagTree<NodeData extends {}> {
                             if ('match' in arg) {
                                 return indicesMatching(arg.match)
                             }
+                            if ('after' in arg) {
+                                const matches = indicesMatching(arg.after)
+                                if (matches.length) {
+                                    return tags.map((_, index) => (index)).filter((index) => (index > matches[0]))
+                                }
+                            }
+                            if ('before' in arg) {
+                                const matches = indicesMatching(arg.before)
+                                if (matches.length) {
+                                    const rightMostMatch = matches.slice(-1)[0]
+                                    return tags.map((_, index) => (index)).filter((index) => (index < rightMostMatch))
+                                }
+                            }
+                            if ('not' in arg) {
+                                const matches = unique(arg.not.map(indicesMatching).flat(1))
+                                return tags.map((_, index) => (index)).filter((index) => (!matches.includes(index)))
+                            }
                             return []
                         }).flat(1)
                 )
