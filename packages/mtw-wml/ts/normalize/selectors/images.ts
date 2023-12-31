@@ -9,6 +9,7 @@ export const selectImages = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
     const tagTree = new SchemaTagTree(tree)
     return tagTree
         .reordered([options.tag, 'If', 'Image'])
-        .filter({ classes: ['Image'], prune: ['Asset', options.tag]})
+        .filter({ classes: ['Image'] })
+        .prune([{ not: ['If', 'Image' ] }])
         .tree
 }

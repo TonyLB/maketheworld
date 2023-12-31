@@ -12,7 +12,6 @@ type TagTreeTreeOptions<NodeData extends {}> = {
 type TagTreeFilterArguments<NodeData extends {}> = {
     classes?: string[];
     nodes?: NodeData[];
-    prune?: string[];
 }
 
 type TagTreeMatchOperand<NodeData extends {}> = 
@@ -163,7 +162,7 @@ export class TagTree<NodeData extends {}> {
     //
     filter(args: TagTreeFilterArguments<NodeData>): TagTree<NodeData> {
         const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
-        const { nodes = [], classes = [], prune = [] } = args
+        const { nodes = [], classes = [] } = args
         returnValue._tagList = this._tagList
             .filter((tags) => {
                 const classifiedTags = tags.map(this._classifier)
@@ -172,7 +171,6 @@ export class TagTree<NodeData extends {}> {
             .filter((tags) => {
                 return nodes.reduce<boolean>((previous, node) => (previous && Boolean(tags.find((check) => (this._compare(node, check))))), true)
             })
-            .map((tags) => (tags.filter((node) => (!prune.includes(this._classifier(node))))))
         return returnValue
     }
 

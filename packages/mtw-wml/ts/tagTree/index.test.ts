@@ -221,31 +221,41 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const filteredTreeOne = tagTree.filter({ nodes: [{ tag: 'Room', key: 'room1', contents: [] }], classes: ['Description'], prune: ['Asset', 'Room', 'Description'] })
+            const filteredTreeOne = tagTree.filter({ nodes: [{ tag: 'Room', key: 'room1', contents: [] }], classes: ['Description'] })
             expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
-                An institutional lobby.
-                <If {true}>
-                    <Space />
-                    The lights are out, and shadows stretch along the walls.
-                </If>
+                <Asset key=(test)>
+                    <Room key=(room1)><Description>An institutional lobby.</Description></Room>
+                    <If {true}>
+                        <Room key=(room1)>
+                            <Description>
+                                <Space />
+                                The lights are out, and shadows stretch along the walls.
+                            </Description>
+                        </Room>
+                    </If>
+                </Asset>
             `))
-            const filteredTreeTwo = tagTree.filter({ nodes: [{ tag: 'Room', key: 'room1', contents: [] }], classes: ['Name'], prune: ['Asset', 'Room', 'Name'] })
+            const filteredTreeTwo = tagTree.filter({ nodes: [{ tag: 'Room', key: 'room1', contents: [] }], classes: ['Name'] })
             expect(schemaToWML(filteredTreeTwo.tree)).toEqual(deIndentWML(`
-                Lobby
-                <If {true}><Space />at night</If>
+                <Asset key=(test)>
+                    <Room key=(room1)><Name>Lobby</Name></Room>
+                    <If {true}><Room key=(room1)><Name><Space />at night</Name></Room></If>
+                </Asset>
             `))
-            const filteredTreeThree = tagTree.reordered(['Room', 'Description', 'Name', 'If']).filter({ classes: ['Room', 'Description'], prune: ['Asset'] })
+            const filteredTreeThree = tagTree.reordered(['Room', 'Description', 'Name', 'If']).filter({ classes: ['Room', 'Description'] })
             expect(schemaToWML(filteredTreeThree.tree)).toEqual(deIndentWML(`
-                <Room key=(room1)>
-                    <Description>
-                        An institutional
-                        lobby.<If {true}>
-                            <Space />
-                            The lights are out, and shadows stretch along the walls.
-                        </If>
-                    </Description>
-                </Room>
-                <Room key=(room2)><Description>A boring test room</Description></Room>
+                <Asset key=(test)>
+                    <Room key=(room1)>
+                        <Description>
+                            An institutional
+                            lobby.<If {true}>
+                                <Space />
+                                The lights are out, and shadows stretch along the walls.
+                            </If>
+                        </Description>
+                    </Room>
+                    <Room key=(room2)><Description>A boring test room</Description></Room>
+                </Asset>
             `))
         })    
     })
