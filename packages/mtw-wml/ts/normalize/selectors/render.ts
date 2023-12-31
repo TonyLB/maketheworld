@@ -1,5 +1,5 @@
 import { GenericTree } from "../../sequence/tree/baseClasses"
-import { SchemaTag } from "../../simpleSchema/baseClasses"
+import { SchemaBookmarkTag, SchemaTag, isSchemaBookmark } from "../../simpleSchema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 
 //
@@ -10,11 +10,18 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
         return []
     }
     const tagTree = new SchemaTagTree(tree)
-    //
-    // TODO: Create a separate Bookmark render, which doesn't prune internal bookmarks
-    //
-    return tagTree
-        .reordered([options.tag, 'Description', 'If'])
-        .filtered({ classes: ['Description'], prune: ['Asset', options.tag, 'Description']})
-        .tree
+    if (options.tag === 'Bookmark') {
+        const matchTag: SchemaBookmarkTag = { tag: 'Bookmark', key: options.key, contents: [] }
+        return tagTree
+            .reordered([options.tag, 'If'])
+            .prune([{ before: matchTag }, { match: matchTag }, { after: (node) => (isSchemaBookmark(node) && node.key !== options.key) }])
+            .tree
+    }
+    else {
+        return tagTree
+            .reordered([options.tag, 'Description', 'If'])
+            .filter({ classes: ['Description'] })
+            .prune([{ before: 'Description' }, { match: 'Description' }])
+            .tree
+    }
 }

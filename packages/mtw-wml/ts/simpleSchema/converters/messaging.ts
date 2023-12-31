@@ -24,7 +24,6 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen }): SchemaMessageTag => ({
             tag: 'Message',
             contents: [],
-            render: [],
             rooms: [],
             ...validateProperties(messagingTemplates.Message)(parseOpen)
         }),
@@ -32,7 +31,6 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
         finalize: (initialTag: SchemaMessageTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                render: compressWhitespace(contents.filter(({ data }) => (isSchemaTaggedMessageLegalContents(data)))).map(({ data }) => (data)),
                 rooms: contents.reduce((previous, { data: room }) => (
                     isSchemaRoom(room)
                         ? [
@@ -42,7 +40,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
                         : previous
                 ), [])
             },
-            children: contents,
+            children: compressWhitespace(contents, { messageParsing: true }),
         })
     },
     Moment: {

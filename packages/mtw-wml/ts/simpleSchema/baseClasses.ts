@@ -207,9 +207,6 @@ export type SchemaRoomLegalIncomingContents = SchemaNameTag | SchemaDescriptionT
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
-    name: SchemaTaggedMessageLegalContents[];
-    render: SchemaTaggedMessageLegalContents[];
-    display?: string;
     x?: number;
     y?: number;
     contents: SchemaTag[];
@@ -219,8 +216,6 @@ export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag | 
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
-    name: SchemaTaggedMessageLegalContents[];
-    render: SchemaTaggedMessageLegalContents[];
     contents: SchemaTag[];
 } & SchemaImportableBase
 
@@ -228,12 +223,10 @@ export type SchemaKnowledgeLegalContents = SchemaDescriptionTag | SchemaNameTag 
 export type SchemaKnowledgeTag = {
     tag: 'Knowledge';
     key: string;
-    name: SchemaTaggedMessageLegalContents[];
-    render: SchemaTaggedMessageLegalContents[];
     contents: SchemaTag[];
 } & SchemaImportableBase
 
-export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTag
+export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag | SchemaConditionTag | SchemaNameTag
 
 export type SchemaMapRoom = {
     key: string;
@@ -259,7 +252,6 @@ export type SchemaMessageLegalContents = SchemaRoomTag | SchemaTaggedMessageLega
 export type SchemaMessageTag = {
     tag: 'Message';
     key: string;
-    render: SchemaTaggedMessageLegalContents[];
     contents: SchemaTag[];
     rooms: SchemaMessageRoom[];
 } & SchemaImportableBase
@@ -363,7 +355,7 @@ export const isSchemaFeatureIncomingContents = (value: SchemaTag): value is Sche
 export const isSchemaKnowledgeIncomingContents = (value: SchemaTag): value is SchemaKnowledgeLegalContents => (value.tag === 'Description' || isSchemaCondition(value) || isSchemaName(value))
 export const isSchemaRoomContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Image', 'Exit', 'Feature', 'Description', 'If'].includes(value.tag))
 export const isSchemaRoomIncomingContents = (value: SchemaTag): value is SchemaRoomLegalIncomingContents => (['Name', 'Image', 'Exit', 'Feature', 'Description', 'If'].includes(value.tag))
-export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'If'].includes(value.tag))
+export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'If', 'Name'].includes(value.tag))
 export const isSchemaMessageContents = (value: SchemaTag): value is SchemaMessageLegalContents => (isSchemaRoom(value) || isSchemaTaggedMessageLegalContents(value))
 
 export const isSchemaFirstImpression = (value: SchemaTag): value is SchemaFirstImpressionTag => (value.tag === 'FirstImpression')

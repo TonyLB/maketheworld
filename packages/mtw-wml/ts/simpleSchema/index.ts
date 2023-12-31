@@ -116,8 +116,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 tag,
                 key: '',
                 contents: [],
-                render: [],
-                name: []
             }
         case 'Action':
             return {
@@ -187,7 +185,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 tag,
                 key: '',
                 rooms: [],
-                render: [],
                 contents: []
             }
         case 'Moment':

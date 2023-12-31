@@ -4,7 +4,7 @@ import parse from '../simpleParser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { deIndentWML } from '../simpleSchema/utils'
-import { SchemaTag, isSchemaWithKey } from '../simpleSchema/baseClasses'
+import { SchemaTag, isSchemaBookmark, isSchemaWithKey } from '../simpleSchema/baseClasses'
 import { deepEqual } from '../lib/objects'
 
 const classify = ({ tag }: SchemaTag) => (tag)
@@ -33,30 +33,30 @@ describe('TagTree', () => {
             expect(tagTree._tagList).toEqual([
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room1', name: [{ tag: 'String', value: 'Test room' }], render: [{ tag: 'String', value: 'Test description' }, { tag: 'String', value: ': Added' }], contents: [] },
+                    { tag: 'Room', key: 'room1', contents: [] },
                     { tag: 'Description', contents: [] },
                     { tag: 'String', value: 'Test description' },
                 ],
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room1', name: [{ tag: 'String', value: 'Test room' }], render: [{ tag: 'String', value: 'Test description' }, { tag: 'String', value: ': Added' }], contents: [] },
+                    { tag: 'Room', key: 'room1', contents: [] },
                     { tag: 'Name', contents: [] },
                     { tag: 'String', value: 'Test room' },
                 ],
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room1', name: [{ tag: 'String', value: 'Test room' }], render: [{ tag: 'String', value: 'Test description' }, { tag: 'String', value: ': Added' }], contents: [] },
+                    { tag: 'Room', key: 'room1', contents: [] },
                     { tag: 'Exit', key: 'room1#room2', from: 'room1', to: 'room2', name: '', contents: [] }
                 ],
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room1', name: [{ tag: 'String', value: 'Test room' }], render: [{ tag: 'String', value: 'Test description' }, { tag: 'String', value: ': Added' }], contents: [] },
+                    { tag: 'Room', key: 'room1', contents: [] },
                     { tag: 'Description', contents: [] },
                     { tag: 'String', value: ': Added' },
                 ],
                 [
                     { tag: 'Asset', key: 'test', contents: [] },
-                    { tag: 'Room', key: 'room2', name: [], render: [], contents: [] }
+                    { tag: 'Room', key: 'room2', contents: [] }
                 ]
             ])
         })
@@ -202,50 +202,203 @@ describe('TagTree', () => {
         `))
     })
 
-    it('should filter tags correctly', () => {
-        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-            <Asset key=(test)>
-                <Room key=(room1)>
-                    <Name>Lobby</Name>
-                    <Description>An institutional lobby.</Description>
-                </Room>
-                <Feature key=(clockTower)><Description>A square clock-tower of yellow stone.</Description></Feature>
-                <Room key=(room2)><Description>A boring test room</Description></Room>
+    describe('filter', () => {
+        it('should filter tags correctly', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Room key=(room1)>
+                        <Name>Lobby</Name>
+                        <Description>An institutional lobby.</Description>
+                    </Room>
+                    <Feature key=(clockTower)><Description>A square clock-tower of yellow stone.</Description></Feature>
+                    <Room key=(room2)><Description>A boring test room</Description></Room>
+                    <If {true}>
+                        <Room key=(room1)>
+                            <Name><Space />at night</Name>
+                            <Description><Space />The lights are out, and shadows stretch along the walls.</Description>
+                        </Room>
+                    </If>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const filteredTreeOne = tagTree.filter({ nodes: [{ tag: 'Room', key: 'room1', contents: [] }], classes: ['Description'] })
+            expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(room1)><Description>An institutional lobby.</Description></Room>
+                    <If {true}>
+                        <Room key=(room1)>
+                            <Description>
+                                <Space />
+                                The lights are out, and shadows stretch along the walls.
+                            </Description>
+                        </Room>
+                    </If>
+                </Asset>
+            `))
+            const filteredTreeTwo = tagTree.filter({ nodes: [{ tag: 'Room', key: 'room1', contents: [] }], classes: ['Name'] })
+            expect(schemaToWML(filteredTreeTwo.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(room1)><Name>Lobby</Name></Room>
+                    <If {true}><Room key=(room1)><Name><Space />at night</Name></Room></If>
+                </Asset>
+            `))
+            const filteredTreeThree = tagTree.reordered(['Room', 'Description', 'Name', 'If']).filter({ classes: ['Room', 'Description'] })
+            expect(schemaToWML(filteredTreeThree.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(room1)>
+                        <Description>
+                            An institutional
+                            lobby.<If {true}>
+                                <Space />
+                                The lights are out, and shadows stretch along the walls.
+                            </If>
+                        </Description>
+                    </Room>
+                    <Room key=(room2)><Description>A boring test room</Description></Room>
+                </Asset>
+            `))
+        })    
+    })
+
+    describe('prune', () => {
+        it('should prune specific classes on direct match', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Room key=(room1)>
+                        <Name>Lobby</Name>
+                        <Description>An institutional lobby.</Description>
+                    </Room>
+                    <Feature key=(clockTower)><Description>A square clock-tower of yellow stone.</Description></Feature>
+                    <Room key=(room2)><Description>A boring test room</Description></Room>
+                    <If {true}>
+                        <Room key=(room1)>
+                            <Name><Space />at night</Name>
+                            <Description><Space />The lights are out, and shadows stretch along the walls.</Description>
+                        </Room>
+                    </If>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune([{ match: 'Asset' }, { match: 'Name' }, { match: 'Description' }])
+            expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
+                <Room key=(room1)>LobbyAn institutional lobby.</Room>
+                <Feature key=(clockTower)>A square clock-tower of yellow stone.</Feature>
+                <Room key=(room2)>A boring test room</Room>
                 <If {true}>
                     <Room key=(room1)>
-                        <Name><Space />at night</Name>
-                        <Description><Space />The lights are out, and shadows stretch along the walls.</Description>
-                    </Room>
-                </If>
-            </Asset>
-        `))))
-        const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-        const filteredTreeOne = tagTree.filtered({ nodes: [{ tag: 'Room', key: 'room1', render: [], name: [], contents: [] }], classes: ['Description'], prune: ['Asset', 'Room', 'Description'] })
-        expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
-            An institutional lobby.
-            <If {true}>
-                <Space />
-                The lights are out, and shadows stretch along the walls.
-            </If>
-        `))
-        const filteredTreeTwo = tagTree.filtered({ nodes: [{ tag: 'Room', key: 'room1', render: [], name: [], contents: [] }], classes: ['Name'], prune: ['Asset', 'Room', 'Name'] })
-        expect(schemaToWML(filteredTreeTwo.tree)).toEqual(deIndentWML(`
-            Lobby
-            <If {true}><Space />at night</If>
-        `))
-        const filteredTreeThree = tagTree.reordered(['Room', 'Description', 'Name', 'If']).filtered({ classes: ['Room', 'Description'], prune: ['Asset'] })
-        expect(schemaToWML(filteredTreeThree.tree)).toEqual(deIndentWML(`
-            <Room key=(room1)>
-                <Description>
-                    An institutional
-                    lobby.<If {true}>
+                        <Space />
+                        at night
                         <Space />
                         The lights are out, and shadows stretch along the walls.
+                    </Room>
+                </If>
+            `))
+        })
+
+        it('should prune specific classes on after match', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Room key=(room1)>
+                        <Name>Lobby</Name>
+                        <Description>An institutional lobby.</Description>
+                    </Room>
+                    <Feature key=(clockTower)><Description>A square clock-tower of yellow stone.</Description></Feature>
+                    <Room key=(room2)><Description>A boring test room</Description></Room>
+                    <If {true}>
+                        <Room key=(room1)>
+                            <Name><Space />at night</Name>
+                            <Description><Space />The lights are out, and shadows stretch along the walls.</Description>
+                        </Room>
                     </If>
-                </Description>
-            </Room>
-            <Room key=(room2)><Description>A boring test room</Description></Room>
-        `))
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune([{ match: 'Asset' }, { after: 'Feature' }, { after: 'Room' }])
+            expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
+                <Room key=(room1) />
+                <Feature key=(clockTower) />
+                <Room key=(room2) />
+                <If {true}><Room key=(room1) /></If>
+            `))
+        })
+
+        it('should prune specific classes on before match', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Room key=(room1)>
+                        <Name>Lobby</Name>
+                        <Description>An institutional lobby.</Description>
+                    </Room>
+                    <Feature key=(clockTower)><Description>A square clock-tower of yellow stone.</Description></Feature>
+                    <Room key=(room2)><Description>A boring test room</Description></Room>
+                    <If {true}>
+                        <Room key=(room1)>
+                            <Name><Space />at night</Name>
+                            <Description><Space />The lights are out, and shadows stretch along the walls.</Description>
+                        </Room>
+                    </If>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune([{ before: 'Feature' }, { before: 'Room' }])
+            expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
+                <Room key=(room1)>
+                    <Name>Lobby<Space />at night</Name>
+                    <Description>
+                        An institutional lobby.
+                        <Space />
+                        The lights are out, and shadows stretch along the walls.
+                    </Description>
+                </Room>
+                <Feature key=(clockTower)>
+                    <Description>A square clock-tower of yellow stone.</Description>
+                </Feature>
+                <Room key=(room2)><Description>A boring test room</Description></Room>
+            `))
+        })
+
+        it('should prune everything except specific classes on not match', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Room key=(room1)>
+                        <Name>Lobby</Name>
+                        <Description>An institutional lobby.</Description>
+                    </Room>
+                    <Feature key=(clockTower)><Description>A square clock-tower of yellow stone.</Description></Feature>
+                    <Room key=(room2)><Description>A boring test room</Description></Room>
+                    <If {true}>
+                        <Room key=(room1)>
+                            <Name><Space />at night</Name>
+                            <Description><Space />The lights are out, and shadows stretch along the walls.</Description>
+                        </Room>
+                    </If>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune([{ not: ['Feature', 'Room'] }])
+            expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
+                <Room key=(room1) />
+                <Feature key=(clockTower) />
+                <Room key=(room2) />
+            `))
+        })
+
+        it('should prune specific node values', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Bookmark key=(bookmark1)>
+                        Test <Bookmark key=(bookmark2)>Red herring</Bookmark>
+                    </Bookmark>
+                    <If {true}><Bookmark key=(bookmark1)>More data</Bookmark></If>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune([{ before: { tag: 'Bookmark', key: 'bookmark1', contents: [] } }, { after: (node) => (isSchemaBookmark(node) && node.key !== 'bookmark1') }])
+            expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
+                <Bookmark key=(bookmark1)>Test <Bookmark key=(bookmark2) />More data</Bookmark>
+            `))
+        })
+
     })
 
 })

@@ -31,4 +31,51 @@ describe('render selector', () => {
             <If {true}>: Addendum</If>
         `))
     })
+
+    it(`should correctly ignore wrappers that don't impact render`, () => {
+        const testOne = new Normalizer()
+        testOne.loadWML(`
+            <Asset key=(testAsset)>
+                <Room key=(test)>
+                    <Description>
+                        One
+                        <br />
+                    </Description>
+                </Room>
+                <Room key=(testTwo) />
+                <Message key=(testMessage)>
+                    Test message
+                    <Room key=(test)>
+                        <Description>
+                            Two
+                        </Description>
+                        <Exit to=(testTwo)>Test Exit</Exit>
+                    </Room>
+                </Message>
+                <Room key=(testTwo)>
+                    <Exit to=(test)>Test Return</Exit>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(testOne.select({ key: 'test', selector: selectRender }))).toEqual(deIndentWML(`
+            One
+            <br />
+            Two
+        `))
+    })
+
+    it(`should correctly extract render from nested bookmarks`, () => {
+        const testOne = new Normalizer()
+        testOne.loadWML(`
+            <Asset key=(testAsset)>
+                <Bookmark key=(testOne)>
+                    Test<Bookmark key=(testTwo)>Red herring</Bookmark>
+                </Bookmark>
+            </Asset>
+        `)
+        expect(schemaToWML(testOne.select({ key: 'testOne', selector: selectRender }))).toEqual(deIndentWML(`
+            Test
+            <Bookmark key=(testTwo) />
+        `))
+    })
 })

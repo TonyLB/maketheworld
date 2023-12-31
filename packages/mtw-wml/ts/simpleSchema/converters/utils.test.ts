@@ -17,8 +17,8 @@ describe('parser utilities', () => {
                 branchTags: [],
                 leafTags: ['Room']
             })([
-                { data: { tag: 'Room', name: [], render: [], contents: [], key: 'ABC', x: 0, y: 100 }, children: [] },
-                { data: { tag: 'Room', name: [], render: [], contents: [], key: 'DEF' }, children: [] }
+                { data: { tag: 'Room', contents: [], key: 'ABC', x: 0, y: 100 }, children: [] },
+                { data: { tag: 'Room', contents: [], key: 'DEF' }, children: [] }
             ])).toBe(false)
         })
 
@@ -33,8 +33,8 @@ describe('parser utilities', () => {
                 branchTags: [],
                 leafTags: ['Room']
             })([
-                { data: { tag: 'Room', name: [], render: [], contents: [], key: 'ABC', x: 0, y: 100 }, children: [] },
-                { data: { tag: 'Room', name: [], render: [], contents: [], key: 'DEF', x: 0, y: 0 }, children: [] }
+                { data: { tag: 'Room', contents: [], key: 'ABC', x: 0, y: 100 }, children: [] },
+                { data: { tag: 'Room', contents: [], key: 'DEF', x: 0, y: 0 }, children: [] }
             ])).toBe(true)
         })
 
@@ -52,8 +52,6 @@ describe('parser utilities', () => {
                 data: {
                     tag: 'Room',
                     key: 'ABC',
-                    name: [],
-                    render: [],
                     contents: []
                 },
                 children: [
@@ -76,8 +74,6 @@ describe('parser utilities', () => {
                 data: {
                     tag: 'Room',
                     key: 'ABC',
-                    name: [],
-                    render: [],
                     contents: []
                 },
                 children: [

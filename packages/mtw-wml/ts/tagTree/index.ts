@@ -1,6 +1,7 @@
 import { deepEqual } from "../lib/objects";
+import { unique } from "../list";
 import { GenericTree } from "../sequence/tree/baseClasses"
-import dfsWalk from "../sequence/tree/dfsWalk";
+import dfsWalk from "../sequence/tree/dfsWalk"
 
 type TagTreeTreeOptions<NodeData extends {}> = {
     classify: (data: NodeData) => string;
@@ -11,8 +12,30 @@ type TagTreeTreeOptions<NodeData extends {}> = {
 type TagTreeFilterArguments<NodeData extends {}> = {
     classes?: string[];
     nodes?: NodeData[];
-    prune?: string[];
 }
+
+type TagTreeMatchOperand<NodeData extends {}> = 
+    string |
+    NodeData |
+    { (value: NodeData): boolean }
+
+type TagTreeMatchAfter<NodeData extends {}> = {
+    after: TagTreeMatchOperand<NodeData>
+}
+
+type TagTreeMatchBefore<NodeData extends {}> = {
+    before: TagTreeMatchOperand<NodeData>
+}
+
+type TagTreeMatchExcept<NodeData extends {}> = {
+    not: TagTreeMatchOperand<NodeData>[]
+}
+
+type TagTreeMatchExact<NodeData extends {}> = {
+    match: TagTreeMatchOperand<NodeData>
+}
+
+type TagTreePruneArgs<NodeData extends {}> = (TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchExcept<NodeData>)[]
 
 export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>): NodeData[][] => {
     return dfsWalk<NodeData, NodeData[][], {}>({
@@ -137,9 +160,9 @@ export class TagTree<NodeData extends {}> {
     //
     // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
     //
-    filtered(args: TagTreeFilterArguments<NodeData>): TagTree<NodeData> {
+    filter(args: TagTreeFilterArguments<NodeData>): TagTree<NodeData> {
         const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
-        const { nodes = [], classes = [], prune = [] } = args
+        const { nodes = [], classes = [] } = args
         returnValue._tagList = this._tagList
             .filter((tags) => {
                 const classifiedTags = tags.map(this._classifier)
@@ -148,9 +171,63 @@ export class TagTree<NodeData extends {}> {
             .filter((tags) => {
                 return nodes.reduce<boolean>((previous, node) => (previous && Boolean(tags.find((check) => (this._compare(node, check))))), true)
             })
-            .map((tags) => (tags.filter((node) => (!prune.includes(this._classifier(node))))))
         return returnValue
     }
+
+    //
+    // Create a tag tree with less levels by pruning specified tags out of the lists
+    //
+    prune(args: TagTreePruneArgs<NodeData>): TagTree<NodeData> {
+        const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+        returnValue._tagList = this._tagList
+            .map((tags) => {
+                const indicesMatching = (operand: TagTreeMatchOperand<NodeData>): number[] => {
+                    return tags.map((node, index) => {
+                        if (typeof operand === 'string' && this._classifier(node) === operand) {
+                            return [index]
+                        }
+                        else if (typeof operand === 'function' && (operand as (value: NodeData) => boolean)(node)) {
+                            return [index]
+                        }
+                        else if (typeof operand === 'object' && this._compare(operand, node)) {
+                            return [index]
+                        }
+                        else {
+                            return []
+                        }
+                    }).flat(1)
+                }
+                const indicesToPrune = unique(
+                    args
+                        .map((arg) => {
+                            if ('match' in arg) {
+                                return indicesMatching(arg.match)
+                            }
+                            if ('after' in arg) {
+                                const matches = indicesMatching(arg.after)
+                                if (matches.length) {
+                                    return tags.map((_, index) => (index)).filter((index) => (index > matches[0]))
+                                }
+                            }
+                            if ('before' in arg) {
+                                const matches = indicesMatching(arg.before)
+                                if (matches.length) {
+                                    const rightMostMatch = matches.slice(-1)[0]
+                                    return tags.map((_, index) => (index)).filter((index) => (index < rightMostMatch))
+                                }
+                            }
+                            if ('not' in arg) {
+                                const matches = unique(arg.not.map(indicesMatching).flat(1))
+                                return tags.map((_, index) => (index)).filter((index) => (!matches.includes(index)))
+                            }
+                            return []
+                        }).flat(1)
+                )
+                return tags.map((node, index) => (indicesToPrune.includes(index) ? [] : [node])).flat(1)
+            })
+        return returnValue
+    }
+
 }
 
 export default TagTree

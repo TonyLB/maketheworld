@@ -10,11 +10,9 @@ export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key:
         return []
     }
     const tagTree = new SchemaTagTree(tree)
-    //
-    // TODO: Create a separate Bookmark render, which doesn't prune internal bookmarks
-    //
     return tagTree
         .reordered([options.tag, 'Name', 'If'])
-        .filtered({ classes: ['Name'], prune: ['Asset', options.tag, 'Name']})
+        .filter({ classes: ['Name'] })
+        .prune([{ before: 'Name' }, { match: 'Name' }])
         .tree
 }

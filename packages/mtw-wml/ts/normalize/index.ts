@@ -756,6 +756,11 @@ export class Normalizer {
     // that it has added to the NormalForm mapping as children of the most granular level of the context
     // (i.e., if a feature is being added in a Room then that feature becomes a child of that room)
     //
+
+    //
+    // TODO: Refactor put to deal with the concept that some of its children are now SchemaTags, rather than
+    // NormalReference
+    //
     put({ data: node, children }: GenericTreeNode<SchemaTag>, position: NormalizerInsertPosition): NormalReference | undefined {
         let returnValue: NormalReference = undefined
         //
@@ -778,36 +783,46 @@ export class Normalizer {
             })
             return returnValue
         }
+        const translateContext: NormalizerContext = {
+            contextStack: position.contextStack
+        }
         if (!isSchemaTagWithNormalEquivalent(node)) {
+            const parentReference = this._getParentReference(translateContext.contextStack)
+            if (parentReference && !isSchemaImport(node)) {
+                const { children: parentChildren = [] } = this._lookupAppearance(parentReference)
+                if (typeof position.index === 'number') {
+                    this._updateAppearanceContents(parentReference.key, parentReference.index, [...parentChildren.slice(0, position.index), { data: node, children }, ...parentChildren.slice(position.index)])
+                }
+                else {
+                    this._updateAppearanceContents(parentReference.key, parentReference.index, [...parentChildren, { data: node, children }])
+                }
+            }
             return returnValue
         }
         if (position.replace) {
             const deleteReference = this._insertPositionToReference(position)
             this.delete(deleteReference, { removeEmptyConditions: false })
         }
-        const translateContext: NormalizerContext = {
-            contextStack: position.contextStack
-        }
         this._validateTags({ data: node, children })
         let appearanceIndex: number
         let returnKey: string = node.key
         switch(node.tag) {
-            case 'Exit':
-                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children: [] }, node), position)
-                returnValue = {
-                    tag: 'Exit',
-                    key: node.key,
-                    index: appearanceIndex
-                }
-                break
-            case 'Bookmark':
-                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children }, node), position)
-                returnValue = {
-                    tag: 'Bookmark',
-                    key: node.key,
-                    index: appearanceIndex
-                }
-                break
+            // case 'Exit':
+            //     appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children: [] }, node), position)
+            //     returnValue = {
+            //         tag: 'Exit',
+            //         key: node.key,
+            //         index: appearanceIndex
+            //     }
+            //     break
+            // case 'Bookmark':
+            //     appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children }, node), position)
+            //     returnValue = {
+            //         tag: 'Bookmark',
+            //         key: node.key,
+            //         index: appearanceIndex
+            //     }
+            //     break
             case 'Import':
                 const translatedImport = this._translate({ ...translateContext, data: node, children: [] }, node)
                 const importIndex = this._mergeAppearance(translatedImport.key, translatedImport, position)
@@ -1049,26 +1064,12 @@ export class Normalizer {
             case 'Room':
             case 'Feature':
             case 'Knowledge':
-                const componentRenderTree = decodeLegacyContentStructure(node.render.filter(isSchemaTaggedMessageLegalContents))
-                const componentNameTree = decodeLegacyContentStructure(node.name.filter(isSchemaTaggedMessageLegalContents))
+                // const componentRenderTree = decodeLegacyContentStructure(node.render.filter(isSchemaTaggedMessageLegalContents))
+                // const componentNameTree = decodeLegacyContentStructure(node.name.filter(isSchemaTaggedMessageLegalContents))
                 return {
                     key: node.key || defaultKey,
                     tag: node.tag,
-                    appearances: [{
-                        ...defaultedAppearance,
-                        children: [
-                            ...appearance.children,
-                            ...(componentNameTree.length
-                                ? [{ data: { tag: 'Name' as const, contents: [] }, children: componentNameTree }]
-                                : []
-                            ),
-                            ...(componentRenderTree.length
-                                ? [{ data: { tag: 'Description' as const, contents: [] }, children: componentRenderTree }]
-                                : []
-                            )
-                        ],
-                        ...((node.tag === 'Room' && (node.x !== undefined || node.y !== undefined)) ? { x: node.x, y: node.y } : {})
-                    }]
+                    appearances: [defaultedAppearance]
                 }
             case 'Bookmark':
                 return {
@@ -1081,12 +1082,12 @@ export class Normalizer {
                     key: node.key || defaultKey,
                     tag: node.tag,
                     appearances: [{
-                        ...defaultedAppearance,
-                        render: node.render.map(schemaDescriptionToComponentRender(this._tags)).filter((value) => (value)),
+                        ...defaultedAppearance as MessageAppearance,
                         rooms: node.rooms,
                         children: [
-                            ...decodeLegacyContentStructure(node.contents),
-                            ...decodeLegacyContentStructure(node.render)
+                            ...appearance.children,
+                            // ...decodeLegacyContentStructure(node.contents),
+                            // ...decodeLegacyContentStructure(node.render)
                         ]
                     }]
                 }
@@ -1161,7 +1162,6 @@ export class Normalizer {
     }
 
     loadWML(wml: string): void {
-        // const schema = schemaFromWML(wml)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(wml))))
         this.loadSchema(schema)
     }
@@ -1193,22 +1193,9 @@ export class Normalizer {
                     children: [...this._expandNormalRefTree(children), ...refChildren]
                 }
             }
-            let expandedTags: GenericTree<SchemaTag> = []
-            if (data.tag === 'Link') {
-                expandedTags = [
-                    ...expandedTags,
-                    {
-                        data: { tag: 'String', value: data.text },
-                        children: []
-                    }
-                ]
-            }
             return {
                 data,
-                children: [
-                    ...this._expandNormalRefTree(children),
-                    ...expandedTags
-                ]
+                children: this._expandNormalRefTree(children)
             }
         })
     }
@@ -1273,7 +1260,7 @@ export class Normalizer {
         const appearanceTagTrees = normalItem.appearances
             .map(({ contextStack, data, children }) => {
                 const contextNodes = contextStack.map(this._lookupAppearance.bind(this)).map(({ data }) => (data))
-                return new SchemaTagTree([{ data, children }])._tagList.map((tagItem) => ([...contextNodes, ...tagItem]))
+                return new SchemaTagTree(this._expandNormalRefTree([{ data, children }]))._tagList.map((tagItem) => ([...contextNodes, ...tagItem]))
             }).flat(1)
         const aggregateTagTree = new SchemaTagTree([])
         aggregateTagTree._tagList = appearanceTagTrees

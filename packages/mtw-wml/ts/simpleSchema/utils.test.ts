@@ -162,8 +162,6 @@ describe('legacyContentStructure', () => {
                 data: {
                     tag: 'Room',
                     key: 'Room-1',
-                    name: [],
-                    render: [],
                     contents: []
                 },
                 children: [
@@ -187,8 +185,6 @@ describe('legacyContentStructure', () => {
         ])).toEqual([{
             tag: 'Room',
             key: 'Room-1',
-            name: [],
-            render: [],
             contents: [
                 { tag: 'Name', contents: [{ tag: 'String', value: 'Test Name' }] },
                 {
