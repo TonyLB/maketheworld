@@ -12,7 +12,7 @@ export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key:
     const tagTree = new SchemaTagTree(tree)
     return tagTree
         .reordered([options.tag, 'Name', 'If'])
-        .filter({ classes: ['Name'] })
+        .filter([{ match: 'Name' }])
         .prune([{ before: 'Name' }, { match: 'Name' }])
         .tree
 }
