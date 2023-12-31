@@ -23,15 +23,15 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(importExportTemplates.Import)(parseOpen)
         }),
         typeCheckContents: isImportable,
-        finalize: (initialTag: SchemaImportTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaImportTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaImportTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaImportTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                mapping: contents.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, from, tag }) => ({
+                mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, from, tag }) => ({
                     ...previous,
                     [key]: { key: from || key, type: tag }
                 }), {})
             },
-            children: contents
+            children
         })
     },
     Export: {
@@ -41,15 +41,15 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(importExportTemplates.Export)(parseOpen)
         }),
         typeCheckContents: isImportable,
-        finalize: (initialTag: SchemaExportTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaExportTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaExportTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaExportTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                mapping: contents.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, as, tag }) => ({
+                mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, as, tag }) => ({
                     ...previous,
                     [as || key]: { key, type: tag }
                 }), {})
             },
-            children: contents
+            children
         })
     },
     Image: {

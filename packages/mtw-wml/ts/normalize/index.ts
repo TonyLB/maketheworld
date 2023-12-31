@@ -99,12 +99,9 @@ import { schemaFromParse, defaultSchemaTag } from '../simpleSchema';
 import parse from '../simpleParser';
 import tokenizer from '../parser/tokenizer';
 import { buildNormalPlaceholdersFromExport, rebuildContentsFromImport } from './importExportUtil';
-import { mergeOrderedConditionalTrees } from '../lib/sequenceTools/orderedConditionalTree';
 import { GenericTree, GenericTreeNode } from '../sequence/tree/baseClasses';
 import mergeSchemaTrees from '../simpleSchema/treeManipulation/merge';
-import { decodeLegacyContentStructure, extractConditionedItemFromContents, legacyContentStructure } from '../simpleSchema/utils';
-import { base } from 'acorn-walk';
-import dfsWalk from '../sequence/tree/dfsWalk';
+import { extractConditionedItemFromContents } from '../simpleSchema/utils';
 import SchemaTagTree from '../tagTree/schema';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
@@ -124,75 +121,12 @@ type RenameItemOptions = {
     updateExports?: boolean;
 }
 
-const schemaDescriptionToComponentRender = (translationTags: NormalizeTagTranslationMap) => (renderItem: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): ComponentRenderItem | undefined => {
-    if (renderItem.tag === 'If') {
-        return {
-            tag: 'Condition',
-            conditions: renderItem.conditions,
-            contents: renderItem.contents.map(schemaDescriptionToComponentRender(translationTags))
-        }
-    }
-    if (renderItem.tag === 'Link') {
-        if (!(renderItem.to in translationTags)) {
-            throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) with no matching key`)
-        }
-        const targetTag = translationTags[renderItem.to]
-        if (!['Action', 'Feature', 'Knowledge'].includes(targetTag)) {
-            throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) referring to an invalid tag (${targetTag})`)
-        }
-        return {
-            tag: 'Link',
-            to: renderItem.to,
-            text: renderItem.text,
-            targetTag: targetTag as 'Action' | 'Feature' | 'Knowledge'
-        }
-    }
-    else if (((item: SchemaTaggedMessageIncomingContents | SchemaTaggedMessageLegalContents): item is SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag => (['After', 'Before', 'Replace'].includes(renderItem.tag)))(renderItem)) {
-        return {
-            tag: renderItem.tag,
-            contents: renderItem.contents.map(schemaDescriptionToComponentRender(translationTags))
-        }
-    }
-    else if (renderItem.tag === 'Bookmark') {
-        return {
-            tag: 'Bookmark',
-            to: renderItem.key
-        }
-    }
-    else if (renderItem.tag === 'br') {
-        return {
-            tag: 'LineBreak' as 'LineBreak'
-        }
-    }
-    else if (renderItem.tag === 'Space') {
-        return {
-            tag: 'Space' as 'Space'
-        }
-    }
-    else if (renderItem.tag === 'String') {
-        return {
-            tag: 'String' as 'String',
-            value: renderItem.value
-        }
-    }
-    else if (renderItem.tag === 'Whitespace') {
-        return {
-            tag: 'String' as 'String',
-            value: ' '
-        }
-    }
-}
-
 export const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRenderItem): SchemaTaggedMessageLegalContents => {
     switch(renderItem.tag) {
         case 'Condition':
             return {
                 tag: 'If',
                 conditions: renderItem.conditions,
-                contents: renderItem.contents
-                    .map(componentRenderToSchemaTaggedMessage)
-                    .filter((value) => (value))
-                    .filter(isSchemaTaggedMessageLegalContents)
             }
         case 'Link':
             return {
@@ -204,7 +138,6 @@ export const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRender
             return {
                 tag: 'Bookmark',
                 key: renderItem.to,
-                contents: []
             }
         case 'LineBreak':
             return {
@@ -224,10 +157,6 @@ export const componentRenderToSchemaTaggedMessage = (renderItem: ComponentRender
         case 'Replace':
             return {
                 tag: renderItem.tag,
-                contents: renderItem.contents
-                    .map(componentRenderToSchemaTaggedMessage)
-                    .filter((value) => (value))
-                    .filter(isSchemaTaggedMessageLegalContents)
             }
     }
 }
@@ -451,7 +380,7 @@ export class Normalizer {
                     if (isNormalMap(mapItem)) {
                         const appearanceData = mapItem.appearances[appearance]
                         appearanceData.rooms = extractConditionedItemFromContents({
-                            contents: this._expandNormalRefTree(appearanceData.children),
+                            children: this._expandNormalRefTree(appearanceData.children),
                             typeGuard: isSchemaRoom,
                             transform: ({ key, x, y }) => {
                                 return {
@@ -1064,8 +993,6 @@ export class Normalizer {
             case 'Room':
             case 'Feature':
             case 'Knowledge':
-                // const componentRenderTree = decodeLegacyContentStructure(node.render.filter(isSchemaTaggedMessageLegalContents))
-                // const componentNameTree = decodeLegacyContentStructure(node.name.filter(isSchemaTaggedMessageLegalContents))
                 return {
                     key: node.key || defaultKey,
                     tag: node.tag,
@@ -1083,12 +1010,7 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...defaultedAppearance as MessageAppearance,
-                        rooms: node.rooms,
-                        children: [
-                            ...appearance.children,
-                            // ...decodeLegacyContentStructure(node.contents),
-                            // ...decodeLegacyContentStructure(node.render)
-                        ]
+                        rooms: node.rooms
                     }]
                 }
             case 'Moment':
@@ -1097,8 +1019,10 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...defaultedAppearance,
-                        messages: node.contents.filter(isSchemaMessage).map(({ key }) => (key)),
-                        children: decodeLegacyContentStructure(node.contents)
+                        //
+                        // TODO: Create message selector if denormalization needed
+                        //
+                        messages: []
                     }]
                 }
             case 'Map':
@@ -1136,8 +1060,14 @@ export class Normalizer {
                     OneCoolThing: node.OneCoolThing,
                     Outfit: node.Outfit,
                     fileName: node.fileName,
-                    images: node.contents.filter(isSchemaImage).map(({ key }) => (key)),
-                    assets: node.contents.filter(isSchemaImport).map(({ from }) => (from)),
+                    //
+                    // TODO: Create a selector for images
+                    //
+                    images: [],
+                    //
+                    // TODO: Create a selector for asset imports
+                    //
+                    assets: [],
                     appearances: [appearance]
                 }
             // default:

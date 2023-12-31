@@ -17,8 +17,8 @@ describe('parser utilities', () => {
                 branchTags: [],
                 leafTags: ['Room']
             })([
-                { data: { tag: 'Room', contents: [], key: 'ABC', x: 0, y: 100 }, children: [] },
-                { data: { tag: 'Room', contents: [], key: 'DEF' }, children: [] }
+                { data: { tag: 'Room', key: 'ABC', x: 0, y: 100 }, children: [] },
+                { data: { tag: 'Room', key: 'DEF' }, children: [] }
             ])).toBe(false)
         })
 
@@ -33,8 +33,8 @@ describe('parser utilities', () => {
                 branchTags: [],
                 leafTags: ['Room']
             })([
-                { data: { tag: 'Room', contents: [], key: 'ABC', x: 0, y: 100 }, children: [] },
-                { data: { tag: 'Room', contents: [], key: 'DEF', x: 0, y: 0 }, children: [] }
+                { data: { tag: 'Room', key: 'ABC', x: 0, y: 100 }, children: [] },
+                { data: { tag: 'Room', key: 'DEF', x: 0, y: 0 }, children: [] }
             ])).toBe(true)
         })
 
@@ -49,13 +49,9 @@ describe('parser utilities', () => {
                 branchTags: [],
                 leafTags: ['Room']
             })([{ 
-                data: {
-                    tag: 'Room',
-                    key: 'ABC',
-                    contents: []
-                },
+                data: { tag: 'Room', key: 'ABC' },
                 children: [
-                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '', contents: [] }, children: [] }
+                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '' }, children: [] }
                 ]
             }])).toBe(true)
         })
@@ -71,13 +67,9 @@ describe('parser utilities', () => {
                 branchTags: ['Room'],
                 leafTags: ['Exit']
             })([{
-                data: {
-                    tag: 'Room',
-                    key: 'ABC',
-                    contents: []
-                },
+                data: { tag: 'Room', key: 'ABC' },
                 children: [
-                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '', contents: [] }, children: [] }
+                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '' }, children: [] }
                 ]
             }])).toBe(false)
         })

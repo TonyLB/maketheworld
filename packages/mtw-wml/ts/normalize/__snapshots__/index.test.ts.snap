@@ -35,7 +35,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -62,7 +61,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -75,7 +73,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testOne",
           "tag": "Room",
           "x": undefined,
@@ -98,7 +95,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testTwo",
           "tag": "Room",
           "x": undefined,
@@ -144,7 +140,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "TestAsset",
           "tag": "Asset",
         },
@@ -178,7 +173,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "TestAsset",
           "tag": "Asset",
         },
@@ -234,7 +228,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -261,7 +254,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -274,7 +266,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -298,7 +289,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -344,7 +334,6 @@ Object {
               "if": "testVarOne",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -389,7 +378,6 @@ Object {
               "if": "testVarThree",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -454,7 +442,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -481,7 +468,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -499,7 +485,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testOne",
           "tag": "Room",
           "x": undefined,
@@ -519,7 +504,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -537,7 +521,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testOne",
           "tag": "Room",
           "x": undefined,
@@ -636,7 +619,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -663,7 +645,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -678,7 +659,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -691,7 +671,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testKnowledge",
           "tag": "Knowledge",
         },
@@ -738,7 +717,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -765,7 +743,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -778,7 +755,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -798,7 +774,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -811,7 +786,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -831,7 +805,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -844,7 +817,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -893,7 +865,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -920,7 +891,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -933,7 +903,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -953,7 +922,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -971,7 +939,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": 0,
@@ -991,7 +958,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1004,7 +970,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -1036,7 +1001,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "images": Array [],
           "key": "testMap",
           "name": Array [],
@@ -1086,7 +1050,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -1115,7 +1078,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": 0,
@@ -1155,7 +1117,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "images": Array [],
           "key": "testMap",
           "name": Array [],
@@ -1206,7 +1167,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testTwo",
           "tag": "Room",
           "x": 0,
@@ -1239,7 +1199,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -1311,7 +1270,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -1338,7 +1296,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1351,7 +1308,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -1371,7 +1327,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1384,7 +1339,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -1404,7 +1358,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1417,7 +1370,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -1459,14 +1411,12 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "FirstImpression",
               "value": "Frumpy goth",
             },
@@ -1485,7 +1435,6 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "OneCoolThing",
               "value": "Thousand yard stare",
             },
@@ -1493,7 +1442,6 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "Outfit",
               "value": "A battered frock-coat",
             },
@@ -1512,7 +1460,6 @@ Object {
             "reflexive": "herself",
             "subject": "she",
           },
-          "contents": Array [],
           "key": "Tess",
           "tag": "Character",
         },
@@ -1562,7 +1509,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -1589,7 +1535,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1602,7 +1547,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -1622,7 +1566,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1635,7 +1578,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -1661,7 +1603,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1674,7 +1615,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testTwo",
           "tag": "Room",
           "x": undefined,
@@ -1723,7 +1663,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -1750,7 +1689,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1763,7 +1701,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -1783,7 +1720,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1801,7 +1737,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": 0,
@@ -1821,7 +1756,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -1834,7 +1768,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -1866,7 +1799,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "images": Array [],
           "key": "testMap",
           "name": Array [],
@@ -1931,7 +1863,6 @@ Object {
               "if": "true",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -1960,7 +1891,6 @@ Object {
               "if": "true",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -1999,7 +1929,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -2026,7 +1955,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -2044,7 +1972,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": 0,
@@ -2084,7 +2011,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "images": Array [],
           "key": "testMap",
           "name": Array [],
@@ -2154,7 +2080,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "images": Array [],
           "key": "testMap",
           "name": Array [],
@@ -2204,7 +2129,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testThree",
           "tag": "Room",
           "x": -100,
@@ -2230,7 +2154,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -2253,7 +2176,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testTwo",
           "tag": "Room",
           "x": 100,
@@ -2344,7 +2266,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "TestAsset",
           "tag": "Asset",
         },
@@ -2373,7 +2294,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "testOne",
           "key": "testOne",
           "tag": "Room",
@@ -2400,7 +2320,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "testTwo",
           "key": "testTwo",
           "tag": "Room",
@@ -2440,7 +2359,6 @@ Object {
               "if": "testVar",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -2476,7 +2394,6 @@ Object {
               "if": "testVar",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -2512,7 +2429,6 @@ Object {
               "if": "testVar",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -2577,7 +2493,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "TestAsset",
           "tag": "Asset",
         },
@@ -2601,7 +2516,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "targetOne",
           "tag": "Room",
           "x": undefined,
@@ -2624,7 +2538,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "targetThree",
           "tag": "Room",
           "x": undefined,
@@ -2647,7 +2560,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "targetTwo",
           "tag": "Room",
           "x": undefined,
@@ -2695,7 +2607,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testRoom",
           "tag": "Room",
           "x": undefined,
@@ -2736,7 +2647,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "testRoom",
           "key": "testRoom#targetThree",
           "name": "three",
@@ -2781,7 +2691,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "testRoom",
           "key": "testRoom#targetTwo",
           "name": "two",
@@ -2872,14 +2781,12 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "FirstImpression",
               "value": "Frumpy goth",
             },
@@ -2898,7 +2805,6 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "OneCoolThing",
               "value": "Fuchsia eyes",
             },
@@ -2906,7 +2812,6 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "Outfit",
               "value": "A battered frock-coat",
             },
@@ -2933,7 +2838,6 @@ Object {
             "reflexive": "herself",
             "subject": "she",
           },
-          "contents": Array [],
           "key": "Tess",
           "tag": "Character",
         },
@@ -2975,7 +2879,6 @@ Object {
               "if": "testVar",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -3011,7 +2914,6 @@ Object {
               "if": "testVar",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -3047,7 +2949,6 @@ Object {
               "if": "testVar",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -3112,7 +3013,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "TestAsset",
           "tag": "Asset",
         },
@@ -3136,7 +3036,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "targetOne",
           "tag": "Room",
           "x": undefined,
@@ -3159,7 +3058,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "targetThree",
           "tag": "Room",
           "x": undefined,
@@ -3182,7 +3080,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "targetTwo",
           "tag": "Room",
           "x": undefined,
@@ -3230,7 +3127,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "testRoom",
           "tag": "Room",
           "x": undefined,
@@ -3271,7 +3167,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "testRoom",
           "key": "testRoom#targetThree",
           "name": "three",
@@ -3316,7 +3211,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "testRoom",
           "key": "testRoom#targetTwo",
           "name": "two",
@@ -3391,7 +3285,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -3418,7 +3311,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -3431,7 +3323,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -3451,7 +3342,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -3464,7 +3354,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -3484,7 +3373,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -3497,7 +3385,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -3538,7 +3425,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "TestAsset",
           "tag": "Asset",
         },
@@ -3565,7 +3451,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -3580,7 +3465,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -3593,7 +3477,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -3613,7 +3496,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -3626,7 +3508,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -3669,7 +3550,6 @@ Object {
               "if": "true",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -3716,7 +3596,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -3743,7 +3622,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -3756,7 +3634,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -3782,7 +3659,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -3795,7 +3671,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -3815,7 +3690,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -3833,7 +3707,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -3882,7 +3755,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -3909,7 +3781,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -3941,7 +3812,6 @@ Object {
                       "if": "strong",
                     },
                   ],
-                  "contents": Array [],
                   "tag": "If",
                 },
               },
@@ -3973,7 +3843,6 @@ Object {
                           "if": "trendy",
                         },
                       ],
-                      "contents": Array [],
                       "tag": "If",
                     },
                   },
@@ -3987,13 +3856,11 @@ Object {
                       "if": "!strong",
                     },
                   ],
-                  "contents": Array [],
                   "tag": "If",
                 },
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -4006,7 +3873,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -4095,7 +3961,6 @@ Object {
               "if": "strong",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -4140,7 +4005,6 @@ Object {
               "if": "!strong",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -4190,7 +4054,6 @@ Object {
               "if": "trendy",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -4255,7 +4118,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -4282,7 +4144,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -4297,7 +4158,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -4310,7 +4170,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -4330,7 +4189,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -4348,7 +4206,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -4368,7 +4225,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -4391,7 +4247,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -4476,7 +4331,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -4503,7 +4357,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -4516,7 +4369,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -4536,7 +4388,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -4549,7 +4400,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "test",
           "tag": "Room",
           "x": undefined,
@@ -4594,7 +4444,6 @@ Object {
               "if": "strong",
             },
           ],
-          "contents": Array [],
           "tag": "If",
         },
       },
@@ -4643,7 +4492,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -4670,7 +4518,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -4685,7 +4532,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -4698,7 +4544,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -4718,7 +4563,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -4736,7 +4580,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -4823,14 +4666,12 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "FirstImpression",
               "value": "Frumpy goth",
             },
@@ -4849,7 +4690,6 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "OneCoolThing",
               "value": "Fuchsia eyes",
             },
@@ -4857,7 +4697,6 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
-              "contents": Array [],
               "tag": "Outfit",
               "value": "A battered frock-coat",
             },
@@ -4884,7 +4723,6 @@ Object {
             "reflexive": "herself",
             "subject": "she",
           },
-          "contents": Array [],
           "key": "Tess",
           "tag": "Character",
         },
@@ -4942,7 +4780,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -4991,7 +4828,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -5061,7 +4897,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -5074,7 +4909,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "clockTower",
           "tag": "Feature",
         },
@@ -5120,7 +4954,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -5135,7 +4968,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -5148,7 +4980,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "town",
           "tag": "Knowledge",
         },
@@ -5358,7 +5189,6 @@ Object {
         "contextStack": Array [],
         "data": Object {
           "Story": undefined,
-          "contents": Array [],
           "key": "Test",
           "tag": "Asset",
         },
@@ -5385,7 +5215,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -5414,7 +5243,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "images": Array [
             "ImageTest",
           ],
@@ -5480,7 +5308,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -5502,7 +5329,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": 200,
@@ -5529,7 +5355,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "a123",
           "tag": "Room",
           "x": undefined,
@@ -5557,7 +5382,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "a123",
           "key": "a123#b456",
           "name": "",
@@ -5605,7 +5429,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "activate",
           "rooms": Array [
             Object {
@@ -5645,7 +5468,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "activateMoment",
           "tag": "Moment",
         },
@@ -5689,7 +5511,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "b456",
           "tag": "Room",
           "x": undefined,
@@ -5717,7 +5538,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "baseInfo",
           "key": "baseInfo",
           "tag": "Knowledge",
@@ -5744,7 +5564,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "clockTower",
           "tag": "Feature",
         },
@@ -5762,7 +5581,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -5775,7 +5593,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "clockTower",
           "tag": "Feature",
         },
@@ -5829,7 +5646,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "from": "overview",
           "key": "overview",
           "tag": "Room",
@@ -5865,7 +5681,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "display": undefined,
           "key": "postFix",
           "tag": "Bookmark",
@@ -5939,7 +5754,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Name",
             },
           },
@@ -5954,7 +5768,6 @@ Object {
               },
             ],
             "data": Object {
-              "contents": Array [],
               "tag": "Description",
             },
           },
@@ -5967,7 +5780,6 @@ Object {
           },
         ],
         "data": Object {
-          "contents": Array [],
           "key": "town",
           "tag": "Knowledge",
         },

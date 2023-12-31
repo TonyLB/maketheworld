@@ -508,7 +508,7 @@ describe('WML normalize', () => {
             //    (c) specifying whether the put should insert or overwrite
             //
             normalizer.put(
-                { data: { tag: 'Name' as 'Name', contents: [] }, children: [{ data: { tag: 'String', value: 'TestName' }, children: [] }] },
+                { data: { tag: 'Name' as 'Name' }, children: [{ data: { tag: 'String', value: 'TestName' }, children: [] }] },
                 {
                     contextStack: [
                         { tag: 'Asset', key: 'TestAsset', index: 0 },
@@ -538,7 +538,7 @@ describe('WML normalize', () => {
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
             normalizer.put(
-                { data: { tag: 'Room' as const, key: '', contents: [] }, children: [] },
+                { data: { tag: 'Room' as const, key: '' }, children: [] },
                 {
                     contextStack: [
                         { tag: 'Asset', key: 'TestAsset', index: 0 }
@@ -1048,12 +1048,11 @@ describe('WML normalize', () => {
             const knowledgeUpdate: GenericTreeNode<SchemaTag> = {
                 data: {
                     tag: 'Knowledge',
-                    key: 'testKnowledge',
-                    contents: []
+                    key: 'testKnowledge'
                 },
                 children: [
-                    { data: { tag: 'Name', contents: [] }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] } ] },
-                    { data: { tag: 'Description', contents: [] }, children: [{ data: { tag: 'String', value: 'Learning!' }, children: [] } ] },
+                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] } ] },
+                    { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Learning!' }, children: [] } ] },
                 ]
             }
             normalizer.put(knowledgeUpdate, { contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }] })
@@ -1073,7 +1072,6 @@ describe('WML normalize', () => {
                 data: {
                     tag: 'Room',
                     key: 'room1',
-                    contents: [],
                     x: 100,
                     y: 0
                 },

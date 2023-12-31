@@ -1,5 +1,5 @@
 import { GenericTree } from "../../sequence/tree/baseClasses"
-import { SchemaBookmarkTag, SchemaTag, isSchemaBookmark } from "../../simpleSchema/baseClasses"
+import { SchemaBookmarkTag, SchemaMessageTag, SchemaTag, isSchemaBookmark } from "../../simpleSchema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 
 //
@@ -11,10 +11,20 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
     }
     const tagTree = new SchemaTagTree(tree)
     if (options.tag === 'Bookmark') {
-        const matchTag: SchemaBookmarkTag = { tag: 'Bookmark', key: options.key, contents: [] }
+        const matchTag: SchemaBookmarkTag = { tag: 'Bookmark', key: options.key }
         return tagTree
             .reordered([options.tag, 'If'])
             .prune([{ before: matchTag }, { match: matchTag }, { after: (node) => (isSchemaBookmark(node) && node.key !== options.key) }])
+            .tree
+    }
+    else if (options.tag === 'Message') {
+        const matchTag: SchemaMessageTag = { tag: 'Message', key: options.key, rooms: [] }
+        return tagTree
+            .reordered([options.tag, 'If'])
+            //
+            // TODO: Replace crude pruning below with a filter that can take not-arguments.
+            //
+            .prune([{ before: matchTag }, { match: matchTag }, { match: 'Room' }, { after: 'Room' }])
             .tree
     }
     else {

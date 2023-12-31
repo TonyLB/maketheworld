@@ -23,15 +23,14 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
     Message: {
         initialize: ({ parseOpen }): SchemaMessageTag => ({
             tag: 'Message',
-            contents: [],
             rooms: [],
             ...validateProperties(messagingTemplates.Message)(parseOpen)
         }),
         typeCheckContents: isSchemaMessageContents,
-        finalize: (initialTag: SchemaMessageTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaMessageTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                rooms: contents.reduce((previous, { data: room }) => (
+                rooms: children.reduce((previous, { data: room }) => (
                     isSchemaRoom(room)
                         ? [
                             ...previous,
@@ -40,13 +39,12 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
                         : previous
                 ), [])
             },
-            children: compressWhitespace(contents, { messageParsing: true }),
+            children: compressWhitespace(children, { messageParsing: true }),
         })
     },
     Moment: {
         initialize: ({ parseOpen }): SchemaMomentTag => ({
             tag: 'Moment',
-            contents: [],
             ...validateProperties(messagingTemplates.Moment)(parseOpen)
         }),
         typeCheckContents: isSchemaMessage

@@ -114,8 +114,7 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
         case 'Knowledge':
             return {
                 tag,
-                key: '',
-                contents: [],
+                key: ''
             }
         case 'Action':
             return {
@@ -141,7 +140,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 tag,
                 key: '',
                 conditions: [],
-                contents: []
             }
         case 'After':
         case 'Before':
@@ -149,13 +147,11 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
         case 'Description':
             return {
                 tag,
-                contents: []
             }
         case 'Bookmark':
             return {
                 tag,
                 key: '',
-                contents: []
             }
         case 'Exit':
             return {
@@ -164,7 +160,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 name: '',
                 to: '',
                 from: '',
-                contents: []
             }
         case 'Image':
             return {
@@ -177,7 +172,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 key: '',
                 rooms: [],
                 name: [],
-                contents: [],
                 images: []
             }
         case 'Message':
@@ -185,13 +179,11 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 tag,
                 key: '',
                 rooms: [],
-                contents: []
             }
         case 'Moment':
             return {
                 tag,
                 key: '',
-                contents: []
             }
         default:
             return {

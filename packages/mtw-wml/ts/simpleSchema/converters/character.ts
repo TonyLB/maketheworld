@@ -31,15 +31,14 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     FirstImpression: {
         initialize: ({ parseOpen }): SchemaFirstImpressionTag => ({
             tag: 'FirstImpression',
-            contents: [],
             value: '',
             ...validateProperties(characterTemplates.FirstImpression)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaFirstImpressionTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaFirstImpressionTag, children: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                value: contents.map(({ data: { value } }) => (value)).join('')
+                value: children.map(({ data: { value } }) => (value)).join('')
             },
             children: []
         })
@@ -47,15 +46,14 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     OneCoolThing: {
         initialize: ({ parseOpen }): SchemaOneCoolThingTag => ({
             tag: 'OneCoolThing',
-            contents: [],
             value: '',
             ...validateProperties(characterTemplates.OneCoolThing)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaOneCoolThingTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaOneCoolThingTag, children: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                value: contents.map(({ data: { value } }) => (value)).join('')
+                value: children.map(({ data: { value } }) => (value)).join('')
             },
             children: []
         })
@@ -63,15 +61,14 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     Outfit: {
         initialize: ({ parseOpen }): SchemaOutfitTag => ({
             tag: 'Outfit',
-            contents: [],
             value: '',
             ...validateProperties(characterTemplates.Outfit)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaOutfitTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaOutfitTag, children: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                value: contents.map(({ data: { value } }) => (value)).join('')
+                value: children.map(({ data: { value } }) => (value)).join('')
             },
             children: []
         })
@@ -79,7 +76,6 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => ({
             tag: 'Character',
-            contents: [],
             Pronouns: {
                 subject: 'they',
                 object: 'them',
@@ -101,17 +97,12 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
                     FirstImpression: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
                     OneCoolThing: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
                     Outfit: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOutfit).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
-                    contents: []
                 },
                 children: contents
             }
         }
     }
 }
-
-const stringToLiteral = (value: string | undefined, tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing'): SchemaTag[] => (
-    value ? [{ tag, value, contents: [{ tag: 'String' as 'String', value }] }] : []
-)
 
 const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string => (
     (isSchemaFirstImpression(tag) || isSchemaOneCoolThing(tag) || isSchemaOutfit(tag))

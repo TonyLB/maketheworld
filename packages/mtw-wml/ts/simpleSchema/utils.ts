@@ -153,11 +153,11 @@ export const extractDescriptionFromContents = (contents: GenericTree<SchemaTag>)
 }
 
 export const extractConditionedItemFromContents = <T extends SchemaTag, O extends SchemaConditionMixin>(props: {
-    contents: GenericTree<SchemaTag>;
+    children: GenericTree<SchemaTag>;
     typeGuard: (value: SchemaTag) => value is T;
     transform: (value: T, index: number) => O;
 }): O[] => {
-    const { contents, typeGuard, transform } = props
+    const { children: contents, typeGuard, transform } = props
     return contents.reduce<O[]>((previous, item, index) => {
         if (typeGuard(item.data)) {
             return [
@@ -168,7 +168,7 @@ export const extractConditionedItemFromContents = <T extends SchemaTag, O extend
         if (isSchemaTag(item.data)) {
             const { data, children } = item
             if (isSchemaCondition(data)) {
-                const nestedItems = extractConditionedItemFromContents({ contents: children, typeGuard, transform })
+                const nestedItems = extractConditionedItemFromContents({ children, typeGuard, transform })
                     .map(({ conditions, ...rest }) => ({
                         conditions: [
                             ...data.conditions,
@@ -184,42 +184,6 @@ export const extractConditionedItemFromContents = <T extends SchemaTag, O extend
         }
         return previous
     }, [])
-}
-
-export const legacyContentStructure = (tree: GenericTree<SchemaTag>): SchemaTag[] => {
-    const output = dfsWalk({
-        default: { output: [], state: {} },
-        callback: (previous, data: SchemaTag) => ({ output: [...previous.output, data], state: {} }),
-        aggregate: ({ direct, children, data }) => ({
-            output: data
-                ? [
-                    ...direct.output.slice(0, -1),
-                    isSchemaWithContents(data)
-                        ? {
-                            ...data,
-                            contents: children.output
-                        }
-                        : data
-                ]
-                : [
-                    ...direct.output,
-                    ...children.output
-                ],
-            state: {}
-        })
-    })(tree)
-    return output
-}
-
-export const decodeLegacyContentStructure = (tree: SchemaTag[]): GenericTree<SchemaTag> => {
-    return tree.map((data) => (
-        isSchemaWithContents(data)
-            ? {
-                data: { ...data, contents: [] },
-                children: decodeLegacyContentStructure(data.contents)
-            }
-            : { data, children: [] }
-    ))
 }
 
 //
