@@ -6,7 +6,7 @@ export const selectExits = (tree: GenericTree<SchemaTag>, options={ tag: '', key
     const tagTree = new SchemaTagTree(tree)
     return tagTree
         .reordered(['If', 'Exit'])
-        .filter({ classes: ['Exit'] })
+        .filter([{ match: 'Exit' }])
         .prune([{ not: ['If', 'Exit' ] }])
         .tree
 }

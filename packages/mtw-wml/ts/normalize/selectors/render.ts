@@ -21,16 +21,14 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
         const matchTag: SchemaMessageTag = { tag: 'Message', key: options.key, rooms: [] }
         return tagTree
             .reordered([options.tag, 'If'])
-            //
-            // TODO: Replace crude pruning below with a filter that can take not-arguments.
-            //
-            .prune([{ before: matchTag }, { match: matchTag }, { match: 'Room' }, { after: 'Room' }])
+            .filter([{ not: ['Room'] }])
+            .prune([{ before: matchTag }, { match: matchTag }])
             .tree
     }
     else {
         return tagTree
             .reordered([options.tag, 'Description', 'If'])
-            .filter({ classes: ['Description'] })
+            .filter([{ match: 'Description' }])
             .prune([{ before: 'Description' }, { match: 'Description' }])
             .tree
     }

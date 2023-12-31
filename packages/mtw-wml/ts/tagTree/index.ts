@@ -9,11 +9,6 @@ type TagTreeTreeOptions<NodeData extends {}> = {
     orderIndependence?: string[][];
 }
 
-type TagTreeFilterArguments<NodeData extends {}> = {
-    classes?: string[];
-    nodes?: NodeData[];
-}
-
 type TagTreeMatchOperand<NodeData extends {}> = 
     string |
     NodeData |
@@ -35,7 +30,11 @@ type TagTreeMatchExact<NodeData extends {}> = {
     match: TagTreeMatchOperand<NodeData>
 }
 
-type TagTreePruneArgs<NodeData extends {}> = (TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchExcept<NodeData>)[]
+type TagMatchOperation<NodeData> = TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchExcept<NodeData>
+
+type TagTreeFilterArguments<NodeData extends {}> = (TagTreeMatchExact<NodeData> | TagTreeMatchExcept<NodeData>)[]
+
+type TagTreePruneArgs<NodeData extends {}> = TagMatchOperation<NodeData>[]
 
 export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>): NodeData[][] => {
     return dfsWalk<NodeData, NodeData[][], {}>({
@@ -157,20 +156,64 @@ export class TagTree<NodeData extends {}> {
         return returnValue
     }
 
+    _tagMatchOperationIndices(tags: NodeData[], operation: TagMatchOperation<NodeData>): number[] {
+        const indicesMatching = (operand: TagTreeMatchOperand<NodeData>): number[] => {
+            return tags.map((node, index) => {
+                if (typeof operand === 'string' && this._classifier(node) === operand) {
+                    return [index]
+                }
+                else if (typeof operand === 'function' && (operand as (value: NodeData) => boolean)(node)) {
+                    return [index]
+                }
+                else if (typeof operand === 'object' && this._compare(operand, node)) {
+                    return [index]
+                }
+                else {
+                    return []
+                }
+            }).flat(1)
+        }
+        if ('match' in operation) {
+            return indicesMatching(operation.match)
+        }
+        if ('after' in operation) {
+            const matches = indicesMatching(operation.after)
+            if (matches.length) {
+                return tags.map((_, index) => (index)).filter((index) => (index > matches[0]))
+            }
+        }
+        if ('before' in operation) {
+            const matches = indicesMatching(operation.before)
+            if (matches.length) {
+                const rightMostMatch = matches.slice(-1)[0]
+                return tags.map((_, index) => (index)).filter((index) => (index < rightMostMatch))
+            }
+        }
+        if ('not' in operation) {
+            const matches = unique(operation.not.map(indicesMatching).flat(1))
+            return tags.map((_, index) => (index)).filter((index) => (!matches.includes(index)))
+        }
+        return []
+    }
     //
     // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
     //
     filter(args: TagTreeFilterArguments<NodeData>): TagTree<NodeData> {
         const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
-        const { nodes = [], classes = [] } = args
         returnValue._tagList = this._tagList
-            .filter((tags) => {
-                const classifiedTags = tags.map(this._classifier)
-                return classes.reduce<boolean>((previous, tag) => (previous && classifiedTags.includes(tag)), true)
-            })
-            .filter((tags) => {
-                return nodes.reduce<boolean>((previous, node) => (previous && Boolean(tags.find((check) => (this._compare(node, check))))), true)
-            })
+            .filter((tags) => (
+                args.reduce<boolean>((previous, arg) => {
+                    if ('not' in arg) {
+                        return previous && !Boolean(arg.not.find((operand) => this._tagMatchOperationIndices(tags, { match: operand }).length))
+                    }
+                    else if ('match' in arg) {
+                        return previous && Boolean(this._tagMatchOperationIndices(tags, arg).length)
+                    }
+                    else {
+                        return false
+                    }
+                }, true)
+            ))
         return returnValue
     }
 
@@ -181,48 +224,7 @@ export class TagTree<NodeData extends {}> {
         const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
         returnValue._tagList = this._tagList
             .map((tags) => {
-                const indicesMatching = (operand: TagTreeMatchOperand<NodeData>): number[] => {
-                    return tags.map((node, index) => {
-                        if (typeof operand === 'string' && this._classifier(node) === operand) {
-                            return [index]
-                        }
-                        else if (typeof operand === 'function' && (operand as (value: NodeData) => boolean)(node)) {
-                            return [index]
-                        }
-                        else if (typeof operand === 'object' && this._compare(operand, node)) {
-                            return [index]
-                        }
-                        else {
-                            return []
-                        }
-                    }).flat(1)
-                }
-                const indicesToPrune = unique(
-                    args
-                        .map((arg) => {
-                            if ('match' in arg) {
-                                return indicesMatching(arg.match)
-                            }
-                            if ('after' in arg) {
-                                const matches = indicesMatching(arg.after)
-                                if (matches.length) {
-                                    return tags.map((_, index) => (index)).filter((index) => (index > matches[0]))
-                                }
-                            }
-                            if ('before' in arg) {
-                                const matches = indicesMatching(arg.before)
-                                if (matches.length) {
-                                    const rightMostMatch = matches.slice(-1)[0]
-                                    return tags.map((_, index) => (index)).filter((index) => (index < rightMostMatch))
-                                }
-                            }
-                            if ('not' in arg) {
-                                const matches = unique(arg.not.map(indicesMatching).flat(1))
-                                return tags.map((_, index) => (index)).filter((index) => (!matches.includes(index)))
-                            }
-                            return []
-                        }).flat(1)
-                )
+                const indicesToPrune = unique(args.map((arg) => (this._tagMatchOperationIndices(tags, arg))).flat(1))
                 return tags.map((node, index) => (indicesToPrune.includes(index) ? [] : [node])).flat(1)
             })
         return returnValue
