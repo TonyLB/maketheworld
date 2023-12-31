@@ -63,4 +63,19 @@ describe('render selector', () => {
             Two
         `))
     })
+
+    it(`should correctly extract render from nested bookmarks`, () => {
+        const testOne = new Normalizer()
+        testOne.loadWML(`
+            <Asset key=(testAsset)>
+                <Bookmark key=(testOne)>
+                    Test<Bookmark key=(testTwo)>Red herring</Bookmark>
+                </Bookmark>
+            </Asset>
+        `)
+        expect(schemaToWML(testOne.select({ key: 'testOne', selector: selectRender }))).toEqual(deIndentWML(`
+            Test
+            <Bookmark key=(testTwo) />
+        `))
+    })
 })

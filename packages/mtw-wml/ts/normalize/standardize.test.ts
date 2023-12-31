@@ -1,8 +1,5 @@
 import Normalizer from '.'
-import tokenizer from '../parser/tokenizer'
-import SourceStream from '../parser/tokenizer/sourceStream'
-import parse from '../simpleParser'
-import { schemaFromParse, schemaToWML } from '../simpleSchema'
+import { schemaToWML } from '../simpleSchema'
 import { deIndentWML } from '../simpleSchema/utils'
 import { NormalForm } from './baseClasses'
 import standardizeNormal from './standardize'
@@ -222,22 +219,6 @@ describe('standardizeNormal', () => {
     })
 
     it('should render maps correctly', () => {
-        console.log(`schema: ${JSON.stringify(schemaFromParse(parse(tokenizer(new SourceStream(`<Asset key=(Test)>
-            <Map key=(testMap)>
-                <Name>Test map</Name>
-                <Room key=(testRoomOne) x="0" y="0">
-                    <Description>Test Room One</Description>
-                    <Exit to=(testRoomTwo)>two</Exit>
-                </Room>
-                <If {false}>
-                    <Room key=(testRoomTwo) x="-100" y="0">
-                        <Description>Test Room Two</Description>
-                        <Exit to=(testRoomOne)>one</Exit>
-                    </Room>
-                </If>
-                <Image key=(mapBackground) />
-            </Map>
-        </Asset>`)))), null, 4)}`)
         const testNormal = normalizeTestWML(`<Asset key=(Test)>
             <Map key=(testMap)>
                 <Name>Test map</Name>
