@@ -5375,6 +5375,21 @@ Object {
       Object {
         "children": Array [
           Object {
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "Test Map",
+                },
+              },
+            ],
+            "data": Object {
+              "contents": Array [],
+              "tag": "Name",
+            },
+          },
+          Object {
             "children": Array [],
             "data": Object {
               "index": 0,

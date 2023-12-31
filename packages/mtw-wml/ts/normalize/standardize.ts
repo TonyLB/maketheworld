@@ -371,9 +371,7 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .filter(isNormalRoom)
         .sort(normalAlphabeticKeySort)
         .forEach((room) => {
-            console.log(`normal to render: ${JSON.stringify(argumentNormalizer.normal, null, 4)}`)
             const render = argumentNormalizer.select({ key: room.key, selector: selectRender })
-            console.log(`render: ${JSON.stringify(render, null, 4)}`)
             const name = argumentNormalizer.select({ key: room.key, selector: selectName })
             resultNormalizer.put({
                 data: {

@@ -530,6 +530,10 @@ describe('schemaFromParse', () => {
                     },
                     children: [
                         {
+                            data: { tag: 'Name', contents: [] },
+                            children: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }]
+                        },
+                        {
                             data: {
                                 tag: 'Room',
                                 key: 'ABC',
