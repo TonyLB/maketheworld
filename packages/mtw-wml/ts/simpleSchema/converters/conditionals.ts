@@ -60,7 +60,7 @@ export const conditionLegalContents = (item, contextStack) => {
     }
 }
 
-export const conditionFinalize = (initialTag: SchemaConditionTag, contents: GenericTree<SchemaTag>, contextStack: SchemaContextItem[]): GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag> => {
+export const conditionFinalize = (initialTag: SchemaConditionTag, children: GenericTree<SchemaTag>, contextStack: SchemaContextItem[]): GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag> => {
     const legalContextStack = contextStack.map(({ tag }) => (tag.tag)).filter(isLegalParseConditionContextTag)
     if (legalContextStack.length === 0) {
         throw new Error('Conditional items cannot be top-level')
@@ -69,8 +69,8 @@ export const conditionFinalize = (initialTag: SchemaConditionTag, contents: Gene
     return {
         data: initialTag,
         children: (['Bookmark', 'Description'].includes(nearestLegalContext))
-            ? translateTaggedMessageContents(contents)
-            : contents
+            ? translateTaggedMessageContents(children)
+            : children
     }
 }
 
@@ -90,7 +90,6 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             const validatedProperties = validateProperties(conditionalTemplates.If)(parseOpen)
             return {
                 tag: 'If',
-                contents: [],
                 conditions: [{ if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }]
             }
         },
@@ -103,7 +102,6 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             const validatedProperties = validateProperties(conditionalTemplates.ElseIf)(parseOpen)
             return {
                 tag: 'If',
-                contents: [],
                 conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }],
             }
         },
@@ -116,7 +114,6 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             validateProperties(conditionalTemplates.Else)(parseOpen)
             return {
                 tag: 'If',
-                contents: [],
                 conditions: siblingConditions.map((condition) => ({ ...condition, not: true }))
             }
         },

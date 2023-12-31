@@ -1,23 +1,18 @@
-import { mergeOrderedConditionalTrees } from "../../lib/sequenceTools/orderedConditionalTree"
 import {
     SchemaBookmarkTag,
-    SchemaConditionTag,
     SchemaDescriptionTag,
     SchemaExitTag,
     SchemaFeatureTag,
     SchemaKnowledgeTag,
     SchemaMapTag,
-    SchemaMessageLegalContents,
     SchemaNameTag,
     SchemaRoomTag,
     SchemaStringTag,
     SchemaTag,
     SchemaTaggedMessageLegalContents,
     isSchemaBookmark,
-    isSchemaDescription,
     isSchemaExit,
     isSchemaFeature,
-    isSchemaFeatureContents,
     isSchemaFeatureIncomingContents,
     isSchemaImage,
     isSchemaKnowledge,
@@ -26,17 +21,15 @@ import {
     isSchemaMapContents,
     isSchemaName,
     isSchemaRoom,
-    isSchemaRoomContents,
-    isSchemaRoomIncomingContents,
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
-import { compressWhitespace, extractConditionedItemFromContents, extractDescriptionFromContents, extractNameFromContents, legacyContentStructure } from "../utils"
+import { compressWhitespace, extractConditionedItemFromContents, extractNameFromContents } from "../utils"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 
 const componentTemplates = {
     Exit: {
@@ -91,7 +84,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             return {
                 tag: 'Exit',
                 name: '',
-                contents: [],
                 key: `${from || roomContext.key}#${to || roomContext.key}`,
                 from: from || roomContext.key,
                 to: to || roomContext.key,
@@ -99,24 +91,23 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaExitTag, contents: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaExitTag, children: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                name: contents.map(({ data: { value } }) => (value)).join('')
+                name: children.map(({ data: { value } }) => (value)).join('')
             },
-            children: contents
+            children: children
         })
     },
     Description: {
         initialize: ({ parseOpen }): SchemaDescriptionTag => ({
             tag: 'Description',
-            contents: [],
             ...validateProperties(componentTemplates.Description)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaDescriptionTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaDescriptionTag, children: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => ({
             data: initialTag,
-            children: compressWhitespace(contents)
+            children: compressWhitespace(children)
         })
     },
     Bookmark: {
@@ -127,27 +118,25 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
             return {
                 tag: 'Bookmark',
-                contents: [],
                 display: display as 'before' | 'after' | 'replace',
                 ...rest
             }
         },
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaBookmarkTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaBookmarkTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaBookmarkTag, children: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaBookmarkTag, SchemaTag> => ({
             data: initialTag,
-            children: compressWhitespace(contents)
+            children: compressWhitespace(children)
         })
     },
     Name: {
         initialize: ({ parseOpen }): SchemaNameTag => ({
             tag: 'Name',
-            contents: [],
             ...validateProperties(componentTemplates.Name)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaNameTag, contents: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaNameTag, children: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => ({
             data: initialTag,
-            children: compressWhitespace(contents)
+            children: compressWhitespace(children)
         })
     },
     Room: {
@@ -161,57 +150,29 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
             return {
                 tag: 'Room',
-                contents: [],
                 x: typeof x !== 'undefined' ? parseInt(x) : undefined,
                 y: typeof y !== 'undefined' ? parseInt(y) : undefined,
                 ...rest
             }
-        },
-        // typeCheckContents: isSchemaRoomIncomingContents,
-        // finalize: (initialTag: SchemaRoomTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaRoomTag, SchemaTag> => {
-        //     const returnValue = {
-        //         data: initialTag,
-        //         children: contents,
-        //     }
-        //     return returnValue
-        // }
+        }
     },
     Feature: {
         initialize: ({ parseOpen }): SchemaFeatureTag => ({
             tag: 'Feature',
-            contents: [],
             ...validateProperties(componentTemplates.Feature)(parseOpen)
         }),
-        typeCheckContents: isSchemaFeatureIncomingContents,
-        // finalize: (initialTag: SchemaFeatureTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaFeatureTag, SchemaTag> => ({
-        //     data: {
-        //         ...initialTag,
-        //         name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-        //         render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-        // },
-        //     children: contents,
-        // })
+        typeCheckContents: isSchemaFeatureIncomingContents
     },
     Knowledge: {
         initialize: ({ parseOpen }): SchemaKnowledgeTag => ({
             tag: 'Knowledge',
-            contents: [],
             ...validateProperties(componentTemplates.Knowledge)(parseOpen)
         }),
-        typeCheckContents: isSchemaKnowledgeIncomingContents,
-        // finalize: (initialTag: SchemaKnowledgeTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaKnowledgeTag, SchemaTag> => ({
-        //     data: {
-        //         ...initialTag,
-        //         name: legacyContentStructure(compressWhitespace(extractNameFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-        //         render: legacyContentStructure(compressWhitespace(extractDescriptionFromContents(contents))) as SchemaTaggedMessageLegalContents[],
-        // },
-        //     children: contents,
-        // })
+        typeCheckContents: isSchemaKnowledgeIncomingContents
     },
     Map: {
         initialize: ({ parseOpen }): SchemaMapTag => ({
             tag: 'Map',
-            contents: [],
             name: [],
             rooms: [],
             images: [],
@@ -228,18 +189,18 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             branchTags: ['If'],
             leafTags: ['Room']
         },
-        finalize: (initialTag: SchemaMapTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaMapTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                name: compressWhitespace(extractNameFromContents(contents)).map(({ data }) => (data)),
+                name: compressWhitespace(extractNameFromContents(children)).map(({ data }) => (data)),
                 rooms: extractConditionedItemFromContents({
-                    contents,
+                    children: children,
                     typeGuard: isSchemaRoom,
                     transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
                 }),
-                images: contents.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
+                images: children.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
             },
-            children: contents.filter(({ data }) => (isSchemaMapContents(data))),
+            children: children.filter(({ data }) => (isSchemaMapContents(data))),
         })
     }
 }

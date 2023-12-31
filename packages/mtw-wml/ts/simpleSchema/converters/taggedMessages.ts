@@ -22,37 +22,34 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
     After: {
         initialize: ({ parseOpen }): SchemaAfterTag => ({
             tag: 'After',
-            contents: [],
             ...validateProperties(taggedMessageTemplates.After)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaAfterTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAfterTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaAfterTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAfterTag, SchemaTag> => ({
             data: initialTag,
-            children: compressWhitespace(contents)
+            children: compressWhitespace(children)
         })
     },
     Before: {
         initialize: ({ parseOpen }): SchemaBeforeTag => ({
             tag: 'Before',
-            contents: [],
             ...validateProperties(taggedMessageTemplates.Before)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaBeforeTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaBeforeTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaBeforeTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaBeforeTag, SchemaTag> => ({
             data: initialTag,
-            children: compressWhitespace(contents)
+            children: compressWhitespace(children)
         })
     },
     Replace: {
         initialize: ({ parseOpen }): SchemaReplaceTag => ({
             tag: 'Replace',
-            contents: [],
             ...validateProperties(taggedMessageTemplates.Replace)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaReplaceTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaReplaceTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaReplaceTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaReplaceTag, SchemaTag> => ({
             data: initialTag,
-            children: compressWhitespace(contents)
+            children: compressWhitespace(children)
         })
     },
     br: {
@@ -74,12 +71,12 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(taggedMessageTemplates.Link)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaLinkTag, contents: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaLinkTag, SchemaTag> => ({
+        finalize: (initialTag: SchemaLinkTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaLinkTag, SchemaTag> => ({
             data: {
                 ...initialTag,
-                text: contents.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
+                text: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
             },
-            children: compressWhitespace(contents)
+            children: compressWhitespace(children)
         })
     }
 }

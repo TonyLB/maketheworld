@@ -32,7 +32,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     Asset: {
         initialize: ({ parseOpen }): SchemaAssetTag => ({
             tag: 'Asset',
-            contents: [],
             Story: undefined,
             ...validateProperties(validationTemplates.Asset)(parseOpen)
         }),
@@ -41,7 +40,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     Story: {
         initialize: ({ parseOpen }): SchemaStoryTag => ({
             tag: 'Story',
-            contents: [],
             Story: true,
             ...validateProperties(validationTemplates.Story)(parseOpen)
         }),

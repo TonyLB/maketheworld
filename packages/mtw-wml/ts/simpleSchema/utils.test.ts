@@ -1,4 +1,4 @@
-import { compressWhitespace, deIndentWML, legacyContentStructure, removeIrrelevantWhitespace } from './utils'
+import { compressWhitespace, deIndentWML, removeIrrelevantWhitespace } from './utils'
 
 describe('compressWhitespace', () => {
     it('should return empty on an empty input', () => {
@@ -124,79 +124,34 @@ describe('removeIrrelevantWhitespace', () => {
     it('should compress Space between adjacent connected conditional tags', () => {
         expect(removeIrrelevantWhitespace([
             {
-                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [] }], contents: [] },
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [] }] },
                 children: []
             },
             { data: { tag: 'Space' }, children: [] },
             {
-                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [] }], contents: [] },
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [] }] },
                 children: []
             },
             { data: { tag: 'br' }, children: [] },
             {
-                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [], not: true }], contents: [] },
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [], not: true }] },
                 children: []
             }
         ])).toEqual([
             {
-                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [] }], contents: [] },
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [] }] },
                 children: []
             },
             {
-                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [] }], contents: [] },
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [] }] },
                 children: []
             },
             {
-                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [], not: true }], contents: [] },
+                data: { tag: 'If', conditions: [{ if: 'true', dependencies: [], not: true }, { if: 'false', dependencies: [], not: true }] },
                 children: []
             }
         ])
 
-    })
-})
-
-describe('legacyContentStructure', () => {
-    it('should properly nest content structure', () => {
-        expect(legacyContentStructure([
-            {
-                data: {
-                    tag: 'Room',
-                    key: 'Room-1',
-                    contents: []
-                },
-                children: [
-                    {
-                        data: { tag: 'Name', contents: [] },
-                        children: [{ data: { tag: 'String', value: 'Test Name' }, children: [] }]
-                    },
-                    {
-                        data: { tag: 'Description', contents: [] },
-                        children: [{
-                            data: {
-                                tag: 'If',
-                                conditions: [],
-                                contents: []
-                            },
-                            children: [{ data: { tag: 'String', value: 'Test Description' }, children: [] }]
-                        }]
-                    }
-                ]
-            }
-        ])).toEqual([{
-            tag: 'Room',
-            key: 'Room-1',
-            contents: [
-                { tag: 'Name', contents: [{ tag: 'String', value: 'Test Name' }] },
-                {
-                    tag: 'Description',
-                    contents: [{
-                        tag: 'If',
-                        conditions: [],
-                        contents: [{ tag: 'String', value: 'Test Description' }]
-                    }]
-                }
-            ]
-        }])
     })
 })
 

@@ -8,19 +8,8 @@ export const mergeSchemaTrees = (...args: GenericTree<SchemaTag>[]): GenericTree
     // TODO: Create schemaCompare utility method
     //
     const options = {
-        compare: (itemA, itemB) => {
-            return deepEqual(
-                isSchemaRoom(itemA) ? { ...itemA, contents: [] } : itemA,
-                isSchemaRoom(itemB) ? { ...itemB, contents: [] } : itemB
-            )
-        },
+        compare: deepEqual,
         extractProperties: (value: SchemaTag) => {
-            if (isSchemaWithContents(value)) {
-                return {
-                    ...value,
-                    contents: []
-                }
-            }
             return value
         },
         rehydrateProperties: (base, properties) => (Object.assign(base, ...properties) as SchemaTag)
