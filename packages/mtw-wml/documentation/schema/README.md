@@ -18,7 +18,7 @@ temptation.
 Schema manipulation makes extensive use of the [TagTree](../../ts/tagTree/README.md) library, to reorder tags into some standard
 hierarchy, and then to filter and prune them. 
 
-***Current***: Currently, the TagTree library makes it very difficult to produce minimal edits on a tree that has been
+***Current***: Currently, the TagTree library makes it very difficult to apply minimal edits to a tree that has been
 reordered or filtered.
 
 ***Future***: A future iteration of the code should provide a more robust TagTree library which will allow viewing *and editing*
