@@ -1,6 +1,6 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 
-import { NormalAsset, NormalCharacter, NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-normal'
+import { NormalAsset, NormalCharacter, NormalForm, isNormalAsset, isNormalCharacter } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"

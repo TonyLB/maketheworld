@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAction, NormalAsset, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-normal'
+import { isNormalImport, NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 
 import { s3Client } from "./clients"
 import { deepEqual, objectFilterEntries } from "./objects"
