@@ -25,19 +25,30 @@ Object {
     "Story": false,
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "a123",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "a123",
+              "tag": "Room",
+            },
           },
           Object {
-            "index": 0,
-            "key": "b456",
-            "tag": "Room",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "b456",
+              "tag": "Room",
+            },
           },
         ],
         "contextStack": Array [],
+        "data": Object {
+          "Story": undefined,
+          "key": "Test",
+          "tag": "Asset",
+        },
       },
     ],
     "fileName": undefined,
@@ -49,11 +60,14 @@ Object {
   "a123": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "a123#b456",
-            "tag": "Exit",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "a123#b456",
+              "tag": "Exit",
+            },
           },
         ],
         "contextStack": Array [
@@ -63,8 +77,10 @@ Object {
             "tag": "Asset",
           },
         ],
-        "name": Array [],
-        "render": Array [],
+        "data": Object {
+          "key": "a123",
+          "tag": "Room",
+        },
       },
     ],
     "key": "a123",
@@ -73,7 +89,7 @@ Object {
   "a123#b456": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -86,6 +102,13 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "from": "a123",
+          "key": "a123#b456",
+          "name": "welcome",
+          "tag": "Exit",
+          "to": "b456",
+        },
       },
     ],
     "from": "a123",
@@ -97,11 +120,14 @@ Object {
   "b456": Object {
     "appearances": Array [
       Object {
-        "contents": Array [
+        "children": Array [
           Object {
-            "index": 0,
-            "key": "b456#a123",
-            "tag": "Exit",
+            "children": Array [],
+            "data": Object {
+              "index": 0,
+              "key": "b456#a123",
+              "tag": "Exit",
+            },
           },
         ],
         "contextStack": Array [
@@ -111,8 +137,10 @@ Object {
             "tag": "Asset",
           },
         ],
-        "name": Array [],
-        "render": Array [],
+        "data": Object {
+          "key": "b456",
+          "tag": "Room",
+        },
       },
     ],
     "key": "b456",
@@ -121,7 +149,7 @@ Object {
   "b456#a123": Object {
     "appearances": Array [
       Object {
-        "contents": Array [],
+        "children": Array [],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -134,6 +162,13 @@ Object {
             "tag": "Room",
           },
         ],
+        "data": Object {
+          "from": "b456",
+          "key": "b456#a123",
+          "name": "vortex",
+          "tag": "Exit",
+          "to": "a123",
+        },
       },
     ],
     "from": "b456",
@@ -178,9 +213,9 @@ Array [
 exports[`AssetWorkspace setWML should populate export namespace mappings 1`] = `
 Array [
   Object {
+    "exportAs": "Room2",
     "internalKey": "a123",
     "universalKey": "ROOM#UUID-0",
-    "exportAs": "Room2",
   },
   Object {
     "internalKey": "b456",
