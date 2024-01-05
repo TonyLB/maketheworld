@@ -34,8 +34,7 @@ export const rebuildContentsFromImport = (node: SchemaImportTag): SchemaTag[] =>
                     ...keyAssign,
                     tag: 'Computed',
                     from: internalKey,
-                    src: '',
-                    dependencies: []
+                    src: ''
                 }
             case 'Action':
                 return {
@@ -94,7 +93,6 @@ export const buildNormalPlaceholdersFromExport = (node: SchemaExportTag): Normal
                     ...keyAssign,
                     tag: 'Computed',
                     src: '',
-                    dependencies: [],
                     appearances: []
                 }
             case 'Action':

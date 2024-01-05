@@ -148,7 +148,7 @@ export type NormalImport = {
 export type NormalConditionStatement = {
     if: string;
     not?: boolean;
-    dependencies: string[];
+    dependencies?: string[];
 }
 
 export type NormalConditionMixin = {
@@ -209,7 +209,7 @@ export type NormalVariable = {
 export type NormalComputed = {
     tag: 'Computed';
     src: string;
-    dependencies: string[];
+    dependencies?: string[];
     appearances: BaseAppearance[];
 } & NormalBase
 

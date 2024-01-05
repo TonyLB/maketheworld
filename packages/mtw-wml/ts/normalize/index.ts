@@ -614,14 +614,14 @@ export class Normalizer {
             Object.values(draft).forEach((item) => {
                 if (isNormalCondition(item)) {
                     item.conditions.forEach((condition, index) => {
-                        if (condition.dependencies.includes(fromKey)) {
-                            condition.dependencies = condition.dependencies.filter((dependency) => (dependency !== fromKey))
+                        if ((condition.dependencies ?? []).includes(fromKey)) {
+                            condition.dependencies = (condition.dependencies ?? []).filter((dependency) => (dependency !== fromKey))
                         }
                     })
                 }
                 if (isNormalComputed(item)) {
-                    if (item.dependencies.includes(fromKey)) {
-                        item.dependencies = item.dependencies.filter((dependency) => (dependency !== fromKey))
+                    if ((item.dependencies ?? []).includes(fromKey)) {
+                        item.dependencies = (item.dependencies ?? []).filter((dependency) => (dependency !== fromKey))
                     }
                 }
                 if (isNormalRoom(item) || isNormalFeature(item) || isNormalKnowledge(item) || isNormalBookmark(item)) {
