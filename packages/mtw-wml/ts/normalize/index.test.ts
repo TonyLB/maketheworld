@@ -1087,6 +1087,51 @@ describe('WML normalize', () => {
         })
     })
 
+    describe('assignDependencies function', () => {
+        it('should correctly assign dependencies in a nested conditional', () => {
+            const testSource = `<Asset key=(Test)>
+                <Room key=(room1) />
+                <Map key=(map1)>
+                    <If {true}><Room key=(room1) x="0" y="0" /></If>
+                </Map>
+            </Asset>`
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            normalizer.assignDependencies((src) => ([src]))
+            expect(normalizer._normalForm['If-0']).toEqual({
+                key: 'If-0',
+                tag: 'If',
+                conditions: [{ if: 'true', dependencies: ['true'] }],
+                appearances: [{
+                    contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }, { tag: 'Map', key: 'map1', index: 0 }],
+                    data: { tag: 'If', conditions: [{ if: 'true', dependencies: ['true'] }]},
+                    children: [{ data: { tag: 'Room', key: 'room1', index: 1 }, children: [] }]
+                }]
+            })
+        })
+
+        it('should correctly assign dependencies in a Computed tag', () => {
+            const testSource = `<Asset key=(Test)>
+                <Computed key=(compute1) src={true} />
+            </Asset>`
+            const normalizer = new Normalizer()
+            normalizer.loadWML(testSource)
+            normalizer.assignDependencies((src) => ([src]))
+            expect(normalizer._normalForm['compute1']).toEqual({
+                key: 'compute1',
+                tag: 'Computed',
+                src: 'true',
+                dependencies: ['true'],
+                appearances: [{
+                    contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }],
+                    data: { tag: 'Computed', key: 'compute1', src: 'true', dependencies: ['true'] },
+                    children: []
+                }]
+            })
+        })
+
+    })
+
     xdescribe('merge function', () => {
         it('should merge two schemata', () => {
             const testOne = new Normalizer()

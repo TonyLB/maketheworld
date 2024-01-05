@@ -1208,6 +1208,31 @@ export class Normalizer {
         }
     }
 
+    assignDependencies(extract: (src: string) => string[]) {
+        this._normalForm = objectMap(
+            this._normalForm,
+            (item) => {
+                if (isNormalCondition(item)) {
+                    const conditions = item.conditions.map((condition) => ({ ...condition, dependencies: extract(condition.if) }))
+                    return {
+                        ...item,
+                        conditions,
+                        appearances: item.appearances.map((appearance) => ({ ...appearance, data: { ...appearance.data, conditions } }))
+                    }
+                }
+                if (isNormalComputed(item)) {
+                    const dependencies = extract(item.src)
+                    return {
+                        ...item,
+                        dependencies,
+                        appearances: item.appearances.map((appearance) => ({ ...appearance, data: { ...appearance.data, dependencies } }))
+                    }
+                }
+                return item
+            }
+        )
+    }
+
     clone(): Normalizer {
         const outputNormalizer = new Normalizer()
         outputNormalizer.loadNormal(this.normal)
