@@ -309,8 +309,6 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .forEach((message) => {
             const render = argumentNormalizer.select({ key: message.key, selector: selectRender })
             const rooms = argumentNormalizer.select({ key: message.key, selector: selectRooms })
-            console.log(`render: ${JSON.stringify(render, null, 4)}`)
-            console.log(`rooms: ${JSON.stringify(rooms, null, 4)}`)
             resultNormalizer.put({
                 data: {
                     tag: 'Message',
@@ -398,7 +396,7 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .reduce<Record<string, string[]>>((previous, { key, dependencies }) => {
             return {
                 ...previous,
-                [key]: dependencies.filter((depend) => (computedValues.map(({ key }) => (key)).includes(depend)))
+                [key]: (dependencies ?? []).filter((depend) => (computedValues.map(({ key }) => (key)).includes(depend)))
             }
         }, {})
     let alreadyWrittenComputes: string[] = []

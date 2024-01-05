@@ -16,7 +16,7 @@ export type SchemaConditionMixin = {
     conditions: {
         if: string;
         not?: boolean;
-        dependencies: string[];
+        dependencies?: string[];
     }[]
 }
 
@@ -101,7 +101,7 @@ export type SchemaComputedTag = {
     tag: 'Computed';
     key: string;
     src: string;
-    dependencies: string[];
+    dependencies?: string[];
 } & SchemaImportableBase
 
 export type SchemaActionTag = {

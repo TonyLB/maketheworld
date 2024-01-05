@@ -54,7 +54,7 @@ describe('description schemaToWML', () => {
             {
                 data: {
                     tag: 'If',
-                    conditions: [{ if: 'testVar', dependencies: ['testVar'] }]
+                    conditions: [{ if: 'testVar' }]
                 },
                 children: [
                     { data: { tag: 'Space' }, children: [] },
@@ -64,7 +64,7 @@ describe('description schemaToWML', () => {
             {
                 data: {
                     tag: 'If',
-                    conditions: [{ if: '!testVar', dependencies: ['testVar'] }]
+                    conditions: [{ if: '!testVar' }]
                 },
                 children: [
                     { data: { tag: 'Space' }, children: [] },

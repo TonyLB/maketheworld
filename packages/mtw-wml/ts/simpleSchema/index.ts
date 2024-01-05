@@ -126,8 +126,7 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
             return {
                 tag,
                 key: '',
-                src: '',
-                dependencies: []
+                src: ''
             }
         case 'Variable':
             return {
@@ -139,7 +138,7 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
             return {
                 tag,
                 key: '',
-                conditions: [],
+                conditions: []
             }
         case 'After':
         case 'Before':
