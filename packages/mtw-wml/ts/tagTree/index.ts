@@ -22,19 +22,30 @@ type TagTreeMatchBefore<NodeData extends {}> = {
     before: TagTreeMatchOperand<NodeData>
 }
 
-type TagTreeMatchExcept<NodeData extends {}> = {
-    not: TagTreeMatchOperand<NodeData>[]
-}
-
 type TagTreeMatchExact<NodeData extends {}> = {
     match: TagTreeMatchOperand<NodeData>
 }
 
-type TagMatchOperation<NodeData> = TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchExcept<NodeData>
+type TagTreeMatchNot<NodeData extends {}> = {
+    not: TagTreeMatchOperation<NodeData>
+}
 
-type TagTreeFilterArguments<NodeData extends {}> = (TagTreeMatchExact<NodeData> | TagTreeMatchExcept<NodeData>)[]
+type TagTreeMatchAnd<NodeData extends {}> = {
+    and: TagTreeMatchOperation<NodeData>[]
+}
 
-type TagTreePruneArgs<NodeData extends {}> = TagMatchOperation<NodeData>[]
+type TagTreeMatchOr<NodeData extends {}> = {
+    or: TagTreeMatchOperation<NodeData>[]
+}
+
+type TagTreeMatchOperation<NodeData> = TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>
+
+type TagTreeFilterArguments<NodeData extends {}> = (TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>)
+const isTagTreeFilterArgument = <NodeData extends {}>(arg: TagTreeMatchOperation<NodeData>): arg is TagTreeFilterArguments<NodeData> => {
+    return ('not' in arg || 'and' in arg || 'or' in arg || 'match' in arg)
+}
+
+type TagTreePruneArgs<NodeData extends {}> = TagTreeMatchOperation<NodeData>
 
 export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>): NodeData[][] => {
     return dfsWalk<NodeData, NodeData[][], {}>({
@@ -156,7 +167,7 @@ export class TagTree<NodeData extends {}> {
         return returnValue
     }
 
-    _tagMatchOperationIndices(tags: NodeData[], operation: TagMatchOperation<NodeData>): number[] {
+    _tagMatchOperationIndices(tags: NodeData[], operation: TagTreeMatchOperation<NodeData>): number[] {
         const indicesMatching = (operand: TagTreeMatchOperand<NodeData>): number[] => {
             return tags.map((node, index) => {
                 if (typeof operand === 'string' && this._classifier(node) === operand) {
@@ -189,10 +200,6 @@ export class TagTree<NodeData extends {}> {
                 return tags.map((_, index) => (index)).filter((index) => (index < rightMostMatch))
             }
         }
-        if ('not' in operation) {
-            const matches = unique(operation.not.map(indicesMatching).flat(1))
-            return tags.map((_, index) => (index)).filter((index) => (!matches.includes(index)))
-        }
         return []
     }
     //
@@ -200,20 +207,35 @@ export class TagTree<NodeData extends {}> {
     //
     filter(args: TagTreeFilterArguments<NodeData>): TagTree<NodeData> {
         const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+        //
+        // Recursive match between tagList and a (possibly recursive) MatchOperator
+        //
+        const filterMatch = (arg: TagTreeFilterArguments<NodeData>, tagList: NodeData[]): boolean => {
+            if ('not' in arg) {
+                if (isTagTreeFilterArgument(arg.not)) {
+                    return !filterMatch(arg.not, tagList)
+                }
+                else {
+                    return false
+                }
+            }
+            if ('and' in arg) {
+                return arg.and
+                    .filter(isTagTreeFilterArgument)
+                    .reduce<boolean>((previous, subArg) => (previous && filterMatch(subArg, tagList)), true)
+            }
+            if ('or' in arg) {
+                return arg.or
+                    .filter(isTagTreeFilterArgument)
+                    .reduce<boolean>((previous, subArg) => (previous || filterMatch(subArg, tagList)), false)
+            }
+            if ('match' in arg) {
+                const nodeMatches = this._tagMatchOperationIndices(tagList, arg)
+                return nodeMatches.length > 0
+            }
+        }
         returnValue._tagList = this._tagList
-            .filter((tags) => (
-                args.reduce<boolean>((previous, arg) => {
-                    if ('not' in arg) {
-                        return previous && !Boolean(arg.not.find((operand) => this._tagMatchOperationIndices(tags, { match: operand }).length))
-                    }
-                    else if ('match' in arg) {
-                        return previous && Boolean(this._tagMatchOperationIndices(tags, arg).length)
-                    }
-                    else {
-                        return false
-                    }
-                }, true)
-            ))
+            .filter((tags) => (filterMatch(args, tags)))
         return returnValue
     }
 
@@ -222,9 +244,32 @@ export class TagTree<NodeData extends {}> {
     //
     prune(args: TagTreePruneArgs<NodeData>): TagTree<NodeData> {
         const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+
+        //
+        // Recursive match between tagList and a (possibly recursive) MatchOperator
+        //
+        const pruneMatch = (arg: TagTreePruneArgs<NodeData>, tagList: NodeData[]): number[] => {
+            const allIndices = tagList.map((_, index) => (index))
+            if ('not' in arg) {
+                const recurse = pruneMatch(arg.not, tagList)
+                return allIndices.filter((index) => (!recurse.includes(index)))
+            }
+            if ('and' in arg) {
+                return arg.and.reduce<number[]>((previous, subArg) => {
+                    const recurse = pruneMatch(subArg, tagList)
+                    return previous.filter((index) => (recurse.includes(index)))
+                }, allIndices)
+            }
+            if ('or' in arg) {
+                return unique(arg.or
+                    .map<number[]>((subArg) => (pruneMatch(subArg, tagList)))
+                    .flat(1))
+            }
+            return this._tagMatchOperationIndices(tagList, arg)
+        }
         returnValue._tagList = this._tagList
             .map((tags) => {
-                const indicesToPrune = unique(args.map((arg) => (this._tagMatchOperationIndices(tags, arg))).flat(1))
+                const indicesToPrune = pruneMatch(args, tags)
                 return tags.map((node, index) => (indicesToPrune.includes(index) ? [] : [node])).flat(1)
             })
         return returnValue
