@@ -1,8 +1,8 @@
 import AssetWorkspace from '@tonylb/mtw-asset-workspace'
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/'
 import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/ts/asset"
 import { assetWorkspaceFromAssetId } from './utilities/assets'
-import { isNormalAsset } from '@tonylb/mtw-normal';
+import { isNormalAsset } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { formatImage } from './formatImage';
 import { StartExecutionCommand, SFNClient } from '@aws-sdk/client-sfn'
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3'
@@ -13,6 +13,8 @@ import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph';
 import { fetchImports } from './fetchImportDefaults';
 import { dbRegister } from './serialize/dbRegister';
+import Normalizer from '@tonylb/mtw-wml/ts/normalize'
+import { extractDependenciesFromJS } from './utilities/extractDependencies'
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client(params))
@@ -51,6 +53,10 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         })
     }
     if (assetWorkspace.status.json !== 'Clean') {
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(assetWorkspace.normal || {})
+        normalizer.assignDependencies(extractDependenciesFromJS)
+        assetWorkspace.normal = normalizer.normal
         await Promise.all([
             assetWorkspace.pushJSON(),
             assetWorkspace.pushWML(),
