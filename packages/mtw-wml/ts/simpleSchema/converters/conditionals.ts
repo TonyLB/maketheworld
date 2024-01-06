@@ -17,7 +17,7 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, extractDependenciesFromJS } from "./utils"
+import { validateProperties } from "./utils"
 import { removeIrrelevantWhitespace, translateTaggedMessageContents } from '../utils'
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 
@@ -90,7 +90,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             const validatedProperties = validateProperties(conditionalTemplates.If)(parseOpen)
             return {
                 tag: 'If',
-                conditions: [{ if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }]
+                conditions: [{ if: validatedProperties.DEFAULT }]
             }
         },
         typeCheckContents: conditionLegalContents,
@@ -102,7 +102,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             const validatedProperties = validateProperties(conditionalTemplates.ElseIf)(parseOpen)
             return {
                 tag: 'If',
-                conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT, dependencies: extractDependenciesFromJS(validatedProperties.DEFAULT) }],
+                conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT }],
             }
         },
         typeCheckContents: conditionLegalContents,
