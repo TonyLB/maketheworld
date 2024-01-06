@@ -8,49 +8,13 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { isNormalAction, isNormalExit, isNormalFeature, NormalForm, NormalItem } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import {
-    isSchemaAfter,
-    isSchemaBefore,
-    isSchemaCondition,
     isSchemaLink,
-    isSchemaReplace,
-    SchemaConditionTag,
-    SchemaTaggedMessageLegalContents,
     isSchemaFeature,
     isSchemaRoom,
-    isSchemaExit,
     SchemaTag
 } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/ts/sequence/tree/baseClasses"
 import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
-
-//
-// RecursiveRoomContentsFilter filters all contents of a room to include only the exits that are relevant to the
-// slice of the asset being examined. It dives into conditions to do this, and excludes conditions that have
-// no contents
-//
-const recursiveRoomContentsFilter = ({ children, keys }: { children: GenericTree<SchemaTag>, keys: string[] }): GenericTree<SchemaTag> => {
-    return children.map((item) => {
-        if (isSchemaExit(item.data)) {
-            if (keys.includes(item.data.from) || keys.includes(item.data.to)) {
-                return [item]
-            }
-        }
-        if (isSchemaCondition(item.data)) {
-            const conditionContents = recursiveRoomContentsFilter({ children: item.children, keys })
-            if (conditionContents.length) {
-                const conditionRecurse: SchemaConditionTag = {
-                    tag: 'If',
-                    conditions: item.data.conditions
-                }
-                return [{
-                    data: conditionRecurse,
-                    children: conditionContents
-                }]
-            }
-        }
-        return []
-    }).flat(1)
-}
 
 export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; schema: GenericTree<SchemaTag> } => {
     const normalizer = new Normalizer()
