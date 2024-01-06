@@ -141,7 +141,12 @@ describe('recursiveFetchImports', () => {
                     { data: { tag: 'Exit', key: 'testNonImport#testNonImportStub', from: 'testNonImport', to: 'testNonImportStub', name: 'test exit'  }, children: [] }
                 ]
             },
-            { data: { tag: 'Room', key: 'testNonImportStub' }, children: [] }
+            {
+                data: { tag: 'Room', key: 'testNonImportStub' },
+                children: [
+                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'StubOne' }, children: [] }] }
+                ]
+            }
         ])
     })
 
@@ -153,7 +158,12 @@ describe('recursiveFetchImports', () => {
                     { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'One' }, children: [] }] }
                 ]
             },
-            { data: { tag: 'Room', key: 'testImportStubOne' }, children: [] },
+            {
+                data: { tag: 'Room', key: 'testImportStubOne' },
+                children: [
+                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'StubTwo' }, children: [] }] }
+                ]
+            },
             {
                 data: { tag: 'Room', key: 'testImportOne' },
                 children: [
@@ -167,7 +177,12 @@ describe('recursiveFetchImports', () => {
 
     it('should follow dynamic renames in imports', async () => {
         expect(await recursiveFetchImports({ assetId: 'ASSET#testFinal', jsonHelper, translate: new NestedTranslateImportToFinal(['testNonImportTwo'], []) })).toEqual([
-            { data: { tag: 'Room', key: 'testImportTwo' }, children: [] },
+            {
+                data: { tag: 'Room', key: 'testImportTwo' },
+                children: [
+                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'StubFoo' }, children: [] }] }
+                ]
+            },
             {
                 data: { tag: 'Room', key: 'testNonImportTwo' },
                 children: [
@@ -186,8 +201,18 @@ describe('recursiveFetchImports', () => {
                     { data: { tag: 'Exit', key: 'testImportThree#testImportAssetThree.stub', from: 'testImportThree', to: 'testImportAssetThree.stub', name: 'test exit' }, children: [] }
                 ]
             },
-            { data: { tag: 'Room', key: 'testImportAssetTwo.stub' }, children: [] },
-            { data: { tag: 'Room', key: 'testImportAssetThree.stub' }, children: [] },
+            {
+                data: { tag: 'Room', key: 'testImportAssetTwo.stub' },
+                children: [
+                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Asset Three' }, children: [] }] }
+                ]
+            },
+            {
+                data: { tag: 'Room', key: 'testImportAssetThree.stub' },
+                children: [
+                    { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'AssetThreeStub' }, children: [] }] }
+                ]
+            },
             {
                 data: { tag: 'Room', key: 'testImportThree' },
                 children: [

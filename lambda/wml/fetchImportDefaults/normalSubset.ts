@@ -92,9 +92,11 @@ export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, k
         .filter((value) => (value))
         .map((item) => {
             if (isSchemaRoom(item.data)) {
+                const tagTree = new SchemaTagTree(item.children)
+                const filteredTree = tagTree.filter([{ match: 'Name' }])
                 return [{
                     ...item,
-                    children: recursiveRoomContentsFilter({ children: item.children, keys })
+                    children: filteredTree.tree
                 }]
             }
             else if (isSchemaFeature(item.data)) {
