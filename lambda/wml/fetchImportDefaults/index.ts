@@ -28,11 +28,10 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
             const assetSchema: SchemaAssetTag = {
                 tag: 'Asset',
                 Story: undefined,
-                key: splitType(assetId)[1],
-                contents: schemaTags.filter(isSchemaAssetContents)
+                key: splitType(assetId)[1]
             }
             const normalizer = new Normalizer()
-            normalizer.loadSchema([assetSchema])
+            normalizer.loadSchema([{ data: assetSchema, children: schemaTags }])
             normalizer.standardize()
             return {
                 assetId,

@@ -122,7 +122,7 @@ describe('fetchImports', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: string) => {
+        jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: `ASSET#${string}`) => {
             let normal: NormalForm = {}
             switch(assetId) {
                 case 'ASSET#testFinal':

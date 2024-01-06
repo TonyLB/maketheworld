@@ -30,8 +30,16 @@ describe('normalSubset', () => {
 
     it('should return stubs for features linked in description', () => {
         expect(normalSubset({ normal: testNormal, keys: ['testTwo'], stubKeys: [] })).toEqual({ newStubKeys: [], schema: [
-            { tag: 'Room', key: 'testTwo', render: [{ tag: 'Link', text: 'test', to: 'testFeature' }], contents: [], name: [] },
-            { tag: 'Feature', key: 'testFeature', render: [], name: [], contents: [] }
+            {
+                data: { tag: 'Room', key: 'testTwo' },
+                children: [{
+                    data: { tag: 'Description' },
+                    children: [{
+                        data: { tag: 'Link', text: 'test', to: 'testFeature' },
+                        children: [{ data: { tag: 'String', value: 'test' }, children: [] }] }]
+                    }]
+            },
+            { data: { tag: 'Feature', key: 'testFeature' }, children: [] }
         ] })
     })
 

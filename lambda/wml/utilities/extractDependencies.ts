@@ -1,4 +1,4 @@
-import { parse as acornParse} from "acorn"
+import { parse as acornParse, Identifier } from "acorn"
 import { simple as simpleWalk } from "acorn-walk"
 
 //
@@ -11,18 +11,20 @@ export const extractDependenciesFromJS = (src: string): string[] => {
     let definedLocals: string[] = []
     simpleWalk(parsedJS, {
         Identifier(node) {
-            const identifier = (node as any).name
+            const identifier = node.name
             if (!(definedLocals.includes(identifier))) {
                 identifiedGlobals.push(identifier)
             }
         },
         ArrowFunctionExpression(node) {
-            ((node as any).params || []).forEach(({ name }) => {
-                definedLocals.push(name)
+            (node.params || []).forEach((param) => {
+                definedLocals.push((param as Identifier).name)
             })
         },
         VariableDeclaration(node) {
-            definedLocals.push((node as any).id.name)
+            node.declarations.forEach((declaration) => {
+                definedLocals.push((declaration.id as Identifier).name)
+            })
         }
     })
     return [...(new Set(identifiedGlobals.filter((item) => (!definedLocals.includes(item)))))]
