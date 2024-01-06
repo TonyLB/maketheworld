@@ -2,7 +2,7 @@ import { SchemaActionTag, SchemaComputedTag, SchemaVariableTag, isSchemaAction, 
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, extractDependenciesFromJS } from "./utils"
+import { validateProperties } from "./utils"
 
 const computationTemplates = {
     Variable: {
@@ -37,7 +37,6 @@ export const computationConverters: Record<string, ConverterMapEntry> = {
             const validatedProperties = validateProperties(computationTemplates.Computed)(parseOpen)
             return {
                 tag: 'Computed',
-                dependencies: extractDependenciesFromJS(validatedProperties.src),
                 ...validatedProperties
             }
         }

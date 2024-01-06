@@ -328,9 +328,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "testVarOne",
-              ],
               "if": "testVarOne",
             },
           ],
@@ -340,9 +337,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [
-          "testVarOne",
-        ],
         "if": "testVarOne",
       },
     ],
@@ -372,9 +366,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "testVarThree",
-              ],
               "if": "testVarThree",
             },
           ],
@@ -384,9 +375,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [
-          "testVarThree",
-        ],
         "if": "testVarThree",
       },
     ],
@@ -1859,7 +1847,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [],
               "if": "true",
             },
           ],
@@ -1887,7 +1874,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [],
               "if": "true",
             },
           ],
@@ -1897,7 +1883,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [],
         "if": "true",
       },
     ],
@@ -2024,7 +2009,6 @@ Object {
             Object {
               "conditions": Array [
                 Object {
-                  "dependencies": Array [],
                   "if": "true",
                 },
               ],
@@ -2046,7 +2030,6 @@ Object {
           Object {
             "conditions": Array [
               Object {
-                "dependencies": Array [],
                 "if": "true",
               },
             ],
@@ -2353,9 +2336,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "testVar",
-              ],
               "if": "testVar",
             },
           ],
@@ -2388,9 +2368,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "testVar",
-              ],
               "if": "testVar",
             },
           ],
@@ -2423,9 +2400,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "testVar",
-              ],
               "if": "testVar",
             },
           ],
@@ -2435,9 +2409,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [
-          "testVar",
-        ],
         "if": "testVar",
       },
     ],
@@ -2873,9 +2844,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "testVar",
-              ],
               "if": "testVar",
             },
           ],
@@ -2908,9 +2876,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "testVar",
-              ],
               "if": "testVar",
             },
           ],
@@ -2943,9 +2908,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "testVar",
-              ],
               "if": "testVar",
             },
           ],
@@ -2955,9 +2917,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [
-          "testVar",
-        ],
         "if": "testVar",
       },
     ],
@@ -3546,7 +3505,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [],
               "if": "true",
             },
           ],
@@ -3556,7 +3514,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [],
         "if": "true",
       },
     ],
@@ -3806,9 +3763,6 @@ Object {
                 "data": Object {
                   "conditions": Array [
                     Object {
-                      "dependencies": Array [
-                        "strong",
-                      ],
                       "if": "strong",
                     },
                   ],
@@ -3837,9 +3791,6 @@ Object {
                     "data": Object {
                       "conditions": Array [
                         Object {
-                          "dependencies": Array [
-                            "trendy",
-                          ],
                           "if": "trendy",
                         },
                       ],
@@ -3850,9 +3801,6 @@ Object {
                 "data": Object {
                   "conditions": Array [
                     Object {
-                      "dependencies": Array [
-                        "strong",
-                      ],
                       "if": "!strong",
                     },
                   ],
@@ -3955,9 +3903,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "strong",
-              ],
               "if": "strong",
             },
           ],
@@ -3967,9 +3912,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [
-          "strong",
-        ],
         "if": "strong",
       },
     ],
@@ -3999,9 +3941,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "strong",
-              ],
               "if": "!strong",
             },
           ],
@@ -4011,9 +3950,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [
-          "strong",
-        ],
         "if": "!strong",
       },
     ],
@@ -4048,9 +3984,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "trendy",
-              ],
               "if": "trendy",
             },
           ],
@@ -4060,9 +3993,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [
-          "trendy",
-        ],
         "if": "trendy",
       },
     ],
@@ -4438,9 +4368,6 @@ Object {
         "data": Object {
           "conditions": Array [
             Object {
-              "dependencies": Array [
-                "strong",
-              ],
               "if": "strong",
             },
           ],
@@ -4450,9 +4377,6 @@ Object {
     ],
     "conditions": Array [
       Object {
-        "dependencies": Array [
-          "strong",
-        ],
         "if": "strong",
       },
     ],
@@ -5613,18 +5537,13 @@ Object {
           },
         ],
         "data": Object {
-          "dependencies": Array [
-            "active",
-          ],
           "key": "inactive",
           "src": "!active",
           "tag": "Computed",
         },
       },
     ],
-    "dependencies": Array [
-      "active",
-    ],
+    "dependencies": undefined,
     "key": "inactive",
     "src": "!active",
     "tag": "Computed",

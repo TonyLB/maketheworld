@@ -104,10 +104,7 @@ describe('schemaFromParse', () => {
                             { data: { tag: "String", value: "Vortex" }, children: [] },
                             {
                                 data: {
-                                    conditions: [{
-                                        dependencies: ["open"],
-                                        if: "open",
-                                    }],
+                                    conditions: [{ if: "open" }],
                                     tag: "If"
                                 },
                                 children: [{ data: { tag: "String", value: ": Open" }, children: [] }],
@@ -116,15 +113,8 @@ describe('schemaFromParse', () => {
                                 data: {
                                     tag: "If",
                                     conditions: [
-                                        {
-                                            dependencies: ["open"],
-                                            if: "open",
-                                            not: true,
-                                        },
-                                        {
-                                            dependencies: ["closed"],
-                                            if: "!closed",
-                                        },
+                                        { if: "open", not: true },
+                                        { if: "!closed" },
                                     ]
                                 },
                                 children: [{ data: { tag: "String", value: ": Indeterminate" }, children: [] }],
@@ -133,16 +123,8 @@ describe('schemaFromParse', () => {
                                 data: {
                                     tag: "If",
                                     conditions: [
-                                        {
-                                            dependencies: ["open"],
-                                            if: "open",
-                                            not: true,
-                                        },
-                                        {
-                                            dependencies: ["closed"],
-                                            if: "!closed",
-                                            not: true,
-                                        },
+                                        { if: "open", not: true },
+                                        { if: "!closed", not: true },
                                     ]
                                 },
                                 children: [{ data: { tag: "String", value: ": Closed" }, children: [] }],
@@ -168,10 +150,7 @@ describe('schemaFromParse', () => {
                 {
                     data: {
                         tag: "If",
-                        conditions: [{
-                            dependencies: ["open"],
-                            if: "open",
-                        }]
+                        conditions: [{ if: "open" }]
                     },
                     children: [{
                         data: {
@@ -243,7 +222,6 @@ describe('schemaFromParse', () => {
                 },
                 {
                     data: {
-                        dependencies: ["open"],
                         key: "closed",
                         src: "!open",
                         tag: "Computed",
@@ -330,11 +308,8 @@ describe('schemaFromParse', () => {
                         { data: { tag: "String", value: "Test One " }, children: [] },
                         {
                             data: {
-                                tag: "If",    
-                                conditions: [{
-                                    dependencies: ["open"],
-                                    if: "open",
-                                }]
+                                tag: "If",
+                                conditions: [{ if: "open" }]
                             },
                             children: [{ data: { tag: "String", value: "Test Two" }, children: [] }],
                         },
@@ -343,10 +318,7 @@ describe('schemaFromParse', () => {
                 {
                     data: {
                         tag: "If",
-                        conditions: [{
-                            dependencies: ["open"],
-                            if: "open",
-                        }]
+                        conditions: [{ if: "open" }]
                     },
                     children: [{
                         data: { tag: "Description" },
@@ -357,10 +329,7 @@ describe('schemaFromParse', () => {
             {
                 data: {
                     tag: "If",
-                    conditions: [{
-                        dependencies: ["open"],
-                        if: "open",
-                    }]
+                    conditions: [{ if: "open" }]
                 },
                 children: [{
                     data: {
@@ -492,10 +461,7 @@ describe('schemaFromParse', () => {
                                 y: 0,
                             },
                             {
-                                conditions: [{
-                                    dependencies: ["open"],
-                                    if: "open",
-                                }],
+                                conditions: [{ if: "open" }],
                                 key: "DEF",
                                 x: -100,
                                 y: 0,
@@ -519,10 +485,7 @@ describe('schemaFromParse', () => {
                         {
                             data: {
                                 tag: 'If',
-                                conditions: [{
-                                    dependencies: ["open"],
-                                    if: "open",
-                                }]
+                                conditions: [{ if: "open" }]
                             },
                             children: [{
                                 data: {

@@ -1,7 +1,7 @@
 import Normalizer from '.'
 import { schemaToWML } from '../simpleSchema'
 import { deIndentWML } from '../simpleSchema/utils'
-import { NormalForm } from './baseClasses'
+import { NormalForm, isNormalComputed } from './baseClasses'
 import standardizeNormal from './standardize'
 
 const normalizeTestWML = (wml: string): NormalForm => {
@@ -347,7 +347,20 @@ describe('standardizeNormal', () => {
             <Variable key=(testVar) default={false} />
         </Asset>`)
         const normalizer = new Normalizer()
-        normalizer.loadNormal(standardizeNormal(testNormal))
+        normalizer.loadNormal(testNormal)
+        const computeThree = normalizer._normalForm['computeThree']
+        if (isNormalComputed(computeThree)) {
+            computeThree.dependencies = ['testVar']
+        }
+        const computeOne = normalizer._normalForm['computeOne']
+        if (isNormalComputed(computeOne)) {
+            computeOne.dependencies = ['computeThree']
+        }
+        const computeTwo = normalizer._normalForm['computeTwo']
+        if (isNormalComputed(computeTwo)) {
+            computeTwo.dependencies = ['computeOne']
+        }
+        normalizer.loadNormal(standardizeNormal(normalizer._normalForm))
         expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Variable key=(testVar) default={false} />

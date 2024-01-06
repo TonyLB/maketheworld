@@ -9,8 +9,6 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
-    "acorn": "^8.8.1",
-    "acorn-walk": "^8.2.0",
     "immer": "^9.0.12"
   },
   "devDependencies": {
