@@ -18,7 +18,7 @@ import {
     isNormalMoment,
     isNormalKnowledge,
     isNormalImport
-} from '@tonylb/mtw-normal'
+} from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
     EphemeraCharacter,
@@ -80,7 +80,7 @@ const ephemeraTranslateRender = (assetWorkspace: ReadOnlyAssetWorkspace) => (ren
     }
     else if (renderItem.tag === 'Condition') {
         const mappedConditions = renderItem.conditions.map<EphemeraCondition>((condition) => {
-            const dependencies = condition.dependencies.map<TaggedConditionalItemDependency>((depend) => {
+            const dependencies = (condition.dependencies ?? []).map<TaggedConditionalItemDependency>((depend) => {
                 const dependTranslated = assetWorkspace.universalKey(depend)
                 if (!(dependTranslated && (isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated)))) {
                     throw new EphemeraError(`Illegal dependency in If: ${depend}`)
@@ -132,7 +132,7 @@ const ephemeraExtractExits = (assetWorkspace: ReadOnlyAssetWorkspace) => (conten
                 const nestedExits = ephemeraExtractExits(assetWorkspace)(itemLookup.appearances[item.index].contents)
                 if (nestedExits.length) {
                     const mappedConditions = itemLookup.conditions.map<EphemeraCondition>((condition) => {
-                        const dependencies = condition.dependencies.map<EphemeraItemDependency>((depend) => {
+                        const dependencies = (condition.dependencies ?? []).map<EphemeraItemDependency>((depend) => {
                             const dependTranslated = assetWorkspace.universalKey(depend)
                             if (!dependTranslated) {
                                 throw new EphemeraError(`Illegal dependency in If: ${depend}`)
@@ -168,6 +168,10 @@ const ephemeraExtractExits = (assetWorkspace: ReadOnlyAssetWorkspace) => (conten
     }, [])
 }
 
+//
+// TODO: Fix ephemeraItemFromNormal to store the new standard for how to deal with normal Items (i.e., children are GenericTree<SchemaTag>,
+// all schemata have been standardized before storage)
+//
 const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { normal = {}, properties = {} } = assetWorkspace
     const conditionsTransform = conditionsFromContext(assetWorkspace)
@@ -332,7 +336,7 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             key: item.key,
             EphemeraId,
             src: item.src,
-            dependencies: item.dependencies
+            dependencies: (item.dependencies ?? [])
                 .map((key) => ({
                     key,
                     EphemeraId: (assetWorkspace.universalKey(key) ?? '')
