@@ -1,9 +1,9 @@
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { Graph } from "@tonylb/mtw-utilities/dist/graphStorage/utils/graph"
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
-import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/dist/readOnly"
+import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 import { NamespaceMapping } from "@tonylb/mtw-asset-workspace/ts/readOnly"
-import { NormalForm } from "@tonylb/mtw-normal"
+import { NormalForm } from "@tonylb/mtw-wml/ts/normalize/baseClasses"
 
 type JSONFileCache = {
     normal: NormalForm;
@@ -21,10 +21,10 @@ export class FetchImportsJSONHelper {
     async get(assetId: EphemeraAssetId): Promise<JSONFileCache> {
         const node = this._inheritanceGraph.nodes[assetId]
         if (node) {
-            const assetWorkspace = new ReadOnlyAssetWorkspace(node.address)
+            const assetWorkspace = new AssetWorkspace(node.address)
             await assetWorkspace.loadJSON()
             return {
-                normal: assetWorkspace.normal || {},
+                normal: assetWorkspace.normal as NormalForm || {},
                 namespaceIdToDB: assetWorkspace.namespaceIdToDB || []
             }    
         }

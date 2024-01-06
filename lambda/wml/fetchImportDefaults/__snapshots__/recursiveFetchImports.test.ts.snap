@@ -3,39 +3,33 @@
 exports[`recursiveFetchImports should follow dynamic renames in imports 1`] = `
 [
   {
-    "contents": [],
-    "key": "testImportTwo",
-    "name": [
+    "children": [
       {
-        "tag": "String",
-        "value": "StubFoo",
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "test exit",
+            },
+          },
+        ],
+        "data": {
+          "from": "testNonImportTwo",
+          "key": "testNonImportTwo#testImportTwo",
+          "name": "test exit",
+          "tag": "Exit",
+          "to": "testImportTwo",
+        },
       },
     ],
-    "render": [],
-    "tag": "Room",
-  },
-  {
-    "contents": [
-      {
-        "contents": [],
-        "from": "testNonImportTwo",
-        "key": "testNonImportTwo#testImportTwo",
-        "name": "test exit",
-        "tag": "Exit",
-        "to": "testImportTwo",
-      },
-    ],
-    "key": "testNonImportTwo",
-    "name": [],
-    "render": [],
-    "tag": "Room",
-  },
-  {
-    "contents": [],
-    "key": "testImportTwo",
-    "name": [],
-    "render": [],
-    "tag": "Room",
+    "data": {
+      "from": undefined,
+      "key": "testNonImportTwo",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
   },
 ]
 `;
@@ -43,79 +37,86 @@ exports[`recursiveFetchImports should follow dynamic renames in imports 1`] = `
 exports[`recursiveFetchImports should import multilevel and avoid colliding stub names 1`] = `
 [
   {
-    "contents": [
+    "children": [
       {
-        "contents": [],
-        "from": "testImportThree",
-        "key": "testImportThree#testImportAssetThree.stub",
-        "name": "test exit",
-        "tag": "Exit",
-        "to": "testImportAssetThree.stub",
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "test exit",
+            },
+          },
+        ],
+        "data": {
+          "from": "basicOne",
+          "key": "basicOne#stub",
+          "name": "test exit",
+          "tag": "Exit",
+          "to": "stub",
+        },
       },
     ],
-    "key": "testImportThree",
-    "name": [],
-    "render": [],
-    "tag": "Room",
+    "data": {
+      "from": undefined,
+      "key": "basicOne",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
   },
   {
-    "contents": [],
-    "key": "testImportAssetTwo.stub",
-    "name": [
+    "children": [
       {
-        "tag": "String",
-        "value": "Asset Three",
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "Asset Two",
+            },
+          },
+        ],
+        "data": {
+          "tag": "Description",
+        },
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "test exit",
+            },
+          },
+        ],
+        "data": {
+          "from": "basic",
+          "key": "basic#stub",
+          "name": "test exit",
+          "tag": "Exit",
+          "to": "stub",
+        },
       },
     ],
-    "render": [],
-    "tag": "Room",
+    "data": {
+      "from": undefined,
+      "key": "basic",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
   },
   {
-    "contents": [],
-    "key": "testImportAssetThree.stub",
-    "name": [
-      {
-        "tag": "String",
-        "value": "AssetThreeStub",
-      },
-    ],
-    "render": [],
-    "tag": "Room",
-  },
-  {
-    "contents": [
-      {
-        "contents": [],
-        "from": "testImportThree",
-        "key": "testImportThree#testImportAssetTwo.stub",
-        "name": "test exit",
-        "tag": "Exit",
-        "to": "testImportAssetTwo.stub",
-      },
-    ],
-    "key": "testImportThree",
-    "name": [],
-    "render": [
-      {
-        "tag": "String",
-        "value": "Asset Two",
-      },
-    ],
-    "tag": "Room",
-  },
-  {
-    "contents": [],
-    "key": "testImportAssetTwo.stub",
-    "name": [],
-    "render": [],
-    "tag": "Room",
-  },
-  {
-    "contents": [],
-    "key": "testImportThree",
-    "name": [],
-    "render": [],
-    "tag": "Room",
+    "children": [],
+    "data": {
+      "from": undefined,
+      "key": "testImportThree",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
   },
 ]
 `;
@@ -123,31 +124,46 @@ exports[`recursiveFetchImports should import multilevel and avoid colliding stub
 exports[`recursiveFetchImports should properly stub out features in room description 1`] = `
 [
   {
-    "contents": [],
-    "key": "testRoomWithFeatures",
-    "name": [],
-    "render": [
+    "children": [
       {
-        "tag": "Link",
-        "text": "Test",
-        "to": "testFeature",
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "data": {
+                  "tag": "String",
+                  "value": "Test",
+                },
+              },
+            ],
+            "data": {
+              "tag": "Link",
+              "text": "Test",
+              "to": "testFeature",
+            },
+          },
+        ],
+        "data": {
+          "tag": "Description",
+        },
       },
     ],
-    "tag": "Room",
+    "data": {
+      "from": undefined,
+      "key": "testRoomWithFeatures",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
   },
   {
-    "contents": [],
-    "key": "testFeature",
-    "name": [],
-    "render": [],
-    "tag": "Feature",
-  },
-  {
-    "contents": [],
-    "key": "testRoomWithFeatures",
-    "name": [],
-    "render": [],
-    "tag": "Room",
+    "children": [],
+    "data": {
+      "from": undefined,
+      "key": "testRoomWithFeatures",
+      "tag": "Room",
+    },
   },
 ]
 `;
@@ -155,56 +171,72 @@ exports[`recursiveFetchImports should properly stub out features in room descrip
 exports[`recursiveFetchImports should recursive fetch one level of element and stubs when passed import key 1`] = `
 [
   {
-    "contents": [],
-    "key": "testImportOne",
-    "name": [],
-    "render": [
+    "children": [
       {
-        "tag": "String",
-        "value": "One",
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "One",
+            },
+          },
+        ],
+        "data": {
+          "tag": "Description",
+        },
       },
     ],
-    "tag": "Room",
+    "data": {
+      "from": undefined,
+      "key": "testImportOne",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
   },
   {
-    "contents": [],
-    "key": "testImportStubOne",
-    "name": [
+    "children": [
       {
-        "tag": "String",
-        "value": "StubTwo",
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "Two",
+            },
+          },
+        ],
+        "data": {
+          "tag": "Description",
+        },
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "test exit one",
+            },
+          },
+        ],
+        "data": {
+          "from": "testImportOne",
+          "key": "testImportOne#testImportStubOne",
+          "name": "test exit one",
+          "tag": "Exit",
+          "to": "testImportStubOne",
+        },
       },
     ],
-    "render": [],
-    "tag": "Room",
-  },
-  {
-    "contents": [
-      {
-        "contents": [],
-        "from": "testImportOne",
-        "key": "testImportOne#testImportStubOne",
-        "name": "test exit one",
-        "tag": "Exit",
-        "to": "testImportStubOne",
-      },
-    ],
-    "key": "testImportOne",
-    "name": [],
-    "render": [
-      {
-        "tag": "String",
-        "value": "Two",
-      },
-    ],
-    "tag": "Room",
-  },
-  {
-    "contents": [],
-    "key": "testImportStubOne",
-    "name": [],
-    "render": [],
-    "tag": "Room",
+    "data": {
+      "from": undefined,
+      "key": "testImportOne",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
   },
 ]
 `;
@@ -212,37 +244,47 @@ exports[`recursiveFetchImports should recursive fetch one level of element and s
 exports[`recursiveFetchImports should return element and stubs when passed non-import key 1`] = `
 [
   {
-    "contents": [
+    "children": [
       {
-        "contents": [],
-        "from": "testNonImport",
-        "key": "testNonImport#testNonImportStub",
-        "name": "test exit",
-        "tag": "Exit",
-        "to": "testNonImportStub",
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "DescriptionOne",
+            },
+          },
+        ],
+        "data": {
+          "tag": "Description",
+        },
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "test exit",
+            },
+          },
+        ],
+        "data": {
+          "from": "testNonImport",
+          "key": "testNonImport#testNonImportStub",
+          "name": "test exit",
+          "tag": "Exit",
+          "to": "testNonImportStub",
+        },
       },
     ],
-    "key": "testNonImport",
-    "name": [],
-    "render": [
-      {
-        "tag": "String",
-        "value": "DescriptionOne",
-      },
-    ],
-    "tag": "Room",
-  },
-  {
-    "contents": [],
-    "key": "testNonImportStub",
-    "name": [
-      {
-        "tag": "String",
-        "value": "StubOne",
-      },
-    ],
-    "render": [],
-    "tag": "Room",
+    "data": {
+      "from": undefined,
+      "key": "testNonImport",
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
   },
 ]
 `;

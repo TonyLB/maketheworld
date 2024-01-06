@@ -1,11 +1,11 @@
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
-import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { splitType } from "@tonylb/mtw-utilities/ts/types"
+import { isNormalImport, NormalImport } from "@tonylb/mtw-wml/ts/normalize/baseClasses"
 import {
     isSchemaExit,
-    isSchemaRoomContents,
     isSchemaRoom,
     SchemaTag
-} from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+} from "@tonylb/mtw-wml/ts/simpleSchema/baseClasses"
+import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/sequence/tree/baseClasses'
 import normalSubset from "./normalSubset"
 import { FetchImportsJSONHelper } from "./baseClasses"
 
@@ -79,20 +79,25 @@ export class NestedTranslateImportToFinal extends Object {
     addTranslation(key: string, final: string): void {
         this.localToFinal[key] = final
     }
-    translateSchemaTag(tag: SchemaTag): SchemaTag {
-        if (isSchemaExit(tag)) {
+    translateSchemaTag(tag: GenericTreeNode<SchemaTag>): GenericTreeNode<SchemaTag> {
+        if (isSchemaExit(tag.data)) {
             return {
-                ...tag,
-                key: `${this.translateKey(tag.from)}#${this.translateKey(tag.to)}`,
-                to: this.translateKey(tag.to),
-                from: this.translateKey(tag.from)
+                data: {
+                    ...tag.data,
+                    key: `${this.translateKey(tag.data.from)}#${this.translateKey(tag.data.to)}`,
+                    to: this.translateKey(tag.data.to),
+                    from: this.translateKey(tag.data.from)
+                },
+                children: []
             }
         }
-        if (isSchemaRoom(tag)) {
+        if (isSchemaRoom(tag.data)) {
             return {
-                ...tag,
-                key: this.translateKey(tag.key),
-                contents: tag.contents.map((value) => (this.translateSchemaTag(value))).filter(isSchemaRoomContents)
+                data: {
+                    ...tag.data,
+                    key: this.translateKey(tag.data.key),
+                },
+                children: tag.children.map((value) => (this.translateSchemaTag(value)))
             }
         }
         return tag
@@ -106,7 +111,7 @@ type RecursiveFetchImportArgument = {
     prefixStubKeys?: boolean;
 }
 
-export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<SchemaTag[]> => {
+export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, prefixStubKeys }: RecursiveFetchImportArgument): Promise<GenericTree<SchemaTag>> => {
     const { localKeys: keys, localStubKeys: stubKeys } = translate
     const { normal } = await jsonHelper.get(assetId)
     //
@@ -140,7 +145,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, translate, pr
     //
     const importSchema = (await Promise.all(relevantImports.map(async ({ assetId, mapping }) => {
         const nestedTranslate = translate.nestMapping(keys, [...stubKeys, ...newStubKeys], mapping)
-        const tags: SchemaTag[] = await recursiveFetchImports({ assetId, jsonHelper, translate: nestedTranslate, prefixStubKeys: true })
+        const tags: GenericTree<SchemaTag> = await recursiveFetchImports({ assetId, jsonHelper, translate: nestedTranslate, prefixStubKeys: true })
         return tags.map((tag) => (nestedTranslate.translateSchemaTag(tag)))
     }))).flat()
 

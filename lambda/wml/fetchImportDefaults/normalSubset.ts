@@ -14,60 +14,45 @@ import {
     isSchemaLink,
     isSchemaReplace,
     SchemaConditionTag,
-    SchemaExitTag,
     SchemaTaggedMessageLegalContents,
-    SchemaFeatureTag,
     isSchemaFeature,
     isSchemaRoom,
-    SchemaRoomTag,
     isSchemaExit,
     SchemaTag
 } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/ts/sequence/tree/baseClasses"
+import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
 
 //
 // RecursiveRoomContentsFilter filters all contents of a room to include only the exits that are relevant to the
 // slice of the asset being examined. It dives into conditions to do this, and excludes conditions that have
 // no contents
 //
-const recursiveRoomContentsFilter = ({ contents, keys }: { contents: SchemaTag[], keys: string[] }): SchemaTag[] => {
-    return contents.map((item) => {
-        if (isSchemaExit(item)) {
-            if (keys.includes(item.from) || keys.includes(item.to)) {
-                return [item as SchemaExitTag]
+const recursiveRoomContentsFilter = ({ children, keys }: { children: GenericTree<SchemaTag>, keys: string[] }): GenericTree<SchemaTag> => {
+    return children.map((item) => {
+        if (isSchemaExit(item.data)) {
+            if (keys.includes(item.data.from) || keys.includes(item.data.to)) {
+                return [item]
             }
         }
-        if (isSchemaCondition(item)) {
-            const conditionContents = recursiveRoomContentsFilter({ contents: item.contents, keys })
+        if (isSchemaCondition(item.data)) {
+            const conditionContents = recursiveRoomContentsFilter({ children: item.children, keys })
             if (conditionContents.length) {
                 const conditionRecurse: SchemaConditionTag = {
                     tag: 'If',
-                    conditions: item.conditions,
-                    contents: conditionContents
+                    conditions: item.data.conditions
                 }
-                return [conditionRecurse]
+                return [{
+                    data: conditionRecurse,
+                    children: conditionContents
+                }]
             }
         }
         return []
     }).flat(1)
 }
 
-//
-// extractLinksFromRoomDescription recursively parses the room description and returns the list of "to" keys
-// in all links present
-//
-const extractLinksFromRoomDescription = (contents: SchemaTaggedMessageLegalContents[]): string[] => {
-    return contents.reduce<string[]>((previous, item) => {
-        if (isSchemaBefore(item) || isSchemaAfter(item) || isSchemaReplace(item) || isSchemaCondition(item)) {
-            return unique(previous, extractLinksFromRoomDescription(item.contents as SchemaTaggedMessageLegalContents[])) as string[]
-        }
-        if (isSchemaLink(item)) {
-            return unique(previous, [item.to]) as string[]
-        }
-        return previous
-    }, [])
-}
-
-export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; schema: SchemaTag[] } => {
+export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; schema: GenericTree<SchemaTag> } => {
     const normalizer = new Normalizer()
     normalizer.loadNormal(normal)
     //
@@ -92,7 +77,7 @@ export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, k
     //
     // Generate the full schema items for keys and stubs that match against this asset
     //
-    const allItems: Record<string, SchemaTag> = Object.assign({}, ...[...keys, ...allStubKeys]
+    const allItems: Record<string, GenericTreeNode<SchemaTag>> = Object.assign({}, ...[...keys, ...allStubKeys]
         .map((key): [string, NormalItem["tag"]] => ([key, keyTags[key]]))
         .filter(([_, tag]) => (tag))
         .map(([key, tag]) => ({ [key]: normalizer.referenceToSchema({ key, tag, index: 0 }) }))
@@ -105,61 +90,47 @@ export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, k
     const stubItems = allStubKeys
         .map((key) => (allItems[key]))
         .filter((value) => (value))
-        .filter((item: SchemaTag): item is SchemaFeatureTag | SchemaRoomTag => (isSchemaFeature(item) || isSchemaRoom(item)))
         .map((item) => {
-            if (isSchemaRoom(item)) {
-                return {
+            if (isSchemaRoom(item.data)) {
+                return [{
                     ...item,
-                    render: [],
-                    contents: recursiveRoomContentsFilter({ contents: item.contents, keys })
-                }
+                    children: recursiveRoomContentsFilter({ children: item.children, keys })
+                }]
+            }
+            else if (isSchemaFeature(item.data)) {
+                return [item]
             }
             else {
-                return {
-                    ...item,
-                    render: [],
-                    contents: []
-                }
+                return []
             }
-        })
+        }).flat(1)
 
-    const keyItems = Object.entries(allItems)
+    const keyItems: GenericTree<SchemaTag> = Object.entries(allItems)
         .filter(([key]) => (keys.includes(key)))
         .map(([_, item]) => (item))
 
     //
-    // Tree-walk the renders of keyItems, to find links that need at least an empty stub in the normal (even though they
-    // do not need to be added to the stub list)
+    // Use TagTree to extract just the Link nodes that are descendants of rooms
     //
-    const descriptionAggregate = keyItems
-        .filter(isSchemaRoom)
-        .map(({ render }) => (render))
-        .flat()
-    const linkTargets = extractLinksFromRoomDescription(descriptionAggregate)
-        .filter((key) => (!keys.includes(key)))
+    const tagTree = new SchemaTagTree(keyItems)
+    const linksOnly = tagTree.filter([{ match: 'Room' }, { match: 'Link' }]).prune([{ not: ['Link'] }]).tree
+
+    const linkTargets = linksOnly
+        .map(({ data }) => (isSchemaLink(data) ? [data.to] : [])).flat(1)
+        .filter((target) => (!keys.includes(target)))
 
     const linkItems = linkTargets
         .map((key) => (normal[key]))
         .filter((value) => (value))
-        .map((item): SchemaTag | undefined => {
+        .map((item): GenericTree<SchemaTag> => {
             if (isNormalFeature(item)) {
-                return {
-                    tag: 'Feature',
-                    key: item.key,
-                    render: [],
-                    name: [],
-                    contents: []
-                }
+                return [{ data: { tag: 'Feature', key: item.key }, children: [] }]
             }
             if (isNormalAction(item)) {
-                return {
-                    tag: 'Action',
-                    key: item.key,
-                    src: ''
-                }
+                return [{ data: { tag: 'Action', key: item.key, src: '' }, children: [] }]
             }
-        })
-        .filter((value): value is SchemaTag => (Boolean(value)))
+            return []
+        }).flat(1)
 
     return { newStubKeys, schema: [...keyItems, ...stubItems, ...linkItems] }
 }
