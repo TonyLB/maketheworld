@@ -1,5 +1,5 @@
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, SchemaTaggedMessageLegalContents, SchemaWhitespaceTag, isSchemaAfter, isSchemaBefore, isSchemaLink, isSchemaReplace, isSchemaString, isSchemaTaggedMessageLegalContents } from "../baseClasses"
+import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaString } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
@@ -24,7 +24,7 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             tag: 'After',
             ...validateProperties(taggedMessageTemplates.After)(parseOpen)
         }),
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaOutputTag,
         finalize: (initialTag: SchemaAfterTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAfterTag, SchemaTag> => ({
             data: initialTag,
             children: compressWhitespace(children)
@@ -35,7 +35,7 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             tag: 'Before',
             ...validateProperties(taggedMessageTemplates.Before)(parseOpen)
         }),
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaOutputTag,
         finalize: (initialTag: SchemaBeforeTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaBeforeTag, SchemaTag> => ({
             data: initialTag,
             children: compressWhitespace(children)
@@ -46,7 +46,7 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             tag: 'Replace',
             ...validateProperties(taggedMessageTemplates.Replace)(parseOpen)
         }),
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
+        typeCheckContents: isSchemaOutputTag,
         finalize: (initialTag: SchemaReplaceTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaReplaceTag, SchemaTag> => ({
             data: initialTag,
             children: compressWhitespace(children)

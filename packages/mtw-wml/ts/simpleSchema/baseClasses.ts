@@ -150,6 +150,18 @@ export type SchemaLinkTag = {
 
 export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaWhitespaceTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
 export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
+    isSchemaString(tag) ||
+    isSchemaLink(tag) ||
+    isSchemaBookmark(tag) ||
+    isSchemaLineBreak(tag) ||
+    isSchemaSpacer(tag) ||
+    isSchemaCondition(tag) ||
+    isSchemaAfter(tag) ||
+    isSchemaBefore(tag) ||
+    isSchemaReplace(tag)
+)
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
