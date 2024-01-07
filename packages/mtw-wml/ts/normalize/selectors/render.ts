@@ -14,22 +14,22 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
         const matchTag: SchemaBookmarkTag = { tag: 'Bookmark', key: options.key }
         return tagTree
             .reordered([options.tag, 'If'])
-            .prune([{ before: matchTag }, { match: matchTag }, { after: (node) => (isSchemaBookmark(node) && node.key !== options.key) }])
+            .prune({ or: [{ before: matchTag }, { match: matchTag }, { after: (node) => (isSchemaBookmark(node) && node.key !== options.key) }] })
             .tree
     }
     else if (options.tag === 'Message') {
         const matchTag: SchemaMessageTag = { tag: 'Message', key: options.key, rooms: [] }
         return tagTree
             .reordered([options.tag, 'If'])
-            .filter([{ not: ['Room'] }])
-            .prune([{ before: matchTag }, { match: matchTag }])
+            .filter({ not: { match: 'Room' } })
+            .prune({ or: [{ before: matchTag }, { match: matchTag }]})
             .tree
     }
     else {
         return tagTree
             .reordered([options.tag, 'Description', 'If'])
-            .filter([{ match: 'Description' }])
-            .prune([{ before: 'Description' }, { match: 'Description' }])
+            .filter({ match: 'Description' })
+            .prune({ or: [{ before: 'Description' }, { match: 'Description' }]})
             .tree
     }
 }

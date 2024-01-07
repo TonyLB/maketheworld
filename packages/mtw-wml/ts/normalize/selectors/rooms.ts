@@ -9,7 +9,7 @@ export const selectRooms = (tree: GenericTree<SchemaTag>, options={ tag: '', key
     const tagTree = new SchemaTagTree(tree)
     return tagTree
         .reordered([options.tag, 'If', 'Room'])
-        .filter([{ match: 'Room' }])
-        .prune([{ not: ['If', 'Room'] }])
+        .filter({ match: 'Room' })
+        .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }] } })
         .tree
 }

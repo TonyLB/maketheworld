@@ -221,7 +221,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const filteredTreeOne = tagTree.filter([{ match: { tag: 'Room', key: 'room1' } }, { match: 'Description' }])
+            const filteredTreeOne = tagTree.filter({ and: [{ match: { tag: 'Room', key: 'room1' } }, { match: 'Description' }] })
             expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(room1)><Description>An institutional lobby.</Description></Room>
@@ -235,14 +235,14 @@ describe('TagTree', () => {
                     </If>
                 </Asset>
             `))
-            const filteredTreeTwo = tagTree.filter([{ match: { tag: 'Room', key: 'room1' } }, { match: 'Name' }])
+            const filteredTreeTwo = tagTree.filter({ and: [{ match: { tag: 'Room', key: 'room1' } }, { match: 'Name' }] })
             expect(schemaToWML(filteredTreeTwo.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(room1)><Name>Lobby</Name></Room>
                     <If {true}><Room key=(room1)><Name><Space />at night</Name></Room></If>
                 </Asset>
             `))
-            const filteredTreeThree = tagTree.reordered(['Room', 'Description', 'Name', 'If']).filter([{ match: 'Room' }, { match: 'Description' }])
+            const filteredTreeThree = tagTree.reordered(['Room', 'Description', 'Name', 'If']).filter({ and: [{ match: 'Room' }, { match: 'Description' }] })
             expect(schemaToWML(filteredTreeThree.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(room1)>
@@ -279,7 +279,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune([{ match: 'Asset' }, { match: 'Name' }, { match: 'Description' }])
+            const prunedTreeOne = tagTree.prune({ or: [{ match: 'Asset' }, { match: 'Name' }, { match: 'Description' }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Room key=(room1)>LobbyAn institutional lobby.</Room>
                 <Feature key=(clockTower)>A square clock-tower of yellow stone.</Feature>
@@ -313,7 +313,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune([{ match: 'Asset' }, { after: 'Feature' }, { after: 'Room' }])
+            const prunedTreeOne = tagTree.prune({ or: [{ match: 'Asset' }, { after: 'Feature' }, { after: 'Room' }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Room key=(room1) />
                 <Feature key=(clockTower) />
@@ -340,7 +340,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune([{ before: 'Feature' }, { before: 'Room' }])
+            const prunedTreeOne = tagTree.prune({ or: [{ before: 'Feature' }, { before: 'Room' }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Room key=(room1)>
                     <Name>Lobby<Space />at night</Name>
@@ -375,7 +375,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune([{ not: ['Feature', 'Room'] }])
+            const prunedTreeOne = tagTree.prune({ not: { or: [{ match: 'Feature' }, { match: 'Room' }] } })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Room key=(room1) />
                 <Feature key=(clockTower) />
@@ -393,7 +393,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune([{ before: { tag: 'Bookmark', key: 'bookmark1' } }, { after: (node) => (isSchemaBookmark(node) && node.key !== 'bookmark1') }])
+            const prunedTreeOne = tagTree.prune({ or: [{ before: { tag: 'Bookmark', key: 'bookmark1' } }, { after: (node) => (isSchemaBookmark(node) && node.key !== 'bookmark1') }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Bookmark key=(bookmark1)>Test <Bookmark key=(bookmark2) />More data</Bookmark>
             `))
