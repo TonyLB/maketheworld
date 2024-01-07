@@ -4,8 +4,8 @@
 //
 
 import Normalizer from ".";
-import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, ComponentRenderItem, isNormalCondition, NormalRoom, NormalFeature, NormalBookmark, ComponentAppearance, isNormalFeature, isNormalBookmark, NormalMap, isNormalMap, isNormalMessage, NormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction, isNormalImport, NormalImport, isNormalKnowledge, NormalKnowledge } from "./baseClasses"
-import { SchemaTaggedMessageLegalContents, isSchemaRoom, isSchemaFeature, isSchemaBookmark, SchemaExitTag, SchemaBookmarkTag, isSchemaCondition, SchemaTaggedMessageIncomingContents, SchemaMapLegalContents, isSchemaMap, SchemaTag, isSchemaMapContents, isSchemaImage, SchemaMessageLegalContents, isSchemaMessage, isSchemaMessageContents, SchemaMessageTag, isSchemaMoment, SchemaComputedTag, isSchemaImport, SchemaImportMapping, isSchemaKnowledge, isSchemaTaggedMessageLegalContents, SchemaConditionTag, isImportableTag, isSchemaWithKey } from "../simpleSchema/baseClasses"
+import { NormalForm, isNormalAsset, isNormalRoom, NormalItem, isNormalFeature, isNormalBookmark, isNormalMap, isNormalMessage, isNormalMoment, NormalMoment, isNormalVariable, isNormalComputed, isNormalAction, isNormalImport, NormalImport, isNormalKnowledge } from "./baseClasses"
+import { isSchemaRoom, isSchemaBookmark, SchemaTag, isSchemaMessage, isSchemaMoment, SchemaComputedTag, isSchemaImport, SchemaImportMapping, isImportableTag, isSchemaWithKey } from "../simpleSchema/baseClasses"
 import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses";
 import dfsWalk from "../sequence/tree/dfsWalk"
 import { selectRender } from "./selectors/render"
