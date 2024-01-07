@@ -13,7 +13,7 @@ export const selectMapRooms = (tree: GenericTree<SchemaTag>, options={ tag: '', 
     //
     return tagTree
         .reordered([options.tag, 'If', 'Room'])
-        .filter([{ match: 'Room' }])
-        .prune([{ not: ['If', 'Room'] }])
+        .filter({ match: 'Room' })
+        .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }] }})
         .tree
 }
