@@ -19,13 +19,12 @@ import {
     isNormalKnowledge,
     isNormalImport
 } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
+import Normalizer from '@tonylb/mtw-wml/ts/normalize'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
     EphemeraCharacter,
     EphemeraCondition,
-    EphemeraExit,
     EphemeraItem,
-    EphemeraItemDependency,
     EphemeraPushArgs
 } from './baseClasses'
 import { conditionsFromContext } from './utilities'
@@ -33,140 +32,36 @@ import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './mergeIntoEphemera'
-import { EphemeraAssetId, EphemeraCharacterId, EphemeraError, isEphemeraActionId, isEphemeraAssetId, isEphemeraBookmarkId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { TaggedConditionalItemDependency, TaggedMessageContent } from '@tonylb/mtw-interfaces/ts/messages.js'
+import {
+    EphemeraAssetId,
+    EphemeraCharacterId,
+    EphemeraError,
+    isEphemeraActionId,
+    isEphemeraAssetId,
+    isEphemeraBookmarkId,
+    isEphemeraCharacterId,
+    isEphemeraComputedId,
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraMapId,
+    isEphemeraMessageId,
+    isEphemeraMomentId,
+    isEphemeraRoomId,
+    isEphemeraVariableId
+} from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
-import { sfnClient } from '../clients.js'
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 import { graphStorageDB } from '../dependentMessages/graphCache'
 import topologicalSort from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph/topologicalSort'
 import GraphUpdate from '@tonylb/mtw-utilities/dist/graphStorage/update'
-import { StartExecutionCommand } from '@aws-sdk/client-sfn'
-
-//
-// TODO:
-//
-// Consider how to handle the various cases of change,
-// in relation to the characters possibly occupying the rooms
-//
-// What does it mean when the underlying assets of a room change, in terms
-// of notifying people in it?
-//
-
-//
-// Translates from normal form to a fetch-ready record to be stored in the Ephemera table.
-//
-const ephemeraTranslateRender = (assetWorkspace: ReadOnlyAssetWorkspace) => (renderItem: ComponentRenderItem): TaggedMessageContent => {
-    if (renderItem.tag === 'Link') {
-        const to = assetWorkspace.universalKey(renderItem.to)
-        if (!(to && (isEphemeraActionId(to) || isEphemeraCharacterId(to) || isEphemeraFeatureId(to) || isEphemeraKnowledgeId(to)))) {
-            throw new EphemeraError(`Illegal target in link: ${to}`)
-        }
-        return {
-            ...renderItem,
-            to
-        }
-    }
-    else if (renderItem.tag === 'Bookmark') {
-        const to = assetWorkspace.universalKey(renderItem.to)
-        if (!(to && isEphemeraBookmarkId(to))) {
-            throw new EphemeraError(`Illegal key in bookmark: ${to}`)
-        }
-        return {
-            ...renderItem,
-            to
-        }
-    }
-    else if (renderItem.tag === 'Condition') {
-        const mappedConditions = renderItem.conditions.map<EphemeraCondition>((condition) => {
-            const dependencies = (condition.dependencies ?? []).map<TaggedConditionalItemDependency>((depend) => {
-                const dependTranslated = assetWorkspace.universalKey(depend)
-                if (!(dependTranslated && (isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated)))) {
-                    throw new EphemeraError(`Illegal dependency in If: ${depend}`)
-                }
-                return {
-                    key: depend,
-                    EphemeraId: dependTranslated
-                }
-            })
-            return {
-                if: condition.if,
-                not: condition.not,
-                dependencies
-            }
-        })
-        return {
-            ...renderItem,
-            conditions: mappedConditions,
-            contents: renderItem.contents.map(ephemeraTranslateRender(assetWorkspace))
-        }
-    }
-    else {
-        return renderItem as TaggedMessageContent
-    }
-}
-
-//
-// Extract fetch-ready list of exits from EphemeraRoom contents
-//
-const ephemeraExtractExits = (assetWorkspace: ReadOnlyAssetWorkspace) => (contents: NormalReference[]): EphemeraExit[] => {
-    return contents.reduce<EphemeraExit[]>((previous, item) => {
-        const itemLookup = assetWorkspace.normal?.[item.key]
-        if (itemLookup) {
-            if (isNormalExit(itemLookup)) {
-                const to = assetWorkspace.universalKey(itemLookup.to)
-                if (!(to && isEphemeraRoomId(to))) {
-                    throw new EphemeraError(`Illegal target in exit: ${to}`)
-                }
-                return [
-                    ...previous,
-                    {
-                        conditions: [],
-                        name: itemLookup.name || '',
-                        to
-                    }
-                ]
-            }
-            if (isNormalCondition(itemLookup)) {
-                const nestedExits = ephemeraExtractExits(assetWorkspace)(itemLookup.appearances[item.index].contents)
-                if (nestedExits.length) {
-                    const mappedConditions = itemLookup.conditions.map<EphemeraCondition>((condition) => {
-                        const dependencies = (condition.dependencies ?? []).map<EphemeraItemDependency>((depend) => {
-                            const dependTranslated = assetWorkspace.universalKey(depend)
-                            if (!dependTranslated) {
-                                throw new EphemeraError(`Illegal dependency in If: ${depend}`)
-                            }
-                            if (!(isEphemeraComputedId(dependTranslated) || isEphemeraVariableId(dependTranslated))) {
-                                throw new EphemeraError(`Illegal dependency in If: ${depend}`)
-                            }
-                            return {
-                                key: depend,
-                                EphemeraId: dependTranslated
-                            }
-                        })
-                        return {
-                            if: condition.if,
-                            not: condition.not,
-                            dependencies
-                        }
-                    })
-                    return [
-                        ...previous,
-                        ...(nestedExits.map((exit) => ({
-                            ...exit,
-                            conditions: [
-                                ...mappedConditions,
-                                ...exit.conditions
-                            ]
-                        })))
-                    ]
-                }
-            }
-        }
-        return previous
-    }, [])
-}
+import { selectName } from '@tonylb/mtw-wml/ts/normalize/selectors/name'
+import { selectRender } from '@tonylb/mtw-wml/ts/normalize/selectors/render'
+import { selectExits } from '@tonylb/mtw-wml/ts/normalize/selectors/exits'
+import { selectRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/rooms'
+import { isSchemaRoom } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses'
+import { selectImages } from '@tonylb/mtw-wml/ts/normalize/selectors/images'
+import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms'
 
 //
 // TODO: Fix ephemeraItemFromNormal to store the new standard for how to deal with normal Items (i.e., children are GenericTree<SchemaTag>,
@@ -174,6 +69,8 @@ const ephemeraExtractExits = (assetWorkspace: ReadOnlyAssetWorkspace) => (conten
 //
 const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { normal = {}, properties = {} } = assetWorkspace
+    const normalizer = new Normalizer()
+    normalizer.loadNormal(normal)
     const conditionsTransform = conditionsFromContext(assetWorkspace)
     const conditionsRemap = (conditions: { if: string; not?: boolean; dependencies: string[] }[]): EphemeraCondition[] => {
         return conditions.map((condition) => {
@@ -201,99 +98,91 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
     if (!EphemeraId) {
         return undefined
     }
-    const renderTranslate = ephemeraTranslateRender(assetWorkspace)
-    const exitTranslate = ephemeraExtractExits(assetWorkspace)
     if (isEphemeraRoomId(EphemeraId) && isNormalRoom(item)) {
+        const name = normalizer.select({ key: item.key, selector: selectName })
+        const render = normalizer.select({ key: item.key, selector: selectRender })
+        const exits = normalizer.select({ key: item.key, selector: selectExits })
         return {
             key: item.key,
             EphemeraId: EphemeraId,
-            appearances: item.appearances
-                .map((appearance) => ({
-                    conditions: conditionsTransform(appearance.contextStack),
-                    name: (appearance.name ?? []).map(renderTranslate),
-                    render: (appearance.render || []).map(renderTranslate),
-                    exits: exitTranslate(appearance.contents)
-                }))
+            name,
+            render,
+            exits
         }
     }
     if (isEphemeraFeatureId(EphemeraId) && isNormalFeature(item)) {
+        const name = normalizer.select({ key: item.key, selector: selectName })
+        const render = normalizer.select({ key: item.key, selector: selectRender })
         return {
             key: item.key,
             EphemeraId,
-            appearances: item.appearances
-                .map((appearance) => ({
-                    conditions: conditionsTransform(appearance.contextStack),
-                    name: (appearance.name ?? []).map(renderTranslate),
-                    render: (appearance.render || []).map(renderTranslate),
-                }))
+            name,
+            render
         }
     }
     if (isEphemeraKnowledgeId(EphemeraId) && isNormalKnowledge(item)) {
+        const name = normalizer.select({ key: item.key, selector: selectName })
+        const render = normalizer.select({ key: item.key, selector: selectRender })
         return {
             key: item.key,
             EphemeraId,
-            appearances: item.appearances
-                .map((appearance) => ({
-                    conditions: conditionsTransform(appearance.contextStack),
-                    name: (appearance.name ?? []).map(renderTranslate),
-                    render: (appearance.render || []).map(renderTranslate),
-                }))
+            name,
+            render
         }
     }
     if (isEphemeraBookmarkId(EphemeraId) && isNormalBookmark(item)) {
+        const render = normalizer.select({ key: item.key, selector: selectRender })
         return {
             key: item.key,
             EphemeraId,
-            appearances: item.appearances
-                .map((appearance) => ({
-                    conditions: conditionsTransform(appearance.contextStack),
-                    render: (appearance.render || []).map(renderTranslate),
-                }))
+            render
         }
     }
     if (isEphemeraMessageId(EphemeraId) && isNormalMessage(item)) {
+        const rooms = normalizer.select({ key: item.key, selector: selectRooms })
+            .map(({ data: tag }) => {
+                if (isSchemaRoom(tag)) {
+                    const roomId = assetWorkspace.universalKey(tag.key)
+                    if (roomId && isEphemeraRoomId(roomId)) {
+                        return [roomId]
+                    }
+                }
+                return []
+            })
+            .flat(1)
+        const render = normalizer.select({ key: item.key, selector: selectRender })
         return {
             key: item.key,
             EphemeraId,
-            appearances: item.appearances
-                .map((appearance) => ({
-                    conditions: conditionsTransform(appearance.contextStack),
-                    render: (appearance.render || []).map(renderTranslate),
-                    rooms: (appearance.rooms || []).map(({ key }) => (assetWorkspace.universalKey(key))).filter((value): value is string => (Boolean(value))).filter(isEphemeraRoomId)
-                }))
+            rooms,
+            render
         }
     }
     if (isEphemeraMomentId(EphemeraId) && isNormalMoment(item)) {
         return {
             key: item.key,
             EphemeraId,
-            appearances: item.appearances
-                .map((appearance) => ({
-                    conditions: conditionsTransform(appearance.contextStack),
-                    messages: (appearance.messages || []).map((key) => (assetWorkspace.universalKey(key))).filter((value): value is string => (Boolean(value))).filter(isEphemeraMessageId)
-                }))
+            messages: []
+            // appearances: item.appearances
+            //     .map((appearance) => ({
+            //         conditions: conditionsTransform(appearance.contextStack),
+            //         messages: (appearance.messages || []).map((key) => (assetWorkspace.universalKey(key))).filter((value): value is string => (Boolean(value))).filter(isEphemeraMessageId)
+            //     }))
         }
     }
     if (isEphemeraMapId(EphemeraId) && isNormalMap(item)) {
+        const name = normalizer.select({ key: item.key, selector: selectName })
+        const images = normalizer.select({ key: item.key, selector: selectImages })
+        const rooms = normalizer.select({ key: item.key, selector: selectMapRooms })
+        //
+        // TODO: Use TagTree to convert rooms from GenericTree<SchemaTag> into EphemeraMapRoom[]
+        //
         return {
             key: item.key,
             EphemeraId,
-            appearances: item.appearances
-                .map((appearance) => {
-                    const image = appearance.images.length > 0 && normal[appearance.images.slice(-1)[0]]
-                    const fileURL = (image && isNormalImage(image) && assetWorkspace.properties[image.key] && assetWorkspace.properties[image.key].fileName) || ''
-                    return {
-                        conditions: conditionsTransform(appearance.contextStack),
-                        name: (appearance.name ?? []).map(renderTranslate),
-                        fileURL,
-                        rooms: appearance.rooms.map(({ conditions, key,  x, y }) => ({
-                            conditions: conditionsRemap(conditions),
-                            EphemeraId: assetWorkspace.universalKey(key) ?? '',
-                            x,
-                            y
-                        }))
-                    }
-                })
+            name,
+            images,
+            rooms: []
         }
     }
     if (isEphemeraCharacterId(EphemeraId) && isNormalCharacter(item)) {

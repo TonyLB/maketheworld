@@ -22,11 +22,10 @@ import {
     isEphemeraRoomId,
     isEphemeraVariableId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { TaggedMessageContent } from "@tonylb/mtw-interfaces/ts/messages";
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
 import { NormalCharacterPronouns } from "@tonylb/mtw-wml/ts/normalize/baseClasses"
 import { GenericTree } from "@tonylb/mtw-wml/ts/sequence/tree/baseClasses";
-import { SchemaTag } from "@tonylb/mtw-wml/ts/simpleSchema/baseClasses";
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-wml/ts/simpleSchema/baseClasses";
 
 export type EphemeraItemDependency = {
     key: string;
@@ -43,33 +42,35 @@ export type EphemeraConditionMixin = {
     conditions: EphemeraCondition[];
 }
 
+export type EphemeraNameMixin = {
+    name: GenericTree<SchemaOutputTag>;
+}
+
+export type EphemeraRenderMixin = {
+    render: GenericTree<SchemaOutputTag>;
+}
+
 export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
     key: string;
-    name: GenericTree<SchemaTag>;
-    render: GenericTree<SchemaTag>;
-}
+} & EphemeraNameMixin & EphemeraRenderMixin
 
 export type EphemeraKnowledge = {
     EphemeraId: EphemeraKnowledgeId;
     key: string;
-    name: GenericTree<SchemaTag>;
-    render: GenericTree<SchemaTag>;
-}
+} & EphemeraNameMixin & EphemeraRenderMixin
 
 export type EphemeraBookmark = {
     EphemeraId: EphemeraBookmarkId;
     key: string;
-    render: GenericTree<SchemaTag>;
+    render: GenericTree<SchemaOutputTag>;
 }
 
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
     key: string;
-    name: GenericTree<SchemaTag>;
-    render: GenericTree<SchemaTag>;
     exits: GenericTree<SchemaTag>;
-}
+} & EphemeraNameMixin & EphemeraRenderMixin
 
 export type EphemeraMapRoom = {
     EphemeraId: string;
@@ -80,9 +81,9 @@ export type EphemeraMapRoom = {
 export type EphemeraMap = {
     EphemeraId: EphemeraMapId;
     key: string;
-    name: GenericTree<SchemaTag>;
     rooms: EphemeraMapRoom[];
-}
+    images: GenericTree<SchemaTag>;
+} & EphemeraNameMixin
 
 export type EphemeraMessageRoom = {
     EphemeraId: string;
@@ -91,9 +92,8 @@ export type EphemeraMessageRoom = {
 export type EphemeraMessage = {
     EphemeraId: EphemeraMessageId;
     key: string;
-    render: GenericTree<SchemaTag>;
     rooms: EphemeraRoomId[];
-}
+} & EphemeraRenderMixin
 
 export type EphemeraMomentMessage = {
     EphemeraId: string;

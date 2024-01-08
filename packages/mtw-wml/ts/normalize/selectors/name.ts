@@ -3,9 +3,6 @@ import { treeTypeGuard } from "../../sequence/tree/filter"
 import { SchemaOutputTag, SchemaTag, isSchemaOutputTag } from "../../simpleSchema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 
-//
-// TODO: Create tree filter and apply a SchemaMessage typeguard to guarantee a GenericTree<SchemaTaggedMessage...> type
-//
 export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key: '' }): GenericTree<SchemaOutputTag> => {
     if (!options.tag) {
         return []
