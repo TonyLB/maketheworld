@@ -6,7 +6,7 @@ export const filter = <NodeData extends {}>({ tree, callback }: { tree: GenericT
         .map(({ data, children }) => ({ data, children: filter({ tree: children, callback })}))
 )
 
-export const asyncFilter = async <NodeData extends {}>({ tree, callback }: { tree: GenericTree<NodeData>, callback: (value: NodeData) => Promise<boolean> }): Promise<GenericTree<NodeData>> => {
+export const asyncFilter = async <NodeData extends {}>({ tree, callback }: { tree: GenericTree<NodeData>, callback: (value: NodeData) => Promise<Boolean> }): Promise<GenericTree<NodeData>> => {
     return (await Promise.all(
         tree.map(async ({ data, children }) => {
             if (await callback(data)) {

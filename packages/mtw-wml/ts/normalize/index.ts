@@ -29,7 +29,9 @@ import {
     isSchemaExport,
     isSchemaRoom,
     isImportable,
-    isSchemaLink
+    isSchemaLink,
+    isSchemaCondition,
+    isSchemaComputed
 } from '../simpleSchema/baseClasses'
 import {
     BaseAppearance,
@@ -83,6 +85,7 @@ import { GenericTree, GenericTreeNode } from '../sequence/tree/baseClasses';
 import mergeSchemaTrees from '../simpleSchema/treeManipulation/merge';
 import { extractConditionedItemFromContents } from '../simpleSchema/utils';
 import SchemaTagTree from '../tagTree/schema';
+import { map } from '../sequence/tree/map';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
@@ -1189,27 +1192,55 @@ export class Normalizer {
     }
 
     assignDependencies(extract: (src: string) => string[]) {
+        const assignSchema = (tree: GenericTree<SchemaTag | NormalReference>): GenericTree<SchemaTag | NormalReference> => (
+            map(tree, (tag: SchemaTag | NormalReference): SchemaTag | NormalReference => {
+                if (isNormalReference(tag)) {
+                    return tag
+                }
+                if (isSchemaCondition(tag)) {
+                    return {
+                        ...tag,
+                        conditions: tag.conditions.map((condition) => ({ ...condition, dependencies: extract(condition.if) }))
+                    }
+                }
+                if (isSchemaComputed(tag)) {
+                    return {
+                        ...tag,
+                        dependencies: extract(tag.src),
+                    }
+                }
+                return tag
+            })
+        )
+        const assignNormal = (item: NormalItem): NormalItem => {
+            const appearances = (item.appearances ?? []).map(({ data, children, ...rest }) => {
+                const { data: newData, children: newChildren } = assignSchema([{ data, children }])[0]
+                return { data: newData, children: newChildren, ...rest }
+            })
+            if (isNormalCondition(item)) {
+                const conditions = item.conditions.map((condition) => ({ ...condition, dependencies: extract(condition.if) }))
+                return {
+                    ...item,
+                    conditions,
+                    appearances: appearances as BaseAppearance[]
+                }
+            }
+            if (isNormalComputed(item)) {
+                const dependencies = extract(item.src)
+                return {
+                    ...item,
+                    dependencies,
+                    appearances: appearances as BaseAppearance[]
+                }
+            }
+            return {
+                ...item,
+                appearances: appearances as any
+            }
+        }
         this._normalForm = objectMap(
             this._normalForm,
-            (item) => {
-                if (isNormalCondition(item)) {
-                    const conditions = item.conditions.map((condition) => ({ ...condition, dependencies: extract(condition.if) }))
-                    return {
-                        ...item,
-                        conditions,
-                        appearances: item.appearances.map((appearance) => ({ ...appearance, data: { ...appearance.data, conditions } }))
-                    }
-                }
-                if (isNormalComputed(item)) {
-                    const dependencies = extract(item.src)
-                    return {
-                        ...item,
-                        dependencies,
-                        appearances: item.appearances.map((appearance) => ({ ...appearance, data: { ...appearance.data, dependencies } }))
-                    }
-                }
-                return item
-            }
+            assignNormal
         )
     }
 
