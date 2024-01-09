@@ -83,7 +83,8 @@ export class ComponentMetaData {
                         key: '',
                         name: [],
                         render: [],
-                        exits: []
+                        exits: [],
+                        stateMapping: {}
                     }
                 }
                 if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId)) {
@@ -93,6 +94,7 @@ export class ComponentMetaData {
                         key: '',
                         name: [],
                         render: [],
+                        stateMapping: {}
                     }
                 }
                 if (isEphemeraBookmarkId(EphemeraId)) {
@@ -101,6 +103,7 @@ export class ComponentMetaData {
                         assetId,
                         key: '',
                         render: [],
+                        stateMapping: {}
                     }
                 }
                 if (isEphemeraMapId(EphemeraId)) {
@@ -110,7 +113,8 @@ export class ComponentMetaData {
                         key: '',
                         name: [],
                         images: [],
-                        rooms: []
+                        rooms: [],
+                        stateMapping: {}
                     }
                 }
                 if (isEphemeraMessageId(EphemeraId)) {
@@ -119,7 +123,8 @@ export class ComponentMetaData {
                         assetId,
                         key: '',
                         render: [],
-                        rooms: []
+                        rooms: [],
+                        stateMapping: {}
                     }
                 }
                 if (isEphemeraMomentId(EphemeraId)) {
@@ -127,7 +132,8 @@ export class ComponentMetaData {
                         EphemeraId,
                         assetId,
                         key: '',
-                        messages: []
+                        messages: [],
+                        stateMapping: {}
                     }
                 }
                 if (isEphemeraVariableId(EphemeraId)) {
@@ -152,7 +158,8 @@ export class ComponentMetaData {
                         assetId,
                         key: '',
                         src: '',
-                        dependencies: []
+                        dependencies: [],
+                        stateMapping: {}
                     }
                 }
                 throw new Error(`Illegal tag in ComponentMeta internalCache (${EphemeraId})`)

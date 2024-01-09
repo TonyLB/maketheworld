@@ -62,6 +62,8 @@ import { selectRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/rooms'
 import { isSchemaRoom } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses'
 import { selectImages } from '@tonylb/mtw-wml/ts/normalize/selectors/images'
 import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms'
+import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
+import { StateItemId, isStateItemId } from '../internalCache/assetState'
 
 //
 // TODO: Fix ephemeraItemFromNormal to store the new standard for how to deal with normal Items (i.e., children are GenericTree<SchemaTag>,
@@ -98,6 +100,17 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
     if (!EphemeraId) {
         return undefined
     }
+    //
+    // Generate stateMapping from dependencies and assetWorkspace.universalKey (in case it is needed)
+    //
+    const dependencies = normalizer.select({ key: item.key, selector: selectDependencies })
+    const stateMapping = dependencies.reduce<Record<string, StateItemId>>((previous, key) => {
+        const universalKey = assetWorkspace.universalKey(key)
+        if (universalKey && isStateItemId(universalKey)) {
+            return { ...previous, [key]: universalKey }
+        }
+        return previous
+    }, {})
     if (isEphemeraRoomId(EphemeraId) && isNormalRoom(item)) {
         const name = normalizer.select({ key: item.key, selector: selectName })
         const render = normalizer.select({ key: item.key, selector: selectRender })
@@ -107,7 +120,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             EphemeraId: EphemeraId,
             name,
             render,
-            exits
+            exits,
+            stateMapping
         }
     }
     if (isEphemeraFeatureId(EphemeraId) && isNormalFeature(item)) {
@@ -117,7 +131,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             key: item.key,
             EphemeraId,
             name,
-            render
+            render,
+            stateMapping
         }
     }
     if (isEphemeraKnowledgeId(EphemeraId) && isNormalKnowledge(item)) {
@@ -127,7 +142,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             key: item.key,
             EphemeraId,
             name,
-            render
+            render,
+            stateMapping
         }
     }
     if (isEphemeraBookmarkId(EphemeraId) && isNormalBookmark(item)) {
@@ -135,7 +151,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
         return {
             key: item.key,
             EphemeraId,
-            render
+            render,
+            stateMapping
         }
     }
     if (isEphemeraMessageId(EphemeraId) && isNormalMessage(item)) {
@@ -155,14 +172,16 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             key: item.key,
             EphemeraId,
             rooms,
-            render
+            render,
+            stateMapping
         }
     }
     if (isEphemeraMomentId(EphemeraId) && isNormalMoment(item)) {
         return {
             key: item.key,
             EphemeraId,
-            messages: []
+            messages: [],
+            stateMapping
             // appearances: item.appearances
             //     .map((appearance) => ({
             //         conditions: conditionsTransform(appearance.contextStack),
@@ -182,7 +201,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             EphemeraId,
             name,
             images,
-            rooms: []
+            rooms: [],
+            stateMapping
         }
     }
     if (isEphemeraCharacterId(EphemeraId) && isNormalCharacter(item)) {
