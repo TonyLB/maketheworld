@@ -397,46 +397,31 @@ export class ComponentRenderData {
             this._getAssets(),
             isEphemeraCharacterId(CharacterId) ? this._characterMeta(CharacterId) : Promise.resolve({ assets: [] })
         ])
-        const evaluateConditional = (source: string, dependencies: TaggedConditionalItemDependency[]) => (
-            this._evaluateCode({
-                source,
-                mapping: dependencies.reduce<EvaluateCodeAddress["mapping"]>((previous, { key, EphemeraId }) => ((isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)) ?
-                    {
-                        ...previous,
-                        [key]: EphemeraId
-                    }
-                    : previous ), {})
-            })
-        )
-        const options: FlattenTaggedMessageContentOptions = {
-            evaluateConditional,
-            renderBookmark: async (bookmarkId) => {
-                const renderChain = getOptions?.priorRenderChain ?? []
-                if (renderChain.includes(bookmarkId)) {
-                    return [{ tag: 'String', value: '#CIRCULAR' }]
-                }
-                const { Description } = await this.get(CharacterId, bookmarkId, { priorRenderChain: [...renderChain, bookmarkId] })
-                return Description
-            }
-        }
+        // const evaluateConditional = (source: string, dependencies: TaggedConditionalItemDependency[]) => (
+        //     this._evaluateCode({
+        //         source,
+        //         mapping: dependencies.reduce<EvaluateCodeAddress["mapping"]>((previous, { key, EphemeraId }) => ((isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)) ?
+        //             {
+        //                 ...previous,
+        //                 [key]: EphemeraId
+        //             }
+        //             : previous ), {})
+        //     })
+        // )
+        // const options: FlattenTaggedMessageContentOptions = {
+        //     evaluateConditional,
+        //     renderBookmark: async (bookmarkId) => {
+        //         const renderChain = getOptions?.priorRenderChain ?? []
+        //         if (renderChain.includes(bookmarkId)) {
+        //             return [{ tag: 'String', value: '#CIRCULAR' }]
+        //         }
+        //         const { Description } = await this.get(CharacterId, bookmarkId, { priorRenderChain: [...renderChain, bookmarkId] })
+        //         return Description
+        //     }
+        // }
 
         const allAssets = unique(globalAssets || [], characterAssets) as string[]
         const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets)
-        const aggregateDependencies = unique(...(Object.values(appearancesByAsset) as ComponentMetaItem[])
-            .map((componentMeta) => (
-                []
-                //
-                // TODO: Extract conditions from every possible item to be rendered
-                //
-
-                // unique(...appearances.map(({ conditions }: { conditions: EphemeraCondition[] }) => (
-                //     unique(...conditions.map(({ dependencies }) => (
-                //         (Object.values(dependencies) as EphemeraItemDependency[])
-                //             .map(({ EphemeraId }) => (EphemeraId))
-                //             .filter((dependentId) => (isEphemeraComputedId(dependentId) || isEphemeraVariableId(dependentId)))
-                //     ))) as StateItemId[]
-                // ))) as StateItemId[]
-            ))) as StateItemId[]
 
         const evaluateSchemaOutputPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
             Promise.all(assetData.map(async (data) => (evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] as GenericTree<SchemaOutputTag>, data.stateMapping)))).then((tagLists) => (tagLists.flat(1)))
@@ -571,9 +556,6 @@ export class ComponentRenderData {
                 return {
                     roomId: ephemeraId,
                     name: flattenSchemaOutputTags(name),
-                    //
-                    // TODO: Extract exit format expected by MapDescribeData
-                    //
                     exits: exits
                         .map(({ data }) => (data))
                         .filter(isSchemaExit)
