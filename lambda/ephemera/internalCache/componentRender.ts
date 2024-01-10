@@ -40,6 +40,7 @@ import { asyncFilter, treeTypeGuard } from '@tonylb/mtw-wml/ts/sequence/tree/fil
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
 import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms';
+import { compressStrings } from '@tonylb/mtw-wml/ts/simpleSchema/utils';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -73,12 +74,12 @@ export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (a
     }
     const filteredTree = await asyncFilter({ tree, callback })
     const tagTree = new SchemaTagTree(filteredTree)
-    tagTree.prune({ match: 'If' })
+    const finalTree = tagTree.prune({ match: 'If' })
     if (typeGuard) {
-        return treeTypeGuard({ tree: tagTree.tree, typeGuard })
+        return treeTypeGuard({ tree: finalTree.tree, typeGuard })
     }
     else {
-        return tagTree.tree as GenericTree<T>
+        return finalTree.tree as GenericTree<T>
     }
 }
 
@@ -424,7 +425,7 @@ export class ComponentRenderData {
         const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets)
 
         const evaluateSchemaOutputPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
-            Promise.all(assetData.map(async (data) => (evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] as GenericTree<SchemaOutputTag>, data.stateMapping)))).then((tagLists) => (tagLists.flat(1)))
+            Promise.all(assetData.map(async (data) => (evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] as GenericTree<SchemaOutputTag>, data.stateMapping)))).then((tagLists) => (compressStrings(tagLists.flat(1))))
         )
         const evaluateSchemaPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaTag>> => (
             Promise.all(assetData.map(async (data) => (evaluateSchemaConditionals(this._evaluateCode.bind(this))(data[key] as GenericTree<SchemaTag>, data.stateMapping)))).then((tagLists) => (tagLists.flat(1)))
@@ -446,7 +447,7 @@ export class ComponentRenderData {
                 to: to as { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]
             }))
             const evaluatePromise = await Promise.all(remapped.map(({ from }) => (evaluateSchemaOutputPromise(assetData, from))))
-            return Object.assign({}, evaluatePromise.map((output, index) => ({ [remapped[index].to]: flattenSchemaOutputTags(output) }))) as unknown as
+            return Object.assign({}, ...evaluatePromise.map((output, index) => ({ [remapped[index].to]: flattenSchemaOutputTags(output) }))) as unknown as
                 Pick<O, { [P in keyof O]: O[P] extends TaggedMessageContentFlat[] ? P : never }[keyof O]>
         }
         if (isEphemeraRoomId(EphemeraId)) {
