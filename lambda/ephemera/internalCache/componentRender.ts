@@ -4,15 +4,13 @@ import { EphemeraBookmark, EphemeraCondition, EphemeraFeature, EphemeraItem, Eph
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent, BookmarkDescribeData, KnowledgeDescribeData, TaggedConditionalItemDependency } from '@tonylb/mtw-interfaces/ts/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
-import AssetState, { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData, StateItemId, isStateItemId } from './assetState';
+import AssetState, { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
 import {
-    EphemeraActionId,
     EphemeraAssetId,
     EphemeraBookmarkId,
     EphemeraCharacterId,
     EphemeraComputedId,
     EphemeraFeatureId,
-    EphemeraId,
     EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
@@ -30,16 +28,13 @@ import {
     isEphemeraVariableId
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import CacheRoomCharacterLists, { CacheRoomCharacterListsData } from './roomCharacterLists';
-import { RoomCharacterListItem } from './baseClasses';
+import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
-import { FlattenTaggedMessageContentOptions } from '@tonylb/mtw-interfaces/ts/messages';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { GenericTree } from '@tonylb/mtw-wml/ts/sequence/tree/baseClasses';
-import { SchemaExitTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaSpacer } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses';
+import { SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaSpacer } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses';
 import { asyncFilter, treeTypeGuard } from '@tonylb/mtw-wml/ts/sequence/tree/filter';
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
-import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
-import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms';
 import { compressStrings } from '@tonylb/mtw-wml/ts/simpleSchema/utils';
 
 type MessageDescribeData = {
@@ -59,8 +54,8 @@ type ComponentRenderGetOptions = {
     priorRenderChain?: string[];
 }
 
-export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (address: EvaluateCodeAddress) => Promise<Boolean>, typeGuard?: (tag: SchemaTag) => tag is T) => async (tree: GenericTree<T>, mapping: AssetStateMapping): Promise<GenericTree<T>> => {
-    const callback = async (tag: T): Promise<Boolean> => {
+export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (address: EvaluateCodeAddress) => Promise<boolean>, typeGuard?: (tag: SchemaTag) => tag is T) => async (tree: GenericTree<T>, mapping: AssetStateMapping): Promise<GenericTree<T>> => {
+    const callback = async (tag: T): Promise<boolean> => {
         if (isSchemaCondition(tag)) {
             const conditionEvaluations = await Promise.all(
                 tag.conditions.map(async ({ if: source, not }) => {
@@ -68,7 +63,7 @@ export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (a
                     return not ? !evaluation : evaluation
                 })
             )
-            return conditionEvaluations.reduce<Boolean>((previous, evaluation) => (previous && evaluation), true)
+            return conditionEvaluations.reduce<boolean>((previous, evaluation) => (previous && evaluation), true)
         }
         return true
     }
@@ -476,7 +471,9 @@ export class ComponentRenderData {
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraFeature[]
+            console.log(`assetData: ${JSON.stringify(assetData, null, 4)}`)
             const rest = await mapEvaluatedSchemaOutputPromise<EphemeraFeature, FeatureDescribeData>({ name: 'Name', render: 'Description' })
+            console.log(`rest: ${JSON.stringify(rest, null, 4)}`)
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {

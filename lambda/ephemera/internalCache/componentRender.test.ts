@@ -413,189 +413,202 @@ describe('ComponentRender cache handler', () => {
         })
     })
 
-    // it('should render only features correctly', async () => {
-    //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
-    //     jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
-    //         EphemeraId: 'CHARACTER#Test',
-    //         Name: 'Tess',
-    //         assets: ['Personal'],
-    //         RoomId: 'ROOM#VORTEX',
-    //         RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-    //         HomeId: 'ROOM#VORTEX',
-    //         Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
-    //     })
-    //     jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
-    //         Base: {
-    //             EphemeraId: 'FEATURE#TestOne',
-    //             assetId: 'Base',
-    //             appearances: [
-    //                 {
-    //                     conditions: [{ if: 'testOne', dependencies: [] }],
-    //                     name: [{ tag: 'String', value: 'TestFeature' }],
-    //                     render: [{ tag: 'String', value: 'First' }],
-    //                 },
-    //                 {
-    //                     conditions: [{ if: 'testTwo', dependencies: [] }],
-    //                     name: [],
-    //                     render: [{ tag: 'String', value: 'ERROR' }],
-    //                 }
-    //             ],
-    //             key: 'testFeature'
-    //         },
-    //         Personal: {
-    //             EphemeraId: 'FEATURE#TestOne',
-    //             assetId: 'Base',
-    //             appearances: [
-    //                 {
-    //                     conditions: [{ if: 'testThree', dependencies: [] }],
-    //                     name: [{ tag: 'String', value: 'ERROR' }],
-    //                     render: [{ tag: 'String', value: 'ERROR' }],
-    //                 },
-    //                 {
-    //                     conditions: [{ if: 'testFour', dependencies: [] }],
-    //                     name: [],
-    //                     render: [{ tag: 'String', value: 'Second' }],
-    //                 }
-    //             ],
-    //             key: 'testFeature'
-    //         }
-    //     })
-    //     jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
-    //         return Boolean(['testOne', 'testFour'].includes(source))
-    //     })
-    //     jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-    //         { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
-    //     ])
-    //     const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
-    //     expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['Base', 'Personal'])
-    //     expect(output).toEqual({
-    //         FeatureId: 'FEATURE#TestOne',
-    //         Name: [{ tag: 'String', value: 'TestFeature' }],
-    //         Description: [{ tag: 'String', value: 'FirstSecond' }],
-    //         assets: {
-    //             ['ASSET#Base']: 'testFeature',
-    //             ['ASSET#Personal']: 'testFeature'
-    //         }
-    //     })
-    // })
+    it('should render only features correctly', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: ['Personal'],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+            Base: {
+                EphemeraId: 'FEATURE#TestOne',
+                assetId: 'Base',
+                name: [{
+                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
+                    children: [{ data: { tag: 'String', value: 'TestFeature' }, children: [] }]
+                }],
+                render: [{
+                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
+                    children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
+                },
+                {
+                    data: { tag: 'If', conditions: [{ if: 'testTwo' }] },
+                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                }],
+                key: 'testFeature',
+                stateMapping: {
+                    testOne: 'VARIABLE#One',
+                    testTwo: 'VARIABLE#Two'
+                }
+            },
+            Personal: {
+                EphemeraId: 'FEATURE#TestOne',
+                assetId: 'Base',
+                name: [{
+                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
+                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                }],
+                render: [{
+                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
+                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                },
+                {
+                    data: { tag: 'If', conditions: [{ if: 'testFour' }] },
+                    children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                }],
+                key: 'testFeature',
+                stateMapping: {
+                    testThree: 'VARIABLE#Three',
+                    testFour: 'VARIABLE#Four'
+                }
+            }
+        })
+        jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
+            return Boolean(['testOne', 'testFour'].includes(source))
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
+        ])
+        const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
+        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['Base', 'Personal'])
+        expect(output).toEqual({
+            FeatureId: 'FEATURE#TestOne',
+            Name: [{ tag: 'String', value: 'TestFeature' }],
+            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            assets: {
+                ['ASSET#Base']: 'testFeature',
+                ['ASSET#Personal']: 'testFeature'
+            }
+        })
+    })
 
-    // it('should render only knowledge correctly', async () => {
-    //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
-    //     jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
-    //         EphemeraId: 'CHARACTER#Test',
-    //         Name: 'Tess',
-    //         assets: ['Personal'],
-    //         RoomId: 'ROOM#VORTEX',
-    //         RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-    //         HomeId: 'ROOM#VORTEX',
-    //         Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
-    //     })
-    //     jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
-    //         Base: {
-    //             EphemeraId: 'KNOWLEDGE#TestOne',
-    //             assetId: 'Base',
-    //             appearances: [
-    //                 {
-    //                     conditions: [{ if: 'testOne', dependencies: [] }],
-    //                     name: [{ tag: 'String', value: 'TestKnowledge' }],
-    //                     render: [{ tag: 'String', value: 'First' }],
-    //                 },
-    //                 {
-    //                     conditions: [{ if: 'testTwo', dependencies: [] }],
-    //                     name: [],
-    //                     render: [{ tag: 'String', value: 'ERROR' }],
-    //                 }
-    //             ],
-    //             key: 'testKnowledge'
-    //         },
-    //         Personal: {
-    //             EphemeraId: 'KNOWLEDGE#TestOne',
-    //             assetId: 'Base',
-    //             appearances: [
-    //                 {
-    //                     conditions: [{ if: 'testThree', dependencies: [] }],
-    //                     name: [{ tag: 'String', value: 'ERROR' }],
-    //                     render: [{ tag: 'String', value: 'ERROR' }],
-    //                 },
-    //                 {
-    //                     conditions: [{ if: 'testFour', dependencies: [] }],
-    //                     name: [],
-    //                     render: [{ tag: 'String', value: 'Second' }],
-    //                 }
-    //             ],
-    //             key: 'testKnowledge'
-    //         }
-    //     })
-    //     jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
-    //         return Boolean(['testOne', 'testFour'].includes(source))
-    //     })
-    //     jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-    //         { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
-    //     ])
-    //     const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
-    //     expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['Base', 'Personal'])
-    //     expect(output).toEqual({
-    //         KnowledgeId: 'KNOWLEDGE#TestOne',
-    //         Name: [{ tag: 'String', value: 'TestKnowledge' }],
-    //         Description: [{ tag: 'String', value: 'FirstSecond' }],
-    //         assets: {
-    //             ['ASSET#Base']: 'testKnowledge',
-    //             ['ASSET#Personal']: 'testKnowledge'
-    //         }
-    //     })
-    // })
+    it('should render only knowledge correctly', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: ['Personal'],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+            Base: {
+                EphemeraId: 'KNOWLEDGE#TestOne',
+                assetId: 'Base',
+                name: [{
+                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
+                    children: [{ data: { tag: 'String', value: 'TestKnowledge' }, children: [] }]
+                }],
+                render: [{
+                    data: { tag: 'If', conditions: [{ if: 'testOne' }] },
+                    children: [{ data: { tag: 'String', value: 'First' }, children: [] }]
+                },
+                {
+                    data: { tag: 'If', conditions: [{ if: 'testTwo' }] },
+                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                }],
+                key: 'testKnowledge',
+                stateMapping: {
+                    testOne: 'VARIABLE#One',
+                    testTwo: 'VARIABLE#Two'
+                }
+            },
+            Personal: {
+                EphemeraId: 'KNOWLEDGE#TestOne',
+                assetId: 'Base',
+                name: [{
+                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
+                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                }],
+                render: [{
+                    data: { tag: 'If', conditions: [{ if: 'testThree' }] },
+                    children: [{ data: { tag: 'String', value: 'ERROR' }, children: [] }]
+                },
+                {
+                    data: { tag: 'If', conditions: [{ if: 'testFour' }] },
+                    children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                }],
+                key: 'testKnowledge',
+                stateMapping: {
+                    testThree: 'VARIABLE#Three',
+                    testFour: 'VARIABLE#Four'
+                }
+            }
+        })
+        jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
+            return Boolean(['testOne', 'testFour'].includes(source))
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
+        ])
+        const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
+        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['Base', 'Personal'])
+        expect(output).toEqual({
+            KnowledgeId: 'KNOWLEDGE#TestOne',
+            Name: [{ tag: 'String', value: 'TestKnowledge' }],
+            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            assets: {
+                ['ASSET#Base']: 'testKnowledge',
+                ['ASSET#Personal']: 'testKnowledge'
+            }
+        })
+    })
 
-    // it('should render bookmarks correctly', async () => {
-    //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
-    //     jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
-    //         EphemeraId: 'CHARACTER#Test',
-    //         Name: 'Tess',
-    //         assets: [],
-    //         RoomId: 'ROOM#VORTEX',
-    //         RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-    //         HomeId: 'ROOM#VORTEX',
-    //         Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
-    //     })
-    //     jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
-    //         switch(ephemeraId) {
-    //             case 'FEATURE#TestOne':
-    //                 return {
-    //                     Base: {
-    //                         EphemeraId: 'FEATURE#TestOne',
-    //                         assetId: 'Base',
-    //                         appearances: [
-    //                             {
-    //                                 conditions: [],
-    //                                 name: [],
-    //                                 render: [{ tag: 'Bookmark', to: 'BOOKMARK#TestTwo' }],
-    //                             }
-    //                         ],
-    //                         key: 'testFeature'
-    //                     }
-    //                 }
-    //             case 'BOOKMARK#TestTwo':
-    //                 return {
-    //                     Base: {
-    //                         EphemeraId: 'BOOKMARK#TestTwo',
-    //                         assetId: 'Base',
-    //                         appearances: [{ conditions: [], render: [{ tag: 'String', value: 'Test' }]}],
-    //                         key: 'testBookmark'
-    //                     }
-    //                 }
-    //             default:
-    //                 throw new Error('Unknown component')
-    //         }
-    //     })
-    //     const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
-    //     expect(output).toEqual({
-    //         FeatureId: 'FEATURE#TestOne',
-    //         Name: [],
-    //         Description: [{ tag: 'String', value: 'Test' }],
-    //         assets: {
-    //             ['ASSET#Base']: 'testFeature'
-    //         }
-    //     })
-    // })
+    it('should render bookmarks correctly', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
+            switch(ephemeraId) {
+                case 'FEATURE#TestOne':
+                    return {
+                        Base: {
+                            EphemeraId: 'FEATURE#TestOne',
+                            assetId: 'Base',
+                            name: [],
+                            render: [{ tag: 'Bookmark', to: 'BOOKMARK#TestTwo' }],
+                            key: 'testFeature',
+                            stateMapping: {}
+                        }
+                    } as any
+                case 'BOOKMARK#TestTwo':
+                    return {
+                        Base: {
+                            EphemeraId: 'BOOKMARK#TestTwo',
+                            assetId: 'Base',
+                            render: [{ tag: 'String', value: 'Test' }],
+                            key: 'testBookmark',
+                            stateMapping: {}
+                        }
+                    }
+                default:
+                    throw new Error('Unknown component')
+            }
+        })
+        const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
+        expect(output).toEqual({
+            FeatureId: 'FEATURE#TestOne',
+            Name: [],
+            Description: [{ tag: 'String', value: 'Test' }],
+            assets: {
+                ['ASSET#Base']: 'testFeature'
+            }
+        })
+    })
 
     // it('should render circular dependent bookmarks with correct error', async () => {
     //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])

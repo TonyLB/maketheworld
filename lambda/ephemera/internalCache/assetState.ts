@@ -1,10 +1,6 @@
 import {
-    EphemeraComputedId,
-    EphemeraVariableId,
     isEphemeraAssetId,
-    isEphemeraComputedId,
-    isEphemeraId,
-    isEphemeraVariableId
+    isEphemeraId
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
@@ -12,15 +8,10 @@ import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import { isLegalDependencyTag } from "@tonylb/mtw-utilities/dist/graphStorage/cache/baseClasses"
 import { extractConstrainedTag } from "@tonylb/mtw-utilities/dist/types"
-import CacheGraph, { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
-import ComponentMeta, { ComponentMetaData } from './componentMeta';
+import CacheGraph, { GraphEdgeType, GraphNodeType } from './graph';
 import { objectMap } from '../lib/objects';
-import internalCache from '.';
-import { GraphNodeData } from '@tonylb/mtw-utilities/dist/graphStorage/cache/graphNode';
-import { GraphEdgeData } from '@tonylb/mtw-utilities/dist/graphStorage/cache/graphEdge';
+import { StateItemId, isStateItemId } from './baseClasses';
 
-export type StateItemId = EphemeraVariableId | EphemeraComputedId
-export const isStateItemId = (item: string): item is StateItemId => (isEphemeraVariableId(item) || isEphemeraComputedId(item))
 export type StateItemReturn = {
     value: any;
     src?: string;
