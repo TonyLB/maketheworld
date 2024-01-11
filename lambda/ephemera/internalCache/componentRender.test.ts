@@ -580,7 +580,7 @@ describe('ComponentRender cache handler', () => {
                             EphemeraId: 'FEATURE#TestOne',
                             assetId: 'Base',
                             name: [],
-                            render: [{ tag: 'Bookmark', to: 'BOOKMARK#TestTwo' }],
+                            render: [{ data: { tag: 'Bookmark', to: 'BOOKMARK#TestTwo' }, children: [] }],
                             key: 'testFeature',
                             stateMapping: {}
                         }
@@ -590,7 +590,7 @@ describe('ComponentRender cache handler', () => {
                         Base: {
                             EphemeraId: 'BOOKMARK#TestTwo',
                             assetId: 'Base',
-                            render: [{ tag: 'String', value: 'Test' }],
+                            render: [{ data: { tag: 'String', value: 'Test' }, children: [] }],
                             key: 'testBookmark',
                             stateMapping: {}
                         }
