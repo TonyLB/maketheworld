@@ -1193,29 +1193,29 @@ export class Normalizer {
 
     assignDependencies(extract: (src: string) => string[]) {
         const assignSchema = (tree: GenericTree<SchemaTag | NormalReference>): GenericTree<SchemaTag | NormalReference> => (
-            map(tree, (node: GenericTreeNode<SchemaTag | NormalReference>): GenericTreeNode<SchemaTag | NormalReference> => {
+            map(tree, (node: GenericTreeNode<SchemaTag | NormalReference>): GenericTree<SchemaTag | NormalReference> => {
                 if (isNormalReference(node.data)) {
-                    return node
+                    return [node]
                 }
                 if (isSchemaCondition(node.data)) {
-                    return {
+                    return [{
                         ...node,
                         data: {
                             ...node.data,
                             conditions: node.data.conditions.map((condition) => ({ ...condition, dependencies: extract(condition.if) }))
                         }
-                    }
+                    }]
                 }
                 if (isSchemaComputed(node.data)) {
-                    return {
+                    return [{
                         ...node,
                         data: {
                             ...node.data,
                             dependencies: extract(node.data.src),
                         }
-                    }
+                    }]
                 }
-                return node
+                return [node]
             })
         )
         const assignNormal = (item: NormalItem): NormalItem => {

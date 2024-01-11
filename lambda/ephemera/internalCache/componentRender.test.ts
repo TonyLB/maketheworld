@@ -580,9 +580,9 @@ describe('ComponentRender cache handler', () => {
                             EphemeraId: 'FEATURE#TestOne',
                             assetId: 'Base',
                             name: [],
-                            render: [{ data: { tag: 'Bookmark', to: 'BOOKMARK#TestTwo' }, children: [] }],
+                            render: [{ data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }],
                             key: 'testFeature',
-                            stateMapping: {}
+                            stateMapping: { "bookmark1": "BOOKMARK#TestTwo" }
                         }
                     } as any
                 case 'BOOKMARK#TestTwo':

@@ -31,11 +31,12 @@ import CacheRoomCharacterLists, { CacheRoomCharacterListsData } from './roomChar
 import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
-import { GenericTree } from '@tonylb/mtw-wml/ts/sequence/tree/baseClasses';
-import { SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaSpacer } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses';
+import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/sequence/tree/baseClasses';
+import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaSpacer } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses';
 import { asyncFilter, treeTypeGuard } from '@tonylb/mtw-wml/ts/sequence/tree/filter';
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
 import { compressStrings } from '@tonylb/mtw-wml/ts/simpleSchema/utils';
+import { asyncMap } from '@tonylb/mtw-wml/ts/sequence/tree/map';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -75,6 +76,23 @@ export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (a
     }
     else {
         return finalTree.tree as GenericTree<T>
+    }
+}
+
+export const evaluateSchemaBookmarks = <T extends SchemaTag>(renderBookmark: (bookmark: SchemaBookmarkTag) => Promise<GenericTree<T>>, typeGuard?: (tag: SchemaTag) => tag is T) => async (tree: GenericTree<T>, mapping: AssetStateMapping): Promise<GenericTree<T>> => {
+    const callback = async (node: GenericTreeNode<T>): Promise<GenericTree<T>> => {
+        const { data: tag } = node
+        if (isSchemaBookmark(tag)) {
+            return await renderBookmark(tag)
+        }
+        return [node]
+    }
+    const mappedTree = await asyncMap(tree, callback)
+    if (typeGuard) {
+        return treeTypeGuard({ tree: mappedTree, typeGuard })
+    }
+    else {
+        return mappedTree
     }
 }
 
@@ -283,6 +301,23 @@ const flattenSchemaOutputTags = (tree: GenericTree<SchemaOutputTag>): TaggedMess
     })
 }
 
+//
+// deflattenSchemaOutputTags is a temporary conversion between legacy TaggedMessageContentFlat format and
+// unconditional SchemaOutputTag trees
+//
+const deflattenSchemaOutputTags = (tags: TaggedMessageContentFlat[]) : GenericTree<SchemaOutputTag> => {
+    return tags.map((tag) => {
+        switch(tag.tag) {
+            case 'Link':
+                return { data: { tag: 'Link', to: tag.to, text: tag.text }, children: [] }
+            case 'LineBreak':
+                return { data: { tag: 'br' }, children: [] }
+            case 'String':
+                return { data: { tag: 'String', value: tag.value }, children: [] }
+        }
+    })
+}
+
 export class ComponentRenderData {
     _evaluateCode: (address: EvaluateCodeAddress) => Promise<any>;
     _componentMeta: (EphemeraId: ComponentMetaId, assetList: string[]) => Promise<Record<string, ComponentMetaFromId<typeof EphemeraId>>>;
@@ -419,8 +454,22 @@ export class ComponentRenderData {
         const allAssets = unique(globalAssets || [], characterAssets) as string[]
         const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets)
 
-        const evaluateSchemaOutputPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
-            Promise.all(assetData.map(async (data) => (evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] as GenericTree<SchemaOutputTag>, data.stateMapping)))).then((tagLists) => (compressStrings(tagLists.flat(1))))
+        const evaluateSchemaOutputPromise = async <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
+            compressStrings((await Promise.all(assetData.map(async (data) => (
+                await evaluateSchemaBookmarks(
+                    async ({ key }) => {
+                        const BookmarkId = data.stateMapping[key]
+                        if (isEphemeraBookmarkId(BookmarkId)) {
+                            return deflattenSchemaOutputTags((await this.get(CharacterId, BookmarkId)).Description)
+                        }
+                        return []
+                    },
+                    isSchemaOutputTag
+                )(
+                    await evaluateSchemaConditionals(this._evaluateCode.bind(this), isSchemaOutputTag)(data[key] as GenericTree<SchemaOutputTag>, data.stateMapping),
+                    data.stateMapping
+                )
+            )))).flat(1))
         )
         const evaluateSchemaPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaTag>> => (
             Promise.all(assetData.map(async (data) => (evaluateSchemaConditionals(this._evaluateCode.bind(this))(data[key] as GenericTree<SchemaTag>, data.stateMapping)))).then((tagLists) => (tagLists.flat(1)))
@@ -471,9 +520,7 @@ export class ComponentRenderData {
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraFeature[]
-            console.log(`assetData: ${JSON.stringify(assetData, null, 4)}`)
             const rest = await mapEvaluatedSchemaOutputPromise<EphemeraFeature, FeatureDescribeData>({ name: 'Name', render: 'Description' })
-            console.log(`rest: ${JSON.stringify(rest, null, 4)}`)
             return {
                 dependencies: assetData.reduce<StateItemId[]>((previous, { stateMapping }) => (unique(previous, Object.values(stateMapping))), []),
                 description: {
