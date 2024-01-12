@@ -1,4 +1,6 @@
+import { EphemeraMapId, EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import internalCache from "../internalCache"
+import { ComponentMetaItem } from "./componentMeta"
 // import { ComponentMetaMapItem, ComponentMetaRoomItem } from '../internalCache/componentMeta'
 // import { componentAppearanceReduce } from "./componentRender"
 
@@ -367,7 +369,8 @@ describe('ComponentRender cache handler', () => {
                 stateMapping: {
                     testOne: 'VARIABLE#One',
                     testTwo: 'VARIABLE#Two'
-                }
+                },
+                keyMapping: {}
             },
             Personal: {
                 EphemeraId: 'ROOM#TestOne',
@@ -389,7 +392,8 @@ describe('ComponentRender cache handler', () => {
                 stateMapping: {
                     testThree: 'VARIABLE#Three',
                     testFour: 'VARIABLE#Four'
-                }
+                },
+                keyMapping: {}
             }
         })
         jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
@@ -444,7 +448,8 @@ describe('ComponentRender cache handler', () => {
                 stateMapping: {
                     testOne: 'VARIABLE#One',
                     testTwo: 'VARIABLE#Two'
-                }
+                },
+                keyMapping: {}
             },
             Personal: {
                 EphemeraId: 'FEATURE#TestOne',
@@ -465,7 +470,8 @@ describe('ComponentRender cache handler', () => {
                 stateMapping: {
                     testThree: 'VARIABLE#Three',
                     testFour: 'VARIABLE#Four'
-                }
+                },
+                keyMapping: {}
             }
         })
         jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
@@ -518,7 +524,8 @@ describe('ComponentRender cache handler', () => {
                 stateMapping: {
                     testOne: 'VARIABLE#One',
                     testTwo: 'VARIABLE#Two'
-                }
+                },
+                keyMapping: {}
             },
             Personal: {
                 EphemeraId: 'KNOWLEDGE#TestOne',
@@ -539,7 +546,8 @@ describe('ComponentRender cache handler', () => {
                 stateMapping: {
                     testThree: 'VARIABLE#Three',
                     testFour: 'VARIABLE#Four'
-                }
+                },
+                keyMapping: {}
             }
         })
         jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
@@ -582,7 +590,8 @@ describe('ComponentRender cache handler', () => {
                             name: [],
                             render: [{ data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }],
                             key: 'testFeature',
-                            stateMapping: { "bookmark1": "BOOKMARK#TestTwo" }
+                            stateMapping: {},
+                            keyMapping: { "bookmark1": "BOOKMARK#TestTwo" }
                         }
                     } as any
                 case 'BOOKMARK#TestTwo':
@@ -592,7 +601,8 @@ describe('ComponentRender cache handler', () => {
                             assetId: 'Base',
                             render: [{ data: { tag: 'String', value: 'Test' }, children: [] }],
                             key: 'testBookmark',
-                            stateMapping: {}
+                            stateMapping: {},
+                            keyMapping: {}
                         }
                     }
                 default:
@@ -634,7 +644,8 @@ describe('ComponentRender cache handler', () => {
                                 { data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }
                             ],
                             key: 'testFeature',
-                            stateMapping: { "bookmark1": "BOOKMARK#TestTwo" }
+                            stateMapping: {},
+                            keyMapping: { "bookmark1": "BOOKMARK#TestTwo" }
                         }
                     } as any
                 case 'BOOKMARK#TestTwo':
@@ -647,7 +658,8 @@ describe('ComponentRender cache handler', () => {
                                 { data: { tag: 'Bookmark', key: 'bookmark2' }, children: [] }
                             ],
                             key: 'bookmark1',
-                            stateMapping: { "bookmark2": "BOOKMARK#TestThree" }
+                            stateMapping: {},
+                            keyMapping: { "bookmark2": "BOOKMARK#TestThree" }
                         }
                     }
                 case 'BOOKMARK#TestThree':
@@ -659,7 +671,8 @@ describe('ComponentRender cache handler', () => {
                                 { data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }
                             ],
                             key: 'bookmark2',
-                            stateMapping: { "bookmark1": "BOOKMARK#TestTwo" }
+                            stateMapping: {},
+                            keyMapping: { "bookmark1": "BOOKMARK#TestTwo" }
                         }
                     }
                 default:
@@ -677,133 +690,131 @@ describe('ComponentRender cache handler', () => {
         })
     })
 
-    // it('should update maps correctly', async () => {
-    //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
-    //     jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
-    //         EphemeraId: 'CHARACTER#Test',
-    //         Name: 'Tess',
-    //         assets: ['Personal'],
-    //         RoomId: 'ROOM#VORTEX',
-    //         RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-    //         HomeId: 'ROOM#VORTEX',
-    //         Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
-    //     })
-    //     jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValueOnce({
-    //         Base: {
-    //             EphemeraId: 'MAP#TestOne',
-    //             assetId: 'Base',
-    //             appearances: [{
-    //                 conditions: [],
-    //                 name: [{ tag: 'String', value: 'Test Map' }],
-    //                 fileURL: 'https://test.com/test.png',
-    //                 rooms: [
-    //                     {
-    //                         conditions: [],
-    //                         EphemeraId: 'ROOM#TestRoomOne',
-    //                         x: 0,
-    //                         y: 0
-    //                     }
-    //                 ]
-    //             }],
-    //             key: 'testMap'
-    //         },
-    //         Personal: {
-    //             EphemeraId: 'MAP#TestOne',
-    //             assetId: 'Personal',
-    //             appearances: [{
-    //                 conditions: [],
-    //                 name: [],
-    //                 fileURL: '',
-    //                 rooms: [
-    //                     {
-    //                         conditions: [],
-    //                         EphemeraId: 'ROOM#TestRoomTwo',
-    //                         x: 100,
-    //                         y: 0
-    //                     }
-    //                 ]
-    //             }],
-    //             key: 'testMap'
-    //         }
-    //     } as Record<string, ComponentMetaMapItem>).mockResolvedValueOnce({
-    //         Base: {
-    //             EphemeraId: 'ROOM#TestRoomOne',
-    //             assetId: 'Base',
-    //             appearances: [{
-    //                 conditions: [],
-    //                 name: [{ tag: 'String', value: 'Test Room One' }],
-    //                 render: [],
-    //                 exits: [
-    //                     {
-    //                         conditions: [],
-    //                         to: 'ROOM#TestRoomTwo',
-    //                         name: 'Other Room'
-    //                     },
-    //                     {
-    //                         conditions: [],
-    //                         to: 'ROOM#TestRoomThree',
-    //                         name: 'Not in Map'
-    //                     }
-    //                 ]
-    //             }],
-    //             key: 'testMap'
-    //         },
-    //         Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', appearances: [], key: 'testMap' }
-    //     } as Record<string, ComponentMetaRoomItem>).mockResolvedValueOnce({
-    //         Base: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Base', appearances: [], key: 'testMap' },
-    //         Personal: {
-    //             EphemeraId: 'ROOM#TestRoomTwo',
-    //             assetId: 'Personal',
-    //             appearances: [{
-    //                 conditions: [],
-    //                 name: [{ tag: 'String', value: 'Test Room Two' }],
-    //                 render: [],
-    //                 exits: [
-    //                     {
-    //                         conditions: [],
-    //                         to: 'ROOM#TestRoomOne',
-    //                         name: 'First Room'
-    //                     }
-    //                 ]
-    //             }],
-    //             key: 'testMap'
-    //         }
-    //     } as Record<string, ComponentMetaRoomItem>)
-    //     const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
-    //     expect(output).toEqual({
-    //         MapId: 'MAP#TestOne',
-    //         Name: [{ tag: 'String', value: 'Test Map' }],
-    //         fileURL: 'https://test.com/test.png',
-    //         rooms: [
-    //             {
-    //                 roomId: 'ROOM#TestRoomOne',
-    //                 name: [{ tag: 'String', value: 'Test Room One' }],
-    //                 x: 0,
-    //                 y: 0,
-    //                 exits: [{
-    //                     conditions: [],
-    //                     to: 'ROOM#TestRoomTwo',
-    //                     name: 'Other Room'
-    //                 }]
-    //             },
-    //             {
-    //                 roomId: 'ROOM#TestRoomTwo',
-    //                 name: [{ tag: 'String', value: 'Test Room Two' }],
-    //                 x: 100,
-    //                 y: 0,
-    //                 exits: [{
-    //                     conditions: [],
-    //                     to: 'ROOM#TestRoomOne',
-    //                     name: 'First Room'
-    //                 }]
-    //             }
-    //         ],
-    //         assets: {
-    //             ['ASSET#Base']: 'testMap',
-    //             ['ASSET#Personal']: 'testMap'
-    //         }
-    //     })
-    // })
+    it('should update maps correctly', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: ['Personal'],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
+            switch(ephemeraId) {
+                case 'MAP#TestOne':
+                    return {
+                        Base: {
+                            EphemeraId: 'MAP#TestOne',
+                            assetId: 'Base',
+                            name: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }],
+                            images: [],
+                            // fileURL: 'https://test.com/test.png',
+                            rooms: [
+                                {
+                                    conditions: [],
+                                    EphemeraId: 'ROOM#TestRoomOne',
+                                    x: 0,
+                                    y: 0,
+                                    stateMapping: {},
+                                }
+                            ],
+                            key: 'testMap',
+                            stateMapping: {},
+                            keyMapping: {}
+                        },
+                        Personal: {
+                            EphemeraId: 'MAP#TestOne',
+                            assetId: 'Personal',
+                            name: [],
+                            images: [],
+                            // fileURL: '',
+                            rooms: [
+                                {
+                                    conditions: [],
+                                    EphemeraId: 'ROOM#TestRoomTwo',
+                                    x: 100,
+                                    y: 0,
+                                    stateMapping: {},
+                                }
+                            ],
+                            key: 'testMap',
+                            stateMapping: {},
+                            keyMapping: {}
+                        }
+                    } as Record<string, ComponentMetaItem & { EphemeraId: EphemeraMapId }>
+                case 'ROOM#TestRoomOne':
+                    return {
+                        Base: {
+                            EphemeraId: 'ROOM#TestRoomOne',
+                            assetId: 'Base',
+                            name: [{ data: { tag: 'String', value: 'Test Room One' }, children: [] }],
+                            render: [],
+                            exits: [
+                                { data: { tag: 'Exit', key: 'room1#room2', to: 'room2', from: 'room1', name: 'Other Room' }, children: [] },
+                                { data: { tag: 'Exit', key: 'room1#room3', to: 'room3', from: 'room1', name: 'Not in Map' }, children: [] }
+                            ],
+                            key: 'room1',
+                            stateMapping: {},
+                            keyMapping: { room2: 'ROOM#TestRoomTwo', room3: 'ROOM#TestRoomThree' }
+                        },
+                        Personal: { EphemeraId: 'ROOM#TestRoomOne', assetId: 'Personal', name: [], render: [], exits: [], key: 'testMap', stateMapping: {}, keyMapping: {} }
+                    } as Record<string, ComponentMetaItem & { EphemeraId: EphemeraRoomId }>
+                case 'ROOM#TestRoomTwo':
+                    return {
+                        Base: { EphemeraId: 'ROOM#TestRoomTwo', assetId: 'Base', name: [], render: [], exits: [], key: 'testMap', stateMapping: {}, keyMapping: {} },
+                        Personal: {
+                            EphemeraId: 'ROOM#TestRoomTwo',
+                            assetId: 'Personal',
+                            name: [{ data: { tag: 'String', value: 'Test Room Two' }, children: [] }],
+                            render: [],
+                            exits: [
+                                { data: { tag: 'Exit', key: 'room2#room1', to: 'room1', from: 'room2', name: 'First Room' }, children: [] }
+                            ],
+                            key: 'testMap',
+                            stateMapping: {},
+                            keyMapping: { room1: 'ROOM#TestRoomOne' }
+                        }
+                    }
+            }
+            throw new Error(`Invalid test EphemeraID: ${ephemeraId}`)
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        jest.spyOn(internalCache.EvaluateCode, "get").mockResolvedValue(false)
+        const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
+        expect(output).toEqual({
+            MapId: 'MAP#TestOne',
+            Name: [{ tag: 'String', value: 'Test Map' }],
+            fileURL: 'https://test.com/test.png',
+            rooms: [
+                {
+                    roomId: 'ROOM#TestRoomOne',
+                    name: [{ tag: 'String', value: 'Test Room One' }],
+                    x: 0,
+                    y: 0,
+                    exits: [{
+                        to: 'ROOM#TestRoomTwo',
+                        name: 'Other Room'
+                    }]
+                },
+                {
+                    roomId: 'ROOM#TestRoomTwo',
+                    name: [{ tag: 'String', value: 'Test Room Two' }],
+                    x: 100,
+                    y: 0,
+                    exits: [{
+                        to: 'ROOM#TestRoomOne',
+                        name: 'First Room'
+                    }]
+                }
+            ],
+            assets: {
+                ['ASSET#Base']: 'testMap',
+                ['ASSET#Personal']: 'testMap'
+            }
+        })
+    })
 
     // it('should correctly invalidate evaluations on asset state change', async () => {
     //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])

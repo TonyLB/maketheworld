@@ -5,6 +5,7 @@ import {
     EphemeraCharacterId,
     EphemeraComputedId,
     EphemeraFeatureId,
+    EphemeraId,
     EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
@@ -55,26 +56,30 @@ export type EphemeraStateMappingMixin = {
     stateMapping: Record<string, StateItemId>;
 }
 
+export type EphemeraKeyMappingMixin = {
+    keyMapping: Record<string, EphemeraId>;
+}
+
 export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
     key: string;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraKnowledge = {
     EphemeraId: EphemeraKnowledgeId;
     key: string;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraBookmark = {
     EphemeraId: EphemeraBookmarkId;
     key: string;
-} & EphemeraRenderMixin & EphemeraStateMappingMixin
+} & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
     key: string;
     exits: GenericTree<SchemaTag>;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraMapRoom = {
     EphemeraId: string;
@@ -87,7 +92,7 @@ export type EphemeraMap = {
     key: string;
     rooms: EphemeraMapRoom[];
     images: GenericTree<SchemaTag>;
-} & EphemeraNameMixin & EphemeraStateMappingMixin
+} & EphemeraNameMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraMessageRoom = {
     EphemeraId: string;
@@ -97,7 +102,7 @@ export type EphemeraMessage = {
     EphemeraId: EphemeraMessageId;
     key: string;
     rooms: EphemeraRoomId[];
-} & EphemeraRenderMixin & EphemeraStateMappingMixin
+} & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraMomentMessage = {
     EphemeraId: string;

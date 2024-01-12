@@ -11,6 +11,7 @@ import {
     EphemeraCharacterId,
     EphemeraComputedId,
     EphemeraFeatureId,
+    EphemeraId,
     EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
@@ -79,7 +80,7 @@ export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (a
     }
 }
 
-export const evaluateSchemaBookmarks = <T extends SchemaTag>(renderBookmark: (bookmark: SchemaBookmarkTag) => Promise<GenericTree<T>>, typeGuard?: (tag: SchemaTag) => tag is T) => async (tree: GenericTree<T>, mapping: AssetStateMapping): Promise<GenericTree<T>> => {
+export const evaluateSchemaBookmarks = <T extends SchemaTag>(renderBookmark: (bookmark: SchemaBookmarkTag) => Promise<GenericTree<T>>, typeGuard?: (tag: SchemaTag) => tag is T) => async (tree: GenericTree<T>, mapping: Record<string, EphemeraId>): Promise<GenericTree<T>> => {
     const callback = async (node: GenericTreeNode<T>): Promise<GenericTree<T>> => {
         const { data: tag } = node
         if (isSchemaBookmark(tag)) {
@@ -454,11 +455,11 @@ export class ComponentRenderData {
         const allAssets = unique(globalAssets || [], characterAssets) as string[]
         const appearancesByAsset = await this._componentMeta(EphemeraId, allAssets)
 
-        const evaluateSchemaOutputPromise = async <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
+        const evaluateSchemaOutputPromise = async <T extends Extract<EphemeraItem, { keyMapping: any, stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaOutputTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaOutputTag>> => (
             compressStrings((await Promise.all(assetData.map(async (data) => (
                 await evaluateSchemaBookmarks(
                     async ({ key }) => {
-                        const BookmarkId = data.stateMapping[key]
+                        const BookmarkId = data.keyMapping[key]
                         if (isEphemeraBookmarkId(BookmarkId)) {
                             if ((getOptions?.priorRenderChain ?? []).includes(BookmarkId)) {
                                 return [{ data: { tag: 'String', value: '#CIRCULAR' }, children: [] }]
@@ -478,7 +479,7 @@ export class ComponentRenderData {
             Promise.all(assetData.map(async (data) => (evaluateSchemaConditionals(this._evaluateCode.bind(this))(data[key] as GenericTree<SchemaTag>, data.stateMapping)))).then((tagLists) => (tagLists.flat(1)))
         )
         const mapEvaluatedSchemaOutputPromise = async <
-            T extends Extract<EphemeraItem, { stateMapping: any }>,
+            T extends Extract<EphemeraItem, { keyMapping: any, stateMapping: any }>,
             O extends RoomDescribeData | FeatureDescribeData | KnowledgeDescribeData | BookmarkDescribeData | MessageDescribeData | MapDescribeData
         >(
             nameMapping: {
@@ -580,6 +581,7 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraMapId(EphemeraId)) {
+            console.log(`MapId: ${JSON.stringify(EphemeraId)}`)
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
@@ -591,16 +593,21 @@ export class ComponentRenderData {
                 .reduce<Record<EphemeraRoomId, { x: number; y: number }>>((previous, room) => (
                     { ...previous, [room.EphemeraId]: { x: room.x, y: room.y } }
                 ), {})
+            console.log(`roomPositions: ${JSON.stringify(roomPositions, null, 4)}`)
             const roomMetaPromise = Promise.all(allRooms.map(async (ephemeraId) => {
                 const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
                 const roomAssetAppearances = allAssets.map((assetId) => {
                     const room = metaByAsset[assetId]
                     return isEphemeraRoomItem(room) ? [room] : []
                 }).flat(1)
+                console.log(`roomAssetAppearances: ${JSON.stringify(roomAssetAppearances, null, 4)}`)
                 const [name, exits] = await Promise.all([
                     evaluateSchemaOutputPromise(roomAssetAppearances, 'name'),
-                    evaluateSchemaPromise(roomAssetAppearances, 'exits')
+                    // evaluateSchemaPromise(roomAssetAppearances, 'exits')
+                    Promise.resolve([])
                 ])
+                console.log(`name: ${JSON.stringify(name, null, 4)}`)
+                console.log(`exits: ${JSON.stringify(exits, null, 4)}`)
                 return {
                     roomId: ephemeraId,
                     name: flattenSchemaOutputTags(name),

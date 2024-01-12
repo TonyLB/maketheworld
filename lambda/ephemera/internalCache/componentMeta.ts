@@ -84,7 +84,8 @@ export class ComponentMetaData {
                         name: [],
                         render: [],
                         exits: [],
-                        stateMapping: {}
+                        stateMapping: {},
+                        keyMapping: {}
                     }
                 }
                 if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId)) {
@@ -94,7 +95,8 @@ export class ComponentMetaData {
                         key: '',
                         name: [],
                         render: [],
-                        stateMapping: {}
+                        stateMapping: {},
+                        keyMapping: {}
                     }
                 }
                 if (isEphemeraBookmarkId(EphemeraId)) {
@@ -103,7 +105,8 @@ export class ComponentMetaData {
                         assetId,
                         key: '',
                         render: [],
-                        stateMapping: {}
+                        stateMapping: {},
+                        keyMapping: {}
                     }
                 }
                 if (isEphemeraMapId(EphemeraId)) {
@@ -114,7 +117,8 @@ export class ComponentMetaData {
                         name: [],
                         images: [],
                         rooms: [],
-                        stateMapping: {}
+                        stateMapping: {},
+                        keyMapping: {}
                     }
                 }
                 if (isEphemeraMessageId(EphemeraId)) {
@@ -124,7 +128,8 @@ export class ComponentMetaData {
                         key: '',
                         render: [],
                         rooms: [],
-                        stateMapping: {}
+                        stateMapping: {},
+                        keyMapping: {}
                     }
                 }
                 if (isEphemeraMomentId(EphemeraId)) {
@@ -197,22 +202,22 @@ export class ComponentMetaData {
                 .map((partial) => ({ ...partial, EphemeraId } as T & { DataCategory?: string }))
         }
         if (isEphemeraRoomId(EphemeraId)) {
-            return factoryReturnValue<EphemeraRoom>('name', 'render', 'exits')
+            return factoryReturnValue<EphemeraRoom>('name', 'render', 'exits', 'stateMapping', 'keyMapping')
         }
         if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId)) {
-            return factoryReturnValue<EphemeraFeature | EphemeraKnowledge>('name', 'render')
+            return factoryReturnValue<EphemeraFeature | EphemeraKnowledge>('name', 'render', 'stateMapping', 'keyMapping')
         }
         if (isEphemeraBookmarkId(EphemeraId)) {
-            return factoryReturnValue<EphemeraBookmark>('render')
+            return factoryReturnValue<EphemeraBookmark>('render', 'stateMapping', 'keyMapping')
         }
         if (isEphemeraMapId(EphemeraId)) {
-            return factoryReturnValue<EphemeraMap>('name', 'images', 'rooms')
+            return factoryReturnValue<EphemeraMap>('name', 'images', 'rooms', 'stateMapping', 'keyMapping')
         }
         if (isEphemeraMessageId(EphemeraId)) {
-            return factoryReturnValue<EphemeraMessage>('render', 'rooms')
+            return factoryReturnValue<EphemeraMessage>('render', 'rooms', 'stateMapping', 'keyMapping')
         }
         if (isEphemeraMomentId(EphemeraId)) {
-            return factoryReturnValue<EphemeraMoment>('messages')
+            return factoryReturnValue<EphemeraMoment>('messages', 'stateMapping')
         }
         if (isEphemeraVariableId(EphemeraId)) {
             return factoryReturnValue<EphemeraVariable>('default')

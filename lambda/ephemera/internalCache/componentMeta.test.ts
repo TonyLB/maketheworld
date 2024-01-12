@@ -59,7 +59,9 @@ describe('ComponentMeta', () => {
             key: 'testTwo',
             name: [],
             render: [{ data: { tag: "String", value: 'TestingTwo' }, children: [] }],
-            exits: []
+            exits: [],
+            stateMapping: {},
+            keyMapping: {}
         })
         ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
