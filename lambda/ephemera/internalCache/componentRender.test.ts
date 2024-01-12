@@ -610,66 +610,72 @@ describe('ComponentRender cache handler', () => {
         })
     })
 
-    // it('should render circular dependent bookmarks with correct error', async () => {
-    //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
-    //     jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
-    //         EphemeraId: 'CHARACTER#Test',
-    //         Name: 'Tess',
-    //         assets: [],
-    //         RoomId: 'ROOM#VORTEX',
-    //         RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-    //         HomeId: 'ROOM#VORTEX',
-    //         Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
-    //     })
-    //     jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
-    //         switch(ephemeraId) {
-    //             case 'FEATURE#TestOne':
-    //                 return {
-    //                     Base: {
-    //                         EphemeraId: 'FEATURE#TestOne',
-    //                         assetId: 'Base',
-    //                         appearances: [
-    //                             {
-    //                                 conditions: [],
-    //                                 name: [],
-    //                                 render: [{ tag: 'String', value: 'Test' }, { tag: 'Bookmark', to: 'BOOKMARK#TestTwo' }],
-    //                             }
-    //                         ],
-    //                         key: 'testFeature'
-    //                     }
-    //                 }
-    //             case 'BOOKMARK#TestTwo':
-    //                 return {
-    //                     Base: {
-    //                         EphemeraId: 'BOOKMARK#TestTwo',
-    //                         assetId: 'Base',
-    //                         appearances: [{ conditions: [], render: [{ tag: 'String', value: 'Loop' }, { tag: 'Bookmark', to: 'BOOKMARK#TestThree' }]}],
-    //                         key: 'testBookmark'
-    //                     }
-    //                 }
-    //             case 'BOOKMARK#TestThree':
-    //                 return {
-    //                     Base: {
-    //                         EphemeraId: 'BOOKMARK#TestThree',
-    //                         assetId: 'Base',
-    //                         appearances: [{ conditions: [], render: [{ tag: 'Bookmark', to: 'BOOKMARK#TestTwo' }]}],
-    //                         key: 'testBookmarkOther'
-    //                     }
-    //                 }
-    //             default:
-    //                 throw new Error('Unknown component')
-    //         }
-    //     })
-    //     const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
-    //     expect(output).toEqual({
-    //         FeatureId: 'FEATURE#TestOne',
-    //         Name: [],
-    //         Description: [{ tag: 'String', value: 'TestLoop#CIRCULAR' }],
-    //         assets: {
-    //             ['ASSET#Base']: 'testFeature'
-    //         }
-    //     })
-    // })
+    it('should render circular dependent bookmarks with correct error', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
+            switch(ephemeraId) {
+                case 'FEATURE#TestOne':
+                    return {
+                        Base: {
+                            EphemeraId: 'FEATURE#TestOne',
+                            assetId: 'Base',
+                            name: [],
+                            render: [
+                                { data: { tag: 'String', value: 'Test' }, children: [] },
+                                { data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }
+                            ],
+                            key: 'testFeature',
+                            stateMapping: { "bookmark1": "BOOKMARK#TestTwo" }
+                        }
+                    } as any
+                case 'BOOKMARK#TestTwo':
+                    return {
+                        Base: {
+                            EphemeraId: 'BOOKMARK#TestTwo',
+                            assetId: 'Base',
+                            render: [
+                                { data: { tag: 'String', value: 'Loop' }, children: [] },
+                                { data: { tag: 'Bookmark', key: 'bookmark2' }, children: [] }
+                            ],
+                            key: 'bookmark1',
+                            stateMapping: { "bookmark2": "BOOKMARK#TestThree" }
+                        }
+                    }
+                case 'BOOKMARK#TestThree':
+                    return {
+                        Base: {
+                            EphemeraId: 'BOOKMARK#TestThree',
+                            assetId: 'Base',
+                            render: [
+                                { data: { tag: 'Bookmark', key: 'bookmark1' }, children: [] }
+                            ],
+                            key: 'bookmark2',
+                            stateMapping: { "bookmark1": "BOOKMARK#TestTwo" }
+                        }
+                    }
+                default:
+                    throw new Error('Unknown component')
+            }
+        })
+        const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
+        expect(output).toEqual({
+            FeatureId: 'FEATURE#TestOne',
+            Name: [],
+            Description: [{ tag: 'String', value: 'TestLoop#CIRCULAR' }],
+            assets: {
+                ['ASSET#Base']: 'testFeature'
+            }
+        })
+    })
 
     // it('should update maps correctly', async () => {
     //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])

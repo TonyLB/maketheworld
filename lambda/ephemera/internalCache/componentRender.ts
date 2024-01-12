@@ -460,7 +460,10 @@ export class ComponentRenderData {
                     async ({ key }) => {
                         const BookmarkId = data.stateMapping[key]
                         if (isEphemeraBookmarkId(BookmarkId)) {
-                            return deflattenSchemaOutputTags((await this.get(CharacterId, BookmarkId)).Description)
+                            if ((getOptions?.priorRenderChain ?? []).includes(BookmarkId)) {
+                                return [{ data: { tag: 'String', value: '#CIRCULAR' }, children: [] }]
+                            }
+                            return deflattenSchemaOutputTags((await this.get(CharacterId, BookmarkId, { ...getOptions ?? {}, priorRenderChain: [...(getOptions?.priorRenderChain ?? []), BookmarkId] })).Description)
                         }
                         return []
                     },
