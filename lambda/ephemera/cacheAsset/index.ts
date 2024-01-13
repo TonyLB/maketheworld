@@ -63,7 +63,7 @@ import { isSchemaRoom } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses'
 import { selectImages } from '@tonylb/mtw-wml/ts/normalize/selectors/images'
 import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
-import { StateItemId, isStateItemId } from '../internalCache/assetState'
+import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 
 //
 // TODO: Fix ephemeraItemFromNormal to store the new standard for how to deal with normal Items (i.e., children are GenericTree<SchemaTag>,
@@ -121,7 +121,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             name,
             render,
             exits,
-            stateMapping
+            stateMapping,
+            keyMapping: {}
         }
     }
     if (isEphemeraFeatureId(EphemeraId) && isNormalFeature(item)) {
@@ -132,7 +133,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             EphemeraId,
             name,
             render,
-            stateMapping
+            stateMapping,
+            keyMapping: {}
         }
     }
     if (isEphemeraKnowledgeId(EphemeraId) && isNormalKnowledge(item)) {
@@ -143,7 +145,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             EphemeraId,
             name,
             render,
-            stateMapping
+            stateMapping,
+            keyMapping: {}
         }
     }
     if (isEphemeraBookmarkId(EphemeraId) && isNormalBookmark(item)) {
@@ -152,7 +155,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             key: item.key,
             EphemeraId,
             render,
-            stateMapping
+            stateMapping,
+            keyMapping: {}
         }
     }
     if (isEphemeraMessageId(EphemeraId) && isNormalMessage(item)) {
@@ -173,7 +177,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             EphemeraId,
             rooms,
             render,
-            stateMapping
+            stateMapping,
+            keyMapping: {}
         }
     }
     if (isEphemeraMomentId(EphemeraId) && isNormalMoment(item)) {
@@ -202,7 +207,8 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             name,
             images,
             rooms: [],
-            stateMapping
+            stateMapping,
+            keyMapping: {}
         }
     }
     if (isEphemeraCharacterId(EphemeraId) && isNormalCharacter(item)) {

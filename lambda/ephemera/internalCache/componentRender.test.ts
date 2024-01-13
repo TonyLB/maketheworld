@@ -709,8 +709,7 @@ describe('ComponentRender cache handler', () => {
                             EphemeraId: 'MAP#TestOne',
                             assetId: 'Base',
                             name: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }],
-                            images: [],
-                            // fileURL: 'https://test.com/test.png',
+                            images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'https://test.com/test.png' }, children: [] }],
                             rooms: [
                                 {
                                     conditions: [],
@@ -729,7 +728,6 @@ describe('ComponentRender cache handler', () => {
                             assetId: 'Personal',
                             name: [],
                             images: [],
-                            // fileURL: '',
                             rooms: [
                                 {
                                     conditions: [],

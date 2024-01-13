@@ -42,6 +42,7 @@ export type SchemaStoryTag = {
 export type SchemaImageTag = {
     tag: 'Image';
     key: string;
+    fileURL?: string;
 } & SchemaBase
 
 type SchemaPronouns = {

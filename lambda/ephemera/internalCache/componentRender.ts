@@ -621,7 +621,6 @@ export class ComponentRenderData {
             }
         }
         if (isEphemeraMapId(EphemeraId)) {
-            console.log(`MapId: ${JSON.stringify(EphemeraId)}`)
             const assets = Object.assign({}, ...allAssets
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
@@ -633,20 +632,16 @@ export class ComponentRenderData {
                 .reduce<Record<EphemeraRoomId, { x: number; y: number }>>((previous, room) => (
                     { ...previous, [room.EphemeraId]: { x: room.x, y: room.y } }
                 ), {})
-            console.log(`roomPositions: ${JSON.stringify(roomPositions, null, 4)}`)
             const roomMetaPromise = Promise.all(allRooms.map(async (ephemeraId) => {
                 const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
                 const roomAssetAppearances = allAssets.map((assetId) => {
                     const room = metaByAsset[assetId]
                     return isEphemeraRoomItem(room) ? [room] : []
                 }).flat(1)
-                console.log(`roomAssetAppearances: ${JSON.stringify(roomAssetAppearances, null, 4)}`)
                 const [name, exits] = await Promise.all([
                     evaluateSchemaOutputPromise(roomAssetAppearances, 'name'),
                     evaluateSchemaPromise(roomAssetAppearances, 'exits')
                 ])
-                console.log(`name: ${JSON.stringify(name, null, 4)}`)
-                console.log(`exits: ${JSON.stringify(exits, null, 4)}`)
                 return {
                     roomId: ephemeraId,
                     name: flattenSchemaOutputTags(name),
@@ -664,15 +659,12 @@ export class ComponentRenderData {
             }))
             const [rooms, fileURLs, rest] = await Promise.all([
                 roomMetaPromise,
-                Promise.all((allAssets.map((assetId) => (appearancesByAsset[assetId] ? [{ data: appearancesByAsset[assetId], assetId }] : [])).flat(1) as { data: EphemeraMap, assetId }[]).map(async ({ data, assetId }) => (
-                    evaluateSchemaConditionals(this._evaluateCode.bind(this))(data.images as GenericTree<SchemaTag>, data.stateMapping)))
-                        .map((promise) => (
-                            //
-                            // TODO: Figure out where to lookup properties for the assets, to map data.key to fileURL
-                            //
-                            promise.then((tagList) => (tagList.map(({ data }) => (isSchemaImage(data) ? [/*data.key*/] : [])).flat(1)))
-                        ))
-                ).then((tagLists) => (tagLists.flat(1))),
+                Promise.all(
+                    (allAssets.map((assetId) => (appearancesByAsset[assetId] ? [{ data: appearancesByAsset[assetId], assetId }] : [])).flat(1) as { data: EphemeraMap, assetId }[])
+                        .map(async ({ data }) => (evaluateSchemaConditionals(this._evaluateCode.bind(this))(data.images as GenericTree<SchemaTag>, data.stateMapping)))
+                        .map((promise) => (promise.then((tagList) => (tagList.map(({ data }) => (isSchemaImage(data) && data.fileURL ? [data.fileURL] : [])).flat(1)))))
+                    ).then((tagLists) => (tagLists.flat(1))
+                ),
                 mapEvaluatedSchemaOutputPromise<EphemeraMap, MapDescribeData>({ name: 'Name' }),
             ])
             return {
