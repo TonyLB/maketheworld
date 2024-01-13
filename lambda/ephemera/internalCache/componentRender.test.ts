@@ -814,79 +814,82 @@ describe('ComponentRender cache handler', () => {
         })
     })
 
-    // it('should correctly invalidate evaluations on asset state change', async () => {
-    //     jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
-    //     jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
-    //         EphemeraId: 'CHARACTER#Test',
-    //         Name: 'Tess',
-    //         assets: [],
-    //         RoomId: 'ROOM#VORTEX',
-    //         RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-    //         HomeId: 'ROOM#VORTEX',
-    //         Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
-    //     })
-    //     jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
-    //         Base: {
-    //             EphemeraId: 'ROOM#TestOne',
-    //             assetId: 'Base',
-    //             appearances: [
-    //                 {
-    //                     conditions: [],
-    //                     name: [{ tag: 'String', value: 'TestRoom' }],
-    //                     render: [{ tag: 'String', value: 'First' }],
-    //                     exits: []
-    //                 },
-    //                 {
-    //                     conditions: [{ if: 'testTwo', dependencies: [{ key: 'testTwo', EphemeraId: 'VARIABLE#testVariable' }] }],
-    //                     name: [],
-    //                     render: [{ tag: 'String', value: 'Second' }],
-    //                     exits: []
-    //                 }
-    //             ],
-    //             key: 'testRoom'
-    //         }
-    //     })
-    //     jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-    //         { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
-    //     ])
-    //     jest.spyOn(internalCache.EvaluateCode, "get")
-    //         .mockResolvedValueOnce(false)
-    //         .mockResolvedValueOnce(true)
-    //         .mockResolvedValueOnce(false)
-    //     const outputOne = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-    //     expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base'])
-    //     expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(1)
-    //     expect(outputOne).toEqual({
-    //         RoomId: 'ROOM#TestOne',
-    //         Name: [{ tag: 'String', value: 'TestRoom' }],
-    //         Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-    //         Description: [{ tag: 'String', value: 'First' }],
-    //         Exits: [],
-    //         assets: { ['ASSET#Base']: 'testRoom' }
-    //     })
+    it('should correctly invalidate evaluations on asset state change', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
+            switch(ephemeraId) {
+                case 'ROOM#TestOne':
+                    return {
+                        Base: {
+                            EphemeraId: 'ROOM#TestOne',
+                            assetId: 'Base',
+                            name: [{ data: { tag: 'String', value: 'TestRoom' }, children: [] }],
+                            render: [
+                                { data: { tag: 'String', value: 'First' }, children: [] },
+                                {
+                                    data: { tag: 'If', conditions: [{ if: 'testTwo' }] },
+                                    children: [{ data: { tag: 'String', value: 'Second' }, children: [] }]
+                                }
+                            ],
+                            exits: [],
+                            stateMapping: { testTwo: 'VARIABLE#testVariable' },
+                            keyMapping: {},
+                            key: 'testRoom'
+                        }
+                    }
+            }
+            throw new Error(`Undefined test EphemeraId: ${ephemeraId}`)
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
+        ])
+        jest.spyOn(internalCache.EvaluateCode, "get")
+            .mockResolvedValueOnce(false)
+            .mockResolvedValueOnce(true)
+            .mockResolvedValueOnce(false)
+        const outputOne = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base'])
+        expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(1)
+        expect(outputOne).toEqual({
+            RoomId: 'ROOM#TestOne',
+            Name: [{ tag: 'String', value: 'TestRoom' }],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
+            Description: [{ tag: 'String', value: 'First' }],
+            Exits: [],
+            assets: { ['ASSET#Base']: 'testRoom' }
+        })
 
-    //     internalCache.AssetState.invalidate('VARIABLE#testVariable')
-    //     const outputTwo = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-    //     expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
-    //     expect(outputTwo).toEqual({
-    //         RoomId: 'ROOM#TestOne',
-    //         Name: [{ tag: 'String', value: 'TestRoom' }],
-    //         Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-    //         Description: [{ tag: 'String', value: 'FirstSecond' }],
-    //         Exits: [],
-    //         assets: { ['ASSET#Base']: 'testRoom' }
-    //     })
+        internalCache.AssetState.invalidate('VARIABLE#testVariable')
+        const outputTwo = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
+        expect(outputTwo).toEqual({
+            RoomId: 'ROOM#TestOne',
+            Name: [{ tag: 'String', value: 'TestRoom' }],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
+            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            Exits: [],
+            assets: { ['ASSET#Base']: 'testRoom' }
+        })
 
-    //     internalCache.AssetState.invalidate('VARIABLE#otherVariable')
-    //     const outputThree = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-    //     expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
-    //     expect(outputThree).toEqual({
-    //         RoomId: 'ROOM#TestOne',
-    //         Name: [{ tag: 'String', value: 'TestRoom' }],
-    //         Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
-    //         Description: [{ tag: 'String', value: 'FirstSecond' }],
-    //         Exits: [],
-    //         assets: { ['ASSET#Base']: 'testRoom' }
-    //     })
-    // })
+        internalCache.AssetState.invalidate('VARIABLE#otherVariable')
+        const outputThree = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
+        expect(outputThree).toEqual({
+            RoomId: 'ROOM#TestOne',
+            Name: [{ tag: 'String', value: 'TestRoom' }],
+            Characters: [{ CharacterId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple' }],
+            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            Exits: [],
+            assets: { ['ASSET#Base']: 'testRoom' }
+        })
+    })
 })
