@@ -475,8 +475,48 @@ export class ComponentRenderData {
                 )
             )))).flat(1))
         )
+        //
+        // TODO: Create remapKeys treeMap using data.keyMapping
+        //
+        const remapSchemaTagKeys = (tag: SchemaTag, keyMapping: Record<string, EphemeraId>): SchemaTag | undefined => {
+            if (isSchemaExit(tag)) {
+                const remappedTarget = keyMapping[tag.to]
+                if (remappedTarget) {
+                    return {
+                        ...tag,
+                        to: remappedTarget
+                    }
+                }
+                else {
+                    return undefined
+                }
+            }
+            return tag
+        }
+        const remapKeys = (tree: GenericTree<SchemaTag>, keyMapping: Record<string, EphemeraId>): GenericTree<SchemaTag> => {
+            return tree.map((node) => {
+                const remappedNode = remapSchemaTagKeys(node.data, keyMapping)
+                if (remappedNode) {
+                    return [{
+                        data: remappedNode,
+                        children: remapKeys(node.children, keyMapping)
+                    }]
+                }
+                else {
+                    return []
+                }
+            }).flat(1)
+        }
         const evaluateSchemaPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaTag>> => (
-            Promise.all(assetData.map(async (data) => (evaluateSchemaConditionals(this._evaluateCode.bind(this))(data[key] as GenericTree<SchemaTag>, data.stateMapping)))).then((tagLists) => (tagLists.flat(1)))
+            Promise.all(assetData.map(async (data) => {
+                const evaluatedSchema = await evaluateSchemaConditionals(this._evaluateCode.bind(this))(data[key] as GenericTree<SchemaTag>, data.stateMapping)
+                if ('keyMapping' in data) {
+                    return remapKeys(evaluatedSchema, data.keyMapping)
+                }
+                else {
+                    return evaluatedSchema
+                }
+            })).then((tagLists) => (tagLists.flat(1)))
         )
         const mapEvaluatedSchemaOutputPromise = async <
             T extends Extract<EphemeraItem, { keyMapping: any, stateMapping: any }>,
@@ -603,8 +643,7 @@ export class ComponentRenderData {
                 console.log(`roomAssetAppearances: ${JSON.stringify(roomAssetAppearances, null, 4)}`)
                 const [name, exits] = await Promise.all([
                     evaluateSchemaOutputPromise(roomAssetAppearances, 'name'),
-                    // evaluateSchemaPromise(roomAssetAppearances, 'exits')
-                    Promise.resolve([])
+                    evaluateSchemaPromise(roomAssetAppearances, 'exits')
                 ])
                 console.log(`name: ${JSON.stringify(name, null, 4)}`)
                 console.log(`exits: ${JSON.stringify(exits, null, 4)}`)
