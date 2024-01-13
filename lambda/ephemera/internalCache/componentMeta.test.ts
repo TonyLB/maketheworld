@@ -18,12 +18,16 @@ describe('ComponentMeta', () => {
             name: [],
             render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
             exits: [],
+            stateMapping: {},
+            keyMapping: {}
         },
         {
             DataCategory: 'ASSET#Layer',
             name: [],
             render: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }],
             exits: [],
+            stateMapping: {},
+            keyMapping: {}
         }])
         const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['Base', 'Layer'])
         expect(output).toEqual({
@@ -33,13 +37,17 @@ describe('ComponentMeta', () => {
                 name: [],
                 render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
                 exits: [],
+                stateMapping: {},
+                keyMapping: {}
             },
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Layer',
                 name: [],
                 render: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }],
-                exits: []
+                exits: [],
+                stateMapping: {},
+                keyMapping: {}
             }
         })
         expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
@@ -48,7 +56,7 @@ describe('ComponentMeta', () => {
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ],
-            ProjectionFields: ['DataCategory', 'key', 'name', 'render', 'exits']
+            ProjectionFields: ['DataCategory', 'key', 'name', 'render', 'exits', 'stateMapping', 'keyMapping']
         })
     })
 
@@ -65,13 +73,12 @@ describe('ComponentMeta', () => {
         })
         ephemeraMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
-            appearances: [{
-                name: [],
-                render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
-                exits: [],
-                conditions: []
-            }],
-            key: 'test'
+            name: [],
+            render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
+            exits: [],
+            key: 'test',
+            stateMapping: {},
+            keyMapping: {}
         }])
         const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['Base', 'Layer'])
         expect(output).toEqual({
@@ -81,18 +88,19 @@ describe('ComponentMeta', () => {
                 name: [],
                 render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
                 exits: [],
-                key: 'test'
+                key: 'test',
+                stateMapping: {},
+                keyMapping: {}
             },
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
                 assetId: 'Layer',
-                appearances: [{
-                    name: [],
-                    render: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }],
-                    exits: [],
-                    conditions: []
-                }],
-                key: 'testTwo'
+                name: [],
+                render: [{ data: { tag: 'String', value: 'TestingTwo' }, children: [] }],
+                exits: [],
+                key: 'testTwo',
+                stateMapping: {},
+                keyMapping: {}
             }
         })
         expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
@@ -100,7 +108,7 @@ describe('ComponentMeta', () => {
             Keys: [
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' }
             ],
-            ProjectionFields: ['DataCategory', 'key', 'name', 'render', 'exits']
+            ProjectionFields: ['DataCategory', 'key', 'name', 'render', 'exits', 'stateMapping', 'keyMapping']
         })
     })
 
@@ -110,7 +118,9 @@ describe('ComponentMeta', () => {
             name: [],
             render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
             exits: [],
-            key: 'test'
+            key: 'test',
+            stateMapping: {},
+            keyMapping: {}
         }])
         const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['Base', 'Layer'])
         expect(output).toEqual({
@@ -120,7 +130,9 @@ describe('ComponentMeta', () => {
                 name: [],
                 render: [{ data: { tag: 'String', value: 'Testing' }, children: [] }],
                 exits: [],
-                key: 'test'
+                key: 'test',
+                stateMapping: {},
+                keyMapping: {}
             },
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
@@ -128,7 +140,9 @@ describe('ComponentMeta', () => {
                 key: '',
                 name: [],
                 render: [],
-                exits: []
+                exits: [],
+                stateMapping: {},
+                keyMapping: {}
             }
         })
         expect(ephemeraMock.getItems).toHaveBeenCalledTimes(1)
@@ -137,7 +151,7 @@ describe('ComponentMeta', () => {
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { EphemeraId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
             ],
-            ProjectionFields: ['DataCategory', 'appearances', 'key']
+            ProjectionFields: ['DataCategory', 'key', 'name', 'render', 'exits', 'stateMapping', 'keyMapping']
         })
     })
 

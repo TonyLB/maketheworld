@@ -259,18 +259,18 @@ export class ComponentMetaData {
 
     async getAcrossAssets(EphemeraId: ComponentMetaId, assetList: string[]): Promise<Record<string, ComponentMetaFromId<typeof EphemeraId>>> {
         this._Cache.add({
-            promiseFactory: () => (this._getPromiseFactory(EphemeraId, assetList, { multiple: true })),
+            promiseFactory: (fetchNeeded) => (this._getPromiseFactory(EphemeraId, fetchNeeded.map((cacheKey) => (cacheKeyComponents(cacheKey).assetId)), { multiple: true })),
             requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
             transform: (fetchList) => {
                 return fetchList.reduce<Record<string, ComponentMetaItem>>((previous, fetch) => {
                     if (typeof fetch !== 'undefined') {
-                        const { DataCategory } = fetch
+                        const { DataCategory, ...rest } = fetch
                         if (DataCategory) {
                             const assetId = splitType(DataCategory)[1]
                             return {
                                 ...previous,
                                 [generateCacheKey(EphemeraId, assetId)]: {
-                                    ...fetch,
+                                    ...rest,
                                     EphemeraId,
                                     assetId,
                                 } as ComponentMetaItem
