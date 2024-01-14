@@ -237,7 +237,7 @@ describe('schemaFromParse', () => {
                         data: {
                             tag: "Message",    
                             key: "openDoor",
-                            rooms: [{ key: "ABC" }]
+                            rooms: [{ conditions: [], key: "ABC" }]
                         },
                         children: [{
                             data: { tag: 'String', value: 'The door opens!' }, children: []

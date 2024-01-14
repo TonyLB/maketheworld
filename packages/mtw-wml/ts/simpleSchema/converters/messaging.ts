@@ -1,4 +1,4 @@
-import { SchemaMessageLegalContents, SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMessageContents, isSchemaMoment, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
+import { SchemaMessageLegalContents, SchemaMessageRoom, SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMessageContents, isSchemaMoment, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
@@ -27,20 +27,25 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(messagingTemplates.Message)(parseOpen)
         }),
         typeCheckContents: isSchemaMessageContents,
-        finalize: (initialTag: SchemaMessageTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                rooms: children.reduce((previous, { data: room }) => (
-                    isSchemaRoom(room)
-                        ? [
-                            ...previous,
-                            { key: room.key }
-                        ]
-                        : previous
-                ), [])
-            },
-            children: compressWhitespace(children, { messageParsing: true }),
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => {
+            if (!isSchemaMessage(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    rooms: children.reduce<SchemaMessageRoom[]>((previous, { data: room }) => (
+                        isSchemaRoom(room)
+                            ? [
+                                ...previous,
+                                { key: room.key, conditions: [] }
+                            ]
+                            : previous
+                    ), [])
+                },
+                children: compressWhitespace(children, { messageParsing: true }),
+            }
+        }
     },
     Moment: {
         initialize: ({ parseOpen }): SchemaMomentTag => ({
@@ -52,29 +57,29 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const messagingPrintMap: Record<string, PrintMapEntry> = {
-    Message: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaMessageTag }) => (
+    Message: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaMessage(tag)
             ? tagRender({
                 ...args,
                 tag: 'Message',
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
-                    { key: 'from', type: 'key', value: tag.from },
-                    { key: 'as', type: 'key', value: tag.as }
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
+                    { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 contents: children,
             })
             : ''
     ),
-    Moment: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaMomentTag }) => (
+    Moment: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaMoment(tag)
             ? tagRender({
                 ...args,
                 tag: 'Moment',
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
-                    { key: 'from', type: 'key', value: tag.from },
-                    { key: 'as', type: 'key', value: tag.as }
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
+                    { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 contents: children,
             })

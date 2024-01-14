@@ -2315,392 +2315,6 @@ Object {
 }
 `;
 
-exports[`WML normalize positioned put method should successfully put a duplicate item 1`] = `
-Object {
-  "If-1": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "testRoom",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "testVar",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "testRoom#targetTwo",
-              "tag": "Exit",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "testRoom",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "testVar",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "testRoom#targetThree",
-              "tag": "Exit",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "testRoom",
-            "tag": "Room",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "testVar",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "testVar",
-      },
-    ],
-    "key": "If-1",
-    "tag": "If",
-  },
-  "TestAsset": Object {
-    "Story": false,
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "testVar",
-              "tag": "Variable",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "testRoom",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "targetOne",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "targetTwo",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "targetThree",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [],
-        "data": Object {
-          "Story": undefined,
-          "key": "TestAsset",
-          "tag": "Asset",
-        },
-      },
-    ],
-    "fileName": undefined,
-    "instance": false,
-    "key": "TestAsset",
-    "tag": "Asset",
-    "zone": undefined,
-  },
-  "targetOne": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "key": "targetOne",
-          "tag": "Room",
-          "x": undefined,
-          "y": undefined,
-        },
-      },
-    ],
-    "key": "targetOne",
-    "tag": "Room",
-  },
-  "targetThree": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "key": "targetThree",
-          "tag": "Room",
-          "x": undefined,
-          "y": undefined,
-        },
-      },
-    ],
-    "key": "targetThree",
-    "tag": "Room",
-  },
-  "targetTwo": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "key": "targetTwo",
-          "tag": "Room",
-          "x": undefined,
-          "y": undefined,
-        },
-      },
-    ],
-    "key": "targetTwo",
-    "tag": "Room",
-  },
-  "testRoom": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "If-1",
-              "tag": "If",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "If-1",
-              "tag": "If",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "If-1",
-              "tag": "If",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "key": "testRoom",
-          "tag": "Room",
-          "x": undefined,
-          "y": undefined,
-        },
-      },
-    ],
-    "key": "testRoom",
-    "tag": "Room",
-  },
-  "testRoom#targetThree": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "three",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "testRoom",
-            "tag": "Room",
-          },
-          Object {
-            "index": 2,
-            "key": "If-1",
-            "tag": "If",
-          },
-        ],
-        "data": Object {
-          "from": "testRoom",
-          "key": "testRoom#targetThree",
-          "name": "three",
-          "tag": "Exit",
-          "to": "targetThree",
-        },
-      },
-    ],
-    "from": "testRoom",
-    "key": "testRoom#targetThree",
-    "name": "three",
-    "tag": "Exit",
-    "to": "targetThree",
-  },
-  "testRoom#targetTwo": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "two",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "testRoom",
-            "tag": "Room",
-          },
-          Object {
-            "index": 1,
-            "key": "If-1",
-            "tag": "If",
-          },
-        ],
-        "data": Object {
-          "from": "testRoom",
-          "key": "testRoom#targetTwo",
-          "name": "two",
-          "tag": "Exit",
-          "to": "targetTwo",
-        },
-      },
-    ],
-    "from": "testRoom",
-    "key": "testRoom#targetTwo",
-    "name": "two",
-    "tag": "Exit",
-    "to": "targetTwo",
-  },
-  "testVar": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "TestAsset",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "default": "false",
-          "key": "testVar",
-          "tag": "Variable",
-        },
-      },
-    ],
-    "default": "false",
-    "key": "testVar",
-    "tag": "Variable",
-  },
-}
-`;
-
 exports[`WML normalize positioned put method should successfully put an import in a character 1`] = `
 Object {
   "Import-0": Object {
@@ -3880,7 +3494,7 @@ Object {
 
 exports[`WML normalize should correctly handle multiple and nested conditionals 1`] = `
 Object {
-  "If-1": Object {
+  "If-0": Object {
     "appearances": Array [
       Object {
         "children": Array [
@@ -3915,10 +3529,10 @@ Object {
         "if": "strong",
       },
     ],
-    "key": "If-1",
+    "key": "If-0",
     "tag": "If",
   },
-  "If-2": Object {
+  "If-1": Object {
     "appearances": Array [
       Object {
         "children": Array [
@@ -3926,7 +3540,7 @@ Object {
             "children": Array [],
             "data": Object {
               "index": 0,
-              "key": "If-3",
+              "key": "If-2",
               "tag": "If",
             },
           },
@@ -3953,10 +3567,10 @@ Object {
         "if": "!strong",
       },
     ],
-    "key": "If-2",
+    "key": "If-1",
     "tag": "If",
   },
-  "If-3": Object {
+  "If-2": Object {
     "appearances": Array [
       Object {
         "children": Array [
@@ -3977,7 +3591,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-2",
+            "key": "If-1",
             "tag": "If",
           },
         ],
@@ -3996,7 +3610,7 @@ Object {
         "if": "trendy",
       },
     ],
-    "key": "If-3",
+    "key": "If-2",
     "tag": "If",
   },
   "Test": Object {
@@ -4016,7 +3630,7 @@ Object {
             "children": Array [],
             "data": Object {
               "index": 0,
-              "key": "If-1",
+              "key": "If-0",
               "tag": "If",
             },
           },
@@ -4024,7 +3638,7 @@ Object {
             "children": Array [],
             "data": Object {
               "index": 0,
-              "key": "If-2",
+              "key": "If-1",
               "tag": "If",
             },
           },
@@ -4131,7 +3745,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-1",
+            "key": "If-0",
             "tag": "If",
           },
         ],
@@ -4167,12 +3781,12 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-2",
+            "key": "If-1",
             "tag": "If",
           },
           Object {
             "index": 0,
-            "key": "If-3",
+            "key": "If-2",
             "tag": "If",
           },
         ],
@@ -4345,7 +3959,7 @@ Object {
 
 exports[`WML normalize should denormalize condition dependencies into contextStack 1`] = `
 Object {
-  "If-1": Object {
+  "If-0": Object {
     "appearances": Array [
       Object {
         "children": Array [
@@ -4380,7 +3994,7 @@ Object {
         "if": "strong",
       },
     ],
-    "key": "If-1",
+    "key": "If-0",
     "tag": "If",
   },
   "Test": Object {
@@ -4400,7 +4014,7 @@ Object {
             "children": Array [],
             "data": Object {
               "index": 0,
-              "key": "If-1",
+              "key": "If-0",
               "tag": "If",
             },
           },
@@ -4499,7 +4113,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "If-1",
+            "key": "If-0",
             "tag": "If",
           },
         ],
@@ -5356,6 +4970,7 @@ Object {
           "key": "activate",
           "rooms": Array [
             Object {
+              "conditions": Array [],
               "key": "a123",
             },
           ],
@@ -5363,6 +4978,7 @@ Object {
         },
         "rooms": Array [
           Object {
+            "conditions": Array [],
             "key": "a123",
           },
         ],
@@ -5632,7 +5248,7 @@ Object {
         },
       },
     ],
-    "default": undefined,
+    "default": "",
     "key": "power",
     "tag": "Variable",
   },

@@ -25,10 +25,15 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(taggedMessageTemplates.After)(parseOpen)
         }),
         typeCheckContents: isSchemaOutputTag,
-        finalize: (initialTag: SchemaAfterTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAfterTag, SchemaTag> => ({
-            data: initialTag,
-            children: compressWhitespace(children)
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaAfterTag, SchemaTag> => {
+            if (!isSchemaAfter(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
     },
     Before: {
         initialize: ({ parseOpen }): SchemaBeforeTag => ({
@@ -36,10 +41,15 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(taggedMessageTemplates.Before)(parseOpen)
         }),
         typeCheckContents: isSchemaOutputTag,
-        finalize: (initialTag: SchemaBeforeTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaBeforeTag, SchemaTag> => ({
-            data: initialTag,
-            children: compressWhitespace(children)
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaBeforeTag, SchemaTag> => {
+            if (!isSchemaBefore(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
     },
     Replace: {
         initialize: ({ parseOpen }): SchemaReplaceTag => ({
@@ -47,10 +57,15 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(taggedMessageTemplates.Replace)(parseOpen)
         }),
         typeCheckContents: isSchemaOutputTag,
-        finalize: (initialTag: SchemaReplaceTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaReplaceTag, SchemaTag> => ({
-            data: initialTag,
-            children: compressWhitespace(children)
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaReplaceTag, SchemaTag> => {
+            if (!isSchemaReplace(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
     },
     br: {
         initialize: ({ parseOpen }): SchemaLineBreakTag => ({
@@ -71,18 +86,23 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(taggedMessageTemplates.Link)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaLinkTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaLinkTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                text: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
-            },
-            children: compressWhitespace(children)
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaLinkTag, SchemaTag> => {
+            if (!isSchemaLink(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    text: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
+                },
+                children: compressWhitespace(children)
+            }
+        }
     }
 }
 
 export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
-    Before: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaBeforeTag }) => (
+    Before: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaBefore(tag)
             ? tagRender({
                 ...args,
@@ -92,7 +112,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
             })
             : ''
     ),
-    After: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaAfterTag }) => (
+    After: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaAfter(tag)
             ? tagRender({
                 ...args,
@@ -102,7 +122,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
             })
             : ''
     ),
-    Replace: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaReplaceTag }) => (
+    Replace: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaReplace(tag)
             ? tagRender({
                 ...args,
@@ -112,10 +132,10 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
             })
             : ''
     ),
-    String: ({ tag: { data: tag } }: PrintMapEntryArguments & { tag: SchemaStringTag }) => (
+    String: ({ tag: { data: tag } }: PrintMapEntryArguments) => (
         isSchemaString(tag) ? escapeWMLCharacters(tag.value) : ''
     ),
-    Link: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaLinkTag }) => (
+    Link: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaLink(tag)
             ? tagRender({
                 ...args,

@@ -63,8 +63,8 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                         }
                         if (token.type === 'TagClose') {
                             const contextPop = currentContext.pop()
-                            if (contextPop.tag !== token.tag) {
-                                throw new TokenizeException(`Closing tag (${token.tag}) does not match open tag (${contextPop.tag})`, token.startIdx, token.endIdx)
+                            if (!(contextPop && contextPop.tag === token.tag)) {
+                                throw new TokenizeException(`Closing tag (${token.tag}) does not match open tag (${contextPop?.tag})`, token.startIdx, token.endIdx)
                             }
                         }
                     }

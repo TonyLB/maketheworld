@@ -11,7 +11,7 @@ import {
     isSchemaMapContents,
     isSchemaRoomIncomingContents,
     isSchemaString,
-    isSchemaTaggedMessageLegalContents
+    isSchemaTaggedMessageLegalContents,
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
@@ -60,7 +60,10 @@ export const conditionLegalContents = (item, contextStack) => {
     }
 }
 
-export const conditionFinalize = (initialTag: SchemaConditionTag, children: GenericTree<SchemaTag>, contextStack: SchemaContextItem[]): GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag> => {
+export const conditionFinalize = (initialTag: SchemaTag, children: GenericTree<SchemaTag>, contextStack: SchemaContextItem[]): GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag> => {
+    if (!isSchemaCondition(initialTag)) {
+        throw new Error('Type mismatch on schema finalize')
+    }
     const legalContextStack = contextStack.map(({ tag }) => (tag.tag)).filter(isLegalParseConditionContextTag)
     if (legalContextStack.length === 0) {
         throw new Error('Conditional items cannot be top-level')
@@ -123,7 +126,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const conditionalPrintMap: Record<string, PrintMapEntry> = {
-    If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaConditionTag }) => {
+    If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
 
         if (!isSchemaCondition(tag)) {
             return ''

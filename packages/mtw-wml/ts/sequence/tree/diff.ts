@@ -44,7 +44,7 @@ export const condenseDiffTree = <N extends {}>(tree: GenericTreeDiff<N>, verbose
     })
     const itemsWithSiblingContext = items.reduce<GenericTreeDiff<N>>((previous, item) => {
         const directlyPreviousItem = previous.length > 0 ? previous.slice(-1)[0] : undefined
-        if (item.action === GenericTreeDiffAction.Exclude && nonContextActions.includes(directlyPreviousItem?.action)) {
+        if (item.action === GenericTreeDiffAction.Exclude && directlyPreviousItem && nonContextActions.includes(directlyPreviousItem.action)) {
             return [
                 ...previous,
                 {

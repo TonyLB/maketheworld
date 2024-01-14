@@ -163,7 +163,11 @@ export class Normalizer {
     _updateAppearance(reference: NormalReference, update: (draft: WritableDraft<BaseAppearance>) => void): void {
         if (this._lookupAppearance(reference)) {
             this._normalForm = { ...produce(this._normalForm, (draft) => {
-                update(draft[reference.key].appearances[reference.index])
+                const draftAppearance = draft[reference.key]?.appearances?.[reference.index]
+                if (!draftAppearance) {
+                    throw new Error(`No matching appearance on _updateAppearance (${reference.key} x ${reference.index})`)
+                }
+                update(draftAppearance)
             })}
         }
     }
@@ -175,11 +179,11 @@ export class Normalizer {
         }
         const parent = appearance.contextStack.length > 0 ? appearance.contextStack.slice(-1)[0] : undefined
         if (parent) {
-            const index = this._normalForm[parent.key].appearances[parent.index].children.findIndex(({ data }) => (
+            const index = (this._normalForm[parent.key]?.appearances?.[parent.index]?.children ?? []).findIndex(({ data }) => (
                 isNormalReference(data) && data.key === reference.key && data.index === reference.index
             ))
             if (index === -1) {
-                throw new Error('Parent lookup error in Normalizer')
+                return { contextStack: appearance.contextStack }
             }
             else {
                 return {
@@ -208,7 +212,7 @@ export class Normalizer {
         }
         const parent = this._getParentReference(position.contextStack)
         if (!parent) {
-            const index = this.rootNode.appearances.findIndex(({ contextStack }) => (contextStack.length === 0))
+            const index = (this.rootNode?.appearances ?? []).findIndex(({ contextStack }) => (contextStack.length === 0))
             if (!this.rootNode || index === -1) {
                 return undefined
             }
@@ -239,6 +243,15 @@ export class Normalizer {
         const firstIndexB = positionB.contextStack.length
             ? (this._referenceToInsertPosition(positionB.contextStack[0]) ?? { index: -1 }).index
             : positionB.index
+        if (typeof firstIndexA === 'undefined' && typeof firstIndexB === 'undefined') {
+            return 0
+        }
+        if (typeof firstIndexA === 'undefined') {
+            return 1
+        }
+        if (typeof firstIndexB === 'undefined') {
+            return -1
+        }
         if (firstIndexA !== firstIndexB) {
             return firstIndexA - firstIndexB
         }
@@ -298,7 +311,7 @@ export class Normalizer {
             // to find the right place to splice the new entry into the list, and then reindex all of
             // the later appearances
             //
-            const insertBefore = this._normalForm[key].appearances.findIndex((_, index) => (
+            const insertBefore = (this._normalForm[key]?.appearances ?? []).findIndex((_, index) => (
                 this._insertPositionSortOrder(position, { key, index, tag }) <= 0
             ))
             //
@@ -308,7 +321,11 @@ export class Normalizer {
             //
             if (insertBefore !== -1) {
                 this._normalForm = produce(this._normalForm, (draft) => {
-                    draft[key].appearances.splice(insertBefore, 0, undefined)
+                    const appearances = draft[key]?.appearances
+                    if (!appearances) {
+                        throw new Error('Lookup failure in _mergeAppearance')
+                    }
+                    appearances.splice(insertBefore, 0, undefined as any)
                 })
                 const appearances = this._normalForm[key].appearances ?? []
                 const tag = this._normalForm[key].tag
@@ -319,25 +336,35 @@ export class Normalizer {
                 })
             }
             this._normalForm = produce(this._normalForm, (draft) => {
-                const appearances = draft[key].appearances as any
+                const appearances = draft[key].appearances
+                if (!appearances) {
+                    throw new Error('Appearance error in _mergeAppearance')
+                }
                 if (draft[key].tag !== item.tag) {
                     throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
                 }
-                const newAppearance = item.appearances[0]
+                const newAppearance = item.appearances?.[0]
+                if (!newAppearance) {
+                    throw new Error('Appearance error in _mergeAppearance')
+                }
                 if (insertBefore === -1) {
-                    appearances.push(newAppearance)
+                    appearances.push(newAppearance as any)
                 }
                 else {
                     appearances.splice(insertBefore, 1, newAppearance)
                 }
             })
-            return insertBefore > -1 ? insertBefore : this._normalForm[key].appearances.length - 1
+            return insertBefore > -1 ? insertBefore : (this._normalForm[key]?.appearances ?? []).length - 1
         }
         else {
             this._normalForm = produce(this._normalForm, (draft) => {
+                const newAppearance = item.appearances?.[0]
+                if (!newAppearance) {
+                    throw new Error('Appearance error in _mergeAppearance')
+                }
                 draft[key] = {
                     ...item,
-                    appearances: [item.appearances[0]]
+                    appearances: [newAppearance]
                 } as NormalItem
             })
             return 0
@@ -353,7 +380,7 @@ export class Normalizer {
         if (!(key in this._normalForm)) {
             throw new NormalizeKeyMismatchError(`Key "${key}" does not match any tag in asset`)
         }
-        if (appearance >= this._normalForm[key].appearances.length) {
+        if (appearance >= (this._normalForm[key]?.appearances ?? []).length) {
             throw new NormalizeKeyMismatchError(`Illegal appearance referenced on key "${key}"`)
         }
         switch(this._normalForm[key].tag) {
@@ -362,10 +389,16 @@ export class Normalizer {
                     const mapItem = draft[key]
                     if (isNormalMap(mapItem)) {
                         const appearanceData = mapItem.appearances[appearance]
+                        if (!appearanceData) {
+                            throw new Error('Appearance error in _recalculateDenormalizedFields')
+                        }        
                         appearanceData.rooms = extractConditionedItemFromContents({
                             children: this._expandNormalRefTree(appearanceData.children),
                             typeGuard: isSchemaRoom,
                             transform: ({ key, x, y }) => {
+                                if (typeof x === 'undefined' || typeof y === 'undefined') {
+                                    throw new Error('No position specified in Map _recalculateDenormalizedFields')
+                                }
                                 return {
                                     conditions: [],
                                     key,
@@ -394,6 +427,7 @@ export class Normalizer {
                                 .map(({ data }) => (data))
                                 .filter(isSchemaImport)
                                 .map(({ key }) => {
+                                    if (!key) { return undefined }
                                     const importItem = this._normalForm[key]
                                     if (isNormalImport(importItem)) {
                                         return importItem.from
@@ -402,7 +436,7 @@ export class Normalizer {
                                         return undefined
                                     }
                                 })
-                                .filter((value) => (value))
+                                .filter((value: string | undefined): value is string => (typeof value !== 'undefined'))
                         ]), [])))]
                     }
                 })
@@ -419,13 +453,17 @@ export class Normalizer {
         if (!(key in this._normalForm)) {
             throw new NormalizeKeyMismatchError(`Key "${key}" does not match any tag in asset`)
         }
-        if (appearance >= this._normalForm[key].appearances.length) {
+        if (appearance >= (this._normalForm[key]?.appearances ?? []).length) {
             throw new NormalizeKeyMismatchError(`Illegal appearance referenced on key "${key}"`)
         }
         this._normalForm = { ...produce(this._normalForm, (draft) => {
-            draft[key].appearances[appearance].children = children
+            const draftAppearance = draft[key]?.appearances?.[appearance]
+            if (!draftAppearance) {
+                throw new Error(`Appearance mismatch in _updateAppearanceContents`)
+            }
+            draftAppearance.children = children
         }) }
-        const referencesNeedingRecalculation = [ { key, tag: this._normalForm[key].tag, index: appearance }, ...[ ...this._normalForm[key].appearances[appearance].contextStack ].reverse()]
+        const referencesNeedingRecalculation = [ { key, tag: this._normalForm[key].tag, index: appearance }, ...[ ...(this._normalForm[key]?.appearances?.[appearance]?.contextStack ?? []) ].reverse()]
         referencesNeedingRecalculation.forEach((itemRef) => {
             this._recalculateDenormalizedFields(itemRef)
         })
@@ -438,8 +476,11 @@ export class Normalizer {
     //
 
     _reindexReference(reference: NormalReference, options?: { contextStack?: NormalReference[], fromIndex?: number }): void {
-        const { contextStack, fromIndex } = options
+        const { contextStack, fromIndex } = options ?? {}
         const appearance = this._lookupAppearance(reference)
+        if (!appearance) {
+            throw new Error('Appearance mismatch in _reindexReference')
+        }
         const parent = this._getParentReference(contextStack || appearance.contextStack)
         if (appearance) {
             if (contextStack) {
@@ -484,8 +525,12 @@ export class Normalizer {
             const reversedContents = [...children].map(({ data }) => (data)).filter(isNormalReference).reverse()
             reversedContents.forEach((contentReference) => { this._removeAppearance(contentReference) })
             this._normalForm = produce(this._normalForm, (draft) => {
-                draft[reference.key].appearances.splice(reference.index, 1)
-                if (!draft[reference.key].appearances.length) {
+                const appearances = draft[reference.key]?.appearances
+                if (typeof appearances === 'undefined') {
+                    throw new Error('Appearance mismatch in _removeAppearance')
+                }
+                appearances.splice(reference.index, 1)
+                if (!appearances.length) {
                     delete draft[reference.key]
                 }
             })
@@ -567,7 +612,7 @@ export class Normalizer {
                     ...item,
                     to: newTo,
                     from: newFrom,
-                    appearances: this._normalForm[item.key].appearances.map((appearance) => {
+                    appearances: (this._normalForm[item.key]?.appearances ?? []).map((appearance) => {
                         const { data, children } = appearance
                         if (isSchemaExit(data)) {
                             return {
@@ -674,7 +719,7 @@ export class Normalizer {
     // NormalReference
     //
     put({ data: node, children }: GenericTreeNode<SchemaTag>, position: NormalizerInsertPosition): NormalReference | undefined {
-        let returnValue: NormalReference = undefined
+        let returnValue: NormalReference | undefined = undefined
         //
         // SchemaExportTag encodes its changes throughout the normalForm, rather than creating any normal Item
         // of its own.
@@ -701,7 +746,7 @@ export class Normalizer {
         if (!isSchemaTagWithNormalEquivalent(node)) {
             const parentReference = this._getParentReference(translateContext.contextStack)
             if (parentReference && !isSchemaImport(node)) {
-                const { children: parentChildren = [] } = this._lookupAppearance(parentReference)
+                const { children: parentChildren = [] } = this._lookupAppearance(parentReference) ?? {}
                 if (typeof position.index === 'number') {
                     this._updateAppearanceContents(parentReference.key, parentReference.index, [...parentChildren.slice(0, position.index), { data: node, children }, ...parentChildren.slice(position.index)])
                 }
@@ -713,11 +758,14 @@ export class Normalizer {
         }
         if (position.replace) {
             const deleteReference = this._insertPositionToReference(position)
+            if (!deleteReference) {
+                throw new Error('deleteReference mismatch in put')
+            }
             this.delete(deleteReference, { removeEmptyConditions: false })
         }
         this._validateTags({ data: node, children })
         let appearanceIndex: number
-        let returnKey: string = node.key
+        let returnKey: string | undefined = node.key
         switch(node.tag) {
             // case 'Exit':
             //     appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children: [] }, node), position)
@@ -740,7 +788,7 @@ export class Normalizer {
                 const importIndex = this._mergeAppearance(translatedImport.key, translatedImport, position)
                 const importParentReference = this._getParentReference(translateContext.contextStack)
                 if (importParentReference) {
-                    const { children = [] } = this._lookupAppearance(importParentReference)
+                    const { children = [] } = this._lookupAppearance(importParentReference) ?? {}
                     this._updateAppearanceContents(
                         importParentReference.key,
                         importParentReference.index,
@@ -770,7 +818,14 @@ export class Normalizer {
                         }
                     ],
                 }
-                const importContents = importSchemaTags.map((tag) => ({ data: this.put({ data: tag, children: [] }, updatedContext), children: [] }))
+                const importContents = importSchemaTags
+                    .map((tag) => {
+                        const data = this.put({ data: tag, children: [] }, updatedContext)
+                        if (!data) {
+                            throw new Error('Recursion failure in normalizer put')
+                        }
+                        return { data, children: [] }
+                    })
                 this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
                 return {
                     key: translatedImport.key,
@@ -780,6 +835,9 @@ export class Normalizer {
             default:
                 const translatedItem = this._translate({ ...translateContext, data: node, children: [] }, node)
                 returnKey = translatedItem.key
+                if (!returnKey) {
+                    throw new Error('Key mismatch in normalizer put')
+                }
                 appearanceIndex = this._mergeAppearance(returnKey, translatedItem, position)
                 returnValue = {
                     key: returnKey,
@@ -789,7 +847,7 @@ export class Normalizer {
         }
         const parentReference = this._getParentReference(translateContext.contextStack)
         if (parentReference && !isSchemaImport(node)) {
-            const { children = [] } = this._lookupAppearance(parentReference)
+            const { children = [] } = this._lookupAppearance(parentReference) ?? {}
             if (typeof position.index === 'number') {
                 this._updateAppearanceContents(parentReference.key, parentReference.index, [...children.slice(0, position.index), { data: returnValue, children: [] }, ...children.slice(position.index)])
             }
@@ -814,7 +872,7 @@ export class Normalizer {
         if (appearance) {
             const parentReference = this._getParentReference(appearance.contextStack)
             if (parentReference) {
-                const { children = [] } = this._lookupAppearance(parentReference)
+                const { children = [] } = this._lookupAppearance(parentReference) ?? {}
                 const index = children.findIndex(({ data }) => (isNormalReference(data) && data.key === reference.key && data.index === reference.index))
                 if (index !== -1) {
                     this._updateAppearanceContents(parentReference.key, parentReference.index, [...children.slice(0, index), ...children.slice(index + 1)])
@@ -824,7 +882,7 @@ export class Normalizer {
             if (options.removeEmptyConditions) {
                 const newParentReference = this._getParentReference(appearance.contextStack)
                 if (newParentReference && newParentReference.tag === 'If') {
-                    const { children = [] } = this._lookupAppearance(newParentReference)
+                    const { children = [] } = this._lookupAppearance(newParentReference) ?? {}
                     if (!children.length) {
                         this.delete(newParentReference)
                     }
@@ -840,6 +898,9 @@ export class Normalizer {
         }
         let tagToCompare = node.tag
         let keyToCompare = node.key
+        if (!keyToCompare) {
+            return
+        }
         switch(node.tag) {
             case 'Story':
                 tagToCompare = 'Asset'
@@ -940,7 +1001,7 @@ export class Normalizer {
                 return {
                     key: node.key || defaultKey,
                     tag: 'Variable',
-                    default: node.default,
+                    default: node.default ?? '',
                     appearances: [defaultedAppearance]
                 }
             case 'Computed':
@@ -1039,9 +1100,9 @@ export class Normalizer {
                     tag: node.tag,
                     Name: node.Name,
                     Pronouns: node.Pronouns,
-                    FirstImpression: node.FirstImpression,
-                    OneCoolThing: node.OneCoolThing,
-                    Outfit: node.Outfit,
+                    FirstImpression: node.FirstImpression ?? '',
+                    OneCoolThing: node.OneCoolThing ?? '',
+                    Outfit: node.Outfit ?? '',
                     fileName: node.fileName,
                     //
                     // TODO: Create a selector for images
@@ -1113,20 +1174,20 @@ export class Normalizer {
         })
     }
 
-    _normalToSchema(key: string, appearanceIndex: number): GenericTreeNode<SchemaTag> | undefined {
+    _normalToSchema(key: string, appearanceIndex: number): GenericTreeNode<SchemaTag> {
         const node = this._normalForm[key]
-        if (!node || appearanceIndex >= node.appearances.length) {
-            return undefined
+        if (!node || appearanceIndex >= (node.appearances ?? []).length) {
+            throw new Error(`No lookup on _normalToSchema (${key} x ${appearanceIndex})`)
         }
         const baseAppearance = this._lookupAppearance({ key, index: appearanceIndex, tag: node.tag })
         if (!baseAppearance) {
-            return undefined
+           throw new Error(`No lookup on _normalToSchema (${key} x ${appearanceIndex})`)
         }
         let expandedTags: GenericTree<SchemaTag> = []
         if (node.tag === 'Asset') {
             const allAssetDescendantNormals = (Object.values(this._normalForm) as NormalItem[])
                 .filter(({ tag }) => (isImportableTag(tag)))
-                .filter(({ appearances }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find(({ key }) => (key === node.key)))))))
+                .filter(({ appearances = [] }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find(({ key }) => (key === node.key)))))))
                 .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
             if (allAssetDescendantNormals.length) {
                 expandedTags = [...expandedTags, {
@@ -1170,9 +1231,9 @@ export class Normalizer {
         if (!normalItem) {
             return selector([])
         }
-        const appearanceTagTrees = normalItem.appearances
+        const appearanceTagTrees = (normalItem.appearances ?? [])
             .map(({ contextStack, data, children }) => {
-                const contextNodes = contextStack.map(this._lookupAppearance.bind(this)).map(({ data }) => (data))
+                const contextNodes = contextStack.map(this._lookupAppearance.bind(this)).map((node) => (node ? [node.data] : [])).flat(1)
                 return new SchemaTagTree(this._expandNormalRefTree([{ data, children }]))._tagList.map((tagItem) => ([...contextNodes, ...tagItem]))
             }).flat(1)
         const aggregateTagTree = new SchemaTagTree([])

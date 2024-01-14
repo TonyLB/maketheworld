@@ -50,22 +50,22 @@ export const computationConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const computationPrintMap: Record<string, PrintMapEntry> = {
-    Variable: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments & { tag: SchemaVariableTag }) => (
+    Variable: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaVariable(tag)
             ? tagRender({
                 ...args,
                 tag: 'Variable',
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
-                    { key: 'default', type: 'expression', value: tag.default },
-                    { key: 'from', type: 'key', value: tag.from },
-                    { key: 'as', type: 'key', value: tag.as }
+                    { key: 'default', type: 'expression', value: tag.default ?? '' },
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
+                    { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 contents: [],
             })
             : ''
     ),
-    Computed: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments & { tag: SchemaComputedTag }) => (
+    Computed: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaComputed(tag)
             ? tagRender({
                 ...args,
@@ -73,14 +73,14 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'src', type: 'expression', value: tag.src },
-                    { key: 'from', type: 'key', value: tag.from },
-                    { key: 'as', type: 'key', value: tag.as }
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
+                    { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 contents: [],
             })
             : ''
     ),
-    Action: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments & { tag: SchemaActionTag }) => (
+    Action: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaAction(tag)
             ? tagRender({
                 ...args,
@@ -88,8 +88,8 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                     { key: 'src', type: 'expression', value: tag.src },
-                    { key: 'from', type: 'key', value: tag.from },
-                    { key: 'as', type: 'key', value: tag.as }
+                    { key: 'from', type: 'key', value: tag.from ?? '' },
+                    { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
                 contents: [],
             })

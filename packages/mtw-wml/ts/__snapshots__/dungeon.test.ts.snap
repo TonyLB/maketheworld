@@ -3055,27 +3055,35 @@ Object {
           "key": "birdsFade",
           "rooms": Array [
             Object {
+              "conditions": Array [],
               "key": "orchard",
             },
             Object {
+              "conditions": Array [],
               "key": "forest",
             },
             Object {
+              "conditions": Array [],
               "key": "fireCatGrotto",
             },
             Object {
+              "conditions": Array [],
               "key": "well",
             },
             Object {
+              "conditions": Array [],
               "key": "statueChamber",
             },
             Object {
+              "conditions": Array [],
               "key": "intersection",
             },
             Object {
+              "conditions": Array [],
               "key": "curvingPassage",
             },
             Object {
+              "conditions": Array [],
               "key": "foundry",
             },
           ],
@@ -3083,27 +3091,35 @@ Object {
         },
         "rooms": Array [
           Object {
+            "conditions": Array [],
             "key": "orchard",
           },
           Object {
+            "conditions": Array [],
             "key": "forest",
           },
           Object {
+            "conditions": Array [],
             "key": "fireCatGrotto",
           },
           Object {
+            "conditions": Array [],
             "key": "well",
           },
           Object {
+            "conditions": Array [],
             "key": "statueChamber",
           },
           Object {
+            "conditions": Array [],
             "key": "intersection",
           },
           Object {
+            "conditions": Array [],
             "key": "curvingPassage",
           },
           Object {
+            "conditions": Array [],
             "key": "foundry",
           },
         ],
@@ -8851,24 +8867,31 @@ Object {
           "key": "purrFades",
           "rooms": Array [
             Object {
+              "conditions": Array [],
               "key": "orchard",
             },
             Object {
+              "conditions": Array [],
               "key": "forest",
             },
             Object {
+              "conditions": Array [],
               "key": "fireCatGrotto",
             },
             Object {
+              "conditions": Array [],
               "key": "well",
             },
             Object {
+              "conditions": Array [],
               "key": "statueChamber",
             },
             Object {
+              "conditions": Array [],
               "key": "intersection",
             },
             Object {
+              "conditions": Array [],
               "key": "curvingPassage",
             },
           ],
@@ -8876,24 +8899,31 @@ Object {
         },
         "rooms": Array [
           Object {
+            "conditions": Array [],
             "key": "orchard",
           },
           Object {
+            "conditions": Array [],
             "key": "forest",
           },
           Object {
+            "conditions": Array [],
             "key": "fireCatGrotto",
           },
           Object {
+            "conditions": Array [],
             "key": "well",
           },
           Object {
+            "conditions": Array [],
             "key": "statueChamber",
           },
           Object {
+            "conditions": Array [],
             "key": "intersection",
           },
           Object {
+            "conditions": Array [],
             "key": "curvingPassage",
           },
         ],

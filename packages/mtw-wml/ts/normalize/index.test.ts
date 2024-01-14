@@ -946,7 +946,19 @@ describe('WML normalize', () => {
             }
             const { key, ...unkeyedIf } = ifPredicate.data
             normalizer.put({ data: unkeyedIf, children: ifPredicate.children }, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'testRoom', tag: 'Room', index: 0 }], index: 2 })
-            expect(normalizer.normal).toMatchSnapshot()
+            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
+                <Asset key=(TestAsset)>
+                    <Variable key=(testVar) default={false} />
+                    <Room key=(testRoom)>
+                        <If {testVar} />
+                        <If {testVar}><Exit to=(targetTwo)>two</Exit></If>
+                        <If {testVar}><Exit to=(targetThree)>three</Exit></If>
+                    </Room>
+                    <Room key=(targetOne) />
+                    <Room key=(targetTwo) />
+                    <Room key=(targetThree) />
+                </Asset>
+            `))
         })
 
         it('should successfully replace a parent with duplicate contents', () => {
@@ -973,6 +985,7 @@ describe('WML normalize', () => {
                 throw new Error()
             }
             normalizer.put(toAddRoomWrapper, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }], index: 1, replace: true })
+            console.log(`output: ${schemaToWML(normalizer.schema)}`)
             expect(normalizer.normal).toMatchSnapshot()
         })
 

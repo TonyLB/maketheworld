@@ -16,7 +16,7 @@
       "sourceMap": true,
       "declaration": true,
       "declarationMap": true,
-      "strict": false
+      "strict": true
     },
     "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__snapshots__/*", "dist/**/*", "jest.config.js"]
 }

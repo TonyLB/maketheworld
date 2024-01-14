@@ -23,16 +23,21 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(importExportTemplates.Import)(parseOpen)
         }),
         typeCheckContents: isImportable,
-        finalize: (initialTag: SchemaImportTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaImportTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, from, tag }) => ({
-                    ...previous,
-                    [key]: { key: from || key, type: tag }
-                }), {})
-            },
-            children
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaImportTag, SchemaTag> => {
+            if (!isSchemaImport(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, from, tag }) => ({
+                        ...previous,
+                        [key]: { key: from || key, type: tag }
+                    }), {})
+                },
+                children
+            }
+        }
     },
     Export: {
         initialize: ({ parseOpen }): SchemaExportTag => ({
@@ -41,16 +46,21 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(importExportTemplates.Export)(parseOpen)
         }),
         typeCheckContents: isImportable,
-        finalize: (initialTag: SchemaExportTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaExportTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, as, tag }) => ({
-                    ...previous,
-                    [as || key]: { key, type: tag }
-                }), {})
-            },
-            children
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaExportTag, SchemaTag> => {
+            if (!isSchemaExport(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    mapping: children.map(({ data }) => (data)).filter(isImportable).reduce((previous, { key, as, tag }) => ({
+                        ...previous,
+                        [as || key]: { key, type: tag }
+                    }), {})
+                },
+                children
+            }
+        }
     },
     Image: {
         initialize: ({ parseOpen }): SchemaImageTag => ({
@@ -61,7 +71,7 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const importExportPrintMap: Record<string, PrintMapEntry> = {
-    Import: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaImportTag }) => (
+    Import: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaImport(tag)
             ? tagRender({
                 ...args,
@@ -73,7 +83,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
             })
             : ''
     ),
-    Export: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaExportTag }) => (
+    Export: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaExport(tag)
             ? tagRender({
                 ...args,
@@ -83,7 +93,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
             })
             : ''
     ),
-    Image: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaImageTag }) => (
+    Image: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaImage(tag)
             ? tagRender({
                 ...args,

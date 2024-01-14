@@ -23,12 +23,12 @@ describe('dependencies selector', () => {
                 <Variable key=(power) default={true} />
             </Asset>
         `)
-        const setDependencies = (key: string, dependencies: string[]): void => {
-            const findConditionDependencies = testOne._normalForm[key]?.appearances?.[0].data
-            if (findConditionDependencies && isSchemaCondition(findConditionDependencies)) {
-                findConditionDependencies.conditions[0].dependencies = dependencies
-            }    
-        }
+        // const setDependencies = (key: string, dependencies: string[]): void => {
+        //     const findConditionDependencies = testOne._normalForm[key]?.appearances?.[0].data
+        //     if (findConditionDependencies && isSchemaCondition(findConditionDependencies)) {
+        //         findConditionDependencies.conditions[0].dependencies = dependencies
+        //     }    
+        // }
         testOne.assignDependencies((src: string) => {
             switch(src) {
                 case '!lights': return ['lights']
@@ -37,7 +37,6 @@ describe('dependencies selector', () => {
                 default: return []
             }
         })
-        console.log(`normal: ${JSON.stringify(testOne.normal, null, 4)}`)
         expect(testOne.select({ key: 'room1', selector: selectDependencies })).toEqual(['lights', 'power'])
     })
 

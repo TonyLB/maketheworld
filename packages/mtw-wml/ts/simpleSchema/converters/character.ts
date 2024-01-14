@@ -35,13 +35,18 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.FirstImpression)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaFirstImpressionTag, children: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                value: children.map(({ data: { value } }) => (value)).join('')
-            },
-            children: []
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaFirstImpressionTag, SchemaTag> => {
+            if (!isSchemaFirstImpression(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
+                },
+                children: []
+            }
+        }
     },
     OneCoolThing: {
         initialize: ({ parseOpen }): SchemaOneCoolThingTag => ({
@@ -50,13 +55,18 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.OneCoolThing)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaOneCoolThingTag, children: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                value: children.map(({ data: { value } }) => (value)).join('')
-            },
-            children: []
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaOneCoolThingTag, SchemaTag> => {
+            if (!isSchemaOneCoolThing(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
+                },
+                children: []
+            }
+        }
     },
     Outfit: {
         initialize: ({ parseOpen }): SchemaOutfitTag => ({
@@ -65,13 +75,18 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.Outfit)(parseOpen)
         }),
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaOutfitTag, children: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                value: children.map(({ data: { value } }) => (value)).join('')
-            },
-            children: []
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaOutfitTag, SchemaTag> => {
+            if (!isSchemaOutfit(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    value: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
+                },
+                children: []
+            }
+        }
     },
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => ({
@@ -87,7 +102,10 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(characterTemplates.Character)(parseOpen)
         }),
         typeCheckContents: isSchemaCharacterContents,
-        finalize: (initialTag: SchemaCharacterTag, contents: GenericTreeFiltered<SchemaCharacterLegalContents, SchemaTag>): GenericTreeNodeFiltered<SchemaCharacterTag, SchemaTag> => {
+        finalize: (initialTag: SchemaTag, contents: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaCharacterTag, SchemaTag> => {
+            if (!isSchemaCharacter(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
             const { tag, ...Pronouns } = [{ tag: '', ...initialTag.Pronouns }, ...contents.map(({ data }) => (data)).filter(isSchemaPronouns)].slice(-1)[0]
             return {
                 data: {
@@ -116,7 +134,7 @@ const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string 
 )
 
 export const characterPrintMap: Record<string, PrintMapEntry> = {
-    Character: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaCharacterTag }) => (
+    Character: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaCharacter(tag)
             ? tagRender({
                 ...args,
@@ -128,10 +146,10 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
             })
             : ''
     ),
-    FirstImpression: (args: PrintMapEntryArguments & { tag: SchemaFirstImpressionTag }) => (tagRenderLiteral(args.tag.data, args)),
-    OneCoolThing: (args: PrintMapEntryArguments & { tag: SchemaOneCoolThingTag }) => (tagRenderLiteral(args.tag.data, args)),
-    Outfit: (args: PrintMapEntryArguments & { tag: SchemaOutfitTag }) => (tagRenderLiteral(args.tag.data, args)),
-    Pronouns: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments & { tag: SchemaPronounsTag }) => (
+    FirstImpression: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
+    OneCoolThing: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
+    Outfit: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
+    Pronouns: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaPronouns(tag)
             ? tagRender({
                 ...args,

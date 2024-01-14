@@ -19,6 +19,9 @@ export const parse = (tokens: Token[]): ParseItem[] => {
             case ParseExpectation.Properties:
                 switch (token.type) {
                     case 'TagOpenEnd':
+                        if (!currentTag) {
+                            throw new Error('Parse error on closing open tag')
+                        }
                         accumulator.push({ ...currentTag, type: token.selfClosing ? ParseTypes.SelfClosure : ParseTypes.Open })
                         currentTag = undefined
                         expecting = ParseExpectation.Tags
@@ -27,6 +30,9 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                         break
                     case 'Property':
                         if (token.isBoolean) {
+                            if (!currentTag) {
+                                throw new Error('Parse error on property assignment')
+                            }
                             currentTag.properties.push({
                                 key: token.key,
                                 type: ParsePropertyTypes.Boolean,
@@ -45,6 +51,9 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                     case 'KeyValue':
                     case 'ExpressionValue':
                     case 'LiteralValue':
+                        if (!currentTag) {
+                            throw new Error('Parse error on property assignment')
+                        }
                         currentTag.properties.push({
                             type: token.type === 'KeyValue'
                                 ? ParsePropertyTypes.Key
@@ -68,6 +77,12 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                     case 'KeyValue':
                     case 'ExpressionValue':
                     case 'LiteralValue':
+                        if (!currentTag) {
+                            throw new Error('Parse error on property assignment')
+                        }
+                        if (!currentProperty) {
+                            throw new Error('Parse error on property value assignment')
+                        }
                         currentTag.properties.push({
                             key: currentProperty.key,
                             type: token.type === 'KeyValue'
@@ -106,7 +121,7 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                         if ((currentText || '').trimEnd()) {
                             accumulator.push({
                                 type: ParseTypes.Text,
-                                text: currentText.trimEnd()
+                                text: (currentText || '').trimEnd()
                             })
                         }
                         currentText = undefined
