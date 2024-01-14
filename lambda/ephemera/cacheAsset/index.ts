@@ -73,29 +73,29 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
     const { normal = {}, properties = {} } = assetWorkspace
     const normalizer = new Normalizer()
     normalizer.loadNormal(normal)
-    const conditionsTransform = conditionsFromContext(assetWorkspace)
-    const conditionsRemap = (conditions: { if: string; not?: boolean; dependencies: string[] }[]): EphemeraCondition[] => {
-        return conditions.map((condition) => {
-            const dependencies = condition.dependencies.reduce<EphemeraCondition["dependencies"]>((previous, key) => {
-                const dependencyLookup = assetWorkspace.universalKey(key)
-                if (!(dependencyLookup && (isEphemeraComputedId(dependencyLookup) || isEphemeraVariableId(dependencyLookup)))) {
-                    throw new EphemeraError(`Illegal dependency: ${key}`)
-                }
-                return [
-                    ...previous,
-                    {
-                        key,
-                        EphemeraId: dependencyLookup
-                    }
-                ]
-            }, [])
-            return {
-                if: condition.if,
-                not: condition.not,
-                dependencies
-            }
-        })
-    }
+    // const conditionsTransform = conditionsFromContext(assetWorkspace)
+    // const conditionsRemap = (conditions: { if: string; not?: boolean; dependencies: string[] }[]): EphemeraCondition[] => {
+    //     return conditions.map((condition) => {
+    //         const dependencies = condition.dependencies.reduce<EphemeraCondition["dependencies"]>((previous, key) => {
+    //             const dependencyLookup = assetWorkspace.universalKey(key)
+    //             if (!(dependencyLookup && (isEphemeraComputedId(dependencyLookup) || isEphemeraVariableId(dependencyLookup)))) {
+    //                 throw new EphemeraError(`Illegal dependency: ${key}`)
+    //             }
+    //             return [
+    //                 ...previous,
+    //                 {
+    //                     key,
+    //                     EphemeraId: dependencyLookup
+    //                 }
+    //             ]
+    //         }, [])
+    //         return {
+    //             if: condition.if,
+    //             not: condition.not,
+    //             dependencies
+    //         }
+    //     })
+    // }
     const EphemeraId = assetWorkspace.universalKey(item.key)
     if (!EphemeraId) {
         return undefined

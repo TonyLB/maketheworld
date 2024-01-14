@@ -60,49 +60,11 @@ const extractDependenciesFromTaggedContent = (values: TaggedMessageContent[]): {
     return returnValue
 }
 
-//
-// TODO: ISS3039: Refactor output to { target: EphemeraId; scopedId?: string }[]
-//
 const extractDependenciesFromEphemeraItem = (item: EphemeraItem): { target: EphemeraId; data?: { scopedId?: string } }[] => {
-    if (!isEphemeraInternallyBacklinked(item.EphemeraId)) {
-        return []
-    }
-    if (isEphemeraComputedItem(item)) {
-        return item.dependencies.map(({ EphemeraId, key }) => (isEphemeraId(EphemeraId) ? [{ target: EphemeraId, data: { scopedId: key } }]: [])).flat()
-    }
-    if (isEphemeraMapItem(item)) {
-        return unique(
-            item.appearances.map(({ rooms }) => (rooms.map(({ EphemeraId }) => (EphemeraId)))).flat().filter(isEphemeraId).map((EphemeraId) => ({ target: EphemeraId }))
-        )
-    }
-    if (isEphemeraRoomItem(item)) {
-        return unique(
-            item.appearances.map(({ conditions, render, name, exits }) => ([
-                ...conditions.map(dependencyExtractor),
-                ...exits.map(({ conditions }) => (conditions.map(dependencyExtractor))).flat(),
-                ...extractDependenciesFromTaggedContent(render),
-                ...extractDependenciesFromTaggedContent(name),
-            ])).flat(2)
-        )
-    }
-    if (isEphemeraFeatureItem(item)) {
-        return unique(
-            item.appearances.map(({ conditions, render, name }) => ([
-                ...conditions.map(dependencyExtractor),
-                ...extractDependenciesFromTaggedContent(render),
-                ...extractDependenciesFromTaggedContent(name),
-            ])).flat(2)
-        )
-    }
-    if (isEphemeraBookmarkItem(item)) {
-        return unique(
-            item.appearances.map(({ conditions, render }) => ([
-                ...conditions.map(dependencyExtractor),
-                ...extractDependenciesFromTaggedContent(render)
-            ])).flat(2)
-        )
-    }
-    return []
+    return [
+        ...('stateMapping' in item ? Object.entries(item.stateMapping).map(([scopedId, ephemeraId]) => ({ target: ephemeraId, data: { scopedId } })) : []),
+        ...('keyMapping' in item ? Object.entries(item.keyMapping).map(([scopedId, ephemeraId]) => ({ target: ephemeraId })) : [])
+    ]
 }
 
 const assetBacklink = (context: string) => (item: EphemeraItem) => {

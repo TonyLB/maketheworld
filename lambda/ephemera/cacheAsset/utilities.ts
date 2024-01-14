@@ -2,7 +2,7 @@ import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/dist/readOnly"
 import {
     NormalReference,
     isNormalCondition
-} from "@tonylb/mtw-normal"
+} from "@tonylb/mtw-wml/ts/normalize/baseClasses"
 import { EphemeraCondition } from "./baseClasses"
 
 export const conditionsFromContext = (assetWorkspace: ReadOnlyAssetWorkspace) => (contextStack: NormalReference[]): EphemeraCondition[] => (
@@ -13,7 +13,7 @@ export const conditionsFromContext = (assetWorkspace: ReadOnlyAssetWorkspace) =>
         .reduce<EphemeraCondition[]>((previous, condition) => ([
             ...previous,
             ...condition.conditions.map((statement) => ({
-                dependencies: statement.dependencies
+                dependencies: (statement.dependencies ?? [])
                     .map((key) => ({
                         key,
                         EphemeraId: (assetWorkspace.universalKey(key) || '')
