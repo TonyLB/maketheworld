@@ -17,7 +17,6 @@
     "@aws-sdk/client-sfn": "^3.425.0",
     "@aws-sdk/client-sns": "^3.428.0",
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
-    "@tonylb/mtw-normal": "file:../../packages/mtw-normal",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
     "acorn": "^8.11.3",
     "acorn-walk": "^8.3.1",

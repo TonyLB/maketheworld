@@ -1,6 +1,6 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { NormalCharacterPronouns } from '@tonylb/mtw-normal'
+import { NormalCharacterPronouns } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
 import { RoomStackItem } from '../moveCharacter';
 
