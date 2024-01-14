@@ -7,10 +7,6 @@ export const selectMapRooms = (tree: GenericTree<SchemaTag>, options={ tag: '', 
         return []
     }
     const tagTree = new SchemaTagTree(tree)
-    //
-    // TODO: Create prune { type: 'After' } options in filtered, and use that to prune out all the
-    // children after Room.
-    //
     return tagTree
         .reordered([options.tag, 'If', 'Room'])
         .filter({ match: 'Room' })

@@ -19,7 +19,7 @@ const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: Norma
 
 const extractBookmarkReferences = (items: GenericTree<SchemaTag>) => {
     const returnContents = dfsWalk({
-        default: { output: [] as string[], state: [] },
+        default: { output: [] as string[], state: {} },
         callback: (previous, item: SchemaTag) => {
             if (isSchemaBookmark(item)) {
                 return { output: [...previous.output, item.key], state: {} }
@@ -92,8 +92,8 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
     //
     // Isolate the wrapping asset node and add it to the results
     //
-    const rootNode = Object.values(normal).find(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
-    if (!isNormalAsset(rootNode)) {
+    const rootNode = Object.values(normal).find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
+    if (!(rootNode && isNormalAsset(rootNode))) {
         return {}
     }
     const resultNormalizer = new Normalizer()
@@ -478,7 +478,7 @@ export const standardizeNormal = (normal: NormalForm): NormalForm => {
         .filter(({ tag }) => (isImportableTag(tag)))
         .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
         .sort(normalAlphabeticKeySort)
-        .map(({ tag, key, exportAs }) => ({ [exportAs]: { key, type: tag }}))
+        .map(({ tag, key, exportAs }) => (exportAs ? { [exportAs]: { key, type: tag }} : {}))
 
     if (exportItems.length) {
         resultNormalizer.put({

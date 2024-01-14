@@ -11,6 +11,7 @@ import {
     SchemaTag,
     SchemaTaggedMessageLegalContents,
     isSchemaBookmark,
+    isSchemaDescription,
     isSchemaExit,
     isSchemaFeature,
     isSchemaFeatureIncomingContents,
@@ -84,20 +85,25 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             return {
                 tag: 'Exit',
                 name: '',
-                key: `${from || roomContext.key}#${to || roomContext.key}`,
-                from: from || roomContext.key,
-                to: to || roomContext.key,
+                key: `${from || roomContext?.key}#${to || roomContext?.key}`,
+                from: from ?? roomContext?.key ?? '',
+                to: to ?? roomContext?.key ?? '',
                 ...rest
             }
         },
         typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaExitTag, children: GenericTreeFiltered<SchemaStringTag, SchemaTag>): GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                name: children.map(({ data: { value } }) => (value)).join('')
-            },
-            children: children
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaExitTag, SchemaTag> => {
+            if (!isSchemaExit(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    name: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
+                },
+                children
+            }
+        }
     },
     Description: {
         initialize: ({ parseOpen }): SchemaDescriptionTag => ({
@@ -105,10 +111,15 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Description)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaDescriptionTag, children: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => ({
-            data: initialTag,
-            children: compressWhitespace(children)
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaDescriptionTag, SchemaTag> => {
+            if (!isSchemaDescription(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
     },
     Bookmark: {
         initialize: ({ parseOpen }): SchemaBookmarkTag => {
@@ -123,10 +134,15 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaBookmarkTag, children: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaBookmarkTag, SchemaTag> => ({
-            data: initialTag,
-            children: compressWhitespace(children)
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaBookmarkTag, SchemaTag> => {
+            if (!isSchemaBookmark(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
     },
     Name: {
         initialize: ({ parseOpen }): SchemaNameTag => ({
@@ -134,10 +150,15 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             ...validateProperties(componentTemplates.Name)(parseOpen)
         }),
         typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaNameTag, children: GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => ({
-            data: initialTag,
-            children: compressWhitespace(children)
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => {
+            if (!isSchemaName(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
     },
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
@@ -189,19 +210,29 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             branchTags: ['If'],
             leafTags: ['Room']
         },
-        finalize: (initialTag: SchemaMapTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => ({
-            data: {
-                ...initialTag,
-                name: compressWhitespace(extractNameFromContents(children)).map(({ data }) => (data)),
-                rooms: extractConditionedItemFromContents({
-                    children: children,
-                    typeGuard: isSchemaRoom,
-                    transform: ({ key, x, y }) => ({ conditions: [], key, x, y })
-                }),
-                images: children.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
-            },
-            children: children.filter(({ data }) => (isSchemaMapContents(data))),
-        })
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => {
+            if (!isSchemaMap(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: {
+                    ...initialTag,
+                    name: compressWhitespace(extractNameFromContents(children)).map(({ data }) => (data)),
+                    rooms: extractConditionedItemFromContents({
+                        children: children,
+                        typeGuard: isSchemaRoom,
+                        transform: ({ key, x, y }) => {
+                            if (typeof x === 'undefined' || typeof y === 'undefined') {
+                                throw new Error('Undefined position in mapRoom')
+                            }
+                            return { conditions: [], key, x, y }
+                        }
+                    }),
+                    images: children.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
+                },
+                children: children.filter(({ data }) => (isSchemaMapContents(data))),
+            }
+        }
     }
 }
 
@@ -231,7 +262,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             contents: tag.name ? [{ data: { tag: 'String', value: tag.name }, children: [] }] : [],
         })
     },
-    Description: ({ tag: { children }, ...args }: PrintMapEntryArguments & { tag: SchemaDescriptionTag }) => (
+    Description: ({ tag: { children }, ...args }: PrintMapEntryArguments) => (
         tagRender({
             ...args,
             tag: 'Description',
@@ -239,7 +270,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             contents: children,
         })
     ),
-    Name: ({ tag: { children }, ...args }: PrintMapEntryArguments & { tag: SchemaNameTag }) => (
+    Name: ({ tag: { children }, ...args }: PrintMapEntryArguments) => (
         tagRender({
             ...args,
             tag: 'Name',
@@ -247,7 +278,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             contents: children,
         })
     ),
-    Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaRoomTag }) => {
+    Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields
         //
@@ -264,14 +295,14 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 //
                 { key: 'x', type: 'literal', value: typeof tag.x !== 'undefined' ? `${tag.x}` : '' },
                 { key: 'y', type: 'literal', value: typeof tag.y !== 'undefined' ? `${tag.y}` : '' },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
+                { key: 'from', type: 'key', value: tag.from ?? '' },
+                { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             contents: children,
         })
 
     },
-    Feature: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaFeatureTag }) => {
+    Feature: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields
         //
@@ -283,13 +314,13 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Feature',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
+                { key: 'from', type: 'key', value: tag.from ?? '' },
+                { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             contents: children,
         })
     },
-    Knowledge: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaKnowledgeTag }) => {
+    Knowledge: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields
         //
@@ -301,13 +332,13 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Knowledge',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
+                { key: 'from', type: 'key', value: tag.from ?? '' },
+                { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             contents: children,
         })
     },
-    Bookmark: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaBookmarkTag }) => (
+    Bookmark: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaBookmark(tag)
             ? tagRender({
                 ...args,
@@ -319,7 +350,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             })
             : ''
     ),
-    Map: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaMapTag }) => {
+    Map: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaMap(tag)) {
             return ''
         }
@@ -328,8 +359,8 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Map',
             properties: [
                 { key: 'key', type: 'key', value: tag.key },
-                { key: 'from', type: 'key', value: tag.from },
-                { key: 'as', type: 'key', value: tag.as }
+                { key: 'from', type: 'key', value: tag.from ?? '' },
+                { key: 'as', type: 'key', value: tag.as ?? '' }
             ],
             contents: children,
         })

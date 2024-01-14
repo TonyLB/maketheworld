@@ -55,7 +55,6 @@ describe('tokenizer', () => {
                 <Description>\\\\ \\< \\></Description>
             </Room>
         </Asset>`
-        console.log(`testSource: ${testSource}`)
         const testStream = new SourceStream(testSource)
         expect(tokenizer(testStream)).toMatchSnapshot()
     })

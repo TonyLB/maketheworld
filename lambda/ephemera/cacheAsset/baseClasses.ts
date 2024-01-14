@@ -5,6 +5,7 @@ import {
     EphemeraCharacterId,
     EphemeraComputedId,
     EphemeraFeatureId,
+    EphemeraId,
     EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
@@ -21,10 +22,12 @@ import {
     isEphemeraMomentId,
     isEphemeraRoomId,
     isEphemeraVariableId
-} from "@tonylb/mtw-interfaces/ts/baseClasses";
-import { TaggedMessageContent } from "@tonylb/mtw-interfaces/ts/messages";
+} from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
-import { NormalCharacterPronouns } from "@tonylb/mtw-normal"
+import { NormalCharacterPronouns } from "@tonylb/mtw-wml/ts/normalize/baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/ts/sequence/tree/baseClasses";
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-wml/ts/simpleSchema/baseClasses";
+import { StateItemId } from "../internalCache/baseClasses"
 
 export type EphemeraItemDependency = {
     key: string;
@@ -41,91 +44,75 @@ export type EphemeraConditionMixin = {
     conditions: EphemeraCondition[];
 }
 
-export type EphemeraFeatureAppearance = {
-    name: TaggedMessageContent[];
-    render: TaggedMessageContent[];
-} & EphemeraConditionMixin
+export type EphemeraNameMixin = {
+    name: GenericTree<SchemaOutputTag>;
+}
+
+export type EphemeraRenderMixin = {
+    render: GenericTree<SchemaOutputTag>;
+}
+
+export type EphemeraStateMappingMixin = {
+    stateMapping: Record<string, StateItemId>;
+}
+
+export type EphemeraKeyMappingMixin = {
+    keyMapping: Record<string, EphemeraId>;
+}
 
 export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
     key: string;
-    appearances: EphemeraFeatureAppearance[];
-}
-
-export type EphemeraKnowledgeAppearance = EphemeraFeatureAppearance
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraKnowledge = {
     EphemeraId: EphemeraKnowledgeId;
     key: string;
-    appearances: EphemeraKnowledgeAppearance[];
-}
-
-export type EphemeraBookmarkAppearance = {
-    render: TaggedMessageContent[];
-} & EphemeraConditionMixin
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraBookmark = {
     EphemeraId: EphemeraBookmarkId;
     key: string;
-    appearances: EphemeraBookmarkAppearance[];
-}
-
-export type EphemeraExit = {
-    conditions: EphemeraCondition[];
-    name: string;
-    to: EphemeraRoomId;
-}
-
-export type EphemeraRoomAppearance = {
-    name: TaggedMessageContent[];
-    render: TaggedMessageContent[];
-    exits: EphemeraExit[];
-} & EphemeraConditionMixin
+} & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
     key: string;
-    appearances: EphemeraRoomAppearance[];
-}
+    exits: GenericTree<SchemaTag>;
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
 export type EphemeraMapRoom = {
     EphemeraId: string;
     x: number;
     y: number;
-} & EphemeraConditionMixin
+} & EphemeraConditionMixin & EphemeraStateMappingMixin
 
-export type EphemeraMapAppearance = {
-    fileURL: string;
-    name: TaggedMessageContent[];
+export type EphemeraMap = {
+    EphemeraId: EphemeraMapId;
+    key: string;
     rooms: EphemeraMapRoom[];
-} & EphemeraConditionMixin
+    images: GenericTree<SchemaTag>;
+} & EphemeraNameMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
-export type EphemeraMessageAppearance = {
-    render: TaggedMessageContent[];
-    rooms: EphemeraRoomId[];
+export type EphemeraMessageRoom = {
+    EphemeraId: string;
 } & EphemeraConditionMixin
 
 export type EphemeraMessage = {
     EphemeraId: EphemeraMessageId;
     key: string;
-    appearances: EphemeraMessageAppearance[];
-}
+    rooms: EphemeraRoomId[];
+} & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
-export type EphemeraMomentAppearance = {
-    messages: EphemeraMessageId[];
+export type EphemeraMomentMessage = {
+    EphemeraId: string;
 } & EphemeraConditionMixin
 
 export type EphemeraMoment = {
     EphemeraId: EphemeraMomentId;
     key: string;
-    appearances: EphemeraMomentAppearance[];
-}
-
-export type EphemeraMap = {
-    EphemeraId: EphemeraMapId;
-    key: string;
-    appearances: EphemeraMapAppearance[];
-}
+    messages: EphemeraMessageId[];
+} & EphemeraStateMappingMixin
 
 export type EphemeraCharacter = {
     EphemeraId: EphemeraCharacterId;

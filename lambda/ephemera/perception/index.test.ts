@@ -75,15 +75,11 @@ describe('Perception message', () => {
                 Base: {
                     EphemeraId: 'MESSAGE#Test',
                     assetId: 'Base',
-                    appearances: [{
-                        render: [{
-                            tag: 'String',
-                            value: 'Test Message'
-                        }],
-                        rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
-                        conditions: []
-                    }],
-                    key: 'testMessage'
+                    render: [{ data: { tag: 'String', value: 'Test Message' }, children : [] }],
+                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
+                    key: 'testMessage',
+                    stateMapping: {},
+                    keyMapping: {}
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
@@ -130,15 +126,11 @@ describe('Perception message', () => {
                 Base: {
                     EphemeraId: 'MESSAGE#Test',
                     assetId: 'Base',
-                    appearances: [{
-                        render: [{
-                            tag: 'String',
-                            value: 'Test Message'
-                        }],
-                        rooms: ['ROOM#ABC'],
-                        conditions: []
-                    }],
-                    key: 'testMessage'
+                    render: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }],
+                    rooms: ['ROOM#ABC'],
+                    key: 'testMessage',
+                    stateMapping: {},
+                    keyMapping: {}
                 }
             })
             await perceptionMessage({ payloads: [
@@ -166,15 +158,11 @@ describe('Perception message', () => {
                 Base: {
                     EphemeraId: 'MESSAGE#Test',
                     assetId: 'Base',
-                    appearances: [{
-                        render: [{
-                            tag: 'String',
-                            value: 'Test Message'
-                        }],
-                        rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
-                        conditions: []
-                    }],
-                    key: 'testMessage'
+                    render: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }],
+                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
+                    key: 'testMessage',
+                    stateMapping: {},
+                    keyMapping: {}
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({
@@ -207,15 +195,11 @@ describe('Perception message', () => {
                 Base: {
                     EphemeraId: 'MESSAGE#Test',
                     assetId: 'Base',
-                    appearances: [{
-                        render: [{
-                            tag: 'String',
-                            value: 'Test Message'
-                        }],
-                        rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
-                        conditions: []
-                    }],
-                    key: 'testMessage'
+                    render: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }],
+                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
+                    key: 'testMessage',
+                    stateMapping: {},
+                    keyMapping: {}
                 }
             })
             cacheMock.ComponentRender.get.mockResolvedValue({

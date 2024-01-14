@@ -1,6 +1,6 @@
 import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import { EphemeraCharacter } from "../cacheAsset/baseClasses"
+import { EphemeraCharacter, EphemeraMessage, EphemeraMoment } from "../cacheAsset/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import {
     EphemeraMessageId,
@@ -19,10 +19,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             const { characterId, ephemeraId, onlyForAssets } = payload
 
             if (!characterId) {
-                const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId)
-                const roomsForMessage = Object.values(messageMetaByAsset).reduce<EphemeraRoomId[]>((previous, { appearances }) => (
-                    appearances.reduce<EphemeraRoomId[]>((accumulator, { rooms }) => ([ ...accumulator, ...rooms ]), previous)
-                ), [])
+                const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId) as Record<string, EphemeraMessage>
+                const roomsForMessage = Object.values(messageMetaByAsset).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms ]), [])
                 const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
 
                 await Promise.all(
@@ -49,10 +47,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     internalCache.CharacterMeta.get(characterId),
                     internalCache.Global.get('assets')
                 ])
-                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ])
-                const roomsForMessage = Object.values(messageMetaForCharacter).reduce<EphemeraRoomId[]>((previous, { appearances }) => (
-                    appearances.reduce<EphemeraRoomId[]>((accumulator, { rooms }) => ([ ...accumulator, ...rooms ]), previous)
-                ), [])
+                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ]) as Record<string, EphemeraMessage>
+                const roomsForMessage = Object.values(messageMetaForCharacter).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms ]), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
                     const { Description: messageRender, rooms: roomsRendered } = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     if (messageRender.find((item) => (isTaggedLink(item) || (isTaggedText(item) && item.value))) && roomsRendered.includes(characterMeta.RoomId)) {
@@ -74,16 +70,14 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId),
                 internalCache.Global.get('assets')
             ])
-            const assetsByMessageId = Object.entries(momentMetaByAsset).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { appearances }]) => (
-                appearances.reduce<Record<EphemeraMessageId, string[]>>((accumulator, { messages }) => (
-                    messages.reduce<Record<EphemeraMessageId, string[]>>((innerAccumulator, messageId) => ({
-                        ...innerAccumulator,
-                        [messageId]: [
-                            ...(innerAccumulator[messageId] || []),
-                            key
-                        ]
-                    }), accumulator)
-                ), previous)
+            const assetsByMessageId = Object.entries(momentMetaByAsset as Record<string, EphemeraMoment>).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { messages }]) => (
+                messages.reduce<Record<EphemeraMessageId, string[]>>((accumulator, messageId) => ({
+                    ...accumulator,
+                    [messageId]: [
+                        ...(accumulator[messageId] || []),
+                        key
+                    ]
+                }), previous)
             ), {})
             const allMessages = Object.keys(assetsByMessageId) as EphemeraMessageId[]
             allMessages.forEach((messageId) => {

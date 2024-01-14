@@ -8,12 +8,11 @@ jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
 import dependencyCascade from './dependencyCascade'
-import { Graph, GraphNode } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
+import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { objectFilterEntries } from '@tonylb/mtw-utilities/dist/objects'
 import { EphemeraComputedId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isLegalDependencyTag } from '../internalCache/baseClasses'
 import { extractConstrainedTag } from '@tonylb/mtw-utilities/dist/types'
-import { isStateItemId } from '../internalCache/assetState'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>

@@ -9,6 +9,7 @@ let generatedIfKeys: {
 
 export const clearGeneratedKeys = () => {
     generatedKeys = {}
+    generatedIfKeys = []
 }
 
 export const nextGeneratedKey = (tag: string): string => {
@@ -70,6 +71,6 @@ export const compressIfKeys = (extantKeys: string[]): void => {
     generatedIfKeys = []
     extantKeys.forEach((key) => {
         const previousConditions = previousGeneratedIfKeys.find(({ key: checkKey }) => (key === checkKey))
-        keyForIfValue(previousConditions.conditions)
+        keyForIfValue(previousConditions?.conditions ?? [])
     })
 }

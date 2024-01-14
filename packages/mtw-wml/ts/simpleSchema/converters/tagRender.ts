@@ -1,4 +1,4 @@
-import { isSchemaTaggedMessageLegalContents, SchemaTag, SchemaTaggedMessageLegalContents } from "../baseClasses"
+import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { PrintMapEntryArguments, PrintMapOptionsChange } from "./baseClasses"
@@ -17,15 +17,15 @@ type TagRenderProperty = {
     value: boolean;
 }
 
-const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] => {
-    const contextTagRaw = context.reduce<SchemaTag["tag"]>((previous, item) => {
+const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] | undefined => {
+    const contextTagRaw = context.reduce<SchemaTag["tag"] | undefined>((previous, item) => {
         const tag = item.tag
         if (isLegalParseConditionContextTag(tag)) {
             return tag
         }
         return previous
     }, undefined)
-    return contextTagRaw === 'Bookmark' ? 'Description' : contextTagRaw
+    return (contextTagRaw ?? '') === 'Bookmark' ? 'Description' : contextTagRaw
 }
 
 //
@@ -41,7 +41,7 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
     // TODO: Further document the control flow of the function.
     //
     const { indent, forceNest, context } = options
-    const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(context))
+    const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(context) || '')
     //
     // Individual properties can be rendered before knowing how they will be sorted (and kept in a list).
     //

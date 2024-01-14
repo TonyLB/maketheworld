@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from "@tonylb/mtw-interfaces/ts/baseClasses";
+import { EphemeraCharacterId, EphemeraComputedId, EphemeraRoomId, EphemeraVariableId, LegalCharacterColor, isEphemeraComputedId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses";
 
 export class Deferred <T>{
     invalidationCounter: number;
@@ -72,3 +72,6 @@ export type CacheConstructor = Constructor<{
     clear(): void;
     flush(): Promise<void>;
 }>
+
+export type StateItemId = EphemeraVariableId | EphemeraComputedId
+export const isStateItemId = (item: string): item is StateItemId => (isEphemeraVariableId(item) || isEphemeraComputedId(item))

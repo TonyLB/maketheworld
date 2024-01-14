@@ -19,7 +19,7 @@ jest.mock('./dependencyUpdate')
 
 import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
-import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-normal'
+import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 
@@ -36,7 +36,8 @@ let mockTestAsset: NormalForm = {
         from: 'BASE',
         key: 'Import-0',
         appearances: [{
-            contents: [],
+            data: { tag: 'Import', from: 'BASE', key: 'Import-0', mapping: {} },
+            children: [],
             contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
         }],
         mapping: {}
@@ -45,11 +46,8 @@ let mockTestAsset: NormalForm = {
         tag: 'Asset',
         key: 'Test',
         appearances: [{
-            contents: [{
-                tag: 'Import',
-                key: 'Import-0',
-                index: 0
-            }],
+            data: { tag: 'Asset', key: 'Test', Story: undefined },
+            children: [{ data: { tag: 'Import', key: 'Import-0', index: 0 }, children: [] }],
             contextStack: []
         }]
     }
@@ -98,7 +96,8 @@ describe('cacheAsset', () => {
                 from: 'BASE',
                 key: 'Import-0',
                 appearances: [{
-                    contents: [],
+                    data: { tag: 'Import', from: 'BASE', key: 'Import-0', mapping: {} },
+                    children: [],
                     contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
                 }],
                 mapping: {}
@@ -107,11 +106,8 @@ describe('cacheAsset', () => {
                 tag: 'Asset',
                 key: 'Test',
                 appearances: [{
-                    contents: [{
-                        tag: 'Import',
-                        key: 'Import-0',
-                        index: 0
-                    }],
+                    data: { tag: 'Asset', key: 'Test', Story: undefined },
+                    children: [{ data: { tag: 'Import', key: 'Import-0', index: 0 }, children: [] }],
                     contextStack: []
                 }]
             }
@@ -142,48 +138,11 @@ describe('cacheAsset', () => {
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
     })
 
-    it('should skip processing when asset is an instanced story', async () => {
-        internalCacheMock.AssetMeta.get.mockResolvedValue({ EphemeraId: 'ASSET#Test' })
-        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-        mockTestAsset = {
-            'Import-0': {
-                tag: 'Import',
-                from: 'BASE',
-                key: 'Import-0',
-                appearances: [{
-                    contents: [],
-                    contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
-                }],
-                mapping: {}
-            },
-            Test: {
-                tag: 'Asset',
-                key: 'Test',
-                instance: true,
-                appearances: [{
-                    contents: [{
-                        tag: 'Import',
-                        key: 'Import-0',
-                        index: 0
-                    }],
-                    contextStack: []
-                }]
-            }
-        }
-        await cacheAsset({
-            assetId: 'ASSET#Test',
-            messageBus: messageBusMock
-        })
-    
-        expect(mergeIntoEphemera).toHaveBeenCalledTimes(0)
-        expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
-    })
-
     it('should send rooms in need of update', async () => {
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-        const topLevelAppearance: BaseAppearance = {
+        const topLevelAppearance: Omit<BaseAppearance, 'data'> = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-            contents: []
+            children: []
         }
 
         const mockEvaluate = jest.fn().mockReturnValue(true)
@@ -204,41 +163,16 @@ describe('cacheAsset', () => {
                 fileName: 'test',
                 appearances: [{
                     contextStack: [],
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'If-0',
-                        tag: 'If',
-                        index: 0
-                    },
-                    {
-                        key: 'testKnowledge',
-                        tag: 'Knowledge',
-                        index: 0
-                    },
-                    {
-                        key: 'powered',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'switchedOn',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'active',
-                        tag: 'Computed',
-                        index: 0
-                    },
-                    {
-                        key: 'toggleSwitch',
-                        tag: 'Action',
-                        index: 0
-                    }]
+                    data: { tag: 'Asset', fileName: 'test', key: 'test', Story: undefined },
+                    children: [
+                        { data: { key: 'ABC', tag: 'Room', index: 0 }, children: [] },
+                        { data: { key: 'If-0', tag: 'If', index: 0 }, children: [] },
+                        { data: { key: 'testKnowledge', tag: 'Knowledge', index: 0 }, children: [] },
+                        { data: { key: 'powered', tag: 'Variable', index: 0 }, children: [] },
+                        { data: { key: 'switchedOn', tag: 'Variable', index: 0 }, children: [] },
+                        { data: { key: 'active', tag: 'Computed', index: 0 }, children: [] },
+                        { data: { key: 'toggleSwitch', tag: 'Action', index: 0 }, children: [] }
+                    ]
                 }]
             },
             ABC: {
@@ -246,48 +180,57 @@ describe('cacheAsset', () => {
                 tag: 'Room',
                 appearances: [{
                     ...topLevelAppearance,
-                    name: [{ tag: 'String', value: 'Vortex' }],
-                    render: []
+                    data: { tag: 'Room', key: 'ABC' },
+                    children: [{
+                        data: { tag: 'Name' },
+                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
+                    }]
                 },
                 {
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'If-0', tag: 'If', index: 0 }],
-                    render: ['The lights are on '],
-                    contents: []
-                }] as ComponentAppearance[]
+                    data: { tag: 'Room', key: 'ABC' },
+                    children: [{
+                        data: { tag: 'Description' },
+                        children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
+                    }]
+                }]
             },
             testKnowledge: {
                 key: 'testKnowledge',
                 tag: 'Knowledge',
                 appearances: [{
                     ...topLevelAppearance,
-                    name: [{ tag: 'String', value: 'Knowledge is power' }],
-                    render: [{ tag: 'String', value: 'There is so much to learn!' }]
+                    data: { tag: 'Knowledge', key: 'testKnowledge' },
+                    children: [
+                        { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }] },
+                        { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }] }
+                    ]
                 }]
             },
             powered: {
                 key: 'powered',
                 tag: 'Variable',
                 default: 'false',
-                appearances: [topLevelAppearance]
+                appearances: [{ ...topLevelAppearance, data: { tag: 'Variable', key: 'powered', default: 'false' } }]
             },
             switchedOn: {
                 key: 'switchedOn',
                 tag: 'Variable',
                 default: 'true',
-                appearances: [topLevelAppearance]
+                appearances: [{ ...topLevelAppearance, data: { tag: 'Variable', key: 'switchedOn', default: 'true' }}]
             },
             active: {
                 key: 'active',
                 tag: 'Computed',
                 src: 'powered && switchedOn',
                 dependencies: ['switchedOn', 'powered'],
-                appearances: [topLevelAppearance]
+                appearances: [{ ...topLevelAppearance, data: { tag: 'Computed', key: 'active', src: 'powered && switchedOn', dependencies: ['switchedOn', 'powered'] } }]
             },
             toggleSwitch: {
                 key: 'toggleSwitch',
                 tag: 'Action',
                 src: 'switchedOn = !switchedOn',
-                appearances: [topLevelAppearance]
+                appearances: [{ ...topLevelAppearance, data: { tag: 'Action', key: 'toggleSwitch', src: 'switchedOn = !switchedOn' } }]
             },
             ['If-0']: {
                 key: 'If-0',
@@ -298,11 +241,8 @@ describe('cacheAsset', () => {
                 }],
                 appearances: [{
                     ...topLevelAppearance,
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 1
-                    }]
+                    data: { tag: 'If', key: 'If-0', conditions: [{ if: 'active', dependencies: ['active'] }] },
+                    children: [{ data: { key: 'ABC', tag: 'Room', index: 1 }, children: [] }]
                 }]
             }
         }
@@ -316,33 +256,22 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                appearances: [{
-                    conditions: [],
-                    exits: [],
-                    name: [{ tag: 'String', value: 'Vortex' }],
-                    render: []
-                },
-                {
-                    conditions: [{
-                        dependencies: [{
-                            key: 'active',
-                            EphemeraId: 'COMPUTED#XYZ'
-                        }],
-                        if: "active"
-                    }],
-                    exits: [],
-                    name: [],
-                    render: ["The lights are on "]
-                }]
+                name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
+                render: [{
+                    data: { tag: 'If', key: 'If-0', conditions: [{ if: 'active', dependencies: ['active'] }] },
+                    children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
+                }],
+                exits: [],
+                stateMapping: { active: 'COMPUTED#XYZ' },
+                keyMapping: {}
             },
             {
                 EphemeraId: 'KNOWLEDGE#GHI',
                 key: 'testKnowledge',
-                appearances: [{
-                    conditions: [],
-                    name: [{ tag: 'String', value: 'Knowledge is power' }],
-                    render: [{ tag: 'String', value: 'There is so much to learn!' }]
-                }]
+                name: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }],
+                render: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }],
+                keyMapping: {},
+                stateMapping: {}
             },
             {
                 EphemeraId: 'VARIABLE#QRS',
@@ -386,9 +315,9 @@ describe('cacheAsset', () => {
 
     it('should correctly extract query-ready exits from room contents', async () => {
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-        const topLevelAppearance: BaseAppearance = {
+        const topLevelAppearance: Omit<BaseAppearance, 'data'> = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-            contents: []
+            children: []
         }
 
         const mockEvaluate = jest.fn().mockReturnValue(true)
@@ -409,21 +338,12 @@ describe('cacheAsset', () => {
                 fileName: 'test',
                 appearances: [{
                     contextStack: [],
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'DEF',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'open',
-                        tag: 'Variable',
-                        index: 0
-                    }]
+                    data: { tag: 'Asset', key: 'test', fileName: 'test', Story: undefined },
+                    children: [
+                        { data: { key: 'ABC', tag: 'Room', index: 0 }, children: [] },
+                        { data: { key: 'DEF', tag: 'Room', index: 0 }, children: [] },
+                        { data: { key: 'open', tag: 'Variable', index: 0 }, children: [] }
+                    ]
                 }]
             },
             ABC: {
@@ -431,36 +351,39 @@ describe('cacheAsset', () => {
                 tag: 'Room',
                 appearances: [{
                     ...topLevelAppearance,
-                    name: [{ tag: 'String', value: 'Vortex' }],
-                    render: []
-                }] as ComponentAppearance[]
+                    data: { tag: 'Room', key: 'ABC' },
+                    children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
+                }]
             },
             DEF: {
                 key: 'DEF',
                 tag: 'Room',
                 appearances: [{
                     ...topLevelAppearance,
-                    name: [{ tag: 'String', value: 'Elsewhere' }],
-                    render: [],
-                    contents: [
-                        {
-                            tag: 'If', key: 'If-0', index: 0
-                        }
+                    data: { tag: 'Room', key: 'DEF' },
+                    children: [
+                        { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }] },
+                        { data: { tag: 'If', key: 'If-0', index: 0 }, children: [] }
                     ]
-                }] as ComponentAppearance[]
+                }]
             },
             open: {
                 key: 'open',
                 tag: 'Variable',
                 default: 'false',
-                appearances: [topLevelAppearance]
+                appearances: [{ ...topLevelAppearance, data: { tag: 'Variable', key: 'open', default: 'false' } }]
             },
             ['DEF#ABC']: {
                 key: 'DEF#ABC',
                 tag: 'Exit',
                 from: 'DEF',
                 to: 'ABC',
-                name: 'Vortex'
+                name: 'Vortex',
+                appearances: [{
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0}, { key: 'If-0', tag: 'If', index: 0 }],
+                    data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC', name: 'Vortex' },
+                    children: []
+                }]
             },
             ['If-0']: {
                 key: 'If-0',
@@ -471,11 +394,8 @@ describe('cacheAsset', () => {
                 }],
                 appearances: [{
                     ...topLevelAppearance,
-                    contents: [{
-                        key: 'DEF#ABC',
-                        tag: 'Exit',
-                        index: 0
-                    }]
+                    data: { tag: 'If', key: 'If-0', conditions: [{ if: 'open', dependencies: ['open'] }] },
+                    children: [{ data: { key: 'DEF#ABC', tag: 'Exit', index: 0 }, children: [] }]
                 }]
             }
         }
@@ -489,29 +409,23 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#ABC',
                 key: 'ABC',
-                appearances: [{
-                    conditions: [],
-                    exits: [],
-                    name: [{ tag: 'String', value: 'Vortex' }],
-                    render: []
-                }]
+                exits: [],
+                name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
+                render: [],
+                keyMapping: {},
+                stateMapping: {}
             },
             {
                 EphemeraId: 'ROOM#DEF',
                 key: 'DEF',
-                appearances: [{
-                    conditions: [],
-                    exits: [{
-                        conditions: [{
-                            if: 'open',
-                            dependencies: [{ key: 'open', EphemeraId: 'VARIABLE#QRS' }]
-                        }],
-                        name: 'Vortex',
-                        to: 'ROOM#ABC'
-                    }],
-                    name: [{ tag: 'String', value: 'Elsewhere' }],
-                    render: []
-                }]
+                exits: [{
+                    data: { tag: 'If', key: 'If-0', conditions: [{ if: 'open', dependencies: ['open'] }] },
+                    children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC', name: 'Vortex' }, children: [] }]
+                }],
+                name: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }],
+                render: [],
+                keyMapping: { ABC: 'ROOM#ABC', DEF: 'ROOM#DEF' },
+                stateMapping: { open: 'VARIABLE#QRS' }
             },
             {
                 EphemeraId: 'VARIABLE#QRS',
@@ -534,9 +448,9 @@ describe('cacheAsset', () => {
 
     it('should set graph edges when asset has imports', async () => {
         internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
-        const topLevelAppearance: BaseAppearance = {
+        const topLevelAppearance: Omit<BaseAppearance, 'data'> = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-            contents: []
+            children: []
         }
 
         const mockEvaluate = jest.fn().mockReturnValue(true)
@@ -553,16 +467,11 @@ describe('cacheAsset', () => {
                 fileName: 'test',
                 appearances: [{
                     contextStack: [],
-                    contents: [{
-                        key: 'Import-0',
-                        tag: 'Import',
-                        index: 0
-                    },
-                    {
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 1
-                    }]
+                    data: { tag: 'Asset', key: 'test', fileName: 'test', Story: undefined },
+                    children: [
+                        { data: { key: 'Import-0', tag: 'Import', index: 0 }, children: [] },
+                        { data: { key: 'ABC', tag: 'Room', index: 1 }, children: [] }
+                    ]
                 }]
             },
             'Import-0': {
@@ -570,8 +479,9 @@ describe('cacheAsset', () => {
                 key: 'Import-0',
                 appearances: [{
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
-                    contents: [
-                        { key: 'ABC', tag: 'Room', index: 0 }
+                    data: { tag: 'Import', key: 'Import-0', from: 'base', mapping: {} },
+                    children: [
+                        { data: { key: 'ABC', tag: 'Room', index: 0 }, children: [] }
                     ]
                 }],
                 from: 'base',
@@ -585,15 +495,14 @@ describe('cacheAsset', () => {
                         { key: 'test', tag: 'Asset', index: 0 },
                         { key: 'Import-0', tag: 'Import', index: 0 }
                     ],
-                    contents: [],
-                    name: [],
-                    render: []
+                    data: { tag: 'Room', key: 'ABC' },
+                    children: []
                 },
                 {
                     ...topLevelAppearance,
-                    name: [{ tag: 'String', value: 'Vortex' }],
-                    render: []
-                }] as ComponentAppearance[]
+                    data: { tag: 'Room', key: 'ABC' },
+                    children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
+                }]
             },
         }
 
@@ -651,16 +560,26 @@ describe('cacheAsset', () => {
                 assets: ['Test', 'BASE'],
                 appearances: [{
                     contextStack: [],
-                    contents: [{
-                        key: 'Import-0',
-                        tag: 'Import',
-                        index: 0
+                    data: {
+                        key: 'Tess',
+                        tag: 'Character',
+                        fileName: 'Tess',
+                        Name: 'Tess',
+                        FirstImpression: 'Frumpy Goth',
+                        OneCoolThing: 'Fuchsia eyes',
+                        Outfit: 'A patchwork frock jacket',
+                        Pronouns: {
+                            subject: 'they',
+                            object: 'them',
+                            possessive: 'their',
+                            adjective: 'theirs',
+                            reflexive: 'themself'
+                        }
                     },
-                    {
-                        key: 'Import-1',
-                        tag: 'Import',
-                        index: 0
-                    }]
+                    children: [
+                        { data: { key: 'Import-0', tag: 'Import', index: 0 }, children: [] },
+                        { data: { key: 'Import-1', tag: 'Import', index: 0 }, children: [] }
+                    ]
                 }]
             },
             'Import-0': {
@@ -668,7 +587,8 @@ describe('cacheAsset', () => {
                 key: 'Import-0',
                 appearances: [{
                     contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
-                    contents: []
+                    data: { tag: 'Import', key: 'Import-0', from: 'BASE', mapping: {} },
+                    children: []
                 }],
                 from: 'BASE',
                 mapping: {}
@@ -678,7 +598,8 @@ describe('cacheAsset', () => {
                 key: 'Import-1',
                 appearances: [{
                     contextStack: [{ key: 'Tess', tag: 'Character', index: 0 }],
-                    contents: []
+                    data: { tag: 'Import', key: 'Import-1', from: 'Test', mapping: {} },
+                    children: []
                 }],
                 from: 'Test',
                 mapping: {}
@@ -707,7 +628,7 @@ describe('cacheAsset', () => {
                 adjective: 'theirs',
                 reflexive: 'themself'
             },
-            assets: ['BASE', 'Test']
+            assets: ['BASE', 'Test'],
         })
     })
 })

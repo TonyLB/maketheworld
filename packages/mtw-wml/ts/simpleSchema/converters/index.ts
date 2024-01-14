@@ -55,19 +55,20 @@ export const converterMap: Record<string, ConverterMapEntry> = {
 }
 
 export const printMap: Record<string, PrintMapEntry> = {
-    Asset: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments & { tag: SchemaAssetTag }) => (
-        isSchemaAsset(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Asset',
-                properties: [
-                    { key: 'key', type: 'key', value: tag.key },
-                    { key: 'Story', type: 'boolean', value: tag.Story }
-                ],
-                contents: children,
-            })
-            : ''
-    ),
+    Asset: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaAsset(tag)) {
+            throw new Error('Tag mismatch in schema printMap')
+        }
+        return tagRender({
+            ...args,
+            tag: 'Asset',
+            properties: [
+                { key: 'key', type: 'key', value: tag.key },
+                { key: 'Story', type: 'boolean', value: tag.Story ?? false }
+            ],
+            contents: children,
+        })
+    },
     ...characterPrintMap,
     ...componentPrintMap,
     ...computationPrintMap,

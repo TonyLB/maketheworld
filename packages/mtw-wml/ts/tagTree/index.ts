@@ -38,7 +38,7 @@ type TagTreeMatchOr<NodeData extends {}> = {
     or: TagTreeMatchOperation<NodeData>[]
 }
 
-type TagTreeMatchOperation<NodeData> = TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>
+type TagTreeMatchOperation<NodeData extends {}> = TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>
 
 type TagTreeFilterArguments<NodeData extends {}> = (TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>)
 const isTagTreeFilterArgument = <NodeData extends {}>(arg: TagTreeMatchOperation<NodeData>): arg is TagTreeFilterArguments<NodeData> => {
@@ -65,11 +65,11 @@ export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>
     })(tree)
 }
 
-export const iterativeMerge = <NodeData extends {}>(options?: TagTreeTreeOptions<NodeData>) => (previous: GenericTree<NodeData>, tagItem: NodeData[]): GenericTree<NodeData> => {
+export const iterativeMerge = <NodeData extends {}>(options: TagTreeTreeOptions<NodeData>) => (previous: GenericTree<NodeData>, tagItem: NodeData[]): GenericTree<NodeData> => {
     if (!tagItem.length) {
         return previous
     }
-    const compare = options?.compare ?? deepEqual
+    const compare = options.compare ?? deepEqual
     if (previous.length) {
         const classOne = options.classify(tagItem[0])
         const { matchIndex } = previous.reduceRight<{ matchIndex?: number; noMatch?: boolean }>((matchReduce, { data }, index) => {
@@ -210,7 +210,7 @@ export class TagTree<NodeData extends {}> {
         //
         // Recursive match between tagList and a (possibly recursive) MatchOperator
         //
-        const filterMatch = (arg: TagTreeFilterArguments<NodeData>, tagList: NodeData[]): boolean => {
+        const filterMatch = (arg: TagTreeFilterArguments<NodeData>, tagList: NodeData[]): Boolean => {
             if ('not' in arg) {
                 if (isTagTreeFilterArgument(arg.not)) {
                     return !filterMatch(arg.not, tagList)
@@ -222,17 +222,18 @@ export class TagTree<NodeData extends {}> {
             if ('and' in arg) {
                 return arg.and
                     .filter(isTagTreeFilterArgument)
-                    .reduce<boolean>((previous, subArg) => (previous && filterMatch(subArg, tagList)), true)
+                    .reduce<Boolean>((previous, subArg) => (previous && filterMatch(subArg, tagList)), true)
             }
             if ('or' in arg) {
                 return arg.or
                     .filter(isTagTreeFilterArgument)
-                    .reduce<boolean>((previous, subArg) => (previous || filterMatch(subArg, tagList)), false)
+                    .reduce<Boolean>((previous, subArg) => (previous || filterMatch(subArg, tagList)), false)
             }
             if ('match' in arg) {
                 const nodeMatches = this._tagMatchOperationIndices(tagList, arg)
                 return nodeMatches.length > 0
             }
+            return false
         }
         returnValue._tagList = this._tagList
             .filter((tags) => (filterMatch(args, tags)))

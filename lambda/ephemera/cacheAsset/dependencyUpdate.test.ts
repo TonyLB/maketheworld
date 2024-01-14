@@ -43,24 +43,14 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'ROOM#DEF',
                     DataCategory: 'ASSET#test',
                     key: 'ABC',
-                    appearances: [{
-                        conditions: [],
-                        exits: [],
-                        name: [{ tag: 'String', value: 'Vortex' }],
-                        render: []
-                    },
-                    {
-                        conditions: [{
-                            dependencies: [{
-                                key: 'active',
-                                EphemeraId: 'COMPUTED#XYZ'
-                            }],
-                            if: "active"
-                        }],
-                        exits: [],
-                        name: [],
-                        render: ["The lights are on "]
-                    }]
+                    name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
+                    render: [{
+                        data: { tag: 'If', conditions: [{ if: 'active' }] },
+                        children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
+                    }],
+                    exits: [],
+                    stateMapping: { active: 'COMPUTED#XYZ' },
+                    keyMapping: {}
                 },
             },
             {
@@ -72,10 +62,9 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'MAP#LMNO',
                     DataCategory: 'ASSET#test',
                     key: 'LMNO',
-                    appearances: [{
-                        conditions: [],
-                        rooms: [{ EphemeraId: 'ROOM#DEF' }]
-                    }]
+                    rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [] }],
+                    stateMapping: {},
+                    keyMapping: { room1: 'ROOM#DEF' }
                 }
             },
             {
@@ -87,11 +76,10 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'KNOWLEDGE#GHI',
                     DataCategory: 'ASSET#test',
                     key: 'testKnowledge',
-                    appearances: [{
-                        conditions: [],
-                        name: [{ tag: 'String', value: 'Knowledge is power' }],
-                        render: [{ tag: 'String', value: 'There is so much to learn!' }]
-                    }]
+                    name: [{ data: { tag: 'String', value: 'Knowledge is power' }, children: [] }],
+                    render: [{ data: { tag: 'String', value: 'There is so much to learn!' }, children: [] }],
+                    stateMapping: {},
+                    keyMapping: {}
                 },
             },
             {
@@ -128,10 +116,14 @@ describe('dependencyUpdate', () => {
                     DataCategory: 'ASSET#test',
                     key: 'active',
                     src: 'powered && switchedOn',
-                    dependencies: [
-                        { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
-                        { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
-                    ]
+                    // dependencies: [
+                    //     { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
+                    //     { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
+                    // ],
+                    stateMapping: {
+                        switchedOn: 'VARIABLE#TUV',
+                        powered: 'VARIABLE#QRS'
+                    }
                 }
             }
         ])
@@ -161,12 +153,11 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'FEATURE#Base',
                     DataCategory: 'ASSET#test',
                     key: 'Base',
-                    appearances: [{
-                        conditions: [],
-                        exits: [],
-                        name: [{ tag: 'String', value: 'Feature Base Test' }],
-                        render: []
-                    }]
+                    exits: [],
+                    name: [{ tag: 'String', value: 'Feature Base Test' }],
+                    render: [],
+                    stateMapping: {},
+                    keyMapping: {}
                 }
             },
             {
@@ -178,12 +169,11 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'FEATURE#ABC',
                     DataCategory: 'ASSET#test',
                     key: 'ABC',
-                    appearances: [{
-                        conditions: [],
-                        exits: [],
-                        name: [{ tag: 'String', value: 'Feature Test' }],
-                        render: [{ tag: 'Link', to: 'FEATURE#Base', text: 'Forward' }]
-                    }]
+                    exits: [],
+                    name: [{ tag: 'String', value: 'Feature Test' }],
+                    render: [{ tag: 'Link', to: 'Base', text: 'Forward' }],
+                    stateMapping: {},
+                    keyMapping: { Base: 'FEATURE#Base' }
                 }
             },
             {
@@ -195,12 +185,11 @@ describe('dependencyUpdate', () => {
                     EphemeraId: 'ROOM#DEF',
                     DataCategory: 'ASSET#test',
                     key: 'DEF',
-                    appearances: [{
-                        conditions: [],
-                        exits: [],
-                        name: [{ tag: 'String', value: 'Vortex' }],
-                        render: [{ tag: 'String', value: 'Description with ' }, { tag: 'Link', to: 'FEATURE#ABC', text: 'link' }]
-                    }]
+                    exits: [],
+                    name: [{ tag: 'String', value: 'Vortex' }],
+                    render: [{ tag: 'String', value: 'Description with ' }, { tag: 'Link', to: 'ABC', text: 'link' }],
+                    stateMapping: {},
+                    keyMapping: { ABC: 'FEATURE#ABC' }
                 },
             }
         ])
