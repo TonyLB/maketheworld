@@ -1,6 +1,6 @@
 import { ComponentMeta, ComponentMetaData, ComponentMetaFromId, ComponentMetaId, ComponentMetaItem } from './componentMeta'
 import { DeferredCache } from './deferredCache'
-import { EphemeraBookmark, EphemeraCondition, EphemeraFeature, EphemeraItem, EphemeraKnowledge, EphemeraMap, EphemeraMapRoom, EphemeraMessage, EphemeraRoom, isEphemeraRoomItem } from '../cacheAsset/baseClasses'
+import { EphemeraBookmark, EphemeraCondition, EphemeraFeature, EphemeraItem, EphemeraKnowledge, EphemeraMap, EphemeraMapRoom, EphemeraMessage, EphemeraRoom, isEphemeraMapItem, isEphemeraRoomItem } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, MapDescribeData, TaggedMessageContentFlat, flattenTaggedMessageContent, BookmarkDescribeData, KnowledgeDescribeData, TaggedConditionalItemDependency } from '@tonylb/mtw-interfaces/ts/messages'
 import { CacheGlobal, CacheGlobalData } from '.';
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
@@ -33,11 +33,12 @@ import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/sequence/tree/baseClasses';
-import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaSpacer } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses';
+import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses';
 import { asyncFilter, treeTypeGuard } from '@tonylb/mtw-wml/ts/sequence/tree/filter';
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
 import { compressStrings } from '@tonylb/mtw-wml/ts/simpleSchema/utils';
 import { asyncMap } from '@tonylb/mtw-wml/ts/sequence/tree/map';
+import dfsWalk from '@tonylb/mtw-wml/ts/sequence/tree/dfsWalk';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -507,7 +508,10 @@ export class ComponentRenderData {
                 }
             }).flat(1)
         }
-        const evaluateSchemaPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(assetData: T[], key: { [P in keyof T]: T[P] extends GenericTree<SchemaTag> ? P : never }[keyof T]): Promise<GenericTree<SchemaTag>> => (
+        const evaluateSchemaPromise = <T extends Extract<EphemeraItem, { stateMapping: any }>>(
+            assetData: T[],
+            key: { [P in keyof T]: T[P] extends GenericTree<SchemaTag> ? P : never }[keyof T]
+        ): Promise<GenericTree<SchemaTag>> => (
             Promise.all(assetData.map(async (data) => {
                 const evaluatedSchema = await evaluateSchemaConditionals(this._evaluateCode.bind(this))(data[key] as GenericTree<SchemaTag>, data.stateMapping)
                 if ('keyMapping' in data) {
@@ -625,13 +629,38 @@ export class ComponentRenderData {
                 .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
                 .map((assetId): Record<EphemeraAssetId, string> => ({ [`ASSET#${assetId}`]: appearancesByAsset[assetId].key })))
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as EphemeraMap[]
-            const flattenedRooms = await filterAppearances(this._evaluateCode)(assetData.reduce<EphemeraMapRoom[]>((previous, { rooms }) => ([ ...previous, ...rooms ]), []))
-            const allRooms = (unique(flattenedRooms.map(({ EphemeraId }) => (EphemeraId))) as string[])
-                .filter(isEphemeraRoomId)
-            const roomPositions = flattenedRooms
-                .reduce<Record<EphemeraRoomId, { x: number; y: number }>>((previous, room) => (
-                    { ...previous, [room.EphemeraId]: { x: room.x, y: room.y } }
-                ), {})
+            //
+            // TODO: Refactor mapRoom handling to use GenericTree<SchemaTag> instead of bespoke MapRoom structures
+            //
+            const roomPositions = Object.assign({}, ...(await Promise.all(
+                allAssets.map(async (assetId) => {
+                    const localAssetData = appearancesByAsset[assetId]
+                    if (!(localAssetData && isEphemeraMapItem(localAssetData))) {
+                        return {}
+                    }
+                    const evaluatedSchema = await evaluateSchemaConditionals(this._evaluateCode.bind(this))(localAssetData.rooms as GenericTree<SchemaTag>, localAssetData.stateMapping)
+                    const extractRoomsByIdWalk = (previous: { output: Record<EphemeraRoomId, { x: number, y: number }>; state: {} }, item: SchemaTag): { output: Record<EphemeraRoomId, { x: number, y: number }>; state: {} } => {
+                        if (isSchemaRoom(item) && !(typeof item.x === 'undefined' || typeof item.y === 'undefined')) {
+                            const roomId = localAssetData.keyMapping[item.key]
+                            if (roomId) {
+                                return {
+                                    ...previous,
+                                    output: {
+                                        ...previous.output,
+                                        [roomId]: { x: item.x, y: item.y }
+                                    }
+                                }    
+                            }
+                        }
+                        return previous
+                    }
+                    return dfsWalk({ callback: extractRoomsByIdWalk, default: { output: {}, state: {} } })(evaluatedSchema)
+                })
+            ))) as Record<EphemeraRoomId, { x: number, y: number }>
+            //
+            // Figure out how to properly map room keys to EphemeraId during extraction phases above
+            //
+            const allRooms = Object.keys(roomPositions) as EphemeraRoomId[]
             const roomMetaPromise = Promise.all(allRooms.map(async (ephemeraId) => {
                 const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
                 const roomAssetAppearances = allAssets.map((assetId) => {

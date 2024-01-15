@@ -53,7 +53,7 @@ export type ComponentMetaId =
     EphemeraComputedId
 
 export type ComponentMetaFromId<T extends ComponentMetaId> =
-    EphemeraItem & { EphemeraId: T } & ComponentMetaMixin
+    Extract<EphemeraItem, { EphemeraId: T }> & ComponentMetaMixin
 
 const generateCacheKey = (EphemeraId, assetId) => (`${assetId}::${EphemeraId}`)
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: string, assetId: string } => {

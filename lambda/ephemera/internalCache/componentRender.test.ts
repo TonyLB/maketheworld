@@ -710,36 +710,20 @@ describe('ComponentRender cache handler', () => {
                             assetId: 'Base',
                             name: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }],
                             images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'https://test.com/test.png' }, children: [] }],
-                            rooms: [
-                                {
-                                    conditions: [],
-                                    EphemeraId: 'ROOM#TestRoomOne',
-                                    x: 0,
-                                    y: 0,
-                                    stateMapping: {},
-                                }
-                            ],
+                            rooms: [{ data: { tag: 'Room', key: 'room1', x: 0, y:0 }, children: [] }],
                             key: 'testMap',
                             stateMapping: {},
-                            keyMapping: {}
+                            keyMapping: { room1: 'ROOM#TestRoomOne' }
                         },
                         Personal: {
                             EphemeraId: 'MAP#TestOne',
                             assetId: 'Personal',
                             name: [],
                             images: [],
-                            rooms: [
-                                {
-                                    conditions: [],
-                                    EphemeraId: 'ROOM#TestRoomTwo',
-                                    x: 100,
-                                    y: 0,
-                                    stateMapping: {},
-                                }
-                            ],
+                            rooms: [{ data: { tag: 'Room', key: 'room2', x: 100, y: 0 }, children: [] }],
                             key: 'testMap',
                             stateMapping: {},
-                            keyMapping: {}
+                            keyMapping: { room2: 'ROOM#TestRoomTwo' }
                         }
                     } as Record<string, ComponentMetaItem & { EphemeraId: EphemeraMapId }>
                 case 'ROOM#TestRoomOne':
