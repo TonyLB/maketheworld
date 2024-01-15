@@ -1,6 +1,6 @@
 import { deepEqual } from "../lib/objects";
 import { unique } from "../list";
-import { GenericTree } from "../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses"
 import dfsWalk from "../sequence/tree/dfsWalk"
 
 type TagTreeTreeOptions<NodeData extends {}> = {
@@ -48,7 +48,7 @@ const isTagTreeFilterArgument = <NodeData extends {}>(arg: TagTreeMatchOperation
 type TagTreePruneArgs<NodeData extends {}> = TagTreeMatchOperation<NodeData>
 
 export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>): NodeData[][] => {
-    return dfsWalk<NodeData, NodeData[][], {}>({
+    return dfsWalk<NodeData, NodeData[][], {}, GenericTreeNode<NodeData>>({
         default: { output: [], state: {} },
         callback: (previous: { output: NodeData[][], state: {} }, data: NodeData) => {
             return { output: [...previous.output, [data]], state: {} }
