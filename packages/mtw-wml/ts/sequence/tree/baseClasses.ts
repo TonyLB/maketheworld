@@ -29,3 +29,11 @@ export type SourceWrap<N extends {}> = {
     contents: N;
     source: string;
 }
+
+export type GenericTreeIDNode<N extends {}> = {
+    data: N;
+    id: string;
+    children: GenericTreeID<N>;
+}
+
+export type GenericTreeID<N extends {}> = GenericTreeIDNode<N>[]
