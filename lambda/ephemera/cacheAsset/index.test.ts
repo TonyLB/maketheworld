@@ -21,7 +21,7 @@ import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
-import { NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/readOnly'
+import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 
 //
 // TS nesting is deep enough that if we don't flag then it will complain
@@ -57,6 +57,8 @@ let mockNamespaceMap: NamespaceMapping = [
     { internalKey: 'Tess', universalKey: 'CHARACTER#Tess' }
 ]
 
+let mockProperties: WorkspaceProperties = { image1: { fileName: 'test.png' } }
+
 jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
@@ -79,6 +81,7 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
                 const matchRecord = mockNamespaceMap.find(({ internalKey }) => (internalKey === key))
                 return matchRecord?.universalKey
             }),
+            properties: mockProperties
         }
     })
 })
@@ -304,6 +307,121 @@ describe('cacheAsset', () => {
                 powered: 'VARIABLE#QRS',
                 switchedOn: 'VARIABLE#TUV',
                 testKnowledge: 'KNOWLEDGE#GHI'
+            }
+        })
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
+            itemId: 'ASSET#test',
+            edges: [],
+            options: { direction: 'back' }
+        }])
+    })
+
+    it('should correctly look up fileURLs for map', async () => {
+        internalCacheMock.AssetAddress.get.mockResolvedValue({ EphemeraId: 'ASSET#Test', address: { fileName: 'Test', zone: 'Library' } })
+        const topLevelAppearance: Omit<BaseAppearance, 'data'> = {
+            contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
+            children: []
+        }
+
+        const mockEvaluate = jest.fn().mockReturnValue(true)
+        evaluateCodeMock.mockReturnValue(mockEvaluate)
+
+        mockNamespaceMap = [
+            { internalKey: 'test', universalKey: 'ASSET#test' },
+            { internalKey: 'room1', universalKey: 'ROOM#ABC' },
+            { internalKey: 'map1', universalKey: 'MAP#DEF' },
+            { internalKey: 'image1', universalKey: 'IMAGE#GHI' }
+        ]
+        mockTestAsset = {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    data: { tag: 'Asset', fileName: 'test', key: 'test', Story: undefined },
+                    children: [
+                        { data: { key: 'room1', tag: 'Room', index: 0 }, children: [] },
+                        { data: { key: 'map1', tag: 'Map', index: 0 }, children: [] }
+                    ]
+                }]
+            },
+            room1: {
+                key: 'room1',
+                tag: 'Room',
+                appearances: [{
+                    ...topLevelAppearance,
+                    data: { tag: 'Room', key: 'room1' },
+                    children: [{
+                        data: { tag: 'Name' },
+                        children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
+                    }]
+                },
+                {
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'map1', tag: 'Map', index: 0 }],
+                    data: { tag: 'Room', key: 'room1', x: 0, y: 0 },
+                    children: []
+                }]
+            },
+            image1: {
+                key: 'image1',
+                tag: 'Image',
+                appearances: [{
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'map1', tag: 'Map', index: 0 }],
+                    data: { tag: 'Image', key: 'image1' },
+                    children: []
+                }]
+            },
+            map1: {
+                key: 'map1',
+                tag: 'Map',
+                appearances: [{
+                    ...topLevelAppearance,
+                    images: [],
+                    rooms: [],
+                    data: { tag: 'Map', key: 'map1', name: [], rooms: [], images: [] },
+                    children: [
+                        { data: { tag: 'Room', key: 'room1', index: 1 }, children: [] },
+                        { data: { tag: 'Image', key: 'image1' }, children: [] }
+                    ]
+                }]
+            }
+        }
+
+        await cacheAsset({
+            assetId: 'ASSET#Test',
+            messageBus: messageBusMock
+        })
+        expect(mergeIntoEphemera).toHaveBeenCalledWith(
+            'test',
+            [{
+                EphemeraId: 'ROOM#ABC',
+                key: 'room1',
+                name: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }],
+                render: [],
+                exits: [],
+                stateMapping: {},
+                keyMapping: {}
+            },
+            {
+                EphemeraId: 'MAP#DEF',
+                key: 'map1',
+                name: [],
+                rooms: [],
+                images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
+                keyMapping: {},
+                stateMapping: {}
+            }],
+            expect.any(Object)
+        )
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: "ASSET#test",
+            DataCategory: "Meta::Asset",
+            scopeMap: {
+                test: 'ASSET#test',
+                room1: 'ROOM#ABC',
+                map1: 'MAP#DEF',
+                image1: 'IMAGE#GHI'
             }
         })
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith([{
