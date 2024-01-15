@@ -70,7 +70,8 @@ const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         await sfnClient.send(new StartExecutionCommand({
             stateMachineArn: process.env.CACHE_ASSETS_SFN,
             input: JSON.stringify({
-                addresses: [assetWorkspace.address],
+                assetIds: [assetWorkspace.assetId],
+                addresses: [{ AssetId: assetWorkspace.assetId, address: assetWorkspace.address }],
                 updateOnly: Boolean(assetWorkspace.address.zone !== 'Personal')
             })
         }))
