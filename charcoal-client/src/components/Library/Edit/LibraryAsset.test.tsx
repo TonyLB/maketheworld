@@ -11,8 +11,8 @@ const mockStore = configureStore()
 const currentWML = `
 <Asset key=(Test)>
     <Import from=(BASE)>
-        <Use key=(basePower) type="Variable" as=(power) />
-        <Use key=(DEF) type="Room" />
+        <Variable key=(basePower) as=(power) />
+        <Room key=(DEF) />
     </Import>
     <Feature key=(clockTower)>
         <Description>
@@ -116,8 +116,8 @@ describe('LibraryAsset context provider', () => {
         const RoomComponent = ({ value }: { value: AssetComponent }) => {
             const { name, render } = value
             return <div>
-                <span>{name.map((item) => ((item.tag === 'String') ? item.value : ''))}</span>
-                { render.map((room, index) => {
+                <span>{name.map(({ data: item }) => ((item.tag === 'String') ? item.value : ''))}</span>
+                { render.map(({ data: room }, index) => {
                     switch(room.tag) {
                         case 'String':
                             return <React.Fragment key={index}>
@@ -154,8 +154,8 @@ describe('LibraryAsset context provider', () => {
         const FeatureComponent = ({ value }: { value: AssetComponent }) => {
             const { name, render } = value
             return <div>
-                <span>{name.map((item) => ((item.tag === 'String') ? item.value : ''))}</span>
-                { render.map((room, index) => {
+                <span>{name.map(({ data: item }) => ((item.tag === 'String') ? item.value : ''))}</span>
+                { render.map(({ data: room }, index) => {
                     switch(room.tag) {
                         case 'String':
                             return <React.Fragment key={index}>
