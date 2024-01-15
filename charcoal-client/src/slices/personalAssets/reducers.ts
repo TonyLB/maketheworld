@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { GenericTreeNode } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -30,13 +31,13 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
 
 type UpdateNormalPayloadPutPosition = {
     type: 'put';
-    item: SchemaTag;
+    item: GenericTreeNode<SchemaTag>;
     position: NormalizerInsertPosition;
 }
 
 type UpdateNormalPayloadPutReference = {
     type: 'put';
-    item: SchemaTag;
+    item: GenericTreeNode<SchemaTag>;
     reference: NormalReference;
     replace?: boolean;
 }

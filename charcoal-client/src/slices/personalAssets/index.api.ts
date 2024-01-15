@@ -278,25 +278,29 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
     const normalizer = new Normalizer()
     if (isEphemeraAssetId(id)) {
         normalizer.put({
-            tag: 'Asset',
-            key: id.split('#')[1],
-            Story: undefined,
-            contents: []
+            data: {
+                tag: 'Asset',
+                key: id.split('#')[1],
+                Story: undefined
+            },
+            children: []
         }, { contextStack: [] })
     }
     else if (isEphemeraCharacterId(id)) {
         normalizer.put({
-            tag: 'Character',
-            key: id.split('#')[1],
-            contents: [],
-            Name: 'Unknown',
-            Pronouns: {
-                subject: 'they',
-                object: 'them',
-                possessive: 'theirs',
-                adjective: 'their',
-                reflexive: 'themself'
-            }
+            data: {
+                tag: 'Character',
+                key: id.split('#')[1],
+                Name: 'Unknown',
+                Pronouns: {
+                    subject: 'they',
+                    object: 'them',
+                    possessive: 'theirs',
+                    adjective: 'their',
+                    reflexive: 'themself'
+                }
+            },
+            children: []
         }, { contextStack: [] })
     }
     else {
