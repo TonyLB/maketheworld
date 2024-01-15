@@ -19,8 +19,8 @@ import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
-import { isNormalAsset, isNormalCharacter, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { SchemaImportMapping, SchemaImportTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { isNormalAsset, isNormalCharacter, isNormalImport, isNormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { SchemaImportMapping, SchemaImportTag, isSchemaImport } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -249,11 +249,11 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
     if (!(topLevelItem && (isNormalAsset(topLevelItem) || isNormalCharacter(topLevelItem)))) {
         return
     }
-    const importIndex = topLevelItem.appearances[0].contents.findIndex(({ key, tag }) => {
-        if (tag !== 'Import') {
+    const importIndex = topLevelItem.appearances[0].children.findIndex(({ data }) => {
+        if (!isNormalReference(data) || data.tag !== 'Import') {
             return false
         }
-        const importItem = normal[key]
+        const importItem = normal[data.key]
         if (!isNormalImport(importItem)) {
             return false
         }
@@ -261,9 +261,9 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
     })
     if (importIndex !== -1) {
         if (key) {
-            const importRef = topLevelItem.appearances[0].contents[importIndex]
-            const importItem = normal[importRef.key]
-            if (!isNormalImport(importItem)) {
+            const importRef = topLevelItem.appearances[0].children[importIndex].data
+            const importItem = isNormalReference(importRef) ? normal[importRef.key] : undefined
+            if (!(isNormalReference(importRef) && isNormalImport(importItem))) {
                 throw new Error('addImport error')
             }
             const newItem: SchemaImportTag = {
@@ -281,7 +281,7 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
             const position = { ...normalizer._referenceToInsertPosition(importRef), replace: true }
             dispatch((options?.overrideUpdateNormal ?? updateNormal)(assetId)({
                 type: 'put',
-                item: newItem,
+                item: { data: newItem, children: [] },
                 position
             }))
         }
@@ -320,7 +320,9 @@ export const removeImport = ({ assetId, fromAsset }: {
     if (!(topLevelItem && (isNormalAsset(topLevelItem) || isNormalCharacter(topLevelItem)))) {
         return
     }
-    const importItem = topLevelItem.appearances[0].contents
+    const importItem = topLevelItem.appearances[0].children
+        .map(({ data }) => (data))
+        .filter(isNormalReference)
         .filter(({ tag }) => (tag === 'Import'))
         .map(({ key }) => (normal[key]))
         .filter((value) => (value))

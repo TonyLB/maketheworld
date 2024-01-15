@@ -40,12 +40,15 @@ describe('personalAssets slice', () => {
                 type: 'put',
                 position: { contextStack: [{ key: 'testAsset', tag: 'Asset', index: 0 }], index: 0, replace: true },
                 item: {
-                    key: 'Import-0',
-                    tag: 'Import',
-                    from: 'testImport',
-                    mapping: {
-                        testRoom: { key: 'testRoom', type: 'Room' }
-                    }
+                    data: {
+                        key: 'Import-0',
+                        tag: 'Import',
+                        from: 'testImport',
+                        mapping: {
+                            testRoom: { key: 'testRoom', type: 'Room' }
+                        }
+                    },
+                    children: []
                 }
             })
         })
@@ -61,13 +64,16 @@ describe('personalAssets slice', () => {
                 type: 'put',
                 position: { contextStack: [{ key: 'testAsset', tag: 'Asset', index: 0 }], index: 0, replace: true },
                 item: {
-                    key: 'Import-0',
-                    tag: 'Import',
-                    from: 'testImport',
-                    mapping: {
-                        testRoom: { key: 'testRoom', type: 'Room' },
-                        testRoomTwo: { key: 'testRoomTwo', type: 'Room' }
-                    }
+                    data: {
+                        key: 'Import-0',
+                        tag: 'Import',
+                        from: 'testImport',
+                        mapping: {
+                            testRoom: { key: 'testRoom', type: 'Room' },
+                            testRoomTwo: { key: 'testRoomTwo', type: 'Room' }
+                        }
+                    },
+                    children: []
                 }
             })
         })
