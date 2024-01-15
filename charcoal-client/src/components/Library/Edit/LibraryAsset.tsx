@@ -38,6 +38,10 @@ import { getConfiguration } from '../../../slices/configuration'
 import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
+import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
+import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -86,12 +90,12 @@ type LibraryAssetProps = {
 
 export type AssetComponent = {
     tag: NormalItem["tag"];
-    localName: ComponentRenderItem[];
-    localRender: ComponentRenderItem[];
-    inheritedName: ComponentRenderItem[];
-    inheritedRender: ComponentRenderItem[];
-    name: ComponentRenderItem[];
-    render: ComponentRenderItem[];
+    localName: GenericTree<SchemaOutputTag>;
+    localRender: GenericTree<SchemaOutputTag>;
+    inheritedName: GenericTree<SchemaOutputTag>;
+    inheritedRender: GenericTree<SchemaOutputTag>;
+    name: GenericTree<SchemaOutputTag>;
+    render: GenericTree<SchemaOutputTag>;
     importFrom?: string;
 }
 
@@ -102,16 +106,18 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
 
     const roomReturns = componentNormals
         .map((component) => {
-            const localName = (component.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-                .map(({ name = [] }) => name)
-                .reduce((previous, name) => ([ ...previous, ...name ]), [])
-                .map((item) => ((item.tag === 'String') ? item.value : ''))
-                .join('')) || ''
-            const localRender = component.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-                .map(({ render = [] }) => render)
-                .reduce((previous, render) => ([ ...previous, ...render ]), [])
+            const localName = normalizer.select({ key: component.key, selector: selectName })
+            // const localName = (component.appearances
+            //     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
+            //     .map(({ name = [] }) => name)
+            //     .reduce((previous, name) => ([ ...previous, ...name ]), [])
+            //     .map((item) => ((item.tag === 'String') ? item.value : ''))
+            //     .join('')) || ''
+            const localRender = normalizer.select({ key: component.key, selector: selectRender })
+            // const localRender = component.appearances
+            //     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
+            //     .map(({ render = [] }) => render)
+            //     .reduce((previous, render) => ([ ...previous, ...render ]), [])
             const importRef = component.appearances.map(({ contextStack }) => (contextStack.find(({ tag }) => (tag === 'Import')))).find((value) => (Boolean(value)))
             const importItemCheck: NormalItem | undefined = importRef ? normalForm[importRef.key] : undefined
             const importItem: NormalImport | undefined = (importItemCheck && isNormalImport(importItemCheck)) ? importItemCheck : undefined
@@ -120,23 +126,25 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
                 if (awayKey) {
                     const importedNormal = importData(importItem.from)
                     if (importedNormal) {
+                        const importNormalizer = new Normalizer()
+                        importNormalizer.loadNormal(importedNormal)
                         const inheritedItem = importedNormal[awayKey.key]
                         if (inheritedItem && isNormalComponent(inheritedItem)) {
-                            const { name: inheritedName = [], render: inheritedRender = [] } = inheritedItem.appearances[0] || {}
+                            const inheritedName = importNormalizer.select({ key: awayKey.key, selector: selectName })
+                            const inheritedRender = importNormalizer.select({ key: awayKey.key, selector: selectRender })
                             return { [component.key]: {
                                 tag: component.tag,
                                 localName,
                                 localRender,
                                 inheritedName,
                                 inheritedRender,
-                                name: [ ...inheritedName, { tag: 'String', value: localName } ],
+                                name: [ ...inheritedName, ...localName ],
                                 render: [...inheritedRender, ...localRender],
                                 importFrom: importItem.from
                             }}
                         }
                     }
                 }
-
             }
             return { [component.key]: {
                 tag: component.tag,
@@ -144,7 +152,7 @@ const assetComponents = ({ normalForm, importData }: { normalForm: NormalForm, i
                 localRender,
                 inheritedName: [],
                 inheritedRender: [],
-                name: [{ tag: 'String', value: localName }],
+                name: localName,
                 render: localRender
             }}
         })

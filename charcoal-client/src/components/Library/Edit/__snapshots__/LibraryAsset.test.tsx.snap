@@ -4,8 +4,8 @@ exports[`LibraryAsset context provider should provide currentWML 1`] = `
 "
 <Asset key=(Test)>
     <Import from=(BASE)>
-        <Use key=(basePower) type=\\"Variable\\" as=(power) />
-        <Use key=(DEF) type=\\"Room\\" />
+        <Variable key=(basePower) as=(power) />
+        <Room key=(DEF) />
     </Import>
     <Feature key=(clockTower)>
         <Description>
@@ -38,9 +38,7 @@ exports[`LibraryAsset context provider should provide features 1`] = `
 <div>
   <div>
     <div>
-      <span>
-        
-      </span>
+      <span />
       <span>
         String
       </span>
@@ -62,41 +60,66 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         \\"appearances\\": [
             {
                 \\"contextStack\\": [],
-                \\"contents\\": [
+                \\"data\\": {
+                    \\"tag\\": \\"Asset\\",
+                    \\"key\\": \\"Test\\"
+                },
+                \\"children\\": [
                     {
-                        \\"key\\": \\"Import-0\\",
-                        \\"tag\\": \\"Import\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"Import-0\\",
+                            \\"tag\\": \\"Import\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     },
                     {
-                        \\"key\\": \\"clockTower\\",
-                        \\"tag\\": \\"Feature\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"clockTower\\",
+                            \\"tag\\": \\"Feature\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     },
                     {
-                        \\"key\\": \\"ABC\\",
-                        \\"tag\\": \\"Room\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"ABC\\",
+                            \\"tag\\": \\"Room\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     },
                     {
-                        \\"key\\": \\"If-0\\",
-                        \\"tag\\": \\"If\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"If-0\\",
+                            \\"tag\\": \\"If\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     },
                     {
-                        \\"key\\": \\"DEF\\",
-                        \\"tag\\": \\"Room\\",
-                        \\"index\\": 1
+                        \\"data\\": {
+                            \\"key\\": \\"DEF\\",
+                            \\"tag\\": \\"Room\\",
+                            \\"index\\": 1
+                        },
+                        \\"children\\": []
                     },
                     {
-                        \\"key\\": \\"open\\",
-                        \\"tag\\": \\"Variable\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"open\\",
+                            \\"tag\\": \\"Variable\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     },
                     {
-                        \\"key\\": \\"toggleOpen\\",
-                        \\"tag\\": \\"Action\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"toggleOpen\\",
+                            \\"tag\\": \\"Action\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     }
                 ]
             }
@@ -107,7 +130,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         \\"tag\\": \\"Import\\",
         \\"from\\": \\"BASE\\",
         \\"mapping\\": {
-            \\"power\\": {
+            \\"basePower\\": {
                 \\"key\\": \\"basePower\\",
                 \\"type\\": \\"Variable\\"
             },
@@ -125,24 +148,45 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": [
+                \\"data\\": {
+                    \\"tag\\": \\"Import\\",
+                    \\"mapping\\": {
+                        \\"basePower\\": {
+                            \\"key\\": \\"basePower\\",
+                            \\"type\\": \\"Variable\\"
+                        },
+                        \\"DEF\\": {
+                            \\"key\\": \\"DEF\\",
+                            \\"type\\": \\"Room\\"
+                        }
+                    },
+                    \\"from\\": \\"BASE\\"
+                },
+                \\"children\\": [
                     {
-                        \\"key\\": \\"power\\",
-                        \\"tag\\": \\"Variable\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"basePower\\",
+                            \\"tag\\": \\"Variable\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     },
                     {
-                        \\"key\\": \\"DEF\\",
-                        \\"tag\\": \\"Room\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"DEF\\",
+                            \\"tag\\": \\"Room\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     }
                 ]
             }
         ]
     },
-    \\"power\\": {
-        \\"key\\": \\"power\\",
+    \\"basePower\\": {
+        \\"key\\": \\"basePower\\",
         \\"tag\\": \\"Variable\\",
+        \\"default\\": \\"\\",
         \\"appearances\\": [
             {
                 \\"contextStack\\": [
@@ -157,7 +201,12 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": []
+                \\"data\\": {
+                    \\"key\\": \\"basePower\\",
+                    \\"from\\": \\"basePower\\",
+                    \\"tag\\": \\"Variable\\"
+                },
+                \\"children\\": []
             }
         ]
     },
@@ -178,9 +227,12 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": [],
-                \\"render\\": [],
-                \\"name\\": []
+                \\"data\\": {
+                    \\"key\\": \\"DEF\\",
+                    \\"from\\": \\"DEF\\",
+                    \\"tag\\": \\"Room\\"
+                },
+                \\"children\\": []
             },
             {
                 \\"contextStack\\": [
@@ -190,18 +242,32 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": [
+                \\"data\\": {
+                    \\"tag\\": \\"Room\\",
+                    \\"key\\": \\"DEF\\"
+                },
+                \\"children\\": [
                     {
-                        \\"tag\\": \\"Exit\\",
-                        \\"key\\": \\"DEF#ABC\\",
-                        \\"index\\": 0
-                    }
-                ],
-                \\"render\\": [],
-                \\"name\\": [
+                        \\"data\\": {
+                            \\"tag\\": \\"Name\\"
+                        },
+                        \\"children\\": [
+                            {
+                                \\"data\\": {
+                                    \\"tag\\": \\"String\\",
+                                    \\"value\\": \\"Welcome\\"
+                                },
+                                \\"children\\": []
+                            }
+                        ]
+                    },
                     {
-                        \\"tag\\": \\"String\\",
-                        \\"value\\": \\"Welcome\\"
+                        \\"data\\": {
+                            \\"key\\": \\"DEF#ABC\\",
+                            \\"tag\\": \\"Exit\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     }
                 ]
             }
@@ -219,14 +285,26 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": [],
-                \\"render\\": [
+                \\"data\\": {
+                    \\"tag\\": \\"Feature\\",
+                    \\"key\\": \\"clockTower\\"
+                },
+                \\"children\\": [
                     {
-                        \\"tag\\": \\"String\\",
-                        \\"value\\": \\"A worn stone clock tower.\\"
+                        \\"data\\": {
+                            \\"tag\\": \\"Description\\"
+                        },
+                        \\"children\\": [
+                            {
+                                \\"data\\": {
+                                    \\"tag\\": \\"String\\",
+                                    \\"value\\": \\"A worn stone clock tower.\\"
+                                },
+                                \\"children\\": []
+                            }
+                        ]
                     }
-                ],
-                \\"name\\": []
+                ]
             }
         ]
     },
@@ -242,23 +320,54 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": [],
-                \\"render\\": [
+                \\"data\\": {
+                    \\"tag\\": \\"Room\\",
+                    \\"key\\": \\"ABC\\"
+                },
+                \\"children\\": [
                     {
-                        \\"tag\\": \\"String\\",
-                        \\"value\\": \\"Vortex \\"
+                        \\"data\\": {
+                            \\"tag\\": \\"Name\\"
+                        },
+                        \\"children\\": [
+                            {
+                                \\"data\\": {
+                                    \\"tag\\": \\"String\\",
+                                    \\"value\\": \\"Vortex\\"
+                                },
+                                \\"children\\": []
+                            }
+                        ]
                     },
                     {
-                        \\"tag\\": \\"Link\\",
-                        \\"to\\": \\"toggleOpen\\",
-                        \\"text\\": \\"(toggle)\\",
-                        \\"targetTag\\": \\"Action\\"
-                    }
-                ],
-                \\"name\\": [
-                    {
-                        \\"tag\\": \\"String\\",
-                        \\"value\\": \\"Vortex\\"
+                        \\"data\\": {
+                            \\"tag\\": \\"Description\\"
+                        },
+                        \\"children\\": [
+                            {
+                                \\"data\\": {
+                                    \\"tag\\": \\"String\\",
+                                    \\"value\\": \\"Vortex \\"
+                                },
+                                \\"children\\": []
+                            },
+                            {
+                                \\"data\\": {
+                                    \\"tag\\": \\"Link\\",
+                                    \\"text\\": \\"(toggle)\\",
+                                    \\"to\\": \\"toggleOpen\\"
+                                },
+                                \\"children\\": [
+                                    {
+                                        \\"data\\": {
+                                            \\"tag\\": \\"String\\",
+                                            \\"value\\": \\"(toggle)\\"
+                                        },
+                                        \\"children\\": []
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             },
@@ -275,15 +384,20 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": [
+                \\"data\\": {
+                    \\"tag\\": \\"Room\\",
+                    \\"key\\": \\"ABC\\"
+                },
+                \\"children\\": [
                     {
-                        \\"tag\\": \\"Exit\\",
-                        \\"key\\": \\"ABC#DEF\\",
-                        \\"index\\": 0
+                        \\"data\\": {
+                            \\"key\\": \\"ABC#DEF\\",
+                            \\"tag\\": \\"Exit\\",
+                            \\"index\\": 0
+                        },
+                        \\"children\\": []
                     }
-                ],
-                \\"render\\": [],
-                \\"name\\": []
+                ]
             }
         ]
     },
@@ -292,10 +406,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         \\"tag\\": \\"If\\",
         \\"conditions\\": [
             {
-                \\"if\\": \\"open\\",
-                \\"dependencies\\": [
-                    \\"open\\"
-                ]
+                \\"if\\": \\"open\\"
             }
         ],
         \\"appearances\\": [
@@ -307,11 +418,22 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": [
+                \\"data\\": {
+                    \\"tag\\": \\"If\\",
+                    \\"conditions\\": [
+                        {
+                            \\"if\\": \\"open\\"
+                        }
+                    ]
+                },
+                \\"children\\": [
                     {
-                        \\"key\\": \\"ABC\\",
-                        \\"tag\\": \\"Room\\",
-                        \\"index\\": 1
+                        \\"data\\": {
+                            \\"key\\": \\"ABC\\",
+                            \\"tag\\": \\"Room\\",
+                            \\"index\\": 1
+                        },
+                        \\"children\\": []
                     }
                 ]
             }
@@ -342,7 +464,22 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 1
                     }
                 ],
-                \\"contents\\": []
+                \\"data\\": {
+                    \\"tag\\": \\"Exit\\",
+                    \\"name\\": \\"welcome\\",
+                    \\"key\\": \\"ABC#DEF\\",
+                    \\"from\\": \\"ABC\\",
+                    \\"to\\": \\"DEF\\"
+                },
+                \\"children\\": [
+                    {
+                        \\"data\\": {
+                            \\"tag\\": \\"String\\",
+                            \\"value\\": \\"welcome\\"
+                        },
+                        \\"children\\": []
+                    }
+                ]
             }
         ]
     },
@@ -366,7 +503,22 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 1
                     }
                 ],
-                \\"contents\\": []
+                \\"data\\": {
+                    \\"tag\\": \\"Exit\\",
+                    \\"name\\": \\"vortex\\",
+                    \\"key\\": \\"DEF#ABC\\",
+                    \\"from\\": \\"DEF\\",
+                    \\"to\\": \\"ABC\\"
+                },
+                \\"children\\": [
+                    {
+                        \\"data\\": {
+                            \\"tag\\": \\"String\\",
+                            \\"value\\": \\"vortex\\"
+                        },
+                        \\"children\\": []
+                    }
+                ]
             }
         ]
     },
@@ -383,7 +535,12 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": []
+                \\"data\\": {
+                    \\"tag\\": \\"Variable\\",
+                    \\"key\\": \\"open\\",
+                    \\"default\\": \\"false\\"
+                },
+                \\"children\\": []
             }
         ]
     },
@@ -400,7 +557,12 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"index\\": 0
                     }
                 ],
-                \\"contents\\": []
+                \\"data\\": {
+                    \\"tag\\": \\"Action\\",
+                    \\"key\\": \\"toggleOpen\\",
+                    \\"src\\": \\"open = !open\\"
+                },
+                \\"children\\": []
             }
         ]
     }
