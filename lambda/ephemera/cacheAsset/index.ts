@@ -61,12 +61,14 @@ import { selectName } from '@tonylb/mtw-wml/ts/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/ts/normalize/selectors/render'
 import { selectExits } from '@tonylb/mtw-wml/ts/normalize/selectors/exits'
 import { selectRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/rooms'
-import { isSchemaRoom } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses'
+import { isSchemaImage, isSchemaRoom } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses'
 import { selectImages } from '@tonylb/mtw-wml/ts/normalize/selectors/images'
 import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/normalize/selectors/keysReferenced'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
+import { filter } from '@tonylb/mtw-wml/ts/sequence/tree/filter'
+import { map } from '@tonylb/mtw-wml/ts/sequence/tree/map'
 
 //
 // TODO: Fix ephemeraItemFromNormal to store the new standard for how to deal with normal Items (i.e., children are GenericTree<SchemaTag>,
@@ -76,29 +78,6 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
     const { normal = {}, properties = {} } = assetWorkspace
     const normalizer = new Normalizer()
     normalizer.loadNormal(normal)
-    // const conditionsTransform = conditionsFromContext(assetWorkspace)
-    // const conditionsRemap = (conditions: { if: string; not?: boolean; dependencies: string[] }[]): EphemeraCondition[] => {
-    //     return conditions.map((condition) => {
-    //         const dependencies = condition.dependencies.reduce<EphemeraCondition["dependencies"]>((previous, key) => {
-    //             const dependencyLookup = assetWorkspace.universalKey(key)
-    //             if (!(dependencyLookup && (isEphemeraComputedId(dependencyLookup) || isEphemeraVariableId(dependencyLookup)))) {
-    //                 throw new EphemeraError(`Illegal dependency: ${key}`)
-    //             }
-    //             return [
-    //                 ...previous,
-    //                 {
-    //                     key,
-    //                     EphemeraId: dependencyLookup
-    //                 }
-    //             ]
-    //         }, [])
-    //         return {
-    //             if: condition.if,
-    //             not: condition.not,
-    //             dependencies
-    //         }
-    //     })
-    // }
     const EphemeraId = assetWorkspace.universalKey(item.key)
     if (!EphemeraId) {
         return undefined
@@ -114,6 +93,9 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
         }
         return previous
     }, {})
+    //
+    // Generate keyMapping from references and assetWorkspace.universalKey (in case it is needed)
+    //
     const keysReferenced = normalizer.select({ key: item.key, selector: selectKeysReferenced })
     const keyMapping = keysReferenced.reduce<Record<string, EphemeraId>>((previous, key) => {
         const universalKey = assetWorkspace.universalKey(key)
@@ -216,7 +198,22 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             key: item.key,
             EphemeraId,
             name,
-            images,
+            images: map(images, (node) => {
+                const { data, children } = node
+                if (isSchemaImage(data)) {
+                    const fileLookup = properties[data.key]
+                    if (fileLookup && 'fileName' in fileLookup) {
+                        return [{
+                            data: {
+                                ...data,
+                                fileURL: data.fileURL ?? fileLookup.fileName
+                            },
+                            children
+                        }]
+                    }
+                }
+                return [{ data, children }]
+            }),
             rooms: [],
             stateMapping,
             keyMapping
