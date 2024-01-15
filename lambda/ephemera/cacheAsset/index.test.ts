@@ -407,7 +407,7 @@ describe('cacheAsset', () => {
                 EphemeraId: 'MAP#DEF',
                 key: 'map1',
                 name: [],
-                rooms: [],
+                rooms: [{ data: { tag: 'Room', key: 'room1', x: 0, y: 0 }, children: [] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
                 keyMapping: {},
                 stateMapping: {}

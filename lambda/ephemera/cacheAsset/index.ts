@@ -191,9 +191,6 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
         const name = normalizer.select({ key: item.key, selector: selectName })
         const images = normalizer.select({ key: item.key, selector: selectImages })
         const rooms = normalizer.select({ key: item.key, selector: selectMapRooms })
-        //
-        // TODO: Use TagTree to convert rooms from GenericTree<SchemaTag> into EphemeraMapRoom[]
-        //
         return {
             key: item.key,
             EphemeraId,
@@ -214,7 +211,7 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
                 }
                 return [{ data, children }]
             }),
-            rooms: [],
+            rooms,
             stateMapping,
             keyMapping
         }

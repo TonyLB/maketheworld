@@ -90,7 +90,7 @@ export type EphemeraMapRoom = {
 export type EphemeraMap = {
     EphemeraId: EphemeraMapId;
     key: string;
-    rooms: EphemeraMapRoom[];
+    rooms: GenericTree<SchemaTag>;
     images: GenericTree<SchemaTag>;
 } & EphemeraNameMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
 
