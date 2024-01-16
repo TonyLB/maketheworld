@@ -1,13 +1,13 @@
-export type GenericTreeNodeFiltered<F extends {}, N extends {}> = {
+export type GenericTreeNodeFiltered<F extends {}, N extends {}, Extra extends {} = {}> = {
     data: F;
-    children: GenericTree<N>;
-}
+    children: GenericTree<N, Extra>;
+} & Omit<Extra, 'data' | 'children' >
 
-export type GenericTreeNode<N extends {}> = GenericTreeNodeFiltered<N, N>
+export type GenericTreeNode<N extends {}, Extra extends {} = {}> = GenericTreeNodeFiltered<N, N, Extra>
 
-export type GenericTreeFiltered<F extends {}, N extends {}> = GenericTreeNodeFiltered<F, N>[]
+export type GenericTreeFiltered<F extends {}, N extends {}, Extra extends {} = {}> = GenericTreeNodeFiltered<F, N, Extra>[]
 
-export type GenericTree<N extends {}> = GenericTreeFiltered<N, N>
+export type GenericTree<N extends {}, Extra extends {} = {}> = GenericTreeFiltered<N, N, Extra>
 
 export enum GenericTreeDiffAction {
     Exclude,
@@ -30,10 +30,6 @@ export type SourceWrap<N extends {}> = {
     source: string;
 }
 
-export type GenericTreeIDNode<N extends {}> = {
-    data: N;
-    id: string;
-    children: GenericTreeID<N>;
-}
+export type GenericTreeIDNode<N extends {}> = GenericTreeNode<N, { id: string }>
 
 export type GenericTreeID<N extends {}> = GenericTreeIDNode<N>[]

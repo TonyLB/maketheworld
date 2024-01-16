@@ -1,19 +1,22 @@
-import { GenericTree } from './baseClasses'
+import { GenericTree, GenericTreeNode } from './baseClasses'
 
-export const filter = <NodeData extends {}>({ tree, callback }: { tree: GenericTree<NodeData>, callback: (value: NodeData) => boolean }): GenericTree<NodeData> => (
+type CallbackNode<Callback extends (...args: any) => any> = Parameters<Callback>[0] extends {} ? Parameters<Callback>[1] extends {} ? GenericTreeNode<Parameters<Callback>[0], Parameters<Callback>[1]> : GenericTreeNode<Parameters<Callback>[0]> : never
+
+export const filter = <Callback extends (...args: any) => boolean>({ tree, callback }: { tree: CallbackNode<Callback>[], callback: Callback }): CallbackNode<Callback>[] => (
     tree
-        .filter(({ data }) => (callback(data)))
-        .map(({ data, children }) => ({ data, children: filter({ tree: children, callback })}))
+        .filter(({ data, children, ...rest }) => (callback(data, rest)))
+        .map(({ data, children, ...rest }) => ({ data, children: filter({ tree: children as CallbackNode<Callback>[], callback }), ...rest } as unknown as CallbackNode<Callback>))
 )
 
-export const asyncFilter = async <NodeData extends {}>({ tree, callback }: { tree: GenericTree<NodeData>, callback: (value: NodeData) => Promise<Boolean> }): Promise<GenericTree<NodeData>> => {
+export const asyncFilter = async <Callback extends (...args: any) => Promise<boolean>>({ tree, callback }: { tree: CallbackNode<Callback>[], callback: Callback }): Promise<CallbackNode<Callback>[]> => {
     return (await Promise.all(
-        tree.map(async ({ data, children }) => {
-            if (await callback(data)) {
+        tree.map(async ({ data, children, ...rest }) => {
+            if (await callback(data, rest)) {
                 return [{
                     data,
-                    children: await asyncFilter({ tree: children, callback })
-                }]
+                    children: await asyncFilter({ tree: children as CallbackNode<Callback>[], callback }),
+                    ...rest
+                }] as unknown as CallbackNode<Callback>[]
             }
             else {
                 return []
