@@ -18,9 +18,9 @@ import { selectRooms } from "./selectors/rooms";
 const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: NormalItem) => (keyA.localeCompare(keyB))
 
 const extractBookmarkReferences = (items: GenericTree<SchemaTag>) => {
-    const returnContents = dfsWalk<(previous: { output: string[], state: {} }, item: SchemaTag) => { output: string[], state: {} }>({
+    const returnContents = dfsWalk({
         default: { output: [], state: {} },
-        callback: (previous, item) => {
+        callback: (previous: { output: string[], state: {} }, item: SchemaTag) => {
             if (isSchemaBookmark(item)) {
                 return { output: [...previous.output, item.key], state: {} }
             }

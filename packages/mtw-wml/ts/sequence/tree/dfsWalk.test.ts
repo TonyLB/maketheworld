@@ -5,7 +5,7 @@ import dfsWalk from './dfsWalk'
 
 describe('dfsWalk', () => {
     const walkCallback = ({ state, output }: { output: string[]; state: {} }, value: string) => ({ output: [...output, value], state })
-    const testWalk = dfsWalk<typeof walkCallback>({ default: { output: [], state: {}}, callback: walkCallback })
+    const testWalk = dfsWalk({ default: { output: [], state: {}}, callback: walkCallback })
 
     it('should return an empty list on an empty tree', () => {
         expect(testWalk([])).toEqual([])

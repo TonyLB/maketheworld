@@ -4,8 +4,8 @@ import dfsWalk from "../../sequence/tree/dfsWalk"
 import { SchemaTag, isSchemaBookmark, isSchemaExit, isSchemaLink } from "../../simpleSchema/baseClasses"
 
 export const selectKeysReferenced = (tree: GenericTree<SchemaTag>): string[] => {
-    const dependencies = dfsWalk<(previous: { output: string[], state: {} }, tag: SchemaTag ) => { output: string[], state: {} }>({
-        callback: (previous, tag) => {
+    const dependencies = dfsWalk({
+        callback: (previous: { output: string[], state: {} }, tag: SchemaTag) => {
             if (isSchemaExit(tag)) {
                 return {
                     output: [...previous.output, tag.to, tag.from],
@@ -26,7 +26,7 @@ export const selectKeysReferenced = (tree: GenericTree<SchemaTag>): string[] => 
             }
             return previous
         },
-        default: { output: [] as string[], state: {} }
+        default: { output: [], state: {} }
     })(tree)
     return unique(dependencies)
 }
