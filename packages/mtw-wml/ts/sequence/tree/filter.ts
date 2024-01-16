@@ -1,6 +1,4 @@
-import { GenericTree, GenericTreeNode } from './baseClasses'
-
-type CallbackNode<Callback extends (...args: any) => any> = Parameters<Callback>[0] extends {} ? Parameters<Callback>[1] extends {} ? GenericTreeNode<Parameters<Callback>[0], Parameters<Callback>[1]> : GenericTreeNode<Parameters<Callback>[0]> : never
+import { CallbackNode, GenericTree } from './baseClasses'
 
 export const filter = <Callback extends (...args: any) => boolean>({ tree, callback }: { tree: CallbackNode<Callback>[], callback: Callback }): CallbackNode<Callback>[] => (
     tree

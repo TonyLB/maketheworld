@@ -5,7 +5,7 @@ import { SchemaTag, isSchemaBookmark, isSchemaExit, isSchemaLink } from "../../s
 
 export const selectKeysReferenced = (tree: GenericTree<SchemaTag>): string[] => {
     const dependencies = dfsWalk({
-        callback: (previous, tag: SchemaTag) => {
+        callback: (previous: { output: string[], state: {} }, tag: SchemaTag) => {
             if (isSchemaExit(tag)) {
                 return {
                     output: [...previous.output, tag.to, tag.from],
@@ -26,7 +26,7 @@ export const selectKeysReferenced = (tree: GenericTree<SchemaTag>): string[] => 
             }
             return previous
         },
-        default: { output: [] as string[], state: {} }
+        default: { output: [], state: {} }
     })(tree)
     return unique(dependencies)
 }

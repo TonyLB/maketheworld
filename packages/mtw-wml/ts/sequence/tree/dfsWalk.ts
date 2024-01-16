@@ -1,47 +1,61 @@
-import { GenericTree, GenericTreeID, GenericTreeIDNode, GenericTreeNode } from "./baseClasses"
+import { GenericTreeNode } from "./baseClasses"
 
-type DFSWalkReduce<Output, State> = {
-    output: Output;
-    state: State;
+//
+// TODO: Create type handler to extract callback function from incoming options, and use it to validate
+// the entire option property against the callback
+//
+type DFSWalkCallback = 
+    ((previous: { output: any; state: any }, data) => typeof previous) |
+    ((previous: { output: any; state: any }, data, extra) => typeof previous)
+type DFSWalkReduce<Callback extends DFSWalkCallback> = 
+    Parameters<Callback> extends [previous: { output: infer Output, state: infer State }, ...args: any]
+        ? { output: Output, state: State }
+        : never
+type DFSWalkState<Callback extends DFSWalkCallback> = DFSWalkReduce<Callback>["state"]
+type DFSWalkIncomingType<Callback extends DFSWalkCallback> =
+    Parameters<Callback> extends [infer Previous, infer Data extends {}, infer Extra extends {}]
+        ? GenericTreeNode<Data, Extra>
+        : Parameters<Callback> extends [infer Previous, infer Data extends {}]
+            ? GenericTreeNode<Data>
+            : never
+
+type DFSWalkOptionsBase<Callback extends DFSWalkCallback> = {
+    default: DFSWalkReduce<Callback>;
+    callback: Callback;
+    nest?: (args: { state: DFSWalkState<Callback>, data: DFSWalkIncomingType<Callback>["data"] }) => DFSWalkState<Callback>;
+    unNest?: (value: { previous: DFSWalkState<Callback>; state: DFSWalkState<Callback>; data: DFSWalkIncomingType<Callback>["data"] }) => DFSWalkState<Callback>;
+    aggregate?: (value: { direct: DFSWalkReduce<Callback>; children: DFSWalkReduce<Callback>; data?: DFSWalkIncomingType<Callback>["data"] }) => DFSWalkReduce<Callback>
 }
 
-type DFSWalkOptionsBase<IncomingType extends {}, Output, State, Extra extends {}> = {
-    default: DFSWalkReduce<Output, State>;
-    callback: (previous: DFSWalkReduce<Output, State>, data: IncomingType, extra: Extra) => DFSWalkReduce<Output, State>;
-    nest?: (value: { state: State, data: IncomingType }) => State;
-    unNest?: (value: { previous: State; state: State; data: IncomingType }) => State;
-    aggregate?: (value: { direct: DFSWalkReduce<Output, State>; children: DFSWalkReduce<Output, State>; data?: IncomingType }) => DFSWalkReduce<Output, State>
-}
-
-type DFSWalkOptionsVerbose<IncomingType extends {}, Output, State, Extra extends {}> = DFSWalkOptionsBase<IncomingType, Output, State, Extra> & {
+type DFSWalkOptionsVerbose<Callback extends DFSWalkCallback> = DFSWalkOptionsBase<Callback> & {
     returnVerbose: true;
 }
 
-type DFSWalkOptionsTerse<IncomingType extends {}, Output, State, Extra extends {}> = DFSWalkOptionsBase<IncomingType, Output, State, Extra> & {
+type DFSWalkOptionsTerse<Callback extends DFSWalkCallback> = DFSWalkOptionsBase<Callback> & {
     returnVerbose?: false;
 }
 
-type DFSWalkOptions<IncomingType extends {}, Output, State, Extra extends {}> = DFSWalkOptionsVerbose<IncomingType, Output, State, Extra> |
-    DFSWalkOptionsTerse<IncomingType, Output, State, Extra>
+type DFSWalkOptions<Callback extends DFSWalkCallback> = DFSWalkOptionsVerbose<Callback> |
+    DFSWalkOptionsTerse<Callback>
 
-const dfsWalkHelper = <IncomingType extends {}, Output, State, Node extends GenericTreeNode<IncomingType> | GenericTreeIDNode<IncomingType>>(options: DFSWalkOptions<IncomingType, Output, State, Omit<Node, 'data' | 'children'>>) => (previous: { output: Output; state: State }, node: Node): { output: Output; state: State } => {
+const dfsWalkHelper = <Callback extends DFSWalkCallback>(options: DFSWalkOptions<Callback>) => (previous: DFSWalkReduce<Callback>, node: DFSWalkIncomingType<Callback>): DFSWalkReduce<Callback> => {
     const { data, children, ...rest } = node
-    const firstCallback = options.callback(previous, node.data, rest as unknown as Omit<Node, 'data' | 'children'>)
+    const firstCallback = options.callback(previous, node.data, rest) as DFSWalkReduce<Callback>
     if (options.aggregate) {
-        const childCallbacks = (node.children as Node[]).reduce(dfsWalkHelper(options), { output: options.default.output, state: options.nest ? options.nest({ state: firstCallback.state, data: node.data }) : firstCallback.state })
-        const allCallbacks = options.aggregate({ direct: firstCallback, children: childCallbacks, data: node.data })
-        return options.unNest ? { ...allCallbacks, state: options.unNest({ previous: firstCallback.state, state: allCallbacks.state, data: node.data }) } : allCallbacks
+        const childCallbacks = (children as DFSWalkIncomingType<Callback>[]).reduce(dfsWalkHelper<Callback>(options), { output: options.default.output, state: options.nest ? options.nest({ state: firstCallback.state, data }) : firstCallback.state } as DFSWalkReduce<Callback>)
+        const allCallbacks = options.aggregate({ direct: firstCallback, children: childCallbacks, data })
+        return options.unNest ? { ...allCallbacks, state: options.unNest({ previous: firstCallback.state, state: allCallbacks.state, data }) } : allCallbacks
     }
     else {
-        const allCallbacks = (node.children as Node[]).reduce(dfsWalkHelper(options), options.nest ? { ...firstCallback, state: options.nest({ state: firstCallback.state, data: node.data }) } : firstCallback)
-        return options.unNest ? { ...allCallbacks, state: options.unNest({ previous: firstCallback.state, state: allCallbacks.state, data: node.data }) } : allCallbacks    
+        const allCallbacks = (children as DFSWalkIncomingType<Callback>[]).reduce(dfsWalkHelper(options), options.nest ? { ...firstCallback, state: options.nest({ state: firstCallback.state, data }) } : firstCallback)
+        return options.unNest ? { ...allCallbacks, state: options.unNest({ previous: firstCallback.state, state: allCallbacks.state, data }) } : allCallbacks    
     }
 }
 
-function dfsWalk<IncomingType extends {}, Output, State, Node extends GenericTreeNode<IncomingType> | GenericTreeIDNode<IncomingType>>(options: DFSWalkOptionsVerbose<IncomingType, Output, State, Omit<Node, 'data' | 'children'>>): (tree: Node[]) => { output: Output; state: State }
-function dfsWalk<IncomingType extends {}, Output, State, Node extends GenericTreeNode<IncomingType> | GenericTreeIDNode<IncomingType>>(options: DFSWalkOptionsTerse<IncomingType, Output, State, Omit<Node, 'data' | 'children'>>): (tree: Node[]) => Output
-function dfsWalk<IncomingType extends {}, Output, State, Node extends GenericTreeNode<IncomingType> | GenericTreeIDNode<IncomingType>>(options: DFSWalkOptions<IncomingType, Output, State, Omit<Node, 'data' | 'children'>>): (tree: Node[]) => Output | { output: Output; state: State } {
-    return (tree: Node[]): Output | { output: Output; state: State } => {
+function dfsWalk<Callback extends DFSWalkCallback>(options: DFSWalkOptionsVerbose<Callback>): (tree: DFSWalkIncomingType<Callback>[]) => DFSWalkReduce<Callback>
+function dfsWalk<Callback extends DFSWalkCallback>(options: DFSWalkOptionsTerse<Callback>): (tree: DFSWalkIncomingType<Callback>[]) => DFSWalkReduce<Callback>["output"]
+function dfsWalk<Callback extends DFSWalkCallback>(options: DFSWalkOptions<Callback>): (tree: DFSWalkIncomingType<Callback>[]) => DFSWalkReduce<Callback> | DFSWalkReduce<Callback>["output"] {
+    return (tree: DFSWalkIncomingType<Callback>[]): DFSWalkReduce<Callback> | DFSWalkReduce<Callback>["output"] => {
         const returnValue = options.aggregate ? options.aggregate({ direct: options.default, children: tree.reduce(dfsWalkHelper(options), options.default) }) : tree.reduce(dfsWalkHelper(options), options.default)
         if (options.returnVerbose) {
             return returnValue

@@ -5,7 +5,7 @@ import dfsWalk from './dfsWalk'
 
 describe('dfsWalk', () => {
     const walkCallback = ({ state, output }: { output: string[]; state: {} }, value: string) => ({ output: [...output, value], state })
-    const testWalk = dfsWalk<string, string[], {}, GenericTreeNode<string>>({ default: { output: [], state: {}}, callback: walkCallback })
+    const testWalk = dfsWalk({ default: { output: [], state: {}}, callback: walkCallback })
 
     it('should return an empty list on an empty tree', () => {
         expect(testWalk([])).toEqual([])
@@ -42,9 +42,9 @@ describe('dfsWalk', () => {
     })
 
     it('should nest and unNest when specified', () => {
-        const nestingTestWalk = dfsWalk<string, string[], { nest?: string }, GenericTreeNode<string>>({
+        const nestingTestWalk = dfsWalk<(previous: { output: string[], state: { nest?: string } }, value: string) => { output: string[], state: { nest?: string } }>({
             default: { output: [], state: {}},
-            callback: ({ state, output }: { output: string[]; state: { nest?: string } }, value: string) => ({ output: [...output, [state.nest, value].filter((value) => (value)).join('#')], state }),
+            callback: ({ state, output }, value) => ({ output: [...output, [state.nest, value].filter((value) => (value)).join('#')], state }),
             nest: ({ state, data }) => ({ nest: [state.nest ?? '', data].filter((value) => (value)).join('::') }),
             unNest: ({ previous }) => (previous)
         })
@@ -66,9 +66,9 @@ describe('dfsWalk', () => {
     })
 
     it('should return state when called verbose', () => {
-        const verboseTestWalk = dfsWalk<string, string[], number, GenericTreeNode<string>>({
+        const verboseTestWalk = dfsWalk<(previous: { output: string[], state: number }, value: string) => { output: string[], state: number }>({
             default: { output: [], state: 0},
-            callback: ({ state, output }: { output: string[]; state }, value: string) => ({ output: [...output, value], state: state + 1 }),
+            callback: ({ state, output }, value) => ({ output: [...output, value], state: state + 1 }),
             returnVerbose: true
         })
         const incomingTree: GenericTree<string> = [{
@@ -89,9 +89,9 @@ describe('dfsWalk', () => {
     })
 
     it('should apply aggregate function when provided', () => {
-        const verboseTestWalk = dfsWalk<string, string[], number, GenericTreeNode<string>>({
+        const verboseTestWalk = dfsWalk<({ state, output }: { output: string[]; state: number }, value: string) => { output: string[], state: number }>({
             default: { output: [], state: 0},
-            callback: ({ state, output }: { output: string[]; state }, value: string) => ({ output: [...output, value], state: state + 1 }),
+            callback: ({ state, output }, value) => ({ output: [...output, value], state: state + 1 }),
             aggregate: ({ direct, children }) => ({ output: [[...direct.output, ...children.output].join(', ')], state: children.state })
         })
         const incomingTree: GenericTree<string> = [{
@@ -112,9 +112,9 @@ describe('dfsWalk', () => {
     })
 
     it('should handle GenericIDTree inputs', () => {
-        const verboseTestWalk = dfsWalk<string, string[], number, GenericTreeIDNode<string>>({
+        const verboseTestWalk = dfsWalk<(previous: { output: string[], state: number }, value: string, extra: { id: string }) => { output: string[], state: number }>({
             default: { output: [], state: 0 },
-            callback: ({ state, output }: { output: string[]; state }, value: string, { id }: { id: string }) => ({ output: [...output, id], state: state + 1 }),
+            callback: ({ state, output }, value, { id }) => ({ output: [...output, id], state: state + 1 }),
             aggregate: ({ direct, children }) => ({ output: [[...direct.output, ...children.output].join(', ')], state: children.state })
         })
         const incomingTree: GenericTreeID<string> = [{

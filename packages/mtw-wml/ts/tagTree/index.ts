@@ -48,7 +48,7 @@ const isTagTreeFilterArgument = <NodeData extends {}>(arg: TagTreeMatchOperation
 type TagTreePruneArgs<NodeData extends {}> = TagTreeMatchOperation<NodeData>
 
 export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>): NodeData[][] => {
-    return dfsWalk<NodeData, NodeData[][], {}, GenericTreeNode<NodeData>>({
+    return dfsWalk({
         default: { output: [], state: {} },
         callback: (previous: { output: NodeData[][], state: {} }, data: NodeData) => {
             return { output: [...previous.output, [data]], state: {} }

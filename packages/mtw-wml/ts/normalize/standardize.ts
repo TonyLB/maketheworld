@@ -19,8 +19,8 @@ const normalAlphabeticKeySort = ({ key: keyA }: NormalItem, { key: keyB }: Norma
 
 const extractBookmarkReferences = (items: GenericTree<SchemaTag>) => {
     const returnContents = dfsWalk({
-        default: { output: [] as string[], state: {} },
-        callback: (previous, item: SchemaTag) => {
+        default: { output: [], state: {} },
+        callback: (previous: { output: string[], state: {} }, item: SchemaTag) => {
             if (isSchemaBookmark(item)) {
                 return { output: [...previous.output, item.key], state: {} }
             }
