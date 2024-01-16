@@ -4,8 +4,8 @@ import dfsWalk from "../../sequence/tree/dfsWalk"
 import { SchemaTag, isSchemaCondition } from "../../simpleSchema/baseClasses"
 
 export const selectDependencies = (tree: GenericTree<SchemaTag>): string[] => {
-    const dependencies = dfsWalk({
-        callback: (previous, tag: SchemaTag) => {
+    const dependencies = dfsWalk<(previous: { output: string[], state: {} }, tag: SchemaTag ) => { output: string[], state: {} }>({
+        callback: (previous, tag) => {
             if (isSchemaCondition(tag)) {
                 return {
                     output: unique(previous.output, tag.conditions.map(({ dependencies }) => (dependencies ?? [])).flat(1)),

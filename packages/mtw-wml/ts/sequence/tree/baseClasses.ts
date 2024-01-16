@@ -33,3 +33,10 @@ export type SourceWrap<N extends {}> = {
 export type GenericTreeIDNode<N extends {}> = GenericTreeNode<N, { id: string }>
 
 export type GenericTreeID<N extends {}> = GenericTreeIDNode<N>[]
+
+export type CallbackNode<Callback extends (...args: any) => any> = 
+    Parameters<Callback> extends [infer A extends {}, infer B extends {}]
+        ? GenericTreeNode<A, B>
+        : Parameters<Callback> extends [infer A extends {}]
+            ? GenericTreeNode<A>
+            : never
