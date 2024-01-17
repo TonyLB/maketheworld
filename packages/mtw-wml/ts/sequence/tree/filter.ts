@@ -1,20 +1,20 @@
-import { CallbackNode, GenericTree } from './baseClasses'
+import { TreeCallbackNode, GenericTree, TreeCallback } from './baseClasses'
 
-export const filter = <Callback extends (...args: any) => boolean>({ tree, callback }: { tree: CallbackNode<Callback>[], callback: Callback }): CallbackNode<Callback>[] => (
+export const filter = <Callback extends TreeCallback<boolean>>({ tree, callback }: { tree: TreeCallbackNode<Callback>[], callback: Callback }): TreeCallbackNode<Callback>[] => (
     tree
         .filter(({ data, children, ...rest }) => (callback(data, rest)))
-        .map(({ data, children, ...rest }) => ({ data, children: filter({ tree: children as CallbackNode<Callback>[], callback }), ...rest } as unknown as CallbackNode<Callback>))
+        .map(({ data, children, ...rest }) => ({ data, children: filter({ tree: children as TreeCallbackNode<Callback>[], callback }), ...rest } as unknown as TreeCallbackNode<Callback>))
 )
 
-export const asyncFilter = async <Callback extends (...args: any) => Promise<boolean>>({ tree, callback }: { tree: CallbackNode<Callback>[], callback: Callback }): Promise<CallbackNode<Callback>[]> => {
+export const asyncFilter = async <Callback extends TreeCallback<Promise<boolean>>>({ tree, callback }: { tree: TreeCallbackNode<Callback>[], callback: Callback }): Promise<TreeCallbackNode<Callback>[]> => {
     return (await Promise.all(
         tree.map(async ({ data, children, ...rest }) => {
             if (await callback(data, rest)) {
                 return [{
                     data,
-                    children: await asyncFilter({ tree: children as CallbackNode<Callback>[], callback }),
+                    children: await asyncFilter({ tree: children as TreeCallbackNode<Callback>[], callback }),
                     ...rest
-                }] as unknown as CallbackNode<Callback>[]
+                }] as unknown as TreeCallbackNode<Callback>[]
             }
             else {
                 return []

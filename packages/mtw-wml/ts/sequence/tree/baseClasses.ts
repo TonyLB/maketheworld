@@ -34,7 +34,11 @@ export type GenericTreeIDNode<N extends {}> = GenericTreeNode<N, { id: string }>
 
 export type GenericTreeID<N extends {}> = GenericTreeIDNode<N>[]
 
-export type CallbackNode<Callback extends (...args: any) => any> = 
+export type TreeCallback<T> =
+    ((data) => T) |
+    ((data, extra) => T)
+
+export type TreeCallbackNode<Callback extends TreeCallback<any>> = 
     Parameters<Callback> extends [infer A extends {}, infer B extends {}]
         ? GenericTreeNode<A, B>
         : Parameters<Callback> extends [infer A extends {}]
