@@ -203,4 +203,10 @@ export class Schema {
         const bareSchema = schemaFromParse(parse(tokenizer(new SourceStream(wml))))
         this._schema = genericIDFromTree(bareSchema)
     }
+
+    get schema() { return this._schema }
+
+    //
+    // TODO: Copy standardize functionality from normalize to schema structure, and refactor
+    //
 }
