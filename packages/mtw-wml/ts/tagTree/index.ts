@@ -14,12 +14,16 @@ type TagTreeMatchOperand<NodeData extends {}> =
     NodeData |
     { (value: NodeData): boolean }
 
+type TagTreeMatchSequence<NodeData extends {}> = {
+    sequence: TagTreeMatchOperation<NodeData>[]
+}
+
 type TagTreeMatchAfter<NodeData extends {}> = {
-    after: TagTreeMatchOperand<NodeData>
+    after: TagTreeMatchOperation<NodeData>
 }
 
 type TagTreeMatchBefore<NodeData extends {}> = {
-    before: TagTreeMatchOperand<NodeData>
+    before: TagTreeMatchOperation<NodeData>
 }
 
 type TagTreeMatchExact<NodeData extends {}> = {
@@ -38,7 +42,7 @@ type TagTreeMatchOr<NodeData extends {}> = {
     or: TagTreeMatchOperation<NodeData>[]
 }
 
-type TagTreeMatchOperation<NodeData extends {}> = TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>
+type TagTreeMatchOperation<NodeData extends {}> = TagTreeMatchSequence<NodeData> | TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>
 
 type TagTreeFilterArguments<NodeData extends {}> = (TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>)
 const isTagTreeFilterArgument = <NodeData extends {}>(arg: TagTreeMatchOperation<NodeData>): arg is TagTreeFilterArguments<NodeData> => {
@@ -187,14 +191,27 @@ export class TagTree<NodeData extends {}> {
         if ('match' in operation) {
             return indicesMatching(operation.match)
         }
+        if ('sequence' in operation) {
+            const matchLists = operation.sequence.map((operation) => (this._tagMatchOperationIndices(tags, operation)))
+            return matchLists.reduce<number[]>((previous, matches) => {
+                if (!previous.length) {
+                    return []
+                }
+                if (previous[0] === -1) {
+                    return matches
+                }
+                const leftMost = previous[0]
+                return matches.filter((index) => (index > leftMost))
+            }, [-1])
+        }
         if ('after' in operation) {
-            const matches = indicesMatching(operation.after)
+            const matches = this._tagMatchOperationIndices(tags, operation.after)
             if (matches.length) {
                 return tags.map((_, index) => (index)).filter((index) => (index > matches[0]))
             }
         }
         if ('before' in operation) {
-            const matches = indicesMatching(operation.before)
+            const matches = this._tagMatchOperationIndices(tags, operation.before)
             if (matches.length) {
                 const rightMostMatch = matches.slice(-1)[0]
                 return tags.map((_, index) => (index)).filter((index) => (index < rightMostMatch))

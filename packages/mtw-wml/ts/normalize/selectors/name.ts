@@ -12,7 +12,7 @@ export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key:
         tree: tagTree
             .reordered([options.tag, 'Name', 'If'])
             .filter({ match: 'Name' })
-            .prune({ or: [{ before: 'Name' }, { match: 'Name' }] })
+            .prune({ or: [{ before: { match: 'Name' } }, { match: 'Name' }] })
             .tree,
         typeGuard: isSchemaOutputTag
     })
