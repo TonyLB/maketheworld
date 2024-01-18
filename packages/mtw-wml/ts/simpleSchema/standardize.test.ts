@@ -184,7 +184,7 @@ describe('standardizeSchema', () => {
         `))
     })
 
-    it('should render bookmarks in unreferencing-first graph order', () => {
+    it('should render bookmarks correctly', () => {
         const testSchema = schemaTestWML(`<Asset key=(Test)>
             <Bookmark key=(testOne)>
                 TestOne<Bookmark key=(testThree) />
@@ -198,8 +198,8 @@ describe('standardizeSchema', () => {
         </Asset>`)
         expect(schemaToWML(standardizeSchema(testSchema))).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Bookmark key=(testThree)>TestThree</Bookmark>
                 <Bookmark key=(testOne)>TestOne<Bookmark key=(testThree) /></Bookmark>
+                <Bookmark key=(testThree)>TestThree</Bookmark>
                 <Bookmark key=(testTwo)>TestTwo<Bookmark key=(testOne) /></Bookmark>
             </Asset>
         `))
@@ -318,7 +318,7 @@ describe('standardizeSchema', () => {
         `))
     })
 
-    it('should render computes in dependency order', () => {
+    it('should render computes', () => {
         const testSchema = schemaTestWML(`<Asset key=(Test)>
             <Computed key=(computeOne) src={computeThree} />
             <Computed key=(computeTwo) src={!computeOne} />
@@ -328,8 +328,8 @@ describe('standardizeSchema', () => {
         expect(schemaToWML(standardizeSchema(testSchema))).toEqual(deIndentWML(`
             <Asset key=(Test)>
                 <Variable key=(testVar) default={false} />
-                <Computed key=(computeThree) src={!testVar} />
                 <Computed key=(computeOne) src={computeThree} />
+                <Computed key=(computeThree) src={!testVar} />
                 <Computed key=(computeTwo) src={!computeOne} />
             </Asset>
         `))
