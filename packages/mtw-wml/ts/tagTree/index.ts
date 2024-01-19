@@ -42,7 +42,7 @@ type TagTreeMatchOr<NodeData extends {}> = {
     or: TagTreeMatchOperation<NodeData>[]
 }
 
-type TagTreeMatchOperation<NodeData extends {}> = TagTreeMatchSequence<NodeData> | TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>
+export type TagTreeMatchOperation<NodeData extends {}> = TagTreeMatchSequence<NodeData> | TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>
 
 type TagTreeFilterArguments<NodeData extends {}> = (TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>)
 const isTagTreeFilterArgument = <NodeData extends {}>(arg: TagTreeMatchOperation<NodeData>): arg is TagTreeFilterArguments<NodeData> => {
@@ -171,7 +171,7 @@ export class TagTree<NodeData extends {}> {
         return returnValue
     }
 
-    _tagMatchOperationIndices(tags: NodeData[], operation: TagTreeMatchOperation<NodeData>): number[] {
+    _tagMatchOperationIndices(tags: NodeData[], operation: TagTreeMatchOperation<NodeData>, recurse?: (operation: TagTreeMatchOperation<NodeData>) => number[]): number[] {
         const indicesMatching = (operand: TagTreeMatchOperand<NodeData>): number[] => {
             return tags.map((node, index) => {
                 if (typeof operand === 'string' && this._classifier(node) === operand) {
@@ -192,7 +192,7 @@ export class TagTree<NodeData extends {}> {
             return indicesMatching(operation.match)
         }
         if ('sequence' in operation) {
-            const matchLists = operation.sequence.map((operation) => (this._tagMatchOperationIndices(tags, operation)))
+            const matchLists = operation.sequence.map(recurse ?? ((operation) => (this._tagMatchOperationIndices(tags, operation))))
             return matchLists.reduce<number[]>((previous, matches) => {
                 if (!previous.length) {
                     return []
@@ -205,13 +205,13 @@ export class TagTree<NodeData extends {}> {
             }, [-1])
         }
         if ('after' in operation) {
-            const matches = this._tagMatchOperationIndices(tags, operation.after)
+            const matches = recurse ? recurse(operation.after) : this._tagMatchOperationIndices(tags, operation.after)
             if (matches.length) {
                 return tags.map((_, index) => (index)).filter((index) => (index > matches[0]))
             }
         }
         if ('before' in operation) {
-            const matches = this._tagMatchOperationIndices(tags, operation.before)
+            const matches = recurse ? recurse(operation.before) : this._tagMatchOperationIndices(tags, operation.before)
             if (matches.length) {
                 const rightMostMatch = matches.slice(-1)[0]
                 return tags.map((_, index) => (index)).filter((index) => (index < rightMostMatch))
@@ -283,7 +283,7 @@ export class TagTree<NodeData extends {}> {
                     .map<number[]>((subArg) => (pruneMatch(subArg, tagList)))
                     .flat(1))
             }
-            return this._tagMatchOperationIndices(tagList, arg)
+            return this._tagMatchOperationIndices(tagList, arg, (operation) => (pruneMatch(operation, tagList)))
         }
         returnValue._tagList = this._tagList
             .map((tags) => {

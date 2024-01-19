@@ -418,6 +418,31 @@ describe('TagTree', () => {
             `))
         })
 
+        it('should prune after sequences including or', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Map key=(testMap)>
+                        <Name>Test Map</Name>
+                        <If {true}>
+                            <Room key=(room1) x="0" y="0"><Description>Test room</Description></Room>
+                        </If>
+                        <Image key=(testImage) />
+                    </Map>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: (data) => (data.tag === 'Map' && data.key === 'testMap') }, { or: [{ match: 'Room' }, { match: 'Feature' }] }] } })
+            expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Map key=(testMap)>
+                        <Name>Test Map</Name>
+                        <If {true}><Room key=(room1) x="0" y="0" /></If>
+                        <Image key=(testImage) />
+                    </Map>
+                </Asset>
+            `))
+        })
+
     })
 
 })
