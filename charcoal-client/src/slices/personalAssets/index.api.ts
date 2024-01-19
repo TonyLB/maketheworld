@@ -13,6 +13,8 @@ import { schemaToWML } from '@tonylb/mtw-wml/dist/simpleSchema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getNormalized, setImport } from '.'
+import { standardizeSchema } from '@tonylb/mtw-wml/dist/simpleSchema/standardize'
+import { genericIDFromTree } from '@tonylb/mtw-wml/dist/sequence/tree/genericIDTree'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -52,7 +54,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             throw err
         }
     }
-    return { publicData: { originalWML: assetWML, currentWML: assetWML, normal: normalizer.normal, serialized: true }}
+    return { publicData: { originalWML: assetWML, currentWML: assetWML, normal: normalizer.normal, schema: genericIDFromTree(standardizeSchema(normalizer.schema)), serialized: true }}
 }
 
 type ImportsByAssets = Record<string, Record<string, string>>
