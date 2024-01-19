@@ -5,6 +5,10 @@ import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
 import { optionsFactory, validateContents } from "./converters/utils"
 import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses"
+import SourceStream from "../parser/tokenizer/sourceStream"
+import tokenizer from "../parser/tokenizer"
+import parse from "../simpleParser"
+import { genericIDFromTree } from "../sequence/tree/genericIDTree"
 
 export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
     let contextStack: SchemaContextItem[] = []
@@ -190,4 +194,19 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 value: ''
             }
     }
+}
+
+export class Schema {
+    _schema: GenericTree<SchemaTag, { id: string }> = [];
+
+    loadWML(wml: string): void {
+        const bareSchema = schemaFromParse(parse(tokenizer(new SourceStream(wml))))
+        this._schema = genericIDFromTree(bareSchema)
+    }
+
+    get schema() { return this._schema }
+
+    //
+    // TODO: Copy standardize functionality from normalize to schema structure, and refactor
+    //
 }

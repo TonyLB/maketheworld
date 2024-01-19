@@ -45,7 +45,8 @@ export const {
             importData: {},
             properties: {},
             loadedImages: {},
-            normal: {}
+            normal: {},
+            schema: []
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -68,7 +69,8 @@ export const {
                 importData: {},
                 properties: {},
                 loadedImages: {},
-                normal: {}
+                normal: {},
+                schema: []
             }
         },
         states: {

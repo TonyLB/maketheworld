@@ -313,7 +313,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune({ or: [{ match: 'Asset' }, { after: 'Feature' }, { after: 'Room' }] })
+            const prunedTreeOne = tagTree.prune({ or: [{ match: 'Asset' }, { after: { match: 'Feature' } }, { after: { match: 'Room' } }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Room key=(room1) />
                 <Feature key=(clockTower) />
@@ -340,7 +340,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune({ or: [{ before: 'Feature' }, { before: 'Room' }] })
+            const prunedTreeOne = tagTree.prune({ or: [{ before: { match: 'Feature' } }, { before: { match: 'Room' } }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Room key=(room1)>
                     <Name>Lobby<Space />at night</Name>
@@ -393,9 +393,73 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune({ or: [{ before: { tag: 'Bookmark', key: 'bookmark1' } }, { after: (node) => (isSchemaBookmark(node) && node.key !== 'bookmark1') }] })
+            const prunedTreeOne = tagTree.prune({ or: [{ before: { match: { tag: 'Bookmark', key: 'bookmark1' } } }, { after: { match: (node) => (isSchemaBookmark(node) && node.key !== 'bookmark1') } }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Bookmark key=(bookmark1)>Test <Bookmark key=(bookmark2) />More data</Bookmark>
+            `))
+        })
+
+        it('should prune after sequences', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Bookmark key=(bookmark1)>
+                        Test <Bookmark key=(bookmark2)>Red herring</Bookmark>
+                    </Bookmark>
+                    <If {true}><Bookmark key=(bookmark1)>More data</Bookmark></If>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: 'Bookmark' }, { match: 'Bookmark' }] } })
+            expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Bookmark key=(bookmark1)>Test <Bookmark key=(bookmark2) /></Bookmark>
+                    <If {true}><Bookmark key=(bookmark1)>More data</Bookmark></If>
+                </Asset>
+            `))
+        })
+
+        it('should prune after sequences including or', () => {
+            const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Map key=(testMap)>
+                        <Name>Test Map</Name>
+                        <If {true}>
+                            <Room key=(room1) x="0" y="0"><Description>Test room</Description></Room>
+                        </If>
+                        <Image key=(testImage) />
+                    </Map>
+                </Asset>
+            `))))
+            const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: (data) => (data.tag === 'Map' && data.key === 'testMap') }, { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Message' }] }] } })
+            expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Map key=(testMap)>
+                        <Name>Test Map</Name>
+                        <If {true}><Room key=(room1) x="0" y="0" /></If>
+                        <Image key=(testImage) />
+                    </Map>
+                </Asset>
+            `))
+            const testTreeTwo = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Moment key=(testMoment)>
+                        <Message key=(testMessage)>
+                            Test message
+                            <Room key=(testRoomOne)>
+                                <Description>Test Room One</Description>
+                                <Exit to=(testRoomTwo)>two</Exit>
+                            </Room>
+                        </Message>
+                    </Moment>
+                </Asset>
+            `))))
+            const tagTreeTwo = new TagTree({ tree: testTreeTwo, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeTwo = tagTreeTwo.prune({ after: { sequence: [{ match: (data) => (data.tag === 'Moment' && data.key === 'testMoment') }, { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Message' }] }] } })
+            expect(schemaToWML(prunedTreeTwo.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Moment key=(testMoment)><Message key=(testMessage) /></Moment>
+                </Asset>
             `))
         })
 
