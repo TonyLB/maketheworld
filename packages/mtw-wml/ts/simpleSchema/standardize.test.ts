@@ -113,7 +113,7 @@ describe('standardizeSchema', () => {
                     <Exit to=(testTwo)>Test Exit</Exit>
                 </Room>
                 <Room key=(testTwo)><Exit to=(test)>Test Return</Exit></Room>
-                <Message key=(testMessage)>Test message<Room key=(test) /></Message>
+                <Message key=(testMessage)><Room key=(test) />Test message</Message>
             </Asset>
         `))
     })
@@ -267,9 +267,9 @@ describe('standardizeSchema', () => {
                     <Exit to=(testRoomOne)>one</Exit>
                 </Room>
                 <Message key=(testMessage)>
-                    Test message
                     <Room key=(testRoomOne) />
                     <Room key=(testRoomTwo) />
+                    Test message
                 </Message>
             </Asset>
         `))
@@ -293,7 +293,7 @@ describe('standardizeSchema', () => {
                     <Description>Test Room One</Description>
                     <Exit to=(testRoomTwo)>two</Exit>
                 </Room>
-                <Message key=(testMessage)>Test message<Room key=(testRoomOne) /></Message>
+                <Message key=(testMessage)><Room key=(testRoomOne) />Test message</Message>
                 <Moment key=(testMoment)><Message key=(testMessage) /></Moment>
             </Asset>
         `))
