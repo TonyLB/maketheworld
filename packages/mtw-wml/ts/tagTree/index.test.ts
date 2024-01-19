@@ -431,7 +431,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: (data) => (data.tag === 'Map' && data.key === 'testMap') }, { or: [{ match: 'Room' }, { match: 'Feature' }] }] } })
+            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: (data) => (data.tag === 'Map' && data.key === 'testMap') }, { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Message' }] }] } })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Map key=(testMap)>
@@ -439,6 +439,26 @@ describe('TagTree', () => {
                         <If {true}><Room key=(room1) x="0" y="0" /></If>
                         <Image key=(testImage) />
                     </Map>
+                </Asset>
+            `))
+            const testTreeTwo = schemaFromParse(parse(tokenizer(new SourceStream(`
+                <Asset key=(test)>
+                    <Moment key=(testMoment)>
+                        <Message key=(testMessage)>
+                            Test message
+                            <Room key=(testRoomOne)>
+                                <Description>Test Room One</Description>
+                                <Exit to=(testRoomTwo)>two</Exit>
+                            </Room>
+                        </Message>
+                    </Moment>
+                </Asset>
+            `))))
+            const tagTreeTwo = new TagTree({ tree: testTreeTwo, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
+            const prunedTreeTwo = tagTreeTwo.prune({ after: { sequence: [{ match: (data) => (data.tag === 'Moment' && data.key === 'testMoment') }, { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Message' }] }] } })
+            expect(schemaToWML(prunedTreeTwo.tree)).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Moment key=(testMoment)><Message key=(testMessage) /></Moment>
                 </Asset>
             `))
         })

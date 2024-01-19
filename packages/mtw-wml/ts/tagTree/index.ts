@@ -276,12 +276,12 @@ export class TagTree<NodeData extends {}> {
                 return arg.and.reduce<number[]>((previous, subArg) => {
                     const recurse = pruneMatch(subArg, tagList)
                     return previous.filter((index) => (recurse.includes(index)))
-                }, allIndices)
+                }, allIndices).sort()
             }
             if ('or' in arg) {
                 return unique(arg.or
                     .map<number[]>((subArg) => (pruneMatch(subArg, tagList)))
-                    .flat(1))
+                    .flat(1)).sort()
             }
             return this._tagMatchOperationIndices(tagList, arg, (operation) => (pruneMatch(operation, tagList)))
         }
