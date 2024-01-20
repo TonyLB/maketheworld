@@ -225,6 +225,7 @@ export const {
     getCurrentWML,
     getDraftWML,
     getNormalized,
+    getSchema,
     getImportData,
     getProperties,
     getLoadedImages,

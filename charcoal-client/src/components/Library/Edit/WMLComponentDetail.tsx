@@ -28,13 +28,13 @@ import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { rename } from '../../../slices/UI/navigationTabs'
 
-type WMLComponentAppearanceProps = {
-    ComponentId: string;
-    appearanceIndex: number;
-}
+//
+// TODO: Create a selector that can extract the top-level appearance for a given Component (assuming Standardized
+// format on the passed schema)
+//
 
-const WMLComponentAppearance: FunctionComponent<WMLComponentAppearanceProps> = ({ ComponentId }) => {
-    const { normalForm, updateNormal, components, readonly } = useLibraryAsset()
+const WMLComponentAppearance: FunctionComponent<string> = (ComponentId) => {
+    const { updateSchema, schema, normalForm, updateNormal, components, readonly } = useLibraryAsset()
     const dispatch = useDispatch()
     const component = useMemo(() => (normalForm[ComponentId || '']), [ComponentId, normalForm])
     const { tag } = component || {}

@@ -28,7 +28,8 @@ import {
     getDraftWML,
     getImportData,
     getStatus,
-    getSerialized
+    getSerialized,
+    getSchema
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -42,7 +43,7 @@ import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dis
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
 import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
-import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -52,6 +53,7 @@ type LibraryAssetContextType = {
     normalForm: NormalForm;
     importData: (assetKey: string) => NormalForm | undefined;
     updateNormal: (action: UpdateNormalPayload) => void;
+    schema: GenericTree<SchemaTag, { id: string }>;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -73,6 +75,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     normalForm: {},
     importData: () => (undefined),
     updateNormal: () => {},
+    schema: [],
     updateSchema: () => {},
     properties: {},
     loadedImages: {},
@@ -169,6 +172,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
+    const schema = useSelector(getSchema(AssetId))
     const importData = useSelector(getImportData(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
@@ -204,6 +208,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             normalForm,
             importData,
             updateNormal,
+            schema,
             updateSchema,
             properties,
             loadedImages,
