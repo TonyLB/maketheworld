@@ -42,7 +42,7 @@ type UpdateSchemaPayloadAddChild = {
     item: GenericTreeNode<SchemaTag, { id?: string }>
 }
 
-type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadAddChild
+export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadAddChild
 
 const addIdIfNeeded = (tree: GenericTree<SchemaTag, { id?: string }>): GenericTree<SchemaTag, { id: string }> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
 

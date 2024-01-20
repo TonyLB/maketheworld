@@ -24,6 +24,7 @@ import {
     setIntent,
     getProperties,
     updateNormal as updateNormalAction,
+    updateSchema as updateSchemaAction,
     getDraftWML,
     getImportData,
     getStatus,
@@ -31,11 +32,11 @@ import {
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalForm, NormalComponent, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalForm, NormalComponent, NormalExit, isNormalExit, isNormalComponent, NormalImport, isNormalImport, NormalItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { objectFilter } from '../../../lib/objects'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
-import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
+import { UpdateNormalPayload, UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
@@ -51,6 +52,7 @@ type LibraryAssetContextType = {
     normalForm: NormalForm;
     importData: (assetKey: string) => NormalForm | undefined;
     updateNormal: (action: UpdateNormalPayload) => void;
+    updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
     components: Record<string, AssetComponent>;
@@ -71,6 +73,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     normalForm: {},
     importData: () => (undefined),
     updateNormal: () => {},
+    updateSchema: () => {},
     properties: {},
     loadedImages: {},
     components: {},
@@ -177,6 +180,11 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
+    const updateSchema = useCallback((updateAction: UpdateSchemaPayload) => {
+        dispatch(updateSchemaAction(AssetId)(updateAction))
+        dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
+        dispatch(heartbeat)
+    }, [dispatch, AssetId])
     const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importData }) ), [normalForm, importData])
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
     const exits = useMemo<Record<string, NormalExit>>(() => ( objectFilter(normalForm, isNormalExit) ), [components])
@@ -196,6 +204,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             normalForm,
             importData,
             updateNormal,
+            updateSchema,
             properties,
             loadedImages,
             components,
