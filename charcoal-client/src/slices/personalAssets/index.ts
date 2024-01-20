@@ -16,7 +16,7 @@ import {
     fetchImportsStateAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
-import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, setImport as setImportReducer } from './reducers'
+import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateNormal as updateNormalReducer, updateSchema as updateSchemaReducer, setImport as setImportReducer } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
 import { isNormalAsset, isNormalCharacter, isNormalImport, isNormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -56,6 +56,7 @@ export const {
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
         updateNormal: updateNormalReducer,
+        updateSchema: updateSchemaReducer,
         setImport: setImportReducer,
     },
     publicSelectors,
@@ -215,6 +216,7 @@ export const {
     revertDraftWML,
     setLoadedImage,
     updateNormal,
+    updateSchema,
     setImport,
     onEnter
 } = publicActions
