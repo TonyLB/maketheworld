@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { GenericTreeNode } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { map } from '@tonylb/mtw-wml/dist/sequence/tree/map'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -27,6 +28,59 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
         loadId: uuidv4(),
         file: action.payload.file
     }
+}
+
+type UpdateSchemaPayloadReplace = {
+    type: 'replace';
+    id: string;
+    item: GenericTreeNode<SchemaTag, { id?: string }>
+}
+
+type UpdateSchemaPayloadAddChild = {
+    type: 'addChild';
+    id: string;
+    item: GenericTreeNode<SchemaTag, { id?: string }>
+}
+
+type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadAddChild
+
+const addIdIfNeeded = (tree: GenericTree<SchemaTag, { id?: string }>): GenericTree<SchemaTag, { id: string }> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
+
+export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
+    const { schema } = state
+    switch(action.payload.type) {
+        case 'replace':
+            const replacedSchema = map(schema, (node) => {
+                if (node.id === action.payload.id) {
+                    return addIdIfNeeded([action.payload.item])[0]
+                }
+                else {
+                    return node
+                }
+            })
+            return {
+                schema: replacedSchema
+            }
+        case 'addChild':
+            const addedSchema = map(schema, (node) => {
+                if (node.id === action.payload.id) {
+                    return {
+                        ...node,
+                        children: [
+                            ...node.children,
+                            ...addIdIfNeeded([action.payload.item])
+                        ]
+                    }
+                }
+                else {
+                    return node
+                }
+            })
+            return {
+                schema: addedSchema
+            }
+    }
+    return {}
 }
 
 type UpdateNormalPayloadPutPosition = {
