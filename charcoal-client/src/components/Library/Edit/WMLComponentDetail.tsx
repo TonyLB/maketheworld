@@ -15,9 +15,9 @@ import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import { useDebouncedOnChange } from '../../../hooks/useDebounce'
-import { ComponentRenderItem, isNormalComponent, isNormalFeature, isNormalKnowledge, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { ComponentAppearance, ComponentRenderItem, isNormalComponent, isNormalFeature, isNormalKnowledge, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
-import { isSchemaKnowledge, isSchemaRoom } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { isSchemaAsset, isSchemaKnowledge, isSchemaRoom, isSchemaWithKey, SchemaFeatureTag, SchemaKnowledgeTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
@@ -27,6 +27,8 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { rename } from '../../../slices/UI/navigationTabs'
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { explicitSpaces } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/explicitSpaces'
 
 //
 // TODO: Create a selector that can extract the top-level appearance for a given Component (assuming Standardized
@@ -40,67 +42,80 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     const { tag } = component || {}
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
-    const onChange = useCallback((newRender: ComponentRenderItem[]) => {
+
+    //
+    // Look up data directly through Normalize, and use that (plus the assumption that the
+    // Schema is in standardized format) to find the appearance that holds all of the top-level
+    // data for the component
+    //
+    const appearance = useMemo((): GenericTreeNodeFiltered<SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag, SchemaTag, TreeId> | undefined => {
+        //
+        // Temporary work-around:  Right now, the Appearance type constraints in NormalForm are too
+        // complicated to accept a nested Extra argument. So in the short-term, instead of passing
+        // GenericTree<SchemaTag, TreeId> into NormalForm, we're constructing the non-ID tree in
+        // NormalForm, and just fetching the correct data straight out of the schema here.
+        //
+
+        //
+        // TODO: When BaseAppearance has been rationalized down to a less complex type, and
+        // Normalizer has been simplified down to a read-only entity rather than the complex
+        // tangle it is now, refactor so that normalForm appearances already *have* the ID
+        // data we're looking up here.
+        //
+        if (schema.length === 0) {
+            throw new Error('No data in schema at WMLComponentDetail')
+        }
+        const { data: assetData } = schema[0]
+        if (schema.length > 1 || !isSchemaAsset(assetData)) {
+            throw new Error('Non-asset top level tag in schema at WMLComponentDetail')
+        }
+        const topLevelChildren = schema[0].children
+        return topLevelChildren
+            .reduce<GenericTreeNodeFiltered<SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag, SchemaTag, TreeId> | undefined>((previous, appearance) => {
+                const { data } = appearance
+                if (!(isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data))) {
+                    return previous
+                }
+                if (previous) {
+                    throw new Error('Schema not standardized in WMLComponentAppearance')
+                }
+                return {
+                    ...appearance,
+                    data
+                }
+            }, undefined)
+    }, [schema, ComponentId])
+
+    const onChange = useCallback((newRender: GenericTree<SchemaOutputTag>) => {
         //
         // TODO: Figure out how to stop out-of-control looping on onChange in the case of minor
         // miscalibrations of the descendantsToRender function
         //
-        const adjustedRender = newRender.reduce<ComponentRenderItem[]>((previous, item, index) => {
-            if (index === 0 && item.tag === 'String' && item.value.search(/^\s+/) !== -1) {
-                return [
-                    ...previous,
-                    {
-                        tag: 'Space'
-                    },
-                    {
-                        tag: 'String',
-                        value: item.value.trimStart()
-                    }
-                ]
-            }
-            if ((index === newRender.length - 1) && item.tag === 'String' && item.value.search(/\s+$/) !== -1) {
-                return [
-                    ...previous,
-                    {
-                        tag: 'String',
-                        value: item.value.trimEnd()
-                    },
-                    {
-                        tag: 'Space'
-                    }
-                ]
-            }
-            return [
-                ...previous,
-                item
-            ]
-        }, []).map(componentRenderToSchemaTaggedMessage)
+        const adjustedRender = explicitSpaces(newRender)
         const normalizer = new Normalizer()
         normalizer.loadNormal(normalForm)
         normalizer.standardize()
         const reference: NormalReference = { tag, key: ComponentId, index: 0 }
-        const baseSchema = normalizer.referenceToSchema(reference)
+        const { data: baseSchema } = normalizer.referenceToSchema(reference)
         if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema) || isSchemaKnowledge(baseSchema)) {
             if (isSchemaRoom(baseSchema) && adjustedRender?.length)  {
                 dispatch(addOnboardingComplete(['describeRoom']))
             }
-            updateNormal({
-                type: 'put',
-                item: {
-                    ...baseSchema,
-                    render: adjustedRender
-                },
-                position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
-            })
+            //
+            // TODO: Use internal UUIDs in appearance to create an updateSchema version of
+            // this onChange
+            //
+
+            // updateNormal({
+            //     type: 'put',
+            //     item: {
+            //         ...baseSchema,
+            //         render: adjustedRender
+            //     },
+            //     position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
+            // })
         }
     }, [ComponentId, tag, normalForm, updateNormal, dispatch])
-    const appearance = useMemo(() => {
-        const component = normalForm[ComponentId]
-        if (!(component && (isNormalRoom(component) || isNormalFeature(component) || isNormalKnowledge(component)))) {
-            return undefined
-        }
-        return component.appearances[0]
-    }, [normalForm, ComponentId])
     const [name, setName] = useState(appearance?.name || [])
     useEffect(() => {
         setName(appearance?.name || [])

@@ -42,7 +42,7 @@ import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
-import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
 type LibraryAssetContextType = {
@@ -53,7 +53,7 @@ type LibraryAssetContextType = {
     normalForm: NormalForm;
     importData: (assetKey: string) => NormalForm | undefined;
     updateNormal: (action: UpdateNormalPayload) => void;
-    schema: GenericTree<SchemaTag, { id: string }>;
+    schema: GenericTree<SchemaTag, TreeId>;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
