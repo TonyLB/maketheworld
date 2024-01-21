@@ -1,11 +1,11 @@
 import { Schema } from '.'
-import { GenericTree } from '../sequence/tree/baseClasses'
+import { GenericTree, TreeId } from '../sequence/tree/baseClasses'
 import { schemaToWML } from '../simpleSchema'
 import { deIndentWML } from '../simpleSchema/utils'
 import { SchemaTag } from './baseClasses'
 import standardizeSchema from './standardize'
 
-const schemaTestWML = (wml: string): GenericTree<SchemaTag, { id: string }> => {
+const schemaTestWML = (wml: string): GenericTree<SchemaTag, TreeId> => {
     const schema = new Schema()
     schema.loadWML(wml)
     return schema.schema

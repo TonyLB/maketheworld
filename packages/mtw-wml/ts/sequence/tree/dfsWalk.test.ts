@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals'
 
-import { GenericTree, GenericTreeID, GenericTreeIDNode, GenericTreeNode } from './baseClasses'
+import { GenericTree, GenericTreeID, GenericTreeIDNode, GenericTreeNode, TreeId } from './baseClasses'
 import dfsWalk from './dfsWalk'
 
 describe('dfsWalk', () => {
@@ -112,7 +112,7 @@ describe('dfsWalk', () => {
     })
 
     it('should handle GenericIDTree inputs', () => {
-        const verboseTestWalk = dfsWalk<(previous: { output: string[], state: number }, value: string, extra: { id: string }) => { output: string[], state: number }>({
+        const verboseTestWalk = dfsWalk<(previous: { output: string[], state: number }, value: string, extra: TreeId) => { output: string[], state: number }>({
             default: { output: [], state: 0 },
             callback: ({ state, output }, value, { id }) => ({ output: [...output, id], state: state + 1 }),
             aggregate: ({ direct, children }) => ({ output: [[...direct.output, ...children.output].join(', ')], state: children.state })

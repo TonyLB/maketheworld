@@ -1,4 +1,4 @@
-import { GenericTree } from './baseClasses'
+import { GenericTree, TreeId } from './baseClasses'
 import { map } from './map'
 
 describe('tree map', () => {
@@ -14,7 +14,7 @@ describe('tree map', () => {
     })
 
     it('should map a GenericIDTree', () => {
-        const testTree: GenericTree<string, { id: string }> = [
+        const testTree: GenericTree<string, TreeId> = [
             { data: 'A', id: 'A', children: [{ data: 'B', id: 'B', children: [] }, { data: 'C', id: 'C', children: [] }]},
             { data: 'D', id: 'D', children: [] }
         ]

@@ -4,7 +4,7 @@ import { SchemaContextItem } from "./baseClasses"
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
 import { optionsFactory, validateContents } from "./converters/utils"
-import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNode, TreeId } from "../sequence/tree/baseClasses"
 import SourceStream from "../parser/tokenizer/sourceStream"
 import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"
@@ -197,7 +197,7 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
 }
 
 export class Schema {
-    _schema: GenericTree<SchemaTag, { id: string }> = [];
+    _schema: GenericTree<SchemaTag, TreeId> = [];
 
     loadWML(wml: string): void {
         const bareSchema = schemaFromParse(parse(tokenizer(new SourceStream(wml))))
