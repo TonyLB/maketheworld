@@ -23,10 +23,10 @@ export const asyncFilter = async <Callback extends TreeCallback<Promise<boolean>
     )).flat(1)
 }
 
-export const treeTypeGuard = <NodeData extends {}, NewNodeData extends NodeData>({ tree, typeGuard }: { tree: GenericTree<NodeData>, typeGuard: (value: NodeData) => value is NewNodeData }): GenericTree<NewNodeData> => (
-    tree.map(({ data, children }) => (
+export const treeTypeGuard = <NodeData extends {}, NewNodeData extends NodeData, Extra extends {} = {}>({ tree, typeGuard }: { tree: GenericTree<NodeData, Extra>, typeGuard: (value: NodeData) => value is NewNodeData }): GenericTree<NewNodeData, Extra> => (
+    tree.map(({ data, children, ...rest }) => (
         typeGuard(data)
-            ?  [{ data, children: treeTypeGuard({ tree: children, typeGuard })}]
+            ?  [{ data, children: treeTypeGuard({ tree: children, typeGuard }), ...rest }] as unknown as GenericTree<NewNodeData, Extra>
             : []
     )).flat(1)
 )

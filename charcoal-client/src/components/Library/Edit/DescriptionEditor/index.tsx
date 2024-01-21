@@ -35,8 +35,6 @@ import {
     CustomInheritedReadOnlyElement
 } from '../baseClasses'
 
-import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { getNormalized } from '../../../../slices/personalAssets'
 import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import descendantsToRender from './descendantsToRender'
 import descendantsFromRender from './descendantsFromRender'
@@ -54,7 +52,8 @@ import { genericIDFromTree } from '@tonylb/mtw-wml/dist/sequence/tree/genericIDT
 interface DescriptionEditorProps {
     ComponentId: string;
     inheritedRender?: GenericTree<SchemaOutputTag, TreeId>;
-    render: GenericTree<SchemaOutputTag, TreeId>;
+    output: GenericTree<SchemaOutputTag, TreeId>;
+    validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
     onChange?: (items: GenericTree<SchemaOutputTag, TreeId>) => void;
 }
 
@@ -327,14 +326,10 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
     </React.Fragment>
 }
 
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, render, onChange = () => {} }) => {
-    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-    const AssetId = `ASSET#${assetKey}`
-    const normalForm = useSelector(getNormalized(AssetId))
-    const { components, readonly } = useLibraryAsset()
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[] }) => {
+    const { normalForm, components, readonly } = useLibraryAsset()
     const inheritedRender = useMemo(() => (genericIDFromTree(components[ComponentId]?.inheritedRender) || []), [components, ComponentId])
-    const tag = useMemo(() => (components[ComponentId]?.tag), [components, ComponentId])
-    const defaultValue = useMemo(() => (descendantsFromRender(render, { normal: normalForm })), [render, normalForm])
+    const defaultValue = useMemo(() => (descendantsFromRender(output, { normal: normalForm })), [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
@@ -393,10 +388,14 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     //
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
-            <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']} />
+            <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
-                <RemoveLinkButton />
+                { validLinkTags.length &&
+                    <React.Fragment>
+                        <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
+                        <RemoveLinkButton />
+                    </React.Fragment>
+                }
                 <DisplayTagRadio />
                 <AddIfButton defaultBlock={{
                     type: 'paragraph',

@@ -65,6 +65,7 @@ type LibraryAssetContextType = {
     readonly: boolean;
     serialized: boolean;
     status?: keyof PersonalAssetsNodes;
+    select: <Output>(args: { key: string; selector: (tree: GenericTree<SchemaTag>, options?: { tag: string, key: string }) => Output }) => Output;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -85,7 +86,8 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     features: {},
     save: () => {},
     readonly: true,
-    serialized: false
+    serialized: false,
+    select: () => { throw new Error('Undefined selector in LibraryAsset') }
 })
 
 type LibraryAssetProps = {
@@ -184,6 +186,12 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
+    const normalizer = useMemo(() => {
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(normalForm)
+        return normalizer
+    }, [normalForm])
+    const select = useCallback((args) => (normalizer.select(args)), [normalizer])
     const updateSchema = useCallback((updateAction: UpdateSchemaPayload) => {
         dispatch(updateSchemaAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
@@ -208,6 +216,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             normalForm,
             importData,
             updateNormal,
+            select,
             schema,
             updateSchema,
             properties,

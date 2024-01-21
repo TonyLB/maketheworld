@@ -17,7 +17,7 @@ import { useLibraryAsset } from './LibraryAsset'
 import { useDebouncedOnChange } from '../../../hooks/useDebounce'
 import { ComponentAppearance, ComponentRenderItem, isNormalComponent, isNormalFeature, isNormalKnowledge, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
-import { isSchemaAsset, isSchemaKnowledge, isSchemaRoom, isSchemaWithKey, SchemaFeatureTag, SchemaKnowledgeTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { isSchemaAsset, isSchemaKnowledge, isSchemaOutputTag, isSchemaRoom, isSchemaWithKey, SchemaFeatureTag, SchemaKnowledgeTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
@@ -27,8 +27,9 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { rename } from '../../../slices/UI/navigationTabs'
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { explicitSpaces } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/explicitSpaces'
+import { treeTypeGuard } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
 
 //
 // TODO: Create a selector that can extract the top-level appearance for a given Component (assuming Standardized
@@ -86,71 +87,57 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             }, undefined)
     }, [schema, ComponentId])
 
-    const onChange = useCallback((newRender: GenericTree<SchemaOutputTag>) => {
+    const onChange = useCallback((tag: 'Name' | 'Description') => (newRender: GenericTree<SchemaOutputTag>) => {
         //
         // TODO: Figure out how to stop out-of-control looping on onChange in the case of minor
         // miscalibrations of the descendantsToRender function
         //
         const adjustedRender = explicitSpaces(newRender)
-        const normalizer = new Normalizer()
-        normalizer.loadNormal(normalForm)
-        normalizer.standardize()
-        const reference: NormalReference = { tag, key: ComponentId, index: 0 }
-        const { data: baseSchema } = normalizer.referenceToSchema(reference)
-        if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema) || isSchemaKnowledge(baseSchema)) {
-            if (isSchemaRoom(baseSchema) && adjustedRender?.length)  {
-                dispatch(addOnboardingComplete(['describeRoom']))
-            }
-            //
-            // TODO: Use internal UUIDs in appearance to create an updateSchema version of
-            // this onChange
-            //
-
-            // updateNormal({
-            //     type: 'put',
-            //     item: {
-            //         ...baseSchema,
-            //         render: adjustedRender
-            //     },
-            //     position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
-            // })
+        if (isSchemaRoom(appearance.data) && adjustedRender?.length)  {
+            dispatch(addOnboardingComplete(['describeRoom']))
         }
-    }, [ComponentId, tag, normalForm, updateNormal, dispatch])
-    const [name, setName] = useState(appearance?.name || [])
-    useEffect(() => {
-        setName(appearance?.name || [])
-    }, [appearance, setName])
-    const nameText = useMemo<string>(() => ((name || []).map((item) => ((item.tag === 'String') ? item.value : '')).join('')), [name])
-
-    const dispatchNameChange = useCallback((value: ComponentRenderItem[]) => {
-        const normalizer = new Normalizer()
-        normalizer._normalForm = normalForm
-        const reference: NormalReference = { tag, key: ComponentId, index: 0 }
-        const baseSchema = normalizer.referenceToSchema(reference)
-        if (isSchemaRoom(baseSchema) || isSchemaFeature(baseSchema) || isSchemaKnowledge(baseSchema)) {
-            if (isSchemaRoom(baseSchema) && value?.length)  {
-                dispatch(addOnboardingComplete(['nameRoom']))
+        //
+        // Use internal UUIDs in appearance to update schema with new output data
+        //
+        if (appearance.id) {
+            const tagToReplace = appearance.children
+                .find((appearance) => (appearance.data.tag === tag))
+            if (tagToReplace) {
+                updateSchema({
+                    type: 'replace',
+                    id: tagToReplace.id,
+                    item: {
+                        data: tagToReplace.data,
+                        children: adjustedRender
+                    }
+                })
             }
-            updateNormal({
-                type: 'put',
-                item: {
-                    ...baseSchema,
-                    name: (value || []).map(componentRenderToSchemaTaggedMessage)
-                },
-                position: { ...normalizer._referenceToInsertPosition(reference), replace: true },
-            })
+            else {
+                updateSchema({
+                    type: 'addChild',
+                    id: appearance.id,
+                    item: {
+                        data: { tag },
+                        children: adjustedRender
+                    }
+                })
+            }
         }
-    }, [tag, ComponentId, normalForm, updateNormal, dispatch])
-    const changeName = useCallback((event) => {
-        setName([{ tag: 'String', value: event.target.value }])
-    }, [setName])
-    useDebouncedOnChange({ value: name, delay: 1000, onChange: dispatchNameChange })
+    }, [appearance, updateSchema, dispatch])
+    const onChangeDescription = useCallback(onChange('Description'), [onChange])
+    const onChangeName = useCallback(onChange('Name'), [onChange])
+    const extractOutput = useCallback((tag: 'Name' | 'Description'): GenericTree<SchemaOutputTag, TreeId> => {
+        const matchedTag = appearance.children
+            .find((appearance) => (appearance.data.tag === tag))
+        return treeTypeGuard({ tree: matchedTag?.children ?? [], typeGuard: isSchemaOutputTag })
+    }, [appearance])
+    const descriptionOutput = useMemo(() => (extractOutput('Description')), [extractOutput])
+    const nameOutput = useMemo(() => (extractOutput('Name')), [extractOutput])
     if (!component || !appearance) {
         return <Box />
     }
     //
-    // TODO: Refactor DescriptionEditor to handle GenericTree<SchemaTag>, and then use that
-    // for both Name and Description
+    // TODO: Pull nameOutput and renderOutput from appearance, and use to populate DescriptionEditor
     //
     return <Box sx={{
         marginLeft: '0.5em',
@@ -161,29 +148,16 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         width: "calc(100% - 0.5em)",
         position: 'relative'
     }}>
-        <Box
-            sx={{
-                height: "100%",
-                background: 'lightgrey',
-                verticalAlign: 'middle',
-                display: 'inline'
-            }}
-        >
-            { taggedMessageToString(components[ComponentId]?.inheritedName || []) }
-        </Box>
-        <TextField
-            id="name"
-            label="Name"
-            size="small"
-            value={nameText}
-            onChange={changeName}
-            disabled={readonly}
+        <DescriptionEditor
+            ComponentId={ComponentId}
+            output={nameOutput}
+            onChange={onChangeName}
         />
         <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
             <DescriptionEditor
                 ComponentId={ComponentId}
-                render={appearance.render || []}
-                onChange={onChange}
+                output={descriptionOutput}
+                onChange={onChangeDescription}
             />
         </Box>
         {
@@ -202,6 +176,13 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component = normalForm[ComponentId || '']
     const { tag = '' } = isNormalComponent(component) ? component : {}
+    //
+    // TODO: Add selectNameAsString selector
+    //
+
+    //
+    // TODO: Use selectNameAsString instead of depending on components information
+    //
     const componentName = taggedMessageToString(components[component.key]?.name ?? [{ tag: 'String', value: 'Untitled' }])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
