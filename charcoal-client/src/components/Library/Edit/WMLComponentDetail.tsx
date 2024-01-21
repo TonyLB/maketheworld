@@ -30,6 +30,7 @@ import { rename } from '../../../slices/UI/navigationTabs'
 import { GenericTree, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { explicitSpaces } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/explicitSpaces'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
+import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 
 //
 // TODO: Create a selector that can extract the top-level appearance for a given Component (assuming Standardized
@@ -136,9 +137,6 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
     if (!component || !appearance) {
         return <Box />
     }
-    //
-    // TODO: Pull nameOutput and renderOutput from appearance, and use to populate DescriptionEditor
-    //
     return <Box sx={{
         marginLeft: '0.5em',
         marginTop: '0.5em',
@@ -172,7 +170,7 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, normalForm, updateNormal, components } = useLibraryAsset()
+    const { assetKey, normalForm, updateNormal, select } = useLibraryAsset()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const component = normalForm[ComponentId || '']
     const { tag = '' } = isNormalComponent(component) ? component : {}
@@ -183,7 +181,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     //
     // TODO: Use selectNameAsString instead of depending on components information
     //
-    const componentName = taggedMessageToString(components[component.key]?.name ?? [{ tag: 'String', value: 'Untitled' }])
+    const componentName = useMemo(() => (select({ key: ComponentId, selector: selectNameAsString })), [select, ComponentId])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
         label: componentName || 'Untitled',
@@ -193,6 +191,13 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         componentId: ComponentId || ''
     })
     const onNameChange = useCallback((toKey: string) => {
+        //
+        // TODO: Create rename action on updateSchema
+        //
+
+        //
+        // TODO: Refactor this section to use updateSchema instead of updateNormal
+        //
         updateNormal({
             type: 'rename',
             fromKey: ComponentId,
