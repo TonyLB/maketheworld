@@ -20,9 +20,9 @@ describe('descendantsToRender', () => {
                 text: ' and more text.'
             }]
         }])).toEqual([
-            { tag: 'String', value: 'This is a test ' },
-            { tag: 'Link', to: 'testFeature', targetTag: 'Feature', text: 'with a link' },
-            { tag: 'String', value: ' and more text.' }
+            { data: { tag: 'String', value: 'This is a test ' }, children: [] },
+            { data: { tag: 'Link', to: 'testFeature', text: 'with a link' }, children: [] },
+            { data: { tag: 'String', value: ' and more text.' }, children: [] }
         ])
     })
 
@@ -35,9 +35,9 @@ describe('descendantsToRender', () => {
             type: 'paragraph',
             children: [{ text: 'With two paragraphs.' }]
         }])).toEqual([
-            { tag: 'String', value: 'This is a test.' },
-            { tag: 'LineBreak' },
-            { tag: 'String', value: 'With two paragraphs.' }
+            { data: { tag: 'String', value: 'This is a test.' }, children: [] },
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: 'With two paragraphs.' }, children: [] }
         ])
     })
 
@@ -58,11 +58,11 @@ describe('descendantsToRender', () => {
                 { text: ' ' }
             ]
         }])).toEqual([
-            { tag: 'String', value: 'This is a test.' },
-            { tag: 'LineBreak' },
-            { tag: 'String', value: 'With ' },
-            { tag: 'Link', to: 'testFeature', targetTag: 'Feature', text: 'link' },
-            { tag: 'Space' }
+            { data: { tag: 'String', value: 'This is a test.' }, children: [] },
+            { data: { tag: 'br' }, children: [] },
+            { data: { tag: 'String', value: 'With ' }, children: [] },
+            { data: { tag: 'Link', to: 'testFeature', text: 'link' }, children: [] },
+            { data: { tag: 'Space' }, children: [] }
         ])
     })
 
@@ -90,14 +90,20 @@ describe('descendantsToRender', () => {
             type: 'paragraph',
             children: [{ text: ' and more text.' }]
         }])).toEqual([
-            { tag: 'String', value: 'This is a test ' },
-            { tag: 'Condition', conditions: [{ if: 'testVariable', dependencies: ['testVariable'] }], contents: [
-                { tag: 'String', value: 'with an If'}
-            ] },
-            { tag: 'Condition', conditions: [{ if: 'testVariable', dependencies: ['testVariable'], not: true }], contents: [
-                { tag: 'String', value: 'and an Else'}
-            ] },
-            { tag: 'String', value: ' and more text.' }
+            { data: { tag: 'String', value: 'This is a test ' }, children: [] },
+            {
+                data: { tag: 'If', conditions: [{ if: 'testVariable' }] },
+                children: [
+                    { data: { tag: 'String', value: 'with an If'}, children: [] }
+                ]
+            },
+            {
+                data: { tag: 'If', conditions: [{ if: 'testVariable', not: true }] },
+                children: [
+                    { data: { tag: 'String', value: 'and an Else'}, children: [] }
+                ]
+            },
+            { data: { tag: 'String', value: ' and more text.' }, children: [] }
         ])
     })
 })

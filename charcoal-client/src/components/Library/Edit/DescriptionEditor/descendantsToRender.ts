@@ -1,5 +1,4 @@
-import { extractDependenciesFromJS } from "@tonylb/mtw-wml/dist/convert/utils"
-import { ComponentRenderItem, NormalConditionStatement } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { NormalConditionStatement } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import {
     CustomBeforeBlock,
     CustomBlock,
@@ -7,59 +6,53 @@ import {
     isCustomBeforeBlock,
     isCustomElseBlock,
     isCustomElseIfBlock,
-    isCustomFeatureLink,
     isCustomIfBlock,
-    isCustomKnowledgeLink,
     isCustomLink,
     isCustomParagraph,
     isCustomParagraphContents,
     isCustomReplaceBlock,
     isCustomText
 } from "../baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 
-export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): ComponentRenderItem[] => {
+//
+// TODO: Refactor descendantsToRender to return GenericTree<SchemaOutputTag, { id: string }>
+//
+export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlock | CustomBlock)[]): GenericTree<SchemaOutputTag> => {
     let runningConditions: NormalConditionStatement[] = []
-    return items.reduce<ComponentRenderItem[]>((accumulator, item, index) => {
+    const returnValue = items.reduce<GenericTree<SchemaOutputTag>>((tree, item, index) => {
         if (isCustomIfBlock(item)) {
-            const ifCondition = {
-                if: item.source,
-                dependencies: extractDependenciesFromJS(item.source)
-            }
+            const ifCondition = { if: item.source }
             runningConditions = [{ ...ifCondition, not: true }]
             return [
-                ...accumulator,
+                ...tree,
                 {
-                    tag: 'Condition',
-                    conditions: [ifCondition],
-                    contents: descendantsToRender(item.children)
+                    data: { tag: 'If' as const, conditions: [ifCondition] },
+                    children: descendantsToRender(item.children)
                 }
             ]
         }
         else if (isCustomElseIfBlock(item)) {
-            const newCondition = {
-                if: item.source,
-                dependencies: extractDependenciesFromJS(item.source)
-            }
+            const newCondition = { if: item.source }
             runningConditions = [
                 ...runningConditions,
                 { ...newCondition, not: true }
             ]
             return [
-                ...accumulator,
+                ...tree,
                 {
-                    tag: 'Condition',
-                    conditions: [...(runningConditions.slice(0, -1)), newCondition],
-                    contents: descendantsToRender(item.children)
+                    data: { tag: 'If' as const, conditions: [...(runningConditions.slice(0, -1)), newCondition] },
+                    children: descendantsToRender(item.children)
                 }
             ]
         }
         else if (isCustomElseBlock(item)) {
-            const returnVal: ComponentRenderItem[] = [
-                ...accumulator,
+            const returnVal = [
+                ...tree,
                 {
-                    tag: 'Condition',
-                    conditions: [...runningConditions],
-                    contents: descendantsToRender(item.children)
+                    data: { tag: 'If' as const, conditions: [...runningConditions] },
+                    children: descendantsToRender(item.children)
                 }
             ]
             runningConditions = []
@@ -68,23 +61,20 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
         else if (isCustomParagraph(item) || (isCustomParagraphContents(item) && (isCustomBeforeBlock(item) || isCustomReplaceBlock(item)))) {
             return item.children
                 .filter((item) => (!(isCustomText(item) && !item.text)))
-                .reduce<ComponentRenderItem[]>((previous, item) => {
+                .reduce<GenericTree<SchemaOutputTag>>((previous, item) => {
                     if (isCustomLink(item)) {
-                        const targetTag = isCustomFeatureLink(item)
-                            ? 'Feature'
-                            : isCustomKnowledgeLink(item)
-                                ? 'Knowledge'
-                                : 'Action'
                         return [
                             ...previous,
                             {
-                                tag: 'Link',
-                                targetTag,
-                                to: item.to,
-                                text: item.children
+                                data: {
+                                    tag: 'Link', 
+                                    to: item.to,
+                                    text: item.children
                                     .filter((child) => ('text' in child))
                                     .map(({ text }) => (text))
                                     .join('')
+                                },
+                                children: []
                             }
                         ]
                     }
@@ -92,42 +82,34 @@ export const descendantsToRender = (items: (CustomBeforeBlock | CustomReplaceBlo
                         return [
                             ...previous,
                             {
-                                tag: item.type === 'before' ? 'Before' : 'Replace',
-                                contents: descendantsToRender([item])
+                                data: { tag: item.type === 'before' ? 'Before' : 'Replace' },
+                                children: descendantsToRender([item])
                             }
                         ]
                     }
                     if ('text' in item) {
-                        const lastItem = previous.at(-1)
+                        const lastItem = previous.at(-1)?.data
                         if (lastItem && lastItem.tag === 'String') {
                             return [
                                 ...previous.slice(0, -1),
-                                {
-                                    tag: 'String',
-                                    value: lastItem.value.trimEnd()
-                                },
-                                { tag: 'LineBreak' },
-                                {
-                                    tag: 'String',
-                                    value: item.text
-                                }
+                                { data: { tag: 'String', value: lastItem.value.trimEnd() }, children: [] },
+                                { data: { tag: 'br' }, children: [] },
+                                { data: { tag: 'String', value: item.text }, children: [] }
                             ]
                         }
                         return [
                             ...previous,
                             item.text.trim()
-                                ? {
-                                    tag: 'String',
-                                    value: item.text
-                                }
-                                : { tag: 'Space' }
+                                ? { data: { tag: 'String', value: item.text }, children: [] }
+                                : { data: { tag: 'Space' }, children: [] }
                         ]
                     }
                     return previous
-                }, accumulator)
+                }, tree)
         }
-        return accumulator
-    }, [] as ComponentRenderItem[])
+        return tree
+    }, [])
+    return returnValue
 }
 
 export default descendantsToRender
