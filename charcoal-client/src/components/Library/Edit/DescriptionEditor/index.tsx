@@ -36,7 +36,6 @@ import {
 } from '../baseClasses'
 
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 import { getNormalized } from '../../../../slices/personalAssets'
 import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import descendantsToRender from './descendantsToRender'
@@ -46,14 +45,16 @@ import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
 import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
-import { LabelledIndentBox, SlateIndentBox } from '../LabelledIndentBox'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
+import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { genericIDFromTree } from '@tonylb/mtw-wml/dist/sequence/tree/genericIDTree'
 
 interface DescriptionEditorProps {
     ComponentId: string;
-    inheritedRender?: ComponentRenderItem[];
-    render: ComponentRenderItem[];
+    inheritedRender?: GenericTree<SchemaOutputTag, { id: string }>;
+    render: GenericTree<SchemaOutputTag, { id: string }>;
     onChange?: (items: ComponentRenderItem[]) => void;
 }
 
@@ -70,10 +71,10 @@ const withInlines = (editor: Editor) => {
     return editor
 }
 
-const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
+const InheritedDescription: FunctionComponent<{ inheritedRender?: GenericTree<SchemaOutputTag, { id: string }> }> = ({ inheritedRender=[] }) => {
     const inheritedValue = useMemo<CustomInheritedReadOnlyElement[]>(() => ([{
         type: 'inherited',
-        children: descendantsFromRender(inheritedRender)
+        children: descendantsFromRender(inheritedRender, { normal: {} })
     }]), [inheritedRender])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
@@ -331,9 +332,9 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const { components, readonly } = useLibraryAsset()
-    const inheritedRender = useMemo(() => (components[ComponentId]?.inheritedRender || []), [components, ComponentId])
+    const inheritedRender = useMemo(() => (genericIDFromTree(components[ComponentId]?.inheritedRender) || []), [components, ComponentId])
     const tag = useMemo(() => (components[ComponentId]?.tag), [components, ComponentId])
-    const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
+    const defaultValue = useMemo(() => (descendantsFromRender(render, { normal: normalForm })), [render, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),

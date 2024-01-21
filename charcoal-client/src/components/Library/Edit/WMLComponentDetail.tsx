@@ -33,7 +33,7 @@ import { rename } from '../../../slices/UI/navigationTabs'
 // format on the passed schema)
 //
 
-const WMLComponentAppearance: FunctionComponent<string> = (ComponentId) => {
+const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { updateSchema, schema, normalForm, updateNormal, components, readonly } = useLibraryAsset()
     const dispatch = useDispatch()
     const component = useMemo(() => (normalForm[ComponentId || '']), [ComponentId, normalForm])
@@ -133,6 +133,10 @@ const WMLComponentAppearance: FunctionComponent<string> = (ComponentId) => {
     if (!component || !appearance) {
         return <Box />
     }
+    //
+    // TODO: Refactor DescriptionEditor to handle GenericTree<SchemaTag>, and then use that
+    // for both Name and Description
+    //
     return <Box sx={{
         marginLeft: '0.5em',
         marginTop: '0.5em',
@@ -231,7 +235,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         />
         <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
             <Box sx={{ overflowY: 'auto' }}>
-                <WMLComponentAppearance ComponentId={ComponentId} appearanceIndex={0} />
+                <WMLComponentAppearance ComponentId={ComponentId} />
             </Box>
             <DraftLockout />
         </Box>

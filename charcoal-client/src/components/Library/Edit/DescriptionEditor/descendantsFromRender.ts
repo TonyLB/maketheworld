@@ -1,4 +1,4 @@
-import { ComponentRenderItem, NormalConditionStatement, NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { NormalConditionStatement, NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { deepEqual } from "../../../../lib/objects"
 import {
     CustomActionLinkElement,
@@ -18,8 +18,10 @@ import {
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 
-const descendantsTranslate = function * (renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
+const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, { id: string }>, options: { normal: NormalForm }): (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] => {
     let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
     const conditionElseContext: (current: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
         if (!current) {
@@ -47,49 +49,43 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[]): Ge
             isElseValid: true
         }
     }
-    if (renderItems.length === 0) {
-        yield {
-            text: ''
-        }
-    }
-    for (const item of renderItems) {
-        if (item.tag !== 'Condition' && currentIfSequence.length) {
-            yield* (currentIfSequence.map(mapConditionIsElseValid)) as any
+    let returnValue: (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
+    tree.forEach(({ data: item, children }) => {
+        if (item.tag !== 'If' && currentIfSequence.length) {
+            returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
             currentIfSequence = []
         }
         switch(item.tag) {
             case 'Space':
-                yield {
+                returnValue.push({
                     text: ' '
-                } as CustomText
+                } as CustomText)
                 break
             case 'Link':
-                yield {
-                    type: item.targetTag === 'Feature' ? 'featureLink' : item.targetTag === 'Action' ? 'actionLink' : 'knowledgeLink',
+                returnValue.push({
+                    type: options.normal[item.to]?.tag === 'Feature' ? 'featureLink' : options.normal[item.to]?.tag === 'Action' ? 'actionLink' : 'knowledgeLink',
                     to: item.to,
                     children: [{
                         text: item.text || ''
                     }]
-                } as CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement
+                } as CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement)
                 break
             case 'String':
-                yield { text: item.value } as CustomText
+                returnValue.push({ text: item.value } as CustomText)
                 break
-            case 'LineBreak':
-                yield { type: 'lineBreak' }
+            case 'br':
+                returnValue.push({ type: 'lineBreak' })
                 break
             case 'After':
-                const afterTranslate = [...descendantsTranslate(item.contents)]
-                yield* afterTranslate as any
                 break
             case 'Before':
             case 'Replace':
-                yield {
+                returnValue.push({
                     type: item.tag === 'Before' ? 'before' : 'replace',
-                    children: [...descendantsTranslate(item.contents)].filter(isCustomParagraphContents)
-                }
+                    children: [...descendantsTranslate(children, options)].filter(isCustomParagraphContents)
+                })
                 break
-            case 'Condition':
+            case 'If':
                 const predicateToSrc = (predicate: NormalConditionStatement): string => {
                     return `${ predicate.not ? '!' : ''}${predicate.if}`
                 }
@@ -104,14 +100,14 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[]): Ge
                     (deepEqual(elseContext, item.conditions.slice(0, elseContext.length).map((predicate) => (predicate.if))))
                 if (matchesElseConditions) {
                     const remainingConditions = item.conditions.slice(elseContext.length)
-                    const children = descendantsFromRender(item.contents)
+                    const translatedChildren = descendantsFromRender(children, options)
                     if (remainingConditions.length && currentIfSequence.length && !elseDefined) {
                         currentIfSequence = [
                             ...currentIfSequence,
                             {
                                 type: 'elseif',
                                 source: conditionsToSrc(remainingConditions),
-                                children
+                                children: translatedChildren
                             }
                         ]
                     }
@@ -120,7 +116,7 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[]): Ge
                             ...currentIfSequence,
                             {
                                 type: 'else',
-                                children
+                                children: translatedChildren
                             }
                         ]
                     }
@@ -130,57 +126,71 @@ const descendantsTranslate = function * (renderItems: ComponentRenderItem[]): Ge
                             // TODO: Rewrite descendantsTranslate so that we can return blocks, and handle those
                             // blocks in descendantsFromRender
                             //
-                            yield* (currentIfSequence.map(mapConditionIsElseValid)) as any
+                            returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
                         }
                         currentIfSequence = [{
                             type: 'ifBase',
                             source: conditionsToSrc(item.conditions),
-                            children
+                            children: translatedChildren
                         }]
                     }
                 }
                 else {
                     if (currentIfSequence) {
-                        yield* (currentIfSequence.map(mapConditionIsElseValid)) as any
+                        returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
                     }
                     currentIfSequence = [{
                         type: 'ifBase',
                         source: conditionsToSrc(item.conditions),
-                        children: descendantsFromRender(item.contents),
+                        children: descendantsFromRender(children, options),
                     }]
                 }
                 break
         }
-    }
+    })
     if (currentIfSequence) {
-        yield* (currentIfSequence.map(mapConditionIsElseValid)) as any
+        returnValue = [...returnValue, ...currentIfSequence.map(mapConditionIsElseValid)]
     }
+    return returnValue
 }
 
-const descendantsCompact = function * (items: Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock>): Generator<CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock> {
-    let previousText: string
-    for (const item of items) {
+const descendantsCompact = (items: (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]): (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] =>  {
+    const { previousText, returnValue } = items.reduce<{ previousText?: string, returnValue: (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] }>((previous, item) =>  {
         if ('text' in item) {
-            previousText = `${(previousText || '')}${item.text}`
+            return {
+                ...previous,
+                previousText: `${(previous.previousText || '')}${item.text}`
+            }
         }
         else {
-            if (previousText) {
-                yield { text: previousText }
+            if (previous.previousText) {
+                return {
+                    returnValue: [
+                        ...previous.returnValue,
+                        { text: previous.previousText },
+                        item
+                    ]
+                }
             }
-            previousText = undefined
-            yield item
+            else {
+                return { returnValue: [ ...previous.returnValue, item ] }
+            }
         }
-    }
+    }, { returnValue: [] })
     if (previousText) {
-        yield { text: previousText }
+        return [...returnValue, { text: previousText }]
+    }
+    else {
+        return returnValue
     }
 }
 
-export const descendantsFromRender = (render: ComponentRenderItem[]): CustomBlock[] => {
+export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, { id: string }>, options: { normal: NormalForm }): CustomBlock[] => {
     if (render.length > 0) {
         let returnValue = [] as CustomBlock[]
         let accumulator = [] as CustomParagraphContents[]
-        for (const item of descendantsCompact(descendantsTranslate(render))) {
+        const translated = descendantsTranslate(render, options)
+        descendantsCompact(translated).forEach((item) => {
             if (isCustomBlock(item)) {
                 if (isCustomIfBlock(item) || isCustomElseIfBlock(item) || isCustomElseBlock(item)) {
                     if (accumulator.length) {
@@ -199,7 +209,7 @@ export const descendantsFromRender = (render: ComponentRenderItem[]): CustomBloc
                     accumulator.push(item)
                 }
             }
-        }
+        })
         return [
             ...returnValue,
             ...(accumulator.length > 0
