@@ -1,6 +1,6 @@
 import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset';
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
@@ -28,7 +28,7 @@ export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
-    schema: GenericTree<SchemaTag, { id: string }>;
+    schema: GenericTree<SchemaTag, TreeId>;
     normal: NormalForm;
     importData: Record<string, NormalForm>;
     properties: AssetClientFetchURL["properties"];

@@ -18,10 +18,10 @@ import {
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
-import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
 import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 
-const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, { id: string }>, options: { normal: NormalForm }): (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] => {
+const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] => {
     let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []
     const conditionElseContext: (current: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[]) => { elseContext: string[], elseDefined: boolean } = (current) => {
         if (!current) {
@@ -185,7 +185,7 @@ const descendantsCompact = (items: (CustomParagraphContents | CustomIfBlock | Cu
     }
 }
 
-export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, { id: string }>, options: { normal: NormalForm }): CustomBlock[] => {
+export const descendantsFromRender = (render: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): CustomBlock[] => {
     if (render.length > 0) {
         let returnValue = [] as CustomBlock[]
         let accumulator = [] as CustomParagraphContents[]

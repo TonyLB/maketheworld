@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
 import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/sequence/tree/map'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
@@ -33,18 +33,18 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
 type UpdateSchemaPayloadReplace = {
     type: 'replace';
     id: string;
-    item: GenericTreeNode<SchemaTag, { id?: string }>
+    item: GenericTreeNode<SchemaTag, Partial<TreeId>>
 }
 
 type UpdateSchemaPayloadAddChild = {
     type: 'addChild';
     id: string;
-    item: GenericTreeNode<SchemaTag, { id?: string }>
+    item: GenericTreeNode<SchemaTag, Partial<TreeId>>
 }
 
 export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadAddChild
 
-const addIdIfNeeded = (tree: GenericTree<SchemaTag, { id?: string }>): GenericTree<SchemaTag, { id: string }> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
+const addIdIfNeeded = (tree: GenericTree<SchemaTag, Partial<TreeId>>): GenericTree<SchemaTag, TreeId> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
 
 export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
     const { schema } = state

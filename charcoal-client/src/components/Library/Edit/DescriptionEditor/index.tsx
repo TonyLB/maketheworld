@@ -47,15 +47,15 @@ import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
-import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
-import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { genericIDFromTree } from '@tonylb/mtw-wml/dist/sequence/tree/genericIDTree'
 
 interface DescriptionEditorProps {
     ComponentId: string;
-    inheritedRender?: GenericTree<SchemaOutputTag, { id: string }>;
-    render: GenericTree<SchemaOutputTag, { id: string }>;
-    onChange?: (items: ComponentRenderItem[]) => void;
+    inheritedRender?: GenericTree<SchemaOutputTag, TreeId>;
+    render: GenericTree<SchemaOutputTag, TreeId>;
+    onChange?: (items: GenericTree<SchemaOutputTag, TreeId>) => void;
 }
 
 const withInlines = (editor: Editor) => {
@@ -71,7 +71,7 @@ const withInlines = (editor: Editor) => {
     return editor
 }
 
-const InheritedDescription: FunctionComponent<{ inheritedRender?: GenericTree<SchemaOutputTag, { id: string }> }> = ({ inheritedRender=[] }) => {
+const InheritedDescription: FunctionComponent<{ inheritedRender?: GenericTree<SchemaOutputTag, TreeId> }> = ({ inheritedRender=[] }) => {
     const inheritedValue = useMemo<CustomInheritedReadOnlyElement[]>(() => ([{
         type: 'inherited',
         children: descendantsFromRender(inheritedRender, { normal: {} })
@@ -358,22 +358,19 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
             if (isKeyHotkey('left', nativeEvent)) {
                 event.preventDefault()
                 Transforms.move(editor, { unit: 'offset', reverse: true })
-                console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
                 return
             }
             if (isKeyHotkey('right', nativeEvent)) {
                 event.preventDefault()
                 Transforms.move(editor, { unit: 'offset' })
-                console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
                 return
             }
         }
-        console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
     }, [editor])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
         const newRender = descendantsToRender((value || []).filter(isCustomBlock))
-        onChange(newRender)
+        onChange(genericIDFromTree(newRender))
     }, [onChange, value])
 
     const onChangeHandler = useCallback((value) => {
