@@ -1,4 +1,4 @@
-import { compressWhitespace, deIndentWML, removeIrrelevantWhitespace } from './utils'
+import { compressWhitespace, deIndentWML, removeIrrelevantWhitespace } from '.'
 
 describe('compressWhitespace', () => {
     it('should return empty on an empty input', () => {
