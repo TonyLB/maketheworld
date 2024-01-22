@@ -434,7 +434,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name, 
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { schema, updateSchema, normalForm, updateNormal, save, AssetId, status } = useLibraryAsset()
+    const { schema, updateSchema, normalForm, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
     const character = characterFromSchema(schema)
