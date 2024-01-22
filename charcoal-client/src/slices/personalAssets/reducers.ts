@@ -2,9 +2,9 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaTag, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/sequence/tree/map'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
@@ -33,42 +33,47 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
 type UpdateSchemaPayloadReplace = {
     type: 'replace';
     id: string;
-    item: GenericTreeNode<SchemaTag, { id?: string }>
+    item: GenericTreeNode<SchemaTag, Partial<TreeId>>
 }
 
 type UpdateSchemaPayloadAddChild = {
     type: 'addChild';
     id: string;
-    item: GenericTreeNode<SchemaTag, { id?: string }>
+    item: GenericTreeNode<SchemaTag, Partial<TreeId>>
 }
 
-export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadAddChild
+type UpdateSchemaPayloadRename = {
+    type: 'rename';
+    fromKey: string;
+    toKey: string;
+}
 
-const addIdIfNeeded = (tree: GenericTree<SchemaTag, { id?: string }>): GenericTree<SchemaTag, { id: string }> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
+export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename
+
+const addIdIfNeeded = (tree: GenericTree<SchemaTag, Partial<TreeId>>): GenericTree<SchemaTag, TreeId> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
 
 export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
     const { schema } = state
-    switch(action.payload.type) {
+    const { payload } = action
+    switch(payload.type) {
         case 'replace':
             const replacedSchema = map(schema, (node) => {
-                if (node.id === action.payload.id) {
-                    return addIdIfNeeded([action.payload.item])[0]
+                if (node.id === payload.id) {
+                    return addIdIfNeeded([payload.item])[0]
                 }
                 else {
                     return node
                 }
             })
-            return {
-                schema: replacedSchema
-            }
+            return { schema: replacedSchema }
         case 'addChild':
             const addedSchema = map(schema, (node) => {
-                if (node.id === action.payload.id) {
+                if (node.id === payload.id) {
                     return {
                         ...node,
                         children: [
                             ...node.children,
-                            ...addIdIfNeeded([action.payload.item])
+                            ...addIdIfNeeded([payload.item])
                         ]
                     }
                 }
@@ -76,9 +81,32 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                     return node
                 }
             })
-            return {
-                schema: addedSchema
-            }
+            return { schema: addedSchema }
+        case 'rename':
+            const renamedSchema = map(schema, (node) => {
+                let returnValue: SchemaTag = node.data
+                if (isSchemaWithKey(returnValue) && returnValue.key === payload.fromKey) {
+                    returnValue = {
+                        ...returnValue,
+                        key: payload.toKey
+                    }
+                }
+                if (isSchemaExit(returnValue)) {
+                    returnValue = {
+                        ...returnValue,
+                        to: returnValue.to === payload.fromKey ? payload.toKey : returnValue.to,
+                        from: returnValue.from === payload.fromKey ? payload.toKey : returnValue.from
+                    }
+                }
+                if (isSchemaLink(returnValue)) {
+                    returnValue = {
+                        ...returnValue,
+                        to: returnValue.to === payload.fromKey ? payload.toKey : returnValue.to
+                    }
+                }
+                return { ...node, data: returnValue }
+            })
+            return { schema: renamedSchema }
     }
     return {}
 }

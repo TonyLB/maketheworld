@@ -28,7 +28,8 @@ import {
     getDraftWML,
     getImportData,
     getStatus,
-    getSerialized
+    getSerialized,
+    getSchema
 } from '../../../slices/personalAssets'
 import { getPlayer } from '../../../slices/player'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
@@ -41,8 +42,8 @@ import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
-import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
-import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -52,6 +53,7 @@ type LibraryAssetContextType = {
     normalForm: NormalForm;
     importData: (assetKey: string) => NormalForm | undefined;
     updateNormal: (action: UpdateNormalPayload) => void;
+    schema: GenericTree<SchemaTag, TreeId>;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     properties: Record<string, { fileName: string }>;
@@ -63,6 +65,7 @@ type LibraryAssetContextType = {
     readonly: boolean;
     serialized: boolean;
     status?: keyof PersonalAssetsNodes;
+    select: <Output>(args: { key: string; selector: (tree: GenericTree<SchemaTag>, options?: { tag: string, key: string }) => Output }) => Output;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -73,6 +76,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     normalForm: {},
     importData: () => (undefined),
     updateNormal: () => {},
+    schema: [],
     updateSchema: () => {},
     properties: {},
     loadedImages: {},
@@ -82,7 +86,8 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     features: {},
     save: () => {},
     readonly: true,
-    serialized: false
+    serialized: false,
+    select: () => { throw new Error('Undefined selector in LibraryAsset') }
 })
 
 type LibraryAssetProps = {
@@ -169,6 +174,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const currentWML = useSelector(getCurrentWML(AssetId))
     const draftWML = useSelector(getDraftWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
+    const schema = useSelector(getSchema(AssetId))
     const importData = useSelector(getImportData(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))
@@ -180,6 +186,12 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
+    const normalizer = useMemo(() => {
+        const normalizer = new Normalizer()
+        normalizer.loadNormal(normalForm)
+        return normalizer
+    }, [normalForm])
+    const select = useCallback((args) => (normalizer.select(args)), [normalizer])
     const updateSchema = useCallback((updateAction: UpdateSchemaPayload) => {
         dispatch(updateSchemaAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
@@ -204,6 +216,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             normalForm,
             importData,
             updateNormal,
+            select,
+            schema,
             updateSchema,
             properties,
             loadedImages,

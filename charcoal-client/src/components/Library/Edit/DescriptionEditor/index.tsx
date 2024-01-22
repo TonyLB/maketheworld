@@ -35,9 +35,6 @@ import {
     CustomInheritedReadOnlyElement
 } from '../baseClasses'
 
-import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
-import { getNormalized } from '../../../../slices/personalAssets'
 import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
 import descendantsToRender from './descendantsToRender'
 import descendantsFromRender from './descendantsFromRender'
@@ -46,15 +43,18 @@ import { decorateFactory, Element, Leaf, withParagraphBR } from './components'
 import LinkDialog from './LinkDialog'
 import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
-import { LabelledIndentBox, SlateIndentBox } from '../LabelledIndentBox'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
+import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { genericIDFromTree } from '@tonylb/mtw-wml/dist/sequence/tree/genericIDTree'
 
 interface DescriptionEditorProps {
     ComponentId: string;
-    inheritedRender?: ComponentRenderItem[];
-    render: ComponentRenderItem[];
-    onChange?: (items: ComponentRenderItem[]) => void;
+    inheritedRender?: GenericTree<SchemaOutputTag, TreeId>;
+    output: GenericTree<SchemaOutputTag, TreeId>;
+    validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
+    onChange?: (items: GenericTree<SchemaOutputTag, TreeId>) => void;
 }
 
 const withInlines = (editor: Editor) => {
@@ -70,10 +70,10 @@ const withInlines = (editor: Editor) => {
     return editor
 }
 
-const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
+const InheritedDescription: FunctionComponent<{ inheritedRender?: GenericTree<SchemaOutputTag, TreeId> }> = ({ inheritedRender=[] }) => {
     const inheritedValue = useMemo<CustomInheritedReadOnlyElement[]>(() => ([{
         type: 'inherited',
-        children: descendantsFromRender(inheritedRender)
+        children: descendantsFromRender(inheritedRender, { normal: {} })
     }]), [inheritedRender])
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
@@ -326,14 +326,10 @@ const DisplayTagRadio: FunctionComponent<{}> = () => {
     </React.Fragment>
 }
 
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, render, onChange = () => {} }) => {
-    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
-    const AssetId = `ASSET#${assetKey}`
-    const normalForm = useSelector(getNormalized(AssetId))
-    const { components, readonly } = useLibraryAsset()
-    const inheritedRender = useMemo(() => (components[ComponentId]?.inheritedRender || []), [components, ComponentId])
-    const tag = useMemo(() => (components[ComponentId]?.tag), [components, ComponentId])
-    const defaultValue = useMemo(() => (descendantsFromRender(render)), [render, normalForm])
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ ComponentId, output, onChange = () => {}, validLinkTags=[] }) => {
+    const { normalForm, components, readonly } = useLibraryAsset()
+    const inheritedRender = useMemo(() => (genericIDFromTree(components[ComponentId]?.inheritedRender) || []), [components, ComponentId])
+    const defaultValue = useMemo(() => (descendantsFromRender(output, { normal: normalForm })), [output, normalForm])
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withConditionals(withInlines(withHistory(withReact(createEditor())))))),
@@ -357,22 +353,19 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
             if (isKeyHotkey('left', nativeEvent)) {
                 event.preventDefault()
                 Transforms.move(editor, { unit: 'offset', reverse: true })
-                console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
                 return
             }
             if (isKeyHotkey('right', nativeEvent)) {
                 event.preventDefault()
                 Transforms.move(editor, { unit: 'offset' })
-                console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
                 return
             }
         }
-        console.log(`afterKeyDown: ${JSON.stringify(editor.selection, null, 4)}`)
     }, [editor])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
         const newRender = descendantsToRender((value || []).filter(isCustomBlock))
-        onChange(newRender)
+        onChange(genericIDFromTree(newRender))
     }, [onChange, value])
 
     const onChangeHandler = useCallback((value) => {
@@ -395,10 +388,14 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ C
     //
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
-            <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={tag === 'Knowledge' ? ['Knowledge'] : ['Action', 'Feature', 'Knowledge']} />
+            <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
-                <RemoveLinkButton />
+                { validLinkTags.length &&
+                    <React.Fragment>
+                        <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
+                        <RemoveLinkButton />
+                    </React.Fragment>
+                }
                 <DisplayTagRadio />
                 <AddIfButton defaultBlock={{
                     type: 'paragraph',

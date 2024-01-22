@@ -1,5 +1,5 @@
-import { deepEqual } from "../lib/objects"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../sequence/tree/baseClasses"
+import { deepEqual } from "../../lib/objects"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
 import {
     isSchemaCondition,
     isSchemaDescription,
@@ -22,7 +22,7 @@ import {
     isSchemaBookmark,
     isSchemaRoom,
     SchemaOutputTag
-} from "./baseClasses"
+} from "../baseClasses"
 
 //
 // Remove all pure whitespace that is between connected Conditions (i.e., an If and its ElseIf and Else)

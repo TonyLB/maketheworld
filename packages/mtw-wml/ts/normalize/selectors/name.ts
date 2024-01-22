@@ -1,6 +1,7 @@
 import { GenericTree } from "../../sequence/tree/baseClasses"
 import { treeTypeGuard } from "../../sequence/tree/filter"
 import { SchemaOutputTag, SchemaTag, isSchemaOutputTag } from "../../simpleSchema/baseClasses"
+import { schemaOutputToString } from "../../simpleSchema/utils/schemaOutput/schemaOutputToString"
 import SchemaTagTree from "../../tagTree/schema"
 
 export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key: '' }): GenericTree<SchemaOutputTag> => {
@@ -16,4 +17,19 @@ export const selectName = (tree: GenericTree<SchemaTag>, options={ tag: '', key:
             .tree,
         typeGuard: isSchemaOutputTag
     })
+}
+
+export const selectNameAsString = (tree: GenericTree<SchemaTag>, options={ tag: '', key: '' }): string => {
+    if (!options.tag) {
+        return ''
+    }
+    const tagTree = new SchemaTagTree(tree)
+    return schemaOutputToString(treeTypeGuard({
+        tree: tagTree
+            .reordered([options.tag, 'Name', 'If'])
+            .filter({ match: 'Name' })
+            .prune({ or: [{ before: { match: 'Name' } }, { match: 'Name' }] })
+            .tree,
+        typeGuard: isSchemaOutputTag
+    }))
 }

@@ -32,7 +32,7 @@ export const isNormalReference = (value: NormalReference | SchemaTag): value is 
     return (keys.length === 3 && keys.includes('key') && keys.includes('tag') && keys.includes('index'))
 }
 
-export type BaseAppearance = GenericTreeNodeFiltered<SchemaTag, NormalReference | SchemaTag> & {
+export type BaseAppearance<Extra extends {} = {}> = GenericTreeNodeFiltered<SchemaTag, NormalReference | SchemaTag, Extra> & {
     contextStack: NormalReference[];
 }
 
@@ -41,11 +41,11 @@ type NormalBase = {
     exportAs?: string;
 }
 
-export type NormalAsset = {
+export type NormalAsset<Extra extends {} = {}> = {
     tag: 'Asset';
     Story?: boolean;
     instance?: boolean;
-    appearances: BaseAppearance[];
+    appearances: BaseAppearance<Extra>[];
     fileName?: string;
     zone?: string;
 } & NormalBase
@@ -60,7 +60,7 @@ export type NormalCharacterPronouns = {
 
 export type CharacterImage = string
 
-export type NormalCharacter = {
+export type NormalCharacter<Extra extends {} = {}> = {
     tag: 'Character';
     Name: string;
     Pronouns: NormalCharacterPronouns;
@@ -70,7 +70,7 @@ export type NormalCharacter = {
     fileName?: string;
     images: CharacterImage[];
     assets: string[];
-    appearances: BaseAppearance[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
 export type ComponentRenderItem = {
@@ -102,35 +102,35 @@ export type ComponentRenderItem = {
     contents: ComponentRenderItem[];
 } & NormalConditionMixin)
 
-export type ComponentAppearance = BaseAppearance & {
+export type ComponentAppearance<Extra extends {} = {}> = BaseAppearance<Extra> & {
     x?: number;
     y?: number;
 }
 
 type ComponentTypes = 'Room' | 'Feature' | 'Knowledge'
 
-export type NormalComponent = {
+export type NormalComponent<Extra extends {} = {}> = {
     tag: ComponentTypes;
-    appearances: ComponentAppearance[];
+    appearances: ComponentAppearance<Extra>[];
 } & NormalBase
 
-export type NormalRoom = NormalComponent & {
+export type NormalRoom<Extra extends {} = {}> = NormalComponent<Extra> & {
     tag: 'Room';
 }
 
-export type NormalFeature = NormalComponent & {
+export type NormalFeature<Extra extends {} = {}> = NormalComponent<Extra> & {
     tag: 'Feature';
 }
 
-export type NormalKnowledge = NormalComponent & {
+export type NormalKnowledge<Extra extends {} = {}> = NormalComponent<Extra> & {
     tag: 'Knowledge';
 }
 
-export type NormalBookmarkAppearance = BaseAppearance
+export type NormalBookmarkAppearance<Extra extends {} = {}> = BaseAppearance<Extra>
 
-export type NormalBookmark = {
+export type NormalBookmark<Extra extends {} = {}> = {
     tag: 'Bookmark';
-    appearances: NormalBookmarkAppearance[];
+    appearances: NormalBookmarkAppearance<Extra>[];
 } & NormalBase
 
 type NormalImportMapping = {
@@ -138,11 +138,11 @@ type NormalImportMapping = {
     type: string;
 }
 
-export type NormalImport = {
+export type NormalImport<Extra extends {} = {}> = {
     tag: 'Import';
     from: string;
     mapping: Record<string, NormalImportMapping>; // Key of the mapping is the key of the import in the namespace it is being imported TO
-    appearances: BaseAppearance[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
 export type NormalConditionStatement = {
@@ -155,19 +155,19 @@ export type NormalConditionMixin = {
     conditions: NormalConditionStatement[];
 }
 
-export type NormalCondition = {
+export type NormalCondition<Extra extends {} = {}> = {
     tag: 'If';
-    appearances: BaseAppearance[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase & NormalConditionMixin
 
-export type ImageAppearance = {
+export type ImageAppearance<Extra extends {} = {}> = {
     display?: 'replace'
-} & BaseAppearance
+} & BaseAppearance<Extra>
 
-export type NormalImage = {
+export type NormalImage<Extra extends {} = {}> = {
     tag: 'Image';
     fileURL?: string;
-    appearances: ImageAppearance[];
+    appearances: ImageAppearance<Extra>[];
 } & NormalBase
 
 export type MapAppearanceRoom = {
@@ -178,86 +178,86 @@ export type MapAppearanceRoom = {
 
 type MapAppearanceImage = string
 
-export type MapAppearance = {
+export type MapAppearance<Extra extends {} = {}> = {
     images: MapAppearanceImage[];
     rooms: MapAppearanceRoom[];
-} & BaseAppearance
+} & BaseAppearance<Extra>
 
-export type NormalMap = {
+export type NormalMap<Extra extends {} = {}> = {
     tag: 'Map';
-    appearances: MapAppearance[];
+    appearances: MapAppearance<Extra>[];
 } & NormalBase
 
-type ExitAppearance = {
+type ExitAppearance<Extra extends {} = {}> = {
     name?: string;
-} & BaseAppearance
+} & BaseAppearance<Extra>
 
-export type NormalExit = {
+export type NormalExit<Extra extends {} = {}> = {
     tag: 'Exit';
     to: string;
     from: string;
     name?: string;
-    appearances?: ExitAppearance[];
+    appearances?: ExitAppearance<Extra>[];
 } & NormalBase
 
-export type NormalVariable = {
+export type NormalVariable<Extra extends {} = {}> = {
     tag: 'Variable';
     default: string;
-    appearances: BaseAppearance[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
-export type NormalComputed = {
+export type NormalComputed<Extra extends {} = {}> = {
     tag: 'Computed';
     src: string;
     dependencies?: string[];
-    appearances: BaseAppearance[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
-export type NormalAction = {
+export type NormalAction<Extra extends {} = {}> = {
     tag: 'Action';
     src: string;
-    appearances: BaseAppearance[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
 export type MessageAppearanceRoom = {
     key: string;
 } & NormalConditionMixin
 
-export type MessageAppearance = {
+export type MessageAppearance<Extra extends {} = {}> = {
     render: ComponentRenderItem[];
     rooms: MessageAppearanceRoom[];
-} & BaseAppearance
+} & BaseAppearance<Extra>
 
-export type NormalMessage = {
+export type NormalMessage<Extra extends {} = {}> = {
     tag: 'Message';
-    appearances: MessageAppearance[];
+    appearances: MessageAppearance<Extra>[];
 } & NormalBase
 
-export type MomentAppearance = {
+export type MomentAppearance<Extra extends {} = {}> = {
     messages: string[];
-} & BaseAppearance
+} & BaseAppearance<Extra>
 
-export type NormalMoment = {
+export type NormalMoment<Extra extends {} = {}> = {
     tag: 'Moment';
-    appearances: MomentAppearance[];
+    appearances: MomentAppearance<Extra>[];
 } & NormalBase
 
-export type NormalItem = NormalAsset |
-    NormalComponent |
-    NormalBookmark |
-    NormalImport |
-    NormalImage |
-    NormalMap |
-    NormalExit |
-    NormalVariable |
-    NormalComputed |
-    NormalAction |
-    NormalCondition |
-    NormalCharacter |
-    NormalMessage |
-    NormalMoment
+export type NormalItem<Extra extends {} = {}> = NormalAsset<Extra> |
+    NormalComponent<Extra> |
+    NormalBookmark<Extra> |
+    NormalImport<Extra> |
+    NormalImage<Extra> |
+    NormalMap<Extra> |
+    NormalExit<Extra> |
+    NormalVariable<Extra> |
+    NormalComputed<Extra> |
+    NormalAction<Extra> |
+    NormalCondition<Extra> |
+    NormalCharacter<Extra> |
+    NormalMessage<Extra> |
+    NormalMoment<Extra>
 
-export type NormalForm = Record<string, NormalItem>
+export type NormalForm<Extra extends {} = {}> = Record<string, NormalItem<Extra>>
 
 export class WMLNormalizeError extends Error {
     constructor(message: string) {

@@ -47,7 +47,7 @@ import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaTag, isSchemaAsset } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
@@ -66,10 +66,7 @@ const defaultItemFromTag = (tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Ima
         case 'Knowledge':
             return {
                 tag,
-                key,
-                contents: [],
-                name: [],
-                render: []
+                key
             }
         case 'Image':
             return {
@@ -86,8 +83,7 @@ const defaultItemFromTag = (tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Ima
             return {
                 tag: 'Computed' as const,
                 key,
-                src: '',
-                dependencies: []
+                src: ''
             }
         case 'Action':
             return {
@@ -101,7 +97,6 @@ const defaultItemFromTag = (tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Ima
                 key,
                 rooms: [],
                 images: [],
-                contents: [],
                 name: []
             }
     }
@@ -144,7 +139,7 @@ const AddWMLComponent: FunctionComponent<{ type: 'Map' | 'Room' | 'Feature' | 'K
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogShown }) => {
-    const { normalForm, updateNormal, save, status, serialized } = useLibraryAsset()
+    const { schema, updateSchema, normalForm, save, status, serialized } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
@@ -163,16 +158,19 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                 dispatch(addOnboardingComplete(['addRoom']))
                 break
         }
-        const rootItem = Object.values(normalForm)
-            .find(({ appearances = [] }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
-        if (rootItem) {
-            updateNormal({
-                type: 'put',
-                item: defaultItemFromTag(tag, ''),
-                position: { contextStack: [{ key: rootItem.key, tag: rootItem.tag, index: 0 }]}
-            })
+        if (schema.length === 0) {
+            return
         }
-    }, [updateNormal, normalForm, dispatch])
+        const rootItem = schema[0]
+        if (schema.length > 1 || !isSchemaAsset(rootItem.data)) {
+            throw new Error('Top-level asset error in AssetEdit update')
+        }
+        updateSchema({
+            type: 'addChild',
+            id: rootItem.id,
+            item: { data: defaultItemFromTag(tag, ''), children: [] }
+        })
+    }, [schema, updateSchema, dispatch])
     const innerSaveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveAsset'], { requireSequence: true }))
         save()
