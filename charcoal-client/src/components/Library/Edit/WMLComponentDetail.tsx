@@ -1,32 +1,25 @@
-import { FunctionComponent, useCallback, useState, useMemo, useEffect } from 'react'
+import { FunctionComponent, useCallback, useMemo } from 'react'
 import {
     useNavigate,
     useParams
 } from "react-router-dom"
 
-import {
-    Box,
-    TextField
-} from '@mui/material'
+import Box from '@mui/material/Box'
 import HomeIcon from '@mui/icons-material/Home'
 import { blue } from '@mui/material/colors'
 
 import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import { useLibraryAsset } from './LibraryAsset'
-import { useDebouncedOnChange } from '../../../hooks/useDebounce'
-import { ComponentAppearance, ComponentRenderItem, isNormalComponent, isNormalFeature, isNormalKnowledge, isNormalRoom, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import Normalizer, { componentRenderToSchemaTaggedMessage } from '@tonylb/mtw-wml/dist/normalize'
-import { isSchemaAsset, isSchemaKnowledge, isSchemaOutputTag, isSchemaRoom, isSchemaWithKey, SchemaFeatureTag, SchemaKnowledgeTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { isSchemaAsset, isSchemaKnowledge, isSchemaOutputTag, isSchemaRoom, SchemaFeatureTag, SchemaKnowledgeTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { isSchemaFeature } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
-import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
-import { rename } from '../../../slices/UI/navigationTabs'
+import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
 import { GenericTree, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { explicitSpaces } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/explicitSpaces'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
@@ -38,7 +31,7 @@ import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/nam
 //
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
-    const { updateSchema, schema, normalForm, updateNormal, components, readonly } = useLibraryAsset()
+    const { updateSchema, schema, normalForm } = useLibraryAsset()
     const dispatch = useDispatch()
     const component = useMemo(() => (normalForm[ComponentId || '']), [ComponentId, normalForm])
     const { tag } = component || {}
@@ -170,17 +163,8 @@ interface WMLComponentDetailProps {
 export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const { assetKey, normalForm, updateNormal, select } = useLibraryAsset()
-    const { ComponentId } = useParams<{ ComponentId: string }>()
-    const component = normalForm[ComponentId || '']
-    const { tag = '' } = isNormalComponent(component) ? component : {}
-    //
-    // TODO: Add selectNameAsString selector
-    //
-
-    //
-    // TODO: Use selectNameAsString instead of depending on components information
-    //
+    const { assetKey, normalForm, updateSchema, select } = useLibraryAsset()
+    const { tag, ComponentId } = useParams<{ tag: string, ComponentId: string }>()
     const componentName = useMemo(() => (select({ key: ComponentId, selector: selectNameAsString })), [select, ComponentId])
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
@@ -191,34 +175,27 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         componentId: ComponentId || ''
     })
     const onNameChange = useCallback((toKey: string) => {
-        //
-        // TODO: Create rename action on updateSchema
-        //
-
-        //
-        // TODO: Refactor this section to use updateSchema instead of updateNormal
-        //
-        updateNormal({
+        updateSchema({
             type: 'rename',
             fromKey: ComponentId,
             toKey
         })
-        dispatch(rename({
+        dispatch(renameNavigationTab({
             fromHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
             toHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`,
             componentId: toKey
         }))
         navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
-    }, [updateNormal, ComponentId, navigate, assetKey, dispatch, tag])
+    }, [updateSchema, ComponentId, navigate, assetKey, dispatch, tag])
     const allExportKeys = Object.values(normalForm).map(({ key, exportAs }) => (exportAs ?? key))
     const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId && (allExportKeys.includes(toKey)))), [ComponentId, allExportKeys])
-    if (!component || !ComponentId) {
+    if (!(ComponentId && ComponentId in normalForm)) {
         return <Box />
     }
     return <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
         <LibraryBanner
             primary={componentName}
-            secondary={component.key}
+            secondary={ComponentId}
             onChangeSecondary={onNameChange}
             validateSecondary={nameValidate}
             icon={<HomeIcon />}

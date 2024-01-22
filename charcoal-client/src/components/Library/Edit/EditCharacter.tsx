@@ -33,7 +33,7 @@ import {
     getAll,
     getStatus,
     setIntent,
-    setLoadedImage
+    setLoadedImage,
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { isNormalImage, isNormalImport, NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
@@ -44,44 +44,59 @@ import LibraryAsset, { useLibraryAsset, useLibraryImageURL } from './LibraryAsse
 import useDebounce from '../../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../FileInputWrapper'
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { UpdateNormalPayload } from '../../../slices/personalAssets/reducers'
-import { SchemaCharacterTag, SchemaImageTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
+import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
+import { SchemaCharacterTag, SchemaPronounsTag, SchemaTag, isSchemaCharacter, isSchemaImport } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { deepEqual } from '../../../lib/objects'
 import Checkbox from '@mui/material/Checkbox'
 import { getLibrary } from '../../../slices/library'
 import { getMyAssets } from '../../../slices/player'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 
 type ReplaceLiteralTagProps = {
-    normalForm: NormalForm;
-    updateNormal: (action: UpdateNormalPayload) => void;
+    schema: GenericTree<SchemaTag, TreeId>;
+    updateSchema: (action: UpdateSchemaPayload) => void;
     tag: LiteralTagFieldProps["tag"];
     replace: string;
 }
 
+const characterFromSchema = (schema: GenericTree<SchemaTag, TreeId>): SchemaCharacterTag => {
+    if (schema.length === 0) {
+        throw new Error('No character asset in EditCharacter')
+    }
+    const baseSchema = schema[0].data
+    if (!isSchemaCharacter(baseSchema)) {
+        throw new Error('Non-character asset in EditCharacter')
+    }
+    return baseSchema
+}
+
+const specificChildFromSchema = (schema: GenericTree<SchemaTag, TreeId>, tag: SchemaTag["tag"]): GenericTreeNodeFiltered<Extract<SchemaTag, { tag: typeof tag }>, SchemaTag, TreeId> | undefined => {
+    if (schema.length === 0) {
+        throw new Error('No character asset in EditCharacter')
+    }
+    const children = schema[0].children
+    const validTags = children.filter((node): node is GenericTreeNodeFiltered<Extract<SchemaTag, { tag: typeof tag }>, SchemaTag, TreeId> => (
+        node.data.tag === tag
+    ))
+    return validTags.length ? validTags[0] : undefined
+}
+
 const replaceLiteralTag = ({
-    normalForm,
-    updateNormal,
+    schema,
+    updateSchema,
     tag,
     replace
 }: ReplaceLiteralTagProps) => {
-    const character = Object.values(normalForm).find(({ tag }) => (tag === 'Character')) as NormalCharacter | undefined
-    if (!character) {
-        return
-    }
     const mergeProperty = (merge: Partial<SchemaCharacterTag>) => {
-        const normalizer = new Normalizer()
-        normalizer._normalForm = normalForm
-        const baseSchema = normalizer.schema[0]
+        const baseSchema = characterFromSchema(schema)
         const updatedSchema = { ...baseSchema, ...merge } as SchemaCharacterTag
         if (!deepEqual(baseSchema, updatedSchema)) {
-            updateNormal({
-                type: 'put',
-                item: updatedSchema,
-                position: { contextStack: [], index: 0, replace: true }
+            updateSchema({
+                type: 'replace',
+                id: schema[0].id,
+                item: { data: updatedSchema, children: [] },
             })    
         }
     }
@@ -101,13 +116,13 @@ const replaceLiteralTag = ({
     }
 }
 
-type CharacterEditPronounsProps = NormalCharacterPronouns & {
+type CharacterEditPronounsProps = Omit<SchemaPronounsTag, 'tag'> & {
     selectValue: string;
     onSelectChange: (selectValue: string) => void;
-    onChange: (pronouns: NormalCharacterPronouns) => void;
+    onChange: (pronouns: Omit<SchemaPronounsTag, 'tag'>) => void;
 }
 
-const standardPronouns: Record<string, NormalCharacterPronouns> = {
+const standardPronouns: Record<string, Omit<SchemaPronounsTag, 'tag'>> = {
     'he/him': {
         subject: 'he',
         object: 'him',
@@ -273,31 +288,28 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
 
 type LiteralTagFieldProps = {
     required?: boolean;
-    tag: keyof Omit<NormalCharacter, 'Pronouns' | 'appearances' | 'images' | 'assets'>;
+    tag: 'FirstImpression' | 'Outfit' | 'OneCoolThing' | 'Name';
     label: string;
 }
 
 const LiteralTagField: FunctionComponent<LiteralTagFieldProps> = ({ required, tag, label }) => {
-    const { normalForm, updateNormal } = useLibraryAsset()
+    const { schema, updateSchema } = useLibraryAsset()
 
     const [currentTagValue, setCurrentTagValue] = useState(() => {
-        const character = Object.values(normalForm || {}).find(({ tag }) => (['Character'].includes(tag))) as NormalCharacter | undefined
+        const character = schema[0].data
         return character?.[tag] || ''
     })
 
     const debouncedTagValue = useDebounce(currentTagValue, 500)
 
-    //
-    // TODO: Figure out why replaceLiteralTag is causing an infinite change loop, and correct
-    //
     useEffect(() => {
         replaceLiteralTag({
-            normalForm,
-            updateNormal,
+            schema,
+            updateSchema,
             tag,
             replace: debouncedTagValue
         })
-    }, [normalForm, updateNormal, tag, debouncedTagValue])
+    }, [schema, updateSchema, tag, debouncedTagValue])
 
     return <TextField
         required={required}
@@ -326,7 +338,7 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
             .map(({ AssetId }) => ({ key: AssetId, zone: 'Personal' })),
         ...libraryAssets.map(({ AssetId }) => ({ key: AssetId, zone: 'Library' }))
     ]
-    const { normalForm, updateNormal, assetKey } = useLibraryAsset()
+    const { schema, updateSchema, normalForm } = useLibraryAsset()
     const [assetsImported, setAssetsImported] = useState(Object.values(normalForm)
         .filter(isNormalImport)
         .map(({ from }) => (from))
@@ -340,28 +352,20 @@ const EditCharacterAssetList: FunctionComponent<EditCharacterAssetListProps> = (
     const onChange = useCallback((_, newAssets) => {
         const saveableAssets = newAssets.filter((item): item is { key: string; zone: string } => (typeof item === 'object'))
         setAssetsImported(saveableAssets)
-        updateNormal({
-            type: 'delete',
-            references: Object.values(normalForm)
-                .filter(isNormalImport)
-                .map(({ key, appearances }) => (appearances.map((_, index) => ({ key, index, tag: 'Import' as const }))))
-                .flat()
-        })
-        saveableAssets.forEach(({ key }) => {
-            updateNormal({
-                type: 'put',
-                item: {
-                    tag: 'Import',
-                    from: key,
-                    mapping: {}
-                },
-                position: { contextStack: [{ tag: 'Character', key: assetKey, index: 0 }] }
-            })
+        const baseSchema = characterFromSchema(schema)
+        const updateChildren = [
+            ...schema[0].children.filter(({ data }) => (!isSchemaImport(data))),
+            ...saveableAssets.map(({ key }) => ({ data: { tag: 'Import', from: key }, children: [] }))
+        ]
+        updateSchema({
+            type: 'replace',
+            id: schema[0].id,
+            item: { data: baseSchema, children: updateChildren }
         })
         if (saveableAssets.filter((item) => (typeof item === 'object' && 'zone' in item && item.zone === 'Personal')).length) {
             dispatch(addOnboardingComplete(['editCharacterAssets']))
         }
-    }, [setAssetsImported, normalForm, updateNormal, dispatch])
+    }, [setAssetsImported, schema, updateSchema, dispatch])
     return <Autocomplete
         multiple
         id="asset-list"
@@ -430,12 +434,12 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name, 
 type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
-    const { normalForm, updateNormal, save, AssetId, status } = useLibraryAsset()
+    const { schema, updateSchema, normalForm, updateNormal, save, AssetId, status } = useLibraryAsset()
     const navigate = useNavigate()
 
-    const character = Object.values(normalForm || {}).find(({ tag }) => (['Character'].includes(tag))) as NormalCharacter | undefined
+    const character = characterFromSchema(schema)
 
-    const [currentPronouns, setCurrentPronouns] = useState<NormalCharacterPronouns>(
+    const [currentPronouns, setCurrentPronouns] = useState<Omit<SchemaPronounsTag, 'tag'>>(
         character?.Pronouns || {
             subject: '',
             object: '',
@@ -462,18 +466,18 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     const debouncedPronouns = useDebounce(currentPronouns, 500)
 
     useEffect(() => {
-        const normalizer = new Normalizer()
-        normalizer._normalForm = normalForm
-        const baseSchema = normalizer.schema[0] as SchemaCharacterTag
+        const baseSchema = characterFromSchema(schema)
         if (!deepEqual(baseSchema.Pronouns, debouncedPronouns)) {
-            const updatedSchema = { ...baseSchema, Pronouns: debouncedPronouns }
-            updateNormal({
-                type: 'put',
-                item: updatedSchema,
-                position: { contextStack: [], index: 0, replace: true }
-            })    
+            const pronounTag = specificChildFromSchema(schema, 'Pronouns')
+            if (pronounTag) {
+                updateSchema({
+                    type: 'replace',
+                    id: pronounTag.id,
+                    item: { data: { tag: 'Pronouns' as const, ...debouncedPronouns }, children: [] }
+                })
+            }
         }
-    }, [normalForm, updateNormal, debouncedPronouns])
+    }, [schema, updateSchema, debouncedPronouns])
 
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
@@ -494,13 +498,10 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             //
             else {
                 if (!unconditionedImages.length) {
-                    updateNormal({
-                        type: 'put',
-                        item: {
-                            tag: 'Image',
-                            key: characterIconKey
-                        },
-                        position: { contextStack: [{ key: character.key, index: 0, tag: 'Character' }] }
+                    updateSchema({
+                        type: 'addChild',
+                        id: schema[0].id,
+                        item: { data: { tag: 'Image', key: characterIconKey }, children: [] }
                     })
                     normalDirty = true
                 }
@@ -509,7 +510,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             dispatch(setIntent({ key: AssetId, intent: normalDirty ? ['NORMALDIRTY'] : ['WMLDIRTY', 'NORMALDIRTY']}))
             dispatch(heartbeat)
         }
-    }, [dispatch, character?.key, normalForm, updateNormal])
+    }, [dispatch, character?.key, schema, updateSchema, normalForm])
     const saveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveCharacter'], { requireSequence: true }))
         save()
