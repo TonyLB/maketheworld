@@ -6,6 +6,7 @@ import { SchemaTag, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/
 import { NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/sequence/tree/map'
+import { filter } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
     state.currentWML = newCurrent.payload.value
@@ -36,6 +37,12 @@ type UpdateSchemaPayloadReplace = {
     item: GenericTreeNode<SchemaTag, Partial<TreeId>>
 }
 
+type UpdateSchemaPayloadUpdateNode = {
+    type: 'updateNode';
+    id: string;
+    item: SchemaTag;
+}
+
 type UpdateSchemaPayloadAddChild = {
     type: 'addChild';
     id: string;
@@ -48,7 +55,12 @@ type UpdateSchemaPayloadRename = {
     toKey: string;
 }
 
-export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename
+type UpdateSchemaPayloadDelete = {
+    type: 'delete';
+    id: string;
+}
+
+export type UpdateSchemaPayload = UpdateSchemaPayloadReplace | UpdateSchemaPayloadUpdateNode | UpdateSchemaPayloadAddChild | UpdateSchemaPayloadRename | UpdateSchemaPayloadDelete
 
 const addIdIfNeeded = (tree: GenericTree<SchemaTag, Partial<TreeId>>): GenericTree<SchemaTag, TreeId> => (map(tree, ({ id, ...rest }) => ({ id: id ?? uuidv4(), ...rest })))
 
@@ -66,6 +78,13 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                 }
             })
             return { schema: replacedSchema }
+        case 'updateNode':
+            const updatedSchema = map(schema, ({ data, children, id }) => ({
+                data: id === payload.id ? payload.item : data,
+                children,
+                id
+            }))
+            return { schema: updatedSchema }
         case 'addChild':
             const addedSchema = map(schema, (node) => {
                 if (node.id === payload.id) {
@@ -107,6 +126,9 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                 return { ...node, data: returnValue }
             })
             return { schema: renamedSchema }
+        case 'delete':
+            const deletedSchema = filter({ tree: schema, callback: (_: SchemaTag, { id }: TreeId) => (Boolean(id !== payload.id)) })
+            return { schema: deletedSchema }
     }
     return {}
 }
