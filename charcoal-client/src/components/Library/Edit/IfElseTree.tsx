@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import { blue } from "@mui/material/colors"
-import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, ReactElement } from "react"
+import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, ReactElement, ReactComponentElement } from "react"
 import CodeEditor from "./CodeEditor"
 import { LabelledIndentBox } from "./LabelledIndentBox"
 
@@ -9,9 +9,10 @@ import AddIcon from '@mui/icons-material/Add'
 import ExitIcon from '@mui/icons-material/CallMade'
 
 import { useLibraryAsset } from "./LibraryAsset"
-import { ConditionalTree, ConditionalTreeNode, ConditionalTreeSubNode } from "./conditionTree"
-import { toSpliced } from "../../../lib/lists"
 import { Button, Stack } from "@mui/material"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { SchemaConditionTag, SchemaTag, isSchemaCondition } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { deepEqual } from "../../../lib/objects"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {
     const { readonly } = useLibraryAsset()
@@ -38,8 +39,12 @@ const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: stri
     />
 }
 
-type RenderType<T extends object> = FunctionComponent<T & {
-    onChange: (value: T) => void;
+type RenderType = FunctionComponent<{
+    key: string;
+    data: SchemaTag;
+    id: string;
+    children: GenericTree<SchemaTag, TreeId>;
+    onChange: (value: GenericTreeNode<SchemaTag, TreeId>) => void;
     onDelete: () => void;
 }>
 
@@ -54,19 +59,17 @@ const AddItemButton: FunctionComponent<{ onClick: () => void, addItemIcon: React
     </Button>
 }
 
-type IfElseWrapBoxProps<T extends object> = Omit<ConditionalTreeSubNode<T>, 'key'> & {
-    nodeKey: string;
+type IfElseWrapBoxProps = {
+    id: string;
     type: 'if' | 'elseIf' | 'else';
+    source: string;
+    previousConditions: SchemaConditionTag["conditions"];
     actions: ReactChild[] | ReactChildren;
-    onChange: (value: ConditionalTreeSubNode<T>) => void;
-    onDelete?: () => void;
-    render: RenderType<T>;
-    defaultItem: T;
-    addItemIcon: ReactElement;
 }
 
-const IfElseWrapBox = <T extends object>({ type, source, node, nodeKey, onChange, onDelete, render, actions, defaultItem, addItemIcon }: IfElseWrapBoxProps<T>) => (
-    <LabelledIndentBox
+const IfElseWrapBox: FunctionComponent<IfElseWrapBoxProps> = ({ type, source, previousConditions, id, actions, children }) => {
+    const { updateSchema } = useLibraryAsset()
+    return <LabelledIndentBox
         color={blue}
         label={
             type === 'else'
@@ -87,10 +90,10 @@ const IfElseWrapBox = <T extends object>({ type, source, node, nodeKey, onChange
                         <CodeEditor
                             source={source}
                             onChange={(source: string) => {
-                                onChange({
-                                    key: nodeKey,
-                                    node,
-                                    source
+                                updateSchema({
+                                    type: 'updateNode',
+                                    id,
+                                    item: { tag: 'If', conditions: [...previousConditions, { if: source }] }
                                 })
                             }}
                         />
@@ -98,240 +101,114 @@ const IfElseWrapBox = <T extends object>({ type, source, node, nodeKey, onChange
                 </React.Fragment>
         }
         actions={actions}
-        onDelete={onDelete}
+        onDelete={() => { updateSchema({ type: 'delete', id }) }}
     >
-        <IfElseTree
-            items={node.items}
-            conditionals={node.conditionals}
-            onChange={(value: ConditionalTree<T>) => { onChange({ source, key: nodeKey, node: value }) }}
-            render={render}
-            defaultItem={defaultItem}
-            addItemIcon={addItemIcon}
-        />
+        { children }
     </LabelledIndentBox>
-)
+}
 
-type IfElseSupplementalProps<T extends object> = {
-    onChange: (value: ConditionalTreeNode<T>) => void;
-    onDelete: () => void;
-    render: RenderType<T>;
-    defaultItem: T;
+type IfElseTreeProps = {
+    parentId: string;
+    tree: GenericTree<SchemaTag, TreeId>;
+    render: RenderType;
+    defaultItem: GenericTreeNode<SchemaTag>;
     addItemIcon: ReactElement;
 }
 
-type IfElseProps<T extends object> = ConditionalTreeNode<T> & IfElseSupplementalProps<T>
-
-export const IfElse = <T extends object>({ if: primary, elseIfs, else: elseItem, onChange, onDelete, render, defaultItem, addItemIcon }: IfElseProps<T>): ReactElement => {
-    const IfElseWrapLocal = IfElseWrapBox<T>
-    const actionFactory = useCallback((index: number) => ([
-        <AddConditionalButton
-            key={`else-If-${index}`}
-            label="Else If"
-            onClick={() => {
-                onChange({
-                    if: primary,
-                    elseIfs: toSpliced(
-                        elseIfs,
-                        index,
-                        0,
-                        {
-                            key: '',
-                            source: '',
-                            node: {
-                                items: [],
-                                conditionals: []
-                            }
-                        }
-                    ),
-                    else: elseItem
-                })
-            }}
-        />,
-        ...((typeof elseItem !== 'undefined') ? [] : [
-            <AddConditionalButton
-                key={`else-${index}`}
-                label="Else"
-                onClick={() => {
-                    onChange({
-                        if: primary,
-                        elseIfs,
-                        else: {
-                            key: '',
-                            node: {
-                                items: [],
-                                conditionals: []
-                            }
-                        }
-                    })
-                }}
-            />
-        ])
-    ]), [primary, elseIfs, elseItem, onChange])
-    return <React.Fragment>
-        <IfElseWrapLocal
-            type='if'
-            nodeKey={primary.key}
-            source={primary.source}
-            node={primary.node}
-            onChange={(value) => {
-                onChange({
-                    if: value,
-                    elseIfs,
-                    else: elseItem
-                })
-            }}
-            onDelete={() => {
-                if (elseIfs.length) {
-                    onChange({
-                        if: elseIfs[0],
-                        elseIfs: elseIfs.slice(1),
-                        else: elseItem
-                    })
-                }
-                else {
-                    onDelete()
-                }
-            }}
-            render={render}
-            actions={actionFactory(0)}
-            defaultItem={defaultItem}
-            addItemIcon={addItemIcon}
-        />
-        {
-            elseIfs.map((elseIf, index) => (
-                <IfElseWrapLocal
-                    key={`elseIf-${index}`}
-                    type='elseIf'
-                    nodeKey={elseIf.key}
-                    source={elseIf.source}
-                    node={elseIf.node}
-                    onChange={(value) => {
-                        onChange({
-                            if: primary,
-                            elseIfs: toSpliced(elseIfs, index, 1, value),
-                            else: elseItem
-                        })
-                    }}
-                    onDelete={() => {
-                        onChange({
-                            if: primary,
-                            elseIfs: toSpliced(elseIfs, index, 1),
-                            else: elseItem
-                        })
-                    }}
-                    render={render}
-                    actions={actionFactory(index + 1)}
-                    defaultItem={defaultItem}
-                    addItemIcon={addItemIcon}
-                />
-            ))
-        }
-        {
-            elseItem && <IfElseWrapLocal
-                type='else'
-                nodeKey={elseItem.key}
-                source=''
-                node={elseItem.node}
-                onChange={(value) => {
-                    onChange({
-                        if: primary,
-                        elseIfs,
-                        else: value
-                    })
-                }}
-                onDelete={() => {
-                    onChange({
-                        if: primary,
-                        elseIfs
-                    })
-                }}
-                render={render}
-                actions={[]}
-                defaultItem={defaultItem}
-                addItemIcon={addItemIcon}
-            />
-        }
-    </React.Fragment>
-}
-
-type IfElseTreeProps<T extends object> = ConditionalTree<T> & {
-    onChange: (value: ConditionalTree<T>) => void;
-    render: RenderType<T>;
-    defaultItem: T;
-    addItemIcon: ReactElement;
-}
-
-export const IfElseTree = <T extends object>({ items, conditionals, onChange, render, defaultItem, addItemIcon }: IfElseTreeProps<T>): ReactElement => {
+//
+// TODO: Refactor IfElseTree to accept GenericTree<SchemaTag> instead of items/conditionals
+//
+export const IfElseTree = ({ parentId, tree, render, defaultItem, addItemIcon }: IfElseTreeProps): ReactElement => {
+    const { updateSchema } = useLibraryAsset()
+    const unconditionedItems = tree.filter(({ data }) => (!isSchemaCondition(data)))
+    const conditionedItems = tree.filter((node): node is GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag, TreeId> => (isSchemaCondition(node.data)))
     return <React.Fragment>
         {
-            items.map((item, index) => (render({
-                ...item,
+            unconditionedItems.map((item, index) => (render({
+                data: item.data,
+                id: item.id,
+                children: item.children,
                 key: `item${index}`,
                 onChange: (value) => {
-                    onChange({
-                        items: toSpliced(items, index, 1, value),
-                        conditionals
+                    updateSchema({
+                        type: 'replace',
+                        id: item.id,
+                        item: value
                     })
                 },
                 onDelete: () => {
-                    onChange({
-                        items: toSpliced(items, index, 1),
-                        conditionals
+                    updateSchema({
+                        type: 'delete',
+                        id: item.id
                     })
                 }
             })))
         }
         {
-            conditionals.map((subCondition, index) => (
-                <IfElse
-                    {...subCondition}
-                    key={`condition${index}`}
+            conditionedItems.reduce<{ output: ReactElement[], previousConditions: SchemaConditionTag["conditions"] }>(({ output, previousConditions }, subCondition, index) => {
+                const { conditions } = subCondition.data
+                const childrenRender = <IfElseTree
+                    parentId={subCondition.id}
+                    tree={subCondition.children}
                     render={render}
-                    onChange={(value) => {
-                        onChange({
-                            items,
-                            conditionals: toSpliced(conditionals, index, 1, value)
-                        })
-                    }}
-                    onDelete={() => {
-                        onChange({
-                            items,
-                            conditionals: toSpliced(conditionals, index, 1)
-                        })
-                    }}
                     defaultItem={defaultItem}
                     addItemIcon={addItemIcon}
                 />
-            ))
+                const extendsConditions = ((conditions.length === previousConditions.length) ||
+                    (conditions.length === previousConditions.length + 1)) &&
+                    deepEqual(conditions.slice(0, previousConditions.length), previousConditions)
+                if (conditions.length > 1 && !extendsConditions) {
+                    throw new Error('Condition tags misaligned in IfElseTree')
+                }
+                const type: 'if' | 'elseIf' | 'else' = extendsConditions ? conditions.length === previousConditions.length ? 'else' : 'elseIf' : 'if'
+                //
+                // TODO: When SchemaConditionTag is refactored to use Statements and FallThrough, add "+ ElseIf" and "+ Else" actions
+                //
+                return {
+                    output: [
+                        ...output,
+                        <IfElseWrapBox
+                            id={subCondition.id}
+                            type={type}
+                            source={type === 'if' ? conditions[0].if : type === 'elseIf' ? conditions.slice(-1)[0].if : ''}
+                            previousConditions={previousConditions}
+                            key={`condition${index}`}
+                            actions={[]}
+                        >
+                            { childrenRender }
+                        </IfElseWrapBox>
+                    ],
+                    previousConditions: []
+                }
+            }, { output: [], previousConditions: [] }).output
         }
         <Stack direction="row" spacing={2}>
             <AddItemButton
                 addItemIcon={addItemIcon}
                 onClick={() => {
-                    onChange({
-                        items: [...items, { ...defaultItem }],
-                        conditionals
+                    updateSchema({
+                        type: 'addChild',
+                        id: parentId,
+                        item: defaultItem
                     })
                 }}
             />
             <AddItemButton
                 addItemIcon={<React.Fragment>If</React.Fragment>}
                 onClick={() => {
-                    onChange({
-                        items,
-                        conditionals: [
-                            ...conditionals,
-                            { if: { key: '', source: '', node: { items: [], conditionals: [] }}, elseIfs:[] }
-                        ]
+                    updateSchema({
+                        type: 'addChild',
+                        id: parentId,
+                        item: {
+                            data: { tag: 'If', conditions: [{ if: '' }]},
+                            children: []
+                        }
                     })
                 }}
             />
 
         </Stack>
     </React.Fragment>
-    //
-    // TODO: Add "AddItem" and "AddConditional" buttons in IfElseTree
-    //
 }
 
 export default IfElseTree
