@@ -265,7 +265,7 @@ const useIncomingExitTree = (RoomId: string) => {
 // }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { normalForm, schema, updateNormal, components } = useLibraryAsset()
+    const { schema, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
     //
     // TODO: Rework RoomExitEditor with outgoing and incoming exit trees
