@@ -47,13 +47,18 @@ import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
-import { SchemaTag, isSchemaAsset } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaActionTag, SchemaComputedTag, SchemaTag, SchemaVariableTag, isSchemaAction, isSchemaAsset, isSchemaComputed, isSchemaVariable, isSchemaWithKey } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import DraftLockout from './DraftLockout'
 import JSHeader from './JSHeader'
 import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { getMyCharacters } from '../../../slices/player'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
+import { GenericTree, GenericTreeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
+import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
+import dfsWalk from '@tonylb/mtw-wml/dist/sequence/tree/dfsWalk'
+import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
 
 type AssetEditFormProps = {
     setAssignDialogShown: (value: boolean) => void;
@@ -147,9 +152,16 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
     const knowledges = useMemo<NormalKnowledge[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Knowledge')) as NormalKnowledge[]), [normalForm])
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const images = useMemo<NormalImage[]>(() => (Object.values(normalForm || {}).filter(isNormalImage)), [normalForm])
-    const variables = useMemo<NormalVariable[]>(() => (Object.values(normalForm || {}).filter(isNormalVariable)), [normalForm])
-    const computes = useMemo<NormalComputed[]>(() => (Object.values(normalForm || {}).filter(isNormalComputed)), [normalForm])
-    const actions = useMemo<NormalAction[]>(() => (Object.values(normalForm || {}).filter(isNormalAction)), [normalForm])
+    const jsItems = useMemo(() => (
+        treeTypeGuardOnce<SchemaTag, SchemaComputedTag | SchemaVariableTag | SchemaActionTag, TreeId>({ tree: schema, typeGuard: (data: SchemaTag): data is SchemaComputedTag | SchemaVariableTag | SchemaActionTag => (['Action', 'Computed', 'Varaible'].includes(data.tag)) })
+    ), [schema])
+    //
+    // Build variables, computes, and actions out of jsItems rather than Normal, and refactor JSHeader to accept GenericTreeNode<Schema??Tag, TreeId>
+    // rather than NormalItem (temporarily, until TreeId can be folded into NormalForm)
+    //
+    const variables = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaVariableTag, TreeId>({ tree: jsItems, typeGuard: isSchemaVariable })), [jsItems])
+    const computes = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaComputedTag, TreeId>({ tree: jsItems, typeGuard: isSchemaComputed })), [jsItems])
+    const actions = useMemo(() => (treeTypeGuardOnce<SchemaTag, SchemaActionTag, TreeId>({ tree: jsItems, typeGuard: isSchemaAction })), [jsItems])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const dispatch = useDispatch()
     const addAsset = useCallback((tag: 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
@@ -259,26 +271,28 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                     }
                     <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
                     <ListSubheader>Variables</ListSubheader>
-                    { (variables || []).map((variable) => (<JSHeader
-                            key={variable.key}
-                            item={variable}
-                            typeGuard={isNormalVariable}
+                    { (variables || [])
+                        .map((variable) => (<JSHeader
+                            key={variable.id}
+                            id={variable.id}
+                            item={variable.data}
+                            typeGuard={isSchemaVariable}
                             getJS={(item) => (item.default)}
                             schema={(key, value) => ({
                                 key,
                                 tag: 'Variable',
                                 default: value
                             })}
-                            onClick={() => {}}
                             maxHeight="4em"
                         />))
                     }
                     <AddWMLComponent type="Variable" onAdd={addAsset('Variable')} />
                     <ListSubheader>Computes</ListSubheader>
                     { (computes || []).map((compute) => (<JSHeader
-                            key={compute.key}
-                            item={compute}
-                            typeGuard={isNormalComputed}
+                            key={compute.id}
+                            id={compute.id}
+                            item={compute.data}
+                            typeGuard={isSchemaComputed}
                             getJS={(item) => (item.src)}
                             schema={(key, value) => ({
                                 key,
@@ -286,23 +300,22 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ setAssignDialogS
                                 src: value,
                                 dependencies: extractDependenciesFromJS(value)
                             })}
-                            onClick={() => {}}
                             maxHeight="8em"
                         />))
                     }
                     <AddWMLComponent type="Computed" onAdd={addAsset('Computed')} />
                     <ListSubheader>Actions</ListSubheader>
                     { (actions || []).map((action) => (<JSHeader
-                            key={action.key}
-                            item={action}
-                            typeGuard={isNormalAction}
+                            key={action.id}
+                            id={action.id}
+                            item={action.data}
+                            typeGuard={isSchemaAction}
                             getJS={(item) => (item.src)}
                             schema={(key, value) => ({
                                 key,
                                 tag: 'Action',
                                 src: value
                             })}
-                            onClick={() => {}}
                             maxHeight="32em"
                         />))
                     }
