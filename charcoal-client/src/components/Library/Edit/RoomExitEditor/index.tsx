@@ -1,11 +1,9 @@
-import { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
+import { FunctionComponent, useCallback, useMemo } from "react"
 import Box from "@mui/material/Box"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import { blue } from "@mui/material/colors"
-import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit, NormalForm, NormalReference, NormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { SchemaTagTree } from '@tonylb/mtw-wml/dist/tagTree/schema'
-import { ConditionalTree, reduceItemsToTree } from "../conditionTree"
 import { useLibraryAsset } from "../LibraryAsset"
 import ExitIcon from '@mui/icons-material/CallMade'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -14,23 +12,21 @@ import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import { TextField } from "@mui/material"
-import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
-import { objectFilterEntries, objectMap } from "../../../../lib/objects"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
-import { RoomExit } from "./baseClasses"
 import IfElseTree from "../IfElseTree"
-import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
-import { GenericTree, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { GenericTree, GenericTreeNode, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { schemaOutputToString } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString'
+import { treeTypeGuard } from "@tonylb/mtw-wml/dist/sequence/tree/filter"
 
 type RoomExitEditorProps = {
     RoomId: string;
     onChange: (value: string) => void;
 }
 
-const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, AssetId, onChange }) => {
+const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, onChange }) => {
     const { readonly, select } = useLibraryAsset()
     const roomKeys = select({ selector: selectKeysByTag('Room') })
     const roomNamesInScope: Record<string, string> = Object.assign({},
@@ -75,7 +71,7 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
 type RoomExitComponentProps = {
     RoomId: string;
     parentId: string; // The location in which different incoming exits should be added ... either top-level, or nested in a condition
-    node: GenericTreeNodeFiltered<SchemaRoomTag | SchemaExitTag, SchemaExitTag, TreeId>;
+    node: GenericTreeNode<SchemaTag, TreeId>;
     inherited?: boolean;
 }
 
@@ -85,7 +81,12 @@ type RoomExitComponentProps = {
 //
 const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, parentId, node, inherited = false }) => {
     const { readonly, updateSchema } = useLibraryAsset()
-    const { data, children, id } = node
+    const isSchemaRoomOrExit = (item: SchemaTag): item is SchemaRoomTag | SchemaExitTag => (['Room', 'Exit'].includes(item.tag))
+    const filteredNodes = treeTypeGuard({ tree: [node], typeGuard: isSchemaRoomOrExit })
+    if (!filteredNodes.length) {
+        return null
+    }
+    const { data, children, id } = filteredNodes[0]
     const direction = isSchemaRoom(data) ? 'incoming' : 'outgoing'
     //
     // Derive target to display ... either source of incoming exit, or target of outgoing
@@ -122,7 +123,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
         if (direction === 'incoming') {
             updateSchema({
                 type: 'delete',
-                id: node.id
+                id: filteredNodes[0].id
             })
             updateSchema({
                 type: 'addChild',
@@ -134,7 +135,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
             })
         }
         else {
-            const { data } = node
+            const { data } = filteredNodes[0]
             if (!isSchemaExit(data)) {
                 throw new Error('Tag mismatch in RoomExitComponent')
             }
@@ -147,17 +148,17 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
                 }
             })
         }
-    }, [node, name, parentId, RoomId, direction])
+    }, [filteredNodes, name, parentId, RoomId, direction])
     const onNameChange = useCallback((name: string) => {
         if (direction === 'incoming') {
             const child = children[0]
-            const { data } = child
+            const { data, id } = child
             if (!isSchemaExit(data)) {
                 throw new Error('Tag mismatch in RoomExitComponent')
             }
             updateSchema({
                 type: 'updateNode',
-                id: node.id,
+                id,
                 item: {
                     ...data,
                     name
@@ -165,23 +166,28 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
             })
         }
         else {
-            const { data } = node
             if (!isSchemaExit(data)) {
                 throw new Error('Tag mismatch in RoomExitComponent')
             }
             updateSchema({
                 type: 'updateNode',
-                id: node.id,
+                id,
                 item: {
                     ...data,
                     name
                 }
             })
         }
-    }, [node, children, direction])
-    const toElement = <ExitTargetSelector
-        direction={direction}
+    }, [data, id, children, direction])
+    const onDelete = useCallback(() => {
+        updateSchema({
+            type: 'delete',
+            id
+        })
+    }, [id, updateSchema])
+    const targetElement = <ExitTargetSelector
         target={target}
+        RoomId={RoomId}
         inherited={inherited}
         onChange={(event) => { onTargetChange(event.target.value) }}
     />
@@ -210,7 +216,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
                 disabled={readonly || inherited}
             />
         </Box>
-        <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}> to { toElement }</Box>
+        <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}>{ targetElement }</Box>
         { !inherited && <Box sx={{ display: 'flex' }} ><IconButton onClick={onDelete} disabled={readonly}><DeleteIcon /></IconButton></Box> }
     </Box>
 }
@@ -301,7 +307,8 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             {/* <InheritedExits importFrom={importFrom} RoomId={RoomId} /> */}
             <IfElseTree
                 tree={outgoingExits}
-                render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} />)}
+                parentId={schema[0]?.id ?? ''}
+                render={(props) => (<RoomExitComponent node={props.node} parentId={props.parentId} RoomId={RoomId} />)}
                 addItemIcon={<ExitIcon />}
                 defaultItem={{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '', name: '' }, children: [] }}
             />

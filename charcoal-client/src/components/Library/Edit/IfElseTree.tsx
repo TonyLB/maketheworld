@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box"
 import Chip from "@mui/material/Chip"
 import { blue } from "@mui/material/colors"
-import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, ReactElement, ReactComponentElement } from "react"
+import React, { FunctionComponent, useCallback, ReactChild, ReactChildren, ReactElement } from "react"
 import CodeEditor from "./CodeEditor"
 import { LabelledIndentBox } from "./LabelledIndentBox"
 
@@ -40,10 +40,8 @@ const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: stri
 }
 
 type RenderType = FunctionComponent<{
-    key: string;
-    data: SchemaTag;
-    id: string;
-    children: GenericTree<SchemaTag, TreeId>;
+    parentId: string;
+    node: GenericTreeNode<SchemaTag, TreeId>;
     onChange: (value: GenericTreeNode<SchemaTag, TreeId>) => void;
     onDelete: () => void;
 }>
@@ -125,10 +123,9 @@ export const IfElseTree = ({ parentId, tree, render, defaultItem, addItemIcon }:
     return <React.Fragment>
         {
             unconditionedItems.map((item, index) => (render({
-                data: item.data,
-                id: item.id,
-                children: item.children,
-                key: `item${index}`,
+                parentId,
+                node: item,
+                // key: `item${index}`,
                 onChange: (value) => {
                     updateSchema({
                         type: 'replace',
@@ -193,8 +190,8 @@ export const IfElseTree = ({ parentId, tree, render, defaultItem, addItemIcon }:
                     })
                 }}
             />
-            <AddItemButton
-                addItemIcon={<React.Fragment>If</React.Fragment>}
+            <AddConditionalButton
+                label="If"
                 onClick={() => {
                     updateSchema({
                         type: 'addChild',
