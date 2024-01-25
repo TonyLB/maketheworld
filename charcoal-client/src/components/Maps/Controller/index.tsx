@@ -163,7 +163,7 @@ const MapContext = React.createContext<MapContextType>({
 export const useMapContext = () => (useContext(MapContext))
 
 export const MapController: FunctionComponent<{ mapId: string }> = ({ children, mapId }) => {
-    const { normalForm, updateNormal } = useLibraryAsset()
+    const { normalForm, updateNormal, schema, updateSchema } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
     const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | undefined>(undefined)
@@ -268,7 +268,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
                 setItemSelected(action.item)
                 return
             case 'AddRoom':
-                addRoomFactory({ mapId, normalForm, updateNormal })({ roomId: action.roomId, x: action.x, y: action.y })
+                addRoomFactory({ mapId, schema, updateSchema })({ roomId: action.roomId, x: action.x, y: action.y })
                 return
             case 'SetCursor':
                 if ((typeof action.x !== 'undefined') || (typeof action.y !== 'undefined')) {
