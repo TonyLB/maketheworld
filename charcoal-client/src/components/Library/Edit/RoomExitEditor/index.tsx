@@ -1,47 +1,40 @@
+import { FunctionComponent, useCallback, useMemo } from "react"
 import Box from "@mui/material/Box"
-import Chip from "@mui/material/Chip"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import { blue } from "@mui/material/colors"
-import { ComponentRenderItem, isNormalExit, isNormalRoom, NormalExit, NormalForm, NormalReference, NormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react"
-import { ConditionalTree, reduceItemsToTree } from "../conditionTree"
+import { SchemaTagTree } from '@tonylb/mtw-wml/dist/tagTree/schema'
 import { useLibraryAsset } from "../LibraryAsset"
 import ExitIcon from '@mui/icons-material/CallMade'
 import DeleteIcon from '@mui/icons-material/Delete'
-import FlipIcon from '@mui/icons-material/Loop'
 import Select, { SelectChangeEvent } from "@mui/material/Select"
 import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
-import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { TextField } from "@mui/material"
-import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
-import { objectFilterEntries, objectMap } from "../../../../lib/objects"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
-import { UpdateNormalPayload } from "../../../../slices/personalAssets/reducers"
-import { RoomExit } from "./baseClasses"
-import exitTreeToSchema from "./exitTreeToSchema"
 import IfElseTree from "../IfElseTree"
+import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { GenericTree, GenericTreeNode, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
+import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString'
+import { treeTypeGuard } from "@tonylb/mtw-wml/dist/sequence/tree/filter"
 
 type RoomExitEditorProps = {
     RoomId: string;
     onChange: (value: string) => void;
 }
 
-const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; AssetId?: string; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, AssetId, onChange }) => {
-    const { rooms, readonly, importData } = useLibraryAsset()
-    const roomNamesInScope: Record<string, ComponentRenderItem[]> = objectFilterEntries(
-        (inherited && AssetId)
-            ? Object.entries(importData(AssetId))
-                .filter(([_, item]) => (isNormalRoom(item)))
-                .map(([key, { appearances }]): [string, ComponentRenderItem[]] => ([key, (appearances as NormalRoom["appearances"])
-                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-                    .map(({ name = [] }) => name)
-                    .reduce((previous, name) => ([ ...previous, ...name ]), [])]))
-                .reduce((previous, [key, item]) => ({ ...previous, [key]: item }), {})
-            : objectMap(rooms, ({ name }) => (name)),
-        ([key]) => (key !== RoomId)
+const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, onChange }) => {
+    const { readonly, select } = useLibraryAsset()
+    const roomKeys = select({ selector: selectKeysByTag('Room') })
+    const roomNamesInScope: Record<string, string> = Object.assign({},
+        ...roomKeys
+            .filter((key) => (key !== RoomId))
+            .map((key) => ({
+                [key]: schemaOutputToString(select({ key, selector: selectName }))
+            }))
     )
     const onChangeHandler = useCallback((event: SelectChangeEvent<string>) => {
         if (!readonly) {
@@ -68,111 +61,136 @@ const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; in
         >
             {
                 Object.entries(roomNamesInScope).map(([key, name]) => {
-                    return <MenuItem key={key} value={key}>{ taggedMessageToString(name) }</MenuItem>
+                    return <MenuItem key={key} value={key}>{ name }</MenuItem>
                 })
             }
         </Select>
     </FormControl>
 }
 
-const generateNormalChanges = ({ tree, RoomId, normalForm }: { tree: ConditionalTree<RoomExit>; RoomId: string; normalForm: NormalForm }) => {
-    let changes: UpdateNormalPayload[] = []
-    const deleteReferences = Object.values(normalForm)
-        .filter(isNormalExit)
-        .filter(({ to, from }) => (to === RoomId || from === RoomId))
-        .reduce<NormalReference[]>((previous, { key, appearances = [] }) => ([
-            ...previous,
-            ...appearances.map((_, index) => ({ key, index, tag: 'Exit' as 'Exit' })).reverse()
-        ]), [])
-    if (deleteReferences.length) {
-        changes = [
-            ...changes,
-            {
-                type: 'delete',
-                references: deleteReferences
-            }
-        ]
-    }
-    const exitSchemaByRoomId = exitTreeToSchema(tree)
-    Object.keys(exitSchemaByRoomId).forEach((lookupRoomId) => {
-        const roomLookup = normalForm[lookupRoomId]
-        if (roomLookup && isNormalRoom(roomLookup)) {
-            exitSchemaByRoomId[lookupRoomId].forEach((item) => {
-                const firstUnconditionedAppearance = (roomLookup.appearances || []).findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If' || tag === 'Map'))))
-                if (firstUnconditionedAppearance !== -1) {
-                    const contextStack = roomLookup.appearances[firstUnconditionedAppearance].contextStack
-                    changes = [
-                        ...changes,
-                        {
-                            type: 'put',
-                            item,
-                            position: { contextStack: [...contextStack, { key: lookupRoomId, index: firstUnconditionedAppearance, tag: 'Room' }] }
-                        }
-                    ]
-                }
-            })
-        }
-    })
-    return changes
-}
-
-type RoomExitComponentProps = RoomExit & {
+type RoomExitComponentProps = {
     RoomId: string;
-    onChange: (value: RoomExit) => void;
-    onDelete: () => void;
+    parentId: string; // The location in which different incoming exits should be added ... either top-level, or nested in a condition
+    node: GenericTreeNode<SchemaTag, TreeId>;
     inherited?: boolean;
 }
 
-const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, onChange, onDelete, inherited = false, from, to, name }) => {
-    const { readonly, rooms } = useLibraryAsset()
-    useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(!inherited && (from === RoomId) && name)})
-    useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: Boolean(!inherited && (to === RoomId) && name)})
-    const AssetId = useMemo(() => (rooms[RoomId].importFrom), [rooms, RoomId])
-    const onFlipHandler = useCallback(() => {
-        if (!(readonly || inherited)) {
-            onChange({
-                key: `${to}#${from}`,
-                from: to,
-                to: from,
-                name
+//
+// TODO: Refactor RoomExitComponent to receive EITHER an Exit (no children) for outgoing
+// exits, or a Room with a single Exit as child for incoming exits.
+//
+const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, parentId, node, inherited = false }) => {
+    const { readonly, updateSchema } = useLibraryAsset()
+    const isSchemaRoomOrExit = (item: SchemaTag): item is SchemaRoomTag | SchemaExitTag => (['Room', 'Exit'].includes(item.tag))
+    const filteredNodes = treeTypeGuard({ tree: [node], typeGuard: isSchemaRoomOrExit })
+    if (!filteredNodes.length) {
+        return null
+    }
+    const { data, children, id } = filteredNodes[0]
+    const direction = isSchemaRoom(data) ? 'incoming' : 'outgoing'
+    //
+    // Derive target to display ... either source of incoming exit, or target of outgoing
+    //
+    const target = useMemo(() => {
+        switch(direction) {
+            case 'incoming':
+                return data.key
+            case 'outgoing':
+                if (!isSchemaExit(data)) {
+                    throw new Error('Tag mismatch in RoomExitComponent')
+                }
+                return data.to
+        }
+    }, [data, direction])
+    const name = useMemo(() => {
+        switch(direction) {
+            case 'incoming':
+                const child = children[0].data
+                if (!isSchemaExit(child)) {
+                    throw new Error('Tag mismatch in RoomExitComponent')
+                }
+                return child.name
+            case 'outgoing':
+                if (!isSchemaExit(data)) {
+                    throw new Error('Tag mismatch in RoomExitComponent')
+                }
+                return data.name
+        }
+    }, [data, children, direction])
+    useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(!inherited && name)})
+    useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: Boolean(!inherited && (direction === 'incoming') && name)})
+    const onTargetChange = useCallback((target: string) => {
+        if (direction === 'incoming') {
+            updateSchema({
+                type: 'delete',
+                id: filteredNodes[0].id
+            })
+            updateSchema({
+                type: 'addChild',
+                id: parentId,
+                item: {
+                    data: { tag: 'Room', key: target },
+                    children: [{ data: { tag: 'Exit', key: `${target}#${RoomId}`, name, to: RoomId, from: target }, children: [] }]
+                }
             })
         }
-    }, [readonly, inherited, onChange, from, to, name])
-    const onTargetHandler = useCallback(({ to, from }: { to: string, from: string }) => {
-        onChange({
-            key: `${from}#${to}`,
-            to,
-            from,
-            name
+        else {
+            const { data } = filteredNodes[0]
+            if (!isSchemaExit(data)) {
+                throw new Error('Tag mismatch in RoomExitComponent')
+            }
+            updateSchema({
+                type: 'updateNode',
+                id: node.id,
+                item: {
+                    ...data,
+                    to: target
+                }
+            })
+        }
+    }, [filteredNodes, name, parentId, RoomId, direction])
+    const onNameChange = useCallback((name: string) => {
+        if (direction === 'incoming') {
+            const child = children[0]
+            const { data, id } = child
+            if (!isSchemaExit(data)) {
+                throw new Error('Tag mismatch in RoomExitComponent')
+            }
+            updateSchema({
+                type: 'updateNode',
+                id,
+                item: {
+                    ...data,
+                    name
+                }
+            })
+        }
+        else {
+            if (!isSchemaExit(data)) {
+                throw new Error('Tag mismatch in RoomExitComponent')
+            }
+            updateSchema({
+                type: 'updateNode',
+                id,
+                item: {
+                    ...data,
+                    name
+                }
+            })
+        }
+    }, [data, id, children, direction])
+    const onDelete = useCallback(() => {
+        updateSchema({
+            type: 'delete',
+            id
         })
-    }, [name, onChange])
-    const onNameChange = useCallback((event) => {
-        onChange({
-            key: `${from}#${to}`,
-            from,
-            to,
-            name: event.target.value
-        })
-    }, [to, from, onChange])
-    const hereChip = <Chip icon={<FlipIcon />} label="here" onClick={onFlipHandler} />
-    const fromElement = (from === RoomId)
-        ? hereChip
-        : <ExitTargetSelector
-            RoomId={RoomId}
-            target={from}
-            inherited={inherited}
-            AssetId={AssetId}
-            onChange={(event) => { onTargetHandler({ to: RoomId, from: event.target.value })}}
-        />
-    const toElement = (to === RoomId)
-        ? hereChip
-        : <ExitTargetSelector
-            RoomId={RoomId}
-            target={to}
-            inherited={inherited}
-            AssetId={AssetId}
-            onChange={(event) => { onTargetHandler({ from: RoomId, to: event.target.value })}}
-        />
+    }, [id, updateSchema])
+    const targetElement = <ExitTargetSelector
+        target={target}
+        RoomId={RoomId}
+        inherited={inherited}
+        onChange={(event) => { onTargetChange(event.target.value) }}
+    />
     return <Box sx={{
         width: "calc(100% - 0.5em)",
         display: "inline-flex",
@@ -194,66 +212,66 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
                 required
                 id="exit-name"
                 value={name}
-                onChange={onNameChange}
+                onChange={(event) => { onNameChange(event.target.value) }}
                 disabled={readonly || inherited}
             />
         </Box>
-        <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}> from { fromElement } to { toElement }</Box>
+        <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}>{ targetElement }</Box>
         { !inherited && <Box sx={{ display: 'flex' }} ><IconButton onClick={onDelete} disabled={readonly}><DeleteIcon /></IconButton></Box> }
     </Box>
 }
 
-const useExitTree = (normalForm: NormalForm, RoomId: string) => {
+const useOutgoingExitTree = (RoomId: string) => {
+    const { schema } = useLibraryAsset()
     return useMemo(() => {
-        return Object.values(normalForm || {})
-            .filter(isNormalExit)
-            .filter(({ to, from }) => (to === RoomId || from === RoomId))
-            .reduce(reduceItemsToTree({
-                compare: ({ key: keyA }: RoomExit, { key: keyB }: RoomExit) => (keyA === keyB),
-                normalForm,
-                transform: ({ key, to, from, name }: NormalExit): RoomExit => ({ key, to, from, name: name ?? '' })
-            }), { items: [], conditionals: [] })
-    }, [normalForm, RoomId])
+        const tagTree = new SchemaTagTree(schema)
+        const relevantExits = tagTree
+            .filter({ match: (tag) => (isSchemaRoom(tag) && (tag.key === RoomId)) })
+            .prune({ not: { or: [{ match: 'If' }, { match: 'Exit' }] } })
+            .reordered(['If', 'Exit'])
+        return relevantExits.tree as GenericTree<SchemaConditionTag | SchemaExitTag, TreeId>
+    }, [schema, RoomId])
 }
 
-const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> = ({ importFrom, RoomId }) => {
-    const { importData } = useLibraryAsset()
-    const importNormal = useMemo(() => (importData(importFrom)), [importData, importFrom])
-    const inheritedExits = useExitTree(importNormal, RoomId)
-
-    if (inheritedExits.conditionals.length + inheritedExits.items.length === 0) {
-        return null
-    }
-
-    return <IfElseTree
-        items={inheritedExits.items}
-        conditionals={inheritedExits.conditionals}
-        onChange={() => {}}
-        render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} />)}
-        addItemIcon={<ExitIcon />}
-        defaultItem={{ key: `${RoomId}#`, from: RoomId, to: '', name: '' }}
-    />
+const useIncomingExitTree = (RoomId: string) => {
+    const { schema } = useLibraryAsset()
+    return useMemo(() => {
+        const tagTree = new SchemaTagTree(schema)
+        const relevantExits = tagTree
+            .filter({ match: (tag) => (isSchemaExit(tag) && tag.to === RoomId) })
+            .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }, { match: 'Exit' }] } })
+            .reordered(['If', 'Room', 'Exit'])
+        return relevantExits.tree as GenericTree<SchemaConditionTag | SchemaRoomTag | SchemaExitTag, TreeId>
+    }, [schema, RoomId])
 }
+
+// const InheritedExits: FunctionComponent<{ importFrom: string; RoomId: string }> = ({ importFrom, RoomId }) => {
+//     const { importData } = useLibraryAsset()
+//     const importNormal = useMemo(() => (importData(importFrom)), [importData, importFrom])
+//     const inheritedExits = useExitTree(importNormal, RoomId)
+
+//     if (inheritedExits.conditionals.length + inheritedExits.items.length === 0) {
+//         return null
+//     }
+
+//     return <IfElseTree
+//         items={inheritedExits.items}
+//         conditionals={inheritedExits.conditionals}
+//         onChange={() => {}}
+//         render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} />)}
+//         addItemIcon={<ExitIcon />}
+//         defaultItem={{ key: `${RoomId}#`, from: RoomId, to: '', name: '' }}
+//     />
+// }
+
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { normalForm, updateNormal, components } = useLibraryAsset()
+    const { normalForm, schema, updateNormal, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
-    const relevantExits = useExitTree(normalForm, RoomId)
-    const [value, setValue] = useState(relevantExits)
-    useEffect(() => {
-        setValue(relevantExits)
-    }, [setValue, relevantExits])
-    const onChangeHandler = useCallback((tree: ConditionalTree<RoomExit>) => {
-        const changes = generateNormalChanges({ tree, normalForm, RoomId })
-        changes.forEach((change) => {
-            updateNormal(change)
-        })
-    }, [RoomId, normalForm, updateNormal])
-    useDebouncedOnChange({ value, delay: 1000, onChange: onChangeHandler })
-    // const comparisonOutput = useCallback((tree: ConditionalTree<RoomExit>) => (generateNormalChanges({ tree, normalForm, RoomId })), [normalForm, RoomId])
     //
-    // TODO: Create a useEffect hook to update the state to match relevantExits when relevantExits changes in a way that has a differential between
-    // the current state and the state coming in from the normalForm
+    // TODO: Rework RoomExitEditor with outgoing and incoming exit trees
     //
+    const outgoingExits = useOutgoingExitTree(RoomId)
+    const incomingExits = useIncomingExitTree(RoomId)
 
     return <Box sx={{
         display: 'flex',
@@ -286,14 +304,13 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             flexDirection: 'column',
             flexGrow: 1,
         }}>
-            <InheritedExits importFrom={importFrom} RoomId={RoomId} />
+            {/* <InheritedExits importFrom={importFrom} RoomId={RoomId} /> */}
             <IfElseTree
-                items={value.items}
-                conditionals={value.conditionals}
-                onChange={setValue}
-                render={(props) => (<RoomExitComponent {...props} RoomId={RoomId} />)}
+                tree={outgoingExits}
+                parentId={schema[0]?.id ?? ''}
+                render={(props) => (<RoomExitComponent node={props.node} parentId={props.parentId} RoomId={RoomId} />)}
                 addItemIcon={<ExitIcon />}
-                defaultItem={{ key: `${RoomId}#`, from: RoomId, to: '', name: '' }}
+                defaultItem={{ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '', name: '' }, children: [] }}
             />
         </Box>
     </Box>

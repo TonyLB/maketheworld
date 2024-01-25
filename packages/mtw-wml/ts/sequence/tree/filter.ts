@@ -1,4 +1,4 @@
-import { TreeCallbackNode, GenericTree, TreeCallback } from './baseClasses'
+import { TreeCallbackNode, GenericTree, TreeCallback, GenericTreeFiltered } from './baseClasses'
 
 export const filter = <Callback extends TreeCallback<boolean>>({ tree, callback }: { tree: TreeCallbackNode<Callback>[], callback: Callback }): TreeCallbackNode<Callback>[] => (
     tree
@@ -26,7 +26,15 @@ export const asyncFilter = async <Callback extends TreeCallback<Promise<boolean>
 export const treeTypeGuard = <NodeData extends {}, NewNodeData extends NodeData, Extra extends {} = {}>({ tree, typeGuard }: { tree: GenericTree<NodeData, Extra>, typeGuard: (value: NodeData) => value is NewNodeData }): GenericTree<NewNodeData, Extra> => (
     tree.map(({ data, children, ...rest }) => (
         typeGuard(data)
-            ?  [{ data, children: treeTypeGuard({ tree: children, typeGuard }), ...rest }] as unknown as GenericTree<NewNodeData, Extra>
+            ?  [{ data, children: treeTypeGuard({ tree: children, typeGuard }), ...rest }] as GenericTree<NewNodeData, Extra>
+            : []
+    )).flat(1)
+)
+
+export const treeTypeGuardOnce = <NodeData extends {}, NewNodeData extends NodeData, Extra extends {} = {}>({ tree, typeGuard }: { tree: GenericTree<NodeData, Extra>, typeGuard: (value: NodeData) => value is NewNodeData }): GenericTreeFiltered<NewNodeData, NodeData, Extra> => (
+    tree.map(({ data, children, ...rest }) => (
+        typeGuard(data)
+            ?  [{ data, children, ...rest }] as GenericTreeFiltered<NewNodeData, NodeData, Extra>
             : []
     )).flat(1)
 )

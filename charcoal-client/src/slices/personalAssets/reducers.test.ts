@@ -109,6 +109,92 @@ describe('personalAsset slice reducers', () => {
             })
         })
 
+        it('should delete schema content', () => {
+            const testSchema = [{
+                data: { tag: 'Asset', key: 'testAsset' },
+                id: '',
+                children: [
+                    {
+                        data: { tag: 'Room', key: 'testRoom' },
+                        id: 'ABC',
+                        children: [
+                            { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                            { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                        ]
+                    }
+                ]
+            }]
+            expect(updateSchema({ schema: testSchema } as any, {
+                type: 'updateSchema',
+                payload: {
+                    type: 'delete',
+                    id: 'DEF'
+                }
+            })).toEqual({
+                schema: [{
+                    data: { tag: 'Asset', key: 'testAsset' },
+                    id: '',
+                    children: [
+                        {
+                            data: { tag: 'Room', key: 'testRoom' },
+                            id: 'ABC',
+                            children: [
+                                { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                            ]
+                        }
+                    ]
+                }]
+            })
+        })
+
+        it('should update a schemaTag without changing its children', () => {
+            const testSchema = [{
+                data: { tag: 'Asset', key: 'testAsset' },
+                id: '',
+                children: [
+                    {
+                        data: { tag: 'If', conditions: [{ if: 'true' }] },
+                        id: 'IF-1',
+                        children: [{
+                            data: { tag: 'Room', key: 'testRoom' },
+                            id: 'ABC',
+                            children: [
+                                { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                                { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                            ]
+                        }]
+                    }
+                ]
+            }]
+            expect(updateSchema({ schema: testSchema } as any, {
+                type: 'updateSchema',
+                payload: {
+                    type: 'updateNode',
+                    id: 'IF-1',
+                    item: { tag: 'If', conditions: [{ if: 'false' }] }
+                }
+            })).toEqual({
+                schema: [{
+                    data: { tag: 'Asset', key: 'testAsset' },
+                    id: '',
+                    children: [
+                        {
+                            data: { tag: 'If', conditions: [{ if: 'false' }] },
+                            id: 'IF-1',
+                            children: [{
+                                data: { tag: 'Room', key: 'testRoom' },
+                                id: 'ABC',
+                                children: [
+                                    { data: { tag: 'Name' }, id: 'DEF', children: [{ data: { tag: 'String', value: 'Test Room' }, id: 'GHI', children: [] }]},
+                                    { data: { tag: 'Description' }, id: 'JKL', children: [{ data: { tag: 'String', value: 'Test Description' }, id: '', children: [] }]}
+                                ]
+                            }]
+                        }
+                    ]
+                    }]
+            })
+        })
+
         it('should rename exit targets on rename of room', () => {
             const testSchema = [{
                 data: { tag: 'Asset', key: 'testAsset' },
