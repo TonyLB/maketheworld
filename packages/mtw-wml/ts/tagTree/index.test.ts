@@ -8,9 +8,9 @@ import { SchemaTag, isSchemaBookmark, isSchemaWithKey } from '../simpleSchema/ba
 import { deepEqual } from '../lib/objects'
 
 const classify = ({ tag }: SchemaTag) => (tag)
-const compare = (A: SchemaTag, B: SchemaTag) => {
-    if (isSchemaWithKey(A)) {
-        return (isSchemaWithKey(B) && A.key === B.key)
+const compare = (A: { data: SchemaTag }, B: { data: SchemaTag }) => {
+    if (isSchemaWithKey(A.data)) {
+        return (isSchemaWithKey(B.data) && A.data.key === B.data.key)
     }
     return deepEqual(A, B)
 }
@@ -32,31 +32,31 @@ describe('TagTree', () => {
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit']] })
             expect(tagTree._tagList).toEqual([
                 [
-                    { tag: 'Asset', key: 'test' },
-                    { tag: 'Room', key: 'room1' },
-                    { tag: 'Description' },
-                    { tag: 'String', value: 'Test description' },
+                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Room', key: 'room1' } },
+                    { data: { tag: 'Description' } },
+                    { data: { tag: 'String', value: 'Test description' } },
                 ],
                 [
-                    { tag: 'Asset', key: 'test' },
-                    { tag: 'Room', key: 'room1' },
-                    { tag: 'Name' },
-                    { tag: 'String', value: 'Test room' },
+                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Room', key: 'room1' } },
+                    { data: { tag: 'Name' } },
+                    { data: { tag: 'String', value: 'Test room' } },
                 ],
                 [
-                    { tag: 'Asset', key: 'test' },
-                    { tag: 'Room', key: 'room1' },
-                    { tag: 'Exit', key: 'room1#room2', from: 'room1', to: 'room2', name: '' }
+                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Room', key: 'room1' } },
+                    { data: { tag: 'Exit', key: 'room1#room2', from: 'room1', to: 'room2', name: '' } }
                 ],
                 [
-                    { tag: 'Asset', key: 'test' },
-                    { tag: 'Room', key: 'room1' },
-                    { tag: 'Description' },
-                    { tag: 'String', value: ': Added' },
+                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Room', key: 'room1' } },
+                    { data: { tag: 'Description' } },
+                    { data: { tag: 'String', value: ': Added' } },
                 ],
                 [
-                    { tag: 'Asset', key: 'test' },
-                    { tag: 'Room', key: 'room2' }
+                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Room', key: 'room2' } }
                 ]
             ])
         })
@@ -65,8 +65,8 @@ describe('TagTree', () => {
     describe('iterativeMerge', () => {
         const mergeClassify = (value: string) => (value.startsWith('WRAP-') ? 'WRAP' : value)
         it('should merge data into an empty tree', () => {
-            expect(iterativeMerge({ classify: mergeClassify })([], ['test'])).toEqual([{ data: 'test', children: [] }])
-            expect(iterativeMerge({ classify: mergeClassify })([], ['testA', 'testB', 'testC'])).toEqual([{ data: 'testA', children: [{ data: 'testB', children: [{ data: 'testC', children: [] }] }] }])
+            expect(iterativeMerge({ classify: mergeClassify })([], [{ data: 'test' }])).toEqual([{ data: 'test', children: [] }])
+            expect(iterativeMerge({ classify: mergeClassify })([], [{ data: 'testA' }, { data: 'testB' }, { data: 'testC' }])).toEqual([{ data: 'testA', children: [{ data: 'testB', children: [{ data: 'testC', children: [] }] }] }])
         })
 
         it('should merge data into an existing tree', () => {
@@ -76,7 +76,7 @@ describe('TagTree', () => {
                     { data: 'testB', children: [{ data: 'testC', children: [] }] }
                 ]
             }]
-            expect(iterativeMerge({ classify: mergeClassify })(testTree, ['testA', 'testB', 'testD'])).toEqual([{
+            expect(iterativeMerge({ classify: mergeClassify })(testTree, [{ data: 'testA' }, { data: 'testB' }, { data: 'testD' }])).toEqual([{
                 data: 'testA',
                 children: [{
                     data: 'testB',
@@ -86,7 +86,7 @@ describe('TagTree', () => {
                     ]
                 }]
             }])
-            expect(iterativeMerge({ classify: mergeClassify })(testTree, ['testA', 'testD'])).toEqual([{
+            expect(iterativeMerge({ classify: mergeClassify })(testTree, [{ data: 'testA' }, { data: 'testD' }])).toEqual([{
                 data: 'testA',
                 children: [
                     {
@@ -107,7 +107,7 @@ describe('TagTree', () => {
                     { data: 'WRAP-testC', children: [{ data: 'testE', children: [] }] }
                 ]
             }]
-            expect(iterativeMerge({ classify: mergeClassify, orderIndependence: [['WRAP', 'WRAP']] })(testTree, ['testA', 'WRAP-testB', 'WRAP-testF'])).toEqual([{
+            expect(iterativeMerge({ classify: mergeClassify, orderIndependence: [['WRAP', 'WRAP']] })(testTree, [{ data: 'testA' }, { data: 'WRAP-testB' }, { data: 'WRAP-testF' }])).toEqual([{
                 data: 'testA',
                 children: [
                     {
@@ -221,7 +221,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const filteredTreeOne = tagTree.filter({ and: [{ match: { tag: 'Room', key: 'room1' } }, { match: 'Description' }] })
+            const filteredTreeOne = tagTree.filter({ and: [{ match: { data: { tag: 'Room', key: 'room1' } } }, { match: 'Description' }] })
             expect(schemaToWML(filteredTreeOne.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(room1)><Description>An institutional lobby.</Description></Room>
@@ -235,7 +235,7 @@ describe('TagTree', () => {
                     </If>
                 </Asset>
             `))
-            const filteredTreeTwo = tagTree.filter({ and: [{ match: { tag: 'Room', key: 'room1' } }, { match: 'Name' }] })
+            const filteredTreeTwo = tagTree.filter({ and: [{ match: { data: { tag: 'Room', key: 'room1' } } }, { match: 'Name' }] })
             expect(schemaToWML(filteredTreeTwo.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(room1)><Name>Lobby</Name></Room>
@@ -393,7 +393,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune({ or: [{ before: { match: { tag: 'Bookmark', key: 'bookmark1' } } }, { after: { match: (node) => (isSchemaBookmark(node) && node.key !== 'bookmark1') } }] })
+            const prunedTreeOne = tagTree.prune({ or: [{ before: { match: { data: { tag: 'Bookmark', key: 'bookmark1' } } } }, { after: { match: (node) => (isSchemaBookmark(node.data) && node.data.key !== 'bookmark1') } }] })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Bookmark key=(bookmark1)>Test <Bookmark key=(bookmark2) />More data</Bookmark>
             `))
@@ -431,7 +431,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTree = new TagTree({ tree: testTree, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: (data) => (data.tag === 'Map' && data.key === 'testMap') }, { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Message' }] }] } })
+            const prunedTreeOne = tagTree.prune({ after: { sequence: [{ match: ({ data }) => (data.tag === 'Map' && data.key === 'testMap') }, { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Message' }] }] } })
             expect(schemaToWML(prunedTreeOne.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Map key=(testMap)>
@@ -455,7 +455,7 @@ describe('TagTree', () => {
                 </Asset>
             `))))
             const tagTreeTwo = new TagTree({ tree: testTreeTwo, classify, compare, orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']] })
-            const prunedTreeTwo = tagTreeTwo.prune({ after: { sequence: [{ match: (data) => (data.tag === 'Moment' && data.key === 'testMoment') }, { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Message' }] }] } })
+            const prunedTreeTwo = tagTreeTwo.prune({ after: { sequence: [{ match: ({ data }) => (data.tag === 'Moment' && data.key === 'testMoment') }, { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Message' }] }] } })
             expect(schemaToWML(prunedTreeTwo.tree)).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Moment key=(testMoment)><Message key=(testMessage) /></Moment>

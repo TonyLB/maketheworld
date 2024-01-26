@@ -24,7 +24,7 @@ type DFSWalkOptionsBase<Callback extends DFSWalkCallback> = {
     callback: Callback;
     nest?: (args: { state: DFSWalkState<Callback>, data: DFSWalkIncomingType<Callback>["data"] }) => DFSWalkState<Callback>;
     unNest?: (value: { previous: DFSWalkState<Callback>; state: DFSWalkState<Callback>; data: DFSWalkIncomingType<Callback>["data"] }) => DFSWalkState<Callback>;
-    aggregate?: (value: { direct: DFSWalkReduce<Callback>; children: DFSWalkReduce<Callback>; data?: DFSWalkIncomingType<Callback>["data"] }) => DFSWalkReduce<Callback>
+    aggregate?: (value: { direct: DFSWalkReduce<Callback>; children: DFSWalkReduce<Callback>; data?: DFSWalkIncomingType<Callback>["data"]; extra?: Omit<DFSWalkIncomingType<Callback>, 'data' | 'children'> }) => DFSWalkReduce<Callback>
 }
 
 type DFSWalkOptionsVerbose<Callback extends DFSWalkCallback> = DFSWalkOptionsBase<Callback> & {
@@ -43,7 +43,7 @@ const dfsWalkHelper = <Callback extends DFSWalkCallback>(options: DFSWalkOptions
     const firstCallback = options.callback(previous, node.data, rest) as DFSWalkReduce<Callback>
     if (options.aggregate) {
         const childCallbacks = (children as DFSWalkIncomingType<Callback>[]).reduce(dfsWalkHelper<Callback>(options), { output: options.default.output, state: options.nest ? options.nest({ state: firstCallback.state, data }) : firstCallback.state } as DFSWalkReduce<Callback>)
-        const allCallbacks = options.aggregate({ direct: firstCallback, children: childCallbacks, data })
+        const allCallbacks = options.aggregate({ direct: firstCallback, children: childCallbacks, data, extra: rest })
         return options.unNest ? { ...allCallbacks, state: options.unNest({ previous: firstCallback.state, state: allCallbacks.state, data }) } : allCallbacks
     }
     else {

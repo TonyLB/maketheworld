@@ -3,65 +3,78 @@ import { unique } from "../list";
 import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses"
 import dfsWalk from "../sequence/tree/dfsWalk"
 
-type TagTreeTreeOptions<NodeData extends {}> = {
+type TagTreeTreeOptions<NodeData extends {}, Extra extends {} = {}> = {
     classify: (data: NodeData) => string;
-    compare?: (A: NodeData, B: NodeData) => boolean;
+    compare?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
     orderIndependence?: string[][];
 }
 
-type TagTreeMatchOperand<NodeData extends {}> = 
+type TagTreeMatchOperand<NodeData extends {}, Extra extends {} = {}> = 
     string |
-    NodeData |
-    { (value: NodeData): boolean }
+    ({ data: NodeData } & Extra) |
+    { (value: { data: NodeData } & Extra): boolean }
 
-type TagTreeMatchSequence<NodeData extends {}> = {
-    sequence: TagTreeMatchOperation<NodeData>[]
+type TagTreeMatchSequence<NodeData extends {}, Extra extends {} = {}> = {
+    sequence: TagTreeMatchOperation<NodeData, Extra>[]
 }
 
-type TagTreeMatchAfter<NodeData extends {}> = {
-    after: TagTreeMatchOperation<NodeData>
+type TagTreeMatchAfter<NodeData extends {}, Extra extends {} = {}> = {
+    after: TagTreeMatchOperation<NodeData, Extra>
 }
 
-type TagTreeMatchBefore<NodeData extends {}> = {
-    before: TagTreeMatchOperation<NodeData>
+type TagTreeMatchBefore<NodeData extends {}, Extra extends {} = {}> = {
+    before: TagTreeMatchOperation<NodeData, Extra>
 }
 
-type TagTreeMatchExact<NodeData extends {}> = {
-    match: TagTreeMatchOperand<NodeData>
+type TagTreeMatchExact<NodeData extends {}, Extra extends {} = {}> = {
+    match: TagTreeMatchOperand<NodeData, Extra>
 }
 
-type TagTreeMatchNot<NodeData extends {}> = {
-    not: TagTreeMatchOperation<NodeData>
+type TagTreeMatchNot<NodeData extends {}, Extra extends {} = {}> = {
+    not: TagTreeMatchOperation<NodeData, Extra>
 }
 
-type TagTreeMatchAnd<NodeData extends {}> = {
-    and: TagTreeMatchOperation<NodeData>[]
+type TagTreeMatchAnd<NodeData extends {}, Extra extends {} = {}> = {
+    and: TagTreeMatchOperation<NodeData, Extra>[]
 }
 
-type TagTreeMatchOr<NodeData extends {}> = {
-    or: TagTreeMatchOperation<NodeData>[]
+type TagTreeMatchOr<NodeData extends {}, Extra extends {} = {}> = {
+    or: TagTreeMatchOperation<NodeData, Extra>[]
 }
 
-export type TagTreeMatchOperation<NodeData extends {}> = TagTreeMatchSequence<NodeData> | TagTreeMatchAfter<NodeData> | TagTreeMatchBefore<NodeData> | TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>
+export type TagTreeMatchOperation<NodeData extends {}, Extra extends {} = {}> =
+    TagTreeMatchSequence<NodeData, Extra> |
+    TagTreeMatchAfter<NodeData, Extra> |
+    TagTreeMatchBefore<NodeData, Extra> |
+    TagTreeMatchExact<NodeData, Extra> |
+    TagTreeMatchNot<NodeData, Extra> |
+    TagTreeMatchAnd<NodeData, Extra> |
+    TagTreeMatchOr<NodeData, Extra>
 
-type TagTreeFilterArguments<NodeData extends {}> = (TagTreeMatchExact<NodeData> | TagTreeMatchNot<NodeData> | TagTreeMatchAnd<NodeData> | TagTreeMatchOr<NodeData>)
-const isTagTreeFilterArgument = <NodeData extends {}>(arg: TagTreeMatchOperation<NodeData>): arg is TagTreeFilterArguments<NodeData> => {
+export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
+    data: NodeData;
+} & Extra
+
+type TagTreeFilterArguments<NodeData extends {}, Extra extends {} = {}> = (TagTreeMatchExact<NodeData, Extra> | TagTreeMatchNot<NodeData, Extra> | TagTreeMatchAnd<NodeData, Extra> | TagTreeMatchOr<NodeData, Extra>)
+const isTagTreeFilterArgument = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperation<NodeData, Extra>): arg is TagTreeFilterArguments<NodeData, Extra> => {
     return ('not' in arg || 'and' in arg || 'or' in arg || 'match' in arg)
 }
+// const isTagTreeNodeDataOperandNested = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperand<NodeData, Extra>): arg is { data: NodeData } & Extra => (typeof arg === 'object' && 'data' in arg)
+// const isTagTreeNodeDataOperandUnnested = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperand<NodeData, Extra>): arg is NodeData => (typeof arg === 'object' && !('data' in arg))
 
-type TagTreePruneArgs<NodeData extends {}> = TagTreeMatchOperation<NodeData>
+type TagTreePruneArgs<NodeData extends {}, Extra extends {} = {}> = TagTreeMatchOperation<NodeData, Extra>
 
-export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>): NodeData[][] => {
+export const tagListFromTree = <NodeData extends {}, Extra extends {} = {}>(tree: GenericTree<NodeData, Extra>): TagListItem<NodeData, Extra>[][] => {
     return dfsWalk({
         default: { output: [], state: {} },
-        callback: (previous: { output: NodeData[][], state: {} }, data: NodeData) => {
-            return { output: [...previous.output, [data]], state: {} }
+        callback: (previous: { output: TagListItem<NodeData, Extra>[][], state: {} }, data: NodeData, extra: Extra) => {
+            return { output: [...previous.output, [{ data, ...extra }]], state: {} }
         },
-        aggregate: ({ direct, children, data }) => {
+        aggregate: ({ direct, children, data, extra }) => {
             return {
                 output: [
                     ...(children.output.length ? direct.output.slice(0, -1) : direct.output),
-                    ...children.output.map((nodes) => ([...(data ? [data] : []), ...nodes]))
+                    ...children.output.map((nodes) => ([...(data ? [{ data, ...(extra as unknown as Extra) }] : []), ...nodes]))
                 ],
                 state: {}
             }
@@ -69,14 +82,14 @@ export const tagListFromTree = <NodeData extends {}>(tree: GenericTree<NodeData>
     })(tree)
 }
 
-export const iterativeMerge = <NodeData extends {}>(options: TagTreeTreeOptions<NodeData>) => (previous: GenericTree<NodeData>, tagItem: NodeData[]): GenericTree<NodeData> => {
+export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(options: TagTreeTreeOptions<NodeData, Extra>) => (previous: GenericTree<NodeData, Extra>, tagItem: TagListItem<NodeData, Extra>[]): GenericTree<NodeData, Extra> => {
     if (!tagItem.length) {
         return previous
     }
     const compare = options.compare ?? deepEqual
     if (previous.length) {
-        const classOne = options.classify(tagItem[0])
-        const { matchIndex } = previous.reduceRight<{ matchIndex?: number; noMatch?: boolean }>((matchReduce, { data }, index) => {
+        const classOne = options.classify(tagItem[0].data)
+        const { matchIndex } = previous.reduceRight<{ matchIndex?: number; noMatch?: boolean }>((matchReduce, { data, children, ...rest }, index) => {
             //
             // If a result has already been found then continue to the exit of the loop
             //
@@ -86,7 +99,7 @@ export const iterativeMerge = <NodeData extends {}>(options: TagTreeTreeOptions<
             //
             // If this current data point *is* the match, return that index
             //
-            if (compare(data, tagItem[0])) {
+            if (compare({ data, ...(rest as unknown as Extra) }, tagItem[0])) {
                 return { matchIndex: index }
             }
             const classTwo = options.classify(data)
@@ -109,22 +122,25 @@ export const iterativeMerge = <NodeData extends {}>(options: TagTreeTreeOptions<
         if (typeof matchIndex !== 'undefined') {
             return [
                 ...previous.slice(0, matchIndex),
-                { data: previous[matchIndex].data, children: iterativeMerge(options)(previous[matchIndex].children, tagItem.slice(1)) },
+                { ...previous[matchIndex], children: iterativeMerge(options)(previous[matchIndex].children, tagItem.slice(1)) },
                 ...previous.slice(matchIndex + 1)
             ]
         }
     }
-    return [...previous, { data: tagItem[0], children: iterativeMerge(options)([], tagItem.slice(1)) }]
+    //
+    // TODO: ISS-3385: More sophisticated iterativeMerge
+    //
+    return [...previous, { ...tagItem[0], children: iterativeMerge(options)([], tagItem.slice(1)) }]
 }
 
 
-export class TagTree<NodeData extends {}> {
-    _tagList: NodeData[][];
-    _compare: (A: NodeData, B: NodeData) => boolean;
+export class TagTree<NodeData extends {}, Extra extends {} = {}> {
+    _tagList: TagListItem<NodeData, Extra>[][];
+    _compare: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
     _classifier: (data: NodeData) => string;
     _orderIndependence: string[][];
 
-    constructor(args: { tree: GenericTree<NodeData> } & TagTreeTreeOptions<NodeData>) {
+    constructor(args: { tree: GenericTree<NodeData, Extra> } & TagTreeTreeOptions<NodeData, Extra>) {
         this._classifier = args.classify
         this._orderIndependence = args.orderIndependence ?? []
         this._compare = args.compare ?? deepEqual
@@ -132,7 +148,7 @@ export class TagTree<NodeData extends {}> {
     }
 
     get tree() {
-        return this._tagList.reduce<GenericTree<NodeData>>(iterativeMerge({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence }), [])
+        return this._tagList.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence }), [])
     }
 
 
@@ -142,12 +158,12 @@ export class TagTree<NodeData extends {}> {
     // the specified classes and only those, in place)
     //
     _reorderTags(order: string[]) {
-        return (tags: NodeData[]): NodeData[] => {
-            const returnValue = tags.reduce<NodeData[]>((previous, node) => {
-                const orderIndex = order.indexOf(this._classifier(node))
+        return (tags: TagListItem<NodeData, Extra>[]): TagListItem<NodeData, Extra>[] => {
+            const returnValue = tags.reduce<TagListItem<NodeData, Extra>[]>((previous, node) => {
+                const orderIndex = order.indexOf(this._classifier(node.data))
                 const sortBeforeList = orderIndex === -1 ? [] : order.slice(orderIndex + 1)
                 if (sortBeforeList.length) {
-                    const sortBeforeIndex = previous.findIndex((node) => (sortBeforeList.includes(this._classifier(node))))
+                    const sortBeforeIndex = previous.findIndex((node) => (sortBeforeList.includes(this._classifier(node.data))))
                     if (sortBeforeIndex !== -1) {
                         return [
                             ...previous.slice(0, sortBeforeIndex),
@@ -165,19 +181,19 @@ export class TagTree<NodeData extends {}> {
     // Create a new TagTree with tags ordered (and therefore grouped) in a new way. The orderGroups will specify
     // how to internally reorder tags.
     //
-    reordered(orderGroups: string[]): TagTree<NodeData> {
-        const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+    reordered(orderGroups: string[]): TagTree<NodeData, Extra> {
+        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
         returnValue._tagList = this._tagList.map(this._reorderTags(orderGroups))
         return returnValue
     }
 
-    _tagMatchOperationIndices(tags: NodeData[], operation: TagTreeMatchOperation<NodeData>, recurse?: (operation: TagTreeMatchOperation<NodeData>) => number[]): number[] {
-        const indicesMatching = (operand: TagTreeMatchOperand<NodeData>): number[] => {
+    _tagMatchOperationIndices(tags: TagListItem<NodeData, Extra>[], operation: TagTreeMatchOperation<NodeData, Extra>, recurse?: (operation: TagTreeMatchOperation<NodeData, Extra>) => number[]): number[] {
+        const indicesMatching = (operand: TagTreeMatchOperand<NodeData, Extra>): number[] => {
             return tags.map((node, index) => {
-                if (typeof operand === 'string' && this._classifier(node) === operand) {
+                if (typeof operand === 'string' && this._classifier(node.data) === operand) {
                     return [index]
                 }
-                else if (typeof operand === 'function' && (operand as (value: NodeData) => boolean)(node)) {
+                else if (typeof operand === 'function' && (operand as (value: { data: NodeData } & Extra) => boolean)(node)) {
                     return [index]
                 }
                 else if (typeof operand === 'object' && this._compare(operand, node)) {
@@ -222,12 +238,12 @@ export class TagTree<NodeData extends {}> {
     //
     // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
     //
-    filter(args: TagTreeFilterArguments<NodeData>): TagTree<NodeData> {
-        const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+    filter(args: TagTreeFilterArguments<NodeData, Extra>): TagTree<NodeData, Extra> {
+        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
         //
         // Recursive match between tagList and a (possibly recursive) MatchOperator
         //
-        const filterMatch = (arg: TagTreeFilterArguments<NodeData>, tagList: NodeData[]): Boolean => {
+        const filterMatch = (arg: TagTreeFilterArguments<NodeData, Extra>, tagList: TagListItem<NodeData, Extra>[]): Boolean => {
             if ('not' in arg) {
                 if (isTagTreeFilterArgument(arg.not)) {
                     return !filterMatch(arg.not, tagList)
@@ -260,13 +276,13 @@ export class TagTree<NodeData extends {}> {
     //
     // Create a tag tree with less levels by pruning specified tags out of the lists
     //
-    prune(args: TagTreePruneArgs<NodeData>): TagTree<NodeData> {
-        const returnValue = new TagTree<NodeData>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+    prune(args: TagTreePruneArgs<NodeData, Extra>): TagTree<NodeData, Extra> {
+        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
 
         //
         // Recursive match between tagList and a (possibly recursive) MatchOperator
         //
-        const pruneMatch = (arg: TagTreePruneArgs<NodeData>, tagList: NodeData[]): number[] => {
+        const pruneMatch = (arg: TagTreePruneArgs<NodeData, Extra>, tagList: TagListItem<NodeData, Extra>[]): number[] => {
             const allIndices = tagList.map((_, index) => (index))
             if ('not' in arg) {
                 const recurse = pruneMatch(arg.not, tagList)
