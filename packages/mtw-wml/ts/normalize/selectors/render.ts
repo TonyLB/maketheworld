@@ -13,7 +13,7 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
         return treeTypeGuard({
             tree: tagTree
                 .reordered([options.tag, 'If'])
-                .prune({ or: [{ before: { match: matchTag } }, { match: matchTag }, { after: { match: (node) => (isSchemaBookmark(node) && node.key !== options.key) } }] })
+                .prune({ or: [{ before: { match: { data: matchTag } } }, { match: { data: matchTag } }, { after: { match: ({ data: node }) => (isSchemaBookmark(node) && node.key !== options.key) } }] })
                 .tree,
             typeGuard: isSchemaOutputTag
         })
@@ -24,7 +24,7 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
             tree: tagTree
                 .reordered([options.tag, 'If'])
                 .filter({ not: { match: 'Room' } })
-                .prune({ or: [{ before: { match: matchTag } }, { match: matchTag }]})
+                .prune({ or: [{ before: { match: { data: matchTag } } }, { match: { data: matchTag } }]})
                 .tree,
             typeGuard: isSchemaOutputTag
         })

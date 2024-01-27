@@ -1233,7 +1233,7 @@ export class Normalizer {
         }
         const appearanceTagTrees = (normalItem.appearances ?? [])
             .map(({ contextStack, data, children }) => {
-                const contextNodes = contextStack.map(this._lookupAppearance.bind(this)).map((node) => (node ? [node.data] : [])).flat(1)
+                const contextNodes = contextStack.map(this._lookupAppearance.bind(this)).map((node) => (node ? [{ data: node.data }] : [])).flat(1)
                 return new SchemaTagTree(this._expandNormalRefTree([{ data, children }]))._tagList.map((tagItem) => ([...contextNodes, ...tagItem]))
             }).flat(1)
         const aggregateTagTree = new SchemaTagTree([])
