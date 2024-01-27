@@ -7,7 +7,7 @@ export class SchemaTagTree extends TagTree<SchemaTag> {
     constructor(tree: GenericTree<SchemaTag>) {
         super({
             tree,
-            compare: (A: SchemaTag, B: SchemaTag) => {
+            compare: ({ data: A }: { data: SchemaTag }, { data: B }: { data: SchemaTag }) => {
                 if (isSchemaWithKey(A)) {
                     return (isSchemaWithKey(B) && A.key === B.key)
                 }

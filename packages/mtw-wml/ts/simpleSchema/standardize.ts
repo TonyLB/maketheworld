@@ -76,7 +76,7 @@ export const standardizeSchema = (schema: GenericTree<SchemaTag>): GenericTree<S
                 //
                 // Aggregate and reorder all top-level information
                 //
-                const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: (data) => (data.tag === tag && data.key === key) }
+                const nodeMatch: TagTreeMatchOperation<SchemaTag> = { match: ({ data }) => (data.tag === tag && data.key === key) }
                 const items = tagTree
                     .filter(nodeMatch)
                     //
