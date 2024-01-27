@@ -22,7 +22,7 @@ const reorderChildren = (order: SchemaTag["tag"][]) => (children: GenericTree<Sc
 
 const stripProperties = (tag: SchemaTag): SchemaTag => {
     let returnValue = tag
-    const propertiesToStrip = ['x', 'y', 'from']
+    const propertiesToStrip = ['x', 'y', 'from', 'as']
     propertiesToStrip.forEach((property) => {
         if (property in returnValue) {
             returnValue = { ...returnValue, [property]: undefined }
