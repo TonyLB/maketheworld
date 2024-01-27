@@ -6,6 +6,7 @@ import dfsWalk from "../sequence/tree/dfsWalk"
 type TagTreeTreeOptions<NodeData extends {}, Extra extends {} = {}> = {
     classify: (data: NodeData) => string;
     compare?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
+    merge?: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => ({ data: NodeData } & Extra);
     orderIndependence?: string[][];
 }
 
@@ -87,6 +88,7 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
         return previous
     }
     const compare = options.compare ?? deepEqual
+    const merge: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra> = options.merge ?? ((A, B) => ({ ...A, data: { ...A.data, ...B.data } }))
     if (previous.length) {
         const classOne = options.classify(tagItem[0].data)
         const { matchIndex } = previous.reduceRight<{ matchIndex?: number; noMatch?: boolean }>((matchReduce, { data, children, ...rest }, index) => {
@@ -120,16 +122,14 @@ export const iterativeMerge = <NodeData extends {}, Extra extends {} = {}>(optio
             }
         }, {})
         if (typeof matchIndex !== 'undefined') {
+            const { data, children, ...rest } = previous[matchIndex]
             return [
                 ...previous.slice(0, matchIndex),
-                { ...previous[matchIndex], children: iterativeMerge(options)(previous[matchIndex].children, tagItem.slice(1)) },
+                { ...(merge({ data, ...rest } as unknown as TagListItem<NodeData, Extra>, tagItem[0])), children: iterativeMerge(options)(previous[matchIndex].children, tagItem.slice(1)) },
                 ...previous.slice(matchIndex + 1)
             ]
         }
     }
-    //
-    // TODO: ISS-3385: More sophisticated iterativeMerge
-    //
     return [...previous, { ...tagItem[0], children: iterativeMerge(options)([], tagItem.slice(1)) }]
 }
 
@@ -139,16 +139,18 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     _compare: (A: { data: NodeData } & Extra, B: { data: NodeData } & Extra) => boolean;
     _classifier: (data: NodeData) => string;
     _orderIndependence: string[][];
+    _merge?: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra>
 
     constructor(args: { tree: GenericTree<NodeData, Extra> } & TagTreeTreeOptions<NodeData, Extra>) {
         this._classifier = args.classify
         this._orderIndependence = args.orderIndependence ?? []
         this._compare = args.compare ?? deepEqual
+        this._merge = args.merge
         this._tagList = tagListFromTree(args.tree)
     }
 
     get tree() {
-        return this._tagList.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence }), [])
+        return this._tagList.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, merge: this._merge }), [])
     }
 
 

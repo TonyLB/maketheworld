@@ -64,9 +64,10 @@ describe('TagTree', () => {
 
     describe('iterativeMerge', () => {
         const mergeClassify = (value: string) => (value.startsWith('WRAP-') ? 'WRAP' : value)
+        const merge = (A: { data: string }, B: { data: string }) => A
         it('should merge data into an empty tree', () => {
-            expect(iterativeMerge({ classify: mergeClassify })([], [{ data: 'test' }])).toEqual([{ data: 'test', children: [] }])
-            expect(iterativeMerge({ classify: mergeClassify })([], [{ data: 'testA' }, { data: 'testB' }, { data: 'testC' }])).toEqual([{ data: 'testA', children: [{ data: 'testB', children: [{ data: 'testC', children: [] }] }] }])
+            expect(iterativeMerge({ classify: mergeClassify, merge })([], [{ data: 'test' }])).toEqual([{ data: 'test', children: [] }])
+            expect(iterativeMerge({ classify: mergeClassify, merge })([], [{ data: 'testA' }, { data: 'testB' }, { data: 'testC' }])).toEqual([{ data: 'testA', children: [{ data: 'testB', children: [{ data: 'testC', children: [] }] }] }])
         })
 
         it('should merge data into an existing tree', () => {
@@ -76,7 +77,7 @@ describe('TagTree', () => {
                     { data: 'testB', children: [{ data: 'testC', children: [] }] }
                 ]
             }]
-            expect(iterativeMerge({ classify: mergeClassify })(testTree, [{ data: 'testA' }, { data: 'testB' }, { data: 'testD' }])).toEqual([{
+            expect(iterativeMerge({ classify: mergeClassify, merge })(testTree, [{ data: 'testA' }, { data: 'testB' }, { data: 'testD' }])).toEqual([{
                 data: 'testA',
                 children: [{
                     data: 'testB',
@@ -86,7 +87,7 @@ describe('TagTree', () => {
                     ]
                 }]
             }])
-            expect(iterativeMerge({ classify: mergeClassify })(testTree, [{ data: 'testA' }, { data: 'testD' }])).toEqual([{
+            expect(iterativeMerge({ classify: mergeClassify, merge })(testTree, [{ data: 'testA' }, { data: 'testD' }])).toEqual([{
                 data: 'testA',
                 children: [
                     {
@@ -107,7 +108,7 @@ describe('TagTree', () => {
                     { data: 'WRAP-testC', children: [{ data: 'testE', children: [] }] }
                 ]
             }]
-            expect(iterativeMerge({ classify: mergeClassify, orderIndependence: [['WRAP', 'WRAP']] })(testTree, [{ data: 'testA' }, { data: 'WRAP-testB' }, { data: 'WRAP-testF' }])).toEqual([{
+            expect(iterativeMerge({ classify: mergeClassify, merge, orderIndependence: [['WRAP', 'WRAP']] })(testTree, [{ data: 'testA' }, { data: 'WRAP-testB' }, { data: 'WRAP-testF' }])).toEqual([{
                 data: 'testA',
                 children: [
                     {
