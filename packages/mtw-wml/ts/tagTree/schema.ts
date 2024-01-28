@@ -3,17 +3,21 @@ import { deepEqual } from "../lib/objects"
 import { GenericTree } from "../sequence/tree/baseClasses"
 import { SchemaTag, isSchemaWithKey } from "../simpleSchema/baseClasses"
 
-export class SchemaTagTree extends TagTree<SchemaTag> {
-    constructor(tree: GenericTree<SchemaTag>) {
+export class SchemaTagTree extends TagTree<SchemaTag, { id?: string }> {
+    constructor(tree: GenericTree<SchemaTag, { id?: string }>) {
         super({
             tree,
-            compare: ({ data: A }: { data: SchemaTag }, { data: B }: { data: SchemaTag }) => {
+            compare: ({ data: A, id: idA }, { data: B, id: idB }) => {
+                if ((idA || idB) && (idA !== idB)) {
+                    console.log(`idA: ${JSON.stringify(idA)}, idB: ${JSON.stringify(idB)}`)
+                    return false
+                }
                 if (isSchemaWithKey(A)) {
                     return (isSchemaWithKey(B) && A.key === B.key)
                 }
                 return deepEqual(A, B)
             },
-            classify: ({ tag }: SchemaTag) => (tag),
+            classify: ({ tag }) => (tag),
             orderIndependence: [['Description', 'Name', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']]
         })
     }
