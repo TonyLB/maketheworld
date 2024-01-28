@@ -140,6 +140,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     _classifier: (data: NodeData) => string;
     _orderIndependence: string[][];
     _merge?: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra>
+    _reorder?: string[];
 
     constructor(args: { tree: GenericTree<NodeData, Extra> } & TagTreeTreeOptions<NodeData, Extra>) {
         this._classifier = args.classify
@@ -150,42 +151,49 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     }
 
     get tree() {
-        return this._tagList.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, merge: this._merge }), [])
+        return this._transformedTags.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, merge: this._merge }), [])
     }
 
-
-    //
-    // Reorder a list of tags so that any tags classified to classes that are specified in the order argument
-    // are arranged in the same order *as* that argument, with minimal changes otherwise (basically, bubble-sort
-    // the specified classes and only those, in place)
-    //
-    _reorderTags(order: string[]) {
-        return (tags: TagListItem<NodeData, Extra>[]): TagListItem<NodeData, Extra>[] => {
-            const returnValue = tags.reduce<TagListItem<NodeData, Extra>[]>((previous, node) => {
-                const orderIndex = order.indexOf(this._classifier(node.data))
-                const sortBeforeList = orderIndex === -1 ? [] : order.slice(orderIndex + 1)
-                if (sortBeforeList.length) {
-                    const sortBeforeIndex = previous.findIndex((node) => (sortBeforeList.includes(this._classifier(node.data))))
-                    if (sortBeforeIndex !== -1) {
-                        return [
-                            ...previous.slice(0, sortBeforeIndex),
-                            node,
-                            ...previous.slice(sortBeforeIndex)
-                        ]
-                    }
-                }
-                return [...previous, node]
-            }, [])
-            return returnValue
-        }
+    get _transformedTags(): TagListItem<NodeData, Extra>[][] {
+        const orderGroups = this._reorder ?? []
+        const reorderedTags = this._tagList.map((tagList) => (this._reorderTags(orderGroups)(tagList).map((index) => (tagList[index]))))
+        return reorderedTags
     }
+
+    clone(): TagTree<NodeData, Extra> {
+        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, merge: this._merge, orderIndependence: this._orderIndependence })
+        returnValue._tagList = this._tagList
+        return returnValue
+    }
+
     //
     // Create a new TagTree with tags ordered (and therefore grouped) in a new way. The orderGroups will specify
     // how to internally reorder tags.
     //
+    _reorderTags(order: string[]) {
+        return (tags: TagListItem<NodeData, Extra>[]): number[] => {
+            const returnValue = tags.reduce<number[]>((previous, node, index) => {
+                const orderIndex = order.indexOf(this._classifier(node.data))
+                const sortBeforeList = orderIndex === -1 ? [] : order.slice(orderIndex + 1)
+                if (sortBeforeList.length) {
+                    const sortBeforeIndex = previous.findIndex((index) => (sortBeforeList.includes(this._classifier(tags[index].data))))
+                    if (sortBeforeIndex !== -1) {
+                        return [
+                            ...previous.slice(0, sortBeforeIndex),
+                            index,
+                            ...previous.slice(sortBeforeIndex)
+                        ]
+                    }
+                }
+                return [...previous, index]
+            }, [])
+            return returnValue
+        }
+    }
+
     reordered(orderGroups: string[]): TagTree<NodeData, Extra> {
-        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
-        returnValue._tagList = this._tagList.map(this._reorderTags(orderGroups))
+        const returnValue = this.clone()
+        returnValue._reorder = orderGroups
         return returnValue
     }
 
@@ -270,7 +278,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
             }
             return false
         }
-        returnValue._tagList = this._tagList
+        returnValue._tagList = this._transformedTags
             .filter((tags) => (filterMatch(args, tags)))
         return returnValue
     }
@@ -303,7 +311,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
             }
             return this._tagMatchOperationIndices(tagList, arg, (operation) => (pruneMatch(operation, tagList)))
         }
-        returnValue._tagList = this._tagList
+        returnValue._tagList = this._transformedTags
             .map((tags) => {
                 const indicesToPrune = pruneMatch(args, tags)
                 return tags.map((node, index) => (indicesToPrune.includes(index) ? [] : [node])).flat(1)
