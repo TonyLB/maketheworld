@@ -58,13 +58,16 @@ export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
 
 type TagTreeActionReorder = { reorder: string[] }
 type TagTreeActionFilter<NodeData extends {}, Extra extends {} = {}> = { filter: TagTreeFilterArguments<NodeData, Extra> }
+type TagTreeActionPrune<NodeData extends {}, Extra extends {} = {}> = { prune: TagTreePruneArgs<NodeData, Extra> }
 
 export type TagTreeAction<NodeData extends {}, Extra extends {} = {}> =
     TagTreeActionReorder |
-    TagTreeActionFilter<NodeData, Extra>
+    TagTreeActionFilter<NodeData, Extra> |
+    TagTreeActionPrune<NodeData, Extra>
 
 const isTagTreeActionReorder = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorder => ('reorder' in action)
 const isTagTreeActionFilter = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionFilter<NodeData, Extra> => ('filter' in action)
+const isTagTreeActionPrune = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionPrune<NodeData, Extra> => ('prune' in action)
 
 type TagTreeFilterArguments<NodeData extends {}, Extra extends {} = {}> = (TagTreeMatchExact<NodeData, Extra> | TagTreeMatchNot<NodeData, Extra> | TagTreeMatchAnd<NodeData, Extra> | TagTreeMatchOr<NodeData, Extra>)
 const isTagTreeFilterArgument = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperation<NodeData, Extra>): arg is TagTreeFilterArguments<NodeData, Extra> => {
@@ -189,9 +192,11 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         }
     }
 
+    //
+    // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
+    //
     _filterTags(args: TagTreeFilterArguments<NodeData, Extra>) {
         return (tags: TagListItem<NodeData, Extra>[]): Boolean => {
-            const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
             //
             // Recursive match between tagList and a (possibly recursive) MatchOperator
             //
@@ -224,6 +229,32 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         }
     }
 
+    //
+    // Create a tag tree with less levels by pruning specified tags out of each list
+    //
+    _pruneTags(arg: TagTreePruneArgs<NodeData, Extra>) {
+        const pruneMatch = (arg: TagTreePruneArgs<NodeData, Extra>, tagList: TagListItem<NodeData, Extra>[]): number[] => {
+            const allIndices = tagList.map((_, index) => (index))
+            if ('not' in arg) {
+                const recurse = pruneMatch(arg.not, tagList)
+                return allIndices.filter((index) => (!recurse.includes(index)))
+            }
+            if ('and' in arg) {
+                return arg.and.reduce<number[]>((previous, subArg) => {
+                    const recurse = pruneMatch(subArg, tagList)
+                    return previous.filter((index) => (recurse.includes(index)))
+                }, allIndices).sort()
+            }
+            if ('or' in arg) {
+                return unique(arg.or
+                    .map<number[]>((subArg) => (pruneMatch(subArg, tagList)))
+                    .flat(1)).sort()
+            }
+            return this._tagMatchOperationIndices(tagList, arg, (operation) => (pruneMatch(operation, tagList)))
+        }
+        return (tagList: TagListItem<NodeData, Extra>[]) => (pruneMatch(arg, tagList))
+    }
+
     get _transformedTags(): TagListItem<NodeData, Extra>[][] {
         return this._actions.reduce<TagListItem<NodeData, Extra>[][]>((previous, action) => {
             if (isTagTreeActionReorder(action)) {
@@ -233,6 +264,13 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
             if (isTagTreeActionFilter(action)) {
                 const filteredTags = previous.filter(this._filterTags(action.filter))
                 return filteredTags
+            }
+            if (isTagTreeActionPrune(action)) {
+                const prunedTags = previous.map((tagList) => {
+                    const pruneIndices = this._pruneTags(action.prune)(tagList)
+                    return tagList.map((_, index) => (index)).filter((index) => (!pruneIndices.includes(index))).map((index) => (tagList[index]))
+                })
+                return prunedTags
             }
             return previous
         }, this._tagList)
@@ -298,6 +336,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         }
         return []
     }
+
     //
     // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
     //
@@ -311,35 +350,8 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     // Create a tag tree with less levels by pruning specified tags out of the lists
     //
     prune(args: TagTreePruneArgs<NodeData, Extra>): TagTree<NodeData, Extra> {
-        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
-
-        //
-        // Recursive match between tagList and a (possibly recursive) MatchOperator
-        //
-        const pruneMatch = (arg: TagTreePruneArgs<NodeData, Extra>, tagList: TagListItem<NodeData, Extra>[]): number[] => {
-            const allIndices = tagList.map((_, index) => (index))
-            if ('not' in arg) {
-                const recurse = pruneMatch(arg.not, tagList)
-                return allIndices.filter((index) => (!recurse.includes(index)))
-            }
-            if ('and' in arg) {
-                return arg.and.reduce<number[]>((previous, subArg) => {
-                    const recurse = pruneMatch(subArg, tagList)
-                    return previous.filter((index) => (recurse.includes(index)))
-                }, allIndices).sort()
-            }
-            if ('or' in arg) {
-                return unique(arg.or
-                    .map<number[]>((subArg) => (pruneMatch(subArg, tagList)))
-                    .flat(1)).sort()
-            }
-            return this._tagMatchOperationIndices(tagList, arg, (operation) => (pruneMatch(operation, tagList)))
-        }
-        returnValue._tagList = this._transformedTags
-            .map((tags) => {
-                const indicesToPrune = pruneMatch(args, tags)
-                return tags.map((node, index) => (indicesToPrune.includes(index) ? [] : [node])).flat(1)
-            })
+        const returnValue = this.clone()
+        returnValue._actions = [...this._actions, { prune: args }]
         return returnValue
     }
 
