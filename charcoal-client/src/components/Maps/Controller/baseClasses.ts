@@ -11,7 +11,7 @@ export type MapTreeCondition = SchemaConditionTag & { inherited?: boolean }
 
 export type MapTreeItem = MapTreeExit | MapTreeRoom | MapTreeCondition
 export const isMapTreeRoom = (node: MapTreeItem): node is MapTreeRoom => (node.tag === 'Room')
-export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoom & { x: number; y: number; refeerence: NormalReference } => (
+export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoom & { x: number; y: number; reference: NormalReference } => (
     node.tag === 'Room' && (
         typeof node.x !== 'undefined' &&
         typeof node.y !== 'undefined' &&

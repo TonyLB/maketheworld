@@ -1,23 +1,16 @@
-import { NormalForm, isNormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { UpdateNormalPayload } from "../../../slices/personalAssets/reducers"
+import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses";
+import { SchemaTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses";
 
-export const addExitFactory = ({ normalForm, updateNormal }: { normalForm: NormalForm, updateNormal: (action: UpdateNormalPayload) => void }) => ({ to, from }: { to: string; from: string }) => {
-    const normalRoom = normalForm[from || '']
-    if (from && normalRoom && isNormalRoom(normalRoom)) {
-        const firstUnconditionedAppearance = normalRoom.appearances.findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-        if (firstUnconditionedAppearance !== -1) {
-            updateNormal({
-                type: 'put',
-                item: {
-                    tag: 'Exit',
-                    key: `${from}#${to}`,
-                    from,
-                    to,
-                    name: '',
-                    contents: [],
-                },
-                position: { contextStack: [ ...normalRoom.appearances[firstUnconditionedAppearance].contextStack, { key: from, tag: 'Room', index: firstUnconditionedAppearance }] }
-            })
+export const addExitFactory = ({ schema, updateSchema }: { schema: GenericTree<SchemaTag, TreeId>, updateSchema: (action: UpdateSchemaPayload) => void }) => ({ to, from }: { to: string; from: string }) => {
+    updateSchema({
+        type: 'addChild',
+        id: schema[0].id,
+        item: {
+            data: { tag: 'Room', key: from },
+            children: [
+                { data: { tag: 'Exit', key: `${from}#${to}`, from, to, name: '' }, children: [] }
+            ]
         }
-    }
+    })
 }

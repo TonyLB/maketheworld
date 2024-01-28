@@ -12,6 +12,7 @@ import { produce } from 'immer'
 import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
 import dfsWalk from '@tonylb/mtw-wml/dist/sequence/tree/dfsWalk'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -50,7 +51,7 @@ type MapTreeTranslateReduce = {
     links: (SimulationLinkDatum<SimNode> & { id: string })[]
 }
 
-export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>, hiddenConditions: string[]) => (dfsWalk<MapTreeItem, GenericTree<SimulationTreeNode>, MapTreeTranslateReduce>({
+export const mapTreeTranslate = (tree: GenericTree<MapTreeItem>, hiddenConditions: string[]) => (dfsWalk<(previous: { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }, data: MapTreeItem) => { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }>({
     nest: ({ state, data }) => {
         if (data.tag === 'If') {
             return {
