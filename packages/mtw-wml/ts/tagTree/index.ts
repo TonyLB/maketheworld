@@ -56,6 +56,16 @@ export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
     data: NodeData;
 } & Extra
 
+type TagTreeActionReorder = { reorder: string[] }
+type TagTreeActionFilter<NodeData extends {}, Extra extends {} = {}> = { filter: TagTreeFilterArguments<NodeData, Extra> }
+
+export type TagTreeAction<NodeData extends {}, Extra extends {} = {}> =
+    TagTreeActionReorder |
+    TagTreeActionFilter<NodeData, Extra>
+
+const isTagTreeActionReorder = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorder => ('reorder' in action)
+const isTagTreeActionFilter = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionFilter<NodeData, Extra> => ('filter' in action)
+
 type TagTreeFilterArguments<NodeData extends {}, Extra extends {} = {}> = (TagTreeMatchExact<NodeData, Extra> | TagTreeMatchNot<NodeData, Extra> | TagTreeMatchAnd<NodeData, Extra> | TagTreeMatchOr<NodeData, Extra>)
 const isTagTreeFilterArgument = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperation<NodeData, Extra>): arg is TagTreeFilterArguments<NodeData, Extra> => {
     return ('not' in arg || 'and' in arg || 'or' in arg || 'match' in arg)
@@ -140,7 +150,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     _classifier: (data: NodeData) => string;
     _orderIndependence: string[][];
     _merge?: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra>
-    _reorder?: string[];
+    _actions: TagTreeAction<NodeData, Extra>[] = [];
 
     constructor(args: { tree: GenericTree<NodeData, Extra> } & TagTreeTreeOptions<NodeData, Extra>) {
         this._classifier = args.classify
@@ -152,18 +162,6 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
 
     get tree() {
         return this._transformedTags.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, merge: this._merge }), [])
-    }
-
-    get _transformedTags(): TagListItem<NodeData, Extra>[][] {
-        const orderGroups = this._reorder ?? []
-        const reorderedTags = this._tagList.map((tagList) => (this._reorderTags(orderGroups)(tagList).map((index) => (tagList[index]))))
-        return reorderedTags
-    }
-
-    clone(): TagTree<NodeData, Extra> {
-        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, merge: this._merge, orderIndependence: this._orderIndependence })
-        returnValue._tagList = this._tagList
-        return returnValue
     }
 
     //
@@ -191,9 +189,64 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         }
     }
 
+    _filterTags(args: TagTreeFilterArguments<NodeData, Extra>) {
+        return (tags: TagListItem<NodeData, Extra>[]): Boolean => {
+            const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
+            //
+            // Recursive match between tagList and a (possibly recursive) MatchOperator
+            //
+            const filterMatch = (arg: TagTreeFilterArguments<NodeData, Extra>, tagList: TagListItem<NodeData, Extra>[]): Boolean => {
+                if ('not' in arg) {
+                    if (isTagTreeFilterArgument(arg.not)) {
+                        return !filterMatch(arg.not, tagList)
+                    }
+                    else {
+                        return false
+                    }
+                }
+                if ('and' in arg) {
+                    return arg.and
+                        .filter(isTagTreeFilterArgument)
+                        .reduce<Boolean>((previous, subArg) => (previous && filterMatch(subArg, tagList)), true)
+                }
+                if ('or' in arg) {
+                    return arg.or
+                        .filter(isTagTreeFilterArgument)
+                        .reduce<Boolean>((previous, subArg) => (previous || filterMatch(subArg, tagList)), false)
+                }
+                if ('match' in arg) {
+                    const nodeMatches = this._tagMatchOperationIndices(tagList, arg)
+                    return nodeMatches.length > 0
+                }
+                return false
+            }
+            return filterMatch(args, tags)
+        }
+    }
+
+    get _transformedTags(): TagListItem<NodeData, Extra>[][] {
+        return this._actions.reduce<TagListItem<NodeData, Extra>[][]>((previous, action) => {
+            if (isTagTreeActionReorder(action)) {
+                const reorderedTags = previous.map((tagList) => (this._reorderTags(action.reorder)(tagList).map((index) => (tagList[index]))))
+                return reorderedTags
+            }
+            if (isTagTreeActionFilter(action)) {
+                const filteredTags = previous.filter(this._filterTags(action.filter))
+                return filteredTags
+            }
+            return previous
+        }, this._tagList)
+    }
+
+    clone(): TagTree<NodeData, Extra> {
+        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, merge: this._merge, orderIndependence: this._orderIndependence })
+        returnValue._tagList = this._tagList
+        return returnValue
+    }
+
     reordered(orderGroups: string[]): TagTree<NodeData, Extra> {
         const returnValue = this.clone()
-        returnValue._reorder = orderGroups
+        returnValue._actions = [...this._actions, { reorder: orderGroups }]
         return returnValue
     }
 
@@ -249,37 +302,8 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     // Create a new (likely smaller) tag tree with only the leaf nodes that meet the filtering criteria.
     //
     filter(args: TagTreeFilterArguments<NodeData, Extra>): TagTree<NodeData, Extra> {
-        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence })
-        //
-        // Recursive match between tagList and a (possibly recursive) MatchOperator
-        //
-        const filterMatch = (arg: TagTreeFilterArguments<NodeData, Extra>, tagList: TagListItem<NodeData, Extra>[]): Boolean => {
-            if ('not' in arg) {
-                if (isTagTreeFilterArgument(arg.not)) {
-                    return !filterMatch(arg.not, tagList)
-                }
-                else {
-                    return false
-                }
-            }
-            if ('and' in arg) {
-                return arg.and
-                    .filter(isTagTreeFilterArgument)
-                    .reduce<Boolean>((previous, subArg) => (previous && filterMatch(subArg, tagList)), true)
-            }
-            if ('or' in arg) {
-                return arg.or
-                    .filter(isTagTreeFilterArgument)
-                    .reduce<Boolean>((previous, subArg) => (previous || filterMatch(subArg, tagList)), false)
-            }
-            if ('match' in arg) {
-                const nodeMatches = this._tagMatchOperationIndices(tagList, arg)
-                return nodeMatches.length > 0
-            }
-            return false
-        }
-        returnValue._tagList = this._transformedTags
-            .filter((tags) => (filterMatch(args, tags)))
+        const returnValue = this.clone()
+        returnValue._actions = [...this._actions, { filter: args }]
         return returnValue
     }
 
