@@ -56,6 +56,13 @@ export type TagListItem<NodeData extends {}, Extra extends {} = {}> = {
     data: NodeData;
 } & Extra
 
+type TagTreeActionReorder =
+    { reorder: string[] }
+
+export type TagTreeAction<NodeData extends {}, Extra extends {} = {}> = TagTreeActionReorder
+
+const isTagTreeActionReorder = <NodeData extends {}, Extra extends {} = {}>(action: TagTreeAction<NodeData, Extra>): action is TagTreeActionReorder => ('reorder' in action)
+
 type TagTreeFilterArguments<NodeData extends {}, Extra extends {} = {}> = (TagTreeMatchExact<NodeData, Extra> | TagTreeMatchNot<NodeData, Extra> | TagTreeMatchAnd<NodeData, Extra> | TagTreeMatchOr<NodeData, Extra>)
 const isTagTreeFilterArgument = <NodeData extends {}, Extra extends {} = {}>(arg: TagTreeMatchOperation<NodeData, Extra>): arg is TagTreeFilterArguments<NodeData, Extra> => {
     return ('not' in arg || 'and' in arg || 'or' in arg || 'match' in arg)
@@ -140,7 +147,7 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
     _classifier: (data: NodeData) => string;
     _orderIndependence: string[][];
     _merge?: (A: TagListItem<NodeData, Extra>, B: TagListItem<NodeData, Extra>) => TagListItem<NodeData, Extra>
-    _reorder?: string[];
+    _actions: TagTreeAction<NodeData, Extra>[] = [];
 
     constructor(args: { tree: GenericTree<NodeData, Extra> } & TagTreeTreeOptions<NodeData, Extra>) {
         this._classifier = args.classify
@@ -152,18 +159,6 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
 
     get tree() {
         return this._transformedTags.reduce<GenericTree<NodeData, Extra>>(iterativeMerge<NodeData, Extra>({ classify: this._classifier, compare: this._compare, orderIndependence: this._orderIndependence, merge: this._merge }), [])
-    }
-
-    get _transformedTags(): TagListItem<NodeData, Extra>[][] {
-        const orderGroups = this._reorder ?? []
-        const reorderedTags = this._tagList.map((tagList) => (this._reorderTags(orderGroups)(tagList).map((index) => (tagList[index]))))
-        return reorderedTags
-    }
-
-    clone(): TagTree<NodeData, Extra> {
-        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, merge: this._merge, orderIndependence: this._orderIndependence })
-        returnValue._tagList = this._tagList
-        return returnValue
     }
 
     //
@@ -191,9 +186,25 @@ export class TagTree<NodeData extends {}, Extra extends {} = {}> {
         }
     }
 
+    get _transformedTags(): TagListItem<NodeData, Extra>[][] {
+        return this._actions.reduce<TagListItem<NodeData, Extra>[][]>((previous, action) => {
+            if (isTagTreeActionReorder(action)) {
+                const reorderedTags = this._tagList.map((tagList) => (this._reorderTags(action.reorder)(tagList).map((index) => (tagList[index]))))
+                return reorderedTags
+            }
+            return previous
+        }, this._tagList)
+    }
+
+    clone(): TagTree<NodeData, Extra> {
+        const returnValue = new TagTree<NodeData, Extra>({ tree: [], classify: this._classifier, compare: this._compare, merge: this._merge, orderIndependence: this._orderIndependence })
+        returnValue._tagList = this._tagList
+        return returnValue
+    }
+
     reordered(orderGroups: string[]): TagTree<NodeData, Extra> {
         const returnValue = this.clone()
-        returnValue._reorder = orderGroups
+        returnValue._actions = [...this._actions, { reorder: orderGroups }]
         return returnValue
     }
 
