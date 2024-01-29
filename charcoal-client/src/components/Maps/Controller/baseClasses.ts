@@ -1,11 +1,11 @@
-import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
-import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
 export type MapTreeExit = SchemaExitTag & { inherited?: boolean }
-export type MapTreeRoom = SchemaRoomTag & { inherited?: boolean; }
+export type MapTreeRoom = SchemaRoomTag & { name: GenericTree<SchemaOutputTag>, inherited?: boolean; }
 export type MapTreeCondition = SchemaConditionTag & { inherited?: boolean }
 
 export type MapTreeItem = MapTreeExit | MapTreeRoom | MapTreeCondition
@@ -50,7 +50,7 @@ type MapDispatchSetNode = {
 
 type MapDispatchUpdateTree = {
     type: 'UpdateTree';
-    tree: GenericTree<MapTreeItem>;
+    tree: GenericTree<SchemaTag, TreeId>;
     hiddenConditions: string[];
 }
 
@@ -107,6 +107,7 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchToggleBranchVisibility
 
 export type MapContextPosition = {
+    id: string;
     roomId: string;
     name: string;
     x: number;
@@ -115,7 +116,7 @@ export type MapContextPosition = {
 
 export type MapContextType = {
     mapId: string;
-    tree: GenericTree<MapTreeItem>;
+    tree: GenericTree<SchemaTag, TreeId>;
     UI: {
         //
         // The Map editor can conceivably need data for:

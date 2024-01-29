@@ -12,6 +12,7 @@ import { produce } from 'immer'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
 import dfsWalk from '@tonylb/mtw-wml/dist/sequence/tree/dfsWalk'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -50,7 +51,7 @@ type MapTreeTranslateReduce = {
     links: (SimulationLinkDatum<SimNode> & { id: string })[]
 }
 
-export const mapTreeTranslate = (tree: GenericTree<MapTreeItem, TreeId>, hiddenConditions: string[]) => (dfsWalk<(previous: { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }, data: MapTreeItem, extra: TreeId) => { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }>({
+export const mapTreeTranslate = (tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]) => (dfsWalk<(previous: { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }, data: SchemaTag, extra: TreeId) => { output: GenericTree<SimulationTreeNode>; state: MapTreeTranslateReduce }>({
     nest: ({ state, data }) => {
         if (data.tag === 'If') {
             return {
@@ -110,7 +111,7 @@ export const mapTreeTranslate = (tree: GenericTree<MapTreeItem, TreeId>, hiddenC
         //
         switch(data.tag) {
             case 'Room':
-                if (isMapTreeRoomWithPosition(data)) {
+                if ((typeof data.x !== 'undefined') && (typeof data.y !== 'undefined')) {
                     return {
                         output: previous.output,
                         state: {
@@ -158,7 +159,7 @@ export class MapDThree extends Object {
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
 
     constructor({ tree, hiddenConditions, onStability, onTick, onExitDrag, onAddExit }: {
-        tree: GenericTree<MapTreeItem, TreeId>;
+        tree: GenericTree<SchemaTag, TreeId>;
         hiddenConditions: string[];
         onStability?: SimCallback,
         onTick?: SimCallback,
@@ -205,7 +206,7 @@ export class MapDThree extends Object {
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
     //
-    update(tree: GenericTree<MapTreeItem, TreeId>, hiddenConditions: string[]): void {
+    update(tree: GenericTree<SchemaTag, TreeId>, hiddenConditions: string[]): void {
         const simulatorTree: GenericTree<SimulationTreeNode> = mapTreeTranslate(tree, hiddenConditions)
         
         this.tree.update(simulatorTree)
