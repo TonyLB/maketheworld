@@ -294,7 +294,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         mapD3.setCallbacks({
             onTick: onTick,
             onStability: (value: SimNode[]) => {
-                stabilizeFactory({ mapId, normalForm, updateNormal })(value)
+                stabilizeFactory({ schema, updateSchema })(value)
             },
             onAddExit
         })
