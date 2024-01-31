@@ -1,13 +1,8 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { BaseAppearance, ComponentAppearance, NormalCondition, NormalReference, isNormalExit, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { GenericTree, GenericTreeNode, TreeId  } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
-import { mergeTrees } from '@tonylb/mtw-wml/dist/sequence/tree/merge'
-import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, MapTreeRoom, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
-import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { SchemaConditionTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaExit, isSchemaMap, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
-import { deepEqual } from "../../../lib/objects"
-import { unique } from "../../../lib/lists"
+import { GenericTree, TreeId  } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
@@ -23,6 +18,7 @@ import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
 import { genericIDFromTree } from "@tonylb/mtw-wml/dist/sequence/tree/genericIDTree"
 import { map } from "@tonylb/mtw-wml/dist/sequence/tree/map"
+import { treeTypeGuard } from "@tonylb/mtw-wml/dist/sequence/tree/filter"
 
 // //
 // // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems
@@ -180,8 +176,11 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
     //
     // Create a GenericTree representation of the items relevant to the map
     //
-    const tree = useMemo<GenericTree<SchemaTag, TreeId>>(() => {
+    const tree = useMemo<GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag, TreeId>>(() => {
         const tagTree = new SchemaTagTree(schema)
+        const isMapContents = (item: SchemaTag): item is SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag => (
+            isSchemaOutputTag(item) || isSchemaRoom(item) || isSchemaCondition(item) || isSchemaExit(item) || isSchemaName(item)
+        )
         const positions = tagTree
             .filter({ and: [
                 { match: ({ data }) => (isSchemaMap(data) && data.key === mapId) },
@@ -201,7 +200,7 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
             .prune({ not: { or: [{ match: 'Room' }, { match: 'Exit' }, { match: 'If' }] } })
             .reordered(['If', 'Room', 'Exit'])
             .tree
-        return genericIDFromTree([...positions, ...exits])
+        return genericIDFromTree(treeTypeGuard({ tree: [...positions, ...exits], typeGuard: isMapContents }))
     }, [schema, mapId])
 
     //
@@ -351,7 +350,7 @@ export const MapDisplayController: FunctionComponent<{ tree: GenericTree<MapTree
     // Transform incoming tree of MapTreeItems back into a tree of SchemaTags
     //
     const mappedTree = useMemo(
-        () => (genericIDFromTree(map(tree, ({ data: { name, ...data }, children }): GenericTree<SchemaTag> => ([
+        () => (genericIDFromTree(map(tree, ({ data: { name, ...data }, children }): GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag> => ([
             {
                 data,
                 children: [

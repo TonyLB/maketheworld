@@ -1,5 +1,5 @@
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
-import { SchemaConditionTag, SchemaExitTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
@@ -116,7 +116,7 @@ export type MapContextPosition = {
 
 export type MapContextType = {
     mapId: string;
-    tree: GenericTree<SchemaTag, TreeId>;
+    tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag, TreeId>;
     UI: {
         //
         // The Map editor can conceivably need data for:
