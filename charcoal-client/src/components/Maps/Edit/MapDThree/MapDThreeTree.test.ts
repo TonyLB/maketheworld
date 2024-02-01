@@ -18,7 +18,6 @@ type MapDThreeDFSOutput = {
 
 describe('dfsWalk', () => {
     const walkCallback = ({ action, state, ...value }: (MapDThreeDFSOutput & { state: {}; action: GenericTreeDiffAction })) => ({ output: [value], state: {} })
-    const reference = { tag: 'Room' as const, key: '', index: 0 }
 
     it('should return an empty list on an empty tree', () => {
         expect(mapDFSWalk(walkCallback)([])).toEqual({ output: [], visibleLayers: [] })
@@ -43,8 +42,8 @@ describe('dfsWalk', () => {
             data: {
                 key: 'Test-1',
                 nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0, reference },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0, reference }
+                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
@@ -59,8 +58,8 @@ describe('dfsWalk', () => {
                 data: {
                     key: 'Test-1',
                     nodes: [
-                        { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0, reference },
-                        { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0, reference }
+                        { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                        { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                     ],
                     links: [
                         { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
@@ -78,8 +77,8 @@ describe('dfsWalk', () => {
             data: {
                 key: 'Test-1',
                 nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0, reference },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0, reference }
+                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
@@ -91,7 +90,7 @@ describe('dfsWalk', () => {
                 {
                     data: {
                         key: 'Test-2',
-                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0, reference }],
+                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
                         links: [],
                         visible: true    
                     },
@@ -99,7 +98,7 @@ describe('dfsWalk', () => {
                     children: [{
                         data: {
                             key: 'Test-3',
-                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100, reference }],
+                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
                             links: [],
                             visible: true    
                         },
@@ -110,7 +109,7 @@ describe('dfsWalk', () => {
                 {
                     data: {
                         key: 'Test-4',
-                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100, reference }],
+                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
                         links: [],
                         visible: true    
                     },
@@ -124,8 +123,8 @@ describe('dfsWalk', () => {
                 data: {
                     key: 'Test-1',
                     nodes: [
-                        { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0, reference },
-                        { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0, reference }
+                        { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                        { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                     ],
                     links: [
                         { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
@@ -137,7 +136,7 @@ describe('dfsWalk', () => {
             {
                 data: {
                     key: 'Test-2',
-                    nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0, reference }],
+                    nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
                     links: [],
                     visible: true
                 },
@@ -146,7 +145,7 @@ describe('dfsWalk', () => {
             {
                 data: {
                     key: 'Test-3',
-                    nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100, reference }],
+                    nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
                     links: [],
                     visible: true
                 },
@@ -155,7 +154,7 @@ describe('dfsWalk', () => {
             {
                 data: {
                     key: 'Test-4',
-                    nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100, reference }],
+                    nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
                     links: [],
                     visible: true
                 },
@@ -170,8 +169,8 @@ describe('dfsWalk', () => {
             data: {
                 key: 'Test-1',
                 nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0, reference },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0, reference }
+                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
@@ -183,7 +182,7 @@ describe('dfsWalk', () => {
                 {
                     data: {
                         key: 'Test-2',
-                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0, reference }],
+                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
                         links: [],
                         visible: false
                     },
@@ -191,7 +190,7 @@ describe('dfsWalk', () => {
                     children: [{
                         data: {
                             key: 'Test-3',
-                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100, reference }],
+                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
                             links: [],
                             visible: true    
                         },
@@ -202,7 +201,7 @@ describe('dfsWalk', () => {
                 {
                     data: {
                         key: 'Test-4',
-                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100, reference }],
+                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
                         links: [],
                         visible: true    
                     },
@@ -216,8 +215,8 @@ describe('dfsWalk', () => {
                 data: {
                     key: 'Test-1',
                     nodes: [
-                        { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0, reference },
-                        { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0, reference }
+                        { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                        { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                     ],
                     links: [
                         { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
@@ -229,7 +228,7 @@ describe('dfsWalk', () => {
             {
                 data: {
                     key: 'Test-2',
-                    nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0, reference }],
+                    nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
                     links: [],
                     visible: false
                 },
@@ -238,7 +237,7 @@ describe('dfsWalk', () => {
             {
                 data: {
                     key: 'Test-3',
-                    nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100, reference }],
+                    nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
                     links: [],
                     visible: true
                 },
@@ -247,7 +246,7 @@ describe('dfsWalk', () => {
             {
                 data: {
                     key: 'Test-4',
-                    nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100, reference }],
+                    nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
                     links: [],
                     visible: true
                 },
@@ -267,8 +266,8 @@ describe('dfsWalk', () => {
             data: {
                 key: 'Test-1',
                 nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0, reference },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0, reference }
+                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
@@ -280,7 +279,7 @@ describe('dfsWalk', () => {
                 {
                     data: {
                         key: 'Test-2',
-                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0, reference }],
+                        nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
                         links: [],
                         visible: true    
                     },
@@ -288,7 +287,7 @@ describe('dfsWalk', () => {
                     children: [{
                         data: {
                             key: 'Test-3',
-                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100, reference }],
+                            nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
                             links: [],
                             visible: true    
                         },
@@ -299,7 +298,7 @@ describe('dfsWalk', () => {
                 {
                     data: {
                         key: 'Test-4',
-                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100, reference }],
+                        nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
                         links: [],
                         visible: true    
                     },
@@ -312,8 +311,8 @@ describe('dfsWalk', () => {
             output: [{
                 key: 'Test-1',
                 nodes: [
-                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0, reference },
-                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0, reference }
+                    { id: 'Room-1', cascadeNode: true, roomId: 'Room-1', visible: true, x: 0, y: 0 },
+                    { id: 'Room-2', cascadeNode: true, roomId: 'Room-2', visible: true, x: 100, y: 0 }
                 ],
                 links: [
                     { id: 'Room-1#Room-2', source: 'Room-1', target: 'Room-2' }
@@ -322,19 +321,19 @@ describe('dfsWalk', () => {
             },
             {
                 key: 'Test-2',
-                nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0, reference }],
+                nodes: [{ id: 'Room-3', cascadeNode: true, roomId: 'Room-3', visible: true, x: -100, y: 0 }],
                 links: [],
                 visible: true    
             },
             {
                 key: 'Test-3',
-                nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100, reference }],
+                nodes: [{ id: 'Room-4', cascadeNode: true, roomId: 'Room-4', visible: true, x: 0, y: 100 }],
                 links: [],
                 visible: true    
             },
             {
                 key: 'Test-4',
-                nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100, reference }],
+                nodes: [{ id: 'Room-5', cascadeNode: true, roomId: 'Room-5', visible: true, x: 0, y: -100 }],
                 links: [],
                 visible: true    
             }],
@@ -361,8 +360,7 @@ describe('MapDThreeStack', () => {
                 x: 300,
                 y: 300,
                 visible: true,
-                cascadeNode: false,
-                reference
+                cascadeNode: false
             }],
             links: [],
             visible: true
@@ -378,8 +376,7 @@ describe('MapDThreeStack', () => {
                 x: 300,
                 y: 300,
                 visible: true,
-                cascadeNode: true,
-                reference
+                cascadeNode: true
             },
             {
                 id: 'One-B',
@@ -387,8 +384,7 @@ describe('MapDThreeStack', () => {
                 x: 300,
                 y: 200,
                 visible: true,
-                cascadeNode: false,
-                reference
+                cascadeNode: false
             },
             {
                 id: 'One-A',
@@ -396,8 +392,7 @@ describe('MapDThreeStack', () => {
                 x: 200,
                 y: 200,
                 visible: true,
-                cascadeNode: false,
-                reference
+                cascadeNode: false
             }],
             links: [],
             visible: true
@@ -418,8 +413,7 @@ describe('MapDThreeStack', () => {
             cascadeNode: false,
             x: 300,
             y: 300,
-            visible: true,
-            reference
+            visible: true
         }]
         const nodesTwo = [{
             id: 'Two-A',
@@ -427,8 +421,7 @@ describe('MapDThreeStack', () => {
             cascadeNode: true,
             x: 300,
             y: 300,
-            visible: true,
-            reference
+            visible: true
         },
         {
             id: 'One-B',
@@ -436,8 +429,7 @@ describe('MapDThreeStack', () => {
             cascadeNode: false,
             x: 300,
             y: 200,
-            visible: true,
-            reference
+            visible: true
         },
         {
             id: 'One-A',
@@ -445,8 +437,7 @@ describe('MapDThreeStack', () => {
             cascadeNode: false,
             x: 200,
             y: 200,
-            visible: true,
-            reference
+            visible: true
         }]
         MapDThreeIterator
             .mockImplementationOnce(() => ({
@@ -478,8 +469,7 @@ describe('MapDThreeStack', () => {
             cascadeNode: false,
             x: 300,
             y: 300,
-            visible: true,
-            reference
+            visible: true
         }], [], expect.any(Function))
         expect(MapDThreeIterator).toHaveBeenCalledWith("One", [{
                 id: 'Two-A',
@@ -487,8 +477,7 @@ describe('MapDThreeStack', () => {
                 cascadeNode: true,
                 x: 300,
                 y: 300,
-                visible: true,
-                reference
+                visible: true
             },
             {
                 id: 'One-B',
@@ -496,8 +485,7 @@ describe('MapDThreeStack', () => {
                 cascadeNode: false,
                 x: 300,
                 y: 200,
-                visible: true,
-                reference
+                visible: true
             },
             {
                 id: 'One-A',
@@ -505,8 +493,7 @@ describe('MapDThreeStack', () => {
                 cascadeNode: false,
                 x: 200,
                 y: 200,
-                visible: true,
-                reference
+                visible: true
             }], [], expect.any(Function)
         )
     })
@@ -522,8 +509,7 @@ describe('MapDThreeStack', () => {
                     x: 300,
                     y: 300,
                     visible: true,
-                    cascadeNode: false,
-                    reference
+                    cascadeNode: false
                 },
                 {
                     id: 'One-B',
@@ -531,8 +517,7 @@ describe('MapDThreeStack', () => {
                     x: 300,
                     y: 200,
                     visible: true,
-                    cascadeNode: false,
-                    reference
+                    cascadeNode: false
                 }],
                 links: [],
                 visible: true
@@ -548,8 +533,7 @@ describe('MapDThreeStack', () => {
                     x: 300,
                     y: 300,
                     visible: true,
-                    cascadeNode: true,
-                    reference
+                    cascadeNode: true
                 },
                 {
                     id: 'One-A',
@@ -557,8 +541,7 @@ describe('MapDThreeStack', () => {
                     x: 200,
                     y: 200,
                     visible: true,
-                    cascadeNode: false,
-                    reference
+                    cascadeNode: false
                 }],
                 links: [],
                 visible: true
@@ -573,8 +556,7 @@ describe('MapDThreeStack', () => {
             x: 300,
             y: 300,
             visible: true,
-            cascadeNode: false,
-            reference
+            cascadeNode: false
         },
         {
             id: 'One-B',
@@ -582,8 +564,7 @@ describe('MapDThreeStack', () => {
             x: 300,
             y: 200,
             visible: true,
-            cascadeNode: false,
-            reference
+            cascadeNode: false
         }], [], true, expect.any(Function))
 
         expect(testMapDThreeTree.layers[1].update).toHaveBeenCalledWith([{
@@ -592,8 +573,7 @@ describe('MapDThreeStack', () => {
                 x: 300,
                 y: 300,
                 visible: true,
-                cascadeNode: true,
-                reference
+                cascadeNode: true
             },
             {
                 id: 'One-A',
@@ -601,8 +581,7 @@ describe('MapDThreeStack', () => {
                 x: 200,
                 y: 200,
                 visible: true,
-                cascadeNode: false,
-                reference
+                cascadeNode: false
             }], [], true, expect.any(Function))
     })
 
@@ -619,8 +598,7 @@ describe('MapDThreeStack', () => {
                     x: 200,
                     y: 200,
                     visible: true,
-                    cascadeNode: false,
-                    reference
+                    cascadeNode: false
                 }],
                 links: [],
                 visible: true
@@ -634,8 +612,7 @@ describe('MapDThreeStack', () => {
                 x: 200,
                 y: 200,
                 visible: true,
-                cascadeNode: false,
-                reference
+                cascadeNode: false
             }], [], true, expect.any(Function))
 
         expect(deletedLayer.simulation.stop).toHaveBeenCalledTimes(1)

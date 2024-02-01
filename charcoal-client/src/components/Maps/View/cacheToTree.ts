@@ -11,11 +11,13 @@ export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): GenericTree<Map
                 data: {
                     tag: 'Room',
                     key: roomId,
-                    name: name as SchemaTaggedMessageLegalContents[],
+                    //
+                    // TODO: ISS-3402: Refactor how name data in MapDescribe is formatted
+                    //
+                    // name: name.map((item) => ({ data: item, children: [] })),
+                    name: [],
                     x,
-                    y,
-                    contents: [],
-                    render: []
+                    y
                 },
                 children: exits.map(({ name, to }) => ({
                     data: {
@@ -23,8 +25,7 @@ export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): GenericTree<Map
                         key: `${roomId}#${to}`,
                         from: roomId,
                         to,
-                        name,
-                        contents: []
+                        name
                     },
                     children: []
                 }))
