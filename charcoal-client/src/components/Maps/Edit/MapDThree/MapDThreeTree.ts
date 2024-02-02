@@ -66,18 +66,39 @@ type MapDFSInnerCallback = {
 
 //
 // TODO: Decouple mutation of the existing DThree structures from the processing of incoming changes:
-//   - Create minimal action structures that list the exact mutations that might be requested
-//   - Refactor mapDFSInnerCallbackFactory to create a reducer that returns a list of those changes
-//   - Refactor mapDThreeTree.update to run the nested DFSWalk over the incoming change-tree, generate the changes, then apply them
+//   - Rewrite nested MapDFSCallback to be a single-level callback
+//   - Examine whether DFSWalk nest and unnest permit a less convoluted state structure (less number[] and more
+//     direct immutable representation of the changing state)
 //   - Rewrite unit tests to test each phase separately
 //
+const mapDFSCallbackFactory =
+        ({ getNodes, layers }: {
+            getNodes: (layers: number[], options?: { referenceLayers?: MapDThreeIterator[] }) => (SimNode & { layers: number[] })[];
+            layers: MapDThreeIterator[];
+        }) =>
+        (previous: MapDFSWalkCallbackReduce, data: { treeNode: SimulationTreeNode; action: GenericTreeDiffAction }): MapDFSWalkCallbackReduce =>
+{
+    //
+    // Only some of the links in the state variable will be relevant to the current layer of data.
+    // Extract a relevantLinks listing, so that we include only the relevant data from the running
+    // aggregate at each layer.
+    //
+    const internalRoomIds = data.treeNode.nodes.map(({ roomId }) => (roomId))
+    const relevantLinks = [...(previous.state.links ?? []), ...data.treeNode.links]
+        .map(({ source, ...rest }) => ({ source: typeof source === 'number' ? '' : typeof source === 'string' ? source: source.roomId, ...rest }))
+        .map(({ target, ...rest }) => ({ target: typeof target === 'number' ? '' : typeof target === 'string' ? target: target.roomId, ...rest }))
+        .filter(({ source, target }) => (internalRoomIds.includes(source) || internalRoomIds.includes(target)))
+
+    return previous
+}
+
 const mapDFSInnerCallbackFactory =
         ({ getNodes, layers }: {
             getNodes: (layers: number[], options?: { referenceLayers?: MapDThreeIterator[] }) => (SimNode & { layers: number[] })[];
             layers: MapDThreeIterator[];
         }): MapDFSInnerCallback =>
         ({ data, previousLayers, action, state }, outputLayers) =>
-    {
+{
     //
     // Only some of the links in the state variable will be relevant to the current layer of data.
     // Extract a relevantLinks listing, so that we include only the relevant data from the running
