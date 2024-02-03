@@ -6,6 +6,9 @@ import { SxProps } from '@mui/material'
 import { isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
+import { useLibraryAsset } from './LibraryAsset'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString'
+import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 
 interface WMLComponentHeaderProps {
     ItemId: string;
@@ -16,18 +19,18 @@ interface WMLComponentHeaderProps {
 }
 
 export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
+    const { select } = useLibraryAsset()
+    //
+    // TODO: Handle inherited names
+    //
     const primaryBase: AssetDataHeaderRenderFunction = ({ item, inheritedItem: defaultItem }) => {
         if (isNormalComponent(item)) {
-            const aggregateName = item.appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-                .map(({ name = [] }) => name)
-                .reduce((previous, name) => ([ ...previous, ...name ]), [])
-            return `${taggedMessageToString(defaultItem?.appearances?.[0]?.name || [])}${taggedMessageToString(aggregateName)}` || 'Untitled'
+            return schemaOutputToString(select({ key: item.key, selector: selectName })) || 'Untitled'
 
         }
         return ''
     }
-    const primary = useCallback(primaryBase, [])
+    const primary = useCallback(primaryBase, [select])
     //
     // TODO: Replace simple passthrough function with ExplicitEdit when it has been created
     //
