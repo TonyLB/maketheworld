@@ -83,10 +83,7 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
     const { readonly, updateSchema } = useLibraryAsset()
     const isSchemaRoomOrExit = (item: SchemaTag): item is SchemaRoomTag | SchemaExitTag => (['Room', 'Exit'].includes(item.tag))
     const filteredNodes = treeTypeGuard({ tree: [node], typeGuard: isSchemaRoomOrExit })
-    if (!filteredNodes.length) {
-        return null
-    }
-    const { data, children, id } = filteredNodes[0]
+    const { data, children, id } = filteredNodes?.[0] ?? { data: { tag: 'String', value: '' }, children: [], id: '' }
     const direction = isSchemaRoom(data) ? 'incoming' : 'outgoing'
     //
     // Derive target to display ... either source of incoming exit, or target of outgoing
@@ -185,6 +182,9 @@ const RoomExitComponent: FunctionComponent<RoomExitComponentProps> = ({ RoomId, 
             id
         })
     }, [id, updateSchema])
+    if (!filteredNodes.length) {
+        return null
+    }
     const targetElement = <ExitTargetSelector
         target={target}
         RoomId={RoomId}
@@ -226,7 +226,7 @@ const useOutgoingExitTree = (RoomId: string) => {
     return useMemo(() => {
         const tagTree = new SchemaTagTree(schema)
         const relevantExits = tagTree
-            .filter({ match: (tag) => (isSchemaRoom(tag) && (tag.key === RoomId)) })
+            .filter({ match: ({ data: tag }) => (isSchemaRoom(tag) && (tag.key === RoomId)) })
             .prune({ not: { or: [{ match: 'If' }, { match: 'Exit' }] } })
             .reordered(['If', 'Exit'])
         return relevantExits.tree as GenericTree<SchemaConditionTag | SchemaExitTag, TreeId>
@@ -238,7 +238,7 @@ const useIncomingExitTree = (RoomId: string) => {
     return useMemo(() => {
         const tagTree = new SchemaTagTree(schema)
         const relevantExits = tagTree
-            .filter({ match: (tag) => (isSchemaExit(tag) && tag.to === RoomId) })
+            .filter({ match: ({ data: tag }) => (isSchemaExit(tag) && tag.to === RoomId) })
             .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }, { match: 'Exit' }] } })
             .reordered(['If', 'Room', 'Exit'])
         return relevantExits.tree as GenericTree<SchemaConditionTag | SchemaRoomTag | SchemaExitTag, TreeId>
@@ -265,7 +265,7 @@ const useIncomingExitTree = (RoomId: string) => {
 // }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
-    const { normalForm, schema, updateNormal, components } = useLibraryAsset()
+    const { schema, components } = useLibraryAsset()
     const { importFrom } = useMemo(() => (components[RoomId]), [components, RoomId])
     //
     // TODO: Rework RoomExitEditor with outgoing and incoming exit trees

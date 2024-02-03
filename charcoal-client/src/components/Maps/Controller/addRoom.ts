@@ -1,24 +1,28 @@
-import { NormalForm, isNormalMap } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
-import { UpdateNormalPayload } from "../../../slices/personalAssets/reducers"
+import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { SchemaTag, isSchemaCondition, isSchemaMap } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import dfsWalk from "@tonylb/mtw-wml/dist/sequence/tree/dfsWalk"
 
-export const addRoomFactory = ({ mapId, normalForm, updateNormal }: { mapId: string; normalForm: NormalForm, updateNormal: (action: UpdateNormalPayload) => void }) => ({ roomId, x, y }: { roomId?: string; x: number; y: number }) => {
-    const normalMap = normalForm[mapId || '']
-    if (normalMap && isNormalMap(normalMap)) {
-        const firstUnconditionedAppearance = normalMap.appearances.findIndex(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-        if (firstUnconditionedAppearance !== -1) {
-            updateNormal({
-                type: 'put',
-                item: {
-                    tag: 'Room',
-                    key: roomId ?? '',
-                    x,
-                    y,
-                    name: [],
-                    render: [],
-                    contents: [],
-                },
-                position: { contextStack: [ ...normalMap.appearances[firstUnconditionedAppearance].contextStack, { key: mapId, tag: 'Map', index: firstUnconditionedAppearance }] }
-            })
-        }
+export const addRoomFactory = ({ mapId, schema, updateSchema }: { mapId: string; schema: GenericTree<SchemaTag, TreeId>, updateSchema: (action: UpdateSchemaPayload) => void }) => ({ roomId, x, y }: { roomId?: string; x: number; y: number }) => {
+    const mapNodeId = dfsWalk({
+        default: { output: '', state: { conditioned: false } },
+        callback: (previous, data, { id }: TreeId) => {
+            if (!previous.state.conditioned && !previous.output && isSchemaMap(data) && data.key === mapId) {
+                return { output: id, state: {} }
+            }
+            return previous
+        },
+        nest: ({ state, data }) => ({ conditioned: state.conditioned || isSchemaCondition(data) }),
+        unNest: ({ previous }) => (previous)
+    })(schema)
+    if (mapNodeId) {
+        updateSchema({
+            type: 'addChild',
+            id: mapNodeId,
+            item: {
+                data: { tag: 'Room', key: roomId ?? '', x, y },
+                children: []
+            }
+        })
     }
 }

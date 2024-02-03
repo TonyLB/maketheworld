@@ -5,8 +5,9 @@ import MapDThreeTreeRaw from './MapDThreeTree'
 import { MapDThree, mapTreeTranslate } from '.'
 
 import { mockClass } from '../../../../lib/jestHelpers'
-import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { MapTreeItem } from '../../Controller/baseClasses'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 const MapDThreeTree = mockClass(MapDThreeTreeRaw)
 
 describe('mapTreeTranslate', () => {
@@ -15,20 +16,19 @@ describe('mapTreeTranslate', () => {
         jest.resetAllMocks()
     })
 
-    const reference = { tag: 'Room' as const, key: '', index: 0 }
     it('should aggregate nodes and links', () => {
-        const testTree: GenericTree<MapTreeItem> = [
-            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100, name: [], render: [], contents: [], reference }, children: [] },
-            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100, name: [], render: [], contents: [], reference }, children: [
-                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1', name: 'TestExit', contents: [] }, children: [] }
-            ] }
+        const testTree: GenericTree<SchemaTag, TreeId> = [
+            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100 }, children: [], id: 'ABC' },
+            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100 }, children: [
+                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1', name: 'TestExit' }, children: [], id: 'GHI' }
+            ], id: 'DEF' }
         ]
 
         expect(mapTreeTranslate(testTree, [])).toEqual([{
             data: {
                 nodes: [
-                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false, reference },
-                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false, reference }
+                    { id: 'ABC', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
+                    { id: 'DEF', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -41,27 +41,27 @@ describe('mapTreeTranslate', () => {
     })
 
     it('should nest conditionals as children of nodes and links', () => {
-        const testTree: GenericTree<MapTreeItem> = [
-            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100, name: [], render: [], contents: [], reference }, children: [] },
-            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100, name: [], render: [], contents: [], reference }, children: [
-                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1', name: 'TestExit', contents: [] }, children: [] },
-                { data: { tag: 'If', conditions: [], contents: [] }, children: [
-                    { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2', name: 'TestExitBack', contents: [] }, children: [] }
-                ]}
-            ] },
-            { data: { tag: 'If', conditions: [], contents: [] }, children: [
-                { data: { tag: 'Room', key: 'Room3', x: -200, y: 100, name: [], render: [], contents: [], reference }, children: [] },
-                { data: { tag: 'Room', key: 'Room4', x: 200, y: 100, name: [], render: [], contents: [], reference }, children: [] }
-            ]},
-            { data: { tag: 'Room', key: 'Room3', x: -100, y: 100, name: [], render: [], contents: [], reference }, children: [] }
+        const testTree: GenericTree<SchemaTag, TreeId> = [
+            { data: { tag: 'Room', key: 'Room1', x: 100, y: 100 }, children: [], id: 'ABC' },
+            { data: { tag: 'Room', key: 'Room2', x: 0, y: 100 }, children: [
+                { data: { tag: 'Exit', to: 'Room1', from: 'Room2', key: 'Room2#Room1', name: 'TestExit' }, children: [], id: '' },
+                { data: { tag: 'If', conditions: [] }, children: [
+                    { data: { tag: 'Exit', from: 'Room1', to: 'Room2', key: 'Room1#Room2', name: 'TestExitBack' }, children: [], id: '' }
+                ], id: '' }
+            ], id: 'DEF' },
+            { data: { tag: 'If', conditions: [] }, children: [
+                { data: { tag: 'Room', key: 'Room3', x: -200, y: 100 }, children: [], id: 'ZZZ' },
+                { data: { tag: 'Room', key: 'Room4', x: 200, y: 100 }, children: [], id: 'JKL' }
+            ], id: '' },
+            { data: { tag: 'Room', key: 'Room3', x: -100, y: 100 }, children: [], id: 'GHI' }
         ]
 
         expect(mapTreeTranslate(testTree, [])).toEqual([{
             data: {
                 nodes: [
-                    { id: 'Room1', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false, reference },
-                    { id: 'Room2', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false, reference },
-                    { id: 'Room3', roomId: 'Room3', x: -100, y: 100, visible: true, cascadeNode: false, reference }
+                    { id: 'ABC', roomId: 'Room1', x: 100, y: 100, visible: true, cascadeNode: false },
+                    { id: 'DEF', roomId: 'Room2', x: 0, y: 100, visible: true, cascadeNode: false },
+                    { id: 'GHI', roomId: 'Room3', x: -100, y: 100, visible: true, cascadeNode: false }
                 ],
                 links: [
                     { id: 'Room2#Room1', source: 'Room2', target: 'Room1' }
@@ -83,7 +83,7 @@ describe('mapTreeTranslate', () => {
                 },
                 {
                     data: {
-                        nodes: [{ id: 'Room3', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: false, reference }, { id: 'Room4', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: false, reference }],
+                        nodes: [{ id: 'ZZZ', roomId: 'Room3', x: -200, y: 100, visible: true, cascadeNode: false }, { id: 'JKL', roomId: 'Room4', x: 200, y: 100, visible: true, cascadeNode: false }],
                         links: [],
                         visible: true,
                         key: 'Root::If-2'
@@ -113,19 +113,15 @@ describe('MapDThree', () => {
                     key: 'GHI',
                     x: 300,
                     y: 300,
-                    name: [],
-                    render: [],
-                    contents: [],
-                    reference
                 },
                 children: [],
+                id: ''
             },
             {
                 data: {
                     tag: 'If',
                     key: 'One',
                     conditions: [],
-                    contents: []
                 },
                 children: [
                     {
@@ -134,27 +130,22 @@ describe('MapDThree', () => {
                             key: 'DEF',
                             x: 300,
                             y: 200,
-                            name: [],
-                            render: [],
-                            contents: [],
-                            reference
                         },
-                        children: []
+                        children: [],
+                        id: ''
                     },
                     {
                         data: {
                             tag: 'Room',
                             key: 'ABC',
                             x: 200,
-                            y: 200,
-                            name: [],
-                            render: [],
-                            contents: [],
-                            reference
+                            y: 200
                         },
-                        children: []
+                        children: [],
+                        id: ''
                     }
-                ]
+                ],
+                id: ''
             }],
             hiddenConditions: []
         })

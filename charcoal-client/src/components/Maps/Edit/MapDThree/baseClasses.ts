@@ -9,7 +9,6 @@ export type SimNode = SimulationNodeDatum & {
     cascadeNode: boolean;
     roomId: string;
     visible: boolean;
-    reference: NormalReference;
 }
 export type NodeRecord = Record<string, SimNode>
 export type LinkRecord = {

@@ -3,13 +3,14 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
 import { MapTreeExit, MapTreeItem } from '../../Controller/baseClasses'
-import { GenericTree } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 
 type MapAreaProps = {
     fileURL?: string;
 }
 
-export const treeToExits = (tree: GenericTree<MapTreeItem>): MapTreeExit[] => {
+export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag, TreeId>): MapTreeExit[] => {
     return tree.reduce<MapTreeExit[]>((
         previous,
         { data, children }

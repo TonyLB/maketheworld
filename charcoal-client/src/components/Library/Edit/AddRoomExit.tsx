@@ -9,6 +9,7 @@ import {
 
 import { useLibraryAsset } from './LibraryAsset'
 import AssetDataAddHeader from './AssetDataAddHeader'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString';
 
 interface AddRoomExitProps {
     RoomId: string;
@@ -99,7 +100,7 @@ export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId, onAdd
             .filter(([key]) => (key !== RoomId))
             .map(([key, { name }]) => ({
                 value: key,
-                name: name.map((item) => ((item.tag === 'String') ? item.value : '')).join('') || key
+                name: schemaOutputToString(name) || key
             }))
         return {
             to: allPossibleOptions.filter(({ value: targetId }) => (!Object.values(exits).find(({ from, to }) => (from === RoomId && to === targetId)))),

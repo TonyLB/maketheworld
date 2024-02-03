@@ -11,19 +11,15 @@ import ArrowIcon from '@mui/icons-material/CallMade'
 import AcceptIcon from '@mui/icons-material/CheckCircle'
 import CancelIcon from '@mui/icons-material/Cancel'
 import { grey } from '@mui/material/colors'
-import { useDispatch, useSelector } from 'react-redux'
-import { mapEditConditionState, toggle } from '../../../../slices/UI/mapEdit'
 import { useMapContext } from '../../Controller'
-import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
-import { MapTreeItem } from '../../Controller/baseClasses'
-import { GenericTreeNode } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
-import { NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { isSchemaRoom } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, isSchemaName, isSchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { treeTypeGuard } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString'
 
 type MapLayersProps = {
     mapId: string;
@@ -46,14 +42,18 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
     const [nameEdit, setNameEdit] = useState<string>('')
     const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
     const onRename = useCallback((value: string) => {
-        const normalizer = new Normalizer()
-        normalizer._normalForm = normalForm
-        const reference: NormalReference = { tag: 'Room', key: roomId, index: 0 }
-        const baseSchema = normalizer.referenceToSchema(reference)
-        if (isSchemaRoom(baseSchema)) {
-            updateNormal({ type: 'put', item: { ...baseSchema, name: [{ tag: 'String', value }] }, position: { ...normalizer._referenceToInsertPosition(reference), replace: true } })
-        }
-    }, [normalForm, updateNormal, roomId])
+        //
+        // TODO: Refactor onRename to use Schema rather than updateNormal
+        //
+
+        // const normalizer = new Normalizer()
+        // normalizer._normalForm = normalForm
+        // const reference: NormalReference = { tag: 'Room', key: roomId, index: 0 }
+        // const baseSchema = normalizer.referenceToSchema(reference)
+        // if (isSchemaRoom(baseSchema)) {
+        //     updateNormal({ type: 'put', item: { ...baseSchema, name: [{ tag: 'String', value }] }, position: { ...normalizer._referenceToInsertPosition(reference), replace: true } })
+        // }
+    }, [normalForm, roomId])
     return <React.Fragment>
         <ListItemButton
             dense
@@ -186,22 +186,28 @@ const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = 
 // data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
 // children values
 //
-const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<MapTreeItem> }> = ({ item }) => {
-    switch(item.data.tag) {
+const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaRoomTag | SchemaExitTag | SchemaConditionTag | SchemaNameTag | SchemaOutputTag, TreeId> }> = ({ item }) => {
+    const { data } = item
+    switch(data.tag) {
         case 'Room':
-            return <RoomLayer roomId={item.data.key} name={taggedMessageToString(item.data.name as any) || item.data.key}>
-                { item.children.map((child, index) => (<MapItemLayer key={`${item.data.key}-Child-${index}`} item={child} />)) }
+            return <RoomLayer roomId={data.key} name={schemaOutputToString(treeTypeGuard({ tree: item.children.find(({ data }) => (isSchemaName(data))).children ?? [], typeGuard: isSchemaOutputTag })) || data.key}>
+                { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </RoomLayer>
         case 'Exit':
-            return <ExitLayer name={item.data.to} />
+            return <ExitLayer name={data.to} />
         case 'If':
-            return <ConditionLayer src={item.data.conditions[0].if} conditionId={item.data.key}>
-                { item.children.map((child, index) => (<MapItemLayer key={`${item.data.key}-Child-${index}`} item={child} />)) }
+            return <ConditionLayer src={data.conditions[0].if} conditionId={data.key}>
+                { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
             </ConditionLayer>
+        default:
+            return null
     }
 }
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
+    //
+    // TODO: Refactor MapLayers to work with Schema rather than the mapView structure
+    //
     const { tree } = useMapContext()
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>

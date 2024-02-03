@@ -17,6 +17,7 @@ import MapArea from '../Edit/Area'
 import cacheToTree from './cacheToTree'
 import { EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/dist/baseClasses';
 import { MapDisplayController } from '../Controller';
+import { genericIDFromTree } from '@tonylb/mtw-wml/dist/sequence/tree/genericIDTree';
 
 type MapViewProps = {
 }
@@ -70,7 +71,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                 </FormControl>
             </Box>
         </Box>
-        { MapId && <MapDisplayController tree={cacheToTree(maps[MapId])}>
+        { MapId && <MapDisplayController tree={genericIDFromTree(cacheToTree(maps[MapId]))}>
             <MapArea fileURL={maps[MapId].fileURL} />
         </MapDisplayController> }
     </Box>

@@ -2,43 +2,33 @@ import { FunctionComponent, useMemo } from "react"
 import { useLibraryAsset } from "../../../Library/Edit/LibraryAsset"
 import { isNormalRoom } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { useMapContext } from "../../Controller"
-import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
-import { MapTreeItem } from "../../Controller/baseClasses"
-import { unique } from "../../../../lib/lists"
 import {
     List,
     ListItemAvatar,
     ListItemButton,
     ListItemText
 } from "@mui/material"
-import { blue, grey } from '@mui/material/colors'
+import { grey } from '@mui/material/colors'
 import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
-import { taggedMessageToString } from "@tonylb/mtw-interfaces/dist/messages"
+import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
+import { selectName } from "@tonylb/mtw-wml/dist/normalize/selectors/name"
+import { schemaOutputToString } from "@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString"
 
 type UnshownRoomsProps = {
 
 }
 
-const extractRooms = (tree: GenericTree<MapTreeItem>): string[] => {
-    return unique(
-        tree.map(({ data, children }) => ([
-            ...data.tag === 'Room' ? [data.key] :[],
-            ...extractRooms(children)
-        ])).flat()
-    )
-}
-
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
-    const { normalForm } = useLibraryAsset()
+    const { normalForm, select } = useLibraryAsset()
     const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
-    const shownRooms = useMemo(() => (extractRooms(tree)), [tree])
+    const shownRooms = useMemo(() => (selectKeysByTag('Room')(tree)), [tree])
     const unshownRoomItems = Object.values(normalForm)
         .filter(isNormalRoom)
         .filter(({ key }) => (!shownRooms.includes(key)))
     return <List>
         {
-            unshownRoomItems.map(({ key, appearances }) => (
+            unshownRoomItems.map(({ key }) => (
                 <ListItemButton
                     key={key}
                     dense
@@ -49,7 +39,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
                     <ListItemAvatar>
                         <RoomIcon sx={{ fontSize: "15px", color: grey[500] }} />
                     </ListItemAvatar>
-                    <ListItemText primary={taggedMessageToString(appearances[0].name)} />
+                    <ListItemText primary={ schemaOutputToString(select({ key, selector: selectName })) } />
                 </ListItemButton>
             ))
         }
