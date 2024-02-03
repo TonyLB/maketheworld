@@ -2,14 +2,12 @@ import { apiClient } from "../clients"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 
-import {
-    SchemaAssetTag,
-    isSchemaAssetContents
-} from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaAssetTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/dist/simpleSchema"
 import recursiveFetchImports, { NestedTranslateImportToFinal } from "./recursiveFetchImports"
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import standardizeSchema from "@tonylb/mtw-wml/ts/simpleSchema/standardize"
 
 type FetchImportsArguments = {
     ConnectionId: string;
@@ -31,8 +29,7 @@ export const fetchImports = async ({ ConnectionId, RequestId, inheritanceGraph, 
                 key: splitType(assetId)[1]
             }
             const normalizer = new Normalizer()
-            normalizer.loadSchema([{ data: assetSchema, children: schemaTags }])
-            normalizer.standardize()
+            normalizer.loadSchema(standardizeSchema([{ data: assetSchema, children: schemaTags }]))
             return {
                 assetId,
                 wml: schemaToWML(normalizer.schema)
