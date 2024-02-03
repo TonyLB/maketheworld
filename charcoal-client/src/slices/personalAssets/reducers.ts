@@ -66,6 +66,7 @@ const addIdIfNeeded = (tree: GenericTree<SchemaTag, Partial<TreeId>>): GenericTr
 
 export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<UpdateSchemaPayload>) => {
     const { schema } = state
+    const normalizer = new Normalizer()
     const { payload } = action
     switch(payload.type) {
         case 'replace':
@@ -77,14 +78,16 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                     return node
                 }
             })
-            return { schema: replacedSchema }
+            normalizer.loadSchema(replacedSchema)
+            return { schema: replacedSchema, normalizer }
         case 'updateNode':
-            const updatedSchema = map(schema, ({ data, children, id }) => ({
+            const updatedSchema = map(schema, ({ data, children, id }: GenericTreeNode<SchemaTag, TreeId>) => ([{
                 data: id === payload.id ? payload.item : data,
                 children,
                 id
-            }))
-            return { schema: updatedSchema }
+            }]))
+            normalizer.loadSchema(updatedSchema)
+            return { schema: updatedSchema, normalizer }
         case 'addChild':
             const addedSchema = map(schema, (node) => {
                 if (node.id === payload.id) {
@@ -100,7 +103,8 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                     return node
                 }
             })
-            return { schema: addedSchema }
+            normalizer.loadSchema(addedSchema)
+            return { schema: addedSchema, normalizer }
         case 'rename':
             const renamedSchema = map(schema, (node) => {
                 let returnValue: SchemaTag = node.data
@@ -125,10 +129,12 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
                 }
                 return { ...node, data: returnValue }
             })
-            return { schema: renamedSchema }
+            normalizer.loadSchema(renamedSchema)
+            return { schema: renamedSchema, normalizer }
         case 'delete':
             const deletedSchema = filter({ tree: schema, callback: (_: SchemaTag, { id }: TreeId) => (Boolean(id !== payload.id)) })
-            return { schema: deletedSchema }
+            normalizer.loadSchema(deletedSchema)
+            return { schema: deletedSchema, normalizer }
     }
     return {}
 }
