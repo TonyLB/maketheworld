@@ -36,7 +36,7 @@ export const useMapLayersContext = () => (useContext(MapLayersContext))
 const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: boolean }> = ({ roomId, name, inherited, children }) => {
     const { UI: { itemSelected }, mapDispatch } = useMapContext()
     const { inheritedInvisible } = useMapLayersContext()
-    const { normalForm, updateNormal } = useLibraryAsset()
+    const { normalForm } = useLibraryAsset()
     const [open, setOpen] = useState<boolean>(false)
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
