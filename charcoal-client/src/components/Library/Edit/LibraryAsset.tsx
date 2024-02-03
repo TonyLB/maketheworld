@@ -23,7 +23,6 @@ import {
     getLoadedImages,
     setIntent,
     getProperties,
-    updateNormal as updateNormalAction,
     updateSchema as updateSchemaAction,
     getDraftWML,
     getImportData,
@@ -37,7 +36,7 @@ import { NormalForm, NormalComponent, NormalExit, isNormalExit, isNormalComponen
 import { objectFilter } from '../../../lib/objects'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
-import { UpdateNormalPayload, UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
+import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
@@ -52,7 +51,6 @@ type LibraryAssetContextType = {
     draftWML: string;
     normalForm: NormalForm;
     importData: (assetKey: string) => NormalForm | undefined;
-    updateNormal: (action: UpdateNormalPayload) => void;
     schema: GenericTree<SchemaTag, TreeId>;
     updateSchema: (action: UpdateSchemaPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
@@ -75,7 +73,6 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     draftWML: '',
     normalForm: {},
     importData: () => (undefined),
-    updateNormal: () => {},
     schema: [],
     updateSchema: () => {},
     properties: {},
@@ -181,11 +178,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const status = useSelector(getStatus(AssetId))
     const serialized = useSelector(getSerialized(AssetId))
     const dispatch = useDispatch()
-    const updateNormal = useCallback((updateAction: UpdateNormalPayload) => {
-        dispatch(updateNormalAction(AssetId)(updateAction))
-        dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
-        dispatch(heartbeat)
-    }, [dispatch, AssetId])
     const normalizer = useMemo(() => {
         const normalizer = new Normalizer()
         normalizer.loadNormal(normalForm)
@@ -216,7 +208,6 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             draftWML,
             normalForm,
             importData,
-            updateNormal,
             select,
             schema,
             updateSchema,

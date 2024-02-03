@@ -39,7 +39,7 @@ out at every single component
 ### useLibraryAsset
 
 ```ts
-    const { assetKey, normalForm, updateNormal, defaultAppearances, updateWML, rooms } = useLibraryAsset()
+    const { assetKey, normalForm, schema, updateSchema, defaultAppearances, updateWML, rooms } = useLibraryAsset()
 ```
 
 ---
@@ -66,7 +66,7 @@ each feature
 
 ### Methods
 
-- ***updateNormal***: (value: UpdateNormalPayload) => void: Adds, deletes, and replaces elements
-in the current normal form directly
+- ***updateSchema***: (value: UpdateSchemaPayload) => void: Adds, deletes, and replaces elements
+in the current schema directly
 - ***updateWML***: (value: string) => void: Updates the current WML
 - ***save***: () => void: Initiates an asynchronous save to the asset manager back-end
