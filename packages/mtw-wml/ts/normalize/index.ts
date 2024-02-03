@@ -767,14 +767,14 @@ export class Normalizer {
         let appearanceIndex: number
         let returnKey: string | undefined = node.key
         switch(node.tag) {
-            // case 'Exit':
-            //     appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children: [] }, node), position)
-            //     returnValue = {
-            //         tag: 'Exit',
-            //         key: node.key,
-            //         index: appearanceIndex
-            //     }
-            //     break
+            case 'Exit':
+                appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children: [] }, node), position)
+                returnValue = {
+                    tag: 'Exit',
+                    key: node.key,
+                    index: appearanceIndex
+                }
+                break
             // case 'Bookmark':
             //     appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...translateContext, data: node, children }, node), position)
             //     returnValue = {
@@ -836,6 +836,7 @@ export class Normalizer {
                 const translatedItem = this._translate({ ...translateContext, data: node, children: [] }, node)
                 returnKey = translatedItem.key
                 if (!returnKey) {
+                    console.log(`node: ${JSON.stringify(node, null, 4)}`)
                     throw new Error('Key mismatch in normalizer put')
                 }
                 appearanceIndex = this._mergeAppearance(returnKey, translatedItem, position)

@@ -162,14 +162,14 @@ describe('personalAssets slice', () => {
                 <Import from=(testImportOne) />
             </Character>`)
 
+            const importItemId = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))[0].id
             removeImport({
                 assetId: 'CHARACTER#testCharacter',
                 fromAsset: 'testImportOne'
             }, { overrideGetSchema: jest.fn().mockReturnValue((): GenericTree<SchemaTag, TreeId> => (schema.schema)), overrideUpdateSchema })(dispatch, getState)
-            const importItems = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))
             expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
                 type: 'delete',
-                id: importItems[0].id
+                id: importItemId
             })
         })
 

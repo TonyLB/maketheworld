@@ -16,7 +16,7 @@ export const DraftLockout: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
     const handleRevert = useCallback(() => {
         dispatch(revertDraftWML(AssetId)({}))
-        dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY', 'WMLDIRTY'] }))
+        dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY', 'WMLDIRTY'] }))
         dispatch(heartbeat)
     }, [AssetId])
     return currentStatus === 'DRAFTERROR'

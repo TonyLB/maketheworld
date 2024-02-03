@@ -45,7 +45,8 @@ describe('personalAsset slice reducers', () => {
                             ]
                         }
                     ]    
-                }]
+                }],
+                normalizer: expect.any(Object)
             })
         })
 
@@ -95,7 +96,8 @@ describe('personalAsset slice reducers', () => {
                             ]
                         }
                     ]    
-                }]
+                }],
+                normalizer: expect.any(Object)
             })
         })
 
@@ -133,7 +135,8 @@ describe('personalAsset slice reducers', () => {
                             ]
                         }
                     ]
-                }]
+                }],
+                normalizer: expect.any(Object)
             })
         })
 
@@ -181,7 +184,8 @@ describe('personalAsset slice reducers', () => {
                             }]
                         }
                     ]
-                    }]
+                }],
+                normalizer: expect.any(Object)
             })
         })
 
@@ -239,7 +243,8 @@ describe('personalAsset slice reducers', () => {
                             ]
                         }
                     ]    
-                }]
+                }],
+                normalizer: expect.any(Object)
             })
         })
 
@@ -299,7 +304,8 @@ describe('personalAsset slice reducers', () => {
                             ]
                         }
                     ]
-                }]
+                }],
+                normalizer: expect.any(Object)
             })
         })        
     })

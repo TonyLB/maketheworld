@@ -489,7 +489,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             //
             // If Images exist, but not by the characterIcon default key, choose the first at random
             //
-            let normalDirty = false
+            let SCHEMADIRTY = false
             if (unconditionedImages.length && !unconditionedImages.find(({ key }) => (key === characterIconKey))) {
                 dispatch(setLoadedImage(AssetId)({ itemId: unconditionedImages[0].key, file }))
             }
@@ -503,11 +503,11 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                         id: schema[0].id,
                         item: { data: { tag: 'Image', key: characterIconKey }, children: [] }
                     })
-                    normalDirty = true
+                    SCHEMADIRTY = true
                 }
                 dispatch(setLoadedImage(AssetId)({ itemId: characterIconKey, file }))
             }
-            dispatch(setIntent({ key: AssetId, intent: normalDirty ? ['NORMALDIRTY'] : ['WMLDIRTY', 'NORMALDIRTY']}))
+            dispatch(setIntent({ key: AssetId, intent: SCHEMADIRTY ? ['SCHEMADIRTY'] : ['WMLDIRTY', 'SCHEMADIRTY']}))
             dispatch(heartbeat)
         }
     }, [dispatch, character?.key, schema, updateSchema, normalForm])
@@ -600,7 +600,7 @@ export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
 
     const currentStatus = useSelector(getStatus(AssetId))
 
-    return (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
+    return (['FRESH', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
         ? 
             <LibraryAsset assetKey={assetKey || ''} character>
                 <Routes>

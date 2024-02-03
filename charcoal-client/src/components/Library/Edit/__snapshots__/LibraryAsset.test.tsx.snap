@@ -263,8 +263,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                     },
                     {
                         \\"data\\": {
-                            \\"key\\": \\"DEF#ABC\\",
                             \\"tag\\": \\"Exit\\",
+                            \\"key\\": \\"DEF#ABC\\",
                             \\"index\\": 0
                         },
                         \\"children\\": []
@@ -391,8 +391,8 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                 \\"children\\": [
                     {
                         \\"data\\": {
-                            \\"key\\": \\"ABC#DEF\\",
                             \\"tag\\": \\"Exit\\",
+                            \\"key\\": \\"ABC#DEF\\",
                             \\"index\\": 0
                         },
                         \\"children\\": []

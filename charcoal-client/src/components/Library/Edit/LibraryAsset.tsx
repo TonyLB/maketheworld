@@ -187,7 +187,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const select = useCallback(<T extends {}>(args: { key?: string, selector: (tree: GenericTree<SchemaTag>, options?: { tag: string; key: string }) => T }): T => (isKeyedCallback(args) ? normalizer.select(args) : args.selector(schema)), [normalizer, schema])
     const updateSchema = useCallback((updateAction: UpdateSchemaPayload) => {
         dispatch(updateSchemaAction(AssetId)(updateAction))
-        dispatch(setIntent({ key: AssetId, intent: ['NORMALDIRTY'] }))
+        dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
     const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, importData }) ), [normalForm, importData])

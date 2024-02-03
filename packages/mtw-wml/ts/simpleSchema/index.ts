@@ -9,6 +9,7 @@ import SourceStream from "../parser/tokenizer/sourceStream"
 import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"
 import { genericIDFromTree } from "../sequence/tree/genericIDTree"
+import standardizeSchema from "./standardize"
 
 export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
     let contextStack: SchemaContextItem[] = []
