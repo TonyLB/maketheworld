@@ -162,7 +162,6 @@ const mapDFSInnerCallbackFactory =
                 output: [{ type: 'delete', index: state.nextLayerIndex }],
                 state: {
                     ...state,
-                    links: state.links,
                     nextLayerIndex: state.nextLayerIndex + 1,
                 }
             }
@@ -215,7 +214,7 @@ const mapDFSWalkCallback = (
                 }, { treeNode: rest, action })
                 const incomingLayersFromSiblings = [
                     ...previous.state.incomingLayersFromSiblings,
-                    ...newLayers.map((_, index) => (index + previous.output.length))
+                    ...newLayers.filter(({ type }) => (type !== 'delete')).map((_, index) => (index + previous.output.filter(({ type }) => (type !== 'delete')).length))
                 ]
                 return {
                     output: [...previous.output, ...newLayers],
@@ -254,10 +253,11 @@ export const mapDFSWalk = (callback: MapDFSInnerCallback) =>
             if (previous.parentVisible === data.visible) {
                 return {
                     ...previous,
-                    incomingLayersFromSiblings: [...previous.incomingLayersFromSiblings, ...state.incomingLayersFromSiblings]
+                    incomingLayersFromSiblings: [...previous.incomingLayersFromSiblings, ...state.incomingLayersFromSiblings],
+                    referenceLayers: state.referenceLayers
                 }    
             }
-            return previous
+            return { ...previous, referenceLayers: state.referenceLayers }
         },
         returnVerbose: true
     })(foldDiffTree(tree))
