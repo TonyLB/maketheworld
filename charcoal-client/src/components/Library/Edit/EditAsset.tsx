@@ -367,7 +367,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     return <React.Fragment>
         <AssetAssignDialog open={assignDialogShown} onClose={() => { setAssignDialogShown(false) }} assignHandler={assignHandler} />
         {
-            (['FRESH', 'WMLDIRTY', 'NORMALDIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
+            (['FRESH', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || ''))
                 ? 
                     <LibraryAsset assetKey={assetKey || ''}>
                         <Routes>

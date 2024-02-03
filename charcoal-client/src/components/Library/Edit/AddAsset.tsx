@@ -35,7 +35,7 @@ export const AddAsset: FunctionComponent<AddAssetProps> = ({ type, onAdd = () =>
         const assetId = `${type === 'Character' ? 'CHARACTER' : 'ASSET'}#${key}` as const
         dispatch(addOnboardingComplete(['nameAsset']))
         dispatch(newAsset(assetId))
-        dispatch(setIntent({ key: assetId, intent: ['NORMALDIRTY'] }))
+        dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
         if (type === 'Asset') {
             dispatch(setCurrentDraft(key))

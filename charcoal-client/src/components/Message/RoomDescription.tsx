@@ -128,7 +128,7 @@ export const RoomDescription = ({ message, header, currentHeader }: RoomDescript
     }, [dispatch, CharacterId])
     const currentAssets = useMemo(() => (message.assets || {}), [message])
     const inPersonalRoom = useMemo(() => (currentHeader && Boolean(Object.keys(currentAssets).map((assetId) => (assetId.split('#')[1])).find((key) => (Assets.map(({ AssetId }) => (AssetId)).includes(key))))), [currentHeader, Assets, currentAssets])
-    const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'].includes(status || '')), [currentAssets, status])
+    const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(status || '')), [currentAssets, status])
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
 
     return <MessageComponent

@@ -9,7 +9,7 @@ import { NormalImport, isNormalImport } from '@tonylb/mtw-wml/dist/normalize/bas
 import { Token, TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
 import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/dist/asset'
-import { schemaToWML } from '@tonylb/mtw-wml/dist/simpleSchema'
+import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/simpleSchema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getNormalized, setImport } from '.'
@@ -38,11 +38,12 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
+    const schema = new Schema()
     const normalizer = new Normalizer()
     if (id) {
         try {
-            normalizer.loadWML(assetWML)
-            normalizer.standardize()
+            schema.loadWML(assetWML)
+            normalizer.loadSchema(schema.schema)
         }
         catch (err) {
             if (err instanceof TokenizeException) {
@@ -54,7 +55,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             throw err
         }
     }
-    return { publicData: { originalWML: assetWML, currentWML: assetWML, normal: normalizer.normal, schema: genericIDFromTree(standardizeSchema(normalizer.schema)), serialized: true }}
+    return { publicData: { originalWML: assetWML, currentWML: assetWML, normal: normalizer.normal, schema: schema.schema, serialized: true }}
 }
 
 type ImportsByAssets = Record<string, Record<string, string>>
@@ -221,12 +222,14 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draf
     }
     let tokens: Token[] = []
     try {
+        const schema = new Schema()
         const normalizer = new Normalizer()
-        normalizer.loadWML(draftWML)
-        normalizer.standardize()
+        schema.loadWML(draftWML)
+        normalizer.loadSchema(schema.schema)
         return {
             publicData: {
                 normal: normalizer.normal,
+                schema: schema.schema,
                 currentWML: draftWML,
                 draftWML: undefined
             },
@@ -258,11 +261,9 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData: { draf
     }
 }
 
-export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { normal = {} }}) => async(dispatch) => {
-    const normalizer = new Normalizer()
-    normalizer._normalForm = normal
+export const regenerateWMLAction: PersonalAssetsAction = ({ publicData: { schema = [] }}) => async(dispatch) => {
     try {
-        const newWML = schemaToWML(normalizer.schema)
+        const newWML = schemaToWML(schema)
         return {
             publicData: { currentWML: newWML }
         }

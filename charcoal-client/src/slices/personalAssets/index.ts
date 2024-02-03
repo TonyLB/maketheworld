@@ -19,12 +19,9 @@ import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateSchema as updateSchemaReducer, setImport as setImportReducer } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
-import { isNormalAsset, isNormalCharacter, isNormalImport, isNormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { SchemaImportMapping, SchemaImportTag, isSchemaAsset, isSchemaCharacter, isSchemaImport } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
-import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
-import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -36,7 +33,7 @@ export const {
 } = multipleSSM<PersonalAssetsNodes, PublicSelectors>({
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: ['FRESH', 'WMLDIRTY', 'NORMALDIRTY'],
+    initialSSMDesired: ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'],
     promiseCache: personalAssetsPromiseCache,
     initialData: {
         internalData: {
@@ -120,11 +117,11 @@ export const {
             },
             FRESH: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'WMLDIRTY', 'NORMALDIRTY', 'NEEDSAVE']
+                choices: ['CLEAR', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDSAVE']
             },
             WMLDIRTY: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'NORMALDIRTY', 'NEEDPARSE', 'NEEDSAVE']
+                choices: ['CLEAR', 'SCHEMADIRTY', 'NEEDPARSE', 'NEEDSAVE']
             },
             NEEDPARSE: {
                 stateType: 'REDIRECT',
@@ -149,10 +146,10 @@ export const {
             NEW: {
                 stateType: 'ATTEMPT',
                 action: initializeNewAction,
-                resolve: 'NORMALDIRTY',
+                resolve: 'SCHEMADIRTY',
                 reject: 'WMLERROR',
             },
-            NORMALDIRTY: {
+            SCHEMADIRTY: {
                 stateType: 'CHOICE',
                 choices: ['REGENERATEWML']
             },
@@ -295,7 +292,7 @@ export const addImport = ({ assetId, fromAsset, as, key, type }: {
         }))
 }
     dispatch(fetchImports(assetId))
-    dispatch(setIntent({ key: assetId, intent: ['NORMALDIRTY', 'WMLDIRTY']}))
+    dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY']}))
     dispatch(heartbeat)
 }
 
@@ -327,12 +324,12 @@ export const removeImport = ({ assetId, fromAsset }: {
 // been loaded adds the asset as an import
 //
 export const assignAssetToCharacterId = ({ assetId, characterId }: { assetId: EphemeraAssetId, characterId: EphemeraCharacterId }) => async (dispatch) => {
-    const activeStates: (keyof PersonalAssetsNodes)[] = ['WMLDIRTY', 'FRESH', 'NORMALDIRTY']
+    const activeStates: (keyof PersonalAssetsNodes)[] = ['WMLDIRTY', 'FRESH', 'SCHEMADIRTY']
     dispatch(addItem({ key: characterId }))
     dispatch(onEnter(characterId)(activeStates)).then(() => {
         dispatch(addImport({ assetId: characterId, fromAsset: assetId.split('#')[1] }))
-        dispatch(setIntent({ key: characterId, intent: ['NORMALDIRTY']}))
-        dispatch(onEnter(characterId)(['NORMALDIRTY'])).then(() => {
+        dispatch(setIntent({ key: characterId, intent: ['SCHEMADIRTY']}))
+        dispatch(onEnter(characterId)(['SCHEMADIRTY'])).then(() => {
             dispatch(setIntent({ key: characterId, intent: ['NEEDSAVE'] }))
             dispatch(heartbeat)
         })
