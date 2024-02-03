@@ -1,9 +1,9 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import Normalizer, { NormalizerInsertPosition } from '@tonylb/mtw-wml/dist/normalize'
+import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { SchemaTag, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
-import { NormalForm, NormalReference } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
 import { map } from '@tonylb/mtw-wml/dist/sequence/tree/map'
 import { filter } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
@@ -131,67 +131,6 @@ export const updateSchema = (state: PersonalAssetsPublic, action: PayloadAction<
             return { schema: deletedSchema }
     }
     return {}
-}
-
-type UpdateNormalPayloadPutPosition = {
-    type: 'put';
-    item: GenericTreeNode<SchemaTag>;
-    position: NormalizerInsertPosition;
-}
-
-type UpdateNormalPayloadPutReference = {
-    type: 'put';
-    item: GenericTreeNode<SchemaTag>;
-    reference: NormalReference;
-    replace?: boolean;
-}
-
-type UpdateNormalPayloadPut = UpdateNormalPayloadPutPosition | UpdateNormalPayloadPutReference
-const isUpdateNormalPayloadPutReference = (payload: UpdateNormalPayloadPut): payload is UpdateNormalPayloadPutReference => ('reference' in payload)
-
-type UpdateNormalPayloadDelete = {
-    type: 'delete';
-    references: NormalReference[];
-}
-
-type UpdateNormalPayloadRename = {
-    type: 'rename';
-    fromKey: string;
-    toKey: string;
-}
-
-export type UpdateNormalPayload = UpdateNormalPayloadPut |
-    UpdateNormalPayloadDelete |
-    UpdateNormalPayloadRename
-
-export const updateNormal = (state: PersonalAssetsPublic, action: PayloadAction<UpdateNormalPayload>) => {
-    const normalizer = new Normalizer()
-    normalizer.loadNormal(state.normal)
-    switch(action.payload.type) {
-        case 'put':
-            if (isUpdateNormalPayloadPutReference(action.payload)) {
-                const position = {
-                    ...normalizer._referenceToInsertPosition(action.payload.reference),
-                    replace: action.payload.replace
-                }
-                normalizer.put(action.payload.item, position)
-            }
-            else {
-                normalizer.put(action.payload.item, action.payload.position)
-            }
-            break
-        case 'delete':
-            action.payload.references.forEach((reference) => { normalizer.delete(reference) })
-            break
-        case 'rename':
-            normalizer.renameItem(
-                action.payload.fromKey,
-                action.payload.toKey
-            )
-            break
-    }
-    normalizer.standardize()
-    state.normal = normalizer.normal
 }
 
 export const setImport = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; normal: NormalForm }>) => {

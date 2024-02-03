@@ -36,7 +36,7 @@ import { NormalForm, NormalComponent, NormalExit, isNormalExit, isNormalComponen
 import { objectFilter } from '../../../lib/objects'
 import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
 import { getConfiguration } from '../../../slices/configuration'
-import { UpdateNormalPayload, UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
+import { UpdateSchemaPayload } from '../../../slices/personalAssets/reducers'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
