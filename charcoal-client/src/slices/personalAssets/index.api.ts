@@ -13,8 +13,6 @@ import { Schema, schemaToWML } from '@tonylb/mtw-wml/dist/simpleSchema'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { getNormalized, setImport } from '.'
-import { standardizeSchema } from '@tonylb/mtw-wml/dist/simpleSchema/standardize'
-import { genericIDFromTree } from '@tonylb/mtw-wml/dist/sequence/tree/genericIDTree'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -278,19 +276,20 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
     if (!id) {
         throw new Error()
     }
-    const normalizer = new Normalizer()
+    const schema = new Schema()
     if (isEphemeraAssetId(id)) {
-        normalizer.put({
+        schema._schema = [{
             data: {
                 tag: 'Asset',
                 key: id.split('#')[1],
                 Story: undefined
             },
-            children: []
-        }, { contextStack: [] })
+            children: [],
+            id: uuidv4()
+        }]
     }
     else if (isEphemeraCharacterId(id)) {
-        normalizer.put({
+        schema._schema = [{
             data: {
                 tag: 'Character',
                 key: id.split('#')[1],
@@ -303,16 +302,20 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
                     reflexive: 'themself'
                 }
             },
-            children: []
-        }, { contextStack: [] })
+            children: [],
+            id: uuidv4()
+        }]
     }
     else {
         throw new Error()
     }
-    const newWML = schemaToWML(normalizer.schema)
+    const newWML = schemaToWML(schema.schema)
+    const normalizer = new Normalizer()
+    normalizer.loadSchema(schema.schema)
     return {
         publicData: {
             normal: normalizer.normal,
+            schema: schema.schema,
             currentWML: newWML,
             properties: {},
             importDefaults: {},
