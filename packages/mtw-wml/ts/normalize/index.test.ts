@@ -22,7 +22,8 @@ describe('WML normalize', () => {
     })
 
     it('should normalize a room', () => {
-        const testSource = `<Asset key=(Test)>
+        const testSource = `
+        <Asset key=(Test)>
             <Room key=(a123)>
                 <Name>Test Name</Name>
                 <Description>Test Description</Description>
@@ -30,14 +31,7 @@ describe('WML normalize', () => {
         </Asset>`
         const normalizer = new Normalizer()
         normalizer.loadWML(testSource)
-        expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-        <Asset key=(Test)>
-            <Room key=(a123)>
-                <Name>Test Name</Name>
-                <Description>Test Description</Description>
-            </Room>
-        </Asset>
-        `))
+        expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(testSource))
     })
 
     it('should normalize every needed tag', () => {
@@ -985,7 +979,6 @@ describe('WML normalize', () => {
                 throw new Error()
             }
             normalizer.put(toAddRoomWrapper, { contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }], index: 1, replace: true })
-            console.log(`output: ${schemaToWML(normalizer.schema)}`)
             expect(normalizer.normal).toMatchSnapshot()
         })
 

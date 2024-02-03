@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
+import { Schema } from '@tonylb/mtw-wml/dist/simpleSchema/index'
+import { standardizeSchema } from '@tonylb/mtw-wml/dist/simpleSchema/standardize'
 import { isNormalImport, NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 
 import { s3Client } from "./clients"
@@ -20,8 +22,9 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     //
     async setWML(source: string): Promise<void> {
         const normalizer = new Normalizer()
-        normalizer.loadWML(source)
-        normalizer.standardize()
+        const schema = new Schema()
+        schema.loadWML(source)
+        normalizer.loadSchema(standardizeSchema(schema.schema))
         if (!(this.normal && deepEqual(this.normal, normalizer.normal))) {
             this.status.json = 'Dirty'
         }

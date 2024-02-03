@@ -5078,7 +5078,6 @@ Object {
           },
         ],
         "data": Object {
-          "from": "baseInfo",
           "key": "baseInfo",
           "tag": "Knowledge",
         },
@@ -5181,9 +5180,10 @@ Object {
           },
         ],
         "data": Object {
-          "from": "overview",
           "key": "overview",
           "tag": "Room",
+          "x": undefined,
+          "y": undefined,
         },
       },
     ],

@@ -76,12 +76,11 @@ import { compressIfKeys, keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { WritableDraft } from 'immer/dist/internal';
 import { objectFilterEntries, objectMap } from '../lib/objects';
-import standardizeNormal from './standardize';
 import { schemaFromParse, defaultSchemaTag } from '../simpleSchema';
 import parse from '../simpleParser';
 import tokenizer from '../parser/tokenizer';
 import { buildNormalPlaceholdersFromExport, rebuildContentsFromImport } from './importExportUtil';
-import { GenericTree, GenericTreeNode } from '../sequence/tree/baseClasses';
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from '../sequence/tree/baseClasses';
 import mergeSchemaTrees from '../simpleSchema/treeManipulation/merge';
 import { extractConditionedItemFromContents } from '../simpleSchema/utils';
 import SchemaTagTree from '../tagTree/schema';
@@ -836,7 +835,6 @@ export class Normalizer {
                 const translatedItem = this._translate({ ...translateContext, data: node, children: [] }, node)
                 returnKey = translatedItem.key
                 if (!returnKey) {
-                    console.log(`node: ${JSON.stringify(node, null, 4)}`)
                     throw new Error('Key mismatch in normalizer put')
                 }
                 appearanceIndex = this._mergeAppearance(returnKey, translatedItem, position)
@@ -1120,6 +1118,84 @@ export class Normalizer {
         }
     }
 
+    _loadSchemaHelper(schema: GenericTree<SchemaTag>, options?: { contextStack: (NormalReference | SchemaTag)[] }): GenericTree<NormalReference | SchemaTag> {
+        const returnValue = schema.map((node) => {
+            const { data, children, ...rest } = node
+            //
+            // SchemaExportTag encodes its changes throughout the normalForm, rather than creating any normal Item
+            // of its own.
+            //
+            if (isSchemaExport(data)) {
+                const exportPlaceholder = buildNormalPlaceholdersFromExport(data)
+                this._normalForm = produce(this._normalForm, (draft) => {
+                    exportPlaceholder.forEach((item) => {
+                        if (item.key in draft) {
+                            if (item.exportAs) {
+                                draft[item.key].exportAs = item.exportAs
+                            }
+                        }
+                        else {
+                            draft[item.key] = item
+                        }
+                    })
+                })
+                return []
+            }
+
+            if (isSchemaTagWithNormalEquivalent(data) && (!(isSchemaCondition(data) && (options?.contextStack ?? []).find(({ tag }) => (['Name', 'Description'].includes(tag)))))) {
+                const translatedData = this._translate(
+                    { ...node, contextStack: (options?.contextStack ?? []).filter(isNormalReference) },
+                    data
+                )
+                const { key } = translatedData
+                if (!(key in this._normalForm)) {
+                    this._normalForm[key] = {
+                        ...translatedData,
+                        appearances: []
+                    }
+                }
+                this._normalForm[key].appearances = [
+                    ...(this._normalForm?.[key]?.appearances ?? []),
+                    translatedData.appearances?.[0] as any
+                ]
+                if (this._tags[key] && this._tags[key] !== translatedData.tag) {
+                    throw new NormalizeTagMismatchError(`Key '${key}' is used to define elements of different tags ('${this._tags[key]}' and '${translatedData.tag}')`)
+                }
+                this._tags[key] = translatedData.tag
+                const index = (this._normalForm[key].appearances ?? []).length - 1
+                const appearance = this._normalForm[key].appearances?.[index]
+                if (typeof appearance === 'undefined') {
+                    throw new Error('Appearance mismatch in loadSchema')
+                }
+                const reference: GenericTreeNodeFiltered<NormalReference, SchemaTag> = {
+                    data: {
+                        tag: data.tag,
+                        key,
+                        index    
+                    },
+                    children: [],
+                    ...rest
+                }
+                this._normalForm[key].appearances = [
+                    ...(this._normalForm[key].appearances ?? []).slice(0, -1),
+                    {
+                        ...appearance,
+                        children: this._loadSchemaHelper(children, { contextStack: [...options?.contextStack ?? [], reference.data] })
+                    } as any
+                ]
+                return [reference]
+            }
+            else {
+                return [{
+                    data,
+                    children: this._loadSchemaHelper(children, { contextStack: [...options?.contextStack ?? [], data] }),
+                    ...rest
+                }]
+            }
+        }).flat(1)
+        return returnValue
+    }
+
     loadSchema(schema: GenericTree<SchemaTag>): void {
         this._normalForm = {}
         this._tags = {}
@@ -1131,8 +1207,9 @@ export class Normalizer {
         if (schema.length > 1) {
             throw new ParseException('Multi-Asset files are not yet implemented', 0, 0)
         }
+        this._loadSchemaHelper(schema, { contextStack: [] })
         schema.forEach((item, index) => {
-            this.put(item, { contextStack: [], index, replace: false })
+            // this.put(item, { contextStack: [], index, replace: false })
         })
     }
 
@@ -1244,13 +1321,6 @@ export class Normalizer {
 
     get rootNode(): NormalAsset | NormalCharacter | undefined {
         return Object.values(this._normalForm).filter((node): node is NormalAsset | NormalCharacter => (isNormalAsset(node) || isNormalCharacter(node))).find(({ appearances }) => (appearances.find(({ contextStack }) => (contextStack.length === 0))))
-    }
-
-    standardize(): void {
-        if (this.rootNode && isNormalAsset(this.rootNode)) {
-            const standardized = standardizeNormal(this._normalForm)
-            this.loadNormal(standardized)
-        }
     }
 
     assignDependencies(extract: (src: string) => string[]) {
