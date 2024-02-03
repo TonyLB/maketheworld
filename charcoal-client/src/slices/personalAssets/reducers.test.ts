@@ -1,14 +1,4 @@
-import { TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
-import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
-import { Schema } from "@tonylb/mtw-wml/dist/simpleSchema"
-import { SchemaTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { updateSchema } from "./reducers"
-
-const schemaTestWML = (wml: string): GenericTree<SchemaTag, TreeId> => {
-    const schema = new Schema()
-    schema.loadWML(wml)
-    return schema.schema
-}
 
 describe('personalAsset slice reducers', () => {
     describe('updateSchema', () => {

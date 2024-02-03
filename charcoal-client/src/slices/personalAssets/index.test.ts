@@ -1,6 +1,8 @@
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
-import { addImport, getNormalized, removeImport } from "."
-import { NormalForm } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+import { addImport, removeImport } from "."
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { SchemaTag, isSchemaImport } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { Schema } from "@tonylb/mtw-wml/dist/simpleSchema"
 
 const normalizer = new Normalizer()
 normalizer.loadWML(`<Asset key=(testAsset)>
@@ -9,11 +11,20 @@ normalizer.loadWML(`<Asset key=(testAsset)>
     </Import>
     <Room key=(testRoom)><Name>: imported</Name></Room>
 </Asset>`)
+const schema = new Schema()
+schema.loadWML(`<Asset key=(testAsset)>
+    <Import from=(testImport)>
+        <Room key=(testRoom) />
+    </Import>
+    <Room key=(testRoom)><Name>: imported</Name></Room>
+</Asset>`)
 
 const overrideGetNormalizedInternal = jest.fn()
 const overrideGetNormalized = jest.fn()
-const overrideUpdateNormalInternal = jest.fn()
-const overrideUpdateNormal = jest.fn()
+const overrideGetSchemaInternal = jest.fn()
+const overrideGetSchema = jest.fn()
+const overrideUpdateSchemaInternal = jest.fn()
+const overrideUpdateSchema = jest.fn()
 
 const dispatch = jest.fn()
 const getState = jest.fn().mockReturnValue({})
@@ -26,7 +37,9 @@ describe('personalAssets slice', () => {
             jest.resetAllMocks()
             overrideGetNormalizedInternal.mockReturnValue(normalizer.normal)
             overrideGetNormalized.mockReturnValue(overrideGetNormalizedInternal)
-            overrideUpdateNormal.mockReturnValue(overrideUpdateNormalInternal)
+            overrideGetSchemaInternal.mockReturnValue(schema.schema)
+            overrideGetSchema.mockReturnValue(overrideGetSchemaInternal)
+            overrideUpdateSchema.mockReturnValue(overrideUpdateSchemaInternal)
         })
 
         it('should return same mapping on a repeated import', () => {
@@ -35,13 +48,13 @@ describe('personalAssets slice', () => {
                 fromAsset: 'testImport',
                 key: 'testRoom',
                 type: 'Room'
-            }, { overrideGetNormalized, overrideUpdateNormal })(dispatch, getState)
-            expect(overrideUpdateNormalInternal).toHaveBeenCalledWith({
-                type: 'put',
-                position: { contextStack: [{ key: 'testAsset', tag: 'Asset', index: 0 }], index: 0, replace: true },
+            }, { overrideGetSchema, overrideUpdateSchema })(dispatch, getState)
+            const importItems = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))
+            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
+                type: 'replace',
+                id: importItems[0].id,
                 item: {
                     data: {
-                        key: 'Import-0',
                         tag: 'Import',
                         from: 'testImport',
                         mapping: {
@@ -59,13 +72,13 @@ describe('personalAssets slice', () => {
                 fromAsset: 'testImport',
                 key: 'testRoomTwo',
                 type: 'Room'
-            }, { overrideGetNormalized, overrideUpdateNormal })(dispatch, getState)
-            expect(overrideUpdateNormalInternal).toHaveBeenCalledWith({
-                type: 'put',
-                position: { contextStack: [{ key: 'testAsset', tag: 'Asset', index: 0 }], index: 0, replace: true },
+            }, { overrideGetSchema, overrideUpdateSchema })(dispatch, getState)
+            const importItems = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))
+            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
+                type: 'replace',
+                id: importItems[0].id,
                 item: {
                     data: {
-                        key: 'Import-0',
                         tag: 'Import',
                         from: 'testImport',
                         mapping: {
@@ -78,23 +91,25 @@ describe('personalAssets slice', () => {
             })
         })
 
-        it('should return new import item on an import from differen asset', () => {
+        it('should return new import item on an import from different asset', () => {
             addImport({
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'testImportTwo',
                 key: 'testRoomTwo',
                 type: 'Room'
-            }, { overrideGetNormalized, overrideUpdateNormal })(dispatch, getState)
-            expect(overrideUpdateNormalInternal).toHaveBeenCalledWith({
-                type: 'put',
-                position: { contextStack: [{ key: 'testAsset', tag: 'Asset', index: 0 }] },
+            }, { overrideGetSchema, overrideUpdateSchema })(dispatch, getState)
+            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
+                type: 'addChild',
+                id: schema.schema[0].id,
                 item: {
-                    key: 'Import-1',
-                    tag: 'Import',
-                    from: 'testImportTwo',
-                    mapping: {
-                        testRoomTwo: { key: 'testRoomTwo', type: 'Room' }
-                    }
+                    data: {
+                        tag: 'Import',
+                        from: 'testImportTwo',
+                        mapping: {
+                            testRoomTwo: { key: 'testRoomTwo', type: 'Room' }
+                        }
+                    },
+                    children: []
                 }
             })
         })
@@ -105,19 +120,26 @@ describe('personalAssets slice', () => {
                 <Name>Test</Name>
                 <Import from=(testImportOne) />
             </Character>`)
+            const schema = new Schema()
+            schema.loadWML(`<Character key=(testCharacter)>
+                <Name>Test</Name>
+                <Import from=(testImportOne) />
+            </Character>`)
 
             addImport({
                 assetId: 'CHARACTER#testCharacter',
                 fromAsset: 'testImportTwo'
-            }, { overrideGetNormalized: jest.fn().mockReturnValue((): NormalForm => (normalizer.normal)), overrideUpdateNormal })(dispatch, getState)
-            expect(overrideUpdateNormalInternal).toHaveBeenCalledWith({
-                type: 'put',
-                position: { contextStack: [{ key: 'testCharacter', tag: 'Character', index: 0 }] },
+            }, { overrideGetSchema: jest.fn().mockReturnValue((): GenericTree<SchemaTag, TreeId> => (schema.schema)), overrideUpdateSchema })(dispatch, getState)
+            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
+                type: 'addChild',
+                id: schema.schema[0].id,
                 item: {
-                    key: 'Import-2',
-                    tag: 'Import',
-                    from: 'testImportTwo',
-                    mapping: {}
+                    data: {
+                        tag: 'Import',
+                        from: 'testImportTwo',
+                        mapping: {}
+                    },
+                    children: []
                 }
             })
         })
@@ -128,14 +150,14 @@ describe('personalAssets slice', () => {
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
-            overrideGetNormalizedInternal.mockReturnValue(normalizer.normal)
-            overrideGetNormalized.mockReturnValue(overrideGetNormalizedInternal)
-            overrideUpdateNormal.mockReturnValue(overrideUpdateNormalInternal)
+            overrideGetSchemaInternal.mockReturnValue(normalizer.schema)
+            overrideGetSchema.mockReturnValue(overrideGetSchemaInternal)
+            overrideUpdateSchema.mockReturnValue(overrideUpdateSchemaInternal)
         })
 
         it('should remove import from character', () => {
-            const normalizer = new Normalizer()
-            normalizer.loadWML(`<Character key=(testCharacter)>
+            const schema = new Schema()
+            schema.loadWML(`<Character key=(testCharacter)>
                 <Name>Test</Name>
                 <Import from=(testImportOne) />
             </Character>`)
@@ -143,16 +165,17 @@ describe('personalAssets slice', () => {
             removeImport({
                 assetId: 'CHARACTER#testCharacter',
                 fromAsset: 'testImportOne'
-            }, { overrideGetNormalized: jest.fn().mockReturnValue((): NormalForm => (normalizer.normal)), overrideUpdateNormal })(dispatch, getState)
-            expect(overrideUpdateNormalInternal).toHaveBeenCalledWith({
+            }, { overrideGetSchema: jest.fn().mockReturnValue((): GenericTree<SchemaTag, TreeId> => (schema.schema)), overrideUpdateSchema })(dispatch, getState)
+            const importItems = schema.schema[0].children.filter(({ data }) => (isSchemaImport(data)))
+            expect(overrideUpdateSchemaInternal).toHaveBeenCalledWith({
                 type: 'delete',
-                references: [{ key: 'Import-1', tag: 'Import', index: 0 }]
+                id: importItems[0].id
             })
         })
 
         it('should no-op when asked to remove an import that is not present', () => {
-            const normalizer = new Normalizer()
-            normalizer.loadWML(`<Character key=(testCharacter)>
+            const schema = new Schema()
+            schema.loadWML(`<Character key=(testCharacter)>
                 <Name>Test</Name>
                 <Import from=(testImportOne) />
             </Character>`)
@@ -160,8 +183,8 @@ describe('personalAssets slice', () => {
             removeImport({
                 assetId: 'CHARACTER#testCharacter',
                 fromAsset: 'testImportTwo'
-            }, { overrideGetNormalized: jest.fn().mockReturnValue((): NormalForm => (normalizer.normal)), overrideUpdateNormal })(dispatch, getState)
-            expect(overrideUpdateNormalInternal).not.toHaveBeenCalled()
+            }, { overrideGetSchema: jest.fn().mockReturnValue((): GenericTree<SchemaTag, TreeId> => (schema.schema)), overrideUpdateSchema })(dispatch, getState)
+            expect(overrideUpdateSchemaInternal).not.toHaveBeenCalled()
         })
 
     })
