@@ -34,7 +34,6 @@ import {
     isNormalComputed,
     isNormalCondition,
     isNormalReference,
-    MapAppearance,
     MessageAppearance,
     NormalAction,
     NormalAsset,

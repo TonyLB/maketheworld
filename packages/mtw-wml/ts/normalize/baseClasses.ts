@@ -170,19 +170,9 @@ export type NormalImage<Extra extends {} = {}> = {
     appearances: ImageAppearance<Extra>[];
 } & NormalBase
 
-export type MapAppearanceRoom = {
-    key: string;
-    x: number;
-    y: number;
-} & NormalConditionMixin
-
-type MapAppearanceImage = string
-
-export type MapAppearance<Extra extends {} = {}> = BaseAppearance<Extra>
-
 export type NormalMap<Extra extends {} = {}> = {
     tag: 'Map';
-    appearances: MapAppearance<Extra>[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
 type ExitAppearance<Extra extends {} = {}> = {

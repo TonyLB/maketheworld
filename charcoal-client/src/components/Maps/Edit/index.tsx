@@ -9,16 +9,17 @@ import MapArea from './Area'
 import MapLayers from './MapLayers'
 import ToolSelect from './Area/ToolSelect'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
-import { MapAppearance, isNormalImage } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { selectMapRooms } from '@tonylb/mtw-wml/dist/normalize/selectors/mapRooms'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import MapController from '../Controller'
+import { isSchemaImage } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 type MapEditProps = {
 }
 
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
-    const { normalForm, rooms } = useLibraryAsset()
+    const { select } = useLibraryAsset()
     const { AssetId: assetKey, MapId: mapId } = useParams<{ AssetId: string; MapId: string }>()
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/Map/${mapId}`,
@@ -32,21 +33,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     //
     // TODO: Figure out how to extract fileURL from defaultAppearances
     //
-    const mapImages = useMemo<string[]>(() => {
-        const mapAppearances = (normalForm[mapId || '']?.appearances || []) as MapAppearance[]
-        const images = mapAppearances
-            .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'If'))))
-            .reduce<string[]>((previous, { images = [] }) => ([
-                ...previous,
-                ...(images
-                    .map((image) => (normalForm[image]))
-                    .filter(isNormalImage)
-                    .map(({ fileURL = '' }) => (fileURL))
-                    .filter((fileURL) => (fileURL))
-                )
-            ]), [] as string[])
-        return images
-    }, [normalForm, mapId])
+    const mapImages = useMemo<string[]>(() => (select({ key: mapId, selector: selectMapRooms }).map(({ data }) => (isSchemaImage(data) ? [data.key] : [])).flat(1)), [select, mapId])
 
     return <MapController mapId={mapId}>
         <div className={localClasses.grid}>
