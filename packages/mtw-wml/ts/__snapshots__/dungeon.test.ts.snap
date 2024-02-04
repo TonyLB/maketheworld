@@ -4827,7 +4827,6 @@ Object {
         ],
         "data": Object {
           "key": "dungeonMap",
-          "name": Array [],
           "tag": "Map",
         },
       },

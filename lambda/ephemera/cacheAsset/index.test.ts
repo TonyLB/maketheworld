@@ -377,7 +377,7 @@ describe('cacheAsset', () => {
                 tag: 'Map',
                 appearances: [{
                     ...topLevelAppearance,
-                    data: { tag: 'Map', key: 'map1', name: [] },
+                    data: { tag: 'Map', key: 'map1' },
                     children: [
                         { data: { tag: 'Room', key: 'room1', index: 1 }, children: [] },
                         { data: { tag: 'Image', key: 'image1' }, children: [] }

@@ -435,8 +435,7 @@ describe('schemaFromParse', () => {
                 {
                     data: {
                         tag: "Map",
-                        key: "testMap",
-                        name: [{ tag: "String", value: "Test Map" }]
+                        key: "testMap"
                     },
                     children: [
                         { data: { tag: 'Image', key: 'image1' }, children: [] },

@@ -240,7 +240,6 @@ export type SchemaPositionTag = {
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
-    name: SchemaTaggedMessageLegalContents[];
 } & SchemaImportableBase
 
 export type SchemaMessageRoom = {

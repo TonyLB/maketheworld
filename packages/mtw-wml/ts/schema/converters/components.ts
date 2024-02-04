@@ -219,7 +219,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     Map: {
         initialize: ({ parseOpen }): SchemaMapTag => ({
             tag: 'Map',
-            name: [],
             ...validateProperties(componentTemplates.Map)(parseOpen)
         }),
         typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
@@ -233,10 +232,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
-                data: {
-                    ...initialTag,
-                    name: compressWhitespace(extractNameFromContents(children)).map(({ data }) => (data))
-                },
+                data: initialTag,
                 children: children.filter(({ data }) => (isSchemaMapContents(data))),
             }
         }
