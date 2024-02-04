@@ -1,5 +1,5 @@
 import Normalizer from ".."
-import { isSchemaCondition } from "../../simpleSchema/baseClasses"
+import { isSchemaCondition } from "../../schema/baseClasses"
 import { selectDependencies } from './dependencies'
 
 describe('dependencies selector', () => {

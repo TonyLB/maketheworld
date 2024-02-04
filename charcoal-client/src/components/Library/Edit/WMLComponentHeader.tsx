@@ -7,7 +7,7 @@ import { isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { taggedMessageToString } from '@tonylb/mtw-interfaces/dist/messages'
 import { useLibraryAsset } from './LibraryAsset'
-import { schemaOutputToString } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 
 interface WMLComponentHeaderProps {

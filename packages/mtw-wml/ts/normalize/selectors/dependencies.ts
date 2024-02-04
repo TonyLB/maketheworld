@@ -1,7 +1,7 @@
 import { unique } from "../../list"
 import { GenericTree } from "../../tree/baseClasses"
 import dfsWalk from "../../tree/dfsWalk"
-import { SchemaTag, isSchemaCondition } from "../../simpleSchema/baseClasses"
+import { SchemaTag, isSchemaCondition } from "../../schema/baseClasses"
 
 export const selectDependencies = (tree: GenericTree<SchemaTag>): string[] => {
     const dependencies = dfsWalk({

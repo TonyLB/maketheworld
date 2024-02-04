@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../tree/baseClasses";
-import { SchemaTag } from "../simpleSchema/baseClasses";
+import { SchemaTag } from "../schema/baseClasses";
 
 type TagType = 'Asset' |
     'Story' |

@@ -3,7 +3,7 @@
 // but with everything organized in a standard structure (see README.standardize.md)
 //
 
-import { SchemaTag, SchemaWithKey } from "../simpleSchema/baseClasses"
+import { SchemaTag, SchemaWithKey } from "./baseClasses"
 import { GenericTree } from "../tree/baseClasses";
 import SchemaTagTree from "../tagTree/schema";
 import { unique } from "../list";

@@ -2,7 +2,7 @@ import {
     SchemaExportTag,
     SchemaImportTag,
     SchemaTag
-} from "../simpleSchema/baseClasses";
+} from "../schema/baseClasses";
 import { NormalItem, NormalizeTagMismatchError } from "./baseClasses";
 
 export const rebuildContentsFromImport = (node: SchemaImportTag): SchemaTag[] => {

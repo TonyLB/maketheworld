@@ -12,7 +12,7 @@ import {
     isSchemaFeature,
     isSchemaRoom,
     SchemaTag
-} from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+} from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/ts/tree/baseClasses"
 import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
 

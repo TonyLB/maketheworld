@@ -1,6 +1,6 @@
 import { unique } from "../../list"
 import { GenericTree } from "../../tree/baseClasses"
-import { SchemaImportTag, SchemaTag, SchemaWithKey, isSchemaImport, isSchemaWithKey } from "../../simpleSchema/baseClasses"
+import { SchemaImportTag, SchemaTag, SchemaWithKey, isSchemaImport, isSchemaWithKey } from "../../schema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 
 export const selectKeysByTag = (tag: SchemaWithKey["tag"] | 'Import') => (tree: GenericTree<SchemaTag>): string[] => {

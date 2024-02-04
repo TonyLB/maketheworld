@@ -14,7 +14,7 @@ import {
     isCustomText
 } from "../baseClasses"
 import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 //
 // TODO: Refactor descendantsToRender to return GenericTree<SchemaOutputTag, { id: string }>

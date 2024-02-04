@@ -1,4 +1,4 @@
-import { SchemaTag, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaTag, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";

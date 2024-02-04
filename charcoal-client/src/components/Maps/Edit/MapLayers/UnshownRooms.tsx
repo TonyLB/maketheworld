@@ -13,7 +13,7 @@ import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
 import { selectName } from "@tonylb/mtw-wml/dist/normalize/selectors/name"
-import { schemaOutputToString } from "@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString"
+import { schemaOutputToString } from "@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString"
 
 type UnshownRoomsProps = {
 

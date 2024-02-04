@@ -1,8 +1,8 @@
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { addImport, removeImport } from "."
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaTag, isSchemaImport } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
-import { Schema } from "@tonylb/mtw-wml/dist/simpleSchema"
+import { SchemaTag, isSchemaImport } from "@tonylb/mtw-wml/dist/schema/baseClasses"
+import { Schema } from "@tonylb/mtw-wml/dist/schema"
 
 const normalizer = new Normalizer()
 normalizer.loadWML(`<Asset key=(testAsset)>

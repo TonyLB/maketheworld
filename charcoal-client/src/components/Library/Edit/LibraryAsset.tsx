@@ -42,7 +42,7 @@ import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/dis
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/dist/normalize/selectors/render'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 type LibraryAssetContextType = {
     assetKey: string;

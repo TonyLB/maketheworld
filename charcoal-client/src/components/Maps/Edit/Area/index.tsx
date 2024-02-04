@@ -4,7 +4,7 @@ import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
 import { MapTreeExit, MapTreeItem } from '../../Controller/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
-import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 type MapAreaProps = {
     fileURL?: string;

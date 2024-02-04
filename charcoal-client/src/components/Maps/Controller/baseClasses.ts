@@ -1,5 +1,5 @@
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'

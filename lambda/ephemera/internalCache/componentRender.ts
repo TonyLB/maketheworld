@@ -33,10 +33,10 @@ import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMeta, { CacheCharacterMetaData, CharacterMetaItem } from './characterMeta';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/tree/baseClasses';
-import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/simpleSchema/baseClasses';
+import { SchemaBookmarkTag, SchemaOutputTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaBookmark, isSchemaCondition, isSchemaExit, isSchemaImage, isSchemaLineBreak, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaRoom, isSchemaSpacer } from '@tonylb/mtw-wml/ts/schema/baseClasses';
 import { asyncFilter, treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
-import { compressStrings } from '@tonylb/mtw-wml/ts/simpleSchema/utils';
+import { compressStrings } from '@tonylb/mtw-wml/ts/schema/utils';
 import { asyncMap } from '@tonylb/mtw-wml/ts/tree/map';
 import dfsWalk from '@tonylb/mtw-wml/ts/tree/dfsWalk';
 
