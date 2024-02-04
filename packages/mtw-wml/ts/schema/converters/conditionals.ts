@@ -18,7 +18,7 @@ import { SchemaContextItem } from "../baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { translateTaggedMessageContents } from '../utils'
+import { translateTaggedMessageContents } from '../utils/schemaOutput/translateTaggedMessageContents'
 import { removeIrrelevantWhitespace } from '../utils/schemaOutput/removeIrrelevantWhitespace'
 import { GenericTree,  GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
