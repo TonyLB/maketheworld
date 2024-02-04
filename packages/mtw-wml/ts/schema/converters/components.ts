@@ -4,13 +4,16 @@ import {
     SchemaExitTag,
     SchemaFeatureTag,
     SchemaKnowledgeTag,
+    SchemaMapRoom,
     SchemaMapTag,
     SchemaNameTag,
+    SchemaPositionTag,
     SchemaRoomTag,
     SchemaStringTag,
     SchemaTag,
     SchemaTaggedMessageLegalContents,
     isSchemaBookmark,
+    isSchemaCondition,
     isSchemaDescription,
     isSchemaExit,
     isSchemaFeature,
@@ -21,6 +24,7 @@ import {
     isSchemaMap,
     isSchemaMapContents,
     isSchemaName,
+    isSchemaPosition,
     isSchemaRoom,
     isSchemaString,
     isSchemaTaggedMessageLegalContents
@@ -32,6 +36,8 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../../tree/baseClasses"
+import SchemaTagTree from "../../tagTree/schema"
+import dfsWalk from "../../tree/dfsWalk"
 
 const componentTemplates = {
     Exit: {
@@ -63,6 +69,10 @@ const componentTemplates = {
         key: { required: true, type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Key },
         as: { type: ParsePropertyTypes.Key }
+    },
+    Position: {
+        x: { required: true, type: ParsePropertyTypes.Literal },
+        y: { required: true, type: ParsePropertyTypes.Literal },
     },
     Map: {
         key: { required: true, type: ParsePropertyTypes.Key },
@@ -192,6 +202,20 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         }),
         typeCheckContents: isSchemaKnowledgeIncomingContents
     },
+    Position: {
+        initialize: ({ parseOpen }): SchemaPositionTag => {
+            const { x, y, ...rest } = validateProperties(componentTemplates.Position)(parseOpen)
+            if (typeof x === 'undefined' || Number.isNaN(parseInt(x))) {
+                throw new Error(`Property 'x' must be a number`)
+            }
+            if (typeof y === 'undefined' || Number.isNaN(parseInt(y))) {
+                throw new Error(`Property 'x' must be a number`)
+            }
+            return {
+                tag: 'Position', x: parseInt(x), y: parseInt(y)
+            }
+        }
+    },
     Map: {
         initialize: ({ parseOpen }): SchemaMapTag => ({
             tag: 'Map',
@@ -202,33 +226,62 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         }),
         typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
         validateContents: {
-            isValid: (tag) => {
-                if (isSchemaRoom(tag) && !(typeof tag.x !== 'undefined' && typeof tag.y !== 'undefined')) {
-                    throw new Error('Room in Map context must specify x and y values')
-                }
-                return true
-            },
-            branchTags: ['If'],
-            leafTags: ['Room']
+            isValid: (tag) => (true),
+            branchTags: ['If', 'Room'],
+            leafTags: ['Position']
         },
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => {
             if (!isSchemaMap(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
+            const tagTree = new SchemaTagTree(children)
+            const positionTree = tagTree
+                .reordered(['If', 'Room', 'Position'])
+                .filter({ match: 'Position' })
+                .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }, { match: 'Position' }] } })
+                .tree
+            const rooms = dfsWalk({
+                default: { output: [], state: { conditions: [] } },
+                callback: (previous: { output: SchemaMapRoom[], state: { conditions: SchemaMapRoom["conditions"], roomId?: string } }, data: SchemaTag ) => {
+                    if (isSchemaPosition(data) && previous.state.roomId) {
+                        return {
+                            ...previous,
+                            output: [
+                                ...previous.output,
+                                {
+                                    conditions: previous.state.conditions,
+                                    key: previous.state.roomId,
+                                    x: data.x,
+                                    y: data.y
+                                }
+                            ]
+                        }
+                    }
+                    return previous
+                },
+                nest: ({ state, data }) => {
+                    if (isSchemaCondition(data)) {
+                        return {
+                            ...state,
+                            conditions: [...state.conditions, ...data.conditions]
+                        }
+                    }
+                    if (isSchemaRoom(data)) {
+                        return {
+                            ...state,
+                            roomId: data.key
+                        }
+                    }
+                    return state
+                },
+                unNest: ({ previous }) => (previous)
+            })(positionTree)
+        
             return {
                 data: {
                     ...initialTag,
                     name: compressWhitespace(extractNameFromContents(children)).map(({ data }) => (data)),
-                    rooms: extractConditionedItemFromContents({
-                        children: children,
-                        typeGuard: isSchemaRoom,
-                        transform: ({ key, x, y }) => {
-                            if (typeof x === 'undefined' || typeof y === 'undefined') {
-                                throw new Error('Undefined position in mapRoom')
-                            }
-                            return { conditions: [], key, x, y }
-                        }
-                    }),
+                    rooms,
                     images: children.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
                 },
                 children: children.filter(({ data }) => (isSchemaMapContents(data))),

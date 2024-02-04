@@ -1759,7 +1759,16 @@ Object {
         },
       },
       Object {
-        "children": Array [],
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "Position",
+              "x": 200,
+              "y": 150,
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -1775,8 +1784,8 @@ Object {
         "data": Object {
           "key": "a123",
           "tag": "Room",
-          "x": 200,
-          "y": 150,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {

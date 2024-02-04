@@ -12,39 +12,50 @@
     </Room>
     <Map key=(dungeonMap)>
         <Image key=(dungeonImage) />
-        <Room key=(VORTEX) x="0" y="250" />
-        <Room key=(cave) x="0" y="150">
+        <Room key=(VORTEX)>
+            <Position x="0" y="250" />
+        </Room>
+        <Room key=(cave)>
+            <Position x="0" y="150" />
             <Exit to=(curvingPassage)>passage</Exit>
             <Exit to=(VORTEX)>out</Exit>
         </Room>
-        <Room key=(intersection) x="-150" y="-50">
+        <Room key=(intersection)>
+            <Position x="-150" y="-50" />
             <Exit to=(curvingPassage)>curving passage</Exit>
             <Exit to=(statueChamber)>chamber</Exit>
             <Exit to=(foundry)>workspace</Exit>
         </Room>
-        <Room key=(curvingPassage) x="-150" y="100">
+        <Room key=(curvingPassage)>
+            <Position x="-150" y="100" />
             <Exit to=(cave)>cave</Exit>
             <Exit to=(intersection)>intersection</Exit>
         </Room>
-        <Room key=(statueChamber) x="0" y="0">
+        <Room key=(statueChamber)>
+            <Position x="0" y="0" />
             <Exit to=(intersection)>intersection</Exit>
             <Exit to=(well)>well room</Exit>
         </Room>
-        <Room key=(well) x="150" y="-50">
+        <Room key=(well)>
+            <Position x="150" y="-50" />
             <Exit to=(statueChamber)>chamber</Exit>
             <Exit to=(fireCatGrotto)>grotto</Exit>
         </Room>
-        <Room key=(fireCatGrotto) x="250" y="-150">
+        <Room key=(fireCatGrotto)>
+            <Position x="250" y="-150" />
             <Exit to=(well)>well room</Exit>
         </Room>
-        <Room key=(orchard) x="100" y="-200">
+        <Room key=(orchard)>
+            <Position x="100" y="-200" />
             <Exit to=(fireCatGrotto)>grotto</Exit>
             <Exit to=(forest)>forest</Exit>
         </Room>
-        <Room key=(forest) x="-50" y="-200">
+        <Room key=(forest)>
+            <Position x="-50" y="-200" />
             <Exit to=(orchard)>orchard</Exit>
         </Room>
-        <Room key=(foundry) x="-200" y="-150">
+        <Room key=(foundry)>
+            <Position x="-200" y="-150" />
             <Exit to=(intersection)>intersection</Exit>
         </Room>
     </Map>
