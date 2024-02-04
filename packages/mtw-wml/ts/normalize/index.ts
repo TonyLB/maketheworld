@@ -303,7 +303,7 @@ export class Normalizer {
                 return []
             }
 
-            if (isSchemaTagWithNormalEquivalent(data) && (!(isSchemaCondition(data) && (options?.contextStack ?? []).find(({ tag }) => (['Name', 'Description'].includes(tag)))))) {
+            if (isSchemaTagWithNormalEquivalent(data) && (!(options?.contextStack ?? []).find(({ tag }) => (['Name', 'Description'].includes(tag))))) {
                 const translatedData = this._translate(
                     { ...node, contextStack: (options?.contextStack ?? []).filter(isNormalReference) },
                     data
