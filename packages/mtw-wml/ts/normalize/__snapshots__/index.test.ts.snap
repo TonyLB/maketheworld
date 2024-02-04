@@ -1688,12 +1688,6 @@ Object {
         ],
         "data": Object {
           "key": "TestMap",
-          "name": Array [
-            Object {
-              "tag": "String",
-              "value": "Test Map",
-            },
-          ],
           "tag": "Map",
         },
       },
