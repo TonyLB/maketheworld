@@ -57,7 +57,11 @@ export const isEphemeraMomentId = isEphemeraTaggedId<'MOMENT'>('MOMENT')
 export type EphemeraNotificationId = EphemeraWrappedId<'NOTIFICATION'>
 export const isEphemeraNotificationId = isEphemeraTaggedId<'NOTIFICATION'>('NOTIFICATION')
 
-export type EphemeraId = EphemeraWrappedId<'ASSET' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'ACTION' | 'VARIABLE' | 'COMPUTED' | 'BOOKMARK' | 'MESSAGE' | 'MOMENT'>
+export type EphemeraImageId = EphemeraWrappedId<'IMAGE'>
+export const isEphemeraImageId = isEphemeraTaggedId<'IMAGE'>('IMAGE')
+
+
+export type EphemeraId = EphemeraWrappedId<'ASSET' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'ACTION' | 'VARIABLE' | 'COMPUTED' | 'BOOKMARK' | 'MESSAGE' | 'MOMENT' | 'IMAGE'>
 export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraAssetId(value) ||
     isEphemeraFeatureId(value) ||
@@ -70,7 +74,8 @@ export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraComputedId(value) ||
     isEphemeraBookmarkId(value) ||
     isEphemeraMessageId(value) ||
-    isEphemeraMomentId(value)
+    isEphemeraMomentId(value) ||
+    isEphemeraImageId(value)
 )
 
 export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'
