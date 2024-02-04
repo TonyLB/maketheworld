@@ -233,10 +233,7 @@ export class Normalizer {
                 return {
                     key: node.key || defaultKey,
                     tag: node.tag,
-                    appearances: [{
-                        ...defaultedAppearance,
-                        images: node.images,
-                    }] as MapAppearance[]
+                    appearances: [defaultedAppearance]
                 }
             case 'Exit':
                 const exitRoomIndex = appearance.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)

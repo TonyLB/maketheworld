@@ -1687,9 +1687,6 @@ Object {
           },
         ],
         "data": Object {
-          "images": Array [
-            "ImageTest",
-          ],
           "key": "TestMap",
           "name": Array [
             Object {
@@ -1699,9 +1696,6 @@ Object {
           ],
           "tag": "Map",
         },
-        "images": Array [
-          "ImageTest",
-        ],
       },
     ],
     "key": "TestMap",

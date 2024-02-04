@@ -416,6 +416,7 @@ describe('schemaFromParse', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
                 <Map key=(testMap)>
+                    <Image key=(image1) />
                     <Name>Test Map</Name>
                     <Room key=(ABC)><Position x="100" y="0" /></Room>
                     <If {open}>
@@ -434,11 +435,11 @@ describe('schemaFromParse', () => {
                 {
                     data: {
                         tag: "Map",
-                        images: [],
                         key: "testMap",
                         name: [{ tag: "String", value: "Test Map" }]
                     },
                     children: [
+                        { data: { tag: 'Image', key: 'image1' }, children: [] },
                         {
                             data: { tag: 'Name' },
                             children: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }]
