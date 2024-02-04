@@ -25,7 +25,8 @@ import {
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
-import { compressWhitespace, extractConditionedItemFromContents, extractNameFromContents } from "../utils"
+import { extractConditionedItemFromContents, extractNameFromContents } from "../utils"
+import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
