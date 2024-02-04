@@ -4826,16 +4826,10 @@ Object {
           },
         ],
         "data": Object {
-          "images": Array [
-            "dungeonImage",
-          ],
           "key": "dungeonMap",
           "name": Array [],
           "tag": "Map",
         },
-        "images": Array [
-          "dungeonImage",
-        ],
       },
     ],
     "key": "dungeonMap",

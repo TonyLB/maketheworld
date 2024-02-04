@@ -241,7 +241,6 @@ export type SchemaMapTag = {
     tag: 'Map';
     key: string;
     name: SchemaTaggedMessageLegalContents[];
-    images: string[];
 } & SchemaImportableBase
 
 export type SchemaMessageRoom = {

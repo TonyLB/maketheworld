@@ -220,31 +220,22 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen }): SchemaMapTag => ({
             tag: 'Map',
             name: [],
-            images: [],
             ...validateProperties(componentTemplates.Map)(parseOpen)
         }),
         typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
         validateContents: {
             isValid: (tag) => (true),
             branchTags: ['If', 'Room'],
-            leafTags: ['Position']
+            leafTags: ['Position', 'Image']
         },
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => {
             if (!isSchemaMap(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
-            const tagTree = new SchemaTagTree(children)
-            const positionTree = tagTree
-                .reordered(['If', 'Room', 'Position'])
-                .filter({ match: 'Position' })
-                .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }, { match: 'Position' }] } })
-                .tree
-
             return {
                 data: {
                     ...initialTag,
-                    name: compressWhitespace(extractNameFromContents(children)).map(({ data }) => (data)),
-                    images: children.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
+                    name: compressWhitespace(extractNameFromContents(children)).map(({ data }) => (data))
                 },
                 children: children.filter(({ data }) => (isSchemaMapContents(data))),
             }

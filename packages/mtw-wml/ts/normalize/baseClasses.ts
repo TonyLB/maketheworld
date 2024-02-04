@@ -178,9 +178,7 @@ export type MapAppearanceRoom = {
 
 type MapAppearanceImage = string
 
-export type MapAppearance<Extra extends {} = {}> = {
-    images: MapAppearanceImage[];
-} & BaseAppearance<Extra>
+export type MapAppearance<Extra extends {} = {}> = BaseAppearance<Extra>
 
 export type NormalMap<Extra extends {} = {}> = {
     tag: 'Map';
