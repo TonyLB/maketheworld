@@ -404,6 +404,23 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             })
             : ''
     ),
+    Position: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaPosition(tag)) {
+            return ''
+        }
+        return tagRender({
+            ...args,
+            tag: 'Position',
+            properties: [
+                //
+                // Render x/y properties from integers into strings
+                //
+                { key: 'x', type: 'literal', value: `${tag.x}` },
+                { key: 'y', type: 'literal', value: `${tag.y}` }
+            ],
+            contents: children,
+        })
+    },
     Map: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaMap(tag)) {
             return ''

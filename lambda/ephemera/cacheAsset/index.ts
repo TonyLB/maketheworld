@@ -1,18 +1,14 @@
 import {
     isNormalAsset,
     NormalItem,
-    isNormalExit,
     isNormalAction,
     isNormalCharacter,
-    ComponentRenderItem,
     isNormalRoom,
     isNormalFeature,
     isNormalMap,
     isNormalVariable,
     isNormalComputed,
     isNormalImage,
-    NormalReference,
-    isNormalCondition,
     isNormalBookmark,
     isNormalMessage,
     isNormalMoment,
@@ -23,11 +19,9 @@ import Normalizer from '@tonylb/mtw-wml/ts/normalize'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import {
     EphemeraCharacter,
-    EphemeraCondition,
     EphemeraItem,
     EphemeraPushArgs
 } from './baseClasses'
-import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { MessageBus } from '../messageBus/baseClasses.js'
@@ -35,7 +29,6 @@ import { mergeIntoEphemera } from './mergeIntoEphemera'
 import {
     EphemeraAssetId,
     EphemeraCharacterId,
-    EphemeraError,
     EphemeraId,
     isEphemeraActionId,
     isEphemeraAssetId,
@@ -44,6 +37,7 @@ import {
     isEphemeraComputedId,
     isEphemeraFeatureId,
     isEphemeraId,
+    isEphemeraImageId,
     isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraMessageId,
@@ -67,7 +61,6 @@ import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/normalize/selectors/keysReferenced'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
-import { filter } from '@tonylb/mtw-wml/ts/tree/filter'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
 
 //
@@ -263,7 +256,7 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
                 }))
         }
     }
-    if (isEphemeraAssetId(EphemeraId)) {
+    if (isEphemeraAssetId(EphemeraId) || isEphemeraImageId(EphemeraId)) {
         return undefined
     }
     console.log(`WARNING: Unknown combination of types in cacheAsset:  NormalItem with tag '${item.tag}' and Ephemera wrapper: '${splitType(EphemeraId)[0]}'`)

@@ -8,8 +8,8 @@ export const selectMapRooms = (tree: GenericTree<SchemaTag>, options={ tag: '', 
     }
     const tagTree = new SchemaTagTree(tree)
     return tagTree
-        .reordered([options.tag, 'If', 'Room'])
-        .filter({ match: 'Room' })
-        .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }] }})
+        .reordered([options.tag, 'If', 'Room', 'Position'])
+        .filter({ match: 'Position' })
+        .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }, { match: 'Position' }] }})
         .tree
 }

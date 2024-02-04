@@ -359,8 +359,8 @@ describe('cacheAsset', () => {
                 },
                 {
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'map1', tag: 'Map', index: 0 }],
-                    data: { tag: 'Room', key: 'room1', x: 0, y: 0 },
-                    children: []
+                    data: { tag: 'Room', key: 'room1' },
+                    children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }]
                 }]
             },
             image1: {
@@ -407,7 +407,7 @@ describe('cacheAsset', () => {
                 EphemeraId: 'MAP#DEF',
                 key: 'map1',
                 name: [],
-                rooms: [{ data: { tag: 'Room', key: 'room1', x: 0, y: 0 }, children: [] }],
+                rooms: [{ data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Position', x: 0, y: 0 }, children: [] }] }],
                 images: [{ data: { tag: 'Image', key: 'image1', fileURL: 'test.png' }, children: [] }],
                 keyMapping: {},
                 stateMapping: {}
