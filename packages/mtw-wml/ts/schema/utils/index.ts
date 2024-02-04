@@ -6,8 +6,6 @@ import {
     isSchemaName,
     isSchemaTag,
     SchemaConditionMixin,
-    SchemaLineBreakTag,
-    SchemaSpacerTag,
     SchemaTag,
     SchemaTaggedMessageLegalContents,
     isSchemaLineBreak,
@@ -20,90 +18,8 @@ import {
     isSchemaReplace,
     isSchemaLink,
     isSchemaBookmark,
-    isSchemaRoom,
     SchemaOutputTag
 } from "../baseClasses"
-
-export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { messageParsing: boolean }): GenericTreeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>
-export function compressWhitespace (tags: GenericTree<SchemaTag>, options?: { messageParsing: boolean }): GenericTree<SchemaTag> {
-    //
-    // First, compress all explicit whitespace items that are adjacent
-    //
-    const { accumulator, maybeCurrent } = tags.reduce<{ accumulator: GenericTree<SchemaTag>, maybeCurrent: (SchemaSpacerTag | SchemaLineBreakTag)[] }>((previous, { data: tag, children }) => {
-        if (previous.maybeCurrent.length === 0) {
-            if (isSchemaSpacer(tag) || isSchemaLineBreak(tag)) {
-                return { ...previous, maybeCurrent: [tag] }
-            }
-            return {
-                ...previous, accumulator: [...previous.accumulator, { data: tag, children }]
-            }
-        }
-        const current = previous.maybeCurrent[0]
-        if (isSchemaSpacer(tag) || isSchemaLineBreak(tag)) {
-            if (isSchemaLineBreak(current) || isSchemaLineBreak(tag)) {
-                return { ...previous, maybeCurrent: [{ tag: 'br' }] }
-            }
-            return { ...previous, maybeCurrent: [{ tag: 'Space' }] }
-        }
-        return {
-            accumulator: [...previous.accumulator, { data: current, children: [] }, { data: tag, children }],
-            maybeCurrent: []
-        }
-    }, { accumulator: [], maybeCurrent: [] })
-
-    //
-    // Now trim all strings appropriately
-    //
-    return [...accumulator, ...maybeCurrent.map((data) => ({ data, children: [] }))].map(({ data: tag, children }, index, allTags): GenericTree<SchemaTag> => {
-        const previous = index > 0 ? allTags[index - 1].data : undefined
-        const next = index < allTags.length - 1 ? allTags[index + 1].data : undefined
-        if (isSchemaString(tag)) {
-            let returnValue = tag.value
-            if (!previous || isSchemaSpacer(previous) || isSchemaLineBreak(previous) || (options?.messageParsing && isSchemaRoom(previous))) {
-                returnValue = returnValue.trimStart()
-            }
-            if (!next || isSchemaSpacer(next) || isSchemaLineBreak(next) || (options?.messageParsing && isSchemaRoom(next))) {
-                returnValue = returnValue.trimEnd()
-            }
-            if (!returnValue) {
-                return []
-            }
-            return [{ data: { ...tag, value: returnValue }, children: [] }]
-        }
-        return [{ data: tag, children }]
-    }).flat(1)
-}
-
-export function compressStrings (tags: GenericTree<SchemaOutputTag>): GenericTree<SchemaOutputTag> {
-    const translateToString = (tag: GenericTreeNode<SchemaOutputTag>): GenericTreeNode<SchemaOutputTag> => {
-        const { data, children } = tag
-        if (isSchemaSpacer(data)) {
-            return { data: { tag: 'String', value: ' ' }, children }
-        }
-        else {
-            return tag
-        }
-    }
-    return tags.reduce<GenericTree<SchemaOutputTag>>((previous, tag) => {
-        const last = previous.length ? previous.slice(-1)[0] : undefined
-        if (!last) {
-            return [translateToString(tag)]
-        }
-        const { data: lastData, children: lastChildren } = last
-        const { data, children } = translateToString(tag)
-        if (isSchemaString(data) && isSchemaString(lastData)) {
-            const space = `${lastData.value.trimEnd()}${data.value.trimStart()}` !== `${lastData.value}${data.value}`
-            return [
-                ...previous.slice(0, -1),
-                {
-                    data: { tag: 'String', value: space ? `${lastData.value.trimEnd()} ${data.value.trimStart()}` : `${lastData.value}${data.value}` },
-                    children: [...lastChildren, ...children]
-                }
-            ]
-        }
-        return [...previous, { data, children }]
-    }, [])
-}
 
 export const extractNameFromContents = (contents: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return contents.map((item) => {
