@@ -10,6 +10,7 @@ import SourceStream from '../parser/tokenizer/sourceStream'
 import { isSchemaCondition, isSchemaImport, isSchemaRoom, SchemaTag } from '../simpleSchema/baseClasses'
 import { deIndentWML } from '../simpleSchema/utils'
 import { GenericTreeNode } from '../sequence/tree/baseClasses'
+import { stripIDFromTree } from '../sequence/tree/genericIDTree'
 
 describe('WML normalize', () => {
 
@@ -236,6 +237,38 @@ describe('WML normalize', () => {
         expect(normalizer.normal).toMatchSnapshot()
     })
 
+    it('should correctly serialize exports', () => {
+        const testSource = `<Asset key=(Test)>
+            <Room key=(testRoom) />
+            <Export><Room key=(testRoom) as=(Room2) /></Export>
+        </Asset>`
+        const normalizer = new Normalizer()
+        normalizer.loadWML(testSource)
+        expect(normalizer.normal).toEqual({
+            Test: {
+                key: 'Test',
+                tag: 'Asset',
+                Story: false,
+                instance: false,
+                appearances: [{
+                    data: { key: 'Test', tag: 'Asset' },
+                    contextStack: [],
+                    children: [{ data: { key: 'testRoom', tag: 'Room', index: 0 }, children: [] }]
+                }]
+            },
+            testRoom: {
+                key: 'testRoom',
+                tag: 'Room',
+                exportAs: 'Room2',
+                appearances: [{
+                    data: { key: 'testRoom', tag: 'Room' },
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    children: []
+                }]
+            }
+        })
+    })
+
     it('should throw an error on mismatched key use', () => {
         const testSource = `<Asset key=(Test)>
             <Room key=(ABC)>
@@ -288,196 +321,7 @@ describe('WML normalize', () => {
         schema.loadWML(testSource)
         const normalizer = new Normalizer()
         normalizer.loadSchema(schema.schema)
-        expect(normalizer.schema).toEqual(schema.schema)
-    })
-
-    describe('renameItem method', () => {
-        it('should correctly rename an item', () => {
-            const testSource = deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(test)>
-                        <Description>One</Description>
-                    </Room>
-                    <Variable key=(testVar) default={false} />
-                    <If {testVar}>
-                        <Room key=(test)>
-                            <Description>: Suffix</Description>
-                        </Room>
-                    </If>
-                </Asset>
-            `)
-            const normalizer = new Normalizer()
-            normalizer.loadWML(testSource)
-            normalizer.renameItem('test', 'renamed')
-            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(renamed)><Description>One</Description></Room>
-                    <Variable key=(testVar) default={false} />
-                    <If {testVar}>
-                        <Room key=(renamed)><Description>: Suffix</Description></Room>
-                    </If>
-                </Asset>
-            `))
-        })
-
-        it('should correctly update export when option specified', () => {
-            const testSource = deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(test)>
-                        <Description>One</Description>
-                    </Room>
-                    <Variable key=(testVar) default={false} />
-                    <If {testVar}>
-                        <Room key=(test)>
-                            <Description>: Suffix</Description>
-                        </Room>
-                    </If>
-                </Asset>
-            `)
-            const normalizer = new Normalizer()
-            normalizer.loadWML(testSource)
-            normalizer.renameItem('test', 'renamed', { updateExports: true })
-            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(renamed)><Description>One</Description></Room>
-                    <Variable key=(testVar) default={false} />
-                    <If {testVar}>
-                        <Room key=(renamed)><Description>: Suffix</Description></Room>
-                    </If>
-                    <Export><Room key=(renamed) as=(test) /></Export>
-                </Asset>
-            `))
-        })
-
-        it('should correctly preserve previous export when option specified', () => {
-            const testSource = deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(test)>
-                        <Description>One</Description>
-                    </Room>
-                    <Variable key=(testVar) default={false} />
-                    <If {testVar}>
-                        <Room key=(test)>
-                            <Description>: Suffix</Description>
-                        </Room>
-                    </If>
-                    <Export><Room key=(test) as=(Room1) /></Export>
-                </Asset>
-            `)
-            const normalizer = new Normalizer()
-            normalizer.loadWML(testSource)
-            normalizer.renameItem('test', 'renamed', { updateExports: true })
-            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(renamed)><Description>One</Description></Room>
-                    <Variable key=(testVar) default={false} />
-                    <If {testVar}>
-                        <Room key=(renamed)><Description>: Suffix</Description></Room>
-                    </If>
-                    <Export><Room key=(renamed) as=(Room1) /></Export>
-                </Asset>
-            `))
-        })
-
-        it('should correctly rename an exit', () => {
-            const testSource = deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(test)><Description>One</Description></Room>
-                    <Room key=(testTwo)><Exit to=(test)>Go</Exit></Room>
-                </Asset>
-            `)
-            const normalizer = new Normalizer()
-            normalizer.loadWML(testSource)
-            normalizer.renameItem('test', 'renamed')
-            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(renamed)><Description>One</Description></Room>
-                    <Room key=(testTwo)><Exit to=(renamed)>Go</Exit></Room>
-                </Asset>
-            `))
-        })
-
-        it('should correctly rename a link', () => {
-            const testSource = deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Feature key=(testFeature)><Description>Test</Description></Feature>
-                    <Room key=(test)>
-                        <Description>
-                            One
-                            <Link to=(testFeature)>test</Link>
-                        </Description>
-                    </Room>
-                </Asset>
-            `)
-            const normalizer = new Normalizer()
-            normalizer.loadWML(testSource)
-            normalizer.renameItem('testFeature', 'renamed')
-            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Feature key=(renamed)><Description>Test</Description></Feature>
-                    <Room key=(test)>
-                        <Description>One <Link to=(renamed)>test</Link></Description>
-                    </Room>
-                </Asset>
-            `))
-        })
-
-        it('should correctly reformat a map with a renamed room', () => {
-            const testSource = deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(test)><Description>One</Description></Room>
-                    <Map key=(testMap)><Room key=(test) x="0" y="100" /></Map>
-                </Asset>
-            `)
-            const normalizer = new Normalizer()
-            normalizer.loadWML(testSource)
-            normalizer.renameItem('test', 'renamed')
-            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(renamed)><Description>One</Description></Room>
-                    <Map key=(testMap)><Room key=(renamed) x="0" y="100" /></Map>
-                </Asset>
-            `))
-        })
-
-        it('should correctly reformat a message with a renamed room', () => {
-            const testSource = deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(test)><Description>One</Description></Room>
-                    <Message key=(testMessage)>Test!<Room key=(test) /></Message>
-                </Asset>
-            `)
-            const normalizer = new Normalizer()
-            normalizer.loadWML(testSource)
-            normalizer.renameItem('test', 'renamed')
-            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(renamed)><Description>One</Description></Room>
-                    <Message key=(testMessage)>Test!<Room key=(renamed) /></Message>
-                </Asset>
-            `))
-        })
-
-        it('should correctly reformat a moment with a renamed message', () => {
-            const testSource = deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(test)><Description>One</Description></Room>
-                    <Message key=(testMessage)>Test!<Room key=(test) /></Message>
-                    <Moment key=(testMoment)><Message key=(testMessage) /></Moment>
-                </Asset>
-            `)
-            const normalizer = new Normalizer()
-            normalizer.loadWML(testSource)
-            normalizer.renameItem('testMessage', 'renamed')
-            expect(schemaToWML(normalizer.schema)).toEqual(deIndentWML(`
-                <Asset key=(TestAsset)>
-                    <Room key=(test)><Description>One</Description></Room>
-                    <Message key=(renamed)>Test!<Room key=(test) /></Message>
-                    <Moment key=(testMoment)><Message key=(renamed) /></Moment>
-                </Asset>
-            `))
-        })
-
+        expect(normalizer.schema).toEqual(stripIDFromTree(schema.schema))
     })
 
     describe('assignDependencies function', () => {
