@@ -19,7 +19,7 @@ jest.mock('./dependencyUpdate')
 
 import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
-import { BaseAppearance, ComponentAppearance, MapAppearance, NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
+import { BaseAppearance, NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 
