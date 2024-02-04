@@ -1697,26 +1697,10 @@ Object {
               "value": "Test Map",
             },
           ],
-          "rooms": Array [
-            Object {
-              "conditions": Array [],
-              "key": "a123",
-              "x": 200,
-              "y": 150,
-            },
-          ],
           "tag": "Map",
         },
         "images": Array [
           "ImageTest",
-        ],
-        "rooms": Array [
-          Object {
-            "conditions": Array [],
-            "key": "a123",
-            "x": 200,
-            "y": 150,
-          },
         ],
       },
     ],

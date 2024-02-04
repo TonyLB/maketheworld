@@ -180,7 +180,6 @@ type MapAppearanceImage = string
 
 export type MapAppearance<Extra extends {} = {}> = {
     images: MapAppearanceImage[];
-    rooms: MapAppearanceRoom[];
 } & BaseAppearance<Extra>
 
 export type NormalMap<Extra extends {} = {}> = {

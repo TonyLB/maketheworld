@@ -174,7 +174,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
             return {
                 tag,
                 key: '',
-                rooms: [],
                 name: [],
                 images: []
             }
