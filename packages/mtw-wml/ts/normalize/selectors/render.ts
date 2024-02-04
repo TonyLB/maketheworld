@@ -1,5 +1,5 @@
-import { GenericTree } from "../../sequence/tree/baseClasses"
-import { treeTypeGuard } from "../../sequence/tree/filter"
+import { GenericTree } from "../../tree/baseClasses"
+import { treeTypeGuard } from "../../tree/filter"
 import { SchemaBookmarkTag, SchemaMessageTag, SchemaOutputTag, SchemaTag, isSchemaBookmark, isSchemaOutputTag } from "../../simpleSchema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 

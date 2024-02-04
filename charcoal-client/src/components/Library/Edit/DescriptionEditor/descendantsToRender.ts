@@ -13,7 +13,7 @@ import {
     isCustomReplaceBlock,
     isCustomText
 } from "../baseClasses"
-import { GenericTree } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { GenericTree } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 
 //

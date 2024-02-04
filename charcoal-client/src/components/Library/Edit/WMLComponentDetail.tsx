@@ -20,9 +20,9 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
-import { GenericTree, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { explicitSpaces } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/explicitSpaces'
-import { treeTypeGuard } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
+import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectNameAsString } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
 
 //

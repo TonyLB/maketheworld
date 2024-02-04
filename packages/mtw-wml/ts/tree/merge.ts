@@ -1,4 +1,4 @@
-import shortestCommonSupersequence from "../shortestCommonSupersequence";
+import shortestCommonSupersequence from "../sequence/shortestCommonSupersequence";
 import { GenericTree } from "./baseClasses"
 import { TreeUtility } from "./utilityClass";
 

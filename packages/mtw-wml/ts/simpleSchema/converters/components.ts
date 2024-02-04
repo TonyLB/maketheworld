@@ -30,7 +30,7 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 const componentTemplates = {
     Exit: {

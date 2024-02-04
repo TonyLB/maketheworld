@@ -54,11 +54,11 @@ import { extractDependenciesFromJS } from '@tonylb/mtw-wml/dist/convert/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { getMyCharacters } from '../../../slices/player'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
-import { GenericTree, GenericTreeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, GenericTreeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
 import SchemaTagTree from '@tonylb/mtw-wml/dist/tagTree/schema'
-import dfsWalk from '@tonylb/mtw-wml/dist/sequence/tree/dfsWalk'
-import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
+import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
+import { treeTypeGuardOnce } from '@tonylb/mtw-wml/dist/tree/filter'
 
 type AssetEditFormProps = {
     setAssignDialogShown: (value: boolean) => void;

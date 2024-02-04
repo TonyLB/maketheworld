@@ -1,4 +1,4 @@
-import { GenericTree } from "../../../sequence/tree/baseClasses"
+import { GenericTree } from "../../../tree/baseClasses"
 import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
 import { PrintMapEntry, SchemaToWMLOptions } from "../baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "../printUtils"

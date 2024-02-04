@@ -1,8 +1,8 @@
 import { SimCallback, MapLinks, SimNode, SimulationReturn, MapNodes } from './baseClasses'
 import MapDThreeIterator from './MapDThreeIterator'
-import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
-import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/sequence/tree/diff'
-import dfsWalk from '@tonylb/mtw-wml/dist/sequence/tree/dfsWalk'
+import { GenericTree, GenericTreeDiff, GenericTreeDiffAction } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { diffTrees, foldDiffTree } from '@tonylb/mtw-wml/dist/tree/diff'
+import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
 import { unique } from '../../../../lib/lists'
 import { SimulationLinkDatum } from 'd3-force'
 

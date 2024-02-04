@@ -52,7 +52,7 @@ import { getLibrary } from '../../../slices/library'
 import { getMyAssets } from '../../../slices/player'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 
 type ReplaceLiteralTagProps = {
     schema: GenericTree<SchemaTag, TreeId>;

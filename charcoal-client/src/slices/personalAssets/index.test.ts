@@ -1,6 +1,6 @@
 import Normalizer from "@tonylb/mtw-wml/dist/normalize"
 import { addImport, removeImport } from "."
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaTag, isSchemaImport } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { Schema } from "@tonylb/mtw-wml/dist/simpleSchema"
 

@@ -4,7 +4,7 @@
 //
 
 import { SchemaTag, SchemaWithKey } from "../simpleSchema/baseClasses"
-import { GenericTree } from "../sequence/tree/baseClasses";
+import { GenericTree } from "../tree/baseClasses";
 import SchemaTagTree from "../tagTree/schema";
 import { unique } from "../list";
 import { TagTreeMatchOperation } from "../tagTree";

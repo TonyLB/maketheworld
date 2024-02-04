@@ -46,8 +46,8 @@ import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
 import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
-import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
-import { genericIDFromTree } from '@tonylb/mtw-wml/dist/sequence/tree/genericIDTree'
+import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 
 interface DescriptionEditorProps {
     ComponentId: string;

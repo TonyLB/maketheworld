@@ -4,9 +4,9 @@ import { v4 as uuidv4 } from 'uuid'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize'
 import { SchemaTag, isSchemaExit, isSchemaLink, isSchemaWithKey } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
-import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
-import { map } from '@tonylb/mtw-wml/dist/sequence/tree/map'
-import { filter } from '@tonylb/mtw-wml/dist/sequence/tree/filter'
+import { GenericTree, GenericTreeNode, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
+import { map } from '@tonylb/mtw-wml/dist/tree/map'
+import { filter } from '@tonylb/mtw-wml/dist/tree/filter'
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
 
 export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {

@@ -9,8 +9,8 @@ import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { isSchemaCondition, isSchemaImport, isSchemaRoom, SchemaTag } from '../simpleSchema/baseClasses'
 import { deIndentWML } from '../simpleSchema/utils'
-import { GenericTreeNode } from '../sequence/tree/baseClasses'
-import { stripIDFromTree } from '../sequence/tree/genericIDTree'
+import { GenericTreeNode } from '../tree/baseClasses'
+import { stripIDFromTree } from '../tree/genericIDTree'
 
 describe('WML normalize', () => {
 

@@ -1,7 +1,7 @@
 import { SchemaTag, isSchemaRoom, isSchemaWithContents } from "../baseClasses"
-import { mergeTrees } from '../../sequence/tree/merge'
+import { mergeTrees } from '../../tree/merge'
 import { deepEqual } from "../../lib/objects"
-import { GenericTree } from "../../sequence/tree/baseClasses"
+import { GenericTree } from "../../tree/baseClasses"
 
 export const mergeSchemaTrees = (...args: GenericTree<SchemaTag>[]): GenericTree<SchemaTag> => {
     //

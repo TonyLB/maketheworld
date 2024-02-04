@@ -1,7 +1,7 @@
 import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaTag, isSchemaCondition, isSchemaMap } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
-import dfsWalk from "@tonylb/mtw-wml/dist/sequence/tree/dfsWalk"
+import dfsWalk from "@tonylb/mtw-wml/dist/tree/dfsWalk"
 
 export const addRoomFactory = ({ mapId, schema, updateSchema }: { mapId: string; schema: GenericTree<SchemaTag, TreeId>, updateSchema: (action: UpdateSchemaPayload) => void }) => ({ roomId, x, y }: { roomId?: string; x: number; y: number }) => {
     const mapNodeId = dfsWalk({

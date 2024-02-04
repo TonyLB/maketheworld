@@ -1,6 +1,6 @@
 import { Schema } from '.'
-import { GenericTree, TreeId } from '../sequence/tree/baseClasses'
-import { stripIDFromTree } from '../sequence/tree/genericIDTree'
+import { GenericTree, TreeId } from '../tree/baseClasses'
+import { stripIDFromTree } from '../tree/genericIDTree'
 import { schemaToWML } from '../simpleSchema'
 import { deIndentWML } from '../simpleSchema/utils'
 import { SchemaTag } from './baseClasses'

@@ -63,10 +63,10 @@ import { schemaFromParse, defaultSchemaTag } from '../simpleSchema';
 import parse from '../simpleParser';
 import tokenizer from '../parser/tokenizer';
 import { buildNormalPlaceholdersFromExport } from './importExportUtil';
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from '../sequence/tree/baseClasses';
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from '../tree/baseClasses';
 import mergeSchemaTrees from '../simpleSchema/treeManipulation/merge';
 import SchemaTagTree from '../tagTree/schema';
-import { map } from '../sequence/tree/map';
+import { map } from '../tree/map';
 
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 

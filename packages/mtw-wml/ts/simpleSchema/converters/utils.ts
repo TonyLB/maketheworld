@@ -1,4 +1,4 @@
-import { GenericTree } from "../../sequence/tree/baseClasses"
+import { GenericTree } from "../../tree/baseClasses"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { SchemaTag } from "../baseClasses"
 import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"

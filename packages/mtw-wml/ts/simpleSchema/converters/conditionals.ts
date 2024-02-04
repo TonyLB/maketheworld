@@ -19,7 +19,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOp
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { removeIrrelevantWhitespace, translateTaggedMessageContents } from '../utils'
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[], label: string) => {
     if (contextStack.length === 0) {

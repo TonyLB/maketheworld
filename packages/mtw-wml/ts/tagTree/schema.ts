@@ -1,6 +1,6 @@
 import TagTree from "."
 import { deepEqual } from "../lib/objects"
-import { GenericTree } from "../sequence/tree/baseClasses"
+import { GenericTree } from "../tree/baseClasses"
 import { SchemaTag, isSchemaWithKey } from "../simpleSchema/baseClasses"
 
 export class SchemaTagTree extends TagTree<SchemaTag, { id?: string }> {

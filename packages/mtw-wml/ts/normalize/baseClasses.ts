@@ -1,4 +1,4 @@
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../sequence/tree/baseClasses";
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "../tree/baseClasses";
 import { SchemaTag } from "../simpleSchema/baseClasses";
 
 type TagType = 'Asset' |

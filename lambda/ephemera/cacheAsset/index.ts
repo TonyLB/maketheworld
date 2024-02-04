@@ -67,8 +67,8 @@ import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/normalize/selectors/keysReferenced'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
-import { filter } from '@tonylb/mtw-wml/ts/sequence/tree/filter'
-import { map } from '@tonylb/mtw-wml/ts/sequence/tree/map'
+import { filter } from '@tonylb/mtw-wml/ts/tree/filter'
+import { map } from '@tonylb/mtw-wml/ts/tree/map'
 
 //
 // TODO: Fix ephemeraItemFromNormal to store the new standard for how to deal with normal Items (i.e., children are GenericTree<SchemaTag>,

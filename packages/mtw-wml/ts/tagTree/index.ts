@@ -1,7 +1,7 @@
 import { deepEqual } from "../lib/objects";
 import { unique } from "../list";
-import { GenericTree, GenericTreeNode } from "../sequence/tree/baseClasses"
-import dfsWalk from "../sequence/tree/dfsWalk"
+import { GenericTree, GenericTreeNode } from "../tree/baseClasses"
+import dfsWalk from "../tree/dfsWalk"
 
 type TagTreeTreeOptions<NodeData extends {}, Extra extends {} = {}> = {
     classify: (data: NodeData) => string;
