@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { Schema } from '@tonylb/mtw-wml/dist/simpleSchema/index'
-import { standardizeSchema } from '@tonylb/mtw-wml/dist/simpleSchema/standardize'
+import { Schema } from '@tonylb/mtw-wml/dist/schema/index'
+import { standardizeSchema } from '@tonylb/mtw-wml/dist/schema/standardize'
 import { isNormalImport, NormalAction, NormalBookmark, NormalCharacter, NormalComputed, NormalFeature, NormalItem, NormalKnowledge, NormalMap, NormalMessage, NormalMoment, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 
 import { s3Client } from "./clients"

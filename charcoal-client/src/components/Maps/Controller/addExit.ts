@@ -1,6 +1,6 @@
 import { UpdateSchemaPayload } from "../../../slices/personalAssets/reducers"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses";
-import { SchemaTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses";
+import { SchemaTag } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 
 export const addExitFactory = ({ schema, updateSchema }: { schema: GenericTree<SchemaTag, TreeId>, updateSchema: (action: UpdateSchemaPayload) => void }) => ({ to, from }: { to: string; from: string }) => {
     updateSchema({

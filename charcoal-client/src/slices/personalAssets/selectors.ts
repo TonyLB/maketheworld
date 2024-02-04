@@ -1,4 +1,4 @@
-import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses';
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses';
 import { PersonalAssetsLoadedImage, PersonalAssetsPublic } from './baseClasses'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses';

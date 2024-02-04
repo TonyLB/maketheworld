@@ -1,8 +1,8 @@
 import { Schema } from '.'
 import { GenericTree, TreeId } from '../tree/baseClasses'
 import { stripIDFromTree } from '../tree/genericIDTree'
-import { schemaToWML } from '../simpleSchema'
-import { deIndentWML } from '../simpleSchema/utils'
+import { schemaToWML } from '.'
+import { deIndentWML } from './utils'
 import { SchemaTag } from './baseClasses'
 import standardizeSchema from './standardize'
 

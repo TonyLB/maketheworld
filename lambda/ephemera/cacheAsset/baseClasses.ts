@@ -26,7 +26,7 @@ import {
 import { splitType } from "@tonylb/mtw-utilities/dist/types";
 import { NormalCharacterPronouns } from "@tonylb/mtw-wml/ts/normalize/baseClasses"
 import { GenericTree } from "@tonylb/mtw-wml/ts/tree/baseClasses";
-import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-wml/ts/simpleSchema/baseClasses";
+import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-wml/ts/schema/baseClasses";
 import { StateItemId } from "../internalCache/baseClasses"
 
 export type EphemeraItemDependency = {

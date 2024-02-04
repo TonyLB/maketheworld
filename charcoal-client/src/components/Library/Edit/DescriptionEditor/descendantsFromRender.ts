@@ -19,7 +19,7 @@ import {
     isCustomParagraphContents
 } from "../baseClasses"
 import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 
 const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] => {
     let currentIfSequence: (CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] = []

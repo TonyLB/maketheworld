@@ -26,7 +26,7 @@ import {
     isImportable,
     isSchemaCondition,
     isSchemaComputed
-} from '../simpleSchema/baseClasses'
+} from '../schema/baseClasses'
 import {
     BaseAppearance,
     isNormalAsset,
@@ -59,12 +59,12 @@ import {
 import { keyForIfValue, keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { objectMap } from '../lib/objects';
-import { schemaFromParse, defaultSchemaTag } from '../simpleSchema';
+import { schemaFromParse, defaultSchemaTag } from '../schema';
 import parse from '../simpleParser';
 import tokenizer from '../parser/tokenizer';
 import { buildNormalPlaceholdersFromExport } from './importExportUtil';
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from '../tree/baseClasses';
-import mergeSchemaTrees from '../simpleSchema/treeManipulation/merge';
+import mergeSchemaTrees from '../schema/treeManipulation/merge';
 import SchemaTagTree from '../tagTree/schema';
 import { map } from '../tree/map';
 

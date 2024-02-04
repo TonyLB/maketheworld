@@ -4,7 +4,7 @@ import {
     isSchemaExit,
     isSchemaRoom,
     SchemaTag
-} from "@tonylb/mtw-wml/ts/simpleSchema/baseClasses"
+} from "@tonylb/mtw-wml/ts/schema/baseClasses"
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-wml/ts/tree/baseClasses'
 import normalSubset from "./normalSubset"
 import { FetchImportsJSONHelper } from "./baseClasses"

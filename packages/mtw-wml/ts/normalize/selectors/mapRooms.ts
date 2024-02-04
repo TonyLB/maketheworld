@@ -1,5 +1,5 @@
 import { GenericTree } from "../../tree/baseClasses"
-import { SchemaTag } from "../../simpleSchema/baseClasses"
+import { SchemaTag } from "../../schema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 
 export const selectMapRooms = (tree: GenericTree<SchemaTag>, options={ tag: '', key: '' }): GenericTree<SchemaTag> => {

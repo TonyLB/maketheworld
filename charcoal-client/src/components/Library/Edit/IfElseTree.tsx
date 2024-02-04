@@ -11,7 +11,7 @@ import ExitIcon from '@mui/icons-material/CallMade'
 import { useLibraryAsset } from "./LibraryAsset"
 import { Button, Stack } from "@mui/material"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
-import { SchemaConditionTag, SchemaTag, isSchemaCondition } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaTag, isSchemaCondition } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 
 const AddConditionalButton: FunctionComponent<{ onClick: () => void; label: string }> = ({ onClick, label }) => {

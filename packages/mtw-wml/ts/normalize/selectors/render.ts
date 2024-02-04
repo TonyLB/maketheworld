@@ -1,6 +1,6 @@
 import { GenericTree } from "../../tree/baseClasses"
 import { treeTypeGuard } from "../../tree/filter"
-import { SchemaBookmarkTag, SchemaMessageTag, SchemaOutputTag, SchemaTag, isSchemaBookmark, isSchemaOutputTag } from "../../simpleSchema/baseClasses"
+import { SchemaBookmarkTag, SchemaMessageTag, SchemaOutputTag, SchemaTag, isSchemaBookmark, isSchemaOutputTag } from "../../schema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 
 export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', key: '' }): GenericTree<SchemaOutputTag> => {

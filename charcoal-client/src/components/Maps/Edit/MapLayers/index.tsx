@@ -17,9 +17,9 @@ import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, isSchemaName, isSchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, isSchemaName, isSchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { treeTypeGuard } from '@tonylb/mtw-wml/dist/tree/filter'
-import { schemaOutputToString } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 
 type MapLayersProps = {
     mapId: string;

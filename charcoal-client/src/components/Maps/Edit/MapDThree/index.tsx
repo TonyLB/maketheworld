@@ -12,7 +12,7 @@ import { produce } from 'immer'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapTreeItem, isMapTreeRoomWithPosition } from '../../Controller/baseClasses'
 import dfsWalk from '@tonylb/mtw-wml/dist/tree/dfsWalk'
-import { SchemaTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this

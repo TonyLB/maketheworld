@@ -45,7 +45,7 @@ import { AddIfButton } from '../SlateIfElse'
 import { useLibraryAsset } from '../LibraryAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from './constrainedWhitespace'
-import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaOutputTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { GenericTree, TreeId } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { genericIDFromTree } from '@tonylb/mtw-wml/dist/tree/genericIDTree'
 

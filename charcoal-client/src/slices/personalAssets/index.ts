@@ -19,7 +19,7 @@ import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer, revertDraftWML as revertDraftWMLReducer, setLoadedImage as setLoadedImageReducer, updateSchema as updateSchemaReducer, setImport as setImportReducer } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/dist/baseClasses'
 import { addAsset } from '../player'
-import { SchemaImportMapping, SchemaImportTag, isSchemaAsset, isSchemaCharacter, isSchemaImport } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaImportMapping, SchemaImportTag, isSchemaAsset, isSchemaCharacter, isSchemaImport } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 

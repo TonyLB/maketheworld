@@ -1,6 +1,6 @@
 import Normalizer from ".."
-import { schemaToWML } from "../../simpleSchema"
-import { deIndentWML } from "../../simpleSchema/utils"
+import { schemaToWML } from "../../schema"
+import { deIndentWML } from "../../schema/utils"
 import { selectRender } from './render'
 
 describe('render selector', () => {

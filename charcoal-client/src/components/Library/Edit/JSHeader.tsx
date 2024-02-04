@@ -5,7 +5,7 @@ import { Box, ListItem, ListItemIcon, SxProps, Typography } from '@mui/material'
 
 import { useLibraryAsset } from './LibraryAsset'
 import { JSEdit } from './JSEdit'
-import { SchemaActionTag, SchemaComputedTag, SchemaTag, SchemaVariableTag } from '@tonylb/mtw-wml/dist/simpleSchema/baseClasses'
+import { SchemaActionTag, SchemaComputedTag, SchemaTag, SchemaVariableTag } from '@tonylb/mtw-wml/dist/schema/baseClasses'
 
 type JSTags = SchemaActionTag | SchemaComputedTag | SchemaVariableTag
 

@@ -1,4 +1,4 @@
-import { SchemaConditionMixin, SchemaConditionTag, SchemaExitTag, isSchemaCondition, isSchemaExit } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses";
+import { SchemaConditionMixin, SchemaConditionTag, SchemaExitTag, isSchemaCondition, isSchemaExit } from "@tonylb/mtw-wml/dist/schema/baseClasses";
 import { ConditionalTree } from "../conditionTree";
 import { RoomExit } from "./baseClasses";
 import { unique } from "../../../../lib/lists";

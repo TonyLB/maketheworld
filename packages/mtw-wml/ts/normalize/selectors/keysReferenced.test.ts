@@ -1,5 +1,5 @@
 import Normalizer from ".."
-import { isSchemaCondition } from "../../simpleSchema/baseClasses"
+import { isSchemaCondition } from "../../schema/baseClasses"
 import { selectKeysReferenced } from './keysReferenced'
 
 describe('keyReferenced selector', () => {

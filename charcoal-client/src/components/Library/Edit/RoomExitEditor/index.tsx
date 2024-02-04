@@ -14,11 +14,11 @@ import InputLabel from "@mui/material/InputLabel"
 import { TextField } from "@mui/material"
 import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
 import IfElseTree from "../IfElseTree"
-import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
+import { SchemaConditionTag, SchemaExitTag, SchemaRoomTag, SchemaTag, isSchemaExit, isSchemaRoom } from "@tonylb/mtw-wml/dist/schema/baseClasses"
 import { GenericTree, GenericTreeNode, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { selectKeysByTag } from '@tonylb/mtw-wml/dist/normalize/selectors/keysByTag'
 import { selectName } from '@tonylb/mtw-wml/dist/normalize/selectors/name'
-import { schemaOutputToString } from '@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString'
+import { schemaOutputToString } from '@tonylb/mtw-wml/dist/schema/utils/schemaOutput/schemaOutputToString'
 import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
 type RoomExitEditorProps = {

@@ -1,9 +1,9 @@
-import { schemaFromParse, schemaToWML } from '../simpleSchema'
+import { schemaFromParse, schemaToWML } from '../schema'
 import { SchemaTagTree } from './schema'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import parse from '../simpleParser'
-import { deIndentWML } from '../simpleSchema/utils'
+import { deIndentWML } from '../schema/utils'
 
 describe('SchemaTagTree', () => {
     it('should condense order-independent entries', () => {

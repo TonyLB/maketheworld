@@ -1,10 +1,10 @@
 import TagTree, { iterativeMerge } from '.'
-import { schemaFromParse, schemaToWML } from '../simpleSchema'
+import { schemaFromParse, schemaToWML } from '../schema'
 import parse from '../simpleParser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
-import { deIndentWML } from '../simpleSchema/utils'
-import { SchemaTag, isSchemaBookmark, isSchemaWithKey } from '../simpleSchema/baseClasses'
+import { deIndentWML } from '../schema/utils'
+import { SchemaTag, isSchemaBookmark, isSchemaWithKey } from '../schema/baseClasses'
 import { deepEqual } from '../lib/objects'
 
 const classify = ({ tag }: SchemaTag) => (tag)
