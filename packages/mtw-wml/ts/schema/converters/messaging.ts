@@ -1,6 +1,6 @@
 import { SchemaMessageLegalContents, SchemaMessageRoom, SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMessageContents, isSchemaMoment, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { compressWhitespace } from "../utils"
+import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
