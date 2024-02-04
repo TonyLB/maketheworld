@@ -235,7 +235,6 @@ export class Normalizer {
                     tag: node.tag,
                     appearances: [{
                         ...defaultedAppearance,
-                        rooms: node.rooms,
                         images: node.images,
                     }] as MapAppearance[]
                 }

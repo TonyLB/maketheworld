@@ -220,7 +220,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen }): SchemaMapTag => ({
             tag: 'Map',
             name: [],
-            rooms: [],
             images: [],
             ...validateProperties(componentTemplates.Map)(parseOpen)
         }),
@@ -240,48 +239,11 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 .filter({ match: 'Position' })
                 .prune({ not: { or: [{ match: 'If' }, { match: 'Room' }, { match: 'Position' }] } })
                 .tree
-            const rooms = dfsWalk({
-                default: { output: [], state: { conditions: [] } },
-                callback: (previous: { output: SchemaMapRoom[], state: { conditions: SchemaMapRoom["conditions"], roomId?: string } }, data: SchemaTag ) => {
-                    if (isSchemaPosition(data) && previous.state.roomId) {
-                        return {
-                            ...previous,
-                            output: [
-                                ...previous.output,
-                                {
-                                    conditions: previous.state.conditions,
-                                    key: previous.state.roomId,
-                                    x: data.x,
-                                    y: data.y
-                                }
-                            ]
-                        }
-                    }
-                    return previous
-                },
-                nest: ({ state, data }) => {
-                    if (isSchemaCondition(data)) {
-                        return {
-                            ...state,
-                            conditions: [...state.conditions, ...data.conditions]
-                        }
-                    }
-                    if (isSchemaRoom(data)) {
-                        return {
-                            ...state,
-                            roomId: data.key
-                        }
-                    }
-                    return state
-                },
-                unNest: ({ previous }) => (previous)
-            })(positionTree)
-        
+
             return {
                 data: {
                     ...initialTag,
                     name: compressWhitespace(extractNameFromContents(children)).map(({ data }) => (data)),
-                    rooms,
                     images: children.map(({ data }) => (data)).filter(isSchemaImage).map(({ key }) => (key))
                 },
                 children: children.filter(({ data }) => (isSchemaMapContents(data))),

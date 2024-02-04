@@ -436,21 +436,7 @@ describe('schemaFromParse', () => {
                         tag: "Map",
                         images: [],
                         key: "testMap",
-                        name: [{ tag: "String", value: "Test Map" }],
-                        rooms: [
-                            {
-                                conditions: [],
-                                key: "ABC",
-                                x: 100,
-                                y: 0,
-                            },
-                            {
-                                conditions: [{ if: "open" }],
-                                key: "DEF",
-                                x: -100,
-                                y: 0,
-                            },
-                        ]
+                        name: [{ tag: "String", value: "Test Map" }]
                     },
                     children: [
                         {

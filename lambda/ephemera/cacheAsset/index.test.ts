@@ -19,7 +19,7 @@ jest.mock('./dependencyUpdate')
 
 import { cacheAsset } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
-import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
+import { BaseAppearance, ComponentAppearance, MapAppearance, NormalForm } from '@tonylb/mtw-wml/ts/normalize/baseClasses'
 import { Graph } from '@tonylb/mtw-utilities/dist/graphStorage/utils/graph'
 import { NamespaceMapping, WorkspaceProperties } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 
@@ -378,8 +378,7 @@ describe('cacheAsset', () => {
                 appearances: [{
                     ...topLevelAppearance,
                     images: [],
-                    rooms: [],
-                    data: { tag: 'Map', key: 'map1', name: [], rooms: [], images: [] },
+                    data: { tag: 'Map', key: 'map1', name: [], images: [] },
                     children: [
                         { data: { tag: 'Room', key: 'room1', index: 1 }, children: [] },
                         { data: { tag: 'Image', key: 'image1' }, children: [] }
