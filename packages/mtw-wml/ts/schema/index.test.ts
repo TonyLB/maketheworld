@@ -412,30 +412,14 @@ describe('schemaFromParse', () => {
 
     })
 
-    it('should error on map rooms without positional properties', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test)>
-                <Map key=(testMap)>
-                    <Name>Test Map</Name>
-                    <Room key=(ABC) x="100" y="0" />
-                    <If {open}>
-                        <Room key=(DEF) y="0" />
-                    </If>
-                </Map>
-                <Variable key=(open) default={false} />
-            </Asset>
-        `)))
-        expect(() => (schemaFromParse(testParse))).toThrowError('Room in Map context must specify x and y values')
-    })
-
     it('should correctly extract map rooms', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
                 <Map key=(testMap)>
                     <Name>Test Map</Name>
-                    <Room key=(ABC) x="100" y="0" />
+                    <Room key=(ABC)><Position x="100" y="0" /></Room>
                     <If {open}>
-                        <Room key=(DEF) x="-100" y="0" />
+                        <Room key=(DEF)><Position x="-100" y="0" /></Room>
                     </If>
                 </Map>
                 <Variable key=(open) default={false} />
@@ -476,11 +460,9 @@ describe('schemaFromParse', () => {
                         {
                             data: {
                                 tag: 'Room',
-                                key: 'ABC',
-                                x: 100,
-                                y: 0
+                                key: 'ABC'
                             },
-                            children: []
+                            children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }]
                         },
                         {
                             data: {
@@ -490,11 +472,9 @@ describe('schemaFromParse', () => {
                             children: [{
                                 data: {
                                     tag: "Room",
-                                    key: "DEF",
-                                    x: -100,
-                                    y: 0
+                                    key: "DEF"
                                 },
-                                children: []
+                                children: [{ data: { tag: 'Position', x: -100, y: 0 }, children: [] }]
                             }]
                         }
                     ]

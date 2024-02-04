@@ -231,6 +231,12 @@ export type SchemaMapRoom = {
     y: number;
 } & SchemaConditionMixin
 
+export type SchemaPositionTag = {
+    tag: 'Position';
+    x: number;
+    y: number;
+}
+
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
@@ -289,6 +295,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaRoomTag |
     SchemaFeatureTag |
     SchemaKnowledgeTag |
+    SchemaPositionTag |
     SchemaMapTag |
     SchemaStringTag |
     SchemaWhitespaceTag |
@@ -339,6 +346,7 @@ export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
 export const isSchemaKnowledge = (value: SchemaTag): value is SchemaKnowledgeTag => (value.tag === 'Knowledge')
 export const isSchemaRoom = (value: SchemaTag): value is SchemaRoomTag => (value.tag === 'Room')
+export const isSchemaPosition = (value: SchemaTag): value is SchemaPositionTag => (value.tag === 'Position')
 export const isSchemaMap = (value: SchemaTag): value is SchemaMapTag => (value.tag === 'Map')
 export const isSchemaMessage = (value: SchemaTag): value is SchemaMessageTag => (value.tag === 'Message')
 export const isSchemaMoment = (value: SchemaTag): value is SchemaMomentTag => (value.tag === 'Moment')

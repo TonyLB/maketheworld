@@ -2607,7 +2607,16 @@ Object {
         },
       },
       Object {
-        "children": Array [],
+        "children": Array [
+          Object {
+            "children": Array [],
+            "data": Object {
+              "tag": "Position",
+              "x": 0,
+              "y": 250,
+            },
+          },
+        ],
         "contextStack": Array [
           Object {
             "index": 0,
@@ -2623,8 +2632,8 @@ Object {
         "data": Object {
           "key": "VORTEX",
           "tag": "Room",
-          "x": 0,
-          "y": 250,
+          "x": undefined,
+          "y": undefined,
         },
       },
     ],
@@ -3274,6 +3283,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": 0,
+              "y": 150,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "cave#curvingPassage",
               "tag": "Exit",
@@ -3303,8 +3320,8 @@ Object {
         "data": Object {
           "key": "cave",
           "tag": "Room",
-          "x": 0,
-          "y": 150,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -3806,6 +3823,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": -150,
+              "y": 100,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "curvingPassage#cave",
               "tag": "Exit",
@@ -3835,8 +3860,8 @@ Object {
         "data": Object {
           "key": "curvingPassage",
           "tag": "Room",
-          "x": -150,
-          "y": 100,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -4947,6 +4972,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": 250,
+              "y": -150,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "fireCatGrotto#well",
               "tag": "Exit",
@@ -4968,8 +5001,8 @@ Object {
         "data": Object {
           "key": "fireCatGrotto",
           "tag": "Room",
-          "x": 250,
-          "y": -150,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -5653,6 +5686,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": -50,
+              "y": -200,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "forest#orchard",
               "tag": "Exit",
@@ -5674,8 +5715,8 @@ Object {
         "data": Object {
           "key": "forest",
           "tag": "Room",
-          "x": -50,
-          "y": -200,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -6195,6 +6236,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": -200,
+              "y": -150,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "foundry#intersection",
               "tag": "Exit",
@@ -6216,8 +6265,8 @@ Object {
         "data": Object {
           "key": "foundry",
           "tag": "Room",
-          "x": -200,
-          "y": -150,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -7404,6 +7453,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": -150,
+              "y": -50,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "intersection#curvingPassage",
               "tag": "Exit",
@@ -7441,8 +7498,8 @@ Object {
         "data": Object {
           "key": "intersection",
           "tag": "Room",
-          "x": -150,
-          "y": -50,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -8099,6 +8156,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": 100,
+              "y": -200,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "orchard#fireCatGrotto",
               "tag": "Exit",
@@ -8128,8 +8193,8 @@ Object {
         "data": Object {
           "key": "orchard",
           "tag": "Room",
-          "x": 100,
-          "y": -200,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -9625,6 +9690,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": 0,
+              "y": 0,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "statueChamber#intersection",
               "tag": "Exit",
@@ -9654,8 +9727,8 @@ Object {
         "data": Object {
           "key": "statueChamber",
           "tag": "Room",
-          "x": 0,
-          "y": 0,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -10778,6 +10851,14 @@ Object {
           Object {
             "children": Array [],
             "data": Object {
+              "tag": "Position",
+              "x": 150,
+              "y": -50,
+            },
+          },
+          Object {
+            "children": Array [],
+            "data": Object {
               "index": 0,
               "key": "well#statueChamber",
               "tag": "Exit",
@@ -10807,8 +10888,8 @@ Object {
         "data": Object {
           "key": "well",
           "tag": "Room",
-          "x": 150,
-          "y": -50,
+          "x": undefined,
+          "y": undefined,
         },
       },
       Object {
@@ -11738,6 +11819,12 @@ Array [
         "type": 0,
         "value": "VORTEX",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -11749,8 +11836,12 @@ Array [
         "value": "250",
       },
     ],
-    "tag": "Room",
+    "tag": "Position",
     "type": 1,
+  },
+  Object {
+    "tag": "Room",
+    "type": 2,
   },
   Object {
     "properties": Array [
@@ -11759,6 +11850,12 @@ Array [
         "type": 0,
         "value": "cave",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -11770,8 +11867,8 @@ Array [
         "value": "150",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [
@@ -11822,6 +11919,12 @@ Array [
         "type": 0,
         "value": "intersection",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -11833,8 +11936,8 @@ Array [
         "value": "-50",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [
@@ -11904,6 +12007,12 @@ Array [
         "type": 0,
         "value": "curvingPassage",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -11915,8 +12024,8 @@ Array [
         "value": "100",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [
@@ -11967,6 +12076,12 @@ Array [
         "type": 0,
         "value": "statueChamber",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -11978,8 +12093,8 @@ Array [
         "value": "0",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [
@@ -12030,6 +12145,12 @@ Array [
         "type": 0,
         "value": "well",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -12041,8 +12162,8 @@ Array [
         "value": "-50",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [
@@ -12093,6 +12214,12 @@ Array [
         "type": 0,
         "value": "fireCatGrotto",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -12104,8 +12231,8 @@ Array [
         "value": "-150",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [
@@ -12137,6 +12264,12 @@ Array [
         "type": 0,
         "value": "orchard",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -12148,8 +12281,8 @@ Array [
         "value": "-200",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [
@@ -12200,6 +12333,12 @@ Array [
         "type": 0,
         "value": "forest",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -12211,8 +12350,8 @@ Array [
         "value": "-200",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [
@@ -12244,6 +12383,12 @@ Array [
         "type": 0,
         "value": "foundry",
       },
+    ],
+    "tag": "Room",
+    "type": 0,
+  },
+  Object {
+    "properties": Array [
       Object {
         "key": "x",
         "type": 1,
@@ -12255,8 +12400,8 @@ Array [
         "value": "-150",
       },
     ],
-    "tag": "Room",
-    "type": 0,
+    "tag": "Position",
+    "type": 1,
   },
   Object {
     "properties": Array [

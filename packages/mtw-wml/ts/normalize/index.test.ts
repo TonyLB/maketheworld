@@ -50,7 +50,7 @@ describe('WML normalize', () => {
             <Map key=(TestMap)>
                 <Name>Test Map</Name>
                 <Image key=(ImageTest) />
-                <Room key=(a123) x="200" y="150" />
+                <Room key=(a123)><Position x="200" y="150" /></Room>
             </Map>
             <Feature key=(clockTower)>
                 <Name>Clock Tower</Name>
@@ -296,7 +296,7 @@ describe('WML normalize', () => {
             </Room>
             <Map key=(TestMap)>
                 <Name>Test Map</Name>
-                <Room key=(a123) x="200" y="150" />
+                <Room key=(a123)><Position x="200" y="150" /></Room>
                 <Image key=(ImageTest) />
             </Map>
             <Feature key=(clockTower)>
