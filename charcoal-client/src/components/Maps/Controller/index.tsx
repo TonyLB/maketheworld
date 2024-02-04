@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { GenericTree, TreeId  } from '@tonylb/mtw-wml/dist/sequence/tree/baseClasses'
+import { GenericTree, TreeId  } from '@tonylb/mtw-wml/dist/tree/baseClasses'
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeItem, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import { SchemaConditionTag, SchemaExitTag, SchemaNameTag, SchemaOutputTag, SchemaRoomTag, SchemaTag, isSchemaCondition, isSchemaExit, isSchemaMap, isSchemaName, isSchemaOutputTag, isSchemaRoom } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import MapDThree from "../Edit/MapDThree"
@@ -11,14 +11,14 @@ import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
 import { useDispatch, useSelector } from "react-redux"
 import { mapEditConditionsByMapId, toggle } from "../../../slices/UI/mapEdit"
-import dfsWalk from "@tonylb/mtw-wml/dist/sequence/tree/dfsWalk"
+import dfsWalk from "@tonylb/mtw-wml/dist/tree/dfsWalk"
 import { selectName } from "@tonylb/mtw-wml/dist/normalize/selectors/name"
 import { schemaOutputToString } from "@tonylb/mtw-wml/dist/simpleSchema/utils/schemaOutput/schemaOutputToString"
 import SchemaTagTree from "@tonylb/mtw-wml/dist/tagTree/schema"
 import { selectKeysByTag } from "@tonylb/mtw-wml/dist/normalize/selectors/keysByTag"
-import { genericIDFromTree } from "@tonylb/mtw-wml/dist/sequence/tree/genericIDTree"
-import { map } from "@tonylb/mtw-wml/dist/sequence/tree/map"
-import { treeTypeGuard } from "@tonylb/mtw-wml/dist/sequence/tree/filter"
+import { genericIDFromTree } from "@tonylb/mtw-wml/dist/tree/genericIDTree"
+import { map } from "@tonylb/mtw-wml/dist/tree/map"
+import { treeTypeGuard } from "@tonylb/mtw-wml/dist/tree/filter"
 
 // //
 // // extractMapTree takes a standardized normalizer, and a mapId, and generates a generic tree of MapTreeItems

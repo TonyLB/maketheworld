@@ -1,7 +1,7 @@
 import { SchemaTag } from "../baseClasses"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { SchemaContextItem } from "../baseClasses"
-import { GenericTree, GenericTreeNode } from "../../sequence/tree/baseClasses";
+import { GenericTree, GenericTreeNode } from "../../tree/baseClasses";
 
 export type SchemaConverterArguments = {
     parseOpen: ParseTagOpen | ParseTagSelfClosure;

@@ -4,7 +4,7 @@ import { compressWhitespace } from "../utils"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { GenericTree, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 const messagingTemplates = {
     Message: {

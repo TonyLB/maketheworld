@@ -1,4 +1,4 @@
-import { GenericTree, GenericTreeNode } from "../../../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
 import { SchemaOutputTag } from "../../baseClasses"
 
 //

@@ -1,4 +1,4 @@
-import { GenericTree, GenericTreeNodeFiltered, TreeId } from "../../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNodeFiltered, TreeId } from "../../tree/baseClasses"
 import { SchemaImportTag, SchemaTag, SchemaWithKey, isSchemaImport, isSchemaWithKey } from "../../simpleSchema/baseClasses"
 import SchemaTagTree from "../../tagTree/schema"
 

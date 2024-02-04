@@ -1,5 +1,5 @@
 import { deepEqual } from "../../lib/objects"
-import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 import {
     isSchemaCondition,
     isSchemaDescription,

@@ -4,11 +4,11 @@ import { SchemaContextItem } from "./baseClasses"
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
 import { optionsFactory, validateContents } from "./converters/utils"
-import { GenericTree, GenericTreeNode, TreeId } from "../sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNode, TreeId } from "../tree/baseClasses"
 import SourceStream from "../parser/tokenizer/sourceStream"
 import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"
-import { genericIDFromTree } from "../sequence/tree/genericIDTree"
+import { genericIDFromTree } from "../tree/genericIDTree"
 import standardizeSchema from "./standardize"
 
 export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {

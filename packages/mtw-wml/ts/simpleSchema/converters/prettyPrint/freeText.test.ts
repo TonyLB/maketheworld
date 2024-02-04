@@ -1,7 +1,7 @@
 import { SchemaTag, SchemaTaggedMessageLegalContents } from '../../baseClasses'
 import { schemaDescriptionToWML } from './freeText'
 import { printSchemaTag as schemaToWML } from '../..'
-import { GenericTree } from '../../../sequence/tree/baseClasses'
+import { GenericTree } from '../../../tree/baseClasses'
 
 describe('description schemaToWML', () => {
     //

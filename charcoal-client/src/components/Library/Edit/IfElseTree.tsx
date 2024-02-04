@@ -10,7 +10,7 @@ import ExitIcon from '@mui/icons-material/CallMade'
 
 import { useLibraryAsset } from "./LibraryAsset"
 import { Button, Stack } from "@mui/material"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaConditionTag, SchemaTag, isSchemaCondition } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 import { deepEqual } from "../../../lib/objects"
 

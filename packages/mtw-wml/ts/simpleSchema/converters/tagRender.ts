@@ -5,7 +5,7 @@ import { PrintMapEntryArguments, PrintMapOptionsChange } from "./baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
 import { optionsFactory } from "./utils"
-import { GenericTree } from "../../sequence/tree/baseClasses"
+import { GenericTree } from "../../tree/baseClasses"
 
 type TagRenderProperty = {
     key?: string;

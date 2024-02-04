@@ -13,7 +13,7 @@ import {
     isSchemaRoom,
     SchemaTag
 } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
-import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/ts/sequence/tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "@tonylb/mtw-wml/ts/tree/baseClasses"
 import { SchemaTagTree } from "@tonylb/mtw-wml/ts/tagTree/schema"
 
 export const normalSubset = ({ normal, keys, stubKeys }: { normal: NormalForm, keys: string[], stubKeys: string[] }): { newStubKeys: string[]; schema: GenericTree<SchemaTag> } => {

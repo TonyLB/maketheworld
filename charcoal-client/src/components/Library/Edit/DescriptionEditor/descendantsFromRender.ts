@@ -18,7 +18,7 @@ import {
     isCustomLineBreak,
     isCustomParagraphContents
 } from "../baseClasses"
-import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/sequence/tree/baseClasses"
+import { GenericTree, TreeId } from "@tonylb/mtw-wml/dist/tree/baseClasses"
 import { SchemaOutputTag } from "@tonylb/mtw-wml/dist/simpleSchema/baseClasses"
 
 const descendantsTranslate = (tree: GenericTree<SchemaOutputTag, TreeId>, options: { normal: NormalForm }): (CustomParagraphContents | CustomIfBlock | CustomElseIfBlock | CustomElseBlock)[] => {

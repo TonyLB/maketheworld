@@ -1,5 +1,5 @@
-import IndexSubstitution from "../indexSubstitution"
-import { deepEqual } from "../lib/objects";
+import IndexSubstitution from "../sequence/indexSubstitution"
+import { deepEqual } from "../sequence/lib/objects";
 import { GenericTree, GenericTreeNode } from "./baseClasses";
 
 type SequenceToTreeStackItem<N extends {}, InternalNode extends {}> = {

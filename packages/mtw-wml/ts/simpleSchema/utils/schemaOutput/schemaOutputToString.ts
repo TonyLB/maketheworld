@@ -1,4 +1,4 @@
-import { GenericTree } from "../../../sequence/tree/baseClasses"
+import { GenericTree } from "../../../tree/baseClasses"
 import { SchemaOutputTag, isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "../../baseClasses"
 
 export const schemaOutputToString = (tree: GenericTree<SchemaOutputTag>): string => {
