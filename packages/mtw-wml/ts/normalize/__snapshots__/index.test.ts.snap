@@ -1853,20 +1853,8 @@ Object {
         ],
         "data": Object {
           "key": "activate",
-          "rooms": Array [
-            Object {
-              "conditions": Array [],
-              "key": "a123",
-            },
-          ],
           "tag": "Message",
         },
-        "rooms": Array [
-          Object {
-            "conditions": Array [],
-            "key": "a123",
-          },
-        ],
       },
     ],
     "key": "activate",

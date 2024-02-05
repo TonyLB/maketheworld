@@ -34,7 +34,6 @@ import {
     isNormalComputed,
     isNormalCondition,
     isNormalReference,
-    MessageAppearance,
     NormalAction,
     NormalAsset,
     NormalBookmark,
@@ -211,10 +210,7 @@ export class Normalizer {
                 return {
                     key: node.key || defaultKey,
                     tag: node.tag,
-                    appearances: [{
-                        ...defaultedAppearance as MessageAppearance,
-                        rooms: node.rooms
-                    }]
+                    appearances: [defaultedAppearance]
                 }
             case 'Moment':
                 return {
