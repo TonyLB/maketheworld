@@ -62,12 +62,7 @@ export type CharacterImage = string
 
 export type NormalCharacter<Extra extends {} = {}> = {
     tag: 'Character';
-    Name: string;
     Pronouns: NormalCharacterPronouns;
-    FirstImpression: string;
-    OneCoolThing: string;
-    Outfit: string;
-    fileName?: string;
     images: CharacterImage[];
     assets: string[];
     appearances: BaseAppearance<Extra>[];

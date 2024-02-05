@@ -98,7 +98,6 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
                 adjective: 'theirs',
                 reflexive: 'themself'
             },
-            Name: '',
             ...validateProperties(characterTemplates.Character)(parseOpen)
         }),
         typeCheckContents: isSchemaCharacterContents,
@@ -110,11 +109,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
             return {
                 data: {
                     ...initialTag,
-                    Name: contents.filter(({ data }) => (isSchemaName(data))).map(({ children }) => (children)).flat(1).map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join(''),
-                    Pronouns,
-                    FirstImpression: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaFirstImpression).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
-                    OneCoolThing: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOneCoolThing).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
-                    Outfit: (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOutfit).length ? (contents.map(({ data }) => (data)) as SchemaTag[]).filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
+                    Pronouns
                 },
                 children: contents
             }

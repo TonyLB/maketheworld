@@ -83,15 +83,7 @@ export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharac
 export type SchemaCharacterTag = {
     tag: 'Character';
     key: string;
-    player?: string;
-    fileName?: string;
-    zone?: string;
-    subFolder?: string;
-    Name: string;
     Pronouns: SchemaPronouns;
-    FirstImpression?: string;
-    OneCoolThing?: string;
-    Outfit?: string;
 } & SchemaBase
 
 export type SchemaVariableTag = {

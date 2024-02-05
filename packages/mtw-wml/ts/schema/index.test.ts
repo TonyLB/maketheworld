@@ -372,10 +372,6 @@ describe('schemaFromParse', () => {
             data: {
                 tag: "Character",
                 key: "TESS",
-                FirstImpression: "Frumpy Goth",
-                Name: "Tess",
-                OneCoolThing: "Fuchsia eyes",
-                Outfit: "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
                 Pronouns: {
                     adjective: "hers",
                     object: "her",
