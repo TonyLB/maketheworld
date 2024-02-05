@@ -60,6 +60,7 @@ import { selectImages } from '@tonylb/mtw-wml/ts/normalize/selectors/images'
 import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms'
 import { selectDependencies } from '@tonylb/mtw-wml/ts/normalize/selectors/dependencies'
 import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/normalize/selectors/keysReferenced'
+import { selectKeysByTag } from '@tonylb/mtw-wml/ts/normalize/selectors/keysByTag'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
 
@@ -168,16 +169,18 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
         }
     }
     if (isEphemeraMomentId(EphemeraId) && isNormalMoment(item)) {
+        const messages = normalizer.select({ key: item.key, selector: selectKeysByTag('Message') }).map((key) => {
+            const universalKey = assetWorkspace.universalKey(key)
+            if (universalKey && isEphemeraMessageId(universalKey)) {
+                return [universalKey]
+            }
+            return []
+        }).flat(1)
         return {
             key: item.key,
             EphemeraId,
-            messages: [],
+            messages,
             stateMapping
-            // appearances: item.appearances
-            //     .map((appearance) => ({
-            //         conditions: conditionsTransform(appearance.contextStack),
-            //         messages: (appearance.messages || []).map((key) => (assetWorkspace.universalKey(key))).filter((value): value is string => (Boolean(value))).filter(isEphemeraMessageId)
-            //     }))
         }
     }
     if (isEphemeraMapId(EphemeraId) && isNormalMap(item)) {
