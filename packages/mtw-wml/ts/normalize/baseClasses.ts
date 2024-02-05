@@ -201,11 +201,9 @@ export type NormalAction<Extra extends {} = {}> = {
     appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
-export type MessageAppearance<Extra extends {} = {}> = BaseAppearance<Extra>
-
 export type NormalMessage<Extra extends {} = {}> = {
     tag: 'Message';
-    appearances: MessageAppearance<Extra>[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
 export type MomentAppearance<Extra extends {} = {}> = {

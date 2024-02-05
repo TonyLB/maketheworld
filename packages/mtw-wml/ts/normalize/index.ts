@@ -34,7 +34,6 @@ import {
     isNormalComputed,
     isNormalCondition,
     isNormalReference,
-    MessageAppearance,
     NormalAction,
     NormalAsset,
     NormalBookmark,

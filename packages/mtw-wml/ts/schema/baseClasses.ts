@@ -241,8 +241,6 @@ export type SchemaMapTag = {
     key: string;
 } & SchemaImportableBase
 
-export type SchemaMessageLegalContents = SchemaRoomTag | SchemaTaggedMessageLegalContents
-
 export type SchemaMessageTag = {
     tag: 'Message';
     key: string;
