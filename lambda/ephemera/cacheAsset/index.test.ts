@@ -494,11 +494,10 @@ describe('cacheAsset', () => {
                 tag: 'Exit',
                 from: 'DEF',
                 to: 'ABC',
-                name: 'Vortex',
                 appearances: [{
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0}, { key: 'If-0', tag: 'If', index: 0 }],
-                    data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC', name: 'Vortex' },
-                    children: []
+                    data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' },
+                    children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
                 }]
             },
             ['If-0']: {
@@ -536,7 +535,7 @@ describe('cacheAsset', () => {
                 key: 'DEF',
                 exits: [{
                     data: { tag: 'If', key: 'If-0', conditions: [{ if: 'open', dependencies: ['open'] }] },
-                    children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC', name: 'Vortex' }, children: [] }]
+                    children: [{ data: { tag: 'Exit', key: 'DEF#ABC', from: 'DEF', to: 'ABC' }, children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }] }]
                 }],
                 name: [{ data: { tag: 'String', value: 'Elsewhere' }, children: [] }],
                 render: [],

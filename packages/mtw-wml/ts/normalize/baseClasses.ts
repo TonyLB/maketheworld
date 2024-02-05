@@ -206,13 +206,9 @@ export type NormalMessage<Extra extends {} = {}> = {
     appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
-export type MomentAppearance<Extra extends {} = {}> = {
-    messages: string[];
-} & BaseAppearance<Extra>
-
 export type NormalMoment<Extra extends {} = {}> = {
     tag: 'Moment';
-    appearances: MomentAppearance<Extra>[];
+    appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
 export type NormalItem<Extra extends {} = {}> = NormalAsset<Extra> |

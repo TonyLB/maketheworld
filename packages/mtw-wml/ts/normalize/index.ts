@@ -216,13 +216,7 @@ export class Normalizer {
                 return {
                     key: node.key || defaultKey,
                     tag: node.tag,
-                    appearances: [{
-                        ...defaultedAppearance,
-                        //
-                        // TODO: Create message selector if denormalization needed
-                        //
-                        messages: []
-                    }]
+                    appearances: [defaultedAppearance]
                 }
             case 'Map':
                 return {

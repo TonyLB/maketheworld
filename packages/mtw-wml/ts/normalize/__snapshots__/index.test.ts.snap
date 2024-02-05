@@ -1884,7 +1884,6 @@ Object {
           "key": "activateMoment",
           "tag": "Moment",
         },
-        "messages": Array [],
       },
     ],
     "key": "activateMoment",
