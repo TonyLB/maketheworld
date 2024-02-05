@@ -36,19 +36,19 @@ export type BaseAppearance<Extra extends {} = {}> = GenericTreeNodeFiltered<Sche
     contextStack: NormalReference[];
 }
 
-type NormalBase = {
+type NormalBase<Extra extends {} = {}> = {
     key: string;
     exportAs?: string;
+    appearances: BaseAppearance<Extra>[];
 }
 
 export type NormalAsset<Extra extends {} = {}> = {
     tag: 'Asset';
     Story?: boolean;
     instance?: boolean;
-    appearances: BaseAppearance<Extra>[];
     fileName?: string;
     zone?: string;
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalCharacterPronouns = {
     subject: string;
@@ -65,8 +65,7 @@ export type NormalCharacter<Extra extends {} = {}> = {
     Pronouns: NormalCharacterPronouns;
     images: CharacterImage[];
     assets: string[];
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type ComponentRenderItem = {
     tag: 'Link';
@@ -97,17 +96,11 @@ export type ComponentRenderItem = {
     contents: ComponentRenderItem[];
 } & NormalConditionMixin)
 
-export type ComponentAppearance<Extra extends {} = {}> = BaseAppearance<Extra> & {
-    x?: number;
-    y?: number;
-}
-
 type ComponentTypes = 'Room' | 'Feature' | 'Knowledge'
 
 export type NormalComponent<Extra extends {} = {}> = {
     tag: ComponentTypes;
-    appearances: ComponentAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalRoom<Extra extends {} = {}> = NormalComponent<Extra> & {
     tag: 'Room';
@@ -121,12 +114,9 @@ export type NormalKnowledge<Extra extends {} = {}> = NormalComponent<Extra> & {
     tag: 'Knowledge';
 }
 
-export type NormalBookmarkAppearance<Extra extends {} = {}> = BaseAppearance<Extra>
-
 export type NormalBookmark<Extra extends {} = {}> = {
     tag: 'Bookmark';
-    appearances: NormalBookmarkAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 type NormalImportMapping = {
     key: string; // The key of the import in the namespace it is being imported FROM
@@ -137,8 +127,7 @@ export type NormalImport<Extra extends {} = {}> = {
     tag: 'Import';
     from: string;
     mapping: Record<string, NormalImportMapping>; // Key of the mapping is the key of the import in the namespace it is being imported TO
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalConditionStatement = {
     if: string;
@@ -152,59 +141,46 @@ export type NormalConditionMixin = {
 
 export type NormalCondition<Extra extends {} = {}> = {
     tag: 'If';
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase & NormalConditionMixin
-
-export type ImageAppearance<Extra extends {} = {}> = {
-    display?: 'replace'
-} & BaseAppearance<Extra>
+} & NormalBase<Extra> & NormalConditionMixin
 
 export type NormalImage<Extra extends {} = {}> = {
     tag: 'Image';
     fileURL?: string;
-    appearances: ImageAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalMap<Extra extends {} = {}> = {
     tag: 'Map';
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalExit<Extra extends {} = {}> = {
     tag: 'Exit';
     to: string;
     from: string;
-    appearances?: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalVariable<Extra extends {} = {}> = {
     tag: 'Variable';
     default: string;
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalComputed<Extra extends {} = {}> = {
     tag: 'Computed';
     src: string;
     dependencies?: string[];
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalAction<Extra extends {} = {}> = {
     tag: 'Action';
     src: string;
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalMessage<Extra extends {} = {}> = {
     tag: 'Message';
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalMoment<Extra extends {} = {}> = {
     tag: 'Moment';
-    appearances: BaseAppearance<Extra>[];
-} & NormalBase
+} & NormalBase<Extra>
 
 export type NormalItem<Extra extends {} = {}> = NormalAsset<Extra> |
     NormalComponent<Extra> |
