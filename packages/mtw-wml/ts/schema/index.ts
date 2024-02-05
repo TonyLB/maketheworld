@@ -160,7 +160,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
             return {
                 tag,
                 key: '',
-                name: '',
                 to: '',
                 from: '',
             }

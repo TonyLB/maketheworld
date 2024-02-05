@@ -163,7 +163,6 @@ describe('schemaFromParse', () => {
                                 tag: "Exit",
                                 key: "ABC#DEF",
                                 from: "ABC",
-                                name: "welcome",
                                 to: "DEF"
                             },
                             children: [{ data: { tag: "String", value: "welcome" }, children: [] }],
@@ -185,7 +184,6 @@ describe('schemaFromParse', () => {
                             tag: "Exit",
                             key: "DEF#DEF",
                             from: "DEF",
-                            name: "vortex",
                             to: "DEF"
                         },
                         children: [{ data: { tag: "String", value: "vortex" }, children: [] }],

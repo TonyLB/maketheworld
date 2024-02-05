@@ -138,7 +138,6 @@ export type SchemaConditionTag = {
 export type SchemaExitTag = {
     tag: 'Exit';
     key: string;
-    name: string;
     to: string;
     from: string;
 } & SchemaBase

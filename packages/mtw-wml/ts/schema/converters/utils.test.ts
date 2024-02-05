@@ -41,7 +41,7 @@ describe('parser utilities', () => {
         it('should not recurse past labelled tags', () => {
             expect(validateContents({
                 isValid: (tag) => {
-                    if (tag.tag === 'Exit' && !(tag.name)) {
+                    if (tag.tag === 'Exit') {
                         return false
                     }
                     return true
@@ -51,7 +51,7 @@ describe('parser utilities', () => {
             })([{ 
                 data: { tag: 'Room', key: 'ABC' },
                 children: [
-                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '' }, children: [] }
+                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF' }, children: [] }
                 ]
             }])).toBe(true)
         })
@@ -59,7 +59,7 @@ describe('parser utilities', () => {
         it('should recurse into labelled tags', () => {
             expect(validateContents({
                 isValid: (tag) => {
-                    if (tag.tag === 'Exit' && !(tag.name)) {
+                    if (tag.tag === 'Exit') {
                         return false
                     }
                     return true
@@ -69,7 +69,7 @@ describe('parser utilities', () => {
             })([{
                 data: { tag: 'Room', key: 'ABC' },
                 children: [
-                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF', name: '' }, children: [] }
+                    { data: { tag: 'Exit', key: 'ABC#DEF', from: 'ABC', to: 'DEF' }, children: [] }
                 ]
             }])).toBe(false)
         })

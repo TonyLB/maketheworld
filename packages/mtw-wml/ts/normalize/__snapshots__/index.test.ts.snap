@@ -1809,7 +1809,6 @@ Object {
         "data": Object {
           "from": "a123",
           "key": "a123#b456",
-          "name": "",
           "tag": "Exit",
           "to": "b456",
         },
@@ -1817,7 +1816,6 @@ Object {
     ],
     "from": "a123",
     "key": "a123#b456",
-    "name": "",
     "tag": "Exit",
     "to": "b456",
   },

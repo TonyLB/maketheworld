@@ -95,7 +95,6 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
             return {
                 tag: 'Exit',
-                name: '',
                 key: `${from || roomContext?.key}#${to || roomContext?.key}`,
                 from: from ?? roomContext?.key ?? '',
                 to: to ?? roomContext?.key ?? '',
@@ -108,10 +107,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
-                data: {
-                    ...initialTag,
-                    name: children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('')
-                },
+                data: initialTag,
                 children
             }
         }
@@ -240,7 +236,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
 }
 
 export const componentPrintMap: Record<string, PrintMapEntry> = {
-    Exit: ({ tag: { data: tag }, ...args }) => {
+    Exit: ({ tag: { data: tag, children }, ...args }) => {
 
         const { context } = args.options
         if (!isSchemaExit(tag)) {
@@ -262,7 +258,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 ...((!tag.from || (roomContext && roomContext.key === tag.from)) ? [] : [{ key: 'from', type: 'key' as 'key', value: tag.from }]),
                 ...((!tag.to || (roomContext && roomContext.key === tag.to)) ? [] : [{ key: 'to', type: 'key' as 'key', value: tag.to }]),
             ],
-            contents: tag.name ? [{ data: { tag: 'String', value: tag.name }, children: [] }] : [],
+            contents: children
         })
     },
     Description: ({ tag: { children }, ...args }: PrintMapEntryArguments) => (
