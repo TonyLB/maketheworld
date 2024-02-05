@@ -57,7 +57,6 @@ export type SchemaPronounsTag = {
     tag: 'Pronouns';
 } & SchemaPronouns & SchemaBase
 
-export type SchemaLiteralLegalContents = SchemaStringTag
 export type SchemaFirstImpressionTag = {
     tag: 'FirstImpression';
     value: string;
@@ -73,6 +72,9 @@ export type SchemaOutfitTag = {
     value: string;
 } & SchemaBase
 
+export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag => (
+    isSchemaFirstImpression(item) || isSchemaOneCoolThing(item) || isSchemaOutfit(item)
+)
 export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag | SchemaImportTag
 export const isSchemaCharacterContents = (item: SchemaTag): item is SchemaCharacterLegalContents => (
     isSchemaName(item) || isSchemaPronouns(item) || isSchemaFirstImpression(item) || isSchemaOneCoolThing(item) || isSchemaOutfit(item) || isSchemaImage(item) || isSchemaImport(item)
