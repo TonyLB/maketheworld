@@ -175,16 +175,11 @@ export type NormalMap<Extra extends {} = {}> = {
     appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
-type ExitAppearance<Extra extends {} = {}> = {
-    name?: string;
-} & BaseAppearance<Extra>
-
 export type NormalExit<Extra extends {} = {}> = {
     tag: 'Exit';
     to: string;
     from: string;
-    name?: string;
-    appearances?: ExitAppearance<Extra>[];
+    appearances?: BaseAppearance<Extra>[];
 } & NormalBase
 
 export type NormalVariable<Extra extends {} = {}> = {

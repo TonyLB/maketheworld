@@ -246,7 +246,6 @@ export class Normalizer {
                     tag: node.tag,
                     to: node.to,
                     from: exitRoomKey,
-                    name: node.name,
                     appearances: [appearance]
                 }
             case 'Character':

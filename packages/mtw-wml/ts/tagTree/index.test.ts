@@ -46,7 +46,7 @@ describe('TagTree', () => {
                 [
                     { data: { tag: 'Asset', key: 'test' } },
                     { data: { tag: 'Room', key: 'room1' } },
-                    { data: { tag: 'Exit', key: 'room1#room2', from: 'room1', to: 'room2', name: '' } }
+                    { data: { tag: 'Exit', key: 'room1#room2', from: 'room1', to: 'room2' } }
                 ],
                 [
                     { data: { tag: 'Asset', key: 'test' } },
