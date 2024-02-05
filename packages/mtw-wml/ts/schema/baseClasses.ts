@@ -241,16 +241,11 @@ export type SchemaMapTag = {
     key: string;
 } & SchemaImportableBase
 
-export type SchemaMessageRoom = {
-    key: string;
-} & SchemaConditionMixin
-
 export type SchemaMessageLegalContents = SchemaRoomTag | SchemaTaggedMessageLegalContents
 
 export type SchemaMessageTag = {
     tag: 'Message';
     key: string;
-    rooms: SchemaMessageRoom[];
 } & SchemaImportableBase
 
 export type SchemaMomentTag = {
@@ -354,7 +349,6 @@ export const isSchemaKnowledgeIncomingContents = (value: SchemaTag): value is Sc
 export const isSchemaRoomContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Image', 'Exit', 'Feature', 'Description', 'If'].includes(value.tag))
 export const isSchemaRoomIncomingContents = (value: SchemaTag): value is SchemaRoomLegalIncomingContents => (['Name', 'Image', 'Exit', 'Feature', 'Description', 'If'].includes(value.tag))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'If', 'Name'].includes(value.tag))
-export const isSchemaMessageContents = (value: SchemaTag): value is SchemaMessageLegalContents => (isSchemaRoom(value) || isSchemaTaggedMessageLegalContents(value))
 
 export const isSchemaFirstImpression = (value: SchemaTag): value is SchemaFirstImpressionTag => (value.tag === 'FirstImpression')
 export const isSchemaOneCoolThing = (value: SchemaTag): value is SchemaOneCoolThingTag => (value.tag === 'OneCoolThing')

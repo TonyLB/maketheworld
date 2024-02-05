@@ -1,4 +1,4 @@
-import { SchemaMessageLegalContents, SchemaMessageRoom, SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMessageContents, isSchemaMoment, isSchemaRoom, isSchemaTaggedMessageLegalContents } from "../baseClasses"
+import { SchemaMessageTag, SchemaMomentTag, SchemaTag, isSchemaMessage, isSchemaMoment } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
@@ -23,26 +23,14 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
     Message: {
         initialize: ({ parseOpen }): SchemaMessageTag => ({
             tag: 'Message',
-            rooms: [],
             ...validateProperties(messagingTemplates.Message)(parseOpen)
         }),
-        typeCheckContents: isSchemaMessageContents,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => {
             if (!isSchemaMessage(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
-                data: {
-                    ...initialTag,
-                    rooms: children.reduce<SchemaMessageRoom[]>((previous, { data: room }) => (
-                        isSchemaRoom(room)
-                            ? [
-                                ...previous,
-                                { key: room.key, conditions: [] }
-                            ]
-                            : previous
-                    ), [])
-                },
+                data: initialTag,
                 children: compressWhitespace(children, { messageParsing: true }),
             }
         }

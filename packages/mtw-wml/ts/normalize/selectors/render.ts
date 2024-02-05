@@ -19,7 +19,7 @@ export const selectRender = (tree: GenericTree<SchemaTag>, options={ tag: '', ke
         })
     }
     else if (options.tag === 'Message') {
-        const matchTag: SchemaMessageTag = { tag: 'Message', key: options.key, rooms: [] }
+        const matchTag: SchemaMessageTag = { tag: 'Message', key: options.key }
         return treeTypeGuard({
             tree: tagTree
                 .reordered([options.tag, 'If'])

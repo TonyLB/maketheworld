@@ -201,14 +201,7 @@ export type NormalAction<Extra extends {} = {}> = {
     appearances: BaseAppearance<Extra>[];
 } & NormalBase
 
-export type MessageAppearanceRoom = {
-    key: string;
-} & NormalConditionMixin
-
-export type MessageAppearance<Extra extends {} = {}> = {
-    render: ComponentRenderItem[];
-    rooms: MessageAppearanceRoom[];
-} & BaseAppearance<Extra>
+export type MessageAppearance<Extra extends {} = {}> = BaseAppearance<Extra>
 
 export type NormalMessage<Extra extends {} = {}> = {
     tag: 'Message';

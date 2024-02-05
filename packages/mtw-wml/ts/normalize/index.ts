@@ -211,10 +211,7 @@ export class Normalizer {
                 return {
                     key: node.key || defaultKey,
                     tag: node.tag,
-                    appearances: [{
-                        ...defaultedAppearance as MessageAppearance,
-                        rooms: node.rooms
-                    }]
+                    appearances: [defaultedAppearance]
                 }
             case 'Moment':
                 return {
