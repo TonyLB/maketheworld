@@ -55,6 +55,7 @@ import { selectName } from '@tonylb/mtw-wml/ts/normalize/selectors/name'
 import { selectRender } from '@tonylb/mtw-wml/ts/normalize/selectors/render'
 import { selectExits } from '@tonylb/mtw-wml/ts/normalize/selectors/exits'
 import { selectRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/rooms'
+import { selectLiteral } from '@tonylb/mtw-wml/ts/normalize/selectors/literal'
 import { isSchemaImage, isSchemaRoom } from '@tonylb/mtw-wml/ts/schema/baseClasses'
 import { selectImages } from '@tonylb/mtw-wml/ts/normalize/selectors/images'
 import { selectMapRooms } from '@tonylb/mtw-wml/ts/normalize/selectors/mapRooms'
@@ -63,6 +64,7 @@ import { selectKeysReferenced } from '@tonylb/mtw-wml/ts/normalize/selectors/key
 import { selectKeysByTag } from '@tonylb/mtw-wml/ts/normalize/selectors/keysByTag'
 import { StateItemId, isStateItemId } from '../internalCache/baseClasses'
 import { map } from '@tonylb/mtw-wml/ts/tree/map'
+import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 
 //
 // TODO: Fix ephemeraItemFromNormal to store the new standard for how to deal with normal Items (i.e., children are GenericTree<SchemaTag>,
@@ -219,11 +221,11 @@ const ephemeraItemFromNormal = (assetWorkspace: ReadOnlyAssetWorkspace) => (item
             key: item.key,
             EphemeraId,
             address: assetWorkspace.address,
-            Name: item.Name,
+            Name: schemaOutputToString(normalizer.select({ key: item.key, selector: selectName })),
             Pronouns: item.Pronouns,
-            FirstImpression: item.FirstImpression,
-            OneCoolThing: item.OneCoolThing,
-            Outfit: item.Outfit,
+            FirstImpression: normalizer.select({ key: item.key, selector: selectLiteral('FirstImpression') }),
+            OneCoolThing: normalizer.select({ key: item.key, selector: selectLiteral('OneCoolThing') }),
+            Outfit: normalizer.select({ key: item.key, selector: selectLiteral('Outfit') }),
             assets: item.assets,
             Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,
             fileURL,

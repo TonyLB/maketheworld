@@ -1085,10 +1085,6 @@ Object {
     "tag": "Import",
   },
   "Tess": Object {
-    "FirstImpression": "Frumpy goth",
-    "Name": "Tess",
-    "OneCoolThing": "Fuchsia eyes",
-    "Outfit": "A battered frock-coat",
     "Pronouns": Object {
       "adjective": "hers",
       "object": "her",
@@ -1156,10 +1152,6 @@ Object {
         ],
         "contextStack": Array [],
         "data": Object {
-          "FirstImpression": "Frumpy goth",
-          "Name": "Tess",
-          "OneCoolThing": "Fuchsia eyes",
-          "Outfit": "A battered frock-coat",
           "Pronouns": Object {
             "adjective": "hers",
             "object": "her",
@@ -1173,7 +1165,6 @@ Object {
       },
     ],
     "assets": Array [],
-    "fileName": undefined,
     "images": Array [],
     "key": "Tess",
     "tag": "Character",

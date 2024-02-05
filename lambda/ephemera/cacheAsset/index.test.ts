@@ -659,11 +659,6 @@ describe('cacheAsset', () => {
             Tess: {
                 key: 'Tess',
                 tag: 'Character',
-                fileName: 'Tess',
-                Name: 'Tess',
-                FirstImpression: 'Frumpy Goth',
-                OneCoolThing: 'Fuchsia eyes',
-                Outfit: 'A patchwork frock jacket',
                 images: [],
                 Pronouns: {
                     subject: 'they',
@@ -678,11 +673,6 @@ describe('cacheAsset', () => {
                     data: {
                         key: 'Tess',
                         tag: 'Character',
-                        fileName: 'Tess',
-                        Name: 'Tess',
-                        FirstImpression: 'Frumpy Goth',
-                        OneCoolThing: 'Fuchsia eyes',
-                        Outfit: 'A patchwork frock jacket',
                         Pronouns: {
                             subject: 'they',
                             object: 'them',
@@ -692,6 +682,10 @@ describe('cacheAsset', () => {
                         }
                     },
                     children: [
+                        { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] }] },
+                        { data: { tag: 'FirstImpression', value: 'Frumpy Goth' }, children: [] },
+                        { data: { tag: 'OneCoolThing', value: 'Fuchsia eyes' }, children: [] },
+                        { data: { tag: 'Outfit', value: 'A patchwork frock jacket' }, children: [] },
                         { data: { key: 'Import-0', tag: 'Import', index: 0 }, children: [] },
                         { data: { key: 'Import-1', tag: 'Import', index: 0 }, children: [] }
                     ]

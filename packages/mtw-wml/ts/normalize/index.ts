@@ -242,12 +242,7 @@ export class Normalizer {
                 return {
                     key: node.key,
                     tag: node.tag,
-                    Name: node.Name,
                     Pronouns: node.Pronouns,
-                    FirstImpression: node.FirstImpression ?? '',
-                    OneCoolThing: node.OneCoolThing ?? '',
-                    Outfit: node.Outfit ?? '',
-                    fileName: node.fileName,
                     //
                     // TODO: Create a selector for images
                     //
