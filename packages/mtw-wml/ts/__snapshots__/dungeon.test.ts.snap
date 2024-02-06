@@ -104,18 +104,67 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "robedStatue",
+                  "tag": "Feature",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "robedStatueShoulders",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-0",
+              "conditions": Array [
+                Object {
+                  "if": "robedStatueActive",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "wellStatues",
+                  "tag": "Feature",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "robedStatue",
+                  "tag": "Feature",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "robedStatueShoulders",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-1",
+              "conditions": Array [
+                Object {
+                  "if": "robedStatueActive",
+                  "not": true,
+                },
+              ],
               "tag": "If",
             },
           },
@@ -232,50 +281,141 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "determinedStatue",
+                  "tag": "Feature",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 3,
+                  "key": "wellStatues",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-2",
+              "conditions": Array [
+                Object {
+                  "if": "determinedStatueHead",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "determinedStatue",
+                  "tag": "Feature",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "wellStatues",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-3",
+              "conditions": Array [
+                Object {
+                  "if": "determinedStatueHead",
+                  "not": true,
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "determinedNeck",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-4",
+              "conditions": Array [
+                Object {
+                  "if": "determinedStatueRightArm",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 3,
+                  "key": "determinedNeck",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-5",
+              "conditions": Array [
+                Object {
+                  "if": "determinedStatueRightArm",
+                  "not": true,
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "determinedNeck",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-6",
+              "conditions": Array [
+                Object {
+                  "if": "determinedStatueLeftArm",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 5,
+                  "key": "determinedNeck",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-7",
+              "conditions": Array [
+                Object {
+                  "if": "determinedStatueLeftArm",
+                  "not": true,
+                },
+              ],
               "tag": "If",
             },
           },
@@ -360,18 +500,42 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "gratingDetail",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-11",
+              "conditions": Array [
+                Object {
+                  "if": "gratingBlocked",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "gratingDetail",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-12",
+              "conditions": Array [
+                Object {
+                  "if": "!gratingBlocked",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -392,50 +556,170 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-13",
+              "conditions": Array [
+                Object {
+                  "if": "waterLevel < 4",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "orchard",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 3,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "index": 3,
+                      "key": "orchard",
+                      "tag": "Room",
+                    },
+                  },
+                ],
+                "data": Object {
+                  "conditions": Array [
+                    Object {
+                      "if": "catsInOrchard",
+                    },
+                  ],
+                  "tag": "If",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-14",
+              "conditions": Array [
+                Object {
+                  "if": "waterLevel >= 4",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "orchard",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "index": 5,
+                      "key": "orchard",
+                      "tag": "Room",
+                    },
+                  },
+                ],
+                "data": Object {
+                  "conditions": Array [
+                    Object {
+                      "if": "catsInOrchard",
+                    },
+                  ],
+                  "tag": "If",
+                },
+              },
+            ],
             "data": Object {
-              "index": 1,
-              "key": "If-13",
+              "conditions": Array [
+                Object {
+                  "if": "waterLevel < 4",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-16",
+              "conditions": Array [
+                Object {
+                  "if": "waterLevel < 4 && waterLevel >= 2",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 5,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-17",
+              "conditions": Array [
+                Object {
+                  "if": "waterLevel < 2",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 6,
+                  "key": "orchard",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-18",
+              "conditions": Array [
+                Object {
+                  "if": "birdsInOrchard",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -536,18 +820,42 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "bellows",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-19",
+              "conditions": Array [
+                Object {
+                  "if": "bellowsRunning",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "bellows",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-20",
+              "conditions": Array [
+                Object {
+                  "if": "!bellowsRunning",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -560,18 +868,42 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "hearthCrest",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-21",
+              "conditions": Array [
+                Object {
+                  "if": "hearthPrimed",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "hearthCrest",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-22",
+              "conditions": Array [
+                Object {
+                  "if": "!hearthPrimed",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -608,18 +940,66 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 3,
+                  "key": "foundry",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "forest",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "hearthDetail",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-23",
+              "conditions": Array [
+                Object {
+                  "if": "hearthActive",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "foundry",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 5,
+                  "key": "forest",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-24",
+              "conditions": Array [
+                Object {
+                  "if": "!hearthActive",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -680,18 +1060,42 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "trapDoor",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-25",
+              "conditions": Array [
+                Object {
+                  "if": "trapDoorOpen",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "trapDoor",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-26",
+              "conditions": Array [
+                Object {
+                  "if": "!trapDoorOpen",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -728,10 +1132,30 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "catColumn",
+                  "tag": "Feature",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "columns",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 1,
-              "key": "If-23",
+              "conditions": Array [
+                Object {
+                  "if": "hearthActive",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -752,10 +1176,30 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "birdColumn",
+                  "tag": "Feature",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 3,
+                  "key": "columns",
+                  "tag": "Feature",
+                },
+              },
+            ],
             "data": Object {
-              "index": 1,
-              "key": "If-18",
+              "conditions": Array [
+                Object {
+                  "if": "birdsInOrchard",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -768,42 +1212,342 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "statueChamber",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 9,
+                  "key": "orchard",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 6,
+                  "key": "forest",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 9,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 5,
+                  "key": "foundry",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "intersection",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 4,
+                  "key": "well",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-27",
+              "conditions": Array [
+                Object {
+                  "if": "hearthActive && birdsInOrchard",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 5,
+                  "key": "statueChamber",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 6,
+                  "key": "foundry",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 7,
+                  "key": "forest",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 10,
+                  "key": "orchard",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 10,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 5,
+                  "key": "intersection",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 5,
+                  "key": "well",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-28",
+              "conditions": Array [
+                Object {
+                  "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 6,
+                  "key": "statueChamber",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 7,
+                  "key": "foundry",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 8,
+                  "key": "forest",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 11,
+                  "key": "orchard",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 11,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 6,
+                  "key": "intersection",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 6,
+                  "key": "well",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-29",
+              "conditions": Array [
+                Object {
+                  "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 7,
+                  "key": "statueChamber",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 8,
+                  "key": "foundry",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 9,
+                  "key": "forest",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 12,
+                  "key": "orchard",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 12,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 7,
+                  "key": "intersection",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 7,
+                  "key": "well",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-30",
+              "conditions": Array [
+                Object {
+                  "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 8,
+                  "key": "statueChamber",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 9,
+                  "key": "foundry",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 10,
+                  "key": "forest",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 13,
+                  "key": "orchard",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 13,
+                  "key": "fireCatGrotto",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 8,
+                  "key": "intersection",
+                  "tag": "Room",
+                },
+              },
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 8,
+                  "key": "well",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-31",
+              "conditions": Array [
+                Object {
+                  "if": "hearthActive && !birdsInOrchard",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -821,1722 +1565,6 @@ Object {
     "key": "Dungeon",
     "tag": "Asset",
     "zone": undefined,
-  },
-  "If-0": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "robedStatue",
-              "tag": "Feature",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "robedStatueShoulders",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "robedStatueActive",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "robedStatueActive",
-      },
-    ],
-    "key": "If-0",
-    "tag": "If",
-  },
-  "If-1": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "wellStatues",
-              "tag": "Feature",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "robedStatue",
-              "tag": "Feature",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "robedStatueShoulders",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "robedStatueActive",
-              "not": true,
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "robedStatueActive",
-        "not": true,
-      },
-    ],
-    "key": "If-1",
-    "tag": "If",
-  },
-  "If-10": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "rushes out of the well, forming a gushing torrent to the west.",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "waterDescription",
-            "tag": "Bookmark",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "waterFlow === 0",
-              "not": true,
-            },
-            Object {
-              "if": "waterFlow === 1",
-              "not": true,
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "waterFlow === 0",
-        "not": true,
-      },
-      Object {
-        "if": "waterFlow === 1",
-        "not": true,
-      },
-    ],
-    "key": "If-10",
-    "tag": "If",
-  },
-  "If-11": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "gratingDetail",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "gratingBlocked",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "gratingBlocked",
-      },
-    ],
-    "key": "If-11",
-    "tag": "If",
-  },
-  "If-12": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "gratingDetail",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!gratingBlocked",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!gratingBlocked",
-      },
-    ],
-    "key": "If-12",
-    "tag": "If",
-  },
-  "If-13": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "waterLevel < 4",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "If-15",
-              "tag": "If",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "waterLevel < 4",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "waterLevel < 4",
-      },
-    ],
-    "key": "If-13",
-    "tag": "If",
-  },
-  "If-14": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 3,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "If-15",
-              "tag": "If",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "waterLevel >= 4",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "waterLevel >= 4",
-      },
-    ],
-    "key": "If-14",
-    "tag": "If",
-  },
-  "If-15": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 3,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "If-14",
-            "tag": "If",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "catsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 5,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 1,
-            "key": "If-13",
-            "tag": "If",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "catsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "catsInOrchard",
-      },
-    ],
-    "key": "If-15",
-    "tag": "If",
-  },
-  "If-16": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "waterLevel < 4 && waterLevel >= 2",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "waterLevel < 4 && waterLevel >= 2",
-      },
-    ],
-    "key": "If-16",
-    "tag": "If",
-  },
-  "If-17": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 5,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "waterLevel < 2",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "waterLevel < 2",
-      },
-    ],
-    "key": "If-17",
-    "tag": "If",
-  },
-  "If-18": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 6,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "birdsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "birdColumn",
-              "tag": "Feature",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 3,
-              "key": "columns",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "birdsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "birdsInOrchard",
-      },
-    ],
-    "key": "If-18",
-    "tag": "If",
-  },
-  "If-19": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "bellows",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "bellowsRunning",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "bellowsRunning",
-      },
-    ],
-    "key": "If-19",
-    "tag": "If",
-  },
-  "If-2": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "determinedStatue",
-              "tag": "Feature",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 3,
-              "key": "wellStatues",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "determinedStatueHead",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "determinedStatueHead",
-      },
-    ],
-    "key": "If-2",
-    "tag": "If",
-  },
-  "If-20": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "bellows",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!bellowsRunning",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!bellowsRunning",
-      },
-    ],
-    "key": "If-20",
-    "tag": "If",
-  },
-  "If-21": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "hearthCrest",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "hearthPrimed",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "hearthPrimed",
-      },
-    ],
-    "key": "If-21",
-    "tag": "If",
-  },
-  "If-22": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "hearthCrest",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!hearthPrimed",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!hearthPrimed",
-      },
-    ],
-    "key": "If-22",
-    "tag": "If",
-  },
-  "If-23": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 3,
-              "key": "foundry",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "forest",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "hearthDetail",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "hearthActive",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "catColumn",
-              "tag": "Feature",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "columns",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "hearthActive",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "hearthActive",
-      },
-    ],
-    "key": "If-23",
-    "tag": "If",
-  },
-  "If-24": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "foundry",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 5,
-              "key": "forest",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!hearthActive",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!hearthActive",
-      },
-    ],
-    "key": "If-24",
-    "tag": "If",
-  },
-  "If-25": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "trapDoor",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "trapDoorOpen",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "trapDoorOpen",
-      },
-    ],
-    "key": "If-25",
-    "tag": "If",
-  },
-  "If-26": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "trapDoor",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!trapDoorOpen",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!trapDoorOpen",
-      },
-    ],
-    "key": "If-26",
-    "tag": "If",
-  },
-  "If-27": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "statueChamber",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 9,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 6,
-              "key": "forest",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 9,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 5,
-              "key": "foundry",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "intersection",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "well",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "hearthActive && birdsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "hearthActive && birdsInOrchard",
-      },
-    ],
-    "key": "If-27",
-    "tag": "If",
-  },
-  "If-28": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 5,
-              "key": "statueChamber",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 6,
-              "key": "foundry",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 7,
-              "key": "forest",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 10,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 10,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 5,
-              "key": "intersection",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 5,
-              "key": "well",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!hearthActive && bellowsRunning && birdsInOrchard",
-      },
-    ],
-    "key": "If-28",
-    "tag": "If",
-  },
-  "If-29": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 6,
-              "key": "statueChamber",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 7,
-              "key": "foundry",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 8,
-              "key": "forest",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 11,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 11,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 6,
-              "key": "intersection",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 6,
-              "key": "well",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
-      },
-    ],
-    "key": "If-29",
-    "tag": "If",
-  },
-  "If-3": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "determinedStatue",
-              "tag": "Feature",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "wellStatues",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "determinedStatueHead",
-              "not": true,
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "determinedStatueHead",
-        "not": true,
-      },
-    ],
-    "key": "If-3",
-    "tag": "If",
-  },
-  "If-30": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 7,
-              "key": "statueChamber",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 8,
-              "key": "foundry",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 9,
-              "key": "forest",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 12,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 12,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 7,
-              "key": "intersection",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 7,
-              "key": "well",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
-      },
-    ],
-    "key": "If-30",
-    "tag": "If",
-  },
-  "If-31": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 8,
-              "key": "statueChamber",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 9,
-              "key": "foundry",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 10,
-              "key": "forest",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 13,
-              "key": "orchard",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 13,
-              "key": "fireCatGrotto",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 8,
-              "key": "intersection",
-              "tag": "Room",
-            },
-          },
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 8,
-              "key": "well",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "hearthActive && !birdsInOrchard",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "hearthActive && !birdsInOrchard",
-      },
-    ],
-    "key": "If-31",
-    "tag": "If",
-  },
-  "If-4": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "determinedNeck",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "determinedStatueRightArm",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "determinedStatueRightArm",
-      },
-    ],
-    "key": "If-4",
-    "tag": "If",
-  },
-  "If-5": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 3,
-              "key": "determinedNeck",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "determinedStatueRightArm",
-              "not": true,
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "determinedStatueRightArm",
-        "not": true,
-      },
-    ],
-    "key": "If-5",
-    "tag": "If",
-  },
-  "If-6": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 4,
-              "key": "determinedNeck",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "determinedStatueLeftArm",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "determinedStatueLeftArm",
-      },
-    ],
-    "key": "If-6",
-    "tag": "If",
-  },
-  "If-7": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 5,
-              "key": "determinedNeck",
-              "tag": "Feature",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "determinedStatueLeftArm",
-              "not": true,
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "determinedStatueLeftArm",
-        "not": true,
-      },
-    ],
-    "key": "If-7",
-    "tag": "If",
-  },
-  "If-8": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "trickles out of the well, forming a small stream headed west.",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "waterDescription",
-            "tag": "Bookmark",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "waterFlow === 0",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "waterFlow === 0",
-      },
-    ],
-    "key": "If-8",
-    "tag": "If",
-  },
-  "If-9": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "tag": "String",
-              "value": "pours over the edge of the well, forming a burbling stream to the west.",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Dungeon",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "waterDescription",
-            "tag": "Bookmark",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "waterFlow === 0",
-              "not": true,
-            },
-            Object {
-              "if": "waterFlow === 1",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "waterFlow === 0",
-        "not": true,
-      },
-      Object {
-        "if": "waterFlow === 1",
-      },
-    ],
-    "key": "If-9",
-    "tag": "If",
   },
   "VORTEX": Object {
     "appearances": Array [
@@ -2781,8 +1809,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-19",
+            "conditions": Array [
+              Object {
+                "if": "bellowsRunning",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -2844,8 +1875,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-20",
+            "conditions": Array [
+              Object {
+                "if": "!bellowsRunning",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -2961,8 +1995,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 1,
-            "key": "If-18",
+            "conditions": Array [
+              Object {
+                "if": "birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -3170,8 +2207,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 1,
-            "key": "If-23",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -3574,8 +2614,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 1,
-            "key": "If-23",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -3671,8 +2714,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 1,
-            "key": "If-18",
+            "conditions": Array [
+              Object {
+                "if": "birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -4126,8 +3172,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-4",
+            "conditions": Array [
+              Object {
+                "if": "determinedStatueRightArm",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -4188,8 +3237,12 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-5",
+            "conditions": Array [
+              Object {
+                "if": "determinedStatueRightArm",
+                "not": true,
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -4251,8 +3304,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-6",
+            "conditions": Array [
+              Object {
+                "if": "determinedStatueLeftArm",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -4314,8 +3370,12 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-7",
+            "conditions": Array [
+              Object {
+                "if": "determinedStatueLeftArm",
+                "not": true,
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -4415,8 +3475,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-2",
+            "conditions": Array [
+              Object {
+                "if": "determinedStatueHead",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -4461,8 +3524,12 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-3",
+            "conditions": Array [
+              Object {
+                "if": "determinedStatueHead",
+                "not": true,
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -4865,8 +3932,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-13",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel < 4",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -4936,8 +4006,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-14",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel >= 4",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5007,8 +4080,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-16",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel < 4 && waterLevel >= 2",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5071,8 +4147,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-17",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel < 2",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5198,8 +4277,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-27",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5240,8 +4322,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-28",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5282,8 +4367,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-29",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5324,8 +4412,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-30",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5366,8 +4457,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-31",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5401,8 +4495,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-13",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel < 4",
+              },
+            ],
             "tag": "If",
           },
           Object {
@@ -5652,8 +4749,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-23",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5702,8 +4802,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-24",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5744,8 +4847,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-27",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5786,8 +4892,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-28",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5828,8 +4937,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-29",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5870,8 +4982,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-30",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5912,8 +5027,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-31",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -5947,8 +5065,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-24",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive",
+              },
+            ],
             "tag": "If",
           },
           Object {
@@ -6223,8 +5344,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-23",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6273,8 +5397,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-24",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6315,8 +5442,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-27",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6357,8 +5487,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-28",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6399,8 +5532,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-29",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6441,8 +5577,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-30",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6483,8 +5622,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-31",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6518,8 +5660,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-24",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive",
+              },
+            ],
             "tag": "If",
           },
           Object {
@@ -6781,8 +5926,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-11",
+            "conditions": Array [
+              Object {
+                "if": "gratingBlocked",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6844,8 +5992,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-12",
+            "conditions": Array [
+              Object {
+                "if": "!gratingBlocked",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -6967,8 +6118,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-21",
+            "conditions": Array [
+              Object {
+                "if": "hearthPrimed",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -7013,8 +6167,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-22",
+            "conditions": Array [
+              Object {
+                "if": "!hearthPrimed",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -7189,8 +6346,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-23",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -7398,8 +6558,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-27",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -7440,8 +6603,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-28",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -7482,8 +6648,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-29",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -7524,8 +6693,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-30",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -7566,8 +6738,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-31",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8074,8 +7249,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-14",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel >= 4",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8122,13 +7300,19 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-14",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel >= 4",
+              },
+            ],
             "tag": "If",
           },
           Object {
-            "index": 0,
-            "key": "If-15",
+            "conditions": Array [
+              Object {
+                "if": "catsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8175,8 +7359,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 1,
-            "key": "If-13",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel < 4",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8223,13 +7410,19 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 1,
-            "key": "If-13",
+            "conditions": Array [
+              Object {
+                "if": "waterLevel < 4",
+              },
+            ],
             "tag": "If",
           },
           Object {
-            "index": 1,
-            "key": "If-15",
+            "conditions": Array [
+              Object {
+                "if": "catsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8270,8 +7463,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-18",
+            "conditions": Array [
+              Object {
+                "if": "birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8354,8 +7550,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-27",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8396,8 +7595,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-28",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8438,8 +7640,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-29",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8480,8 +7685,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-30",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8522,8 +7730,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-31",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8909,8 +8120,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-0",
+            "conditions": Array [
+              Object {
+                "if": "robedStatueActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -8955,8 +8169,12 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-1",
+            "conditions": Array [
+              Object {
+                "if": "robedStatueActive",
+                "not": true,
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -9146,8 +8364,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-0",
+            "conditions": Array [
+              Object {
+                "if": "robedStatueActive",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -9202,8 +8423,12 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-1",
+            "conditions": Array [
+              Object {
+                "if": "robedStatueActive",
+                "not": true,
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -9603,8 +8828,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-27",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -9645,8 +8873,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-28",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -9687,8 +8918,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-29",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -9729,8 +8963,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-30",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -9771,8 +9008,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-31",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -10327,8 +9567,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-25",
+            "conditions": Array [
+              Object {
+                "if": "trapDoorOpen",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -10367,8 +9610,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-26",
+            "conditions": Array [
+              Object {
+                "if": "!trapDoorOpen",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -10462,26 +9708,68 @@ Object {
       Object {
         "children": Array [
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "trickles out of the well, forming a small stream headed west.",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-8",
+              "conditions": Array [
+                Object {
+                  "if": "waterFlow === 0",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "pours over the edge of the well, forming a burbling stream to the west.",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-9",
+              "conditions": Array [
+                Object {
+                  "if": "waterFlow === 0",
+                  "not": true,
+                },
+                Object {
+                  "if": "waterFlow === 1",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "tag": "String",
+                  "value": "rushes out of the well, forming a gushing torrent to the west.",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-10",
+              "conditions": Array [
+                Object {
+                  "if": "waterFlow === 0",
+                  "not": true,
+                },
+                Object {
+                  "if": "waterFlow === 1",
+                  "not": true,
+                },
+              ],
               "tag": "If",
             },
           },
@@ -10751,8 +10039,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-27",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -10793,8 +10084,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-28",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -10835,8 +10129,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-29",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && !bellowsRunning && birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -10877,8 +10174,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-30",
+            "conditions": Array [
+              Object {
+                "if": "!hearthActive && bellowsRunning && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -10919,8 +10219,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-31",
+            "conditions": Array [
+              Object {
+                "if": "hearthActive && !birdsInOrchard",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -11185,8 +10488,12 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-1",
+            "conditions": Array [
+              Object {
+                "if": "robedStatueActive",
+                "not": true,
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -11295,8 +10602,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-2",
+            "conditions": Array [
+              Object {
+                "if": "determinedStatueHead",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -11341,8 +10651,12 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-3",
+            "conditions": Array [
+              Object {
+                "if": "determinedStatueHead",
+                "not": true,
+              },
+            ],
             "tag": "If",
           },
         ],

@@ -335,14 +335,19 @@ describe('WML normalize', () => {
             const normalizer = new Normalizer()
             normalizer.loadWML(testSource)
             normalizer.assignDependencies((src) => ([src]))
-            expect(normalizer._normalForm['If-0']).toEqual({
-                key: 'If-0',
-                tag: 'If',
-                conditions: [{ if: 'true', dependencies: ['true'] }],
+            expect(normalizer._normalForm['map1']).toEqual({
+                tag: 'Map',
+                key: 'map1',
                 appearances: [{
-                    contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }, { tag: 'Map', key: 'map1', index: 0 }],
-                    data: { tag: 'If', conditions: [{ if: 'true', dependencies: ['true'] }]},
-                    children: [{ data: { tag: 'Room', key: 'room1', index: 1 }, children: [] }]
+                    data: { tag: 'Map', key: 'map1' },
+                    children: [{
+                        data: {
+                            tag: 'If',
+                            conditions: [{ if: 'true', dependencies: ['true'] }]
+                        },
+                        children: [{ data: { tag: 'Room', key: 'room1', index: 1 }, children: [] }]
+                    }],
+                    contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
                 }]
             })
         })
