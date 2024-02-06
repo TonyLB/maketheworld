@@ -225,12 +225,11 @@ export class Normalizer {
                     appearances: [defaultedAppearance]
                 }
             case 'Exit':
-                const exitRoomIndex = appearance.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
+                const { exitRoomIndex, exitRoomKey } = appearance.contextStack.reduceRight((previous, context, index) => (((context.tag === 'Room') && (previous.exitRoomIndex === -1)) ? { exitRoomIndex: index, exitRoomKey: context.key } : previous), { exitRoomIndex: -1, exitRoomKey: '' })
                 if (exitRoomIndex === -1) {
                     throw new SchemaException('Exit tag cannot be created outside of room', { tag: 'Exit', to: '', from: '', contents: [], name: '', startTagToken: 0, endTagToken: 0 })
                 }
 
-                const exitRoomKey = appearance.contextStack[exitRoomIndex].key
                 return {
                     key: node.key,
                     tag: node.tag,
@@ -284,7 +283,7 @@ export class Normalizer {
 
             if (isSchemaTagWithNormalEquivalent(data) && (!(options?.contextStack ?? []).find(({ tag }) => (['Name', 'Description'].includes(tag))))) {
                 const translatedData = this._translate(
-                    { ...node, contextStack: (options?.contextStack ?? []).filter(isNormalReference) },
+                    { ...node, contextStack: options?.contextStack ?? [] },
                     data
                 )
                 const { key } = translatedData
@@ -407,7 +406,7 @@ export class Normalizer {
         if (node.tag === 'Asset') {
             const allAssetDescendantNormals = (Object.values(this._normalForm) as NormalItem[])
                 .filter(({ tag }) => (isImportableTag(tag)))
-                .filter(({ appearances = [] }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find(({ key }) => (key === node.key)))))))
+                .filter(({ appearances = [] }) => (Boolean(appearances.find(({ contextStack }) => (contextStack.find((data) => (isNormalReference(data) && data.key === node.key)))))))
                 .filter(({ key, exportAs }) => (exportAs && exportAs !== key))
             if (allAssetDescendantNormals.length) {
                 expandedTags = [...expandedTags, {
@@ -453,7 +452,7 @@ export class Normalizer {
         }
         const appearanceTagTrees = (normalItem.appearances ?? [])
             .map(({ contextStack, data, children }) => {
-                const contextNodes = contextStack.map(this._lookupAppearance.bind(this)).map((node) => (node ? [{ data: node.data }] : [])).flat(1)
+                const contextNodes = contextStack.map((data) => (isNormalReference(data) ? this._lookupAppearance(data) : { data })).map((node) => (node ? [{ data: node.data }] : [])).flat(1)
                 return new SchemaTagTree(this._expandNormalRefTree([{ data, children }]))._tagList.map((tagItem) => ([...contextNodes, ...tagItem]))
             }).flat(1)
         const aggregateTagTree = new SchemaTagTree([])

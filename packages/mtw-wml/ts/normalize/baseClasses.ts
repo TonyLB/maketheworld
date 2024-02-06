@@ -33,7 +33,7 @@ export const isNormalReference = (value: NormalReference | SchemaTag): value is 
 }
 
 export type BaseAppearance<Extra extends {} = {}> = GenericTreeNodeFiltered<SchemaTag, NormalReference | SchemaTag, Extra> & {
-    contextStack: NormalReference[];
+    contextStack: (NormalReference | SchemaTag)[];
 }
 
 type NormalBase<Extra extends {} = {}> = {
