@@ -139,10 +139,6 @@ export type NormalConditionMixin = {
     conditions: NormalConditionStatement[];
 }
 
-export type NormalCondition<Extra extends {} = {}> = {
-    tag: 'If';
-} & NormalBase<Extra> & NormalConditionMixin
-
 export type NormalImage<Extra extends {} = {}> = {
     tag: 'Image';
     fileURL?: string;
@@ -192,7 +188,6 @@ export type NormalItem<Extra extends {} = {}> = NormalAsset<Extra> |
     NormalVariable<Extra> |
     NormalComputed<Extra> |
     NormalAction<Extra> |
-    NormalCondition<Extra> |
     NormalCharacter<Extra> |
     NormalMessage<Extra> |
     NormalMoment<Extra>
@@ -235,7 +230,6 @@ export function isNormalAsset(arg: NormalItem): arg is NormalAsset {
 }
 export const isNormalCharacter = (arg: NormalItem): arg is NormalCharacter => (arg?.tag === 'Character')
 export const isNormalImport = (arg: NormalItem): arg is NormalImport => (arg?.tag === 'Import')
-export const isNormalCondition = (arg: NormalItem): arg is NormalCondition => (arg.tag === 'If')
 export const isNormalVariable = (arg: NormalItem): arg is NormalVariable => (arg.tag === 'Variable')
 export const isNormalComputed = (arg: NormalItem): arg is NormalComputed => (arg.tag === 'Computed')
 export const isNormalAction = (arg: NormalItem): arg is NormalAction => (arg.tag === 'Action')
