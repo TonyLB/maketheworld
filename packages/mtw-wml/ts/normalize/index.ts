@@ -66,10 +66,10 @@ import mergeSchemaTrees from '../schema/treeManipulation/merge';
 import SchemaTagTree from '../tagTree/schema';
 import { map } from '../tree/map';
 
-export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
+export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag
 
 const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWithNormalEquivalent => (
-    isSchemaWithKey(node) || (['Import', 'If'].includes(node.tag))
+    isSchemaWithKey(node) || (['Import'].includes(node.tag))
 )
 
 type NormalizeTagTranslationMap = Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "If" | "Exit" | "Map" | "Room" | "Feature" | "Knowledge" | "Bookmark" | "Character" | "Message" | "Moment" | "After" | "Before" | "Replace">
@@ -101,7 +101,6 @@ export class Normalizer {
     _translate(appearance: BaseAppearance, node: SchemaVariableTag): NormalVariable
     _translate(appearance: BaseAppearance, node: SchemaComputedTag): NormalComputed
     _translate(appearance: BaseAppearance, node: SchemaActionTag): NormalAction
-    _translate(appearance: BaseAppearance, node: SchemaConditionTag): NormalCondition
     _translate(appearance: BaseAppearance, node: SchemaImportTag): NormalImport
     _translate(appearance: BaseAppearance, node: SchemaRoomTag): NormalRoom
     _translate(appearance: BaseAppearance, node: SchemaFeatureTag): NormalFeature
@@ -176,13 +175,6 @@ export class Normalizer {
                     tag: 'Action',
                     src: node.src,
                     appearances: [defaultedAppearance]
-                }
-            case 'If':
-                return {
-                    key: keyForIfValue(node.conditions),
-                    tag: 'If',
-                    conditions: node.conditions,
-                    appearances: [appearance]
                 }
             case 'Import':
                 return {

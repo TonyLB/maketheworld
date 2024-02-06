@@ -2,44 +2,6 @@
 
 exports[`WML normalize should accumulate multiple appearances of the same key 1`] = `
 Object {
-  "If-0": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "a123",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "true",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "true",
-      },
-    ],
-    "key": "If-0",
-    "tag": "If",
-  },
   "Test": Object {
     "Story": false,
     "appearances": Array [
@@ -62,10 +24,22 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 2,
+                  "key": "a123",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-0",
+              "conditions": Array [
+                Object {
+                  "if": "true",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -178,8 +152,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-0",
+            "conditions": Array [
+              Object {
+                "if": "true",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -400,125 +377,6 @@ Object {
 
 exports[`WML normalize should correctly handle multiple and nested conditionals 1`] = `
 Object {
-  "If-0": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "a123",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "strong",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "strong",
-      },
-    ],
-    "key": "If-0",
-    "tag": "If",
-  },
-  "If-1": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 0,
-              "key": "If-2",
-              "tag": "If",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "!strong",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "!strong",
-      },
-    ],
-    "key": "If-1",
-    "tag": "If",
-  },
-  "If-2": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 2,
-              "key": "a123",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "If-1",
-            "tag": "If",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "trendy",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "trendy",
-      },
-    ],
-    "key": "If-2",
-    "tag": "If",
-  },
   "Test": Object {
     "Story": false,
     "appearances": Array [
@@ -533,18 +391,54 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "a123",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-0",
+              "conditions": Array [
+                Object {
+                  "if": "strong",
+                },
+              ],
               "tag": "If",
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "index": 2,
+                      "key": "a123",
+                      "tag": "Room",
+                    },
+                  },
+                ],
+                "data": Object {
+                  "conditions": Array [
+                    Object {
+                      "if": "trendy",
+                    },
+                  ],
+                  "tag": "If",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-1",
+              "conditions": Array [
+                Object {
+                  "if": "!strong",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -650,8 +544,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-0",
+            "conditions": Array [
+              Object {
+                "if": "strong",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -686,13 +583,19 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-1",
+            "conditions": Array [
+              Object {
+                "if": "!strong",
+              },
+            ],
             "tag": "If",
           },
           Object {
-            "index": 0,
-            "key": "If-2",
+            "conditions": Array [
+              Object {
+                "if": "trendy",
+              },
+            ],
             "tag": "If",
           },
         ],
@@ -865,44 +768,6 @@ Object {
 
 exports[`WML normalize should denormalize condition dependencies into contextStack 1`] = `
 Object {
-  "If-0": Object {
-    "appearances": Array [
-      Object {
-        "children": Array [
-          Object {
-            "children": Array [],
-            "data": Object {
-              "index": 1,
-              "key": "a123",
-              "tag": "Room",
-            },
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "data": Object {
-          "conditions": Array [
-            Object {
-              "if": "strong",
-            },
-          ],
-          "tag": "If",
-        },
-      },
-    ],
-    "conditions": Array [
-      Object {
-        "if": "strong",
-      },
-    ],
-    "key": "If-0",
-    "tag": "If",
-  },
   "Test": Object {
     "Story": false,
     "appearances": Array [
@@ -917,10 +782,22 @@ Object {
             },
           },
           Object {
-            "children": Array [],
+            "children": Array [
+              Object {
+                "children": Array [],
+                "data": Object {
+                  "index": 1,
+                  "key": "a123",
+                  "tag": "Room",
+                },
+              },
+            ],
             "data": Object {
-              "index": 0,
-              "key": "If-0",
+              "conditions": Array [
+                Object {
+                  "if": "strong",
+                },
+              ],
               "tag": "If",
             },
           },
@@ -1018,8 +895,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "index": 0,
-            "key": "If-0",
+            "conditions": Array [
+              Object {
+                "if": "strong",
+              },
+            ],
             "tag": "If",
           },
         ],

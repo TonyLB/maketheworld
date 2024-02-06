@@ -4,7 +4,7 @@
 // their own node.
 //
 
-import { isNormalCondition, isNormalExit, NormalCondition, NormalConditionStatement, NormalForm, NormalItem, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses";
+import { isNormalCondition, NormalCondition, NormalForm, NormalItem, NormalReference } from "@tonylb/mtw-wml/dist/normalize/baseClasses";
 import { deepEqual } from "../../../lib/objects";
 import { noConditionContext } from "./utilities";
 
