@@ -32,14 +32,12 @@ import {
     isNormalAsset,
     isNormalCharacter,
     isNormalComputed,
-    isNormalCondition,
     isNormalReference,
     NormalAction,
     NormalAsset,
     NormalBookmark,
     NormalCharacter,
     NormalComputed,
-    NormalCondition,
     NormalFeature,
     NormalForm,
     NormalImage,
@@ -54,7 +52,7 @@ import {
     NormalRoom,
     NormalVariable
 } from './baseClasses'
-import { keyForIfValue, keyForValue } from './keyUtil';
+import { keyForValue } from './keyUtil';
 import SourceStream from '../parser/tokenizer/sourceStream';
 import { objectMap } from '../lib/objects';
 import { schemaFromParse, defaultSchemaTag } from '../schema';
@@ -488,14 +486,6 @@ export class Normalizer {
                 const { data: newData, children: newChildren } = assignSchema([{ data, children }])[0]
                 return { data: newData, children: newChildren, ...rest }
             })
-            if (isNormalCondition(item)) {
-                const conditions = item.conditions.map((condition) => ({ ...condition, dependencies: extract(condition.if) }))
-                return {
-                    ...item,
-                    conditions,
-                    appearances: appearances as BaseAppearance[]
-                }
-            }
             if (isNormalComputed(item)) {
                 const dependencies = extract(item.src)
                 return {
