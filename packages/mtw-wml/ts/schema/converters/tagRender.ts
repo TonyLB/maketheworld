@@ -1,7 +1,7 @@
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { PrintMapEntryArguments, PrintMapOptionsChange } from "./baseClasses"
+import { PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, SchemaToWMLOptions } from "./baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
 import { optionsFactory } from "./utils"
@@ -26,6 +26,68 @@ const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] | un
         return previous
     }, undefined)
     return (contextTagRaw ?? '') === 'Bookmark' ? 'Description' : contextTagRaw
+}
+
+//
+// Parse sequentially through the contents, mapping strings/Tags to renderings of their value.
+//
+export const tagRenderContents = (
+        { descriptionContext, schemaToWML, ...options }: SchemaToWMLOptions & {
+            descriptionContext: boolean;
+            schemaToWML: PrintMapEntry;
+        }
+    ) => (contents: GenericTree<SchemaTag>): string[] => {
+    const { indent, forceNest, context } = options
+    return contents.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
+        const { data } = tag
+        //
+        // Branch 1: Free text in a legal context should be parsed using schemaDescriptionToWML (which includes the more-sophisticated
+        // word-wrap functionality that can break strings across lines as needed)
+        //
+        if (descriptionContext && isSchemaTaggedMessageLegalContents(data)) {
+            //
+            // Branch 1.1: You are at the end of the description, so take all previous tags, as well as this tag, and run the whole list
+            // through schemaDescriptionToWML using an added indent.
+            //
+            if (index === contents.length - 1) {
+                return {
+                    returnValue: [
+                        ...previous.returnValue,
+                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, forceNest, context, padding: 0, siblings: previous.siblings })
+                    ],
+                    siblings: [ ...previous.siblings, tag],
+                    taggedMessageStack: []
+                }
+            }
+            //
+            // Branch 1.2: There are more tags to consider after this one ... throw this free-text onto the taggedMessage stack and proceed.
+            //
+            else {
+                return {
+                    returnValue: previous.returnValue,
+                    siblings: [ ...previous.siblings, tag],
+                    taggedMessageStack: [ ...previous.taggedMessageStack, tag ]
+                }
+            }
+        }
+        //
+        // Branch 2: Non-free-text tags need to be handled by an algorithm that doesn't worry about word-wrap... but also must be conscious that
+        // the tag may be rendered *right after* a long free-text section.  Render free-text if there is any on the taggedMessage stack,
+        // then render the tag with a recursive call to the passed schemaToWML callback function.
+        //
+        else {
+            const newOptions = optionsFactory(PrintMapOptionsChange.Indent)({ ...options, siblings: previous.siblings, context: [...options.context, data] })
+            return {
+                returnValue: [
+                    ...previous.returnValue,
+                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 })] : []),
+                    schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
+                ],
+                siblings: [ ...previous.siblings, tag],
+                taggedMessageStack: []
+            }
+        }
+    }, { returnValue: [], siblings: [], taggedMessageStack: [] }).returnValue
 }
 
 //
@@ -60,72 +122,12 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
     }).filter((value) => (value))
 
     //
-    // Parse sequentially through the contents, mapping strings/Tags to renderings of their value.
+    // TODO (ISS-3450): Separate out the contents-rendering section as a separate function, and use
+    // that in conditional rendering as well (to render all statements)
     //
-    const { returnValue: mappedContents } = contents.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
-        //
-        // TODO: Explain why a tag would ever be a string, and how it's handled.
-        //
-        const { data } = tag
-        // if (typeof data === 'string') {
-        //     return {
-        //         returnValue: [
-        //             ...previous.returnValue,
-        //             ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { indent: indent + 1, forceNest, padding: 0, context, siblings: previous.siblings })] : []),
-        //             data
-        //         ],
-        //         siblings: previous.siblings,
-        //         taggedMessageStack: []
-        //     }
-        // }
-        //
-        // Branch 2: Free text in a legal context should be parsed using schemaDescriptionToWML (which includes the more-sophisticated
-        // word-wrap functionality that can break strings across lines as needed)
-        //
-        if (descriptionContext && isSchemaTaggedMessageLegalContents(data)) {
-            //
-            // Branch 2.1: You are at the end of the description, so take all previous tags, as well as this tag, and run the whole list
-            // through schemaDescriptionToWML using an added indent.
-            //
-            if (index === contents.length - 1) {
-                return {
-                    returnValue: [
-                        ...previous.returnValue,
-                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, forceNest, context, padding: 0, siblings: previous.siblings })
-                    ],
-                    siblings: [ ...previous.siblings, tag],
-                    taggedMessageStack: []
-                }
-            }
-            //
-            // Branch 2.2: There are more tags to consider after this one ... throw this free-text onto the taggedMessage stack and proceed.
-            //
-            else {
-                return {
-                    returnValue: previous.returnValue,
-                    siblings: [ ...previous.siblings, tag],
-                    taggedMessageStack: [ ...previous.taggedMessageStack, tag ]
-                }
-            }
-        }
-        //
-        // Branch 3: Non-free-text tags need to be handled by an algorithm that doesn't worry about word-wrap... but also must be conscious that
-        // the tag may be rendered *right after* a long free-text section.  Render free-text if there is any on the taggedMessage stack,
-        // then render the tag with a recursive call to the passed schemaToWML callback function.
-        //
-        else {
-            const newOptions = optionsFactory(PrintMapOptionsChange.Indent)({ ...options, siblings: previous.siblings, context: [...options.context, data] })
-            return {
-                returnValue: [
-                    ...previous.returnValue,
-                    ...(previous.taggedMessageStack.length ? [schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 })] : []),
-                    schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
-                ],
-                siblings: [ ...previous.siblings, tag],
-                taggedMessageStack: []
-            }
-        }
-    }, { returnValue: [], siblings: [], taggedMessageStack: [] })
+
+    const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options })(contents)
+
     const tagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(' ')}>` : `<${[tag, ...propertyRender].join(' ')} />`
     const nestedTagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}>` : `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}/>`
     const tagClose = mappedContents.length ? `</${tag}>` : ''

@@ -208,37 +208,12 @@ export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
                     },
                     finalize: converter.finalize
                 })
-                //
-                // TODO: Check whether there exists an aggregate function.  If so, calculate nearestSibling,
-                // and confirm that it is the right wrapper type, then update its value using the aggregate
-                // function.
-                //
                 const aggregateFunction = converter.aggregate
                 if (aggregateFunction) {
                     aggregator.removeTrailingWhitespace()
                     aggregator.aggregateToSibling(aggregateFunction)
                     aggregator.closeContext()
                 }
-                // const finalizedItem = converter.finalize
-                //     ? converter.finalize(closingItem.data, closingItem.children, contextStack)
-                //     : closingItem
-                // if (converter.aggregate && converter.wrapper) {
-                //     if (contextStack.length === 0) {
-                //         throw new Error(`${closingItem.data} cannot be a top-level component`)
-                //     }
-                //     const siblings = contextStack.filter(({ data: tag }) => (!(isSchemaString(tag) && (!tag.value.trim()))))
-                //     if (siblings.length === 0) {
-                //         throw new Error(`${closingItem.data.tag} must be part of a "${converter.wrapper}" grouping`)
-                //     }
-                //     const nearestSibling = siblings.slice(-1)[0]
-                //     if (nearestSibling.data.tag !== converter.wrapper) {
-                //         throw new Error(`${item.tag} must be part of a "${converter.wrapper}" grouping`)
-                //     }
-                //     contextStack = [...contextStack.slice(0, -1), converter.aggregate(nearestSibling, finalizedItem)]
-                // }
-                // else {
-                //     addSchemaTag(finalizedItem)
-                // }
                 break
         }
     })

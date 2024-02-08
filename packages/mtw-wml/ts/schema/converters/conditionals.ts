@@ -163,8 +163,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
                         ...args,
                         options: {
                             ...args.options,
-                            siblings: previous.siblings,
-                            context: [...args.options.context, { tag: 'If' }]
+                            siblings: previous.siblings
                         },
                         tag
                     })
