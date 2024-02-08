@@ -49,6 +49,13 @@ class SchemaAggregator {
         }, undefined)
     }
 
+    get currentOpenItem(): GenericTreeNode<SchemaTag> | undefined {
+        if (this.contextStack.length === 0) {
+            return undefined
+        }
+        return this.contextStack.slice(-1)[0]
+    }
+
     removeTrailingWhitespace(): void {
         if (this.contextStack.length === 0) {
             return
@@ -67,13 +74,18 @@ class SchemaAggregator {
         this.contextStack = [...this.contextStack.slice(0, -1), { ...parentContext, children: revisedChildren }]
     }
 
-    closeContext(validateItem?: (value: GenericTreeNode<SchemaTag>) => void): void {
+    closeContext(options?: {
+        validateItem?: (value: GenericTreeNode<SchemaTag>) => void;
+        finalize?: (initialTag: SchemaTag, contents: GenericTree<SchemaTag>, contextStack: GenericTree<SchemaTag>) => GenericTreeNode<SchemaTag>;
+    }): void {
+        const { validateItem, finalize } = options ?? {}
         const [priorStack, closingItem] = [this.contextStack.slice(0, -1), this.contextStack.slice(-1)[0]]
         this.contextStack = priorStack
         if (validateItem) {
             validateItem(closingItem)
         }
-        this.addSchemaTag(closingItem)
+        const finalItem = finalize ? finalize(closingItem.data, closingItem.children, priorStack) : closingItem
+        this.addSchemaTag(finalItem)
     }
 
     openContext(node: GenericTreeNode<SchemaTag>): void {
@@ -113,27 +125,11 @@ class SchemaAggregator {
             throw new Error(`Mismatched tag closure ('${tag}') does not match '${closingItem.data.tag}'`)
         }
     }
+
 }
 
 export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
     const aggregator = new SchemaAggregator()
-    let contextStack: GenericTree<SchemaTag> = []
-    let returnValue: GenericTree<SchemaTag> = []
-    const addSchemaTag = (toAdd: GenericTreeNode<SchemaTag>) => {
-        if (contextStack.length) {
-            const [priorStack, parentItem] = [contextStack.slice(0, -1), contextStack.slice(-1)[0]]
-            contextStack = [
-                ...priorStack,
-                {
-                    ...parentItem,
-                    children: [...parentItem.children, toAdd]
-                }
-            ]
-        }
-        else {
-            returnValue.push(toAdd)
-        }
-    }
     items.forEach((item) => {
         const nearestSibling = aggregator.nearestSibling
         const converterWrapper = item.type === ParseTypes.Text ? undefined : converterMap[item.tag]?.wrapper
@@ -151,7 +147,7 @@ export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
                 if (converterWrapper && nearestSibling?.data?.tag === converterWrapper) {
                     aggregator.removeTrailingWhitespace()
                     aggregator.reopenSibling()
-                    aggregator.addSchemaTag({ data: converterMap[item.tag].initialize({ parseOpen: item, contextStack }), children: [] })
+                    aggregator.addSchemaTag({ data: converterMap[item.tag].initialize({ parseOpen: item, contextStack: aggregator.contextStack }), children: [] })
                     const aggregateFunction = converterMap[item.tag]?.aggregate
                     if (aggregateFunction) {
                         aggregator.aggregateToSibling(aggregateFunction)
@@ -159,7 +155,7 @@ export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
                     aggregator.closeContext()
                 }
                 else {
-                    addSchemaTag({ data: converterMap[item.tag].initialize({ parseOpen: item, contextStack }), children: [] })
+                    aggregator.addSchemaTag({ data: converterMap[item.tag].initialize({ parseOpen: item, contextStack: aggregator.contextStack }), children: [] })
                 }
                 break
             case ParseTypes.Open:
@@ -180,43 +176,48 @@ export const schemaFromParse = (items: ParseItem[]): GenericTree<SchemaTag> => {
                     }
                 }
                 aggregator.openContext({
-                    data: converterMap[item.tag].initialize({ parseOpen: item, contextStack }),
+                    data: converterMap[item.tag].initialize({ parseOpen: item, contextStack: aggregator.contextStack }),
                     children: []
                 })
                 break
             case ParseTypes.Close:
-                console.log(`context: ${JSON.stringify(aggregator.contextStack, null, 4)}`)
                 aggregator.validateClosure(item.tag)
                 //
                 // TODO: When all typeCheckContents items are implemented, refactor the below to throw an error whenever there is
                 // not a typeCheckContents function (and there are contents)
                 //
-                const converter = converterMap[item.tag]
-                if (!converter) {
-                    throw new Error(`No converter available for '${item.tag}' parse tag`)
+                const currentOpenItem = aggregator.currentOpenItem
+                if (!currentOpenItem) {
+                    throw new Error(`Mismatched tag closure ('${item.tag}' matches nothing)`)
                 }
-                aggregator.closeContext((closingItem) => {
-                    const illegalTag = closingItem.children.map(({ data }) => (data)).find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, contextStack)))
-                    if (illegalTag) {
-                        throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.data.tag}' item contents`)
-                    }
-                    if (converter.validateContents) {
-                        if (!validateContents(converter.validateContents)(closingItem.children)) {
-                            throw new Error(`Illegal contents in '${closingItem.data.tag}' item`)
+                const converter = converterMap[currentOpenItem.data.tag]
+                if (!converter) {
+                    throw new Error(`No converter available for '${currentOpenItem.data.tag}' parse tag`)
+                }
+                aggregator.closeContext({
+                    validateItem: (closingItem) => {
+                        const illegalTag = closingItem.children.map(({ data }) => (data)).find((item) => (converter.typeCheckContents && !converter.typeCheckContents(item, aggregator.contextStack)))
+                        if (illegalTag) {
+                            throw new Error(`Illegal tag ('${illegalTag.tag}') in '${closingItem.data.tag}' item contents`)
                         }
-                    }
+                        if (converter.validateContents) {
+                            if (!validateContents(converter.validateContents)(closingItem.children)) {
+                                throw new Error(`Illegal contents in '${closingItem.data.tag}' item`)
+                            }
+                        }
+                    },
+                    finalize: converter.finalize
                 })
                 //
                 // TODO: Check whether there exists an aggregate function.  If so, calculate nearestSibling,
                 // and confirm that it is the right wrapper type, then update its value using the aggregate
                 // function.
                 //
-                const aggregateFunction = converterMap[item.tag]?.aggregate
+                const aggregateFunction = converter.aggregate
                 if (aggregateFunction) {
                     aggregator.removeTrailingWhitespace()
                     aggregator.aggregateToSibling(aggregateFunction)
                     aggregator.closeContext()
-                    console.log(`contextStack: ${JSON.stringify(aggregator.contextStack, null, 4)}`)
                 }
                 // const finalizedItem = converter.finalize
                 //     ? converter.finalize(closingItem.data, closingItem.children, contextStack)

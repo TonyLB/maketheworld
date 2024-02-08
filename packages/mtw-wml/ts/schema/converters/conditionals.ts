@@ -33,6 +33,26 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
         },
         wrapper: 'If'
     },
+    Statement: {
+        initialize: ({ parseOpen }): SchemaConditionStatementTag => {
+            const validatedProperties = validateProperties(conditionalTemplates.ElseIf)(parseOpen)
+            return {
+                tag: 'Statement',
+                if: validatedProperties.DEFAULT,
+            }
+        },
+        wrapper: 'If',
+        aggregate: (previous, node) => {
+            const nearestSibling = previous.children.length ? previous.children.slice(-1)[0].data : undefined
+            if (nearestSibling && isSchemaConditionFallthrough(nearestSibling)) {
+                throw new Error(`Elsif must follow an If or Elsif`)
+            }
+            return {
+                ...previous,
+                children: [...previous.children, node]
+            }
+        }
+    },
     ElseIf: {
         initialize: ({ parseOpen }): SchemaConditionStatementTag => {
             const validatedProperties = validateProperties(conditionalTemplates.ElseIf)(parseOpen)
@@ -72,6 +92,25 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
+    Fallthrough: {
+        initialize: (): SchemaConditionFallthroughTag => {
+            return { tag: 'Fallthrough' }
+        },
+        wrapper: 'If',
+        aggregate: (previous, node) => {
+            if (previous.children.length === 0) {
+                throw new Error(`Else must be part of a "If" grouping`)
+            }
+            const nearestSibling = previous.children.slice(-1)[0].data
+            if (isSchemaConditionFallthrough(nearestSibling)) {
+                throw new Error(`Else must follow an If or Elsif`)
+            }
+            return {
+                ...previous,
+                children: [...previous.children, node]
+            }
+        }
+    }
 }
 
 export const conditionalPrintMap: Record<string, PrintMapEntry> = {
