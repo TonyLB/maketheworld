@@ -5,7 +5,7 @@ import { GenericTree, GenericTreeNode } from "../../tree/baseClasses";
 
 export type SchemaConverterArguments = {
     parseOpen: ParseTagOpen | ParseTagSelfClosure;
-    contextStack: SchemaContextItem[];
+    contextStack: GenericTree<SchemaTag>;
 }
 
 export type SchemaInitialConverter = {
@@ -37,10 +37,20 @@ export type ConverterMapValidateProperties = {
 
 export type ConverterMapEntry = {
     initialize: SchemaInitialConverter;
-    typeCheckContents?: (item: SchemaTag, contextStack: SchemaContextItem[]) => boolean;
+    typeCheckContents?: (item: SchemaTag, contextStack: GenericTree<SchemaTag>) => boolean;
     validateContents?: ConverterMapValidateProperties;
-    finalize?: (initialTag: SchemaTag, contents: GenericTree<SchemaTag>, contextStack: SchemaContextItem[]) => GenericTreeNode<SchemaTag>;
+    finalize?: (initialTag: SchemaTag, contents: GenericTree<SchemaTag>, contextStack: GenericTree<SchemaTag>) => GenericTreeNode<SchemaTag>;
+    //
+    // wrapper and aggregate are for tags that wrap their sibling groups together (e.g. If/ElseIf/Else). If wrapper is
+    // present but aggregate is not then a wrapper is created. If aggregate is present then a previous wrapper must
+    // already exist on contextStack, and the aggregate function is used to turn that wrapper object (together with
+    // its current children) into the new wrapper object (with, presumably, updated children)
+    //
+    wrapper?: 'If';
+    aggregate?: (previous: GenericTreeNode<SchemaTag>, node: GenericTreeNode<SchemaTag>) => GenericTreeNode<SchemaTag>;
 }
+
+export const isSchemaWrapper = (tag: SchemaTag['tag']): tag is 'If' => (['If'].includes(tag))
 
 export type SchemaToWMLOptions = {
     indent: number;

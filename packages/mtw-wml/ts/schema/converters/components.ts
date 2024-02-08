@@ -4,21 +4,16 @@ import {
     SchemaExitTag,
     SchemaFeatureTag,
     SchemaKnowledgeTag,
-    SchemaMapRoom,
     SchemaMapTag,
     SchemaNameTag,
     SchemaPositionTag,
     SchemaRoomTag,
-    SchemaStringTag,
     SchemaTag,
-    SchemaTaggedMessageLegalContents,
     isSchemaBookmark,
-    isSchemaCondition,
     isSchemaDescription,
     isSchemaExit,
     isSchemaFeature,
     isSchemaFeatureIncomingContents,
-    isSchemaImage,
     isSchemaKnowledge,
     isSchemaKnowledgeIncomingContents,
     isSchemaMap,
@@ -29,15 +24,12 @@ import {
     isSchemaString,
     isSchemaTaggedMessageLegalContents
 } from "../baseClasses"
-import { extractConditionedItemFromContents, extractNameFromContents } from "../utils"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { GenericTree, GenericTreeFiltered, GenericTreeNodeFiltered } from "../../tree/baseClasses"
-import SchemaTagTree from "../../tagTree/schema"
-import dfsWalk from "../../tree/dfsWalk"
+import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
 
 const componentTemplates = {
     Exit: {
@@ -84,7 +76,7 @@ const componentTemplates = {
 export const componentConverters: Record<string, ConverterMapEntry> = {
     Exit: {
         initialize: ({ parseOpen, contextStack }): SchemaExitTag => {
-            const roomContextList = contextStack.map(({ tag }) => (tag)).filter(isSchemaRoom)
+            const roomContextList = contextStack.map(({ data }) => (data)).filter(isSchemaRoom)
             const roomContext = roomContextList.length > 0 ? roomContextList.slice(-1)[0] : undefined
             const { from, to, ...rest } = validateProperties(componentTemplates.Exit)(parseOpen)
             if (!roomContext && (!from || !to)) {

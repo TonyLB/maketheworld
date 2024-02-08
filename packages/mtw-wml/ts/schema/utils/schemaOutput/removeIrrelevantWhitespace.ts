@@ -5,7 +5,6 @@ import { deepEqual } from "../../../lib/objects"
 import { GenericTree } from "../../../tree/baseClasses"
 import { SchemaTag, isSchemaLineBreak, isSchemaSpacer, isSchemaString } from "../../baseClasses"
 
-//
 export const removeIrrelevantWhitespace = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
     tree.filter((item, index, all) => {
         const { data } = item

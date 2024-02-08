@@ -1,82 +1,16 @@
-import { deepEqual } from "../../lib/objects"
-import { NormalConditionStatement } from "../../normalize/baseClasses"
-import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import {
-    SchemaConditionTag,
+    SchemaConditionFallthroughTag,
+    SchemaConditionStatementTag,
     SchemaTag,
-    isSchemaAssetContents,
     isSchemaCondition,
-    isSchemaFeatureIncomingContents,
-    isSchemaKnowledgeIncomingContents,
-    isSchemaMapContents,
-    isSchemaRoomIncomingContents,
-    isSchemaString,
-    isSchemaTaggedMessageLegalContents,
+    isSchemaConditionFallthrough,
+    isSchemaConditionStatement
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { SchemaContextItem } from "../baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, SchemaToWMLOptions } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { translateTaggedMessageContents } from '../utils/schemaOutput/translateTaggedMessageContents'
-import { removeIrrelevantWhitespace } from '../utils/schemaOutput/removeIrrelevantWhitespace'
-import { GenericTree,  GenericTreeNodeFiltered } from "../../tree/baseClasses"
-
-export const conditionalSiblingsConditions = (contextStack: SchemaContextItem[], label: string) => {
-    if (contextStack.length === 0) {
-        throw new Error(`${label} cannot be a top-level component`)
-    }
-    const siblings = contextStack.slice(-1)[0].children.filter(({ data: tag }) => (!(isSchemaString(tag) && (!tag.value.trim()))))
-    if (siblings.length === 0) {
-        throw new Error(`${label} must follow an If or ElseIf tag`)
-    }
-    const nearestSibling = siblings.slice(-1)[0]
-    if (isSchemaCondition(nearestSibling.data)) {
-        if (nearestSibling.data.conditions.slice(-1)[0].not) {
-            throw new Error(`${label} must follow an If or ElseIf tag`)
-        }
-    }
-    else {
-        console.log(`siblings: ${JSON.stringify(siblings, null, 4)}`)
-        throw new Error(`${label} must follow an If or ElseIf tag`)
-    }
-    return nearestSibling.data.conditions
-}
-
-export const conditionLegalContents = (item, contextStack) => {
-    const legalContextStack = contextStack.map(({ tag }) => (tag.tag)).filter(isLegalParseConditionContextTag)
-    if (legalContextStack.length === 0) {
-        throw new Error('Conditional items cannot be top-level')
-    }
-    const nearestLegalContext = legalContextStack.slice(-1)[0]
-    switch(nearestLegalContext) {
-        case 'Asset': return isSchemaAssetContents(item)
-        case 'Bookmark':
-        case 'Description': return isSchemaTaggedMessageLegalContents(item)
-        case 'Feature': return isSchemaFeatureIncomingContents(item)
-        case 'Knowledge': return isSchemaKnowledgeIncomingContents(item)
-        case 'Map': return isSchemaMapContents(item)
-        case 'Room': return isSchemaRoomIncomingContents(item)
-        default: return false
-    }
-}
-
-export const conditionFinalize = (initialTag: SchemaTag, children: GenericTree<SchemaTag>, contextStack: SchemaContextItem[]): GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag> => {
-    if (!isSchemaCondition(initialTag)) {
-        throw new Error('Type mismatch on schema finalize')
-    }
-    const legalContextStack = contextStack.map(({ tag }) => (tag.tag)).filter(isLegalParseConditionContextTag)
-    if (legalContextStack.length === 0) {
-        throw new Error('Conditional items cannot be top-level')
-    }
-    const nearestLegalContext = legalContextStack.slice(-1)[0]
-    return {
-        data: initialTag,
-        children: (['Bookmark', 'Description'].includes(nearestLegalContext))
-            ? translateTaggedMessageContents(children)
-            : children
-    }
-}
+import { GenericTree } from "../../tree/baseClasses"
 
 const conditionalTemplates = {
     If: {
@@ -90,114 +24,118 @@ const conditionalTemplates = {
 
 export const conditionalConverters: Record<string, ConverterMapEntry> = {
     If: {
-        initialize: ({ parseOpen }): SchemaConditionTag => {
+        initialize: ({ parseOpen }): SchemaConditionStatementTag => {
             const validatedProperties = validateProperties(conditionalTemplates.If)(parseOpen)
             return {
-                tag: 'If',
-                conditions: [{ if: validatedProperties.DEFAULT }]
+                tag: 'Statement',
+                if: validatedProperties.DEFAULT
             }
         },
-        typeCheckContents: conditionLegalContents,
-        finalize: conditionFinalize
+        wrapper: 'If'
     },
     ElseIf: {
-        initialize: ({ parseOpen, contextStack }): SchemaConditionTag => {
-            const siblingConditions = conditionalSiblingsConditions(contextStack, 'ElseIf')
+        initialize: ({ parseOpen }): SchemaConditionStatementTag => {
             const validatedProperties = validateProperties(conditionalTemplates.ElseIf)(parseOpen)
             return {
-                tag: 'If',
-                conditions: [...(siblingConditions.map((condition) => ({ ...condition, not: true }))), { if: validatedProperties.DEFAULT }],
+                tag: 'Statement',
+                if: validatedProperties.DEFAULT,
             }
         },
-        typeCheckContents: conditionLegalContents,
-        finalize: conditionFinalize
+        wrapper: 'If',
+        aggregate: (previous, node) => {
+            const nearestSibling = previous.children.length ? previous.children.slice(-1)[0].data : undefined
+            if (nearestSibling && isSchemaConditionFallthrough(nearestSibling)) {
+                throw new Error(`Elsif must follow an If or Elsif`)
+            }
+            return {
+                ...previous,
+                children: [...previous.children, node]
+            }
+        }
     },
     Else: {
-        initialize: ({ parseOpen, contextStack }): SchemaConditionTag => {
-            const siblingConditions = conditionalSiblingsConditions(contextStack, 'Else')
-            validateProperties(conditionalTemplates.Else)(parseOpen)
-            return {
-                tag: 'If',
-                conditions: siblingConditions.map((condition) => ({ ...condition, not: true }))
-            }
+        initialize: (): SchemaConditionFallthroughTag => {
+            return { tag: 'Fallthrough' }
         },
-        typeCheckContents: conditionLegalContents,
-        finalize: conditionFinalize
+        wrapper: 'If',
+        aggregate: (previous, node) => {
+            if (previous.children.length === 0) {
+                throw new Error(`Else must be part of a "If" grouping`)
+            }
+            const nearestSibling = previous.children.slice(-1)[0].data
+            if (isSchemaConditionFallthrough(nearestSibling)) {
+                throw new Error(`Else must follow an If or Elsif`)
+            }
+            return {
+                ...previous,
+                children: [...previous.children, node]
+            }
+        }
     },
 }
 
 export const conditionalPrintMap: Record<string, PrintMapEntry> = {
+    Statement: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaConditionStatement(tag)) {
+            return ''
+        }
+        const siblings = args.options.siblings ?? []
+        if (siblings.length === 0) {
+            return tagRender({
+                ...args,
+                tag: 'If',
+                properties: [{ type: 'expression', value: tag.if }],
+                contents: children
+            })    
+        }
+        else {
+            return tagRender({
+                ...args,
+                tag: 'ElseIf',
+                properties: [{ type: 'expression', value: tag.if }],
+                contents: children
+            })    
+        }
+    },
+    Fallthrough: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaConditionFallthrough(tag)) {
+            return ''
+        }
+        return tagRender({
+            ...args,
+            tag: 'Else',
+            properties: [],
+            contents: children
+        })    
+    },
     If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
 
         if (!isSchemaCondition(tag)) {
             return ''
         }
-        const siblings = removeIrrelevantWhitespace([
-            ...(args.options.siblings ?? []),
-            { data: tag, children }
-        ]).slice(0, -1)
-        const closestSibling: SchemaTag | undefined = siblings.length ? siblings.slice(-1)[0].data : undefined
-        const conditionsToSrc = (conditions: NormalConditionStatement[]): string => {
-            if (!conditions.length) { return '' }
-            if (conditions.length > 1) {
-                return conditions.map((condition) => (condition.not ? `!(${condition.if})` : `(${condition.if})`)).join(' && ')
-            }
-            else {
-                const condition = conditions[0]
-                return condition.not ? `!(${condition.if})` : condition.if
-            }
-        }
         //
-        // Evaluate whether closestSibling is a SchemaConditionTag, all of whose conditions
-        // are replicated (with not flags) in the value we're currently examining, and if so
-        // parse out whether it should be an ElseIf tag or an Else tag.
+        // TODO: Figure out how to join lines together with proper amount of indent
         //
-        if (closestSibling &&
-            isSchemaCondition(closestSibling) &&
-            (tag.conditions.length >= closestSibling.conditions.length) &&
-            deepEqual(closestSibling.conditions.map((condition) => ({ ...condition, not: true })), tag.conditions.slice(0, closestSibling.conditions.length))
-        ) {
-            //
-            // In this sub-branch, the condition being considered is an extension of its closestSibling
-            //
-            const remainingConditions = tag.conditions.slice(closestSibling.conditions.length)
-            if (remainingConditions.length) {
-                //
-                // In this sub-branch, there are additional conditions beyond those of its closestSibling,
-                // which conditions indicate that it is an ElseIf clause
-                //
-                return tagRender({
-                    ...args,
-                    tag: 'ElseIf',
-                    properties: [
-                        { type: 'expression', value: conditionsToSrc(remainingConditions) }
-                    ],
-                    contents: children,
-                })
+        const { returnValue } = children.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag> }>((previous, tag) => {
+            return {
+                returnValue: [
+                    ...previous.returnValue,
+                    args.schemaToWML({
+                        ...args,
+                        options: {
+                            ...args.options,
+                            siblings: previous.siblings,
+                            context: [...args.options.context, { tag: 'If' }]
+                        },
+                        tag
+                    })
+                ],
+                siblings: [
+                    ...previous.siblings,
+                    tag
+                ]
             }
-            else {
-                //
-                // In this sub-branch, there are no additional conditions, so it is an Else clause
-                //
-                return tagRender({
-                    ...args,
-                    tag: 'Else',
-                    properties: [],
-                    contents: children,
-                })
-            }
-        }
-        //
-        // Since there is no match to the closestSibling, this is a new If clause (even if it follows a
-        // differently-specified If clause).
-        //
-        return tagRender({
-            ...args,
-            tag: 'If',
-            properties: [
-                { type: 'expression', value: conditionsToSrc(tag.conditions) }
-            ],
-            contents: children,
-        })
+        }, { returnValue: [], siblings: [] })
+        return returnValue.join('\n')
     }
 }
