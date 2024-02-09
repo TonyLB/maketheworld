@@ -17,7 +17,7 @@ type TagRenderProperty = {
     value: boolean;
 }
 
-const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] | undefined => {
+export const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] | undefined => {
     const contextTagRaw = context.reduce<SchemaTag["tag"] | undefined>((previous, item) => {
         const tag = item.tag
         if (isLegalParseConditionContextTag(tag)) {
@@ -120,11 +120,6 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
                 return property.value ? `${propertyKeyLead}"${escapeWMLCharacters(property.value)}"` : ''
         }
     }).filter((value) => (value))
-
-    //
-    // TODO (ISS-3450): Separate out the contents-rendering section as a separate function, and use
-    // that in conditional rendering as well (to render all statements)
-    //
 
     const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options })(contents)
 

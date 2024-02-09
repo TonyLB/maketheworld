@@ -7,10 +7,11 @@ import {
     isSchemaConditionStatement
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
-import { tagRender } from "./tagRender"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange } from "./baseClasses"
+import { extractConditionContextTag, tagRender, tagRenderContents } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree } from "../../tree/baseClasses"
+import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
 
 const conditionalTemplates = {
     If: {
@@ -153,27 +154,18 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             return ''
         }
         //
-        // TODO: Figure out how to join lines together with proper amount of indent
+        // Wrap in a fake tag in order to render children properly
         //
-        const { returnValue } = children.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag> }>((previous, tag) => {
-            return {
-                returnValue: [
-                    ...previous.returnValue,
-                    args.schemaToWML({
-                        ...args,
-                        options: {
-                            ...args.options,
-                            siblings: previous.siblings
-                        },
-                        tag
-                    })
-                ],
-                siblings: [
-                    ...previous.siblings,
-                    tag
-                ]
-            }
-        }, { returnValue: [], siblings: [] })
-        return returnValue.join('\n')
+        const wrappedContents = tagRender({
+            ...args,
+            options: { ...args.options, indent: args.options.indent - 1, siblings: [], forceNest: undefined },
+            tag: 'If',
+            properties: [],
+            contents: children
+        })
+        //
+        // Remove wrapper text from children
+        //
+        return wrappedContents.slice(4, -5).trim()
     }
 }
