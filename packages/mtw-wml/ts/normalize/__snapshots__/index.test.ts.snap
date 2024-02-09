@@ -26,20 +26,23 @@ Object {
           Object {
             "children": Array [
               Object {
-                "children": Array [],
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "index": 2,
+                      "key": "a123",
+                      "tag": "Room",
+                    },
+                  },
+                ],
                 "data": Object {
-                  "index": 2,
-                  "key": "a123",
-                  "tag": "Room",
+                  "if": "true",
+                  "tag": "Statement",
                 },
               },
             ],
             "data": Object {
-              "conditions": Array [
-                Object {
-                  "if": "true",
-                },
-              ],
               "tag": "If",
             },
           },
@@ -152,12 +155,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "conditions": Array [
-              Object {
-                "if": "true",
-              },
-            ],
             "tag": "If",
+          },
+          Object {
+            "if": "true",
+            "tag": "Statement",
           },
         ],
         "data": Object {
@@ -250,19 +252,22 @@ Object {
               Object {
                 "children": Array [
                   Object {
-                    "children": Array [],
+                    "children": Array [
+                      Object {
+                        "children": Array [],
+                        "data": Object {
+                          "tag": "String",
+                          "value": "Vortex!",
+                        },
+                      },
+                    ],
                     "data": Object {
-                      "tag": "String",
-                      "value": "Vortex!",
+                      "if": "strong",
+                      "tag": "Statement",
                     },
                   },
                 ],
                 "data": Object {
-                  "conditions": Array [
-                    Object {
-                      "if": "strong",
-                    },
-                  ],
                   "tag": "If",
                 },
               },
@@ -278,29 +283,35 @@ Object {
                   Object {
                     "children": Array [
                       Object {
-                        "children": Array [],
+                        "children": Array [
+                          Object {
+                            "children": Array [
+                              Object {
+                                "children": Array [],
+                                "data": Object {
+                                  "tag": "String",
+                                  "value": "V.O.R.T.E.X.",
+                                },
+                              },
+                            ],
+                            "data": Object {
+                              "if": "trendy",
+                              "tag": "Statement",
+                            },
+                          },
+                        ],
                         "data": Object {
-                          "tag": "String",
-                          "value": "V.O.R.T.E.X.",
+                          "tag": "If",
                         },
                       },
                     ],
                     "data": Object {
-                      "conditions": Array [
-                        Object {
-                          "if": "trendy",
-                        },
-                      ],
-                      "tag": "If",
+                      "if": "!strong",
+                      "tag": "Statement",
                     },
                   },
                 ],
                 "data": Object {
-                  "conditions": Array [
-                    Object {
-                      "if": "!strong",
-                    },
-                  ],
                   "tag": "If",
                 },
               },
@@ -393,20 +404,23 @@ Object {
           Object {
             "children": Array [
               Object {
-                "children": Array [],
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "index": 1,
+                      "key": "a123",
+                      "tag": "Room",
+                    },
+                  },
+                ],
                 "data": Object {
-                  "index": 1,
-                  "key": "a123",
-                  "tag": "Room",
+                  "if": "strong",
+                  "tag": "Statement",
                 },
               },
             ],
             "data": Object {
-              "conditions": Array [
-                Object {
-                  "if": "strong",
-                },
-              ],
               "tag": "If",
             },
           },
@@ -415,30 +429,36 @@ Object {
               Object {
                 "children": Array [
                   Object {
-                    "children": Array [],
+                    "children": Array [
+                      Object {
+                        "children": Array [
+                          Object {
+                            "children": Array [],
+                            "data": Object {
+                              "index": 2,
+                              "key": "a123",
+                              "tag": "Room",
+                            },
+                          },
+                        ],
+                        "data": Object {
+                          "if": "trendy",
+                          "tag": "Statement",
+                        },
+                      },
+                    ],
                     "data": Object {
-                      "index": 2,
-                      "key": "a123",
-                      "tag": "Room",
+                      "tag": "If",
                     },
                   },
                 ],
                 "data": Object {
-                  "conditions": Array [
-                    Object {
-                      "if": "trendy",
-                    },
-                  ],
-                  "tag": "If",
+                  "if": "!strong",
+                  "tag": "Statement",
                 },
               },
             ],
             "data": Object {
-              "conditions": Array [
-                Object {
-                  "if": "!strong",
-                },
-              ],
               "tag": "If",
             },
           },
@@ -544,12 +564,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "conditions": Array [
-              Object {
-                "if": "strong",
-              },
-            ],
             "tag": "If",
+          },
+          Object {
+            "if": "strong",
+            "tag": "Statement",
           },
         ],
         "data": Object {
@@ -583,20 +602,18 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "conditions": Array [
-              Object {
-                "if": "!strong",
-              },
-            ],
             "tag": "If",
           },
           Object {
-            "conditions": Array [
-              Object {
-                "if": "trendy",
-              },
-            ],
+            "if": "!strong",
+            "tag": "Statement",
+          },
+          Object {
             "tag": "If",
+          },
+          Object {
+            "if": "trendy",
+            "tag": "Statement",
           },
         ],
         "data": Object {
@@ -784,20 +801,23 @@ Object {
           Object {
             "children": Array [
               Object {
-                "children": Array [],
+                "children": Array [
+                  Object {
+                    "children": Array [],
+                    "data": Object {
+                      "index": 1,
+                      "key": "a123",
+                      "tag": "Room",
+                    },
+                  },
+                ],
                 "data": Object {
-                  "index": 1,
-                  "key": "a123",
-                  "tag": "Room",
+                  "if": "strong",
+                  "tag": "Statement",
                 },
               },
             ],
             "data": Object {
-              "conditions": Array [
-                Object {
-                  "if": "strong",
-                },
-              ],
               "tag": "If",
             },
           },
@@ -895,12 +915,11 @@ Object {
             "tag": "Asset",
           },
           Object {
-            "conditions": Array [
-              Object {
-                "if": "strong",
-              },
-            ],
             "tag": "If",
+          },
+          Object {
+            "if": "strong",
+            "tag": "Statement",
           },
         ],
         "data": Object {

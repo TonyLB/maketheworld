@@ -151,9 +151,9 @@ export type SchemaLinkTag = {
     text: string;
 } & SchemaBase
 
-export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaWhitespaceTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
-export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
-export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaTaggedMessageIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaWhitespaceTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaTaggedMessageLegalContents = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
+export type SchemaOutputTag = SchemaStringTag | SchemaLinkTag | SchemaBookmarkTag | SchemaLineBreakTag | SchemaSpacerTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaAfterTag | SchemaBeforeTag | SchemaReplaceTag
 export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
     isSchemaString(tag) ||
     isSchemaLink(tag) ||
@@ -161,6 +161,8 @@ export const isSchemaOutputTag = (tag: SchemaTag): tag is SchemaOutputTag => (
     isSchemaLineBreak(tag) ||
     isSchemaSpacer(tag) ||
     isSchemaCondition(tag) ||
+    isSchemaConditionStatement(tag) ||
+    isSchemaConditionFallthrough(tag) ||
     isSchemaAfter(tag) ||
     isSchemaBefore(tag) ||
     isSchemaReplace(tag)

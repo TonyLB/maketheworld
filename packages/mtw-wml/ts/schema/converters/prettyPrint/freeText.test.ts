@@ -52,24 +52,24 @@ describe('description schemaToWML', () => {
         const testSchema: GenericTree<SchemaTag> = [
             { data: { tag: 'String', value: 'Test' }, children: [] },
             {
-                data: {
-                    tag: 'If',
-                    conditions: [{ if: 'testVar' }]
-                },
-                children: [
-                    { data: { tag: 'Space' }, children: [] },
-                    { data: { tag: 'String', value: 'TestTwo' }, children: [] }
-                ]
+                data: { tag: 'If' },
+                children: [{
+                    data: { tag: 'Statement', if: 'testVar' },
+                    children: [
+                        { data: { tag: 'Space' }, children: [] },
+                        { data: { tag: 'String', value: 'TestTwo' }, children: [] }
+                    ]
+                }]
             },
             {
-                data: {
-                    tag: 'If',
-                    conditions: [{ if: '!testVar' }]
-                },
-                children: [
-                    { data: { tag: 'Space' }, children: [] },
-                    { data: { tag: 'String', value: 'TestThree' }, children: [] }
-                ]
+                data: { tag: 'If' },
+                children: [{
+                    data: { tag: 'Statement', if: '!testVar' },
+                    children: [
+                        { data: { tag: 'Space' }, children: [] },
+                        { data: { tag: 'String', value: 'TestThree' }, children: [] }
+                    ]
+                }]
             },
             {
                 data: {

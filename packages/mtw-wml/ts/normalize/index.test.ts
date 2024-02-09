@@ -342,10 +342,12 @@ describe('WML normalize', () => {
                     data: { tag: 'Map', key: 'map1' },
                     children: [{
                         data: {
-                            tag: 'If',
-                            conditions: [{ if: 'true', dependencies: ['true'] }]
+                            tag: 'If'
                         },
-                        children: [{ data: { tag: 'Room', key: 'room1', index: 1 }, children: [] }]
+                        children: [{
+                            data: { tag: 'Statement', if: 'true', dependencies: ['true'] },
+                            children: [{ data: { tag: 'Room', key: 'room1', index: 1 }, children: [] }]
+                        }]
                     }],
                     contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
                 }]

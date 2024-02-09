@@ -1,14 +1,14 @@
 import { unique } from "../../list"
 import { GenericTree } from "../../tree/baseClasses"
 import dfsWalk from "../../tree/dfsWalk"
-import { SchemaTag, isSchemaCondition } from "../../schema/baseClasses"
+import { SchemaTag, isSchemaConditionStatement } from "../../schema/baseClasses"
 
 export const selectDependencies = (tree: GenericTree<SchemaTag>): string[] => {
     const dependencies = dfsWalk({
         callback: (previous: { output: string[], state: {} }, tag: SchemaTag) => {
-            if (isSchemaCondition(tag)) {
+            if (isSchemaConditionStatement(tag)) {
                 return {
-                    output: unique(previous.output, tag.conditions.map(({ dependencies }) => (dependencies ?? [])).flat(1)),
+                    output: unique(previous.output, tag.dependencies ?? []),
                     state: {}
                 }
             }

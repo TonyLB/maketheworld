@@ -25,7 +25,8 @@ import {
     isSchemaExport,
     isImportable,
     isSchemaCondition,
-    isSchemaComputed
+    isSchemaComputed,
+    isSchemaConditionStatement
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
@@ -460,12 +461,12 @@ export class Normalizer {
                 if (isNormalReference(node.data)) {
                     return [node]
                 }
-                if (isSchemaCondition(node.data)) {
+                if (isSchemaConditionStatement(node.data)) {
                     return [{
                         ...node,
                         data: {
                             ...node.data,
-                            conditions: node.data.conditions.map((condition) => ({ ...condition, dependencies: extract(condition.if) }))
+                            dependencies: extract(node.data.if)
                         }
                     }]
                 }
