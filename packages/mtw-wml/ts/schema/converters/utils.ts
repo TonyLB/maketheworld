@@ -54,6 +54,7 @@ export const optionsFactory: PrintMapOptionsFactory = (action) => (previous) => 
         case PrintMapOptionsChange.Indent:
             return {
                 ...previous,
+                forceNest: previous.forceNest === 'breakWrappedLines' ? undefined : previous.forceNest,
                 indent: previous.indent + 1
             }
     }

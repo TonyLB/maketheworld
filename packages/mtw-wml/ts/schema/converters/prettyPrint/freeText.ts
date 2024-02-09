@@ -1,6 +1,6 @@
 import { GenericTree } from "../../../tree/baseClasses"
 import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
-import { PrintMapEntry, SchemaToWMLOptions } from "../baseClasses"
+import { nextNestingLevel, PrintMapEntry, SchemaToWMLOptions } from "../baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "../printUtils"
 import { optionsFactory } from "../utils"
 
@@ -107,7 +107,7 @@ const excludeSpacing = (tag) => (!isSchemaString(tag) || tag.value.trim())
 
 const breakTagsByNesting = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): BreakTagsReturn => {
     const { indent } = options
-    const tagsRender = mapTagRender(schemaToWML)(tags, { indent, forceNest: 'contents', siblings: options.siblings, context: options.context }).join('').split('\n')
+    const tagsRender = mapTagRender(schemaToWML)(tags, { indent, forceNest: nextNestingLevel(options.forceNest), siblings: options.siblings, context: options.context }).join('').split('\n')
     return {
         outputLines: tagsRender,
         remainingTags: [],
@@ -190,7 +190,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
                     // a single line, abandon that effort, push the queue back onto unprintedTags,
                     // and start again breaking up into separate lines where possible
                     //
-                    if (!multiLine) {
+                    if (nextNestingLevel(forceNest) !== forceNest) {
                         const provisionalPrint = naivePrint(schemaToWML)(queue, { indent, siblings: currentSiblings, context: options.context })
                         if (padding + provisionalPrint.length > lineLengthAfterIndent(indent)) {
                             forceNestedRerun = true
@@ -209,7 +209,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
         }
     })
     if (forceNestedRerun) {
-        return schemaDescriptionToWML(schemaToWML)(tags, { ...options, forceNest: 'contents' })
+        return schemaDescriptionToWML(schemaToWML)(tags, { ...options, forceNest: nextNestingLevel(options.forceNest) })
     }
     outputLines = [...outputLines, ...printQueuedTags(schemaToWML)(queue, { ...options, siblings: currentSiblings })]
     return outputLines.join(`\n${indentSpacing(indent)}`)

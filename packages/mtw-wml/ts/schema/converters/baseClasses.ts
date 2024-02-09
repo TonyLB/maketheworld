@@ -1,6 +1,5 @@
 import { SchemaTag } from "../baseClasses"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
-import { SchemaContextItem } from "../baseClasses"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses";
 
 export type SchemaConverterArguments = {
@@ -52,9 +51,23 @@ export type ConverterMapEntry = {
 
 export const isSchemaWrapper = (tag: SchemaTag['tag']): tag is 'If' => (['If'].includes(tag))
 
+type SchemaToWMLOptionsForceNest = 'closed' | 'breakWrappedLines' | 'contents' | 'properties'
+
+export const nextNestingLevel = (forceNest?: SchemaToWMLOptionsForceNest): SchemaToWMLOptionsForceNest => {
+    if (!forceNest) {
+        return 'breakWrappedLines'
+    }
+    switch(forceNest) {
+        case 'closed': return 'breakWrappedLines'
+        case 'breakWrappedLines': return 'contents'
+        default: return 'contents'
+    }
+}
+
 export type SchemaToWMLOptions = {
     indent: number;
-    forceNest?: 'closed' | 'contents' | 'properties';
+    forceNest?: SchemaToWMLOptionsForceNest;
+    wrapping?: boolean;
     context: SchemaTag[];
     siblings?: GenericTree<SchemaTag>;
 }
