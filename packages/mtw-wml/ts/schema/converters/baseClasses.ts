@@ -51,15 +51,15 @@ export type ConverterMapEntry = {
 
 export const isSchemaWrapper = (tag: SchemaTag['tag']): tag is 'If' => (['If'].includes(tag))
 
-type SchemaToWMLOptionsForceNest = 'closed' | 'breakWrappedLines' | 'contents' | 'properties'
+type SchemaToWMLOptionsForceNest = 'closed' | 'breakWrappedLines' | 'nestWrappedLines' | 'contents' | 'properties'
 
-export const nextNestingLevel = (forceNest?: SchemaToWMLOptionsForceNest): SchemaToWMLOptionsForceNest => {
+export const nextNestingLevel = (forceNest?: SchemaToWMLOptionsForceNest | undefined): SchemaToWMLOptionsForceNest => {
     if (!forceNest) {
         return 'breakWrappedLines'
     }
     switch(forceNest) {
         case 'closed': return 'breakWrappedLines'
-        case 'breakWrappedLines': return 'contents'
+        case 'breakWrappedLines': return 'nestWrappedLines'
         default: return 'contents'
     }
 }
@@ -67,6 +67,7 @@ export const nextNestingLevel = (forceNest?: SchemaToWMLOptionsForceNest): Schem
 export type SchemaToWMLOptions = {
     indent: number;
     forceNest?: SchemaToWMLOptionsForceNest;
+    forceOnce?: SchemaToWMLOptionsForceNest;
     wrapping?: boolean;
     context: SchemaTag[];
     siblings?: GenericTree<SchemaTag>;

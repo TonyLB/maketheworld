@@ -38,7 +38,7 @@ const mapTagRender = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTa
 }
 
 const naivePrint = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): string => (
-    mapTagRender(schemaToWML)(tags, { ...options, forceNest: 'closed' }).join('').trim()
+    mapTagRender(schemaToWML)(tags, options).join('').trim()
 )
 
 type BreakTagsReturn = {
@@ -114,6 +114,7 @@ const breakTagsByNesting = (schemaToWML: PrintMapEntry) => (tags: GenericTree<Sc
         extractedTags: tags
     }
 }
+const maxLineLength = (padding: number, lines: string) => (lines.split('\n').reduce<number>((previous, line, index) => (Math.max(previous, line.length + ((index === 0) ? padding : 0))), 0))
 
 const printQueuedTags = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): string[] => {
     const { indent, siblings } = options
@@ -183,16 +184,20 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
                 // Group tags and blocks of text into adjacency lists that should stay connected
                 //
                 const lastElement = queue.slice(-1)[0]
+                const provisionalPrint = naivePrint(schemaToWML)(queue, { indent, siblings: currentSiblings, context: options.context, forceNest })
                 if (areAdjacent(lastElement.data, tag.data) || !multiLine) {
                     queue.push(tag)
-                    //
-                    // If we've been accumulating tags in the hope of printing the whole list on
-                    // a single line, abandon that effort, push the queue back onto unprintedTags,
-                    // and start again breaking up into separate lines where possible
-                    //
                     if (nextNestingLevel(forceNest) !== forceNest) {
-                        const provisionalPrint = naivePrint(schemaToWML)(queue, { indent, siblings: currentSiblings, context: options.context })
-                        if (padding + provisionalPrint.length > lineLengthAfterIndent(indent)) {
+                        if (maxLineLength(padding, provisionalPrint) > lineLengthAfterIndent(indent)) {
+                            //
+                            // If we've been accumulating tags in the hope of printing the whole list in
+                            // a compact format, abandon that effort, and force the function to be rerun at
+                            // a more granular level of nesting
+                            //
+                            console.log(`Escalating from ${forceNest} to ${nextNestingLevel(forceNest)}`)
+                            if (provisionalPrint.startsWith('Test')) {
+                                console.log(`provisionalPrint: ${provisionalPrint}`)
+                            }
                             forceNestedRerun = true
                         }
                     }
@@ -206,6 +211,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
             else {
                 queue = [tag]
             }
+            console.log(`queue: ${JSON.stringify(queue, null, 4)}`)
         }
     })
     if (forceNestedRerun) {

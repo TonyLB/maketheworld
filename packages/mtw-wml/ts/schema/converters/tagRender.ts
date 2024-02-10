@@ -1,7 +1,7 @@
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, SchemaToWMLOptions } from "./baseClasses"
+import { isSchemaWrapper, PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, SchemaToWMLOptions } from "./baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
 import { optionsFactory } from "./utils"
@@ -99,10 +99,7 @@ export const tagRenderContents = (
 //      nest contents between them.
 //
 export const tagRender = ({ schemaToWML, options, tag, properties, contents }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; contents: GenericTree<SchemaTag>; }): string => {
-    //
-    // TODO: Further document the control flow of the function.
-    //
-    const { indent, forceNest, context } = options
+    const { indent, forceNest, forceOnce, context } = options
     const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(context) || '')
     //
     // Individual properties can be rendered before knowing how they will be sorted (and kept in a list).
@@ -121,7 +118,7 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
         }
     }).filter((value) => (value))
 
-    const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options })(contents)
+    const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options, forceOnce: undefined })(contents)
 
     const tagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(' ')}>` : `<${[tag, ...propertyRender].join(' ')} />`
     const nestedTagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}>` : `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}/>`
@@ -129,14 +126,16 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
     const naive = `${tagOpen}${mappedContents.join('')}${tagClose}`
     const nested = mappedContents.length ? `${[tagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}` : naive
     const propertyNested = mappedContents.length ? `${[nestedTagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}` : nestedTagOpen
-    switch(forceNest) {
+    const forceNestToConsider = !isSchemaWrapper(tag as any) && ['breakWrappedLines', 'nestedWrappedLines'].includes(forceOnce ?? forceNest ?? '') ? 'closed' : forceOnce ?? forceNest
+    switch(forceNestToConsider) {
         case 'closed': return naive
+        case 'nestWrappedLines':
         case 'contents':
             return nested
         case 'properties':
             return propertyNested
         default:
-            return (naive.length <= lineLengthAfterIndent(indent))
+            return (naive.length <= lineLengthAfterIndent(indent) && naive.split('\n').length === 1)
                 ? naive
                 : (nested.split('\n')[0] || '').length <= lineLengthAfterIndent(indent)
                     ? nested

@@ -156,10 +156,14 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
         //
         // Wrap in a fake tag in order to render children properly
         //
-        console.log(`forceNest: ${args.options.forceNest}`)
         const wrappedContents = tagRender({
             ...args,
-            options: { ...args.options, indent: args.options.indent - 1, siblings: [] },
+            options: {
+                ...args.options,
+                indent: args.options.indent - 1,
+                siblings: [],
+                ...(args.options.forceNest === 'breakWrappedLines' ? { forceOnce: 'contents' } : {})
+            },
             tag: 'If',
             properties: [],
             contents: children
