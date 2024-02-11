@@ -10,6 +10,8 @@ import parse from "../simpleParser"
 import { genericIDFromTree } from "../tree/genericIDTree"
 import standardizeSchema from "./standardize"
 import { isParseString, isParseWhitespace } from "../parser/baseClasses"
+import { lineLengthAfterIndent } from "./converters/printUtils"
+import { maxLineLength } from "./converters/prettyPrint/freeText"
 
 class SchemaAggregator {
     contextStack: GenericTree<SchemaTag> = [];
@@ -231,10 +233,28 @@ export const printSchemaTag: PrintMapEntry = (args) => {
 
 export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
     const { returnValue } = tags.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag> }>((previous, tag) => {
+        const printOptions = printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })
+        const { optimalIndex } = printOptions.reduce<{ optimalIndex: number; currentLength: number }>(
+            (previous, output, index) => {
+                if (previous.currentLength <= lineLengthAfterIndent(0)) {
+                    return previous
+                }
+                const currentLength = maxLineLength(0, output)
+                if (currentLength < previous.currentLength) {
+                    return {
+                        optimalIndex: index,
+                        currentLength
+                    }
+                }
+                return previous
+            }, { optimalIndex: -1, currentLength: Infinity })
+        if (optimalIndex === -1) {
+            throw new Error('No print options found in schemaToWML')
+        }
         return {
             returnValue: [
                 ...previous.returnValue,
-                printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })[0]
+                printOptions[optimalIndex]
             ],
             siblings: [
                 ...previous.siblings,

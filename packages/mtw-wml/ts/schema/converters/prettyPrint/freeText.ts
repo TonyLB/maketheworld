@@ -2,7 +2,7 @@ import { deEscapeWMLCharacters } from "../../../lib/escapeWMLCharacters"
 import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
 import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
 import { PrintMapEntry, PrintMode, SchemaToWMLOptions } from "../baseClasses"
-import { indentSpacing, lineLengthAfterIndent } from "../printUtils"
+import { lineLengthAfterIndent } from "../printUtils"
 import { maxIndicesByNestingLevel, optionsFactory, provisionalPrintFactory } from "../utils"
 
 const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
@@ -53,11 +53,7 @@ type BreakTagsReturn = {
     extractedTags: PrintQueue[];
 }
 
-const maxLineLength = (padding: number, lines: string) => {
-    const returnValue = lines.split('\n').reduce<number>((previous, line, index) => (Math.max(previous, line.length + ((index === 0) ? padding : 0))), 0)
-    console.log(`maxLineLength (${returnValue}): ${lines}`)
-    return returnValue
-}
+export const maxLineLength = (padding: number, lines: string) => (lines.split('\n').reduce<number>((previous, line, index) => (Math.max(previous, line.length + ((index === 0) ? padding : 0))), 0))
 
 //
 // TODO: Make breakTagsOnFirstStringWhitespace more aggressive about seeing if it can pack multiple tags onto a line (breaking
@@ -143,15 +139,12 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
         //
         // Keep pushing tags until you get to the point of needing to break over multiple lines
         //
-        console.log(`tagsBeingConsidered in printQueue(${nestingLevel} x ${indexInLevel}): ${JSON.stringify(tagsBeingConsidered.map(({ outputs }) => (outputs)), null, 4)}`)
         while((prefix.length + provisionalPrintFactory({ outputs: tagsBeingConsidered.map(({ outputs }) => (outputs)), nestingLevel, indexInLevel }).join('').length) > lineLengthAfterIndent(indent)) {
             //
             // First, see if you can break strings to extract some lines, while keeping other tags un-nested
             //
-            console.log(`Breaking: ${ provisionalPrintFactory({ outputs: tagsBeingConsidered.map(({ outputs }) => (outputs)), nestingLevel, indexInLevel }).join('') }`)
             const { outputLines: extractedOutputLines, remainingTags, extractedTags } = breakTagsOnFirstStringWhitespace(tagsBeingConsidered, { indent, siblings: currentSiblings, context: options.context, padding: prefix.length, nestingLevel, indexInLevel })
             if (extractedOutputLines.length) {
-                console.log(`extractedOutputLines: ${JSON.stringify(extractedOutputLines, null, 4)}`)
                 outputLines = [...outputLines, `${prefix}${extractedOutputLines[0]}`, ...(extractedOutputLines.slice(1))]
                 currentSiblings = [...currentSiblings, ...extractedTags.map(({ node }) => (node)).filter(excludeSpacing)]
                 tagsBeingConsidered = remainingTags
@@ -175,8 +168,6 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
             //         break
             //     }
             else {
-                console.log(`tagsBeingConsidered (post-break): ${JSON.stringify(tagsBeingConsidered, null, 4)}`)
-                console.log(`extractedTags: ${JSON.stringify(extractedTags, null, 4)}`)
                 break
             }
         }
@@ -190,7 +181,6 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
     // to avoid multiplying the spacing through recursion
     //
     const returnValue = (prefix ? [...outputLines, prefix] : outputLines).filter((value) => (value.trim())).map((line, index) => ((index > 0 && !line.slice(0, indent * 4).trim()) ? line.slice(indent * 4) : line))
-    console.log(`printQueue: ${JSON.stringify(returnValue, null, 4)}`)
     return returnValue
 }
 
@@ -207,7 +197,6 @@ const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOption
             queue,
             { ...options, nestingLevel, indexInLevel }
         )
-        console.log(`provisionalPrint: ${returnValue}`)
         return returnValue
     }
     while(
@@ -233,7 +222,6 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
     let outputLines: string[] = []
     let queue: PrintQueue[] = []
     tags.forEach((tag) => {
-        console.log(`adding: ${JSON.stringify(tag.data, null, 4)}`)
         if (queue.length) {
             //
             // Group tags and blocks of text into adjacency lists that should stay connected

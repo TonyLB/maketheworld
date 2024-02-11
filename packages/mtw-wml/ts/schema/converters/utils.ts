@@ -62,7 +62,7 @@ export const optionsFactory: PrintMapOptionsFactory = (action) => (previous) => 
 }
 
 export const isNaivePrint = (output: string) => (output.split('\n').length <= 1)
-export const isNestedPrint = (output: string) => (output.split('\n').length > 1 && output.split('\n')[0].includes('>'))
+export const isNestedPrint = (output: string) => (output.split('\n').length > 1 && Boolean(output.split('\n').find((outputLine) => (outputLine.match(/(?!<:\\)<[^/].*(?!<:\\)>/)))))
 export const isPropertyNestedPrint = (output: string) => (output.split('\n').length > 1 && !isNestedPrint(output))
 
 //
@@ -118,27 +118,27 @@ export const provisionalPrintFactory = ({ outputs, nestingLevel, indexInLevel }:
             if (naiveOutputs.length === 0) {
                 return lookup({ itemOutputs, nestingLevel: PrintMode.nested, indexInLevel: 0 })
             }
-            return naiveOutputs[Math.max(indexInLevel, naiveOutputs.length - 1)]
+            return naiveOutputs[Math.min(indexInLevel, naiveOutputs.length - 1)]
         }
         else if (nestingLevel === PrintMode.nested) {
             if (nestedOutputs.length === 0) {
                 //
-                // If there are no nested outputs, default up to propertyNested first, with naive as a fallback
+                // If there are no nested outputs, default up to naive first, with propertyNested as a fallback
                 //
-                if (propertyNestedOutputs.length) {
-                    return lookup({ itemOutputs, nestingLevel: PrintMode.propertyNested, indexInLevel: 0 })
-                }
-                else {
+                if (naiveOutputs.length) {
                     return lookup({ itemOutputs, nestingLevel: PrintMode.naive, indexInLevel: naiveOutputs.length - 1 })
                 }
+                else {
+                    return lookup({ itemOutputs, nestingLevel: PrintMode.propertyNested, indexInLevel: 0 })
+                }
             }
-            return nestedOutputs[Math.max(indexInLevel, nestedOutputs.length - 1)]
+            return nestedOutputs[Math.min(indexInLevel, nestedOutputs.length - 1)]
         }
         else {
             if (propertyNestedOutputs.length === 0) {
                 return lookup({ itemOutputs, nestingLevel: PrintMode.nested, indexInLevel: nestedOutputs.length - 1 })
             }
-            return propertyNestedOutputs[Math.max(indexInLevel, propertyNestedOutputs.length - 1)]
+            return propertyNestedOutputs[Math.min(indexInLevel, propertyNestedOutputs.length - 1)]
         }
     }
     return outputs.map((itemOutputs) => (lookup({ itemOutputs, nestingLevel, indexInLevel })))

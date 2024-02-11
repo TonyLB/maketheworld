@@ -42,7 +42,6 @@ export const tagRenderContents = (
     const { indent, forceNest, context } = options
     return contents.reduce<{ returnValue: string[][]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
         const { data } = tag
-        console.log(`printing: ${data.tag}`)
         //
         // Branch 1: Free text in a legal context should be parsed using schemaDescriptionToWML (which includes the more-sophisticated
         // word-wrap functionality that can break strings across lines as needed)
@@ -168,6 +167,5 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
     ]
     
     const returnValue = [...naiveCrossProduct, ...nestedCrossProduct, ...propertyNestedCrossProduct]
-    console.log(`tagRender returning (${tag}): ${JSON.stringify(returnValue, null, 4)}`)
     return returnValue
 }
