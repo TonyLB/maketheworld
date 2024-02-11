@@ -398,7 +398,7 @@ export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
 )
 
 export const isSchemaTaggedMessageLegalContents = (value: SchemaTag): value is SchemaTaggedMessageLegalContents => (
-    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If', 'After', 'Before', 'Replace'].includes(value.tag)
+    ['String', 'Link', 'Bookmark', 'Space', 'br', 'If', 'Statement', 'Fallthrough', 'After', 'Before', 'Replace'].includes(value.tag)
 )
 
 export const isSchemaTag = (value: any): value is SchemaTag => {

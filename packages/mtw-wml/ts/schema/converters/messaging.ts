@@ -55,7 +55,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: children,
+                node: { data: tag, children }
             })
             : ['']
     ),
@@ -69,7 +69,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: children,
+                node: { data: tag, children }
             })
             : ['']
     )

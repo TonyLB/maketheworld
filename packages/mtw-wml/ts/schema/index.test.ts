@@ -516,6 +516,16 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
+    it('should correctly join elements in Description context', () => {
+        const testWML = `
+            <Description>
+                Test:
+                <If {true}>lengthy philosophical argument when true</If>
+                <Else>equally lengthy and annoying discussion when false</Else>.
+            </Description>`
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(deIndentWML(testWML))
+    })
+
     it('should correctly round-trip complicated rooms', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>

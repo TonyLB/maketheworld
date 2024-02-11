@@ -120,12 +120,13 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             return ['']
         }
         const siblings = args.options.siblings ?? []
+        console.log(`siblings: ${JSON.stringify(siblings, null, 4)}`)
         if (siblings.length === 0) {
             return tagRender({
                 ...args,
                 tag: 'If',
                 properties: [{ type: 'expression', value: tag.if }],
-                contents: children
+                node: { data: tag, children }
             })    
         }
         else {
@@ -133,7 +134,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'ElseIf',
                 properties: [{ type: 'expression', value: tag.if }],
-                contents: children
+                node: { data: tag, children }
             })    
         }
     },
@@ -145,11 +146,11 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Else',
             properties: [],
-            contents: children
+            node: { data: tag, children }
         })    
     },
     If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-
+        console.log(`condition context: ${JSON.stringify(args.options.context, null, 4)}`)
         if (!isSchemaCondition(tag)) {
             return ['']
         }
@@ -165,7 +166,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             },
             tag: 'If',
             properties: [],
-            contents: children
+            node: { data: tag, children }
         })
         //
         // Remove wrapper text from children

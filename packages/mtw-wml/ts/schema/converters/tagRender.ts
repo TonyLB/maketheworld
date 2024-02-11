@@ -5,7 +5,7 @@ import { isSchemaWrapper, PrintMapEntry, PrintMapEntryArguments, PrintMapOptions
 import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
 import { maxIndicesByNestingLevel, minIndicesByNestingLevel, optionsFactory, provisionalPrintFactory } from "./utils"
-import { GenericTree } from "../../tree/baseClasses"
+import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
 
 type TagRenderProperty = {
     key?: string;
@@ -18,6 +18,7 @@ type TagRenderProperty = {
 }
 
 export const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag"] | undefined => {
+    console.log(`extract context: ${JSON.stringify(context, null, 4)}`)
     const contextTagRaw = context.reduce<SchemaTag["tag"] | undefined>((previous, item) => {
         const tag = item.tag
         if (isLegalParseConditionContextTag(tag)) {
@@ -25,6 +26,7 @@ export const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag
         }
         return previous
     }, undefined)
+    console.log(`extract: ${contextTagRaw}`)
     return (contextTagRaw ?? '') === 'Bookmark' ? 'Description' : contextTagRaw
 }
 
@@ -101,7 +103,7 @@ export const tagRenderContents = (
 //    - Property-Nested: Render the opening tag with each property nested inside it on an individual line, the closing tag on a single line, and
 //          nest contents between them.
 //
-export const tagRender = ({ schemaToWML, options, tag, properties, contents }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; contents: GenericTree<SchemaTag>; }): string[] => {
+export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; node: GenericTreeNode<SchemaTag> }): string[] => {
     const { indent, context } = options
     const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(context) || '')
     //
@@ -124,7 +126,11 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
     //
     // Render cross-product of possible matches (naive with single-line outcomes, nested and propertyNested with everything)
     //
-    const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options })(contents)
+
+    //
+    // TODO: Include node in tagRender arguments, and use that to extend context at this point
+    //
+    const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options, context: [...options.context, node.data] })(node.children)
 
     if (!mappedContents.length) {
         //
@@ -158,7 +164,8 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
             // .filter((output) => (output.length < lineLengthAfterIndent(indent)))
     const nestedCrossProduct = [
         ...crossProduct(mappedContents, PrintMode.naive, (contents) => (`${[tagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`)),
-        ...crossProduct(mappedContents, PrintMode.nested, (contents) => (`${[tagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`))
+        ...crossProduct(mappedContents, PrintMode.nested, (contents) => (`${[tagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`)),
+        ...crossProduct(mappedContents, PrintMode.propertyNested, (contents) => (`${[tagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`))
     ]
     const propertyNestedCrossProduct = [
         ...crossProduct(mappedContents, PrintMode.naive, (contents) => (`${[nestedTagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`)),
@@ -167,5 +174,6 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
     ]
     
     const returnValue = [...naiveCrossProduct, ...nestedCrossProduct, ...propertyNestedCrossProduct]
+    console.log(`tagRender: ${JSON.stringify(returnValue, null, 4)}`)
     return returnValue
 }

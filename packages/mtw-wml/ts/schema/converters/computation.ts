@@ -61,7 +61,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: [],
+                node: { data: tag, children: [] }
             })
             : ['']
     ),
@@ -76,7 +76,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: [],
+                node: { data: tag, children: [] }
             })
             : ['']
     ),
@@ -91,7 +91,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'as', type: 'key', value: tag.as ?? '' }
                 ],
-                contents: [],
+                node: { data: tag, children: [] }
             })
             : ['']
     )

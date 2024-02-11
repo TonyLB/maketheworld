@@ -79,7 +79,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'from', type: 'key', value: tag.from },
                 ],
-                contents: children
+                node: { data: tag, children }
             })
             : ['']
     ),
@@ -89,7 +89,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Export',
                 properties: [],
-                contents: children
+                node: { data: tag, children }
             })
             : ['']
     ),
@@ -101,7 +101,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                 ],
-                contents: [],
+                node: { data: tag, children }
             })
             : ['']
     ),

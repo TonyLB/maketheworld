@@ -17,31 +17,6 @@ const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
     return !spaces
 }
 
-export const wordWrapString = (value: string, options: SchemaToWMLOptions & { padding: number }): string[] => {
-    return [value]
-}
-
-// const mapTagRender = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): string[] => {
-//     const { returnValue } = tags.reduce<{ returnValue: string[], siblings: GenericTree<SchemaTag> }>(
-//         (previous, tag) => {
-//             const newOptions: SchemaToWMLOptions = { ...options, siblings: previous.siblings, context: [ ...options.context, tag.data ] }
-//             return {
-//                 returnValue: [
-//                     ...previous.returnValue,
-//                     schemaToWML({ tag, options: newOptions, schemaToWML, optionsFactory })
-//                 ],
-//                 siblings: [...previous.siblings, tag ]
-//             }
-//         },
-//         { returnValue: [], siblings: options.siblings ?? [] }
-//     )
-//     return returnValue
-// }
-
-// const naivePrint = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): string => (
-//     mapTagRender(schemaToWML)(tags, options).join('').trim()
-// )
-
 type PrintQueue = {
     node: GenericTreeNode<SchemaTag>;
     outputs: string[]
@@ -116,7 +91,7 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
     }
 }
 
-const excludeSpacing = (tag) => (!isSchemaString(tag) || tag.value.trim())
+const excludeSpacing = (tag) => (Boolean(!isSchemaString(tag) || tag.value.trim()))
 
 const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { nestingLevel: PrintMode; indexInLevel: number }): string[] => {
     const { indent, siblings, nestingLevel, indexInLevel } = options
@@ -175,7 +150,7 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
 }
 
 const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOptions & { padding: number }) => {
-    const { indent, padding, siblings } = options
+    const { indent, padding } = options
     //
     // Increase granularity as much as needed in order to fit within line length limits
     //
@@ -207,7 +182,7 @@ const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOption
 // provided by the underlying individual tag-print commands), then choose the least granular level that complies with line-size limits.
 //
 export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions & { padding: number }): string[] => {
-    const { indent, padding, siblings } = options
+    const { siblings } = options
     let currentSiblings = [...(siblings ?? []).filter(excludeSpacing)]
     let outputLines: string[] = []
     let queue: PrintQueue[] = []

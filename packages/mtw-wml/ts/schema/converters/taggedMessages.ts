@@ -108,7 +108,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Before',
                 properties: [],
-                contents: children,
+                node: { data: tag, children }
             })
             : ['']
         console.log(`value: ${returnValue}`)
@@ -120,7 +120,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'After',
                 properties: [],
-                contents: children,
+                node: { data: tag, children }
             })
             : ['']
     ),
@@ -130,7 +130,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Replace',
                 properties: [],
-                contents: children,
+                node: { data: tag, children }
             })
             : ['']
     ),
@@ -143,7 +143,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 ...args,
                 tag: 'Link',
                 properties: [{ key: 'to', type: 'key', value: tag.to }],
-                contents: children,
+                node: { data: tag, children }
             })
             : ['']
     ),

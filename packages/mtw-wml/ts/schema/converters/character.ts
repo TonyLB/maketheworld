@@ -123,7 +123,7 @@ const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string[
             ...args,
             tag: tag.tag,
             properties: [],
-            contents: [{ data: { tag: 'String' as 'String', value: tag.value }, children: [] }]
+            node: { data: tag, children: [{ data: { tag: 'String' as 'String', value: tag.value }, children: [] }] }
         })
         : ['']
 )
@@ -137,7 +137,7 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key }
                 ],
-                contents: children,
+                node: { data: tag, children }
             })
             : ['']
     ),
@@ -156,7 +156,7 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'adjective', type: 'literal', value: tag.adjective},
                     { key: 'reflexive', type: 'literal', value: tag.reflexive}
                 ],
-                contents: []
+                node: { data: tag, children: [] }
             })
             : ['']
     )
