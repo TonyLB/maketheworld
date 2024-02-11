@@ -1,9 +1,9 @@
 import { deEscapeWMLCharacters } from "../../../lib/escapeWMLCharacters"
 import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
-import { isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
+import { isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
 import { PrintMapEntry, PrintMode, SchemaToWMLOptions } from "../baseClasses"
-import { lineLengthAfterIndent } from "../printUtils"
-import { maxIndicesByNestingLevel, optionsFactory, provisionalPrintFactory } from "../utils"
+import { lineLengthAfterIndent, maxIndicesByNestingLevel, provisionalPrintFactory } from "../printUtils"
+import { optionsFactory } from "../utils"
 
 const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
     const spaces = Boolean(
@@ -12,7 +12,8 @@ const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
         isSchemaLineBreak(a) ||
         isSchemaSpacer(a) ||
         isSchemaLineBreak(b) ||
-        isSchemaSpacer(b)
+        isSchemaSpacer(b) ||
+        (isSchemaConditionStatement(a) && (isSchemaConditionStatement(b) || isSchemaConditionFallthrough(b)))
     )
     return !spaces
 }
@@ -76,7 +77,7 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
         ...tags.slice(indexOfFirstBreakableString + 1)
     ]
     return {
-        outputLines: [outputLine.trim()],
+        outputLines: [outputLine],
         remainingTags,
         extractedTags: [
             ...(indexOfFirstBreakableString > 0 ? tags.slice(0, indexOfFirstBreakableString - 1) : []),
@@ -138,7 +139,7 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
         }
     })
     if (tagsBeingConsidered.length) {
-        outputLines.push(`${prefix}${provisionalPrintFactory({ outputs: tagsBeingConsidered.map(({ outputs }) => (outputs)), nestingLevel, indexInLevel }).join('')}`.trimEnd())
+        outputLines.push(`${prefix}${provisionalPrintFactory({ outputs: tagsBeingConsidered.map(({ outputs }) => (outputs)), nestingLevel, indexInLevel }).join('')}`)
         prefix = ''
     }
     //
@@ -182,6 +183,7 @@ const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOption
 // provided by the underlying individual tag-print commands), then choose the least granular level that complies with line-size limits.
 //
 export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions & { padding: number }): string[] => {
+    console.log(`schemaDescription inputs: ${JSON.stringify(tags, null, 4)}`)
     const { siblings } = options
     let currentSiblings = [...(siblings ?? []).filter(excludeSpacing)]
     let outputLines: string[] = []
@@ -198,6 +200,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
             // the way)
             //
             if (areAdjacent(lastElement.node.data, tag.data)) {
+                console.log(`Adjacent: (${JSON.stringify(lastElement.node.data)}) x (${JSON.stringify(tag.data)})`)
                 const newOutputs = schemaToWML({ tag, options, schemaToWML, optionsFactory })
                 queue.push({ node: tag, outputs: newOutputs })
             }
@@ -205,6 +208,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
                 //
                 // Increase granularity as much as needed in order to fit within line length limits
                 //
+                console.log(`Not adjacent: (${JSON.stringify(lastElement.node.data)}) x (${JSON.stringify(tag.data)})`)
                 const { nestingLevel, indexInLevel } = printQueueIdealSettings(queue, { ...options, siblings: currentSiblings })
                 const provisionalPrint = () => {
                     const returnValue = printQueuedTags(

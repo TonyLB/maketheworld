@@ -1,4 +1,4 @@
-import { isNestedPrint, validateContents } from './utils'
+import { validateContents } from './utils'
 
 describe('parser utilities', () => {
     describe('validateContents', () => {
@@ -74,14 +74,6 @@ describe('parser utilities', () => {
             }])).toBe(false)
         })
 
-    })
-
-    describe('nestingLevel utilities', () => {
-        it('should correctly identify a nested tag', () => {
-            expect(isNestedPrint('<Description>\n    Test\n</Description>')).toBe(true)
-            expect(isNestedPrint('<Description>Test</Description>')).toBe(false)
-            expect(isNestedPrint('<Description\n>\n    Test\n</Description>')).toBe(false)
-        })
     })
 
 })

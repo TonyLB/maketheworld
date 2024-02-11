@@ -7,11 +7,11 @@ import {
     isSchemaConditionStatement
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, PrintMode } from "./baseClasses"
 import { extractConditionContextTag, tagRender, tagRenderContents } from "./tagRender"
-import { validateProperties } from "./utils"
-import { GenericTree } from "../../tree/baseClasses"
+import { maxIndicesByNestingLevel, minIndicesByNestingLevel, provisionalPrintFactory } from "./printUtils"
 import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
+import { validateProperties } from "./utils"
 
 const conditionalTemplates = {
     If: {
@@ -120,7 +120,6 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             return ['']
         }
         const siblings = args.options.siblings ?? []
-        console.log(`siblings: ${JSON.stringify(siblings, null, 4)}`)
         if (siblings.length === 0) {
             return tagRender({
                 ...args,
@@ -150,27 +149,30 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
         })    
     },
     If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-        console.log(`condition context: ${JSON.stringify(args.options.context, null, 4)}`)
         if (!isSchemaCondition(tag)) {
             return ['']
         }
         //
-        // Wrap in a fake tag in order to render children properly
+        // TODO: Abstract this functionality to prevent repeating similar functionality in tagRender
         //
-        const wrappedContents = tagRender({
-            ...args,
-            options: {
-                ...args.options,
-                indent: args.options.indent - 1,
-                siblings: []
-            },
-            tag: 'If',
-            properties: [],
-            node: { data: tag, children }
-        })
-        //
-        // Remove wrapper text from children
-        //
-        return wrappedContents.map((wrapped) => (wrapped.slice(4, -5).trim()))
+        const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(args.options.context) || '')
+        const mappedContents = tagRenderContents({ descriptionContext, schemaToWML: args.schemaToWML, ...args.options })(children)
+        const minIndices = minIndicesByNestingLevel(mappedContents)
+        const maxIndices = maxIndicesByNestingLevel(mappedContents)
+        const crossProduct = (outputs: string[][], nestingLevel: PrintMode, transform: (contents: string[]) => string) => (
+            (Array.apply(null, Array(maxIndices[nestingLevel])))
+                .map((_, indexInLevel) => (provisionalPrintFactory({ outputs, nestingLevel, indexInLevel })))
+                .map(transform)
+        )
+        const naiveCrossProduct = minIndices[PrintMode.naive] === 0
+            ? []
+            : crossProduct(mappedContents, PrintMode.naive, (contents) => (contents.join('')))
+        const nestedTransform = (contents) => (contents.join(`\n${indentSpacing(args.options.indent + 1)}`))
+        const nestedCrossProduct = [
+            ...crossProduct(mappedContents, PrintMode.naive, nestedTransform),
+            ...crossProduct(mappedContents, PrintMode.nested, nestedTransform),
+            ...crossProduct(mappedContents, PrintMode.propertyNested, nestedTransform)
+        ]
+        return [...naiveCrossProduct, ...nestedCrossProduct]
     }
 }
