@@ -161,8 +161,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
             options: {
                 ...args.options,
                 indent: args.options.indent - 1,
-                siblings: [],
-                ...(args.options.forceNest === 'breakWrappedLines' ? { forceOnce: 'contents' } : {})
+                siblings: []
             },
             tag: 'If',
             properties: [],

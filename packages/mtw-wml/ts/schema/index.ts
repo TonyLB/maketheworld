@@ -1,4 +1,4 @@
-import { SchemaTag, isSchemaString, isSchemaWhitespace } from "./baseClasses"
+import { SchemaTag, isSchemaString } from "./baseClasses"
 import { ParseItem, ParseTypes } from "../simpleParser/baseClasses"
 import converterMap, { printMap } from "./converters"
 import { PrintMapEntry } from "./converters/baseClasses"
@@ -9,7 +9,6 @@ import tokenizer from "../parser/tokenizer"
 import parse from "../simpleParser"
 import { genericIDFromTree } from "../tree/genericIDTree"
 import standardizeSchema from "./standardize"
-import { isParseString, isParseWhitespace } from "../parser/baseClasses"
 import { lineLengthAfterIndent } from "./converters/printUtils"
 import { maxLineLength } from "./converters/prettyPrint/freeText"
 

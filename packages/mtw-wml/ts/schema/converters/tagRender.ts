@@ -39,7 +39,7 @@ export const tagRenderContents = (
             schemaToWML: PrintMapEntry;
         }
     ) => (contents: GenericTree<SchemaTag>): string[][] => {
-    const { indent, forceNest, context } = options
+    const { indent, context } = options
     return contents.reduce<{ returnValue: string[][]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
         const { data } = tag
         //
@@ -55,7 +55,7 @@ export const tagRenderContents = (
                 return {
                     returnValue: [
                         ...previous.returnValue,
-                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, forceNest, context, padding: 0, siblings: previous.siblings })
+                        schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, context, padding: 0, siblings: previous.siblings })
                     ],
                     siblings: [ ...previous.siblings, tag],
                     taggedMessageStack: []
@@ -124,7 +124,7 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
     //
     // Render cross-product of possible matches (naive with single-line outcomes, nested and propertyNested with everything)
     //
-    const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options, forceOnce: undefined })(contents)
+    const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options })(contents)
 
     if (!mappedContents.length) {
         //

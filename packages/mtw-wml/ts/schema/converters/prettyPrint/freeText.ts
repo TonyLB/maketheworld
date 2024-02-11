@@ -118,16 +118,6 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
 
 const excludeSpacing = (tag) => (!isSchemaString(tag) || tag.value.trim())
 
-// const breakTagsByNesting = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions): BreakTagsReturn => {
-//     const { indent } = options
-//     const tagsRender = mapTagRender(schemaToWML)(tags, { indent, forceNest: nextNestingLevel(options.forceNest), siblings: options.siblings, context: options.context }).join('').split('\n')
-//     return {
-//         outputLines: tagsRender,
-//         remainingTags: [],
-//         extractedTags: tags
-//     }
-// }
-
 const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { nestingLevel: PrintMode; indexInLevel: number }): string[] => {
     const { indent, siblings, nestingLevel, indexInLevel } = options
     let currentSiblings = [...(siblings ?? [])]

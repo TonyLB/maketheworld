@@ -103,7 +103,6 @@ export const taggedMessageConverters: Record<string, ConverterMapEntry> = {
 
 export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
     Before: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-        console.log(`forceNest: ${args.options.forceNest}`)
         const returnValue = isSchemaBefore(tag)
             ? tagRender({
                 ...args,
