@@ -234,7 +234,7 @@ export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
         return {
             returnValue: [
                 ...previous.returnValue,
-                printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })
+                printSchemaTag({ tag, options: { indent: 0, siblings: previous.siblings, context: [] }, schemaToWML: printSchemaTag, optionsFactory })[0]
             ],
             siblings: [
                 ...previous.siblings,

@@ -117,7 +117,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     }
 }
 
-const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string => (
+const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string[] => (
     (isSchemaFirstImpression(tag) || isSchemaOneCoolThing(tag) || isSchemaOutfit(tag))
         ? tagRender({
             ...args,
@@ -125,7 +125,7 @@ const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string 
             properties: [],
             contents: [{ data: { tag: 'String' as 'String', value: tag.value }, children: [] }]
         })
-        : ''
+        : ['']
 )
 
 export const characterPrintMap: Record<string, PrintMapEntry> = {
@@ -139,7 +139,7 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: children,
             })
-            : ''
+            : ['']
     ),
     FirstImpression: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
     OneCoolThing: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
@@ -158,6 +158,6 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: []
             })
-            : ''
+            : ['']
     )
 }

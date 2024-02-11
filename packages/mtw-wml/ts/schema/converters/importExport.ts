@@ -81,7 +81,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: children
             })
-            : ''
+            : ['']
     ),
     Export: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaExport(tag)
@@ -91,7 +91,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 properties: [],
                 contents: children
             })
-            : ''
+            : ['']
     ),
     Image: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaImage(tag)
@@ -103,6 +103,6 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: [],
             })
-            : ''
+            : ['']
     ),
 }

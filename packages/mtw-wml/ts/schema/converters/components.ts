@@ -232,13 +232,13 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
 
         const { context } = args.options
         if (!isSchemaExit(tag)) {
-            return ''
+            return ['']
         }
         const roomsContextList = context.filter(isSchemaRoom)
         const roomContext: SchemaTag | undefined = roomsContextList.length > 0 ? roomsContextList.slice(-1)[0] : undefined
         const roomContextTypecheck = (roomContext: SchemaTag | undefined): roomContext is SchemaRoomTag | undefined => (!roomContext || isSchemaRoom(roomContext))
         if (!roomContextTypecheck(roomContext)) {
-            return ''
+            return ['']
         }
         return tagRender({
             ...args,
@@ -274,7 +274,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaRoom(tag)) {
-            return ''
+            return ['']
         }
         return tagRender({
             ...args,
@@ -298,7 +298,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaFeature(tag)) {
-            return ''
+            return ['']
         }
         return tagRender({
             ...args,
@@ -316,7 +316,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaKnowledge(tag)) {
-            return ''
+            return ['']
         }
         return tagRender({
             ...args,
@@ -339,11 +339,11 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: children,
             })
-            : ''
+            : ['']
     ),
     Position: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaPosition(tag)) {
-            return ''
+            return ['']
         }
         return tagRender({
             ...args,
@@ -360,7 +360,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     },
     Map: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaMap(tag)) {
-            return ''
+            return ['']
         }
         return tagRender({
             ...args,

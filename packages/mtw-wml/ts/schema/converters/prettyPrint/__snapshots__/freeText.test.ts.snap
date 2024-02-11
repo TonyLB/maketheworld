@@ -16,9 +16,11 @@ exports[`description schemaToWML should word wrap descriptions 1`] = `
 then a long enough second section that it will start testing the word-wrap
 functionality at eighty characters, which is actually quite a long line indeed,
 eighty characters is a lot more than you might
-think<Link to=(clockTower)>clockTower</Link>and then a third section also
-snuggled up to the link, to test that wrapping functionality doesn't separate
-no-space connections. Then a section with
+think<Link to=(clockTower)>
+    clockTower
+</Link>and then a third section also snuggled up to the link, to test that
+wrapping functionality doesn't separate no-space connections. Then a section
+with
 two<Link to=(clockTower)>
     clockTower
 </Link><Link to=(clockTower)>

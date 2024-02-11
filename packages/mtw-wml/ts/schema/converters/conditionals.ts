@@ -117,7 +117,7 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
 export const conditionalPrintMap: Record<string, PrintMapEntry> = {
     Statement: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaConditionStatement(tag)) {
-            return ''
+            return ['']
         }
         const siblings = args.options.siblings ?? []
         if (siblings.length === 0) {
@@ -139,7 +139,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
     },
     Fallthrough: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaConditionFallthrough(tag)) {
-            return ''
+            return ['']
         }
         return tagRender({
             ...args,
@@ -151,7 +151,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
     If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
 
         if (!isSchemaCondition(tag)) {
-            return ''
+            return ['']
         }
         //
         // Wrap in a fake tag in order to render children properly
@@ -171,6 +171,6 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
         //
         // Remove wrapper text from children
         //
-        return wrappedContents.slice(4, -5).trim()
+        return wrappedContents.map((wrapped) => (wrapped.slice(4, -5).trim()))
     }
 }

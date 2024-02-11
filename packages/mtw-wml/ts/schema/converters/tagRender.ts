@@ -1,10 +1,10 @@
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { isSchemaWrapper, PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, SchemaToWMLOptions } from "./baseClasses"
+import { isSchemaWrapper, PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, PrintMode, SchemaToWMLOptions } from "./baseClasses"
 import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
-import { optionsFactory } from "./utils"
+import { maxIndicesByNestingLevel, minIndicesByNestingLevel, optionsFactory, provisionalPrintFactory } from "./utils"
 import { GenericTree } from "../../tree/baseClasses"
 
 type TagRenderProperty = {
@@ -29,17 +29,20 @@ export const extractConditionContextTag = (context: SchemaTag[]): SchemaTag["tag
 }
 
 //
-// Parse sequentially through the contents, mapping strings/Tags to renderings of their value.
+// Parse sequentially through the contents, mapping strings/Tags to renderings of their value, and provide a list of possible renderings:
+//    - Naive: Everything strung together on a single line
+//    - Nested: Each item placed on a separate line if adjacency permits
 //
 export const tagRenderContents = (
         { descriptionContext, schemaToWML, ...options }: SchemaToWMLOptions & {
             descriptionContext: boolean;
             schemaToWML: PrintMapEntry;
         }
-    ) => (contents: GenericTree<SchemaTag>): string[] => {
+    ) => (contents: GenericTree<SchemaTag>): string[][] => {
     const { indent, forceNest, context } = options
-    return contents.reduce<{ returnValue: string[]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
+    return contents.reduce<{ returnValue: string[][]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
         const { data } = tag
+        console.log(`printing: ${data.tag}`)
         //
         // Branch 1: Free text in a legal context should be parsed using schemaDescriptionToWML (which includes the more-sophisticated
         // word-wrap functionality that can break strings across lines as needed)
@@ -91,15 +94,16 @@ export const tagRenderContents = (
 }
 
 //
-// tagRender evaluates the various ways that a tag can be rendered, and compares their suitability against current space available before forced word-wrap.
-// The types of render evaluated are:
+// tagRender renders a list of each of the ways that a single tag can be portrayed within space limits, in increasing order of granularity.
+// The types of render possible are:
 //    - Naive: Render everything from the start of the tag to its close on a single line
-//    - Nested: Render the opening tag and closing tags on single lines, and nest contents between them
+//    - Nested: Render the opening tag and closing tags on single lines, and nest contents between them (note that there is no need to recurse
+//          into nested contents: They will be on separate lines, their spacing limits are known and can be resolved)
 //    - Property-Nested: Render the opening tag with each property nested inside it on an individual line, the closing tag on a single line, and
-//      nest contents between them.
+//          nest contents between them.
 //
-export const tagRender = ({ schemaToWML, options, tag, properties, contents }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; contents: GenericTree<SchemaTag>; }): string => {
-    const { indent, forceNest, forceOnce, context } = options
+export const tagRender = ({ schemaToWML, options, tag, properties, contents }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; contents: GenericTree<SchemaTag>; }): string[] => {
+    const { indent, context } = options
     const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(context) || '')
     //
     // Individual properties can be rendered before knowing how they will be sorted (and kept in a list).
@@ -118,27 +122,52 @@ export const tagRender = ({ schemaToWML, options, tag, properties, contents }: O
         }
     }).filter((value) => (value))
 
+    //
+    // Render cross-product of possible matches (naive with single-line outcomes, nested and propertyNested with everything)
+    //
     const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options, forceOnce: undefined })(contents)
 
-    const tagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(' ')}>` : `<${[tag, ...propertyRender].join(' ')} />`
-    const nestedTagOpen = mappedContents.length ? `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}>` : `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}/>`
-    const tagClose = mappedContents.length ? `</${tag}>` : ''
-    const naive = `${tagOpen}${mappedContents.join('')}${tagClose}`
-    const nested = mappedContents.length ? `${[tagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}` : naive
-    const propertyNested = mappedContents.length ? `${[nestedTagOpen, ...mappedContents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}` : nestedTagOpen
-    const forceNestToConsider = !isSchemaWrapper(tag as any) && ['breakWrappedLines', 'nestedWrappedLines'].includes(forceOnce ?? forceNest ?? '') ? 'closed' : forceOnce ?? forceNest
-    switch(forceNestToConsider) {
-        case 'closed': return naive
-        case 'nestWrappedLines':
-        case 'contents':
-            return nested
-        case 'properties':
-            return propertyNested
-        default:
-            return (naive.length <= lineLengthAfterIndent(indent) && naive.split('\n').length === 1)
-                ? naive
-                : (nested.split('\n')[0] || '').length <= lineLengthAfterIndent(indent)
-                    ? nested
-                    : propertyNested
+    if (!mappedContents.length) {
+        //
+        // Self-closing tag
+        //
+        return [
+            `<${[tag, ...propertyRender].join(' ')} />`,
+            ...(propertyRender.length
+                ? [`<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}/>`]
+                : []
+            )
+        ]
     }
+    //
+    // TODO: Construct crossProducts by looping through the indices on the various PrintMode levels, using utility functions
+    // from baseClasses.ts
+    //
+    const minIndices = minIndicesByNestingLevel(mappedContents)
+    const maxIndices = maxIndicesByNestingLevel(mappedContents)
+    const tagOpen = `<${[tag, ...propertyRender].join(' ')}>`
+    const nestedTagOpen = `<${[tag, ...propertyRender].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}>`
+    const tagClose = `</${tag}>`
+    const crossProduct = (outputs: string[][], nestingLevel: PrintMode, transform: (contents: string[]) => string) => (
+        (Array.apply(null, Array(maxIndices[nestingLevel])))
+            .map((_, indexInLevel) => (provisionalPrintFactory({ outputs, nestingLevel, indexInLevel })))
+            .map(transform)
+    )
+    const naiveCrossProduct = minIndices[PrintMode.naive] === 0
+        ? []
+        : crossProduct(mappedContents, PrintMode.naive, (contents) => (`${tagOpen}${contents.join('')}${tagClose}`))
+            // .filter((output) => (output.length < lineLengthAfterIndent(indent)))
+    const nestedCrossProduct = [
+        ...crossProduct(mappedContents, PrintMode.naive, (contents) => (`${[tagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`)),
+        ...crossProduct(mappedContents, PrintMode.nested, (contents) => (`${[tagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`))
+    ]
+    const propertyNestedCrossProduct = [
+        ...crossProduct(mappedContents, PrintMode.naive, (contents) => (`${[nestedTagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`)),
+        ...crossProduct(mappedContents, PrintMode.nested, (contents) => (`${[nestedTagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`)),
+        ...crossProduct(mappedContents, PrintMode.propertyNested, (contents) => (`${[nestedTagOpen, ...contents].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`))
+    ]
+    
+    const returnValue = [...naiveCrossProduct, ...nestedCrossProduct, ...propertyNestedCrossProduct]
+    console.log(`tagRender returning (${tag}): ${JSON.stringify(returnValue, null, 4)}`)
+    return returnValue
 }

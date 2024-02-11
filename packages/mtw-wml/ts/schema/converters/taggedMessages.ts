@@ -111,7 +111,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 properties: [],
                 contents: children,
             })
-            : ''
+            : ['']
         console.log(`value: ${returnValue}`)
         return returnValue
     },
@@ -123,7 +123,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 properties: [],
                 contents: children,
             })
-            : ''
+            : ['']
     ),
     Replace: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaReplace(tag)
@@ -133,10 +133,10 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 properties: [],
                 contents: children,
             })
-            : ''
+            : ['']
     ),
     String: ({ tag: { data: tag } }: PrintMapEntryArguments) => (
-        isSchemaString(tag) ? escapeWMLCharacters(tag.value) : ''
+        isSchemaString(tag) ? [escapeWMLCharacters(tag.value)] : ['']
     ),
     Link: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaLink(tag)
@@ -146,9 +146,9 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 properties: [{ key: 'to', type: 'key', value: tag.to }],
                 contents: children,
             })
-            : ''
+            : ['']
     ),
-    br: () => ('<br />'),
-    Space: () => ('<Space />'),
-    Whitespace: () => (' ')
+    br: () => (['<br />']),
+    Space: () => (['<Space />']),
+    Whitespace: () => ([' '])
 }

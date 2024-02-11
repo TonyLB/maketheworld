@@ -68,7 +68,6 @@ export type SchemaToWMLOptions = {
     indent: number;
     forceNest?: SchemaToWMLOptionsForceNest;
     forceOnce?: SchemaToWMLOptionsForceNest;
-    wrapping?: boolean;
     context: SchemaTag[];
     siblings?: GenericTree<SchemaTag>;
 }
@@ -89,5 +88,11 @@ export type PrintMapEntryArguments = {
 }
 
 export type PrintMapEntry = {
-    (args: PrintMapEntryArguments): string;
+    (args: PrintMapEntryArguments): string[];
+}
+
+export enum PrintMode {
+    naive,
+    nested,
+    propertyNested
 }

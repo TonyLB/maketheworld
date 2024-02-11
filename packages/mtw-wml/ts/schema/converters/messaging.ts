@@ -57,7 +57,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: children,
             })
-            : ''
+            : ['']
     ),
     Moment: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaMoment(tag)
@@ -71,6 +71,6 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: children,
             })
-            : ''
+            : ['']
     )
 }

@@ -63,7 +63,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: [],
             })
-            : ''
+            : ['']
     ),
     Computed: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaComputed(tag)
@@ -78,7 +78,7 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: [],
             })
-            : ''
+            : ['']
     ),
     Action: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
         isSchemaAction(tag)
@@ -93,6 +93,6 @@ export const computationPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 contents: [],
             })
-            : ''
+            : ['']
     )
 }
