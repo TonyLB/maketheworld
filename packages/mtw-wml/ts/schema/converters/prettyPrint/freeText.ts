@@ -1,7 +1,7 @@
 import { deEscapeWMLCharacters } from "../../../lib/escapeWMLCharacters"
 import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
 import { isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
-import { PrintMapEntry, PrintMode, SchemaToWMLOptions } from "../baseClasses"
+import { PrintMapEntry, PrintMapResult, PrintMode, SchemaToWMLOptions } from "../baseClasses"
 import { lineLengthAfterIndent, maxIndicesByNestingLevel, provisionalPrintFactory } from "../printUtils"
 import { optionsFactory } from "../utils"
 
@@ -20,7 +20,7 @@ const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
 
 type PrintQueue = {
     node: GenericTreeNode<SchemaTag>;
-    outputs: string[]
+    outputs: PrintMapResult[]
 }
 
 type BreakTagsReturn = {
@@ -55,7 +55,7 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
         }
     }
     const stringRendered = provisionalPrintFactory({ outputs: [firstBreakableString.outputs], nestingLevel, indexInLevel })[0]
-    const splitIndex = stringRendered.split('').reduce<number>((previous, character, index) => {
+    const splitIndex = stringRendered.output.split('').reduce<number>((previous, character, index) => {
         const outputBeforeStringLastLength = outputBeforeString.split('\n').length > 1 ? outputBeforeString.split('\n').slice(-1)[0].length : padding + outputBeforeString.length
         if (character.match(/^\s$/) && index && outputBeforeStringLastLength + index <= lineLengthAfterIndent(indent)) {
             return index
@@ -69,11 +69,11 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
             extractedTags: []
         }
     }
-    const extractedLine = stringRendered.slice(0, splitIndex)
+    const extractedLine = stringRendered.output.slice(0, splitIndex)
     const outputLine = `${outputBeforeString}${extractedLine}`.trim()
-    const remainderLine = stringRendered.slice(splitIndex + 1)
+    const remainderLine = stringRendered.output.slice(splitIndex + 1)
     const remainingTags = [
-        ...(remainderLine ? [{ node: { data: { tag: 'String' as 'String', value: deEscapeWMLCharacters(remainderLine) }, children: [] }, outputs: [remainderLine] }] : []),
+        ...(remainderLine ? [{ node: { data: { tag: 'String' as 'String', value: deEscapeWMLCharacters(remainderLine) }, children: [] }, outputs: [{ printMode: stringRendered.printMode, output: remainderLine }] }] : []),
         ...tags.slice(indexOfFirstBreakableString + 1)
     ]
     return {
@@ -86,7 +86,7 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
                     data: { tag: 'String' as 'String', value: deEscapeWMLCharacters(extractedLine.trim()) },
                     children: []
                 },
-                outputs: [extractedLine]
+                outputs: [{ printMode: stringRendered.printMode, output: extractedLine }]
             }
         ]
     }
@@ -105,7 +105,7 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
         //
         // Keep pushing tags until you get to the point of needing to break over multiple lines
         //
-        while((prefix.length + provisionalPrintFactory({ outputs: tagsBeingConsidered.map(({ outputs }) => (outputs)), nestingLevel, indexInLevel }).join('').length) > lineLengthAfterIndent(indent)) {
+        while((prefix.length + provisionalPrintFactory({ outputs: tagsBeingConsidered.map(({ outputs }) => (outputs)), nestingLevel, indexInLevel }).map(({ output }) => (output)).join('').length) > lineLengthAfterIndent(indent)) {
             //
             // First, see if you can break strings to extract some lines, while keeping other tags un-nested
             //
@@ -116,32 +116,21 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
                 tagsBeingConsidered = remainingTags
                 prefix = ''
             }
-            // //
-            // // If that fails, try to force tags to nest
-            // //
-            // else {
-            //     const { outputLines: nestedLines } = breakTagsByNesting(schemaToWML)(tagsBeingConsidered, { indent, siblings: currentSiblings, context: options.context })
-            //     if (nestedLines.length > 1) {
-            //         outputLines = [...outputLines, `${prefix}${nestedLines[0]}`, ...(nestedLines.slice(1, -1))]
-            //         prefix = nestedLines.slice(-1)[0]
-            //         currentSiblings = [...currentSiblings, ...tagsBeingConsidered.filter(excludeSpacing)]
-            //         tagsBeingConsidered = []
-            //     }
-            //     //
-            //     // Otherwise deliver the oversize line
-            //     //
-            //     else {
-            //         break
-            //     }
             else {
                 break
             }
         }
     })
     if (tagsBeingConsidered.length) {
-        outputLines.push(`${prefix}${provisionalPrintFactory({ outputs: tagsBeingConsidered.map(({ outputs }) => (outputs)), nestingLevel, indexInLevel }).join('')}`)
+        outputLines.push(`${prefix}${provisionalPrintFactory({ outputs: tagsBeingConsidered.map(({ outputs }) => (outputs)), nestingLevel, indexInLevel }).map(({ output }) => (output)).join('')}`)
         prefix = ''
     }
+
+    //
+    // TODO: Refactor how results are combined to accomodate both (a) the PrintMapResult format, and (b) the fact that
+    // outputs are no longer pre-indented.
+    //
+
     //
     // Remove indents (which were needed in order to calculate line length) before applying indents in schemaDescriptionToWML,
     // to avoid multiplying the spacing through recursion
@@ -180,9 +169,9 @@ const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOption
 
 //
 // schemaDescriptionToWML accepts incoming tags and create a list of provisional renderings (one for each of the levels of granularity
-// provided by the underlying individual tag-print commands), then choose the least granular level that complies with line-size limits.
+// provided by the underlying individual tag-print commands), then chooses the least granular level that complies with line-size limits.
 //
-export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions & { padding: number }): string[] => {
+export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions & { padding: number }): PrintMapResult[] => {
     console.log(`schemaDescription inputs: ${JSON.stringify(tags, null, 4)}`)
     const { siblings } = options
     let currentSiblings = [...(siblings ?? []).filter(excludeSpacing)]
@@ -228,5 +217,13 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
     })
     const { nestingLevel, indexInLevel } = printQueueIdealSettings(queue, { ...options, siblings: currentSiblings })
     outputLines = [...outputLines, ...printQueuedTags(queue, { ...options, siblings: currentSiblings, nestingLevel, indexInLevel })]
-    return outputLines
+    if (nestingLevel === PrintMode.naive) {
+        return [
+            { printMode: PrintMode.naive, output: outputLines.join('') },
+            { printMode: PrintMode.nested, output: outputLines.join('\n') }
+        ]
+    }
+    else {
+        return [{ printMode: PrintMode.nested, output: outputLines.join('\n') }]
+    }
 }

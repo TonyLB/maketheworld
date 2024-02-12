@@ -2,7 +2,7 @@ import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { SchemaAfterTag, SchemaBeforeTag, SchemaLineBreakTag, SchemaLinkTag, SchemaReplaceTag, SchemaSpacerTag, SchemaStringTag, SchemaTag, isSchemaAfter, isSchemaBefore, isSchemaLink, isSchemaOutputTag, isSchemaReplace, isSchemaString } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
@@ -110,8 +110,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 properties: [],
                 node: { data: tag, children }
             })
-            : ['']
-        console.log(`value: ${returnValue}`)
+            : [{ printMode: PrintMode.naive, output: '' }]
         return returnValue
     },
     After: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
@@ -122,7 +121,7 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 properties: [],
                 node: { data: tag, children }
             })
-            : ['']
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Replace: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaReplace(tag)
@@ -132,10 +131,12 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 properties: [],
                 node: { data: tag, children }
             })
-            : ['']
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     String: ({ tag: { data: tag } }: PrintMapEntryArguments) => (
-        isSchemaString(tag) ? [escapeWMLCharacters(tag.value)] : ['']
+        isSchemaString(tag)
+            ? [{ printMode: PrintMode.naive, output: escapeWMLCharacters(tag.value) }]
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Link: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaLink(tag)
@@ -145,9 +146,9 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
                 properties: [{ key: 'to', type: 'key', value: tag.to }],
                 node: { data: tag, children }
             })
-            : ['']
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
-    br: () => (['<br />']),
-    Space: () => (['<Space />']),
-    Whitespace: () => ([' '])
+    br: () => ([{ printMode: PrintMode.naive, output: '<br />' }]),
+    Space: () => ([{ printMode: PrintMode.naive, output: '<Space />' }]),
+    Whitespace: () => ([{ printMode: PrintMode.naive, output: ' ' }])
 }

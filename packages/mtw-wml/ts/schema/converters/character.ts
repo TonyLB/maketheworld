@@ -1,6 +1,6 @@
 import { SchemaCharacterLegalContents, SchemaCharacterTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaStringTag, SchemaTag, isSchemaCharacter, isSchemaCharacterContents, isSchemaFirstImpression, isSchemaImage, isSchemaImport, isSchemaName, isSchemaOneCoolThing, isSchemaOutfit, isSchemaPronouns, isSchemaString } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeFiltered, GenericTreeNode, GenericTreeNodeFiltered } from "../../tree/baseClasses"
@@ -117,7 +117,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     }
 }
 
-const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string[] => (
+const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): PrintMapResult[] => (
     (isSchemaFirstImpression(tag) || isSchemaOneCoolThing(tag) || isSchemaOutfit(tag))
         ? tagRender({
             ...args,
@@ -125,7 +125,7 @@ const tagRenderLiteral = (tag: SchemaTag, args: PrintMapEntryArguments): string[
             properties: [],
             node: { data: tag, children: [{ data: { tag: 'String' as 'String', value: tag.value }, children: [] }] }
         })
-        : ['']
+        : [{ printMode: PrintMode.naive, output: '' }]
 )
 
 export const characterPrintMap: Record<string, PrintMapEntry> = {
@@ -139,7 +139,7 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 node: { data: tag, children }
             })
-            : ['']
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     FirstImpression: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
     OneCoolThing: (args: PrintMapEntryArguments) => (tagRenderLiteral(args.tag.data, args)),
@@ -158,6 +158,6 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 node: { data: tag, children: [] }
             })
-            : ['']
+            : [{ printMode: PrintMode.naive, output: '' }]
     )
 }

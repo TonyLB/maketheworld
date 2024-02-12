@@ -26,7 +26,7 @@ import {
 } from "../baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "../../tree/baseClasses"
@@ -232,13 +232,13 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
 
         const { context } = args.options
         if (!isSchemaExit(tag)) {
-            return ['']
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         const roomsContextList = context.filter(isSchemaRoom)
         const roomContext: SchemaTag | undefined = roomsContextList.length > 0 ? roomsContextList.slice(-1)[0] : undefined
         const roomContextTypecheck = (roomContext: SchemaTag | undefined): roomContext is SchemaRoomTag | undefined => (!roomContext || isSchemaRoom(roomContext))
         if (!roomContextTypecheck(roomContext)) {
-            return ['']
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -274,7 +274,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaRoom(tag)) {
-            return ['']
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -298,7 +298,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaFeature(tag)) {
-            return ['']
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -316,7 +316,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         // Reassemble the contents out of name and description fields
         //
         if (!isSchemaKnowledge(tag)) {
-            return ['']
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -339,11 +339,11 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 ],
                 node: { data: tag, children }
             })
-            : ['']
+            : [{ printMode: PrintMode.naive, output: '' }]
     ),
     Position: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaPosition(tag)) {
-            return ['']
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,
@@ -360,7 +360,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     },
     Map: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         if (!isSchemaMap(tag)) {
-            return ['']
+            return [{ printMode: PrintMode.naive, output: '' }]
         }
         return tagRender({
             ...args,

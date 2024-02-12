@@ -238,7 +238,7 @@ export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
                 if (previous.currentLength <= lineLengthAfterIndent(0)) {
                     return previous
                 }
-                const currentLength = maxLineLength(0, output)
+                const currentLength = maxLineLength(0, output.output)
                 if (currentLength < previous.currentLength) {
                     return {
                         optimalIndex: index,
@@ -253,7 +253,7 @@ export const schemaToWML = (tags: GenericTree<SchemaTag>): string => {
         return {
             returnValue: [
                 ...previous.returnValue,
-                printOptions[optimalIndex]
+                printOptions[optimalIndex].output
             ],
             siblings: [
                 ...previous.siblings,

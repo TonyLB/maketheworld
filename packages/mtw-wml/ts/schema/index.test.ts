@@ -519,8 +519,7 @@ describe('schemaToWML', () => {
     it('should correctly join elements in Description context', () => {
         const testWML = `
             <Description>
-                Test:
-                <If {true}>lengthy philosophical argument when true</If>
+                Test: <If {true}>lengthy philosophical argument when true</If>
                 <Else>equally lengthy and annoying discussion when false</Else>.
             </Description>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(deIndentWML(testWML))

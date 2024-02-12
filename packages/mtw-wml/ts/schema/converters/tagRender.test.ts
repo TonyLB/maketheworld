@@ -1,5 +1,6 @@
 import { tagRenderContents } from './tagRender'
 import { printSchemaTag } from '..'
+import { PrintMode } from './baseClasses'
 
 describe('tagRenderContents', () => {
     it('should render conditionals properly', () => {
@@ -12,8 +13,8 @@ describe('tagRenderContents', () => {
             { data: { tag: 'Statement', if: 'true' }, children: [{ data: { tag: 'String', value: 'true' }, children: [] }] },
             { data: { tag: 'Fallthrough' }, children: [{ data: { tag: 'String', value: 'false' }, children: [] }] }
         ])).toEqual([[
-            "<If {true}>true</If><Else>false</Else>",
-            "<If {true}>true</If>\n<Else>false</Else>"
+            { printMode: PrintMode.naive, output: "<If {true}>true</If><Else>false</Else>" },
+            { printMode: PrintMode.nested, output: "<If {true}>true</If>\n<Else>false</Else>" }
         ]])
     })
 })
