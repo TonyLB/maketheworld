@@ -2,7 +2,7 @@ import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, PrintMapResult, PrintMode, SchemaToWMLOptions } from "./baseClasses"
-import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
+import { combineResults, indentSpacing, lineLengthAfterIndent } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
 import { optionsFactory } from "./utils"
 import { maxIndicesByNestingLevel, minIndicesByNestingLevel, provisionalPrintFactory } from "./printUtils"
@@ -40,19 +40,6 @@ export const tagRenderContents = (
             schemaToWML: PrintMapEntry;
         }
     ) => (contents: GenericTree<SchemaTag>): PrintMapResult[] => {
-    //
-    // combineResults takes lists of results and returns up to two (a nested, and a naive if possible)
-    //
-    const combineResults = (...args: PrintMapResult[]): PrintMapResult[] => {
-        return args.reduce<PrintMapResult[]>((previous, output) => {
-            const previousNaive = previous.find(({ printMode }) => (printMode === PrintMode.naive))
-            const previousNested = previous.find(({ printMode }) => (printMode === PrintMode.nested))
-            return [
-                ...(previousNaive && output.printMode === PrintMode.naive ? [{ ...previousNaive, output: [previousNaive.output, output.output].join('') }] : []),
-                { printMode: PrintMode.nested, output: [(previousNested ?? previousNaive)?.output, output.output].join('\n') }
-            ]
-        }, [{ printMode: PrintMode.naive, output: '' }, { printMode: PrintMode.nested, output: '' }])
-    }
     const { indent, context } = options
     return contents.reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
         const { data } = tag
@@ -69,7 +56,7 @@ export const tagRenderContents = (
                 const schemaDescription = schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, context, padding: 0 })
                 console.log(`schemaDescription: ${JSON.stringify(schemaDescription, null, 4)} x ${JSON.stringify([...previous.taggedMessageStack, tag], null, 4)}`)
                 return {
-                    returnValue: combineResults(...previous.returnValue, ...schemaDescription),
+                    returnValue: previous.returnValue.length ? combineResults()(previous.returnValue, schemaDescription) : schemaDescription,
                     siblings: [ ...previous.siblings, tag],
                     taggedMessageStack: []
                 }
@@ -94,12 +81,14 @@ export const tagRenderContents = (
             console.log(`breaking freeText on(${isSchemaTaggedMessageLegalContents(data)} x ${descriptionContext}): ${JSON.stringify(data, null, 4)}`)
 
             const newOptions = optionsFactory(PrintMapOptionsChange.Indent)({ ...options, siblings: previous.siblings, context: [...options.context, data] })
+            const combinedPrevious = previous.taggedMessageStack.length
+                ? combineResults()(previous.returnValue, schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 }))
+                : previous.returnValue
+            console.log(`combinedPrevious: ${JSON.stringify(combinedPrevious, null, 4)}`)
+            const tagOutput = schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
+            console.log(`tagOutput: ${JSON.stringify(tagOutput, null, 4)}`)
             return {
-                returnValue: combineResults(
-                    ...previous.returnValue,
-                    ...(previous.taggedMessageStack.length ? schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 }) : []),
-                    ...schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
-                ),
+                returnValue: combinedPrevious.length ? combineResults({ separateLines: true })(combinedPrevious, tagOutput) : tagOutput,
                 siblings: [ ...previous.siblings, tag],
                 taggedMessageStack: []
             }
@@ -144,6 +133,7 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
     // TODO: Include node in tagRender arguments, and use that to extend context at this point
     //
     const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options, context: [...options.context, node.data], indent: options.indent + 1 })(node.children)
+    console.log(`mappedContents: ${JSON.stringify(mappedContents, null, 4)}`)
 
     if (!mappedContents[0].output.length) {
         //
@@ -177,29 +167,4 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
     return [naiveOutput, nestedOutput, propertyNestedOutput]
         .filter((value): value is PrintMapResult => (Boolean(value)))
         .filter((value) => (value.printMode !== PrintMode.naive || value.output.length < lineLengthAfterIndent(indent)))
-    // const crossProduct = (outputs: string[][], nestingLevel: PrintMode, transform: (contents: string[]) => string) => (
-    //     (Array.apply(null, Array(maxIndices[nestingLevel])))
-    //         .map((_, indexInLevel) => (provisionalPrintFactory({ outputs, nestingLevel, indexInLevel })))
-    //         .map(transform)
-    // )
-    // // console.log(`mappedContents: ${JSON.stringify(mappedContents, null, 4)}`)
-    // const naiveCrossProduct = minIndices[PrintMode.naive] === 0
-    //     ? []
-    //     : crossProduct(mappedContents, PrintMode.naive, (contents) => (`${tagOpen}${contents.join('')}${tagClose}`))
-    //         // .filter((output) => (output.length < lineLengthAfterIndent(indent)))
-    // const nestedTransform = (contents) => (`${[tagOpen, ...contents.map((line) => (line.trimEnd()))].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`)
-    // const nestedCrossProduct = [
-    //     ...crossProduct(mappedContents, PrintMode.naive, nestedTransform),
-    //     ...crossProduct(mappedContents, PrintMode.nested, nestedTransform),
-    //     ...crossProduct(mappedContents, PrintMode.propertyNested, nestedTransform)
-    // ]
-    // const propertyNestedTransform = (contents) => (`${[nestedTagOpen, ...contents.map((line) => (line.trimEnd()))].join(`\n${indentSpacing(indent + 1)}`)}\n${indentSpacing(indent)}${tagClose}`)
-    // const propertyNestedCrossProduct = [
-    //     ...crossProduct(mappedContents, PrintMode.naive, propertyNestedTransform),
-    //     ...crossProduct(mappedContents, PrintMode.nested, propertyNestedTransform),
-    //     ...crossProduct(mappedContents, PrintMode.propertyNested, propertyNestedTransform)
-    // ]
-    
-    // const returnValue = [...naiveCrossProduct, ...nestedCrossProduct, ...propertyNestedCrossProduct]
-    // return returnValue
 }
