@@ -54,7 +54,6 @@ export const tagRenderContents = (
             //
             if (index === contents.length - 1) {
                 const schemaDescription = schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, context, padding: 0 })
-                console.log(`schemaDescription: ${JSON.stringify(schemaDescription, null, 4)} x ${JSON.stringify([...previous.taggedMessageStack, tag], null, 4)}`)
                 return {
                     returnValue: previous.returnValue.length ? combineResults()(previous.returnValue, schemaDescription) : schemaDescription,
                     siblings: [ ...previous.siblings, tag],
@@ -78,22 +77,19 @@ export const tagRenderContents = (
         // then render the tag with a recursive call to the passed schemaToWML callback function.
         //
         else {
-            console.log(`breaking freeText on(${isSchemaTaggedMessageLegalContents(data)} x ${descriptionContext}): ${JSON.stringify(data, null, 4)}`)
 
             const newOptions = optionsFactory(PrintMapOptionsChange.Indent)({ ...options, siblings: previous.siblings, context: [...options.context, data] })
             const combinedPrevious = previous.taggedMessageStack.length
                 ? combineResults()(previous.returnValue, schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 }))
                 : previous.returnValue
-            console.log(`combinedPrevious: ${JSON.stringify(combinedPrevious, null, 4)}`)
             const tagOutput = schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
-            console.log(`tagOutput: ${JSON.stringify(tagOutput, null, 4)}`)
             return {
                 returnValue: combinedPrevious.length ? combineResults({ separateLines: true })(combinedPrevious, tagOutput) : tagOutput,
                 siblings: [ ...previous.siblings, tag],
                 taggedMessageStack: []
             }
         }
-    }, { returnValue: [], siblings: [], taggedMessageStack: [] }).returnValue
+    }, { returnValue: [{ printMode: PrintMode.naive, output: '' }, { printMode: PrintMode.nested, output: '' }], siblings: [], taggedMessageStack: [] }).returnValue
 }
 
 //
@@ -133,7 +129,6 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
     // TODO: Include node in tagRender arguments, and use that to extend context at this point
     //
     const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options, context: [...options.context, node.data], indent: options.indent + 1 })(node.children)
-    console.log(`mappedContents: ${JSON.stringify(mappedContents, null, 4)}`)
 
     if (!mappedContents[0].output.length) {
         //
@@ -162,8 +157,8 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
     const contentsNested = mappedContents.find(({ printMode }) => (printMode === PrintMode.nested))
 
     const naiveOutput = Boolean(contentsNaive && contentsNaive.output.length) ? { printMode: PrintMode.naive, output: `${tagOpen}${contentsNaive?.output ?? ''}${tagClose}` } : undefined
-    const nestedOutput = { printMode: PrintMode.nested, output: `${tagOpen}\n${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
-    const propertyNestedOutput = { printMode: PrintMode.propertyNested, output: `${nestedTagOpen}\n${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
+    const nestedOutput = { printMode: PrintMode.nested, output: `${tagOpen}\n${indentSpacing(1)}${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
+    const propertyNestedOutput = { printMode: PrintMode.propertyNested, output: `${nestedTagOpen}\n${indentSpacing(1)}${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
     return [naiveOutput, nestedOutput, propertyNestedOutput]
         .filter((value): value is PrintMapResult => (Boolean(value)))
         .filter((value) => (value.printMode !== PrintMode.naive || value.output.length < lineLengthAfterIndent(indent)))

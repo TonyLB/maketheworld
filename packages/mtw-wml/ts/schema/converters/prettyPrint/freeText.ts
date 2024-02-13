@@ -38,7 +38,7 @@ export const maxLineLength = (padding: number, lines: string) => (lines.split('\
 const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToWMLOptions & { padding: number; nestingLevel: PrintMode; indexInLevel: number }): BreakTagsReturn => {
     const { indent, padding, nestingLevel, indexInLevel } = options
     const indexOfFirstBreakableString = tags.map(({ node }) => (node)).findIndex((tag) => (isSchemaString(tag.data) && (tag.data.value.includes(' '))))
-    const outputBeforeString = indexOfFirstBreakableString > 0 ? provisionalPrintFactory({ outputs: tags.map(({ outputs }) => (outputs)).slice(0, indexOfFirstBreakableString), nestingLevel, indexInLevel }).join('') : ''
+    const outputBeforeString = indexOfFirstBreakableString > 0 ? provisionalPrintFactory({ outputs: tags.map(({ outputs }) => (outputs)).slice(0, indexOfFirstBreakableString), nestingLevel, indexInLevel }).map(({ output }) => (output)).join('') : ''
     if (indexOfFirstBreakableString === -1 || (maxLineLength(padding, outputBeforeString) > lineLengthAfterIndent(indent))) {
         return {
             outputLines: [],
@@ -111,7 +111,7 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
             //
             const { outputLines: extractedOutputLines, remainingTags, extractedTags } = breakTagsOnFirstStringWhitespace(tagsBeingConsidered, { indent, siblings: currentSiblings, context: options.context, padding: prefix.length, nestingLevel, indexInLevel })
             if (extractedOutputLines.length) {
-                outputLines = [...outputLines, `${prefix}${extractedOutputLines[0]}`, ...(extractedOutputLines.slice(1))]
+                outputLines = [...outputLines, `${prefix}${extractedOutputLines[0]}`.trimEnd(), ...(extractedOutputLines.slice(1))]
                 currentSiblings = [...currentSiblings, ...extractedTags.map(({ node }) => (node)).filter(excludeSpacing)]
                 tagsBeingConsidered = remainingTags
                 prefix = ''
@@ -172,7 +172,6 @@ const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOption
 // provided by the underlying individual tag-print commands), then chooses the least granular level that complies with line-size limits.
 //
 export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions & { padding: number }): PrintMapResult[] => {
-    console.log(`schemaDescription inputs: ${JSON.stringify(tags, null, 4)}`)
     const { siblings } = options
     let currentSiblings = [...(siblings ?? []).filter(excludeSpacing)]
     let outputLines: string[] = []
@@ -189,7 +188,6 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
             // the way)
             //
             if (areAdjacent(lastElement.node.data, tag.data)) {
-                console.log(`Adjacent: (${JSON.stringify(lastElement.node.data)}) x (${JSON.stringify(tag.data)})`)
                 const newOutputs = schemaToWML({ tag, options, schemaToWML, optionsFactory })
                 queue.push({ node: tag, outputs: newOutputs })
             }
@@ -197,7 +195,6 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
                 //
                 // Increase granularity as much as needed in order to fit within line length limits
                 //
-                console.log(`Not adjacent: (${JSON.stringify(lastElement.node.data)}) x (${JSON.stringify(tag.data)})`)
                 const { nestingLevel, indexInLevel } = printQueueIdealSettings(queue, { ...options, siblings: currentSiblings })
                 const provisionalPrint = () => {
                     const returnValue = printQueuedTags(
@@ -206,7 +203,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
                     )
                     return returnValue
                 }
-                outputLines = [...outputLines, ...provisionalPrint()]
+                outputLines = [...outputLines, ...provisionalPrint().map((output) => (output.trimEnd()))]
                 currentSiblings = [...currentSiblings, ...queue.map(({ node }) => (node)).filter(excludeSpacing)]
                 queue = [{ node: tag, outputs: schemaToWML({ tag, options, schemaToWML, optionsFactory }) }]
             }

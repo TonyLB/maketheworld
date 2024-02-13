@@ -2,6 +2,7 @@ import { SchemaTag, SchemaTaggedMessageLegalContents } from '../../baseClasses'
 import { schemaDescriptionToWML } from './freeText'
 import { printSchemaTag as schemaToWML } from '../..'
 import { GenericTree } from '../../../tree/baseClasses'
+import { PrintMode } from '../baseClasses'
 
 describe('description schemaToWML', () => {
     //
@@ -14,7 +15,10 @@ describe('description schemaToWML', () => {
                 { data: { tag: 'Link', to: 'Test', text: 'Test' }, children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] }
             ],
             { indent: 0, padding: 0, context: [] }
-        )).toEqual(['Test<Link to=(Test)>Test</Link>'])
+        )).toEqual([
+            { printMode: PrintMode.naive, output: 'Test<Link to=(Test)>Test</Link>' },
+            { printMode: PrintMode.nested, output: 'Test<Link to=(Test)>Test</Link>' }
+        ])
     })
     it('should word wrap descriptions', () => {
         const testSchema: GenericTree<SchemaTag> = [
@@ -45,7 +49,7 @@ describe('description schemaToWML', () => {
                 children: []
             }
         ]
-        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] }).join('\n')).toMatchSnapshot()
+        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })[0].output).toMatchSnapshot()
     })
 
     it('should correctly handle sequential complex conditions', () => {
@@ -79,7 +83,7 @@ describe('description schemaToWML', () => {
                 children: []
             }
         ]
-        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] }).join('\n')).toMatchSnapshot()
+        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })[1].output).toMatchSnapshot()
     })
 
 })
