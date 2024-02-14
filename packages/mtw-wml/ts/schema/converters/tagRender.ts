@@ -2,7 +2,7 @@ import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, PrintMapResult, PrintMode, SchemaToWMLOptions } from "./baseClasses"
-import { combineResults, indentSpacing, lineLengthAfterIndent } from "./printUtils"
+import { combineResults, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
 import { optionsFactory } from "./utils"
 import { maxIndicesByNestingLevel, minIndicesByNestingLevel, provisionalPrintFactory } from "./printUtils"
@@ -84,7 +84,7 @@ export const tagRenderContents = (
                 : previous.returnValue
             const tagOutput = schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
             return {
-                returnValue: combinedPrevious.length ? combineResults({ separateLines: true })(combinedPrevious, tagOutput) : tagOutput,
+                returnValue: combinedPrevious.length ? combineResults({ separateLines: true, ignoreWhitespace: true })(combinedPrevious, tagOutput) : tagOutput,
                 siblings: [ ...previous.siblings, tag],
                 taggedMessageStack: []
             }
@@ -125,12 +125,16 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
     // Render cross-product of possible matches (naive with single-line outcomes, nested and propertyNested with everything)
     //
 
-    //
-    // TODO: Include node in tagRender arguments, and use that to extend context at this point
-    //
-    const mappedContents = tagRenderContents({ descriptionContext, schemaToWML, ...options, context: [...options.context, node.data], indent: options.indent + 1 })(node.children)
+    const contents = tagRenderContents({
+        descriptionContext,
+        schemaToWML,
+        ...options,
+        context: [...options.context, node.data],
+        indent: options.indent + 1
+    })(node.children)
+    const mappedContents = optimalLineResults({ indent: options.indent + 1 })(contents)
 
-    if (!mappedContents[0].output.length) {
+    if (!mappedContents[0]?.output?.length) {
         //
         // Self-closing tag
         //

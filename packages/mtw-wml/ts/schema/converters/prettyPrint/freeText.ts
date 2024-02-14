@@ -217,7 +217,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
     if (nestingLevel === PrintMode.naive) {
         return [
             { printMode: PrintMode.naive, output: outputLines.join('') },
-            { printMode: PrintMode.nested, output: outputLines.map((value) => (value.trim())).join('\n') }
+            { printMode: PrintMode.nested, output: outputLines.map((value) => (value.trim())).filter((value) => (value)).join('\n') }
         ]
     }
     else {

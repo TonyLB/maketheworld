@@ -28,6 +28,16 @@ describe('nestingLevel utilities', () => {
         ])
     })
 
+    it('should properly ignore whitespace lines in combineResults', () => {
+        expect(combineResults({ separateLines: true, ignoreWhitespace: true })(
+            [{ printMode: PrintMode.naive, output: '<Name>Test</Name>' }, { printMode: PrintMode.nested, output: '<Name>\n    Test\n</Name>' }],
+            [{ printMode: PrintMode.naive, output: ' ' }, { printMode: PrintMode.nested, output: ' ' }],
+            [{ printMode: PrintMode.naive, output: '<Description>Pretty</Description>'}, { printMode: PrintMode.nested, output: '<Description>\n    Pretty\n</Description>' }]
+        )).toEqual([
+            { printMode: PrintMode.nested, output: '<Name>Test</Name>\n<Description>Pretty</Description>'}
+        ])
+    })
+
     it('should correctly choose optimalLineResults when all are within limits', () => {
         expect(optimalLineResults()([
             { printMode: PrintMode.naive, output: '<Name>Test</Name></Description>Test</Description>' },
