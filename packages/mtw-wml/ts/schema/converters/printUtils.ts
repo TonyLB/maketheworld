@@ -117,14 +117,24 @@ export const combineResults = (options: { multipleInCategory?: boolean; property
                 ? { printMode, output: [inputA.output, inputB.output].join(separator)}
                 : inputB
         )
-        const returnValues = [
-            // Combine naive, if available
-            ...(options.separateLines
-                ? combineLevel(previousNaive, currentNaive, combineTransform(PrintMode.nested, '\n'))
-                : combineLevel(previousNaive, currentNaive, combineTransform(PrintMode.naive, ''))
-            ),
-            ...combineLevel(previousNested, currentNested, combineTransform(PrintMode.nested, options.separateLines ? '\n' : ''))
-        ]
+        const returnValues =
+
+            //
+            // TODO: Add an "independent" property so that if there IS a naive interpretation then
+            // it combines that, otherwise it combines the nested (checking both previous and current
+            // independently)
+            //
+            options.separateLines
+                ? [
+                    ...combineLevel(previousNaive.length ? previousNaive : previousNested, currentNaive.length ? currentNaive : currentNested, combineTransform(PrintMode.nested, '\n')),
+                    ...combineLevel(previousNested, currentNested, combineTransform(PrintMode.nested, '\n'))
+                ]
+                : [
+                    // Combine naive, if available, on a single line
+                    ...combineLevel(previousNaive, currentNaive, combineTransform(PrintMode.naive, '')),
+                    ...combineLevel(previousNested, currentNested, combineTransform(PrintMode.nested, ''))
+                ]
+
         if (options.multipleInCategory) {
             return returnValues
         }
@@ -136,4 +146,47 @@ export const combineResults = (options: { multipleInCategory?: boolean; property
             ]
         }
     }, [{ printMode: PrintMode.naive, output: '' }, { printMode: PrintMode.nested, output: '' }])
+}
+
+//
+// TODO: Refactor optimalLineResults to return line results of different PrintModes, up to one each (if
+// all are equally legal ... i.e., all can display or all are over-length, otherwise only the displayable
+// ones are returned).
+//
+export const optimalLineResults = ({ padding = 0, indent = 0 }: { padding?: number; indent?: number } = {}) => (outputs: PrintMapResult[]): PrintMapResult[] => {
+    const lineLengthAllowed = lineLengthAfterIndent(indent)
+    const maxLengthFactory = (output: string) => (
+        output
+            .split('\n')
+            .map((outputLine, index) => (outputLine.length + (index === 0 ? padding : 0)))
+            .reduce((previous, value) => Math.max(previous, value), 0)
+    )
+    const outputMap = outputs.reduce<Record<PrintMode, { output?: PrintMapResult; currentLength: number }>>((previous, output) => {
+        const { currentLength } = previous[output.printMode]
+        if (currentLength <= lineLengthAllowed) {
+            return previous
+        }
+        const maxLength = maxLengthFactory(output.output)
+        if (maxLength < currentLength) {
+            return {
+                ...previous,
+                [output.printMode]: { output, currentLength: maxLength }
+            }
+        }
+        return previous
+    }, {
+        [PrintMode.naive]: { currentLength: Infinity },
+        [PrintMode.nested]: { currentLength: Infinity },
+        [PrintMode.propertyNested]: { currentLength: Infinity },
+    })
+    const outputDraft = Object.values(outputMap)
+        .map(({ output }) => (output))
+        .filter((outputItem): outputItem is PrintMapResult => (Boolean(outputItem)))
+    const output = outputDraft.find(({ output }) => (maxLengthFactory(output) <= lineLengthAllowed))
+        ? outputDraft.filter(({ output }) => (maxLengthFactory(output) <= lineLengthAllowed))
+        : outputDraft
+    if (!output) {
+        throw new Error('No output calculated in optimalLineResults')
+    }
+    return output
 }

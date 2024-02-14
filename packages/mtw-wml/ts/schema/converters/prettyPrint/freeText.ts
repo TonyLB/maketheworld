@@ -69,8 +69,8 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
             extractedTags: []
         }
     }
-    const extractedLine = stringRendered.output.slice(0, splitIndex)
-    const outputLine = `${outputBeforeString}${extractedLine}`.trim()
+    const extractedLine = stringRendered.output.slice(0, splitIndex + 1)
+    const outputLine = `${outputBeforeString}${extractedLine}`
     const remainderLine = stringRendered.output.slice(splitIndex + 1)
     const remainingTags = [
         ...(remainderLine ? [{ node: { data: { tag: 'String' as 'String', value: deEscapeWMLCharacters(remainderLine) }, children: [] }, outputs: [{ printMode: stringRendered.printMode, output: remainderLine }] }] : []),
@@ -83,7 +83,7 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
             ...(indexOfFirstBreakableString > 0 ? tags.slice(0, indexOfFirstBreakableString - 1) : []),
             {
                 node: {
-                    data: { tag: 'String' as 'String', value: deEscapeWMLCharacters(extractedLine.trim()) },
+                    data: { tag: 'String' as 'String', value: deEscapeWMLCharacters(extractedLine) },
                     children: []
                 },
                 outputs: [{ printMode: stringRendered.printMode, output: extractedLine }]
@@ -111,7 +111,7 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
             //
             const { outputLines: extractedOutputLines, remainingTags, extractedTags } = breakTagsOnFirstStringWhitespace(tagsBeingConsidered, { indent, siblings: currentSiblings, context: options.context, padding: prefix.length, nestingLevel, indexInLevel })
             if (extractedOutputLines.length) {
-                outputLines = [...outputLines, `${prefix}${extractedOutputLines[0]}`.trimEnd(), ...(extractedOutputLines.slice(1))]
+                outputLines = [...outputLines, `${prefix}${extractedOutputLines[0]}`, ...(extractedOutputLines.slice(1))]
                 currentSiblings = [...currentSiblings, ...extractedTags.map(({ node }) => (node)).filter(excludeSpacing)]
                 tagsBeingConsidered = remainingTags
                 prefix = ''
@@ -135,7 +135,7 @@ const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { ne
     // Remove indents (which were needed in order to calculate line length) before applying indents in schemaDescriptionToWML,
     // to avoid multiplying the spacing through recursion
     //
-    const returnValue = (prefix ? [...outputLines, prefix] : outputLines).filter((value) => (value.trim())).map((line, index) => ((index > 0 && !line.slice(0, indent * 4).trim()) ? line.slice(indent * 4) : line))
+    const returnValue = (prefix ? [...outputLines, prefix] : outputLines)
     return returnValue
 }
 
@@ -203,7 +203,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
                     )
                     return returnValue
                 }
-                outputLines = [...outputLines, ...provisionalPrint().map((output) => (output.trimEnd()))]
+                outputLines = [...outputLines, ...provisionalPrint().map((output) => (output))]
                 currentSiblings = [...currentSiblings, ...queue.map(({ node }) => (node)).filter(excludeSpacing)]
                 queue = [{ node: tag, outputs: schemaToWML({ tag, options, schemaToWML, optionsFactory }) }]
             }
@@ -217,10 +217,10 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
     if (nestingLevel === PrintMode.naive) {
         return [
             { printMode: PrintMode.naive, output: outputLines.join('') },
-            { printMode: PrintMode.nested, output: outputLines.join('\n') }
+            { printMode: PrintMode.nested, output: outputLines.map((value) => (value.trim())).join('\n') }
         ]
     }
     else {
-        return [{ printMode: PrintMode.nested, output: outputLines.join('\n') }]
+        return [{ printMode: PrintMode.nested, output: outputLines.map((value) => (value.trim())).join('\n') }]
     }
 }
