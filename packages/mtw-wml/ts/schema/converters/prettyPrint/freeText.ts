@@ -55,6 +55,7 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
         }
     }
     const stringRendered = provisionalPrintFactory({ outputs: [firstBreakableString.outputs], nestingLevel, indexInLevel })[0]
+    console.log(`stringRendered(${indent}): ${stringRendered.output}`)
     const splitIndex = stringRendered.output.split('').reduce<number>((previous, character, index) => {
         const outputBeforeStringLastLength = outputBeforeString.split('\n').length > 1 ? outputBeforeString.split('\n').slice(-1)[0].length : padding + outputBeforeString.length
         if (character.match(/^\s$/) && index && outputBeforeStringLastLength + index <= lineLengthAfterIndent(indent)) {
@@ -70,6 +71,7 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
         }
     }
     const extractedLine = stringRendered.output.slice(0, splitIndex + 1)
+    console.log(`splitIndex: ${splitIndex} x ${extractedLine}`)
     const outputLine = `${outputBeforeString}${extractedLine}`
     const remainderLine = stringRendered.output.slice(splitIndex + 1)
     const remainingTags = [

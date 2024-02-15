@@ -152,28 +152,7 @@ export const conditionalPrintMap: Record<string, PrintMapEntry> = {
         if (!isSchemaCondition(tag)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
-        //
-        // TODO: Abstract this functionality to prevent repeating similar functionality in tagRender
-        //
         const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag(args.options.context) || '')
-        return tagRenderContents({ descriptionContext, schemaToWML: args.schemaToWML, ...args.options, indent: args.options.indent - 1 })(children)
-        // const mappedContents = tagRenderContents({ descriptionContext, schemaToWML: args.schemaToWML, ...args.options, indent: args.options.indent - 1 })(children)
-        // const minIndices = minIndicesByNestingLevel(mappedContents)
-        // const maxIndices = maxIndicesByNestingLevel(mappedContents)
-        // const crossProduct = (outputs: PrintMapResult[][], nestingLevel: PrintMode, transform: (contents: string[]) => string) => (
-        //     (Array.apply(null, Array(maxIndices[nestingLevel])))
-        //         .map((_, indexInLevel) => (provisionalPrintFactory({ outputs, nestingLevel, indexInLevel })))
-        //         .map(transform)
-        // )
-        // const naiveCrossProduct = minIndices[PrintMode.naive] === 0
-        //     ? []
-        //     : crossProduct(mappedContents, PrintMode.naive, (contents) => (contents.join('')))
-        // const nestedTransform = (contents) => (contents.join(`\n${indentSpacing(args.options.indent + 1)}`))
-        // const nestedCrossProduct = [
-        //     ...crossProduct(mappedContents, PrintMode.naive, nestedTransform),
-        //     ...crossProduct(mappedContents, PrintMode.nested, nestedTransform),
-        //     ...crossProduct(mappedContents, PrintMode.propertyNested, nestedTransform)
-        // ]
-        // return [...naiveCrossProduct, ...nestedCrossProduct]
+        return tagRenderContents({ descriptionContext, schemaToWML: args.schemaToWML, ...args.options })(children)
     }
 }

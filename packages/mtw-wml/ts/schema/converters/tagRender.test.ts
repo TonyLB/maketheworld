@@ -14,7 +14,7 @@ describe('tagRenderContents', () => {
             { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'An extremely long, hopefully line-breaking, lots of words, non-stop, why do you write like you\'re running out of time description' }, children: [] }] }
         ])
         expect(testValue).toEqual([
-            { printMode: PrintMode.nested, output: "<Name>A short name</Name>\n<Description>\n    An extremely long, hopefully line-breaking, lots of words, non-stop,\n    why do you write like you\'re running out of time description\n</Description>" }
+            { printMode: PrintMode.nested, output: "<Name>A short name</Name>\n<Description>\n    An extremely long, hopefully line-breaking, lots of words, non-stop, why do\n    you write like you\'re running out of time description\n</Description>" }
         ])
 
     })

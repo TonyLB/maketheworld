@@ -53,7 +53,7 @@ export const tagRenderContents = (
             // through schemaDescriptionToWML using an added indent.
             //
             if (index === contents.length - 1) {
-                const schemaDescription = schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent: indent + 1, context, padding: 0 })
+                const schemaDescription = schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent, context, padding: 0 })
                 return {
                     returnValue: previous.returnValue.length ? combineResults()(previous.returnValue, schemaDescription) : schemaDescription,
                     siblings: [ ...previous.siblings, tag],
@@ -78,7 +78,7 @@ export const tagRenderContents = (
         //
         else {
 
-            const newOptions = optionsFactory(PrintMapOptionsChange.Indent)({ ...options, siblings: previous.siblings, context: [...options.context, data] })
+            const newOptions = { ...options, siblings: previous.siblings, context: [...options.context, data] }
             const combinedPrevious = previous.taggedMessageStack.length
                 ? combineResults()(previous.returnValue, schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 }))
                 : previous.returnValue
@@ -103,6 +103,7 @@ export const tagRenderContents = (
 //
 export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; node: GenericTreeNode<SchemaTag> }): PrintMapResult[] => {
     const { indent, context } = options
+    console.log(`tag: ${tag} x ${indent}`)
     const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag([...context, node.data]) || '')
     //
     // Individual properties can be rendered before knowing how they will be sorted (and kept in a list).
