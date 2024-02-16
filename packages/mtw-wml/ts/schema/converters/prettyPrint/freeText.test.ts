@@ -83,7 +83,7 @@ describe('description schemaToWML', () => {
                 children: []
             }
         ]
-        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })[1].output).toMatchSnapshot()
+        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })[0].output).toMatchSnapshot()
     })
 
 })

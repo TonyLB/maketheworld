@@ -55,6 +55,7 @@ export type SchemaToWMLOptions = {
     indent: number;
     context: SchemaTag[];
     siblings?: GenericTree<SchemaTag>;
+    multipleInCategory?: boolean;
 }
 
 export enum PrintMapOptionsChange {

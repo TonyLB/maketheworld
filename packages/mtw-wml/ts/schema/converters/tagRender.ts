@@ -40,7 +40,7 @@ export const tagRenderContents = (
             schemaToWML: PrintMapEntry;
         }
     ) => (contents: GenericTree<SchemaTag>): PrintMapResult[] => {
-    const { indent, context } = options
+    const { indent, context, multipleInCategory } = options
     return contents.reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
         const { data } = tag
         //
@@ -53,9 +53,9 @@ export const tagRenderContents = (
             // through schemaDescriptionToWML using an added indent.
             //
             if (index === contents.length - 1) {
-                const schemaDescription = schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent, context, padding: 0 })
+                const schemaDescription = schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent, context, padding: 0, multipleInCategory })
                 return {
-                    returnValue: previous.returnValue.length ? combineResults()(previous.returnValue, schemaDescription) : schemaDescription,
+                    returnValue: previous.returnValue.length ? combineResults({ multipleInCategory })(previous.returnValue, schemaDescription) : schemaDescription,
                     siblings: [ ...previous.siblings, tag],
                     taggedMessageStack: []
                 }
@@ -80,11 +80,11 @@ export const tagRenderContents = (
 
             const newOptions = { ...options, siblings: previous.siblings, context: [...options.context, data] }
             const combinedPrevious = previous.taggedMessageStack.length
-                ? combineResults()(previous.returnValue, schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 }))
+                ? combineResults({ multipleInCategory })(previous.returnValue, schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 }))
                 : previous.returnValue
             const tagOutput = schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
             return {
-                returnValue: combinedPrevious.length ? combineResults({ separateLines: true, ignoreWhitespace: true })(combinedPrevious, tagOutput) : tagOutput,
+                returnValue: combinedPrevious.length ? combineResults({ separateLines: true, ignoreWhitespace: true, multipleInCategory })(combinedPrevious, tagOutput) : tagOutput,
                 siblings: [ ...previous.siblings, tag],
                 taggedMessageStack: []
             }
@@ -103,7 +103,6 @@ export const tagRenderContents = (
 //
 export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; node: GenericTreeNode<SchemaTag> }): PrintMapResult[] => {
     const { indent, context } = options
-    console.log(`tag: ${tag} x ${indent}`)
     const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag([...context, node.data]) || '')
     //
     // Individual properties can be rendered before knowing how they will be sorted (and kept in a list).
@@ -133,7 +132,8 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
         context: [...options.context, node.data],
         indent: options.indent + 1
     })(node.children)
-    const mappedContents = optimalLineResults({ indent: options.indent + 1 })(contents)
+    console.log(`tagRenderContents: ${JSON.stringify(contents, null, 4)}`)
+    const mappedContents = options.multipleInCategory ? contents : optimalLineResults({ indent: options.indent + 1 })(contents)
 
     if (!mappedContents[0]?.output?.length) {
         //
@@ -166,5 +166,5 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
     const propertyNestedOutput = { printMode: PrintMode.propertyNested, output: `${nestedTagOpen}\n${indentSpacing(1)}${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
     return [naiveOutput, nestedOutput, propertyNestedOutput]
         .filter((value): value is PrintMapResult => (Boolean(value)))
-        .filter((value) => (value.printMode !== PrintMode.naive || value.output.length < lineLengthAfterIndent(indent)))
+        .filter((value) => ((value.printMode !== PrintMode.naive) || (value.output.length < lineLengthAfterIndent(indent))))
 }

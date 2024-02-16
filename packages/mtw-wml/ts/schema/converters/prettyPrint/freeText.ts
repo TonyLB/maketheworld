@@ -2,7 +2,7 @@ import { deEscapeWMLCharacters } from "../../../lib/escapeWMLCharacters"
 import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
 import { isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
 import { PrintMapEntry, PrintMapResult, PrintMode, SchemaToWMLOptions } from "../baseClasses"
-import { lineLengthAfterIndent, maxIndicesByNestingLevel, provisionalPrintFactory } from "../printUtils"
+import { combineResults, lineLengthAfterIndent, maxIndicesByNestingLevel, provisionalPrintFactory } from "../printUtils"
 import { optionsFactory } from "../utils"
 
 const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
@@ -55,7 +55,6 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
         }
     }
     const stringRendered = provisionalPrintFactory({ outputs: [firstBreakableString.outputs], nestingLevel, indexInLevel })[0]
-    console.log(`stringRendered(${indent}): ${stringRendered.output}`)
     const splitIndex = stringRendered.output.split('').reduce<number>((previous, character, index) => {
         const outputBeforeStringLastLength = outputBeforeString.split('\n').length > 1 ? outputBeforeString.split('\n').slice(-1)[0].length : padding + outputBeforeString.length
         if (character.match(/^\s$/) && index && outputBeforeStringLastLength + index <= lineLengthAfterIndent(indent)) {
@@ -71,7 +70,6 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
         }
     }
     const extractedLine = stringRendered.output.slice(0, splitIndex + 1)
-    console.log(`splitIndex: ${splitIndex} x ${extractedLine}`)
     const outputLine = `${outputBeforeString}${extractedLine}`
     const remainderLine = stringRendered.output.slice(splitIndex + 1)
     const remainingTags = [
@@ -158,7 +156,7 @@ const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOption
     }
     while(
         !(nestingLevel === PrintMode.propertyNested && indexInLevel >= maxIndices[nestingLevel] - 1) &&
-        (maxLineLength(padding, provisionalPrint().join('\n')) > lineLengthAfterIndent(indent))
+        ((nestingLevel === PrintMode.naive ? provisionalPrint().join('').length : maxLineLength(padding, provisionalPrint().join('\n'))) > lineLengthAfterIndent(indent))
     ) {
         indexInLevel++
         if (indexInLevel >= maxIndices[nestingLevel]) {
@@ -185,19 +183,18 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
             //
             const lastElement = queue.slice(-1)[0]
             //
-            // TODO: Refactor so that nesting level and index are calculated *ONLY* when a complete list
-            // of adjacent entries has been finished and is ready for render (not at every step along
-            // the way)
+            // TODO: Refactor so that the schemaToWML pipeline passes down multipleInCategory argument, so that a whole group
+            // of adjacent tagged items will either be all naive together, or all nested together.
             //
             if (areAdjacent(lastElement.node.data, tag.data)) {
-                const newOutputs = schemaToWML({ tag, options, schemaToWML, optionsFactory })
+                const newOutputs = schemaToWML({ tag, options: { ...options, multipleInCategory: true }, schemaToWML, optionsFactory })
                 queue.push({ node: tag, outputs: newOutputs })
             }
             else {
                 //
                 // Increase granularity as much as needed in order to fit within line length limits
                 //
-                const { nestingLevel, indexInLevel } = printQueueIdealSettings(queue, { ...options, siblings: currentSiblings })
+                const { nestingLevel, indexInLevel } = printQueueIdealSettings(queue, { ...options, multipleInCategory: true, siblings: currentSiblings })
                 const provisionalPrint = () => {
                     const returnValue = printQueuedTags(
                         queue,
@@ -205,17 +202,26 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: Gen
                     )
                     return returnValue
                 }
-                outputLines = [...outputLines, ...provisionalPrint().map((output) => (output))]
+                outputLines = [...outputLines, ...provisionalPrint()]
                 currentSiblings = [...currentSiblings, ...queue.map(({ node }) => (node)).filter(excludeSpacing)]
-                queue = [{ node: tag, outputs: schemaToWML({ tag, options, schemaToWML, optionsFactory }) }]
+                queue = [{ node: tag, outputs: schemaToWML({ tag, options: { ...options, multipleInCategory: true }, schemaToWML, optionsFactory }) }]
             }
         }
         else {
-            queue = [{ node: tag, outputs: schemaToWML({ tag, options, schemaToWML, optionsFactory }) }]
+            queue = [{ node: tag, outputs: schemaToWML({ tag, options: { ...options, multipleInCategory: true }, schemaToWML, optionsFactory }) }]
         }
     })
+    if (options.multipleInCategory) {
+        return combineResults()(
+            [{ printMode: PrintMode.naive, output: outputLines.join('') }, { printMode: PrintMode.nested, output: outputLines.join('\n') }],
+            ...queue.map(({ outputs }) => (outputs))
+        )
+    }
     const { nestingLevel, indexInLevel } = printQueueIdealSettings(queue, { ...options, siblings: currentSiblings })
+    console.log(`queue: ${JSON.stringify(queue, null, 4)}`)
+    console.log(`NestingLevel: ${nestingLevel}`)
     outputLines = [...outputLines, ...printQueuedTags(queue, { ...options, siblings: currentSiblings, nestingLevel, indexInLevel })]
+    console.log(`outputLines: ${JSON.stringify(outputLines, null, 4)}`)
     if (nestingLevel === PrintMode.naive) {
         return [
             { printMode: PrintMode.naive, output: outputLines.join('') },

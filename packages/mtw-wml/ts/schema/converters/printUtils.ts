@@ -138,6 +138,7 @@ export const combineResults = (options: { multipleInCategory?: boolean; property
                 ]
 
         if (options.multipleInCategory) {
+            console.log(`multiple in category: ${JSON.stringify(returnValues, null, 4)}`)
             return returnValues
         }
         else {
