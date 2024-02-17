@@ -1,22 +1,9 @@
 import { deEscapeWMLCharacters } from "../../../lib/escapeWMLCharacters"
 import { GenericTree, GenericTreeNode } from "../../../tree/baseClasses"
-import { isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaLineBreak, isSchemaSpacer, isSchemaString, SchemaTag } from "../../baseClasses"
-import { PrintMapEntry, PrintMapResult, PrintMode, SchemaToWMLOptions } from "../baseClasses"
+import { isSchemaString, SchemaTag } from "../../baseClasses"
+import { PrintMapEntry, PrintMapResult, PrintMode, SchemaTagPrintItem, SchemaToWMLOptions, isSchemaTagPrintItemSingle } from "../baseClasses"
 import { combineResults, lineLengthAfterIndent, maxIndicesByNestingLevel, provisionalPrintFactory } from "../printUtils"
 import { optionsFactory } from "../utils"
-
-const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
-    const spaces = Boolean(
-        (isSchemaString(a) && a.value.match(/\s$/)) ||
-        (isSchemaString(b) && b.value.match(/^\s/)) ||
-        isSchemaLineBreak(a) ||
-        isSchemaSpacer(a) ||
-        isSchemaLineBreak(b) ||
-        isSchemaSpacer(b) ||
-        (isSchemaConditionStatement(a) && (isSchemaConditionStatement(b) || isSchemaConditionFallthrough(b)))
-    )
-    return !spaces
-}
 
 type PrintQueue = {
     node: GenericTreeNode<SchemaTag>;
@@ -168,67 +155,61 @@ const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOption
 }
 
 //
-// schemaDescriptionToWML accepts incoming tags and create a list of provisional renderings (one for each of the levels of granularity
-// provided by the underlying individual tag-print commands), then chooses the least granular level that complies with line-size limits.
+// schemaDescriptionToWML accepts incoming tags and create a list of provisional renderings that judge for each element (or group of
+// adjacent elements) whether it can fit into line-wrap limits as a naive render, or must be nested to some level
 //
-export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tags: GenericTree<SchemaTag>, options: SchemaToWMLOptions & { padding: number }): PrintMapResult[] => {
+export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tagGroups: SchemaTagPrintItem[], options: SchemaToWMLOptions & { padding: number }): PrintMapResult[] => {
     const { siblings } = options
     let currentSiblings = [...(siblings ?? []).filter(excludeSpacing)]
-    let outputLines: string[] = []
-    let queue: PrintQueue[] = []
-    tags.forEach((tag) => {
-        if (queue.length) {
+    //
+    // Accumulate a set of single tags (which will have multiple print results, and can appear on a single line or be spread across
+    // many) and adjacent groups (which will have a single result that determines what nestingLevel the entire group needs to be
+    // rendered at, in order to fit within line limits)
+    //
+    const queuedTags = tagGroups.reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((previous, tagGroup) => {
+        if (tagGroup.type === 'singleFreeText') {
             //
-            // Group tags and blocks of text into adjacency lists that should stay connected
+            // Increase granularity as much as needed in order to fit within line length limits
             //
-            const lastElement = queue.slice(-1)[0]
-            //
-            // TODO: Refactor so that the schemaToWML pipeline passes down multipleInCategory argument, so that a whole group
-            // of adjacent tagged items will either be all naive together, or all nested together.
-            //
-            if (areAdjacent(lastElement.node.data, tag.data)) {
-                const newOutputs = schemaToWML({ tag, options: { ...options, multipleInCategory: true }, schemaToWML, optionsFactory })
-                queue.push({ node: tag, outputs: newOutputs })
-            }
-            else {
-                //
-                // Increase granularity as much as needed in order to fit within line length limits
-                //
-                const { nestingLevel, indexInLevel } = printQueueIdealSettings(queue, { ...options, multipleInCategory: true, siblings: currentSiblings })
-                const provisionalPrint = () => {
-                    const returnValue = printQueuedTags(
-                        queue,
-                        { ...options, siblings: currentSiblings, nestingLevel, indexInLevel }
-                    )
-                    return returnValue
-                }
-                outputLines = [...outputLines, ...provisionalPrint()]
-                currentSiblings = [...currentSiblings, ...queue.map(({ node }) => (node)).filter(excludeSpacing)]
-                queue = [{ node: tag, outputs: schemaToWML({ tag, options: { ...options, multipleInCategory: true }, schemaToWML, optionsFactory }) }]
+            const singleItem: PrintQueue = { node: tagGroup.tag, outputs: schemaToWML({ tag: tagGroup.tag, options, schemaToWML, optionsFactory }) }
+            const { nestingLevel, indexInLevel } = printQueueIdealSettings([singleItem], { ...options, multipleInCategory: true, siblings: currentSiblings })
+            const outputLines = printQueuedTags(
+                [singleItem],
+                { ...options, siblings: currentSiblings, nestingLevel, indexInLevel }
+            )
+            const newReturnValue: PrintMapResult = (nestingLevel === PrintMode.naive)
+                ? { printMode: PrintMode.naive, output: outputLines.join('') }
+                : { printMode: PrintMode.nested, output: outputLines.map((value) => (value.trim())).join('\n') }
+            return {
+                returnValue: [...previous.returnValue, newReturnValue],
+                siblings: [...previous.siblings, tagGroup.tag]
             }
         }
         else {
-            queue = [{ node: tag, outputs: schemaToWML({ tag, options: { ...options, multipleInCategory: true }, schemaToWML, optionsFactory }) }]
+            //
+            // Increase granularity as much as needed in order to fit within line length limits
+            //
+            if (isSchemaTagPrintItemSingle(tagGroup)) {
+                throw new Error('Non-free-text tagGroup in schemaDescriptionToWML')
+            }
+            const { returnValue: adjacentItems, siblings: finalSiblings } = tagGroup.tags.reduce<{ returnValue: PrintQueue[]; siblings: GenericTree<SchemaTag> }>((accumulator, tag) => ({
+                returnValue: [...accumulator.returnValue, { node: tag, outputs: schemaToWML({ tag: tag, options, schemaToWML, optionsFactory }) }],
+                siblings: [...accumulator.siblings, tag]
+            }), { returnValue: [], siblings: previous.siblings })
+            const { nestingLevel, indexInLevel } = printQueueIdealSettings(adjacentItems, { ...options, multipleInCategory: true, siblings: previous.siblings })
+            const outputLines = printQueuedTags(
+                adjacentItems,
+                { ...options, siblings: previous.siblings, nestingLevel, indexInLevel }
+            )
+            const newReturnValue: PrintMapResult = (nestingLevel === PrintMode.naive)
+                ? { printMode: PrintMode.naive, output: outputLines.join('') }
+                : { printMode: PrintMode.nested, output: outputLines.map((value) => (value.trim())).join('\n') }
+            return {
+                returnValue: [...previous.returnValue, newReturnValue],
+                siblings: finalSiblings
+            }
+
         }
-    })
-    if (options.multipleInCategory) {
-        return combineResults()(
-            [{ printMode: PrintMode.naive, output: outputLines.join('') }, { printMode: PrintMode.nested, output: outputLines.join('\n') }],
-            ...queue.map(({ outputs }) => (outputs))
-        )
-    }
-    const { nestingLevel, indexInLevel } = printQueueIdealSettings(queue, { ...options, siblings: currentSiblings })
-    console.log(`queue: ${JSON.stringify(queue, null, 4)}`)
-    console.log(`NestingLevel: ${nestingLevel}`)
-    outputLines = [...outputLines, ...printQueuedTags(queue, { ...options, siblings: currentSiblings, nestingLevel, indexInLevel })]
-    console.log(`outputLines: ${JSON.stringify(outputLines, null, 4)}`)
-    if (nestingLevel === PrintMode.naive) {
-        return [
-            { printMode: PrintMode.naive, output: outputLines.join('') },
-            { printMode: PrintMode.nested, output: outputLines.map((value) => (value.trim())).filter((value) => (value)).join('\n') }
-        ]
-    }
-    else {
-        return [{ printMode: PrintMode.nested, output: outputLines.map((value) => (value.trim())).join('\n') }]
-    }
+    }, { returnValue: [], siblings: options.siblings ?? [] })
+    return combineResults({ separateLines: Boolean(queuedTags.returnValue.find(({ printMode }) => (printMode !== PrintMode.naive))) })(...queuedTags.returnValue.map((item) => ([item])))
 }

@@ -98,3 +98,18 @@ export type PrintMapResult = {
 export type PrintMapEntry = {
     (args: PrintMapEntryArguments): PrintMapResult[];
 }
+
+export type SchemaTagPrintItemSingle = {
+    type: 'single' | 'singleFreeText';
+    tag: GenericTreeNode<SchemaTag>;
+}
+
+export type SchemaTagPrintItemGroup = {
+    type: 'adjacentGroup';
+    tags: GenericTree<SchemaTag>;
+}
+
+export type SchemaTagPrintItem = SchemaTagPrintItemSingle | SchemaTagPrintItemGroup
+
+export const isSchemaTagPrintItemSingle = (item: SchemaTagPrintItem): item is SchemaTagPrintItemSingle => (['single', 'singleFreeText'].includes(item.type))
+export const isSchemaTagPrintItemFreeText = (item: SchemaTagPrintItem) => (['adjacentGroup', 'singleFreeText'].includes(item.type))

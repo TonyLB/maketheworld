@@ -1,11 +1,10 @@
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "../baseClasses"
 import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
-import { PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, PrintMapResult, PrintMode, SchemaToWMLOptions } from "./baseClasses"
-import { combineResults, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"
+import { isSchemaTagPrintItemSingle, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode, SchemaTagPrintItem, SchemaToWMLOptions } from "./baseClasses"
+import { areAdjacent, combineResults, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"
 import { schemaDescriptionToWML } from "./prettyPrint/freeText"
 import { optionsFactory } from "./utils"
-import { maxIndicesByNestingLevel, minIndicesByNestingLevel, provisionalPrintFactory } from "./printUtils"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
 
 type TagRenderProperty = {
@@ -40,56 +39,95 @@ export const tagRenderContents = (
             schemaToWML: PrintMapEntry;
         }
     ) => (contents: GenericTree<SchemaTag>): PrintMapResult[] => {
-    const { indent, context, multipleInCategory } = options
-    return contents.reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag>; taggedMessageStack: GenericTree<SchemaTag> }>((previous, tag, index) => {
-        const { data } = tag
-        //
-        // Branch 1: Free text in a legal context should be parsed using schemaDescriptionToWML (which includes the more-sophisticated
-        // word-wrap functionality that can break strings across lines as needed)
-        //
-        if (descriptionContext && isSchemaTaggedMessageLegalContents(data)) {
-            //
-            // Branch 1.1: You are at the end of the description, so take all previous tags, as well as this tag, and run the whole list
-            // through schemaDescriptionToWML using an added indent.
-            //
-            if (index === contents.length - 1) {
-                const schemaDescription = schemaDescriptionToWML(schemaToWML)([ ...previous.taggedMessageStack, tag ], { indent, context, padding: 0, multipleInCategory })
-                return {
-                    returnValue: previous.returnValue.length ? combineResults({ multipleInCategory })(previous.returnValue, schemaDescription) : schemaDescription,
-                    siblings: [ ...previous.siblings, tag],
-                    taggedMessageStack: []
+    const { multipleInCategory } = options
+    //
+    // First you create a list of tags/tag-groups
+    //
+    const tagPrintItems = contents.reduce<SchemaTagPrintItem[]>((previous, tag) => {
+        if (!previous.length) {
+            return [{
+                type: isSchemaTaggedMessageLegalContents(tag.data) ? 'single' as const : 'singleFreeText' as const,
+                tag
+            }]
+        }
+        const lastItem = previous.slice(-1)[0]
+        const lastData = isSchemaTagPrintItemSingle(lastItem)
+            ? lastItem.tag.data
+            : lastItem.tags.slice(-1)[0].data
+        if (descriptionContext && isSchemaTaggedMessageLegalContents(lastData) && isSchemaTaggedMessageLegalContents(tag.data) && areAdjacent(lastData, tag.data)) {
+            return [
+                ...previous.slice(0, -1),
+                { type: 'adjacentGroup' as const, tags: [...(isSchemaTagPrintItemSingle(lastItem) ? [lastItem.tag] : lastItem.tags), tag] }
+            ]
+        }
+        else {
+            return [
+                ...previous,
+                {
+                    type: isSchemaTaggedMessageLegalContents(tag.data) ? 'single' as const : 'singleFreeText' as const,
+                    tag
                 }
-            }
-            //
-            // Branch 1.2: There are more tags to consider after this one ... throw this free-text onto the taggedMessage stack and proceed.
-            //
-            else {
-                return {
-                    returnValue: previous.returnValue,
-                    siblings: [ ...previous.siblings, tag],
-                    taggedMessageStack: [ ...previous.taggedMessageStack, tag ]
-                }
-            }
+            ]
+        }
+    }, [])
+    //
+    // Second, group the list into freeText and non-freeText lists
+    //
+    const tagPrintGroups = tagPrintItems.reduce<SchemaTagPrintItem[][]>((previous, item) => {
+        if (!previous.length) {
+            return [[item]]
         }
         //
-        // Branch 2: Non-free-text tags need to be handled by an algorithm that doesn't worry about word-wrap... but also must be conscious that
-        // the tag may be rendered *right after* a long free-text section.  Render free-text if there is any on the taggedMessage stack,
-        // then render the tag with a recursive call to the passed schemaToWML callback function.
+        // If incoming item is of the same class (free-text or not) with the 
+        // most recent previous grouping then merge it into that grouping
+        //
+        if (
+            (previous.slice(-1)[0][0].type === 'single' && item.type === 'single') ||
+            !(previous.slice(-1)[0][0].type === 'single' || item.type === 'single')
+        ) {
+            return [
+                ...previous.slice(0, -1),
+                [...previous.slice(-1)[0], item]
+            ]
+        }
+        //
+        // Otherwise, start a new group of the different class
         //
         else {
+            return [...previous, [item]]
+        }
+    }, [])
 
-            const newOptions = { ...options, siblings: previous.siblings, context: [...options.context, data] }
-            const combinedPrevious = previous.taggedMessageStack.length
-                ? combineResults({ multipleInCategory })(previous.returnValue, schemaDescriptionToWML(schemaToWML)(previous.taggedMessageStack, { ...newOptions, padding: 0 }))
-                : previous.returnValue
-            const tagOutput = schemaToWML({ tag: { data, children: tag.children as GenericTree<SchemaTag> }, options: newOptions, schemaToWML, optionsFactory })
+    return tagPrintGroups.reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((previous, tagPrintGroup) => {
+
+        if (tagPrintGroup[0].type === 'single') {
+            return tagPrintGroup
+                .filter(isSchemaTagPrintItemSingle)
+                .reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((accumulator, tagPrintItem) => {
+                    const newOptions = { ...options, siblings: accumulator.siblings, context: [...options.context, tagPrintItem.tag.data] }
+                    const newOutput = schemaToWML({ tag: tagPrintItem.tag, options: newOptions, schemaToWML, optionsFactory })
+                    return {
+                        returnValue: combineResults({ separateLines: true, multipleInCategory })(accumulator.returnValue, newOutput),
+                        siblings: [...accumulator.siblings, tagPrintItem.tag]
+                    }
+                }, previous)
+        }
+        else {
+            const newOptions = { ...options, siblings: previous.siblings }
             return {
-                returnValue: combinedPrevious.length ? combineResults({ separateLines: true, ignoreWhitespace: true, multipleInCategory })(combinedPrevious, tagOutput) : tagOutput,
-                siblings: [ ...previous.siblings, tag],
-                taggedMessageStack: []
+                returnValue: combineResults({ multipleInCategory })(previous.returnValue, schemaDescriptionToWML(schemaToWML)(tagPrintGroup, { ...newOptions, padding: 0 })),
+                siblings: tagPrintGroup.reduce<GenericTree<SchemaTag>>((accumulator, tagPrint) => {
+                    if (tagPrint.type === 'adjacentGroup') {
+                        return [...accumulator, ...tagPrint.tags]
+                    }
+                    else {
+                        return [...accumulator, tagPrint.tag]
+                    }
+                }, previous.siblings)
             }
         }
-    }, { returnValue: [{ printMode: PrintMode.naive, output: '' }, { printMode: PrintMode.nested, output: '' }], siblings: [], taggedMessageStack: [] }).returnValue
+
+    }, { returnValue: [{ printMode: PrintMode.naive, output: '' }, { printMode: PrintMode.nested, output: '' }], siblings: [] }).returnValue
 }
 
 //
@@ -132,7 +170,6 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
         context: [...options.context, node.data],
         indent: options.indent + 1
     })(node.children)
-    console.log(`tagRenderContents: ${JSON.stringify(contents, null, 4)}`)
     const mappedContents = options.multipleInCategory ? contents : optimalLineResults({ indent: options.indent + 1 })(contents)
 
     if (!mappedContents[0]?.output?.length) {

@@ -1,3 +1,4 @@
+import { SchemaTag, isSchemaConditionFallthrough, isSchemaConditionStatement, isSchemaLineBreak, isSchemaSpacer, isSchemaString } from "../baseClasses"
 import { PrintMapResult, PrintMode } from "./baseClasses"
 
 export const indentSpacing = (indent: number): string => {
@@ -5,6 +6,20 @@ export const indentSpacing = (indent: number): string => {
 }
 
 export const lineLengthAfterIndent = (indent: number): number => (Math.max(40, 80 - indent * 4))
+
+export const areAdjacent = (a: SchemaTag, b: SchemaTag) => {
+    const spaces = Boolean(
+        (isSchemaString(a) && a.value.match(/\s$/)) ||
+        (isSchemaString(b) && b.value.match(/^\s/)) ||
+        isSchemaLineBreak(a) ||
+        isSchemaSpacer(a) ||
+        isSchemaLineBreak(b) ||
+        isSchemaSpacer(b) ||
+        (isSchemaConditionStatement(a) && (isSchemaConditionStatement(b) || isSchemaConditionFallthrough(b)))
+    )
+    return !spaces
+}
+
 
 //
 // SECTION: Utility functions for dealing with multiple-render listings, and organizing them by nesting level
@@ -115,17 +130,11 @@ export const combineResults = (options: { multipleInCategory?: boolean; property
         const combineTransform = (printMode: PrintMode, separator: string, ignoreWhitespace?: boolean) => (inputA: PrintMapResult, inputB: PrintMapResult) => (
             (!ignoreWhitespace || inputB.output.trim())
                 ? inputA.output
-                    ? { printMode, output: [inputA.output, inputB.output].join(separator)}
+                    ? { printMode, output: [separator === '' ? inputA.output : inputA.output.trimEnd(), inputB.output].join(separator)}
                     : inputB
                 : inputA
         )
         const returnValues =
-
-            //
-            // TODO: Add an "independent" property so that if there IS a naive interpretation then
-            // it combines that, otherwise it combines the nested (checking both previous and current
-            // independently)
-            //
             options.separateLines
                 ? [
                     ...combineLevel(previousNaive.length ? previousNaive : previousNested, currentNaive.length ? currentNaive : currentNested, combineTransform(PrintMode.nested, '\n', Boolean(options.ignoreWhitespace))),
@@ -134,11 +143,10 @@ export const combineResults = (options: { multipleInCategory?: boolean; property
                 : [
                     // Combine naive, if available, on a single line
                     ...combineLevel(previousNaive, currentNaive, combineTransform(PrintMode.naive, '')),
-                    ...combineLevel(previousNested, currentNested, combineTransform(PrintMode.nested, ''))
+                    ...(Boolean([...previous, ...output].find(({ printMode }) => (printMode === PrintMode.nested))) ? combineLevel(previousNested, currentNested, combineTransform(PrintMode.nested, '')) : [])
                 ]
 
         if (options.multipleInCategory) {
-            console.log(`multiple in category: ${JSON.stringify(returnValues, null, 4)}`)
             return returnValues
         }
         else {
