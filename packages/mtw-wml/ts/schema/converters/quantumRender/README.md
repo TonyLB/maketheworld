@@ -125,7 +125,9 @@ more PrintMapResult data types, which include:
 
 ### combine
 
-To-be-documented
+Combine accepts arguments which are each a list of PrintMapResults (as per the output of base renders),
+and combines them into one aggregate list of PrintMapResults that combines the output at each level
+of nesting.
 
 ### collapse
 
