@@ -10,7 +10,7 @@ import parse from "../simpleParser"
 import { genericIDFromTree } from "../tree/genericIDTree"
 import standardizeSchema from "./standardize"
 import { lineLengthAfterIndent } from "./converters/printUtils"
-import { maxLineLength } from "./converters/prettyPrint/freeText"
+import { maxLineLength } from "./converters/quantumRender/freeText"
 
 class SchemaAggregator {
     contextStack: GenericTree<SchemaTag> = [];

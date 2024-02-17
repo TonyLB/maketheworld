@@ -3,7 +3,7 @@ import { isLegalParseConditionContextTag } from "../../parser/baseClasses"
 import { escapeWMLCharacters } from "../../lib/escapeWMLCharacters"
 import { isSchemaTagPrintItemSingle, PrintMapEntry, PrintMapEntryArguments, PrintMapResult, PrintMode, SchemaTagPrintItem, SchemaToWMLOptions } from "./baseClasses"
 import { areAdjacent, combineResults, indentSpacing, lineLengthAfterIndent, optimalLineResults } from "./printUtils"
-import { schemaDescriptionToWML } from "./prettyPrint/freeText"
+import { schemaDescriptionToWML } from "./quantumRender/freeText"
 import { optionsFactory } from "./utils"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
 
