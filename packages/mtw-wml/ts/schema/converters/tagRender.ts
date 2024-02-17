@@ -46,7 +46,7 @@ export const tagRenderContents = (
     const tagPrintItems = contents.reduce<SchemaTagPrintItem[]>((previous, tag) => {
         if (!previous.length) {
             return [{
-                type: isSchemaTaggedMessageLegalContents(tag.data) ? 'single' as const : 'singleFreeText' as const,
+                type: isSchemaTaggedMessageLegalContents(tag.data) ? 'singleFreeText' as const : 'single' as const,
                 tag
             }]
         }
@@ -64,7 +64,7 @@ export const tagRenderContents = (
             return [
                 ...previous,
                 {
-                    type: isSchemaTaggedMessageLegalContents(tag.data) ? 'single' as const : 'singleFreeText' as const,
+                    type: isSchemaTaggedMessageLegalContents(tag.data) ? 'singleFreeText' as const : 'single' as const,
                     tag
                 }
             ]
@@ -98,6 +98,7 @@ export const tagRenderContents = (
         }
     }, [])
 
+    console.log(`tagPrintGroups: ${JSON.stringify(tagPrintGroups, null, 4)}`)
     return tagPrintGroups.reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((previous, tagPrintGroup) => {
 
         if (tagPrintGroup[0].type === 'single') {
