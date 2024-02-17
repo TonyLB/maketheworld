@@ -1,16 +1,13 @@
 import {
     SchemaConditionFallthroughTag,
     SchemaConditionStatementTag,
-    SchemaTag,
     isSchemaCondition,
     isSchemaConditionFallthrough,
     isSchemaConditionStatement
 } from "../baseClasses"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMapOptionsChange, PrintMapResult, PrintMode } from "./baseClasses"
+import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments, PrintMode } from "./baseClasses"
 import { extractConditionContextTag, tagRender, tagRenderContents } from "./tagRender"
-import { maxIndicesByNestingLevel, minIndicesByNestingLevel, provisionalPrintFactory } from "./printUtils"
-import { indentSpacing, lineLengthAfterIndent } from "./printUtils"
 import { validateProperties } from "./utils"
 
 const conditionalTemplates = {

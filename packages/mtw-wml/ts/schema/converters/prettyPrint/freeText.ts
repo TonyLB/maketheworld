@@ -81,7 +81,7 @@ const breakTagsOnFirstStringWhitespace = (tags: PrintQueue[], options: SchemaToW
 
 const excludeSpacing = (tag) => (Boolean(!isSchemaString(tag) || tag.value.trim()))
 
-const printQueuedTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { nestingLevel: PrintMode; indexInLevel: number }): string[] => {
+const printAdjacentTags = (queue: PrintQueue[], options: SchemaToWMLOptions & { nestingLevel: PrintMode; indexInLevel: number }): string[] => {
     const { indent, siblings, nestingLevel, indexInLevel } = options
     let currentSiblings = [...(siblings ?? [])]
     let outputLines: string[] = []
@@ -135,7 +135,7 @@ const printQueueIdealSettings = (queue: PrintQueue[], options: SchemaToWMLOption
     let indexInLevel = 0            
     const maxIndices = maxIndicesByNestingLevel(queue.map(({ outputs }) => (outputs)))
     const provisionalPrint = () => {
-        const returnValue = printQueuedTags(
+        const returnValue = printAdjacentTags(
             queue,
             { ...options, nestingLevel, indexInLevel }
         )
@@ -173,7 +173,7 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tagGroups
             //
             const singleItem: PrintQueue = { node: tagGroup.tag, outputs: schemaToWML({ tag: tagGroup.tag, options, schemaToWML, optionsFactory }) }
             const { nestingLevel, indexInLevel } = printQueueIdealSettings([singleItem], { ...options, multipleInCategory: true, siblings: currentSiblings })
-            const outputLines = printQueuedTags(
+            const outputLines = printAdjacentTags(
                 [singleItem],
                 { ...options, siblings: currentSiblings, nestingLevel, indexInLevel }
             )
@@ -193,11 +193,12 @@ export const schemaDescriptionToWML = (schemaToWML: PrintMapEntry) => (tagGroups
                 throw new Error('Non-free-text tagGroup in schemaDescriptionToWML')
             }
             const { returnValue: adjacentItems, siblings: finalSiblings } = tagGroup.tags.reduce<{ returnValue: PrintQueue[]; siblings: GenericTree<SchemaTag> }>((accumulator, tag) => ({
-                returnValue: [...accumulator.returnValue, { node: tag, outputs: schemaToWML({ tag: tag, options, schemaToWML, optionsFactory }) }],
+                returnValue: [...accumulator.returnValue, { node: tag, outputs: schemaToWML({ tag: tag, options: { ...options, multipleInCategory: true, siblings: accumulator.siblings }, schemaToWML, optionsFactory }) }],
                 siblings: [...accumulator.siblings, tag]
             }), { returnValue: [], siblings: previous.siblings })
+            console.log(`adjacent Print: ${JSON.stringify(adjacentItems, null, 4)}`)
             const { nestingLevel, indexInLevel } = printQueueIdealSettings(adjacentItems, { ...options, multipleInCategory: true, siblings: previous.siblings })
-            const outputLines = printQueuedTags(
+            const outputLines = printAdjacentTags(
                 adjacentItems,
                 { ...options, siblings: previous.siblings, nestingLevel, indexInLevel }
             )
