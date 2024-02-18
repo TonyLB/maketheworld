@@ -98,7 +98,6 @@ export const tagRenderContents = (
         }
     }, [])
 
-    console.log(`tagPrintGroups: ${JSON.stringify(tagPrintGroups, null, 4)}`)
     return tagPrintGroups.reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((previous, tagPrintGroup) => {
 
         if (tagPrintGroup[0].type === 'single') {
@@ -199,9 +198,12 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
     const contentsNaive = mappedContents.find(({ printMode }) => (printMode === PrintMode.naive))
     const contentsNested = mappedContents.find(({ printMode }) => (printMode === PrintMode.nested))
 
-    const naiveOutput = Boolean(contentsNaive && contentsNaive.output.length) ? { printMode: PrintMode.naive, output: `${tagOpen}${contentsNaive?.output ?? ''}${tagClose}` } : undefined
-    const nestedOutput = { printMode: PrintMode.nested, output: `${tagOpen}\n${indentSpacing(1)}${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
-    const propertyNestedOutput = { printMode: PrintMode.propertyNested, output: `${nestedTagOpen}\n${indentSpacing(1)}${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
+    const naiveOutput: PrintMapResult | undefined = Boolean(contentsNaive && contentsNaive.output.length) ? { printMode: PrintMode.naive, tag, output: `${tagOpen}${contentsNaive?.output ?? ''}${tagClose}` } : undefined
+    const nestedOutput = { printMode: PrintMode.nested, tag, output: `${tagOpen}\n${indentSpacing(1)}${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
+    const propertyNestedOutput = { printMode: PrintMode.propertyNested, tag, output: `${nestedTagOpen}\n${indentSpacing(1)}${(contentsNaive ?? contentsNested ?? { output: '' }).output.split('\n').join(`\n${indentSpacing(1)}`)}\n${tagClose}` }
+    //
+    // TODO: Remove the filter below that is (crudely) attempting to collapse the quantumRender records
+    //
     return [naiveOutput, nestedOutput, propertyNestedOutput]
         .filter((value): value is PrintMapResult => (Boolean(value)))
         .filter((value) => ((value.printMode !== PrintMode.naive) || (value.output.length < lineLengthAfterIndent(indent))))

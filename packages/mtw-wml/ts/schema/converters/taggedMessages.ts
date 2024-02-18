@@ -135,8 +135,8 @@ export const taggedMessagePrintMap: Record<string, PrintMapEntry> = {
     ),
     String: ({ tag: { data: tag } }: PrintMapEntryArguments) => (
         isSchemaString(tag)
-            ? [{ printMode: PrintMode.naive, output: escapeWMLCharacters(tag.value) }]
-            : [{ printMode: PrintMode.naive, output: '' }]
+            ? [{ printMode: PrintMode.naive, tag: 'String' as const, output: escapeWMLCharacters(tag.value) }]
+            : [{ printMode: PrintMode.naive, tag: 'String' as const, output: '' }]
     ),
     Link: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
         isSchemaLink(tag)

@@ -92,6 +92,7 @@ export enum PrintMode {
 //
 export type PrintMapResult = {
     printMode: PrintMode;
+    tag?: string;
     output: string;
 }
 
