@@ -13,7 +13,11 @@ import { PrintMapResult, PrintMode } from "../baseClasses";
 // include item 2, etc. Arguments that don't have enough items will copy their last item, but otherwise
 // the function will step through row by row, rather than create a cross-product.
 //
-export const combine = (...args: PrintMapResult[][]): PrintMapResult[] => {
+type CombineTransform = {
+    (args: { printMode: PrintMode; separator: string; ignoreWhitespace?: boolean }): (inputA: PrintMapResult, inputB: PrintMapResult) => PrintMapResult
+}
+
+const combineFactory = (combineTransform: CombineTransform) => (...args: PrintMapResult[][]): PrintMapResult[] => {
     return args.reduce<PrintMapResult[]>((previous, output) => {
         if (previous.length === 0) {
             return output
@@ -38,21 +42,22 @@ export const combine = (...args: PrintMapResult[][]): PrintMapResult[] => {
                 : Array.apply(null, Array(Math.max(listA.length, listB.length)))
                     .map((_, index) => (transform(listA[Math.min(index, listA.length - 1)], listB[Math.min(index, listB.length - 1)])))
         )
-        const combineTransform = (printMode: PrintMode, separator: string, ignoreWhitespace?: boolean) => (inputA: PrintMapResult, inputB: PrintMapResult) => (
-            (!ignoreWhitespace || inputB.output.trim())
-                ? inputA.output
-                    ? { printMode, output: [separator === '' ? inputA.output : inputA.output.trimEnd(), inputB.output].join(separator)}
-                    : inputB
-                : inputA
-        )
         return [
             // Combine naive, if available, on a single line
-            ...combineLevel(previousNaive, currentNaive, combineTransform(PrintMode.naive, '')),
-            ...(Boolean([...previous, ...output].find(({ printMode }) => (printMode === PrintMode.nested))) ? combineLevel(previousNested, currentNested, combineTransform(PrintMode.nested, '\n')) : []),
-            ...(Boolean([...previous, ...output].find(({ printMode }) => (printMode === PrintMode.propertyNested))) ? combineLevel(previousPropertyNested, currentPropertyNested, combineTransform(PrintMode.nested, '\n')) : [])
+            ...combineLevel(previousNaive, currentNaive, combineTransform({ printMode: PrintMode.naive, separator: '' })),
+            ...(Boolean([...previous, ...output].find(({ printMode }) => (printMode === PrintMode.nested))) ? combineLevel(previousNested, currentNested, combineTransform({ printMode: PrintMode.nested, separator: '\n' })) : []),
+            ...(Boolean([...previous, ...output].find(({ printMode }) => (printMode === PrintMode.propertyNested))) ? combineLevel(previousPropertyNested, currentPropertyNested, combineTransform({ printMode: PrintMode.nested, separator: '\n' })) : [])
         ]
 
     }, [])
 }
+
+export const combine = combineFactory(({ printMode, separator, ignoreWhitespace }: { printMode: PrintMode, separator: string, ignoreWhitespace?: boolean }) => (inputA: PrintMapResult, inputB: PrintMapResult) => (
+    (!ignoreWhitespace || inputB.output.trim())
+        ? inputA.output
+            ? { printMode, output: [separator === '' ? inputA.output : inputA.output.trimEnd(), inputB.output].join(separator)}
+            : inputB
+        : inputA
+))
 
 export default combine
