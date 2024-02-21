@@ -283,46 +283,28 @@ export const wordWrapCombine = (indent: number) => combineFactory(({ printMode, 
 // in pairs, so that the expansion of results that needs to happen can happen once, 
 // instead of N-1 times for N arguments.
 //
-const wrapperCombine = (...args: PrintMapResult[][]): PrintMapResult[] => {
-    return args.reduce<PrintMapResult[]>((previous, output) => {
-        const currentNaive = output.filter(({ printMode }) => (printMode === PrintMode.naive))
-        const currentNested = output.find(({ printMode }) => (printMode === PrintMode.nested))
-            ? output.filter(({ printMode }) => (printMode === PrintMode.nested))
-            : [currentNaive.slice(-1)[0]]
-        const currentPropertyNested = output.find(({ printMode }) => (printMode === PrintMode.propertyNested))
-            ? output.filter(({ printMode }) => (printMode === PrintMode.propertyNested))
-            : [currentNested.slice(-1)[0]]
-        const combineLevel = (listA: PrintMapResult[], listB: PrintMapResult[], transform: (inputA: PrintMapResult, inputB: PrintMapResult) => PrintMapResult): PrintMapResult[] => (
-            Math.min(listA.length, listB.length) === 0
-                ? []
-                : Array.apply(null, Array(Math.max(listA.length, listB.length)))
-                    .map((_, index) => (transform(listA[Math.min(index, listA.length - 1)], listB[Math.min(index, listB.length - 1)])))
-        )
-        if (previous.length === 0) {
-            return [
-                // Combine naive, if available, on a single line
-                ...combineLevel([{ printMode: PrintMode.naive, output: '' }], currentNaive, simpleCombineTransform({ printMode: PrintMode.naive, separator: '' })),
-                ...combineLevel([{ printMode: PrintMode.naive, output: '' }], currentNaive, simpleCombineTransform({ printMode: PrintMode.naive, separator: '\n' })),
-                ...(Boolean(output.find(({ printMode }) => (printMode === PrintMode.nested))) ? combineLevel([{ printMode: PrintMode.nested, output: '' }], currentNested, simpleCombineTransform({ printMode: PrintMode.nested, separator: '\n' })) : []),
-                ...(Boolean(output.find(({ printMode }) => (printMode === PrintMode.propertyNested))) ? combineLevel([{ printMode: PrintMode.propertyNested, output: '' }], currentPropertyNested, simpleCombineTransform({ printMode: PrintMode.nested, separator: '\n' })) : [])
-            ]    
-        }
-        const previousNaive = previous.filter(({ printMode }) => (printMode === PrintMode.naive))
-        const previousNested = previous.find(({ printMode }) => (printMode === PrintMode.nested))
-            ? previous.filter(({ printMode }) => (printMode === PrintMode.nested))
-            : previousNaive
-        const previousPropertyNested = previous.find(({ printMode }) => (printMode === PrintMode.propertyNested))
-            ? previous.filter(({ printMode }) => (printMode === PrintMode.propertyNested))
-            : previousNested
-        return [
-            // Combine naive, if available, on a single line
-            ...combineLevel(previousNaive, currentNaive, simpleCombineTransform({ printMode: PrintMode.naive, separator: '' })),
-            ...combineLevel(previousNaive, currentNaive, simpleCombineTransform({ printMode: PrintMode.naive, separator: '\n' })),
-            ...(Boolean([...previous, ...output].find(({ printMode }) => (printMode === PrintMode.nested))) ? combineLevel(previousNested, currentNested, simpleCombineTransform({ printMode: PrintMode.nested, separator: '\n' })) : []),
-            ...(Boolean([...previous, ...output].find(({ printMode }) => (printMode === PrintMode.propertyNested))) ? combineLevel(previousPropertyNested, currentPropertyNested, simpleCombineTransform({ printMode: PrintMode.nested, separator: '\n' })) : [])
-        ]
 
-    }, [])
+const wrapperCombineFactoryAggregator = (combineTransform: CombineTransform, ...args: CombineFactoryLevel[]): PrintMapResult[] => {
+    const allHaveNaive = !Boolean(args.find(({ naive }) => (naive.length === 0)))
+    const allHaveNested = !Boolean(args.find(({ naive, nested }) => (naive.length === 0 && nested.length === 0)))
+    const naiveMaxLevels = Math.max(...args.map(({ naive }) => (naive.length)))
+    const nestedMaxLevels = Math.max(...args.map(({ nested }) => (nested.length)))
+    const propertyNestedMaxLevels = Math.max(...args.map(({ propertyNested }) => (propertyNested.length)))
+    const paddedLevels = args
+        .map((level) => (padLevel(level, naiveMaxLevels, nestedMaxLevels, propertyNestedMaxLevels)))
+        .map(({ naive, nested, propertyNested }) => ({
+            naive: allHaveNaive ? naive : [],
+            nested: allHaveNested ? nested : [],
+            propertyNested
+        }))
+    return [
+        ...combineLevels(combineTransform({ printMode: PrintMode.naive, separator: '' }))(...paddedLevels.map(({ naive }) => (naive))),
+        ...combineLevels(combineTransform({ printMode: PrintMode.nested, separator: '\n' }))(...paddedLevels.map(({ naive }) => (naive))),
+        ...combineLevels(combineTransform({ printMode: PrintMode.nested, separator: '\n' }))(...paddedLevels.map(({ nested }) => (nested))),
+        ...combineLevels(combineTransform({ printMode: PrintMode.propertyNested, separator: '\n' }))(...paddedLevels.map(({ propertyNested }) => (propertyNested)))
+    ]
 }
+
+export const wrapperCombine = combineFactory(simpleCombineTransform, wrapperCombineFactoryAggregator)
 
 export default combine

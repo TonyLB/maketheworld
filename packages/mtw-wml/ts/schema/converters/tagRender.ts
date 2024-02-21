@@ -6,7 +6,8 @@ import { areAdjacent, combineResults, indentSpacing, lineLengthAfterIndent, opti
 import { schemaDescriptionToWML } from "./quantumRender/freeText"
 import { optionsFactory } from "./utils"
 import { GenericTree, GenericTreeNode } from "../../tree/baseClasses"
-import { wordWrapCombine } from "./quantumRender/combine"
+import combine, { wordWrapCombine } from "./quantumRender/combine"
+import collapse from "./quantumRender/collapse"
 
 type TagRenderProperty = {
     key?: string;
@@ -106,9 +107,9 @@ export const tagRenderContents = (
                 .filter(isSchemaTagPrintItemSingle)
                 .reduce<{ returnValue: PrintMapResult[]; siblings: GenericTree<SchemaTag> }>((accumulator, tagPrintItem) => {
                     const newOptions = { ...options, siblings: accumulator.siblings, context: [...options.context, tagPrintItem.tag.data] }
-                    const newOutput = schemaToWML({ tag: tagPrintItem.tag, options: newOptions, schemaToWML, optionsFactory })
+                    const newOutput = collapse(schemaToWML({ tag: tagPrintItem.tag, options: newOptions, schemaToWML, optionsFactory }))
                     return {
-                        returnValue: combineResults({ separateLines: true, multipleInCategory })(accumulator.returnValue, newOutput),
+                        returnValue: combine(accumulator.returnValue, [newOutput]),
                         siblings: [...accumulator.siblings, tagPrintItem.tag]
                     }
                 }, previous)
