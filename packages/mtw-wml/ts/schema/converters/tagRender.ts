@@ -114,7 +114,7 @@ export const tagRenderContents = (
                     }
                 }, { outputs: [], siblings: previous.siblings })
             return {
-                returnValue: [collapse(separateLinesCombine(...(outputs.map((output) => ([output])))), { indent: options.indent })],
+                returnValue: [collapse(separateLinesCombine({ force: !descriptionContext })(...(outputs.map((output) => ([output])))), { indent: options.indent })],
                 siblings
             }
         }
@@ -147,7 +147,7 @@ export const tagRenderContents = (
 //
 export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<PrintMapEntryArguments, 'tag'> & { tag: string, properties: TagRenderProperty[]; node: GenericTreeNode<SchemaTag> }): PrintMapResult[] => {
     const { indent, context } = options
-    const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit"].includes(extractConditionContextTag([...context, node.data]) || '')
+    const descriptionContext = ["Description", "Name", "FirstImpression", "OneCoolThing", "Outfit", "Message", "Moment"].includes(extractConditionContextTag([...context, node.data]) || '')
     //
     // Individual properties can be rendered before knowing how they will be sorted (and kept in a list).
     //

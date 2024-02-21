@@ -307,10 +307,18 @@ const wrapperCombineFactoryAggregator = (combineTransform: CombineTransform, ...
 
 export const wrapperCombine = combineFactory(simpleCombineTransform, wrapperCombineFactoryAggregator)
 
-const separateLinesCombineFactoryAggregator = (combineTransform: CombineTransform, ...args: CombineFactoryLevel[]): PrintMapResult[] => {
-    return combineLevels(combineTransform({ printMode: PrintMode.nested, separator: '\n' }))(...args.map(({ naive, nested, propertyNested }) => ([[...naive, ...nested, ...propertyNested][0]])))
+const separateLinesCombineFactoryAggregator = ({ force }: { force: boolean }) => (combineTransform: CombineTransform, ...args: CombineFactoryLevel[]): PrintMapResult[] => {
+    const naiveSingleLines = args.map(({ naive }) => (naive.filter(({ output }) => (output.split('\n').length === 1))))
+    const allHaveSingleLineNaive = !Boolean(naiveSingleLines.find((list) => (list.length === 0)))
+    const maxNaiveLength = Math.max(...naiveSingleLines.map((list) => (list.length)))
+    return [
+        ...((allHaveSingleLineNaive && !force)
+            ? combineLevels(combineTransform({ printMode: PrintMode.naive, separator: '' }))(...naiveSingleLines.map((list) => (padArray(list, maxNaiveLength))))
+            : []),
+        ...combineLevels(combineTransform({ printMode: PrintMode.nested, separator: '\n' }))(...args.map(({ naive, nested, propertyNested }) => ([[...naive, ...nested, ...propertyNested][0]])))
+    ]
 }
 
-export const separateLinesCombine = combineFactory(simpleCombineTransform, separateLinesCombineFactoryAggregator)
+export const separateLinesCombine = (options: { force: boolean }) => combineFactory(simpleCombineTransform, separateLinesCombineFactoryAggregator(options))
 
 export default combine
